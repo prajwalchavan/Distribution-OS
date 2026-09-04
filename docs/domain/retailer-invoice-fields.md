@@ -1,0 +1,7 @@
+<!-- Extracted from docs/research/R09-domain-operations.md (2026-09-04). Marketing-sourced numbers are directional. -->
+
+# Exact data a retailer bill needs (union of Rule 46, FSSAI, Legal Metrology and the three observed formats)
+
+Header: distributor legal name, address, GSTIN, FSSAI no., contact/UPI ID and UPI QR; document type ("Tax Invoice"/"Bill of Supply") and copy label (Original/Duplicate/Triplicate; brand DMS prints "Seller Copy 1/3"); invoice no. (per-series, sequential), date, time, due date/credit days; retailer name, shop address, phone, retailer code, GSTIN if any (else "URP"), FSSAI if known, beat name, salesman name + phone, delivery person/vehicle, order ref (SO no.), place of supply/state code, brand-DMS references when applicable (Buyer ERP Id, Item ERP Id, SO/IN numbers as on invoice E).
+Line: item name as retailer knows it, brand, HSN, batch no., expiry/best-before (snacks), **MRP**, UoM shown as pcs with case equivalent, qty, free qty, rate (per piece and per case), scheme name/id and scheme discount, secondary discount %, cash discount %, taxable value, GST % and CGST/SGST (or IGST) amounts, line total.
+Footer: subtotal, total discount, taxable total, tax split by rate, round-off, grand total in words; previous outstanding, amount received now, mode (cash/UPI/cheque ref), new balance; returns/credit notes adjusted; e-way bill no. if generated; "Goods once sold..." and brand return-policy text; signature/OTP acknowledgment.

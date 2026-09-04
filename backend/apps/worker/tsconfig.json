@@ -1,0 +1,9 @@
+{
+  "extends": "@dos/config/tsconfig/node-app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false
+  },
+  "include": ["src", "vitest.config.ts"]
+}

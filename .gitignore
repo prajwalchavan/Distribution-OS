@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+.next/
+.expo/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# local scratch postgres data
+.pgdata/

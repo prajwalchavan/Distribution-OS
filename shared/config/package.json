@@ -1,0 +1,35 @@
+{
+  "name": "@dos/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared tsconfig, eslint, prettier and vitest presets for the Distribution OS monorepo",
+  "type": "module",
+  "exports": {
+    "./tsconfig/*": "./tsconfig/*",
+    "./eslint/base": "./eslint/base.js",
+    "./eslint/backend": "./eslint/backend.js",
+    "./vitest": {
+      "types": "./vitest.preset.d.ts",
+      "default": "./vitest.preset.js"
+    }
+  },
+  "files": [
+    "tsconfig",
+    "eslint",
+    "vitest.preset.js",
+    "vitest.preset.d.ts"
+  ],
+  "dependencies": {
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-boundaries": "catalog:",
+    "typescript-eslint": "catalog:"
+  },
+  "peerDependencies": {
+    "vitest": "*"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

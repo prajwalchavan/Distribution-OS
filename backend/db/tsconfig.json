@@ -1,0 +1,7 @@
+{
+  "extends": "@dos/config/tsconfig/node-library.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "vitest.config.ts", "drizzle.config.ts"]
+}

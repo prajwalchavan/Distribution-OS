@@ -1,0 +1,33 @@
+{
+  "name": "@dos/worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Background jobs on pg-boss: outbox relay, scheduled aggregates, imports, document extraction",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@dos/db": "workspace:*",
+    "@dos/domain": "workspace:*",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg-boss": "catalog:",
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@dos/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "pino-pretty": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

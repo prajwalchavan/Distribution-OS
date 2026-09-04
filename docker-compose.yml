@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: dos-db
+    environment:
+      POSTGRES_USER: dos
+      POSTGRES_PASSWORD: dos
+      POSTGRES_DB: dos
+    ports:
+      - '5432:5432'
+    volumes:
+      - dos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dos -d dos']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dos-pgdata:
