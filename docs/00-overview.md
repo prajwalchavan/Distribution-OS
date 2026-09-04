@@ -29,3 +29,5 @@ Six real documents from Tarsun (Aug 2026): a Guru Kripa (MOM makhana) Tally-styl
 ## How the skeleton maps to the plan
 
 `shared/domain` (paise, pieces, GST, UUIDv7, state machines, price precedence), `shared/contracts` (Zod + oRPC), `backend/db` (Drizzle schema with RLS as code; tenancy + platform tables from ADRs 0001/0002/0007), `backend/apps/api` (NestJS 12 on Fastify; health + tenancy; one folder per module), `backend/apps/worker` (pg-boss outbox relay), `frontend/apps/team` + `frontend/apps/retailer` (Expo SDK 57), `frontend/apps/console` (Vite + React 19), `frontend/packages/{ui,api-client,offline}`, `infra/`. `CLAUDE.md` at the root holds commands and the rules that keep the codebase honest.
+
+Review outputs: `docs/design/VERDICTS.md` (adversarial verification of the synthesis), `docs/design/COMPLETENESS.md` (gap analysis + first 10 tickets), and `docs/17-corrections-from-review.md` (what was adopted, the migration-0004 schema deltas, and the questions for the founder). `docs/16-module-implementation-pattern.md` is the recipe every backend module follows.

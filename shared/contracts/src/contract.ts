@@ -18,7 +18,13 @@ import {
   UpsertSupplierOutput,
 } from './catalog.js'
 import { HealthOutputSchema } from './health.js'
+import { syncContract } from './sync.js'
+import { inventoryContract } from './inventory.js'
+import { procurementContract } from './procurement.js'
 import { MeOutputSchema } from './tenancy.js'
+import { retailersContract } from './retailers.js'
+import { pricingContract } from './pricing.js'
+import { ordersContract } from './orders.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -38,42 +44,84 @@ export const contract = {
   },
   catalog: {
     search: oc
-      .route({ method: 'GET', path: '/catalog/variants', summary: 'Search the global product master' })
+      .route({
+        method: 'GET',
+        path: '/catalog/variants',
+        summary: 'Search the global product master',
+      })
       .input(CatalogSearchInput)
       .output(CatalogSearchOutput),
     manufacturers: oc
-      .route({ method: 'GET', path: '/catalog/manufacturers', summary: 'Manufacturers with their brands' })
+      .route({
+        method: 'GET',
+        path: '/catalog/manufacturers',
+        summary: 'Manufacturers with their brands',
+      })
       .output(ManufacturersListOutput),
     propose: oc
-      .route({ method: 'POST', path: '/catalog/proposals', summary: 'Propose a missing product; usable immediately' })
+      .route({
+        method: 'POST',
+        path: '/catalog/proposals',
+        summary: 'Propose a missing product; usable immediately',
+      })
       .input(ProposeProductInput)
       .output(ProposeProductOutput),
   },
   tenantCatalog: {
     list: oc
-      .route({ method: 'GET', path: '/tenant-catalog/products', summary: 'What this distributor sells (no cost)' })
+      .route({
+        method: 'GET',
+        path: '/tenant-catalog/products',
+        summary: 'What this distributor sells (no cost)',
+      })
       .input(TenantCatalogListInput)
       .output(TenantCatalogListOutput),
     upsertListing: oc
-      .route({ method: 'POST', path: '/tenant-catalog/products', summary: 'List/unlist a variant and set order rules' })
+      .route({
+        method: 'POST',
+        path: '/tenant-catalog/products',
+        summary: 'List/unlist a variant and set order rules',
+      })
       .input(UpsertListingInput)
       .output(UpsertListingOutput),
     suppliers: oc
-      .route({ method: 'GET', path: '/tenant-catalog/suppliers', summary: 'Suppliers of this distributor' })
+      .route({
+        method: 'GET',
+        path: '/tenant-catalog/suppliers',
+        summary: 'Suppliers of this distributor',
+      })
       .output(SuppliersListOutput),
     upsertSupplier: oc
-      .route({ method: 'POST', path: '/tenant-catalog/suppliers', summary: 'Create or update a supplier' })
+      .route({
+        method: 'POST',
+        path: '/tenant-catalog/suppliers',
+        summary: 'Create or update a supplier',
+      })
       .input(UpsertSupplierInput)
       .output(UpsertSupplierOutput),
     costs: oc
-      .route({ method: 'GET', path: '/tenant-catalog/costs', summary: 'Purchase costs (owner/manager/accountant only)' })
+      .route({
+        method: 'GET',
+        path: '/tenant-catalog/costs',
+        summary: 'Purchase costs (owner/manager/accountant only)',
+      })
       .input(CostsListInput)
       .output(CostsListOutput),
     upsertCost: oc
-      .route({ method: 'POST', path: '/tenant-catalog/costs', summary: 'Set purchase cost (owner/manager/accountant only)' })
+      .route({
+        method: 'POST',
+        path: '/tenant-catalog/costs',
+        summary: 'Set purchase cost (owner/manager/accountant only)',
+      })
       .input(UpsertCostInput)
       .output(UpsertCostOutput),
   },
+  retailers: retailersContract,
+  sync: syncContract,
+  pricing: pricingContract,
+  inventory: inventoryContract,
+  procurement: procurementContract,
+  orders: ordersContract,
 }
 
 export type AppContract = typeof contract

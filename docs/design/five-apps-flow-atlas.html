@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Distribution OS Flow Atlas</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      :root {
+        --paper: #f5f7f4;
+        --panel: #fbfcfa;
+        --ink: #16211c;
+        --ink-2: #4b5a52;
+        --ink-3: #7e8c84;
+        --line: #d6ddd8;
+        --line-2: #b9c4bd;
+        --stamp: #1f6f5f;
+        --stamp-bg: #e3f0eb;
+        --van: #c8553d;
+        --van-bg: #f8e7e2;
+        --amber: #b7791f;
+        --amber-bg: #f7eedc;
+        --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+        --diagram-ground: #fbfcfa;
+        --diagram-ink: #16211c;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --paper: #121816;
+          --panel: #1a211e;
+          --ink: #e6ebe7;
+          --ink-2: #b6c1ba;
+          --ink-3: #83918a;
+          --line: #2c3631;
+          --line-2: #3e4a44;
+          --stamp: #5fbfa5;
+          --stamp-bg: #173229;
+          --van: #e88a74;
+          --van-bg: #3a221c;
+          --amber: #d9a24a;
+          --amber-bg: #3a2e16;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --paper: #121816;
+        --panel: #1a211e;
+        --ink: #e6ebe7;
+        --ink-2: #b6c1ba;
+        --ink-3: #83918a;
+        --line: #2c3631;
+        --line-2: #3e4a44;
+        --stamp: #5fbfa5;
+        --stamp-bg: #173229;
+        --van: #e88a74;
+        --van-bg: #3a221c;
+        --amber: #d9a24a;
+        --amber-bg: #3a2e16;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      a {
+        color: var(--stamp);
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 40px 28px 80px;
+      }
+      header.top {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 32px;
+        align-items: end;
+        border-bottom: 1px solid var(--line-2);
+        padding-bottom: 28px;
+        margin-bottom: 36px;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin: 0 0 10px;
+      }
+      h1 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 40px;
+        line-height: 1.1;
+        margin: 0;
+        text-wrap: balance;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 26px;
+        line-height: 1.2;
+        margin: 0;
+        text-wrap: balance;
+      }
+      h3 {
+        font-family: var(--sans);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 22px 0 8px;
+      }
+      .lede {
+        color: var(--ink-2);
+        margin: 14px 0 0;
+        max-width: 62ch;
+      }
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 18px;
+        font-size: 14px;
+        color: var(--ink-2);
+      }
+      .legend .k {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sw {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid var(--line-2);
+        display: inline-block;
+      }
+      nav.toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 36px;
+      }
+      nav.toc a {
+        font-family: var(--mono);
+        font-size: 13px;
+        text-decoration: none;
+        color: var(--ink-2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 12px;
+        background: var(--panel);
+      }
+      nav.toc a:hover,
+      nav.toc a:focus-visible {
+        border-color: var(--stamp);
+        color: var(--stamp);
+        outline: none;
+      }
+      section.app {
+        border-top: 1px solid var(--line-2);
+        padding: 32px 0 10px;
+        margin-top: 8px;
+      }
+      .apphead {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px 32px;
+        align-items: start;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+        max-width: 360px;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid var(--line-2);
+        color: var(--ink-2);
+        background: var(--panel);
+      }
+      .chip.on {
+        background: var(--stamp-bg);
+        color: var(--stamp);
+        border-color: transparent;
+      }
+      .chip.warn {
+        background: var(--amber-bg);
+        color: var(--amber);
+        border-color: transparent;
+      }
+      .chip.van {
+        background: var(--van-bg);
+        color: var(--van);
+        border-color: transparent;
+      }
+      .who {
+        color: var(--ink-2);
+        margin: 6px 0 0;
+        max-width: 70ch;
+      }
+      .panel {
+        background: var(--diagram-ground);
+        border: 1px solid var(--line-2);
+        border-radius: 6px;
+        padding: 18px 18px 10px;
+        margin: 18px 0 10px;
+        overflow-x: auto;
+      }
+      .panel .cap {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: #7e8c84;
+        margin: 0 0 8px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .diagram {
+        min-width: 640px;
+      }
+      .diagram.narrow {
+        min-width: 300px;
+      }
+      .diagram svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+      .diagram .err {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: #c8553d;
+        white-space: pre-wrap;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px 28px;
+        margin: 6px 0 0;
+      }
+      ul.steps {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--ink-2);
+      }
+      ul.steps li {
+        margin: 0 0 6px;
+      }
+      ul.steps b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      code,
+      .st {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 1px 5px;
+        color: var(--ink);
+      }
+      .rule {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: start;
+        background: var(--panel);
+        border-left: 3px solid var(--stamp);
+        padding: 12px 14px;
+        margin: 16px 0 0;
+        font-size: 15px;
+        color: var(--ink-2);
+      }
+      .rule.van {
+        border-left-color: var(--van);
+      }
+      .rule .tag {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--stamp);
+        padding-top: 3px;
+        white-space: nowrap;
+      }
+      .rule.van .tag {
+        color: var(--van);
+      }
+      table.states {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+      table.states th,
+      table.states td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      table.states th {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        font-weight: 500;
+      }
+      footer {
+        margin-top: 48px;
+        border-top: 1px solid var(--line-2);
+        padding-top: 16px;
+        font-size: 13px;
+        color: var(--ink-3);
+      }
+      @media (max-width: 760px) {
+        header.top,
+        .apphead {
+          grid-template-columns: 1fr;
+        }
+        .chips {
+          justify-content: flex-start;
+          max-width: none;
+        }
+        h1 {
+          font-size: 32px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      @media print {
+        :root {
+          --paper: #ffffff;
+          --panel: #fbfcfa;
+          --ink: #16211c;
+          --ink-2: #4b5a52;
+          --ink-3: #7e8c84;
+          --line: #d6ddd8;
+          --line-2: #b9c4bd;
+          --stamp: #1f6f5f;
+          --stamp-bg: #e3f0eb;
+          --van: #c8553d;
+          --van-bg: #f8e7e2;
+          --amber: #b7791f;
+          --amber-bg: #f7eedc;
+        }
+        @page {
+          size: A4;
+          margin: 14mm;
+        }
+        body {
+          font-size: 12px;
+        }
+        .wrap {
+          max-width: none;
+          padding: 0;
+        }
+        nav.toc {
+          display: none;
+        }
+        header.top {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          padding-bottom: 16px;
+          margin-bottom: 16px;
+        }
+        h1 {
+          font-size: 28px;
+        }
+        h2 {
+          font-size: 20px;
+        }
+        section.app,
+        section#loop,
+        section#sync,
+        section#states {
+          break-before: page;
+          padding-top: 12px;
+        }
+        .panel {
+          break-inside: avoid;
+          overflow: visible;
+          padding: 10px;
+        }
+        .diagram {
+          min-width: 0;
+        }
+        .diagram svg {
+          max-width: 100%;
+          max-height: 230mm;
+          height: auto;
+        }
+        .rule,
+        .cols,
+        table.states {
+          break-inside: avoid;
+        }
+        .chips {
+          max-width: none;
+          justify-content: flex-start;
+        }
+        a {
+          text-decoration: none;
+          color: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div>
+          <p class="eyebrow">Distribution OS · Tarsun Enterprises pilot · September 2026</p>
+          <h1>Five apps, one order-to-cash loop</h1>
+          <p class="lede">
+            Who opens which screen, in what order, and what the system records at each step. Two
+            store binaries (the Team app with four role modules, and the Retailer app) plus the
+            owner's web console, all on one API and one tenant-isolated database.
+          </p>
+        </div>
+        <div class="legend" aria-label="Legend">
+          <span class="k"
+            ><i class="sw" style="background: #e3f0eb; border-color: #1f6f5f"></i>Records the system
+            writes</span
+          >
+          <span class="k"
+            ><i class="sw" style="background: #f7eedc; border-color: #b7791f"></i>Needs a human
+            decision</span
+          >
+          <span class="k"
+            ><i class="sw" style="background: #f8e7e2; border-color: #c8553d"></i>Exception / return
+            path</span
+          >
+          <span class="k"
+            ><i class="sw" style="background: #e8eef9; border-color: #3b5ba9"></i>Outside party
+            (retailer, brand DMS)</span
+          >
+        </div>
+      </header>
+
+      <nav class="toc" aria-label="Sections">
+        <a href="#map">System map</a><a href="#loop">Order-to-cash loop</a
+        ><a href="#sales">1 Salesperson</a><a href="#warehouse">2 Manager / warehouse</a
+        ><a href="#delivery">3 Delivery</a><a href="#owner">4 Owner</a
+        ><a href="#retailer">5 Retailer</a><a href="#sync">Offline sync</a
+        ><a href="#states">State machines</a>
+      </nav>
+
+      <section id="map">
+        <h2>System map: people, surfaces, one backend</h2>
+        <p class="who">
+          A person is one login (phone). Each distributor they work with is a separate tenant; the
+          role on that tenant decides which modules open. A shop can be linked to several
+          distributors and sees one card per link.
+        </p>
+        <div class="panel">
+          <p class="cap">Fig. 1 — who uses what</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              subgraph people["People"]
+                O["Owner<br/>Sunil, Tarsun"]
+                S["Salesperson<br/>beat rep"]
+                M["Manager<br/>godown"]
+                D["Delivery crew<br/>driver + helper"]
+                R["Retailer<br/>kirana shop"]
+                A["Accountant / CA"]
+              end
+              subgraph team["Team app · Expo, offline-first"]
+                TO["Owner module<br/>approvals · live map · day tiles"]
+                TS["Sales module<br/>beat · orders · bargain"]
+                TM["Warehouse module<br/>scan · GRN · pick/pack"]
+                TD["Delivery module<br/>trip · stops · collect · settle"]
+              end
+              subgraph console["Console · web"]
+                C1["Masters: catalog, costs,<br/>retailers, prices, schemes"]
+                C2["Billing desk · registers ·<br/>Tally export · imports"]
+              end
+              subgraph retail["Retailer app · web now, native later"]
+                RW["WhatsApp deep links"]
+                RP["Order · outstanding · deals"]
+              end
+              API[("NestJS API<br/>oRPC contract")]
+              DB[("Postgres 17<br/>tenant_id + RLS")]
+              W["Worker<br/>outbox · retention · PDFs"]
+              PS["PowerSync<br/>staff devices only"]
+              O --> TO & C1
+              S --> TS
+              M --> TM & C2
+              D --> TD
+              R --> RW --> RP
+              A --> C2
+              TO & TS & TM & TD --> PS --> API
+              C1 & C2 & RP --> API
+              API --> DB
+              W --> DB
+              classDef party fill:#E8EEF9,stroke:#3B5BA9,color:#16211C
+              class R,RW,RP party
+          </script>
+        </div>
+      </section>
+
+      <section id="loop">
+        <h2>The loop every rupee travels</h2>
+        <p class="who">
+          One sales order is the primary record; the invoice is issued once at pack and never
+          edited; money is a separate receipt allocated to bills. The same loop runs whether the
+          order came from a rep, the shop's own app, WhatsApp, or a van sale.
+        </p>
+        <div class="panel">
+          <p class="cap">Fig. 2 — order to cash across the five apps</p>
+          <script type="text/plain" class="mmd">
+            flowchart TB
+              subgraph L1["Retailer / Salesperson"]
+                a1["Shop asks or rep visits<br/>on beat day"]:::party
+                a2["Draft order in cases and pieces<br/>priced by the engine<br/>tier → override → schemes → bargain"]
+                a3["Submit<br/>SO number assigned"]
+              end
+              subgraph L2["Owner"]
+                b1{"Approval needed?<br/>credit limit · bargain ·<br/>below floor"}:::decide
+                b2["Approve / reject<br/>on the phone"]:::decide
+              end
+              subgraph L3["Manager / warehouse"]
+                c1["Confirmed<br/>stock reserved FEFO"]
+                c2["Picklist by beat / trip<br/>pick actual lots"]
+                c3["Pack per order<br/>short-packs recorded"]
+                c4["Invoice issued at pack<br/>INV/0001 · GST split · UPI QR · PDF"]
+                c5["Load sheet + delivery challan<br/>stock moves godown → vehicle"]
+              end
+              subgraph L4["Delivery crew"]
+                d1["Trip starts<br/>GPS on, consent noted"]
+                d2["Stop: delivered / partial / failed<br/>photo POD"]
+                d3["Collect cash · UPI · cheque<br/>receipt allocated bill-to-bill"]
+                d4["Returns and shortfalls<br/>→ credit note, stock back to van"]:::exc
+                d5["Settle: pieces and cash<br/>vs expected"]
+              end
+              subgraph L5["Retailer"]
+                e1["WhatsApp: invoice PDF,<br/>POD, receipt, UPI QR"]:::party
+                e2["Outstanding screen<br/>pay in bulk every 2–3 orders"]:::party
+              end
+              subgraph L6["Owner / Accountant"]
+                f1["Day tiles: collected, outstanding by age,<br/>cash in transit, at-risk stock"]
+                f2["Registers · GSTR-1 shape ·<br/>Tally XML · claims to brands"]
+              end
+              a1 --> a2 --> a3 --> b1
+              b1 -- no --> c1
+              b1 -- yes --> b2 --> c1
+              c1 --> c2 --> c3 --> c4 --> c5 --> d1 --> d2 --> d3 --> d5
+              d2 -.-> d4 -.-> d5
+              c4 --> e1
+              d3 --> e1 --> e2
+              d5 --> f1 --> f2
+              e2 -. next order .-> a1
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+              classDef exc fill:#F8E7E2,stroke:#C8553D,color:#16211C
+              classDef party fill:#E8EEF9,stroke:#3B5BA9,color:#16211C
+          </script>
+        </div>
+        <div class="rule">
+          <span class="tag">Fixed rule</span
+          ><span
+            >An issued GST invoice is never edited. A short delivery or return becomes a credit note
+            at the original rate; a bill cancelled before dispatch keeps its number with state
+            <span class="st">cancelled</span>. Payment state is derived from receipts and
+            allocations, never written on the invoice.</span
+          >
+        </div>
+      </section>
+
+      <section id="sales" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">App 1 · Team app, sales module</p>
+            <h2>Salesperson: the beat day</h2>
+            <p class="who">
+              Rahul covers Station Road on Mondays and Thursdays. Everything works with no signal;
+              the phone uploads when it can. A rep employed by a brand (Pooja for Too Yumm) sees
+              only that brand's items.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip on">offline-first</span><span class="chip">PowerSync</span
+            ><span class="chip">Hindi / English</span
+            ><span class="chip warn">never sees cost or margin</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 3 — from “aaj ka beat” to a confirmed order</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              s0["Today's beat<br/>shops in PJP order<br/>last order · outstanding chips"] --> s1["Check-in at shop<br/>geo-tag as evidence,<br/>amber if far, never a block"]
+              s1 --> s2{"Order?"}
+              s2 -- no --> s9["Visit logged<br/>reason: closed · stocked · refused"]:::exc
+              s2 -- yes --> s3["Reorder last / suggested<br/>or quick grid of authorised items"]
+              s3 --> s4["Case + pieces stepper<br/>“2 case = 48 pcs”<br/>ATP from sellable stock"]
+              s4 --> s5["Engine prices each line<br/>applied_rules stored<br/>Free · Scheme % · Disc ₹"]
+              s5 --> s6{"Within limits?"}
+              s6 -- credit strict / bargain over bound --> s7["Approval request<br/>to owner"]:::decide
+              s6 -- yes --> s8["Submit<br/>state: submitted → confirmed<br/>stock reserved"]
+              s7 --> s8
+              s8 --> s10["Uploads via sync<br/>server re-prices, WhatsApp<br/>confirmation to the shop"]
+              s10 -.-> s11["“Needs attention” tray<br/>if the server rejects"]:::exc
+              s9 --> s12["Next shop"]
+              s8 --> s12
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+              classDef exc fill:#F8E7E2,stroke:#C8553D,color:#16211C
+          </script>
+        </div>
+        <div class="cols">
+          <div>
+            <h3>Screens</h3>
+            <ul class="steps">
+              <li><b>Beat</b> · today's shops, pending-undelivered, outstanding.</li>
+              <li>
+                <b>Shop card</b> · last order, usual basket, days since visit, request bargain.
+              </li>
+              <li><b>Order editor</b> · shared with the retailer app.</li>
+              <li><b>Performance</b> · target, achievement, computed incentive (no payroll).</li>
+            </ul>
+          </div>
+          <div>
+            <h3>What gets recorded</h3>
+            <ul class="steps">
+              <li><span class="st">visits</span> with outcome and geo-tag.</li>
+              <li>
+                <span class="st">sales_orders</span> + lines with
+                <span class="st">entered_qty / unit</span> and
+                <span class="st">applied_rules</span>.
+              </li>
+              <li>
+                <span class="st">bargain_requests</span>, auto-approved inside the rep's bound.
+              </li>
+              <li><span class="st">sync_ops</span> so a retried upload never double-posts.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="warehouse" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">App 2 · Team app, warehouse module + console billing desk</p>
+            <h2>Manager: stock in, orders out</h2>
+            <p class="who">
+              Vikas runs the godown. Inbound is the “zero typing” promise: a manufacturer invoice
+              enters stock by photo, with the blind gate count as the only typed number. Outbound
+              turns confirmed orders into packed cartons, legal invoices and a loaded van.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip on">camera</span><span class="chip">A4 print from the console</span
+            ><span class="chip warn">GRN never auto-commits</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 4 — inbound: manufacturer invoice to stock</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              i0["Truck arrives<br/>photo of invoice + LR"]:::party --> i1{"QR / IRN<br/>on the bill?"}
+              i1 -- yes --> i2["Verify IRN, pull<br/>structured invoice"]
+              i1 -- no --> i3["LLM vision extraction<br/>full-resolution pages"]
+              i2 --> i4["Validators: totals, GST split,<br/>HSN, qty × rate"]
+              i3 --> i4
+              i4 --> i5["SKU match<br/>aliases · supplier codes · EAN<br/>“x 90” vs “_120” pack configs"]
+              i5 --> i6["Human review<br/>red lines only;<br/>unknown case size typed here"]:::decide
+              i6 --> i7["GRN opened<br/>expected pieces per line"]
+              i7 --> i8["Blind gate count<br/>counted · damaged"]:::decide
+              i8 --> i9{"Matches?"}
+              i9 -- short / excess / damaged --> i10["Discrepancy logged<br/>→ supplier claim"]:::exc
+              i9 -- yes --> i11["GRN posted<br/>lots with batch · MRP · expiry<br/>stock ledger + costs updated"]
+              i10 --> i11
+              i11 --> i12["Stock visible to reps<br/>within one sync"]
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+              classDef exc fill:#F8E7E2,stroke:#C8553D,color:#16211C
+              classDef party fill:#E8EEF9,stroke:#3B5BA9,color:#16211C
+          </script>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 5 — outbound: confirmed order to loaded van</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              o0["Order queue<br/>grouped by beat / trip"] --> o1["Picklist consolidated by SKU<br/>FEFO lot suggested"]
+              o1 --> o2["Pick with actual lot<br/>short pick = reason, not an edit"]
+              o2 --> o3["Pack per order<br/>cartons, weight"]
+              o3 --> o4["Invoice issued<br/>series number · GST by place of supply<br/>UPI QR · FSSAI · PDF"]
+              o4 --> o5["Load sheet<br/>last stop loaded first"]
+              o5 --> o6["Check-out count by crew<br/>manager's PIN"]:::decide
+              o6 --> o7["Delivery challan<br/>e-way bill if value > threshold"]
+              o7 --> o8["Stock: godown → vehicle<br/>transfer_out / transfer_in"]
+              o4 -.-> o9["Too Yumm bills printed in FieldAssist<br/>captured before loading,<br/>linked, never re-issued"]:::party
+              o9 -.-> o5
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+              classDef party fill:#E8EEF9,stroke:#3B5BA9,color:#16211C
+          </script>
+        </div>
+        <div class="rule">
+          <span class="tag">Brand DMS</span
+          ><span
+            >Too Yumm mandates FieldAssist for billing. Those invoices are captured the same way as
+            inbound bills and committed as <span class="st">source = brand_dms_import</span>, so
+            delivery, collection and outstanding stay complete without a second legal invoice.
+            Day-end is a count: “DMS printed 23, we captured 23”.</span
+          >
+        </div>
+      </section>
+
+      <section id="delivery" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">App 3 · Team app, delivery module</p>
+            <h2>Delivery crew: the trip</h2>
+            <p class="who">
+              Ganesh drives, Raju collects. A vehicle is a stock location, so the crew inherits
+              stock responsibility from check-out to check-in. Location is shared only while a trip
+              is active and the phone says so in a persistent notification.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip on">offline-first</span><span class="chip">trip-scoped GPS</span
+            ><span class="chip van">van sales from vehicle stock</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 6 — start trip to settlement</p>
+          <script type="text/plain" class="mmd">
+            flowchart TB
+              t0["Start trip<br/>consent noted · float cash<br/>GPS points batched to the server"] --> t1["Next stop<br/>map hand-off · shop phone visible"]
+              t1 --> t2{"At the door"}
+              t2 -- delivered --> t3["One tap · photo POD<br/>receiver name"]
+              t2 -- partial --> t4["Per-line qty + reason<br/>shortfall → credit note"]:::exc
+              t2 -- failed --> t5["Reason: closed · refused · no cash<br/>goods stay on van"]:::exc
+              t3 --> t6["Collect: cash · UPI with UTR · cheque<br/>receipt numbered on the phone<br/>allocated oldest bill first"]
+              t4 --> t6
+              t6 --> t7{"Shop wants more<br/>from the van?"}
+              t7 -- yes --> t8["On-spot order against vehicle stock<br/>invoice from the vehicle series<br/>slip via WhatsApp / print"]:::van
+              t7 -- no --> t9["Next stop"]
+              t8 --> t9
+              t5 --> t9
+              t9 --> t10{"Stops left?"}
+              t10 -- yes --> t1
+              t10 -- no --> t11["Check-in: count unsold<br/>and returned stock"]:::decide
+              t11 --> t12["Settlement cockpit<br/>expected vs declared cash<br/>expenses · variance"]
+              t12 --> t13{"Within tolerance?"}
+              t13 -- yes --> t14["Trip settled"]
+              t13 -- no --> t15["settled_with_variance<br/>needs owner approval"]:::decide
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+              classDef exc fill:#F8E7E2,stroke:#C8553D,color:#16211C
+              classDef van fill:#F8E7E2,stroke:#C8553D,color:#16211C,stroke-dasharray:4 3
+          </script>
+        </div>
+        <div class="cols">
+          <div>
+            <h3>What the shop gets</h3>
+            <ul class="steps">
+              <li>Invoice PDF and POD on WhatsApp at delivery.</li>
+              <li>A receipt message the moment cash or UPI is taken.</li>
+              <li>ETA from the trip, never the crew's live trace.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>What the owner sees</h3>
+            <ul class="steps">
+              <li>Live map from one position per vehicle.</li>
+              <li>Cash in transit per trip; red settlements in the approvals queue.</li>
+              <li>
+                Raw GPS points expire after 90 days; stop coordinates and POD stay with the invoice.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="owner" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">App 4 · Team app owner module + web console</p>
+            <h2>Owner: decide on the phone, configure at the desk</h2>
+            <p class="who">
+              Sunil approves from the phone between calls and sits at the console with the CA. The
+              console is also where a new distributor is set up: catalog listing, costs, retailers,
+              price lists, schemes, staff and beats.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip on">console live today</span><span class="chip">phone tiles next</span
+            ><span class="chip warn">only role that sees margin</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 7 — the owner's two surfaces</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              subgraph phone["Phone · during the day"]
+                p1["Day tiles<br/>collected · cash in transit ·<br/>outstanding by age · at-risk stock"]
+                p2["Approvals queue<br/>credit · bargain · price variance ·<br/>red settlement · GRN exceptions"]:::decide
+                p3["Live map<br/>vehicles and stops"]
+              end
+              subgraph desk["Console · setup and month-end"]
+                c1["Catalog & costs<br/>what we sell, at what cost"]
+                c2["Retailers & beats<br/>tier · credit limit · mode"]
+                c3["Price lists & schemes<br/>overrides · bargain bounds"]
+                c4["Billing desk<br/>A4 invoices · day-end"]
+                c5["Registers & exports<br/>GSTR-1 shape · Tally XML · claims"]
+                c6["Imports<br/>TradeEzee exports · FieldAssist files"]
+              end
+              p2 --> ord["Orders confirm<br/>or cancel"]
+              c1 & c2 & c3 --> eng["Pricing engine inputs<br/>same on phone and server"]
+              c6 --> c2
+              c4 --> c5
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+          </script>
+        </div>
+        <div class="rule">
+          <span class="tag">Guarantee</span
+          ><span
+            >Purchase cost and margin live in a table only owner, manager and accountant roles can
+            read. That is a database rule (row-level security) plus a test that runs on every
+            change, not a screen setting.</span
+          >
+        </div>
+      </section>
+
+      <section id="retailer" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">App 5 · WhatsApp first, then the web app, then native</p>
+            <h2>Retailer: the shop's side of the ledger</h2>
+            <p class="who">
+              Shree Ganesh Kirana buys from Tarsun and from one other distributor. One login, one
+              card per distributor. The shop sees its own bills, deliveries and dues; it never sees
+              its tier or credit limit, and never another shop's data.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">online-first</span><span class="chip on">WhatsApp deep links</span
+            ><span class="chip">pays in bulk every 2–3 orders</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 8 — from a WhatsApp message to a paid bill</p>
+          <script type="text/plain" class="mmd">
+            flowchart LR
+              r0["Shopkeeper texts<br/>“bhai 2 case campa 1L kal”"] --> r1["Parsed against the shop's own<br/>purchase history → draft order"]
+              r0 --> r2["Opens the app link<br/>reorder · running low · deals<br/>quantities limited to available stock"]
+              r1 --> r3["Draft lands in the distributor's<br/>approvals · confirmation message"]:::sys
+              r2 --> r3
+              r3 --> r4["Status from the order machine<br/>confirmed → packed → out for delivery"]:::sys
+              r4 --> r5["Invoice PDF + POD<br/>on WhatsApp at delivery"]:::sys
+              r5 --> r6["Outstanding screen<br/>shaped like the pending-bills file<br/>UPI QR per bill"]
+              r6 --> r7["Pays the crew or by UPI<br/>receipt message follows"]:::sys
+              r6 -.-> r8["Request a discount<br/>→ bargain queue"]:::decide
+              r2 -.-> r9["Discover distributors<br/>opt-in; new links start prepaid"]
+              classDef sys fill:#E3F0EB,stroke:#1F6F5F,color:#16211C
+              classDef decide fill:#F7EEDC,stroke:#B7791F,color:#16211C
+          </script>
+        </div>
+      </section>
+
+      <section id="sync" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">Cross-cutting</p>
+            <h2>Offline sync: why a lost signal never loses an order</h2>
+            <p class="who">
+              Staff phones write locally first. The server never answers an upload with a client
+              error, because that would wedge the phone's queue; a business rejection comes back as
+              a “needs attention” item instead.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip">staff devices only</span><span class="chip on">never 4xx</span
+            ><span class="chip">replay-safe 180 days</span>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 9 — an order placed with no signal</p>
+          <script type="text/plain" class="mmd">
+            sequenceDiagram
+              participant Rep as Rep's phone
+              participant Sync as Sync upload
+              participant API as API + database
+              participant Shop as Retailer (WhatsApp)
+              Rep->>Rep: Draft priced locally, saved to device DB
+              Note over Rep: No signal at the shop
+              Rep->>Sync: Upload batch (device id, op ids) when online
+              Sync->>API: For each op: seen before? → replay stored outcome
+              API->>API: Re-price, validate credit, reserve stock
+              alt accepted
+                API-->>Sync: ok (recorded in sync_ops)
+                API->>Shop: Order confirmed message
+              else business rejection
+                API-->>Sync: 2xx + sync_errors row (Hindi + English)
+                Sync-->>Rep: “Needs attention” tray item
+              end
+              Sync-->>Rep: Statuses sync back, dot turns green
+          </script>
+        </div>
+      </section>
+
+      <section id="states" class="app">
+        <div class="apphead">
+          <div>
+            <p class="eyebrow">Reference</p>
+            <h2>The three state machines the apps share</h2>
+            <p class="who">
+              Every screen reads the same vocabulary. Code never sets a state by hand; it asks the
+              machine for the next state given an event.
+            </p>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="cap">Fig. 10 — sales order</p>
+          <script type="text/plain" class="mmd">
+            stateDiagram-v2
+              direction LR
+              [*] --> draft
+              draft --> submitted: submit
+              draft --> cancelled: cancel
+              submitted --> confirmed: confirm (approvals cleared)
+              submitted --> cancelled: cancel
+              confirmed --> picking: start_picking
+              confirmed --> cancelled: cancel (reservations released)
+              picking --> packed: pack (invoice issued)
+              packed --> dispatched: dispatch
+              dispatched --> delivered: deliver_all
+              dispatched --> partially_delivered: deliver_partial
+              dispatched --> packed: return_undelivered
+              delivered --> closed: close
+              partially_delivered --> closed: close
+              closed --> [*]
+              cancelled --> [*]
+          </script>
+        </div>
+        <div class="cols">
+          <div class="panel" style="margin-top: 0">
+            <p class="cap">Fig. 11 — trip and stop</p>
+            <script type="text/plain" class="mmd" data-narrow="1">
+              stateDiagram-v2
+                direction TB
+                state Trip {
+                  planned --> loading
+                  loading --> active
+                  active --> closing
+                  closing --> settled
+                  closing --> settled_with_variance
+                }
+                state Stop {
+                  pending --> started
+                  started --> arrived
+                  arrived --> delivered
+                  arrived --> partial
+                  arrived --> failed
+                }
+            </script>
+          </div>
+          <div class="panel" style="margin-top: 0">
+            <p class="cap">Fig. 12 — invoice</p>
+            <script type="text/plain" class="mmd" data-narrow="1">
+              stateDiagram-v2
+                direction TB
+                [*] --> issued: issued at pack
+                issued --> partially_paid: receipt allocated
+                partially_paid --> paid
+                issued --> paid
+                issued --> cancelled: before dispatch
+                paid --> written_off
+                partially_paid --> written_off
+            </script>
+          </div>
+        </div>
+        <table class="states">
+          <thead>
+            <tr>
+              <th>Vocabulary</th>
+              <th>Meaning on the shop floor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="st">submitted</span> vs <span class="st">confirmed</span></td>
+              <td>
+                Submitted is what the rep did; confirmed is what the business accepted (credit,
+                bargain, floor price cleared). Stock is reserved only on confirmed.
+              </td>
+            </tr>
+            <tr>
+              <td><span class="st">packed</span></td>
+              <td>
+                Cartons exist and the invoice number is burnt. From here, changes are credit notes.
+              </td>
+            </tr>
+            <tr>
+              <td><span class="st">settled_with_variance</span></td>
+              <td>
+                Cash or pieces did not tie out at check-in; the owner must approve before the trip
+                closes.
+              </td>
+            </tr>
+            <tr>
+              <td><span class="st">written_off</span></td>
+              <td>Bad debt decided by the owner; the AR ledger reverses, the invoice stays.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer>
+        Source: docs/02, 05, 06, 07 and the state machines in shared/domain. Figures show the pilot
+        configuration for Tarsun Enterprises; roles and flows are identical for every distributor
+        tenant.
+      </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+    <script>
+      ;(function () {
+        if (!window.mermaid) return
+        var vars = {
+          fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+          fontSize: '13px',
+          primaryColor: '#E3F0EB',
+          primaryTextColor: '#16211C',
+          primaryBorderColor: '#1F6F5F',
+          secondaryColor: '#F7EEDC',
+          secondaryTextColor: '#16211C',
+          secondaryBorderColor: '#B7791F',
+          tertiaryColor: '#FBFCFA',
+          tertiaryTextColor: '#16211C',
+          tertiaryBorderColor: '#B9C4BD',
+          lineColor: '#4B5A52',
+          textColor: '#16211C',
+          nodeTextColor: '#16211C',
+          clusterBkg: '#F5F7F4',
+          clusterBorder: '#B9C4BD',
+          titleColor: '#4B5A52',
+          edgeLabelBackground: '#FBFCFA',
+          labelBackground: '#FBFCFA',
+          actorBkg: '#E3F0EB',
+          actorBorder: '#1F6F5F',
+          actorTextColor: '#16211C',
+          actorLineColor: '#B9C4BD',
+          signalColor: '#4B5A52',
+          signalTextColor: '#16211C',
+          noteBkgColor: '#F7EEDC',
+          noteBorderColor: '#B7791F',
+          noteTextColor: '#16211C',
+          activationBkgColor: '#E3F0EB',
+          activationBorderColor: '#1F6F5F',
+          sequenceNumberColor: '#16211C',
+          labelBoxBkgColor: '#FBFCFA',
+          labelBoxBorderColor: '#B9C4BD',
+          labelTextColor: '#16211C',
+          loopTextColor: '#16211C',
+          altBackground: '#F5F7F4',
+          background: '#FBFCFA',
+          mainBkg: '#E3F0EB',
+        }
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'loose',
+          suppressErrorRendering: true,
+          theme: 'base',
+          themeVariables: vars,
+          flowchart: {
+            htmlLabels: true,
+            useMaxWidth: true,
+            curve: 'basis',
+            nodeSpacing: 34,
+            rankSpacing: 44,
+            padding: 12,
+          },
+          sequence: { useMaxWidth: true, mirrorActors: false, wrap: true, width: 190 },
+          state: { useMaxWidth: true },
+        })
+        var blocks = document.querySelectorAll('script.mmd')
+        blocks.forEach(function (block, i) {
+          var src = block.textContent.trim()
+          var el = document.createElement('div')
+          el.className = 'diagram' + (block.dataset.narrow ? ' narrow' : '')
+          block.parentNode.replaceChild(el, block)
+          mermaid
+            .render('dos-fig-' + i, src)
+            .then(function (out) {
+              el.innerHTML = out.svg
+              if (out.bindFunctions) out.bindFunctions(el)
+            })
+            .catch(function (e) {
+              el.innerHTML =
+                '<pre class="err">Diagram failed to render: ' +
+                String((e && e.message) || e) +
+                '</pre>'
+              document
+                .querySelectorAll('body > svg[id^="dos-fig-"], body > div[id^="ddos-fig-"]')
+                .forEach(function (n) {
+                  n.remove()
+                })
+            })
+        })
+      })()
+    </script>
+  </body>
+</html>

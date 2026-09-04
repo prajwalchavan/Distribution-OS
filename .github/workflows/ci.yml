@@ -39,5 +39,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+      - run: pnpm docs:readme:check
       - run: pnpm db:migrate
       - run: pnpm test

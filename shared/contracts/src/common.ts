@@ -26,7 +26,7 @@ export const GstinSchema = z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A
 
 export const StateCodeSchema = z.string().regex(/^\d{2}$/)
 
-export const LocaleSchema = z.enum(['en-IN', 'hi-IN'])
+export const LocaleSchema = z.enum(['en-IN', 'hi-IN', 'mr-IN'])
 
 export const MembershipRoleSchema = z.enum([
   'owner',
@@ -39,3 +39,7 @@ export const MembershipRoleSchema = z.enum([
 export type MembershipRole = z.infer<typeof MembershipRoleSchema>
 
 export const MutationBase = z.object({ idempotencyKey: IdempotencyKeySchema })
+
+/** GET inputs arrive as query strings; these accept both the typed value and its string form. */
+export const QueryBoolSchema = z.union([z.boolean(), z.stringbool()])
+export const QueryIntSchema = z.coerce.number().int()

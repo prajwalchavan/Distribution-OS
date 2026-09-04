@@ -6,10 +6,10 @@ engineStrict: true
 
 packages:
   - shared/*
-  - backend/db
-  - backend/apps/*
+  - backend-services/*
   - frontend/apps/*
   - frontend/packages/*
+  - frontend-apps/*
 
 allowBuilds:
   esbuild: true

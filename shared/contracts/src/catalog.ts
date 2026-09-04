@@ -1,12 +1,27 @@
 import { z } from 'zod'
-import { BpsSchema, GstinSchema, IdSchema, MutationBase, PaiseSchema, PhoneSchema, StateCodeSchema } from './common.js'
+import {
+  BpsSchema,
+  GstinSchema,
+  IdSchema,
+  MutationBase,
+  PaiseSchema,
+  PhoneSchema,
+  QueryBoolSchema,
+  QueryIntSchema,
+  StateCodeSchema,
+} from './common.js'
 
 /** Global product master (ADR 0005) as seen by every app. Never carries cost. */
 
 export const NetUnitSchema = z.enum(['g', 'kg', 'ml', 'l', 'pcs'])
 export const ProductStatusSchema = z.enum(['active', 'proposed', 'merged_into', 'discontinued'])
 
-export const ManufacturerSchema = z.object({ id: IdSchema, name: z.string(), legalName: z.string().nullable(), gstin: z.string().nullable() })
+export const ManufacturerSchema = z.object({
+  id: IdSchema,
+  name: z.string(),
+  legalName: z.string().nullable(),
+  gstin: z.string().nullable(),
+})
 export const BrandSchema = z.object({ id: IdSchema, manufacturerId: IdSchema, name: z.string() })
 
 /** One searchable row: a variant with its product/brand/manufacturer names flattened for lists. */
@@ -35,13 +50,18 @@ export const CatalogSearchInput = z.object({
   q: z.string().trim().max(80).optional(),
   manufacturerId: IdSchema.optional(),
   brandId: IdSchema.optional(),
-  includeProposed: z.boolean().default(true),
-  limit: z.number().int().min(1).max(200).default(50),
+  includeProposed: QueryBoolSchema.default(true),
+  limit: QueryIntSchema.min(1).max(200).default(50),
   cursor: z.string().optional(),
 })
-export const CatalogSearchOutput = z.object({ items: z.array(VariantSummarySchema), nextCursor: z.string().nullable() })
+export const CatalogSearchOutput = z.object({
+  items: z.array(VariantSummarySchema),
+  nextCursor: z.string().nullable(),
+})
 
-export const ManufacturersListOutput = z.object({ items: z.array(ManufacturerSchema.extend({ brands: z.array(BrandSchema) })) })
+export const ManufacturersListOutput = z.object({
+  items: z.array(ManufacturerSchema.extend({ brands: z.array(BrandSchema) })),
+})
 
 /** A distributor proposing a product it sells that the global catalog lacks; usable immediately as `proposed`. */
 export const ProposeProductInput = MutationBase.extend({
@@ -58,10 +78,17 @@ export const ProposeProductInput = MutationBase.extend({
   promoExtra: z.number().int().positive().optional(),
   defaultCaseSize: z.number().int().positive(),
   hsnCode: z.string().regex(/^\d{4,8}$/),
-  ean: z.string().regex(/^\d{8,14}$/).optional(),
+  ean: z
+    .string()
+    .regex(/^\d{8,14}$/)
+    .optional(),
   mrpPaise: PaiseSchema.positive().optional(),
 })
-export const ProposeProductOutput = z.object({ productId: IdSchema, variantId: IdSchema, status: ProductStatusSchema })
+export const ProposeProductOutput = z.object({
+  productId: IdSchema,
+  variantId: IdSchema,
+  status: ProductStatusSchema,
+})
 
 /** Tenant overlay: what this distributor sells and how it can be ordered. Still no cost. */
 export const TenantProductSchema = VariantSummarySchema.extend({
@@ -78,12 +105,15 @@ export type TenantProduct = z.infer<typeof TenantProductSchema>
 
 export const TenantCatalogListInput = z.object({
   q: z.string().trim().max(80).optional(),
-  listedOnly: z.boolean().default(true),
+  listedOnly: QueryBoolSchema.default(true),
   brandId: IdSchema.optional(),
-  limit: z.number().int().min(1).max(500).default(200),
+  limit: QueryIntSchema.min(1).max(500).default(200),
   cursor: z.string().optional(),
 })
-export const TenantCatalogListOutput = z.object({ items: z.array(TenantProductSchema), nextCursor: z.string().nullable() })
+export const TenantCatalogListOutput = z.object({
+  items: z.array(TenantProductSchema),
+  nextCursor: z.string().nullable(),
+})
 
 export const UpsertListingInput = MutationBase.extend({
   id: IdSchema,
@@ -135,7 +165,10 @@ export const ProductCostSchema = z.object({
   schemeMarginBps: BpsSchema.nullable(),
   effectiveFrom: z.string(),
 })
-export const CostsListInput = z.object({ variantId: IdSchema.optional(), limit: z.number().int().min(1).max(500).default(200) })
+export const CostsListInput = z.object({
+  variantId: IdSchema.optional(),
+  limit: QueryIntSchema.min(1).max(500).default(200),
+})
 export const CostsListOutput = z.object({ items: z.array(ProductCostSchema) })
 export const UpsertCostInput = MutationBase.extend({
   id: IdSchema,

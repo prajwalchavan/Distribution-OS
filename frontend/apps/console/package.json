@@ -12,12 +12,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "react": "catalog:",
-    "react-dom": "catalog:",
-    "@dos/ui": "workspace:*",
     "@dos/api-client": "workspace:*",
+    "@dos/contracts": "workspace:*",
+    "@dos/domain": "workspace:*",
+    "@dos/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
-    "@dos/domain": "workspace:*"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

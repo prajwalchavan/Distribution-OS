@@ -2,10 +2,67 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dev",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "name": "owner-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/owner-service dev"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "sales-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/sales-service dev"
+      ],
+      "port": 3002
+    },
+    {
+      "name": "warehouse-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/warehouse-service dev"
+      ],
+      "port": 3003
+    },
+    {
+      "name": "delivery-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/delivery-service dev"
+      ],
+      "port": 3004
+    },
+    {
+      "name": "retailer-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/retailer-service dev"
+      ],
+      "port": 3005
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/worker dev"
+      ],
+      "port": 3999
+    },
+    {
+      "name": "console",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/console dev"
+      ],
+      "port": 5173
     }
   ]
 }

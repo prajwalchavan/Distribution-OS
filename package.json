@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "turbo run dev",
-    "dev:backend": "turbo run dev --filter=./backend/...",
+    "dev:backend": "turbo run dev --filter=./backend-services/...",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -22,12 +22,17 @@
     "db:migrate": "pnpm --filter @dos/db migrate",
     "db:seed": "pnpm --filter @dos/db seed",
     "db:studio": "pnpm --filter @dos/db studio",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "docs:readme": "tsx scripts/generate-readmes.mts",
+    "docs:readme:check": "tsx scripts/generate-readmes.mts --check"
   },
   "devDependencies": {
     "@dos/config": "workspace:*",
     "prettier": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "tsx": "catalog:",
+    "@dos/core": "workspace:*",
+    "@dos/contracts": "workspace:*"
   }
 }

@@ -42,6 +42,9 @@ catalogs:
     '@orpc/server':
       specifier: 1.15.0
       version: 1.15.0
+    '@orpc/zod':
+      specifier: 1.15.0
+      version: 1.15.0
     '@swc-node/register':
       specifier: 1.12.1
       version: 1.12.1
@@ -134,9 +137,18 @@ importers:
       '@dos/config':
         specifier: workspace:*
         version: link:shared/config
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:backend-services/core
       prettier:
         specifier: 'catalog:'
         version: 3.9.6
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.13
       turbo:
         specifier: 'catalog:'
         version: 2.10.12
@@ -144,17 +156,17 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  backend/apps/api:
+  backend-services/core:
     dependencies:
       '@dos/contracts':
         specifier: workspace:*
-        version: link:../../../shared/contracts
+        version: link:../../shared/contracts
       '@dos/db':
         specifier: workspace:*
-        version: link:../../db
+        version: link:../database
       '@dos/domain':
         specifier: workspace:*
-        version: link:../../../shared/domain
+        version: link:../../shared/domain
       '@nestjs/common':
         specifier: 'catalog:'
         version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -173,9 +185,15 @@ importers:
       '@orpc/nest':
         specifier: 'catalog:'
         version: 1.15.0(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(fastify@5.12.1)(rxjs@7.8.2)(ws@8.21.3)
+      '@orpc/openapi':
+        specifier: 'catalog:'
+        version: 1.15.0(fastify@5.12.1)(ws@8.21.3)
       '@orpc/server':
         specifier: 'catalog:'
         version: 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/zod':
+        specifier: 'catalog:'
+        version: 1.15.0(@orpc/contract@1.15.0)(@orpc/server@1.15.0(fastify@5.12.1)(ws@8.21.3))(fastify@5.12.1)(ws@8.21.3)(zod@4.5.4)
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -200,7 +218,7 @@ importers:
     devDependencies:
       '@dos/config':
         specifier: workspace:*
-        version: link:../../../shared/config
+        version: link:../../shared/config
       '@nestjs/testing':
         specifier: 'catalog:'
         version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -232,50 +250,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
 
-  backend/apps/worker:
-    dependencies:
-      '@dos/db':
-        specifier: workspace:*
-        version: link:../../db
-      '@dos/domain':
-        specifier: workspace:*
-        version: link:../../../shared/domain
-      dotenv:
-        specifier: 'catalog:'
-        version: 17.4.2
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)
-      pg-boss:
-        specifier: 'catalog:'
-        version: 12.30.0
-      pino:
-        specifier: 'catalog:'
-        version: 10.3.1
-    devDependencies:
-      '@dos/config':
-        specifier: workspace:*
-        version: link:../../../shared/config
-      '@types/node':
-        specifier: 'catalog:'
-        version: 26.4.1
-      eslint:
-        specifier: 'catalog:'
-        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
-      pino-pretty:
-        specifier: 'catalog:'
-        version: 13.1.3
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.13
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
-
-  backend/db:
+  backend-services/database:
     dependencies:
       '@dos/domain':
         specifier: workspace:*
@@ -315,11 +290,317 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
 
+  backend-services/delivery-service:
+    dependencies:
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@swc-node/register':
+        specifier: 'catalog:'
+        version: 1.12.1(@swc/core@1.16.1)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3)
+      '@swc/core':
+        specifier: 'catalog:'
+        version: 1.16.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unplugin-swc:
+        specifier: 'catalog:'
+        version: 1.5.11(@swc/core@1.16.1)(esbuild@0.28.2)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
+  backend-services/owner-service:
+    dependencies:
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@swc-node/register':
+        specifier: 'catalog:'
+        version: 1.12.1(@swc/core@1.16.1)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3)
+      '@swc/core':
+        specifier: 'catalog:'
+        version: 1.16.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unplugin-swc:
+        specifier: 'catalog:'
+        version: 1.5.11(@swc/core@1.16.1)(esbuild@0.28.2)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
+  backend-services/retailer-service:
+    dependencies:
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@swc-node/register':
+        specifier: 'catalog:'
+        version: 1.12.1(@swc/core@1.16.1)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3)
+      '@swc/core':
+        specifier: 'catalog:'
+        version: 1.16.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unplugin-swc:
+        specifier: 'catalog:'
+        version: 1.5.11(@swc/core@1.16.1)(esbuild@0.28.2)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
+  backend-services/sales-service:
+    dependencies:
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@swc-node/register':
+        specifier: 'catalog:'
+        version: 1.12.1(@swc/core@1.16.1)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3)
+      '@swc/core':
+        specifier: 'catalog:'
+        version: 1.16.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unplugin-swc:
+        specifier: 'catalog:'
+        version: 1.5.11(@swc/core@1.16.1)(esbuild@0.28.2)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
+  backend-services/warehouse-service:
+    dependencies:
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../shared/contracts
+      '@dos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@nestjs/common':
+        specifier: 'catalog:'
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: 'catalog:'
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      reflect-metadata:
+        specifier: 'catalog:'
+        version: 0.2.2
+      rxjs:
+        specifier: 'catalog:'
+        version: 7.8.2
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@swc-node/register':
+        specifier: 'catalog:'
+        version: 1.12.1(@swc/core@1.16.1)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3)
+      '@swc/core':
+        specifier: 'catalog:'
+        version: 1.16.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unplugin-swc:
+        specifier: 'catalog:'
+        version: 1.5.11(@swc/core@1.16.1)(esbuild@0.28.2)(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
+  backend-services/worker:
+    dependencies:
+      '@dos/db':
+        specifier: workspace:*
+        version: link:../database
+      '@dos/domain':
+        specifier: workspace:*
+        version: link:../../shared/domain
+      dotenv:
+        specifier: 'catalog:'
+        version: 17.4.2
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.30.0
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
+    devDependencies:
+      '@dos/config':
+        specifier: workspace:*
+        version: link:../../shared/config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@8.1.1)
+      pino-pretty:
+        specifier: 'catalog:'
+        version: 13.1.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.13
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+
   frontend/apps/console:
     dependencies:
       '@dos/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@dos/contracts':
+        specifier: workspace:*
+        version: link:../../../shared/contracts
       '@dos/domain':
         specifier: workspace:*
         version: link:../../../shared/domain
@@ -2010,6 +2291,9 @@ packages:
   '@orpc/interop@1.15.0':
     resolution: {integrity: sha512-Ah48o/rc00rN1yP5HcaoVsDCjdUhoh3JP1VibBbvwijhGvdOwRwiw5RWiGu442GSKcrPt9etAGhWXH88q8C3ww==}
 
+  '@orpc/json-schema@1.15.0':
+    resolution: {integrity: sha512-MH8Qh6yPVaz76BdwcetKMUoL+Fpho1/e30Tb3WawU+EDZGD5jzA7W/KdRGvEYTHGod7qduS/kPd191NCVIEtDw==}
+
   '@orpc/nest@1.15.0':
     resolution: {integrity: sha512-iloZTCnEnUlckgneUn6OU/unXkSOpvIdRtFzVKAYbQuZh19fb5/NHw58kglV5xQ+Bus4sXeZY1IAfdgQ7wTmEw==}
     peerDependencies:
@@ -2071,6 +2355,13 @@ packages:
 
   '@orpc/standard-server@1.15.0':
     resolution: {integrity: sha512-bje/xn6thDqJY/JQ7xoOjmD1KWE4FsyZOPgnPxwqTZLx/r00stRhLuFvk1hDEGj9UlG7NLZEijDVx0wqvcyDzA==}
+
+  '@orpc/zod@1.15.0':
+    resolution: {integrity: sha512-QaxvUaxemoz57ljE6GNoRHy6tUrLz9PZH+NjPtbL2SilTwrtTDPgWzS+D8TYW6VZqhdBJM6jY93j81ygVf88dQ==}
+    peerDependencies:
+      '@orpc/contract': 1.15.0
+      '@orpc/server': 1.15.0
+      zod: '>=3.25.0'
 
   '@oxc-project/types@0.148.0':
     resolution: {integrity: sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A==}
@@ -3727,6 +4018,10 @@ packages:
   escape-string-regexp@4.0.0:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
+
+  escape-string-regexp@5.0.0:
+    resolution: {integrity: sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw==}
+    engines: {node: '>=12'}
 
   eslint-config-expo@57.0.2:
     resolution: {integrity: sha512-dOWkx+MWclLVnYpPPBzas4sfnPaAjk+fe/dbvJSzbWtHUR4fGGaTT/lTcOpxqhwRIlTKKBUYGKude0tcTBsZHg==}
@@ -6224,6 +6519,9 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
+  wildcard-match@5.1.4:
+    resolution: {integrity: sha512-wldeCaczs8XXq7hj+5d/F38JE2r7EXgb6WQDM84RVwxy81T/sxB5e9+uZLK9Q9oNz1mlvjut+QtvgaOQFPVq/g==}
+
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
@@ -7757,6 +8055,20 @@ snapshots:
 
   '@orpc/interop@1.15.0': {}
 
+  '@orpc/json-schema@1.15.0(fastify@5.12.1)(ws@8.21.3)':
+    dependencies:
+      '@orpc/contract': 1.15.0
+      '@orpc/interop': 1.15.0
+      '@orpc/openapi': 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/server': 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/shared': 1.15.0
+      json-schema-typed: 8.0.2
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - crossws
+      - fastify
+      - ws
+
   '@orpc/nest@1.15.0(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(fastify@5.12.1)(rxjs@7.8.2)(ws@8.21.3)':
     dependencies:
       '@nestjs/common': 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -7875,6 +8187,22 @@ snapshots:
       '@orpc/shared': 1.15.0
     transitivePeerDependencies:
       - '@opentelemetry/api'
+
+  '@orpc/zod@1.15.0(@orpc/contract@1.15.0)(@orpc/server@1.15.0(fastify@5.12.1)(ws@8.21.3))(fastify@5.12.1)(ws@8.21.3)(zod@4.5.4)':
+    dependencies:
+      '@orpc/contract': 1.15.0
+      '@orpc/json-schema': 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/openapi': 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/server': 1.15.0(fastify@5.12.1)(ws@8.21.3)
+      '@orpc/shared': 1.15.0
+      escape-string-regexp: 5.0.0
+      wildcard-match: 5.1.4
+      zod: 4.5.4
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - crossws
+      - fastify
+      - ws
 
   '@oxc-project/types@0.148.0': {}
 
@@ -8503,7 +8831,7 @@ snapshots:
 
   '@types/pg@8.23.1':
     dependencies:
-      '@types/node': 26.4.1
+      '@types/node': 24.13.3
       pg-protocol: 1.16.0
       pg-types: 2.2.0
 
@@ -9081,7 +9409,7 @@ snapshots:
 
   chrome-launcher@0.15.2(supports-color@8.1.1):
     dependencies:
-      '@types/node': 26.4.1
+      '@types/node': 24.13.3
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 1.4.2(supports-color@8.1.1)
@@ -9090,7 +9418,7 @@ snapshots:
 
   chromium-edge-launcher@0.3.0(supports-color@8.1.1):
     dependencies:
-      '@types/node': 26.4.1
+      '@types/node': 24.13.3
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 1.4.2(supports-color@8.1.1)
@@ -9530,6 +9858,8 @@ snapshots:
   escape-string-regexp@1.0.5: {}
 
   escape-string-regexp@4.0.0: {}
+
+  escape-string-regexp@5.0.0: {}
 
   eslint-config-expo@57.0.2(eslint@9.39.5(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3):
     dependencies:
@@ -12446,6 +12776,8 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  wildcard-match@5.1.4: {}
 
   word-wrap@1.2.5: {}
 
