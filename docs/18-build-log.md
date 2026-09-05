@@ -28,6 +28,8 @@ a parked-pack example whose fixed invoice id collided after one press, and the d
 already settled (which is what made `pnpm db:seed` fail). Delivery's slice (contract `delivery.ts`, migrations 0014/0015, seed) is in the
 working tree, its `modules/delivery` is NOT built yet — that is the next module. **Commit the snapshot before starting it.**
 
+**CHAIN PLAN (2026-09-05 13:50):** the running chain (`dos-modules-4-10.js`, run wf_d2de989f-214) ends with three-distributors + final gate. IMMEDIATELY after it reports, launch `scratchpad/dos-modules-12-13.js` (module 12 `ai`: WhatsApp/voice order drafts, forecasting, routing; module 13 `platform-admin`: admin-service :3007; then demo + final gate) — founder scope additions of 2026-09-05. Confluence rewrite runs separately on Opus (run wf_ad61e0e5-f17). Frontend starts only after module 13 is green.
+
 **LAYOUT CHOSEN (2026-09-05): A Ledger.** Frontend visual work is unblocked; apps still start after the backend is complete.
 
 **Single source of truth: `docs/22-source-of-truth.md`** (read it before this file). Rendered view: https://claude.ai/code/artifact/24c323d8-5b45-4045-8e16-e0e549233fdd — republish it after editing the markdown with `python3 docs/tools/render-source-of-truth.py <out.html>` and the Artifact tool on that same URL.
