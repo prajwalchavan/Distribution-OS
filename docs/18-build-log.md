@@ -23,6 +23,11 @@ that path); (d) a client-supplied `sha256` on `addPage` would save the read-back
 no `rateBasis`/`basisQty` on its wire (docint passes them through `createInTx`). Docint's slice (26 procedures, `modules/docint/**`, worker relay +
 queues, seed `docint.ts`) is in the working tree — **commit the snapshot before starting integrations.**
 
+**After the backend chain and the seven apps (founder, 2026-09-05 17:20 IST):** (1) install on the Mac everything the end-to-end run needs
+(simulators, Expo dev builds, worker, all services) and hand over a written run-through — what starts, in which order, which port, which
+sign-in, where the data shows up; (2) deployment goes least-cost on AWS per `docs/26-environments-and-configuration.md` (six confirmations
+pending in docs/22 §10).
+
 **Earlier (MODULE 4 DONE — delivery, 2026-09-05 13:45 IST, verified by the independent gate).**
 The gate ran the full chain on the founder's database: `pnpm install` (lockfile unchanged), `turbo run build typecheck lint test --force`
 (48/48 tasks, **1442 tests**) and a second `turbo run test --force` (1442 again), `docs:readme:check` + `format:check` clean, `pnpm smoke`

@@ -99,7 +99,7 @@ frontend/libs/{ui,api-client,offline}   tokens + strings, typed oRPC client, off
 frontend/<role>-app           owner (Vite web today, Expo later), manager, sales, warehouse, delivery, retailer:
                               each its own package, README, and EXPO_PUBLIC_API_URL / VITE_API_URL of its service.
 docs/                         22 source of truth · 18 build log · 23 screen inventory + API gaps · 24 Confluence audit · 25 phase-2
-                              enhancements · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
+                              enhancements · 26 environments, config and least-cost deployment · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
                               Confluence space, README maps page ids; docs/22 wins) · design/ (UX-00 design system on layout A Ledger,
                               layout-options.html) · adr/, domain/, research/, blueprint 00–21.
 ```

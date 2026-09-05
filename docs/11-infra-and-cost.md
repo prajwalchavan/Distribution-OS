@@ -2,6 +2,8 @@
 
 # Infrastructure, environments and cost
 
+> **Superseded 2026-09-05 for the start (founder, docs/26):** least cost first — Lightsail Mumbai, Postgres in a container, all-in-one process mode, no PowerSync. The shape below (RDS, Fargate, ALB) is the scale target reached with revenue; the cost table remains the reference for that shape.
+
 **Hosting (AWS ap-south-1 from day one).** RDS PostgreSQL 17 **`db.t4g.small`** Single-AZ, 20 GB gp3, 14-day PITR, `rds.logical_replication = 1`, `max_slot_wal_keep_size` set (resolved: 1 GiB on `t4g.micro` is marginal with a replication slot, pg-boss, pg_trgm and LISTEN/NOTIFY on the primary); ECS Fargate ARM `api` (0.5 vCPU/1 GB) and `worker` (0.25/0.5) from one image; ALB + ACM; CloudFront for both PWAs and signed image URLs; S3 `docs` (pre-signed, IA at 90 days) and `backups` (Object Lock); Secrets Manager with per-tenant KMS envelopes; SST v3. R2 rejected (no India jurisdiction, R08 §5.3). DigitalOcean BLR1 with Kamal is the same image if AWS setup time is unacceptable.
 
 **Environments.** `local` (Compose: Postgres 17 `wal_level=logical`, MinIO, optional PowerSync OE, WhatsApp stub, Tarsun-shaped seed); `staging` (Mumbai, smallest sizes, anonymised data, EAS `preview`, WhatsApp test number, GSP/IRP sandboxes, separate Anthropic key); `prod`. Staging never points at production WhatsApp or GST endpoints.

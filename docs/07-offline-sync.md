@@ -2,6 +2,8 @@
 
 # Offline sync design (Team app only)
 
+> **Superseded 2026-09-05 (founder, docs/22 §8 / docs/26 §5):** offline sync is built in-house — the existing `/sync/upload` path plus a per-table delta pull keyed on `(tenant_id, updated_at)` into SQLite on the device. PowerSync is not used. The rules below (upload never 4xx, `sync_ops`, GPS outside the queue, LWW with backend veto) still apply; the transport paragraphs about PowerSync Cloud, logical replication and residency do not.
+
 ### 7.1 Engine and residency
 
 PowerSync over Postgres logical replication (R07 §3): server-authoritative, per-user partial sync via Sync Streams keyed on JWT claims, FIFO upload queue, per-field LWW with backend veto, attachment queue, `@powersync/react-native` 2.2 with op-sqlite. ElectricSQL (no write path, cloud winding down), WatermelonDB (dormant), Replicache (maintenance) and Zero (rejects offline writes) are ruled out. RDS: `rds.logical_replication = 1`, a `powersync` publication limited to synced tables (never `FOR ALL TABLES`), replication role, TLS, security group restricted to PowerSync egress IPs, `max_slot_wal_keep_size` set with a slot-lag alarm (R07 §3.2 rule 8).
