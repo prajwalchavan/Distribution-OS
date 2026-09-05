@@ -6,7 +6,7 @@ import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, type Db } from './client.js'
 import { memberships, salesOrders, tenants, users } from './schema/index.js'
-import { seedDemo } from './seed-demo.js'
+import { seedDemo, seedExtraTenants } from './seed-demo.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
@@ -130,4 +130,140 @@ describeDb('demo seed on an empty database', () => {
       .map((table) => `${table}: ${first[table] ?? 0} -> ${second[table] ?? 0}`)
     expect(drift).toEqual([])
   }, 60_000)
+
+  /**
+   * The founder's requirement (docs/22 §8, 2026-09-04): three distributors, staff under each, and
+   * shops linked to more than one of them. What makes it a real test rather than three copies of the
+   * same data is that the shops are SHARED — one `retailer_identities` row with a `retailers` row and
+   * a `retailer_links` row per tenant — and that each distributor's books still balance on their own.
+   */
+  it('seeds three distributors that share shops and stay isolated', async () => {
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+    const before = await rowCounts(db)
+
+    const tenantRows = (
+      await db.execute(sql`SELECT id, slug, legal_name FROM tenants ORDER BY slug`)
+    ).rows as { id: string; slug: string; legal_name: string }[]
+    const pilotSlug = `seedtest-${run}`
+    expect(tenantRows.map((t) => t.slug).sort()).toEqual(
+      ['kalyan-agencies', 'sai-distributors', pilotSlug].sort(),
+    )
+
+    // Each distributor has its own team and its own month of trade.
+    for (const t of tenantRows) {
+      const [counts] = (
+        await db.execute(sql`
+          SELECT (SELECT count(*) FROM memberships m WHERE m.tenant_id = ${t.id}) AS staff,
+                 (SELECT count(*) FROM retailers r WHERE r.tenant_id = ${t.id}) AS shops,
+                 (SELECT count(*) FROM sales_orders o WHERE o.tenant_id = ${t.id}) AS orders,
+                 (SELECT count(*) FROM invoices i WHERE i.tenant_id = ${t.id}) AS invoices,
+                 (SELECT count(*) FROM receipts x WHERE x.tenant_id = ${t.id}) AS receipts,
+                 (SELECT count(*) FROM trips x WHERE x.tenant_id = ${t.id}) AS trips,
+                 (SELECT count(*) FROM deliveries x WHERE x.tenant_id = ${t.id}) AS deliveries`)
+      ).rows as Record<string, string | number>[]
+      const n = (k: string) => Number(counts?.[k] ?? 0)
+      expect({ slug: t.slug, ok: n('staff') >= 12 }).toEqual({ slug: t.slug, ok: true })
+      expect({ slug: t.slug, ok: n('shops') >= 10 }).toEqual({ slug: t.slug, ok: true })
+      for (const key of ['orders', 'invoices', 'receipts', 'trips', 'deliveries']) {
+        expect({ slug: t.slug, key, ok: n(key) > 0 }).toEqual({ slug: t.slug, key, ok: true })
+      }
+    }
+
+    // Ten shops are the same shop on two distributors' books; five of those on all three.
+    const shared = (
+      await db.execute(sql`
+        SELECT ri.shop_name AS shop, count(DISTINCT rl.tenant_id)::int AS distributors
+          FROM retailer_identities ri JOIN retailer_links rl ON rl.identity_id = ri.id
+         GROUP BY ri.id, ri.shop_name HAVING count(DISTINCT rl.tenant_id) > 1
+         ORDER BY 2 DESC, 1`)
+    ).rows as { shop: string; distributors: number }[]
+    expect(shared.length).toBe(10)
+    expect(shared.filter((r) => r.distributors === 3).length).toBe(5)
+
+    // One shopkeeper, three distributors: what the retailer app's switch-distributor flow needs.
+    const memberships = (
+      await db.execute(sql`
+        SELECT u.username, count(*)::int AS n FROM users u JOIN memberships m ON m.user_id = u.id
+         WHERE u.username IN ('ramesh.gupta', 'fatima.shaikh') GROUP BY u.username ORDER BY u.username`)
+    ).rows as { username: string; n: number }[]
+    expect(memberships).toEqual([
+      { username: 'fatima.shaikh', n: 2 },
+      { username: 'ramesh.gupta', n: 3 },
+    ])
+
+    // Every distributor's own invoice series, white-label name and books.
+    for (const t of tenantRows) {
+      const [series] = (
+        await db.execute(sql`
+          SELECT prefix FROM numbering_series
+           WHERE tenant_id = ${t.id} AND series_code = 'INV'`)
+      ).rows as { prefix: string }[]
+      const expected =
+        t.slug === 'sai-distributors' ? 'SAI/' : t.slug === 'kalyan-agencies' ? 'KA/' : 'INV/'
+      expect({ slug: t.slug, prefix: series?.prefix }).toEqual({ slug: t.slug, prefix: expected })
+
+      // The seeded history carries that same series, not the pilot's. (Bills carried in from the
+      // previous software keep their own `OPEN/` numbers; that is the point of an opening balance.)
+      const [ownSeries] = (
+        await db.execute(sql`
+          SELECT count(*)::int AS n,
+                 count(*) FILTER (WHERE invoice_no LIKE ${expected + '%'})::int AS matching
+            FROM invoices WHERE tenant_id = ${t.id} AND series_code = 'INV'`)
+      ).rows as { n: number; matching: number }[]
+      expect({ slug: t.slug, ...ownSeries }).toEqual({
+        slug: t.slug,
+        n: ownSeries?.n ?? 0,
+        matching: ownSeries?.n ?? 0,
+      })
+      expect({ slug: t.slug, any: (ownSeries?.n ?? 0) > 0 }).toEqual({ slug: t.slug, any: true })
+
+      const [display] = (
+        await db.execute(sql`
+          SELECT value #>> '{}' AS name FROM tenant_settings
+           WHERE tenant_id = ${t.id} AND key = 'branding.display_name'`)
+      ).rows as { name: string }[]
+      expect({ slug: t.slug, named: (display?.name ?? '').length > 0 }).toEqual({
+        slug: t.slug,
+        named: true,
+      })
+
+      // The two assertions the seed itself makes, checked per tenant from outside it.
+      const unbalanced = await db.execute(sql`
+        SELECT entry_id FROM journal_lines WHERE tenant_id = ${t.id}
+         GROUP BY entry_id HAVING sum(amount_paise) <> 0`)
+      expect({ slug: t.slug, unbalanced: unbalanced.rows.length }).toEqual({
+        slug: t.slug,
+        unbalanced: 0,
+      })
+      const [tie] = (
+        await db.execute(sql`
+          SELECT (SELECT coalesce(sum(jl.amount_paise), 0) FROM journal_lines jl
+                    JOIN accounts a ON a.id = jl.account_id
+                   WHERE jl.tenant_id = ${t.id} AND a.code = 'AR') AS ar,
+                 (SELECT coalesce(sum(outstanding_paise - unallocated_credit_paise), 0)
+                    FROM retailer_outstanding_summary WHERE tenant_id = ${t.id}) AS rollup`)
+      ).rows as { ar: string | number; rollup: string | number }[]
+      expect({ slug: t.slug, tied: Number(tie?.ar ?? 0) === Number(tie?.rollup ?? 0) }).toEqual({
+        slug: t.slug,
+        tied: true,
+      })
+    }
+
+    // No tenant's rows leaked into another: every tenant-scoped row of a shared shop belongs to the
+    // distributor whose retailer row it points at.
+    const [leak] = (
+      await db.execute(sql`
+        SELECT count(*)::int AS n FROM invoices i JOIN retailers r ON r.id = i.retailer_id
+         WHERE r.tenant_id <> i.tenant_id`)
+    ).rows as { n: number }[]
+    expect(leak?.n).toBe(0)
+
+    // Still idempotent with three distributors in the database.
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+    const after = await rowCounts(db)
+    const drift = Object.keys({ ...before, ...after })
+      .filter((table) => before[table] !== after[table])
+      .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
+    expect(drift).toEqual([])
+  }, 120_000)
 })

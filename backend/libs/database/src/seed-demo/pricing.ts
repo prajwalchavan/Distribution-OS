@@ -148,10 +148,10 @@ export async function seedPricing(
     },
   ])
 
-  const momMakhanaSalt = variants.find((v) => v.key === 'mom-makhana-himalayan-salt-12g')
-  if (!momMakhanaSalt) throw new Error('MOM makhana variant missing')
-
-  await insertMany(db, schemes, [
+  // A distributor only runs a brand's scheme if it carries that brand: `variants` is the tenant's own
+  // catalog overlay, so a scheme whose brand it does not list is simply not written.
+  const listedBrandIds = new Set(variants.map((v) => brandId(v.brandKey)))
+  const schemeRows: (typeof schemes.$inferInsert)[] = [
     {
       id: demoId('scheme', 'campa-750-12-plus-1'),
       tenantId,
@@ -302,7 +302,12 @@ export async function seedPricing(
       sourceRef: 'Balaji monsoon circular Jun-2026',
       active: true,
     },
-  ])
+  ]
+  await insertMany(
+    db,
+    schemes,
+    schemeRows.filter((r) => !r.brandId || listedBrandIds.has(r.brandId)),
+  )
 
   const bargainRetailers = [
     nth(retailersRes.retailers, 1),

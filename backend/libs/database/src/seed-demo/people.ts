@@ -21,6 +21,42 @@ export interface PersonRef {
   username: string
 }
 
+/**
+ * One person as a roster entry. `key` feeds `demoId('user', key)` — which is namespaced by the demo
+ * scope, so the same key under two distributors is two different people. `id` overrides that for a
+ * user who is deliberately SHARED between distributors: the shopkeeper who buys from more than one
+ * of them is one platform user with one phone and a membership per tenant.
+ */
+export interface PersonSpec {
+  key: string
+  name: string
+  phone: string
+  username: string
+  id?: string
+}
+
+/**
+ * Who works for one distributor. Every distributor in the demo has the same shape of team (the
+ * downstream seeds address them by slot), but its own names, phones and sign-in names.
+ */
+export interface PeopleRoster {
+  owner: PersonSpec
+  manager: PersonSpec
+  accountant: PersonSpec
+  /** Two godown hands: picking waves alternate between them. */
+  warehouse: readonly [PersonSpec, PersonSpec]
+  /** Three reps. The third is employed by the manufacturer and sells only Too Yumm. */
+  salespeople: readonly [PersonSpec, PersonSpec, PersonSpec]
+  delivery: readonly [PersonSpec, PersonSpec, PersonSpec, PersonSpec]
+  /** Shopkeepers who sign in to the retailer app; matched positionally to the network's app logins. */
+  retailerUsers: readonly [PersonSpec, PersonSpec]
+}
+
+/**
+ * The seeded team, by slot. The property names are the pilot tenant's first names because that is
+ * what every downstream seed already reads; for another distributor `salespeople.rahul` simply means
+ * "that tenant's first rep", `delivery.ganesh` "its first driver", and so on.
+ */
 export interface PeopleResult {
   owner: PersonRef
   manager: PersonRef
@@ -33,32 +69,105 @@ export interface PeopleResult {
   retailerUsers: [PersonRef, PersonRef]
 }
 
-const person = (key: string, name: string, phone: string, username: string): PersonRef => ({
-  id: demoId('user', key),
-  name,
-  phone,
-  username,
+const person = (spec: PersonSpec): PersonRef => ({
+  id: spec.id ?? demoId('user', spec.key),
+  name: spec.name,
+  phone: spec.phone,
+  username: spec.username,
 })
+
+/** `rahul.deshmukh` -> `rahul`: the short key the rep-scoped demo ids have always been built from. */
+export const shortKey = (p: PersonRef): string => p.username.split('.')[0] ?? p.username
+
+/** The pilot distributor's team (Tarsun Enterprises, Kalyan West). */
+export const TARSUN_ROSTER: PeopleRoster = {
+  owner: { key: 'owner', name: 'Sunil Tarsun', phone: '+919810000001', username: 'sunil.tarsun' },
+  manager: { key: 'manager', name: 'Vikas Kadam', phone: '+919810000002', username: 'vikas.kadam' },
+  accountant: {
+    key: 'accountant',
+    name: 'Meena Joshi',
+    phone: '+919810000003',
+    username: 'meena.joshi',
+  },
+  warehouse: [
+    {
+      key: 'warehouse-dinesh',
+      name: 'Dinesh Patil',
+      phone: '+919810000031',
+      username: 'dinesh.patil',
+    },
+    {
+      key: 'warehouse-kavita',
+      name: 'Kavita Sawant',
+      phone: '+919810000032',
+      username: 'kavita.sawant',
+    },
+  ],
+  salespeople: [
+    {
+      key: 'rep-rahul',
+      name: 'Rahul Deshmukh',
+      phone: '+919810000011',
+      username: 'rahul.deshmukh',
+    },
+    { key: 'rep-amit', name: 'Amit Pawar', phone: '+919810000012', username: 'amit.pawar' },
+    { key: 'rep-pooja', name: 'Pooja Shinde', phone: '+919810000013', username: 'pooja.shinde' },
+  ],
+  delivery: [
+    {
+      key: 'delivery-ganesh',
+      name: 'Ganesh More',
+      phone: '+919810000021',
+      username: 'ganesh.more',
+    },
+    { key: 'delivery-raju', name: 'Raju Yadav', phone: '+919810000022', username: 'raju.yadav' },
+    {
+      key: 'delivery-santosh',
+      name: 'Santosh Kamble',
+      phone: '+919810000023',
+      username: 'santosh.kamble',
+    },
+    {
+      key: 'delivery-iqbal',
+      name: 'Iqbal Shaikh',
+      phone: '+919810000024',
+      username: 'iqbal.shaikh',
+    },
+  ],
+  retailerUsers: [
+    {
+      key: 'retailer-user-1',
+      name: 'Ramesh Gupta',
+      phone: '+919810000101',
+      username: 'ramesh.gupta',
+    },
+    {
+      key: 'retailer-user-2',
+      name: 'Fatima Shaikh',
+      phone: '+919810000102',
+      username: 'fatima.shaikh',
+    },
+  ],
+}
 
 export async function seedPeople(
   db: Db,
   tenantId: string,
   passwordHash: string,
+  roster: PeopleRoster = TARSUN_ROSTER,
 ): Promise<PeopleResult> {
-  const owner = person('owner', 'Sunil Tarsun', '+919810000001', 'sunil.tarsun')
-  const manager = person('manager', 'Vikas Kadam', '+919810000002', 'vikas.kadam')
-  const accountant = person('accountant', 'Meena Joshi', '+919810000003', 'meena.joshi')
-  const rahul = person('rep-rahul', 'Rahul Deshmukh', '+919810000011', 'rahul.deshmukh')
-  const amit = person('rep-amit', 'Amit Pawar', '+919810000012', 'amit.pawar')
-  const pooja = person('rep-pooja', 'Pooja Shinde', '+919810000013', 'pooja.shinde')
-  const ganesh = person('delivery-ganesh', 'Ganesh More', '+919810000021', 'ganesh.more')
-  const raju = person('delivery-raju', 'Raju Yadav', '+919810000022', 'raju.yadav')
-  const santosh = person('delivery-santosh', 'Santosh Kamble', '+919810000023', 'santosh.kamble')
-  const iqbal = person('delivery-iqbal', 'Iqbal Shaikh', '+919810000024', 'iqbal.shaikh')
-  const warehouse = person('warehouse-dinesh', 'Dinesh Patil', '+919810000031', 'dinesh.patil')
-  const warehouse2 = person('warehouse-kavita', 'Kavita Sawant', '+919810000032', 'kavita.sawant')
-  const retailerUser1 = person('retailer-user-1', 'Ramesh Gupta', '+919810000101', 'ramesh.gupta')
-  const retailerUser2 = person('retailer-user-2', 'Fatima Shaikh', '+919810000102', 'fatima.shaikh')
+  const owner = person(roster.owner)
+  const manager = person(roster.manager)
+  const accountant = person(roster.accountant)
+  const [rahul, amit, pooja] = roster.salespeople.map(person) as [PersonRef, PersonRef, PersonRef]
+  const [ganesh, raju, santosh, iqbal] = roster.delivery.map(person) as [
+    PersonRef,
+    PersonRef,
+    PersonRef,
+    PersonRef,
+  ]
+  const [warehouse, warehouse2] = roster.warehouse.map(person) as [PersonRef, PersonRef]
+  const [retailerUser1, retailerUser2] = roster.retailerUsers.map(person) as [PersonRef, PersonRef]
 
   const staff = [
     owner,
@@ -131,24 +240,25 @@ export async function seedPeople(
     })),
   ])
 
-  // Pooja is employed by Guiltfree Industries and sells only Too Yumm; the others sell the full catalog.
+  // The third rep is employed by Guiltfree Industries and sells only Too Yumm (Pooja Shinde at the
+  // pilot); the other two sell the full catalog.
   await insertMany(db, repProductAuthorisations, [
     ...BRAND_KEYS.map((key) => ({
-      id: demoId('rep-auth', `rahul:${key}`),
+      id: demoId('rep-auth', `${shortKey(rahul)}:${key}`),
       tenantId,
       userId: rahul.id,
       brandId: brandId(key),
       employedBy: 'distributor',
     })),
     ...BRAND_KEYS.map((key) => ({
-      id: demoId('rep-auth', `amit:${key}`),
+      id: demoId('rep-auth', `${shortKey(amit)}:${key}`),
       tenantId,
       userId: amit.id,
       brandId: brandId(key),
       employedBy: 'distributor',
     })),
     {
-      id: demoId('rep-auth', 'pooja:tooyumm'),
+      id: demoId('rep-auth', `${shortKey(pooja)}:tooyumm`),
       tenantId,
       userId: pooja.id,
       brandId: brandId('tooyumm'),

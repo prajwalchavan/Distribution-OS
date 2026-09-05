@@ -1,6 +1,34 @@
-import { getTableColumns, sql, type SQL } from 'drizzle-orm'
+import { and, eq, getTableColumns, sql, type SQL } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import type { Db } from '../client.js'
+import { numberingSeries } from '../schema/index.js'
+import { FY } from './util.js'
+
+/**
+ * The prefix this distributor's own documents carry, e.g. `INV/` for the pilot and `SAI/` for Sai
+ * Distributors. The invoice series is per-tenant configuration and never hard-coded (docs/17 §D1),
+ * so the seeded history has to read it rather than assume one — otherwise every distributor's bills
+ * would print with the pilot's numbers on a screen that shows its own name and logo.
+ */
+export async function seriesPrefix(
+  db: Db,
+  tenantId: string,
+  seriesCode: string,
+  fallback: string,
+): Promise<string> {
+  const [row] = await db
+    .select({ prefix: numberingSeries.prefix })
+    .from(numberingSeries)
+    .where(
+      and(
+        eq(numberingSeries.tenantId, tenantId),
+        eq(numberingSeries.seriesCode, seriesCode),
+        eq(numberingSeries.fy, FY),
+      ),
+    )
+    .limit(1)
+  return row?.prefix ?? fallback
+}
 
 /**
  * `db.insert(table).values([])` throws ("values() must be called with at least one value"), and several

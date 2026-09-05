@@ -1,5 +1,5 @@
 /** Orders -> invoices -> receipts -> journal (ADR 0001/0004/0008), for the last 14 days. */
-import { insertMany } from './db-helpers.js'
+import { insertMany, seriesPrefix } from './db-helpers.js'
 import { paise, percentOf, roundToRupee } from '@dos/domain'
 import { eq, sql } from 'drizzle-orm'
 import {
@@ -172,7 +172,7 @@ export async function seedSales(
   /** A separate stream for the short picks below, so the draws above stay byte-identical. */
 
   const shortPickRng = makeRng('dos-demo:sales:short-pick')
-  const retailersByBeat: RetailerRow[][] = [[], [], [], []]
+  const retailersByBeat: RetailerRow[][] = retailersRes.beats.map(() => [])
   for (const r of retailersRes.retailers) {
     const bucket = retailersByBeat[r.beatIndex]
     if (bucket) bucket.push(r)
@@ -183,7 +183,7 @@ export async function seedSales(
   )
 
   function pickRetailer(): RetailerRow {
-    const beatIdx = randInt(rng, 0, 3)
+    const beatIdx = randInt(rng, 0, retailersByBeat.length - 1)
     const bucket = nth(retailersByBeat, beatIdx)
     return pick(rng, bucket)
   }
@@ -402,10 +402,15 @@ export async function seedSales(
     linesByOrderId.set(l.orderId, arr)
   }
 
+  // The document prefixes are this distributor's own configuration, not a constant.
+  const soPrefix = await seriesPrefix(db, tenantId, 'SO', 'SO-')
+  const invPrefix = await seriesPrefix(db, tenantId, 'INV', 'INV/')
+  const cnPrefix = await seriesPrefix(db, tenantId, 'CN', 'CN/')
+
   for (const order of orders) {
     if (order.state === 'draft') continue
     soSeq += 1
-    order.orderNo = `SO-${String(soSeq).padStart(4, '0')}`
+    order.orderNo = `${soPrefix}${String(soSeq).padStart(4, '0')}`
 
     if (!INVOICE_ELIGIBLE.has(order.state)) continue
     invSeq += 1
@@ -415,7 +420,7 @@ export async function seedSales(
 
     const orderLines = linesByOrderId.get(order.id) ?? []
     const invoiceId = demoId('invoice', order.id)
-    const invoiceNo = `INV/${String(invSeq).padStart(4, '0')}`
+    const invoiceNo = `${invPrefix}${String(invSeq).padStart(4, '0')}`
     const subtotal = orderLines.reduce((s, l) => s + l.ratePaise * l.qtyPcs, 0)
     const gstOnly = orderLines.reduce((s, l) => {
       const v = variants.find((vv) => vv.id === l.variantId)
@@ -902,7 +907,7 @@ export async function seedSales(
     cnRows.push({
       id: cnId,
       tenantId,
-      creditNoteNo: `CN/${String(i + 1).padStart(4, '0')}`,
+      creditNoteNo: `${cnPrefix}${String(i + 1).padStart(4, '0')}`,
       seriesCode: 'CN',
       fy: FY,
       noteDate: isoDate(inv.invoiceDate),
@@ -941,9 +946,9 @@ export async function seedSales(
   // series the app (or `pnpm smoke`) had already allocated past — and the very next real invoice then
   // asked for a number the table already held, so nothing could be billed at all until the next
   // reseed. `seedBilling`'s own `bumpSeries` had this right; these three did not.
-  await bumpSeries(db, tenantId, 'SO', 'SO-', soSeq + 1)
-  await bumpSeries(db, tenantId, 'INV', 'INV/', invSeq + 1)
-  await bumpSeries(db, tenantId, 'CN', 'CN/', cnRows.length + 1)
+  await bumpSeries(db, tenantId, 'SO', soPrefix, soSeq + 1)
+  await bumpSeries(db, tenantId, 'INV', invPrefix, invSeq + 1)
+  await bumpSeries(db, tenantId, 'CN', cnPrefix, cnRows.length + 1)
 
   // Ageing snapshot as of yesterday: bucket each retailer's still-open invoices by days overdue.
   const asOf = isoDate(daysAgo(1))

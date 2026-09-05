@@ -247,7 +247,14 @@ export async function seedStock(
   const discrepancyRows: (typeof inboundDiscrepancies.$inferInsert)[] = []
   let discrepancySeq = 0
 
-  for (const inv of SUPPLIER_INVOICES) {
+  for (const template of SUPPLIER_INVOICES) {
+    // A distributor that does not carry a brand still has the supplier on file, but no bill from it:
+    // the tenant's catalog overlay decides which lines exist (`variants` is that overlay).
+    const inv = {
+      ...template,
+      variantKeys: template.variantKeys.filter((k) => variantByKey.has(k)),
+    }
+    if (inv.variantKeys.length === 0) continue
     const supplierId = tenantCatalog.supplierIds[inv.supplierKey]
     const invoiceId = demoId('supplier-invoice', inv.invoiceKey)
     const grnId = demoId('grn', inv.invoiceKey)

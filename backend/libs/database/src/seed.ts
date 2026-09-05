@@ -6,10 +6,25 @@ import { uuidv7 } from '@dos/domain'
 import { hashPassword } from './auth/password.js'
 import { createDb, createPool } from './client.js'
 import { memberships, tenants, users } from './schema/index.js'
-import { DEMO_PASSWORD, seedDemo } from './seed-demo.js'
+import { DEMO_PASSWORD, seedDemo, seedExtraTenants } from './seed-demo.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
-/** Dev seed: one pilot tenant and one owner. The phone is a placeholder, never a real number. */
+/**
+ * Dev seed. Writes THREE distributors (founder requirement, docs/22 §8 2026-09-04):
+ *
+ * 1. **Tarsun Enterprises** — the pilot, every module's demo data, unscoped ids.
+ * 2. **Sai Distributors** and **Kalyan Agencies** — their own owners, managers, accountants,
+ *    warehouse hands, reps and drivers, their own smaller shelf, price lists, schemes, beats and a
+ *    month of orders, invoices, receipts, trips and deliveries (`seed-demo/tenants.ts`).
+ *
+ * Ten of Sai's shops are the SAME shops Tarsun sells to — one `retailer_identities` row, a
+ * `retailers` row and a `retailer_links` row per tenant — and five of those are on Kalyan Agencies'
+ * books too. `ramesh.gupta` is one shopkeeper user with a membership in all three, so the retailer
+ * app's switch-distributor flow has something to switch between.
+ *
+ * The whole thing is idempotent: run it twice and nothing is added.
+ * The phone on the pilot-owner account is a placeholder, never a real number.
+ */
 const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is required')
 
@@ -58,7 +73,9 @@ try {
       .onConflictDoNothing()
     await bootstrapTenant(db, tenant.id)
     if (process.env.SEED_DEMO !== 'false') {
-      await seedDemo(db, tenant.id, { passwordHash })
+      await seedDemo(db, tenant.id, { passwordHash, label: 'Tarsun Enterprises' })
+      // The other two distributors share ten of Tarsun's shops, so they seed after it.
+      await seedExtraTenants(db, { passwordHash })
     }
   }
   console.warn(`seeded tenant ${tenant?.slug ?? 'tarsun'} with owner ${user?.name ?? '?'}`)

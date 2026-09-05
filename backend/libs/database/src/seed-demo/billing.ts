@@ -36,7 +36,7 @@ import {
 } from '../schema/index.js'
 import { TENANT_SETTING_KEYS } from '../tenant-bootstrap.js'
 import type { VariantRow } from './catalog.js'
-import { insertMany } from './db-helpers.js'
+import { insertMany, seriesPrefix } from './db-helpers.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
 import type { RetailersResult } from './retailers.js'
@@ -104,6 +104,10 @@ export async function seedBilling(
   }
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   const sellerGstin = tenant?.gstin ?? makeGstin('27', 'AAXPT9021Q')
+  // The document prefixes are this distributor's own configuration, not a constant (docs/17 §D1).
+  const soPrefix = await seriesPrefix(db, tenantId, 'SO', 'SO-')
+  const invPrefix = await seriesPrefix(db, tenantId, 'INV', 'INV/')
+  const cnPrefix = await seriesPrefix(db, tenantId, 'CN', 'CN/')
 
   // ---------------------------------------------------------------------------------------------------------------
   // 1. The white-label settings every printed document reads (docs/17 §D6). `branding.display_name`
@@ -310,7 +314,7 @@ export async function seedBilling(
     invoiceRows.push({
       id: interStateInvoiceId,
       tenantId,
-      invoiceNo: 'INV/9001',
+      invoiceNo: `${invPrefix}9001`,
       seriesCode: 'INV',
       fy: FY,
       invoiceDate: isoDate(interStateDate),
@@ -359,7 +363,7 @@ export async function seedBilling(
     postSale({
       key: 'inter-state',
       invoiceId: interStateInvoiceId,
-      invoiceNo: 'INV/9001',
+      invoiceNo: `${invPrefix}9001`,
       retailerId: gujaratRetailerId,
       retailerName: 'Surat Sales Agency',
       date: interStateDate,
@@ -400,7 +404,7 @@ export async function seedBilling(
     orderRows.push({
       id: cancelledOrderId,
       tenantId,
-      orderNo: 'SO-9001',
+      orderNo: `${soPrefix}9001`,
       retailerId: cancelledShop.id,
       state: 'packed',
       source: 'salesperson',
@@ -435,7 +439,7 @@ export async function seedBilling(
     invoiceRows.push({
       id: cancelledInvoiceId,
       tenantId,
-      invoiceNo: 'INV/9002',
+      invoiceNo: `${invPrefix}9002`,
       seriesCode: 'INV',
       fy: FY,
       invoiceDate: isoDate(cancelledDate),
@@ -492,7 +496,7 @@ export async function seedBilling(
     postSale({
       key: 'cancelled',
       invoiceId: cancelledInvoiceId,
-      invoiceNo: 'INV/9002',
+      invoiceNo: `${invPrefix}9002`,
       retailerId: cancelledShop.id,
       retailerName: cancelledShop.name,
       date: cancelledDate,
@@ -512,7 +516,7 @@ export async function seedBilling(
       entryDate: isoDate(cancelledDate),
       refType: 'invoice_cancel',
       refId: cancelledInvoiceId,
-      narration: 'cancels invoice INV/9002',
+      narration: `cancels invoice ${invPrefix}9002`,
       idempotencyKey: `journal:invoice-cancel:${cancelledInvoiceId}`,
       postedBy: people.owner.id,
       postedAt: atIstTime(cancelledDate, 19, 30),
@@ -561,7 +565,7 @@ export async function seedBilling(
           refId: cancelledInvoiceId,
           actorId: people.owner.id,
           idempotencyKey: `invoice-cancel:${cancelledInvoiceId}:${lot.id}:${godown}`,
-          note: 'cancelled invoice INV/9002',
+          note: `cancelled invoice ${invPrefix}9002`,
         },
       )
     }
@@ -585,7 +589,7 @@ export async function seedBilling(
     orderRows.push({
       id: vanOrderId,
       tenantId,
-      orderNo: 'SO-9002',
+      orderNo: `${soPrefix}9002`,
       retailerId: vanShop.id,
       state: 'delivered',
       source: 'van_sale',
@@ -620,7 +624,7 @@ export async function seedBilling(
     invoiceRows.push({
       id: vanInvoiceId,
       tenantId,
-      invoiceNo: 'INV/9003',
+      invoiceNo: `${invPrefix}9003`,
       seriesCode: 'INV',
       fy: FY,
       invoiceDate: isoDate(vanDate),
@@ -674,7 +678,7 @@ export async function seedBilling(
     postSale({
       key: 'van-sale',
       invoiceId: vanInvoiceId,
-      invoiceNo: 'INV/9003',
+      invoiceNo: `${invPrefix}9003`,
       retailerId: vanShop.id,
       retailerName: vanShop.name,
       date: vanDate,
@@ -848,7 +852,7 @@ export async function seedBilling(
   }[] = [
     {
       key: 'return',
-      no: 'CN/9001',
+      no: `${cnPrefix}9001`,
       reason: 'return_saleable',
       ratePaise: (line) => Number(line.rate_paise),
       maxQty: 6,
@@ -859,7 +863,7 @@ export async function seedBilling(
       // A rate-difference note passes the DIFFERENCE per piece, never today's price list (ADR 0004),
       // and moves no goods at all.
       key: 'rate',
-      no: 'CN/9002',
+      no: `${cnPrefix}9002`,
       reason: 'rate_difference',
       ratePaise: (line) => Math.min(50, Number(line.rate_paise)),
       maxQty: 24,
