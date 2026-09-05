@@ -349,7 +349,8 @@ export async function assertTenantMember(tx: Db, userId: string): Promise<void> 
  * `OrderPicking` / `OrderPacked` / `OrderDispatched` are NOT emitted here — `applyFulfilmentEvent`
  * writes them beside the order's own transition row, which is the point of going through it.
  */
-export type WarehouseEventType = 'PicklistStarted' | 'LoadSheetConfirmed' | 'DeliveryChallanIssued'
+export type WarehouseEventType =
+  'PicklistStarted' | 'LoadSheetApproved' | 'LoadSheetConfirmed' | 'DeliveryChallanIssued'
 
 export async function emitWarehouseEvent(
   tx: Db,

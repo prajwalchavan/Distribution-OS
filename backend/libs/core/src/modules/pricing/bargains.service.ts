@@ -19,10 +19,11 @@ import {
   type TenantContext,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
+  ANY_MEMBER,
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   requireDb,
   requireRole,
   STAFF,
@@ -112,8 +113,10 @@ export class BargainsService {
     ctx: TenantContext,
     p: { brandId: string | null; listRate: number; asked: number; qtyPcs: number | undefined },
   ): Promise<'approved' | 'auto_approved' | null> {
-    if (BACK_OFFICE.includes(ctx.actorRole)) return 'approved'
-    if (ctx.actorRole === 'retailer') return null
+    // Only the owner and the manager file a bargain already approved (the database's
+    // bargain_requests insert policy says the same); the accountant's request waits like a rep's.
+    if (MANAGEMENT.includes(ctx.actorRole)) return 'approved'
+    if (ctx.actorRole === 'retailer' || ctx.actorRole === 'accountant') return null
     const bounds = await tx
       .select()
       .from(repAutoApproveBounds)
@@ -137,8 +140,9 @@ export class BargainsService {
     return 'auto_approved'
   }
 
+  /** Owner and manager decide (docs/22 2026-09-05: the accountant decides no approval). */
   async decide(input: DecideIn): Promise<DecideOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -174,8 +178,9 @@ export class BargainsService {
     )
   }
 
+  /** The shop reads the outcome of its own requests (RLS `bargain_requests_read` narrows it); staff read all. */
   async list(input: ListIn): Promise<ListOut> {
-    requireRole(STAFF)
+    requireRole(ANY_MEMBER)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, async (tx) => {

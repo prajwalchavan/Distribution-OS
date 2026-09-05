@@ -11,10 +11,18 @@ import {
 } from 'drizzle-orm/pg-core'
 import {
   BACK_OFFICE_ROLES,
+  backOfficeOrOwnRowPolicy,
   bps,
   id,
+  INBOUND_ROLES,
+  ONBOARDER_ROLES,
   paise,
+  PRICE_SETTER_ROLES,
+  roleWritePolicies,
+  staffReadPolicy,
+  staffWritePolicy,
   tenantPolicy,
+  tenantReadPolicy,
   tenantRolePolicy,
   timestamps,
   tz,
@@ -23,7 +31,16 @@ import { brands, productVariants } from './catalog.js'
 import { tenantRef } from './platform.js'
 import { users } from './tenancy.js'
 
-/** Tenant overlay on the global catalog (ADR 0005). */
+/**
+ * Tenant overlay on the global catalog (ADR 0005).
+ *
+ * RLS (migration 0012, docs/23 §8.17 + docs/22 §8 2026-09-05): the listing (`tenant_products`) and the
+ * per-brand mode (`tenant_brands`) are read by every member — the shop's catalog is built from them —
+ * and written by staff / the price setters respectively (a brand's cash-discount mode IS a pricing
+ * rule). Suppliers and pack configs are the buying side: staff read, the desk and the floor write,
+ * a shop never sees who the distributor buys from. A rep's brand authorisation is its own row to read
+ * and the onboarders' to set. Purchase cost stays exactly where it was: back office only.
+ */
 
 export const marginBasis = pgEnum('margin_basis', ['ptd', 'mrp', 'net'])
 export const fulfilmentMode = pgEnum('fulfilment_mode', ['own', 'brand_dms'])
@@ -59,7 +76,8 @@ export const tenantBrands = pgTable(
   },
   (t) => [
     uniqueIndex('tenant_brands_idx').on(t.tenantId, t.brandId),
-    tenantPolicy('tenant_brands_tenant'),
+    tenantReadPolicy('tenant_brands_read'),
+    ...roleWritePolicies('tenant_brands_write', PRICE_SETTER_ROLES),
   ],
 ).enableRLS()
 
@@ -83,7 +101,11 @@ export const suppliers = pgTable(
     active: boolean('active').notNull().default(true),
     ...timestamps,
   },
-  (t) => [index('suppliers_tenant_idx').on(t.tenantId, t.name), tenantPolicy('suppliers_tenant')],
+  (t) => [
+    index('suppliers_tenant_idx').on(t.tenantId, t.name),
+    staffReadPolicy('suppliers_read'),
+    ...roleWritePolicies('suppliers_write', INBOUND_ROLES),
+  ],
 ).enableRLS()
 
 /** Return/damage policy per manufacturer brand for this tenant (founder: policy differs per manufacturer). */
@@ -130,7 +152,10 @@ export const tenantProducts = pgTable(
   },
   (t) => [
     uniqueIndex('tenant_products_idx').on(t.tenantId, t.variantId),
-    tenantPolicy('tenant_products_tenant'),
+    /** Delta download for the offline rep (docs/23 §8.11): listings changed since the last open. */
+    index('tenant_products_updated_idx').on(t.tenantId, t.updatedAt),
+    tenantReadPolicy('tenant_products_read'),
+    ...staffWritePolicy('tenant_products_write'),
   ],
 ).enableRLS()
 
@@ -154,7 +179,8 @@ export const supplierPackConfigs = pgTable(
   },
   (t) => [
     uniqueIndex('supplier_pack_configs_idx').on(t.tenantId, t.supplierId, t.variantId),
-    tenantPolicy('supplier_pack_configs_tenant'),
+    staffReadPolicy('supplier_pack_configs_read'),
+    ...roleWritePolicies('supplier_pack_configs_write', INBOUND_ROLES),
   ],
 ).enableRLS()
 
@@ -210,6 +236,7 @@ export const repProductAuthorisations = pgTable(
   },
   (t) => [
     uniqueIndex('rep_product_authorisations_idx').on(t.tenantId, t.userId, t.brandId),
-    tenantPolicy('rep_product_authorisations_tenant'),
+    backOfficeOrOwnRowPolicy('rep_product_authorisations_read', 'user_id'),
+    ...roleWritePolicies('rep_product_authorisations_write', ONBOARDER_ROLES),
   ],
 ).enableRLS()

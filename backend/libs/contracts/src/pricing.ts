@@ -14,6 +14,12 @@ import {
  * Pricing (ADR 0008): price lists per tier, retailer overrides, the single `schemes` table, bargains and rep
  * auto-approve bounds. `quote` runs the pure `priceOrder()` engine from @dos/domain with these inputs; the order
  * module and both apps call it. Nothing here carries purchase cost or margin.
+ *
+ * WHICH SERVICES MOUNT `pricing`: owner, manager, sales, delivery, retailer (not warehouse). The desk —
+ * owner and manager, never the accountant (docs/22 2026-09-05) — writes the economics; the rep reads the
+ * rates, its own bound (`bounds.list`) and asks for bargains; the SHOP reads its deals (`schemes.list`,
+ * filtered to what applies to it and stripped to `SchemePublicSchema`) and the outcome of its own
+ * bargain requests (`bargains.list`, RLS narrows to its rows) — docs/23 §8.16.
  */
 
 const TierSchema = z.enum(['A', 'B', 'C', 'D'])
@@ -195,6 +201,25 @@ export const SchemeSchema = z.object({
 })
 export type Scheme = z.infer<typeof SchemeSchema>
 
+/**
+ * What the field and the shop see of a scheme: the economics that price an order, and NOT who funds it,
+ * whether it is claimable or the brand's circular reference (docs/17 §B security [54–57]: schemes reach
+ * rep devices without `funding_source`, `claimable`, `claim_window_days`). `schemes.list` answers this
+ * shape to every role outside the back office, and for the retailer role only the schemes whose
+ * `applicability` (tier, retailerIds, beatIds) includes that shop.
+ */
+export const SchemePublicSchema = SchemeSchema.omit({
+  fundingSource: true,
+  claimable: true,
+  claimWindowDays: true,
+  sourceRef: true,
+})
+export type SchemePublic = z.infer<typeof SchemePublicSchema>
+
+/** Union order matters: a back-office row (has `fundingSource`) matches SchemeSchema first. */
+export const SchemeViewSchema = z.union([SchemeSchema, SchemePublicSchema])
+export type SchemeView = z.infer<typeof SchemeViewSchema>
+
 export const SchemesListInput = z.object({
   activeOnly: QueryBoolSchema.default(true),
   /** Only schemes whose validity window contains this date. */
@@ -203,7 +228,7 @@ export const SchemesListInput = z.object({
   ...CursorInput,
 })
 export const SchemesListOutput = z.object({
-  items: z.array(SchemeSchema),
+  items: z.array(SchemeViewSchema),
   nextCursor: z.string().nullable(),
 })
 
@@ -396,6 +421,10 @@ export const SetBoundInput = MutationBase.extend({
 })
 export const SetBoundOutput = z.object({ item: RepBoundSchema })
 
+/** A salesperson reads only its own bound (`userId` is forced to the actor); the desk anyone's. */
+export const BoundsListInput = z.object({ userId: IdSchema.optional() })
+export const BoundsListOutput = z.object({ items: z.array(RepBoundSchema) })
+
 // ---------------------------------------------------------------------------------------------------------------
 // the router: mount as `pricing: pricingContract` in contract.ts
 
@@ -445,7 +474,8 @@ export const pricingContract = {
       .route({
         method: 'GET',
         path: '/pricing/schemes',
-        summary: 'Schemes (the single table the engine reads)',
+        summary:
+          'Schemes (the single table the engine reads; the field and the shop get the public shape)',
       })
       .input(SchemesListInput)
       .output(SchemesListOutput),
@@ -484,7 +514,11 @@ export const pricingContract = {
       .input(DecideBargainInput)
       .output(DecideBargainOutput),
     list: oc
-      .route({ method: 'GET', path: '/pricing/bargains', summary: 'Bargain requests' })
+      .route({
+        method: 'GET',
+        path: '/pricing/bargains',
+        summary: 'Bargain requests (a shop sees the outcome of its own)',
+      })
       .input(BargainsListInput)
       .output(BargainsListOutput),
   },
@@ -497,5 +531,13 @@ export const pricingContract = {
       })
       .input(SetBoundInput)
       .output(SetBoundOutput),
+    list: oc
+      .route({
+        method: 'GET',
+        path: '/pricing/bounds',
+        summary: 'Rep auto-approve bounds (a salesperson sees only its own)',
+      })
+      .input(BoundsListInput)
+      .output(BoundsListOutput),
   },
 }

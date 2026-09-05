@@ -14,6 +14,12 @@ import {
  * gate count → posting writes `grn` stock-ledger rows and per-lot purchase cost. Supplier invoices and purchase
  * orders carry rates and are back-office only (RLS + guard). GRN shapes carry pieces only: warehouse staff
  * count without ever seeing a rate.
+ *
+ * WHICH SERVICES MOUNT `procurement`: owner, manager, warehouse. The desk (`supplierInvoices.*`,
+ * `grns.open/post`, `purchaseOrders.*`, `supplierInvoices.dispute/cancel`) is BACK_OFFICE; resolving a
+ * gate-count discrepancy (`discrepancies.resolve`) sits in the owner's approvals queue (docs/23 O3 "GRN
+ * exceptions") and is therefore the owner's and the manager's, never the accountant's (docs/22
+ * 2026-09-05). The gate (`grns.count`) is the stock keepers.
  */
 
 export const SupplierInvoiceSourceSchema = z.enum([
@@ -154,6 +160,11 @@ export const SupplierInvoiceSchema = z.object({
   dueDate: z.string().nullable(),
   approvedBy: z.string().nullable(),
   approvedAt: z.string().nullable(),
+  /** Set by `supplierInvoices.dispute` / `.cancel`; null otherwise. */
+  disputedAt: z.string().nullable(),
+  disputeReason: z.string().nullable(),
+  cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   createdAt: z.string(),
 })
 export type SupplierInvoice = z.infer<typeof SupplierInvoiceSchema>
@@ -183,6 +194,24 @@ export const MatchLineInput = MutationBase.extend({
   variantId: IdSchema,
 })
 export const MatchLineOutput = z.object({ item: SupplierInvoiceWithLinesSchema })
+
+/**
+ * `extracted | in_review | approved → disputed`: the supplier's bill does not match what was agreed
+ * (rate, quantity, a bill for goods never ordered). A `received` invoice cannot be disputed — the GRN
+ * has posted stock and cost; the correction is a discrepancy claim or a supplier credit.
+ */
+export const DisputeSupplierInvoiceInput = MutationBase.extend({
+  id: IdSchema,
+  reason: z.string().trim().min(1).max(300),
+})
+export const DisputeSupplierInvoiceOutput = z.object({ item: SupplierInvoiceWithLinesSchema })
+
+/** `extracted | in_review | approved | disputed → cancelled`; never once a GRN has been opened on it. */
+export const CancelSupplierInvoiceInput = MutationBase.extend({
+  id: IdSchema,
+  reason: z.string().trim().min(1).max(300),
+})
+export const CancelSupplierInvoiceOutput = z.object({ item: SupplierInvoiceWithLinesSchema })
 
 export const GrnStatusSchema = z.enum(['counting', 'reconciled', 'posted', 'cancelled'])
 export const DiscrepancyKindSchema = z.enum([
@@ -221,6 +250,7 @@ export const DiscrepancySchema = z.object({
   qtyPcs: PiecesSchema,
   status: DiscrepancyStatusSchema,
   note: z.string().nullable(),
+  resolvedBy: IdSchema.nullable(),
   resolvedAt: z.string().nullable(),
   createdAt: z.string(),
 })
@@ -296,6 +326,18 @@ export const DiscrepanciesListOutput = z.object({
   items: z.array(DiscrepancySchema),
   nextCursor: z.string().nullable(),
 })
+
+/**
+ * The desk's decision on a gate-count finding (owner's approvals queue, "GRN exceptions"): `accepted`
+ * (we live with it), `claimed` (raised with the brand; claims' `build` may also set it), `credited` (the
+ * supplier issued a credit), `written_off`. Only from `open` or `claimed`; audited (`discrepancy.resolve`).
+ */
+export const ResolveDiscrepancyInput = MutationBase.extend({
+  id: IdSchema,
+  status: DiscrepancyStatusSchema.exclude(['open']),
+  note: z.string().trim().max(300).optional(),
+})
+export const ResolveDiscrepancyOutput = z.object({ item: DiscrepancySchema })
 
 export const PurchaseOrderStatusSchema = z.enum([
   'draft',
@@ -376,6 +418,22 @@ export const procurementContract = {
       })
       .input(MatchLineInput)
       .output(MatchLineOutput),
+    dispute: oc
+      .route({
+        method: 'POST',
+        path: '/procurement/supplier-invoices/{id}/dispute',
+        summary: 'Mark a supplier invoice disputed before any GRN posts against it',
+      })
+      .input(DisputeSupplierInvoiceInput)
+      .output(DisputeSupplierInvoiceOutput),
+    cancel: oc
+      .route({
+        method: 'POST',
+        path: '/procurement/supplier-invoices/{id}/cancel',
+        summary: 'Cancel a supplier invoice that never became stock',
+      })
+      .input(CancelSupplierInvoiceInput)
+      .output(CancelSupplierInvoiceOutput),
   },
   grns: {
     open: oc
@@ -424,6 +482,15 @@ export const procurementContract = {
       })
       .input(DiscrepanciesListInput)
       .output(DiscrepanciesListOutput),
+    resolve: oc
+      .route({
+        method: 'POST',
+        path: '/procurement/discrepancies/{id}/resolve',
+        summary:
+          'Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager)',
+      })
+      .input(ResolveDiscrepancyInput)
+      .output(ResolveDiscrepancyOutput),
   },
   purchaseOrders: {
     upsert: oc

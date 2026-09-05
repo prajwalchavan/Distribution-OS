@@ -54,6 +54,10 @@ export function toInvoice(row: InvoiceRow): SupplierInvoice {
     dueDate: row.dueDate,
     approvedBy: row.approvedBy,
     approvedAt: iso(row.approvedAt),
+    disputedAt: iso(row.disputedAt),
+    disputeReason: row.disputeReason,
+    cancelledAt: iso(row.cancelledAt),
+    cancelReason: row.cancelReason,
     createdAt: row.createdAt.toISOString(),
   }
 }
@@ -131,6 +135,7 @@ export function toDiscrepancy(row: DiscrepancyRow): Discrepancy {
     qtyPcs: row.qtyPcs,
     status: row.status,
     note: row.note,
+    resolvedBy: row.resolvedBy,
     resolvedAt: iso(row.resolvedAt),
     createdAt: row.createdAt.toISOString(),
   }

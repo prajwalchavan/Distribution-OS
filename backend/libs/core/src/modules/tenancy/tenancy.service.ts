@@ -11,6 +11,7 @@ import type {
   StaffOk,
   StaffSetPasswordIn,
   StaffSetStatusIn,
+  StaffUpdateIn,
 } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
@@ -28,7 +29,14 @@ import {
   type ActorRole,
   type Db,
 } from '@dos/db'
-import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
+import {
+  currentTenant,
+  DB,
+  idempotent,
+  requireDb,
+  requireRole,
+  writeAudit,
+} from '../../platform/index.js'
 
 /** Who may read the staff list: the desk. A rep must not enumerate the people of the business. */
 const BACK_OFFICE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'system']
@@ -203,6 +211,57 @@ export class TenancyService {
           status: 'active',
         })
         return { userId, membershipId: input.id, mustChangePassword: true as const }
+      }),
+    )
+  }
+
+  /**
+   * Edit a staff member's profile (docs/23 §8.13 `staff.update`): name, phone, locale — never the
+   * role (disable and re-create) and never a credential. `users` is global and `users_self_update`
+   * only lets a person edit itself under app_rw, so the write escalates once the membership and the
+   * manager's remit have been checked inside the tenant transaction. A phone is unique platform-wide.
+   */
+  async updateStaff(input: StaffUpdateIn): Promise<StaffOk> {
+    requireRole(ONBOARDERS)
+    const ctx = currentTenant()
+    const db = requireDb(this.db)
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const target = await loadMember(tx, ctx.tenantId, input.userId)
+        assertMayAdminister(ctx.actorRole, target.role)
+        const [before] = await tx
+          .select({ name: users.name, phone: users.phone, locale: users.locale })
+          .from(users)
+          .where(eq(users.id, input.userId))
+          .limit(1)
+        if (!before) throw new ORPCError('NOT_FOUND', { message: 'user not found' })
+        const patch = {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.phone !== undefined ? { phone: input.phone } : {}),
+          ...(input.locale !== undefined ? { locale: input.locale } : {}),
+        }
+        try {
+          await withSystem(db, (sys) =>
+            sys
+              .update(users)
+              .set({ ...patch, updatedAt: new Date() })
+              .where(eq(users.id, input.userId)),
+          )
+        } catch (err) {
+          if (isUniqueViolation(err))
+            throw new ORPCError('CONFLICT', {
+              message: 'That phone number belongs to another person',
+            })
+          throw err
+        }
+        await writeAudit(tx, {
+          action: 'staff.update',
+          entityType: 'user',
+          entityId: input.userId,
+          before,
+          after: { ...before, ...patch },
+        })
+        return { ok: true as const }
       }),
     )
   }

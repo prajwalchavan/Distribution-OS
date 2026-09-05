@@ -86,6 +86,15 @@ export const NUMBERING_SERIES = [
  * | `seller_fssai`             | string   | FSSAI licence printed on a food invoice. ABSENT = omit it.  |
  * | `upi_vpa`                  | string   | the UPI id the invoice QR pays into. ABSENT = print no QR.  |
  * | `ewb_intra_state_threshold`| number   | paise; a vehicle load at or above it needs an e-way bill.   |
+ * | `delivery.settlement_tolerance_paise` | number | cash short/over a crew may hand in without the owner. |
+ * | `delivery.pod_required`    | string   | `always` / `credit_only` / `never`: when a photo/signature is a must. |
+ * | `delivery.geofence_metres` | number   | distance from the shop pin that turns the arrival amber (evidence). |
+ * | `dpdp.gps_retention_days`  | number   | days raw `trip_points` are kept; stop coordinates and POD stay. |
+ *
+ * The four `delivery.*` / `dpdp.*` rows were added by the delivery slice (coordination §2, delivery §3
+ * item 11): the crew's offline device reads them through `trips.get` (`TripDetail.settings`, docs/23
+ * §8.4), the settlement trigger `dos_trip_settlement_guard` (migration 0015) reads the tolerance, and
+ * the worker's retention sweep reads the GPS window. Seeded so none of them ever reads as "absent".
  *
  * `branding.address` and `seller_fssai` were added by the billing slice: both are printed on the tax
  * invoice and the credit note, and neither has a sensible default — a made-up address on a GST document
@@ -105,6 +114,10 @@ export const TENANT_SETTING_KEYS = {
   sellerFssai: 'seller_fssai',
   upiVpa: 'upi_vpa',
   ewbIntraStateThreshold: 'ewb_intra_state_threshold',
+  deliverySettlementTolerancePaise: 'delivery.settlement_tolerance_paise',
+  deliveryPodRequired: 'delivery.pod_required',
+  deliveryGeofenceMetres: 'delivery.geofence_metres',
+  dpdpGpsRetentionDays: 'dpdp.gps_retention_days',
 } as const
 
 /**
@@ -115,6 +128,22 @@ export const TENANT_SETTING_KEYS = {
  * Maharashtra figure with the CA and changes the row, not the code (coordination §7 question 16).
  */
 export const DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE = 10_000_000
+
+/**
+ * Delivery policy defaults (docs/plans/delivery.md §3 item 11, coordination §7 q14, q23, q28 — the
+ * founder changes the ROW, never the code). ₹100 of cash short/over closes a trip without the owner;
+ * beyond it, or any van stock that does not tally, the settlement is red and `dos_trip_settlement_guard`
+ * (migration 0015) insists on the owner's approval — the trigger falls back to this same figure when the
+ * row is unreadable, so the two must stay equal. Proof of delivery is a must for credit shops only and
+ * OTP is off for the pilot; 150 m from the shop pin is amber evidence, never a block; raw GPS lives 90
+ * days (DPDP), stop coordinates and proof stay with the invoice.
+ */
+export const DEFAULT_SETTLEMENT_TOLERANCE_PAISE = 10_000
+export const POD_REQUIRED_MODES = ['always', 'credit_only', 'never'] as const
+export type PodRequiredMode = (typeof POD_REQUIRED_MODES)[number]
+export const DEFAULT_POD_REQUIRED: PodRequiredMode = 'credit_only'
+export const DEFAULT_GEOFENCE_METRES = 150
+export const DEFAULT_GPS_RETENTION_DAYS = 90
 
 export const DEFAULT_FLAGS = [
   { flag: 'van_sales', enabled: false },
@@ -180,6 +209,18 @@ export async function bootstrapTenant(
         tenantId,
         key: TENANT_SETTING_KEYS.ewbIntraStateThreshold,
         value: DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE,
+      },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.deliverySettlementTolerancePaise,
+        value: DEFAULT_SETTLEMENT_TOLERANCE_PAISE,
+      },
+      { tenantId, key: TENANT_SETTING_KEYS.deliveryPodRequired, value: DEFAULT_POD_REQUIRED },
+      { tenantId, key: TENANT_SETTING_KEYS.deliveryGeofenceMetres, value: DEFAULT_GEOFENCE_METRES },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.dpdpGpsRetentionDays,
+        value: DEFAULT_GPS_RETENTION_DAYS,
       },
     ])
     .onConflictDoNothing()

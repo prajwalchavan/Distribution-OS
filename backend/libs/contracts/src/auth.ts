@@ -17,6 +17,24 @@ import {
  * rotates the refresh token in place; presenting a token that was already rotated revokes the whole
  * session. Nothing in this file is tenant-scoped: the tenant is chosen at sign-in and encoded in
  * the access token as `tid`.
+ *
+ * SELF-SERVICE RESET (docs/23 §8.12). `forgotPassword` / `resetPassword` are the password-free path
+ * for a shopkeeper who has no owner to call: the first always answers `{ ok: true }` (an attacker must
+ * not learn which usernames exist) and, when the username is real, stores a hashed single-use token
+ * that expires in 30 minutes and emits a `PasswordResetRequested` outbox event; the second exchanges
+ * that token for a new password and revokes every session. The DELIVERY CHANNEL of the token (SMS /
+ * WhatsApp) is the OTP layer docs/22 §7 defers to a later enhancement, so until the notifications
+ * module lands the event is recorded and nothing is sent — the procedures are declared now so the six
+ * apps' sign-in screens are built against the final surface. `auth.loginWithLink` (a one-time link in
+ * a WhatsApp message) and `auth.stepUp` (the manager's PIN typed on the warehouse phone) are NOT
+ * declared: the first is the same future layer, the second is superseded by the founder's decision of
+ * 2026-09-05 that load-out is approved from the MANAGER app (`warehouse.loadSheets.approve`).
+ *
+ * WHITE-LABEL (docs/17 §D6): `AuthTenantSchema` and `MembershipSummarySchema` carry the distributor's
+ * `displayName` and a pre-signed `logoUrl` so the sign-in landing and the retailer's distributor cards
+ * show the distributor's own name and logo before any tenant-scoped call is possible. The auth service
+ * reads `tenant_settings` for them as the service (it is not tenant-scoped); a tenant without a logo
+ * answers `logoUrl: null` and `displayName` falls back to `legalName`.
  */
 
 export const AuthPlatformSchema = z.enum(['web', 'android', 'ios'])
@@ -51,6 +69,10 @@ export const AuthTenantSchema = z.object({
   id: IdSchema,
   slug: z.string().min(2).max(40),
   legalName: z.string().min(2).max(200),
+  /** `branding.display_name`, falling back to the legal name; what the app chrome shows (§D6). */
+  displayName: z.string().min(1).max(200),
+  /** Pre-signed, 24 h; null until the owner uploads a logo. */
+  logoUrl: z.string().nullable(),
 })
 export type AuthTenant = z.infer<typeof AuthTenantSchema>
 
@@ -58,7 +80,11 @@ export type AuthTenant = z.infer<typeof AuthTenantSchema>
 export const MembershipSummarySchema = z.object({
   tenantId: IdSchema,
   tenantSlug: z.string().min(2).max(40),
+  /** The legal name. */
   tenantName: z.string().min(2).max(200),
+  /** The distributor's own display name and logo for the retailer's distributor cards (§D6). */
+  displayName: z.string().min(1).max(200),
+  logoUrl: z.string().nullable(),
   role: MembershipRoleSchema,
   status: z.enum(['invited', 'active', 'disabled']),
 })
@@ -147,6 +173,19 @@ export const ChangePasswordInput = z.object({
 })
 export type ChangePasswordIn = z.infer<typeof ChangePasswordInput>
 
+/** Always answers ok; whether a token was issued is never revealed on the wire. */
+export const ForgotPasswordInput = z.object({ username: UsernameSchema })
+export type ForgotPasswordIn = z.infer<typeof ForgotPasswordInput>
+
+/** Opaque single-use token from the reset message; 30-minute lifetime, hashed at rest. */
+export const PasswordResetTokenSchema = z.string().min(20).max(400)
+
+export const ResetPasswordInput = z.object({
+  token: PasswordResetTokenSchema,
+  newPassword: PasswordSchema,
+})
+export type ResetPasswordIn = z.infer<typeof ResetPasswordInput>
+
 /** Every auth procedure that succeeds without a payload answers with this. */
 export const AuthOkOutput = z.object({ ok: z.literal(true) })
 export type AuthOk = z.infer<typeof AuthOkOutput>
@@ -174,6 +213,11 @@ const SESSION_ERRORS = {
 
 const TOKEN_ERRORS = {
   UNAUTHORIZED: { message: 'Sign in to continue' },
+}
+
+/** Reset: the token is unknown, expired or already used. */
+const RESET_ERRORS = {
+  UNAUTHORIZED: { message: 'This reset link is invalid or has expired. Ask for a new one.' },
 }
 
 export const authContract = {
@@ -234,6 +278,23 @@ export const authContract = {
     .input(ChangePasswordInput)
     .output(AuthOkOutput)
     .errors(TOKEN_ERRORS),
+  forgotPassword: oc
+    .route({
+      method: 'POST',
+      path: '/auth/forgot-password',
+      summary: 'Ask for a password reset; always answers ok, the token travels by a later channel',
+    })
+    .input(ForgotPasswordInput)
+    .output(AuthOkOutput),
+  resetPassword: oc
+    .route({
+      method: 'POST',
+      path: '/auth/reset-password',
+      summary: 'Set a new password with a single-use reset token; every session is revoked',
+    })
+    .input(ResetPasswordInput)
+    .output(AuthOkOutput)
+    .errors(RESET_ERRORS),
   jwks: oc
     .route({
       method: 'GET',

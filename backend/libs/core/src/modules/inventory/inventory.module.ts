@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TenancyModule } from '../tenancy/index.js'
+import { CycleCountsService } from './cycle-counts.service.js'
 import { InventoryController } from './inventory.controller.js'
 import { InventoryService } from './inventory.service.js'
 import { StockService } from './stock.service.js'
@@ -11,7 +12,7 @@ import { StockService } from './stock.service.js'
 @Module({
   imports: [TenancyModule],
   controllers: [InventoryController],
-  providers: [InventoryService, StockService],
+  providers: [InventoryService, StockService, CycleCountsService],
   exports: [InventoryService],
 })
 export class InventoryModule {}

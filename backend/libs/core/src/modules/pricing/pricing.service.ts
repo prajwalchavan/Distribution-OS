@@ -3,6 +3,8 @@ import { ORPCError } from '@orpc/server'
 import { and, asc, eq, gt, inArray, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  BoundsListInput,
+  BoundsListOutput,
   OverridesListInput,
   OverridesListOutput,
   PriceList,
@@ -29,10 +31,10 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   OWNER,
   requireDb,
   requireRole,
@@ -50,6 +52,8 @@ type OverridesIn = z.infer<typeof OverridesListInput>
 type OverridesOut = z.infer<typeof OverridesListOutput>
 type OverrideIn = z.infer<typeof UpsertOverrideInput>
 type OverrideOut = z.infer<typeof UpsertOverrideOutput>
+type BoundsListIn = z.infer<typeof BoundsListInput>
+type BoundsListOut = z.infer<typeof BoundsListOutput>
 type BoundIn = z.infer<typeof SetBoundInput>
 type BoundOut = z.infer<typeof SetBoundOutput>
 
@@ -103,7 +107,7 @@ export class PricingService {
   }
 
   async upsertPriceList(input: PriceListIn): Promise<PriceListOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -146,7 +150,7 @@ export class PricingService {
   }
 
   async setPriceListItems(input: SetItemsIn): Promise<SetItemsOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -226,7 +230,7 @@ export class PricingService {
   }
 
   async upsertOverride(input: OverrideIn): Promise<OverrideOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -259,6 +263,28 @@ export class PricingService {
   }
 
   // --------------------------------------------------------------------------------------------------- bounds
+
+  /** A rep reads its OWN bound (the on-device auto-approve, docs/23 §8.16); the desk reads anyone's. */
+  async listBounds(input: BoundsListIn): Promise<BoundsListOut> {
+    requireRole(STAFF)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    const userId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.userId
+    return withTenant(db, ctx, async (tx) => {
+      const rows = await tx
+        .select()
+        .from(repAutoApproveBounds)
+        .where(
+          and(
+            eq(repAutoApproveBounds.tenantId, ctx.tenantId),
+            userId ? eq(repAutoApproveBounds.userId, userId) : undefined,
+          ),
+        )
+        .orderBy(asc(repAutoApproveBounds.userId), asc(repAutoApproveBounds.id))
+        .limit(500)
+      return { items: rows.map(toBound) }
+    })
+  }
 
   /** Owner only: how far a rep may drop below list (bps) without an approval, optionally per brand. */
   async setBound(input: BoundIn): Promise<BoundOut> {

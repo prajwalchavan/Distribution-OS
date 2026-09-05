@@ -93,6 +93,13 @@ export class PricingController {
     )
   }
 
+  @Implement(contract.pricing.bounds.list)
+  listBounds(@OwnsReply() _reply: unknown) {
+    return implement(contract.pricing.bounds.list).handler(({ input }) =>
+      this.pricing.listBounds(input),
+    )
+  }
+
   @Implement(contract.pricing.bounds.set)
   setBound(@OwnsReply() _reply: unknown) {
     return implement(contract.pricing.bounds.set).handler(({ input }) =>

@@ -14,9 +14,11 @@ import {
   id,
   paise,
   pieces,
+  roleInsertPolicy,
+  STAFF_ROLES,
+  staffReadPolicy,
   staffWritePolicy,
   tenantOrOwnRetailerPolicy,
-  tenantPolicy,
   timestamps,
   tz,
 } from './columns.js'
@@ -249,6 +251,12 @@ export const approvalKind = pgEnum('approval_kind', [
   'return',
   'scheme_override',
   'manual_price',
+  /**
+   * A trip settlement outside the owner's tolerance (cash short beyond `delivery.settlement_tolerance_paise`,
+   * or any van stock that does not tally). Filed by `delivery.trips.settle` when a manager or accountant is
+   * refused; decided by the owner (migration 0014, docs/plans/delivery.md §3 item 3).
+   */
+  'trip_settlement',
 ])
 export const approvalStatus = pgEnum('approval_status', [
   'pending',
@@ -257,7 +265,17 @@ export const approvalStatus = pgEnum('approval_status', [
   'expired',
 ])
 
-/** Owner approvals queue: gates submitted → confirmed. */
+/**
+ * Owner approvals queue: gates submitted → confirmed.
+ *
+ * RLS (migration 0012, docs/22 §8 2026-09-05): staff read the queue and a shop never does — a credit
+ * approval's payload is the shop's own credit limit, and the shop's order detail already strips
+ * approvals (docs/23 §8.15). Anyone who submits an order may RAISE one (staff; a shop for its own order
+ * once `orders.submit` opens to the retailer). DECIDING — writing `approved` or `rejected` with a
+ * `decided_by` — is the owner's and the manager's alone: the accountant approves nothing, so the UPDATE
+ * check lets everyone else write exactly one status, `expired`, which is what cancelling one's own
+ * order does to the gates that were waiting on it (`OrdersService.cancelInTx`).
+ */
 export const approvals = pgTable(
   'approvals',
   {
@@ -280,6 +298,34 @@ export const approvals = pgTable(
   (t) => [
     index('approvals_status_idx').on(t.tenantId, t.status, t.createdAt),
     index('approvals_order_idx').on(t.tenantId, t.orderId),
-    tenantPolicy('approvals_tenant'),
+    staffReadPolicy('approvals_read'),
+    roleInsertPolicy('approvals_insert', STAFF_ROLES),
+    pgPolicy('approvals_retailer_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) = 'retailer'
+        AND status = 'pending' AND requested_by = (SELECT current_setting('app.actor_id', true))
+        AND EXISTS (
+          SELECT 1 FROM sales_orders o
+          WHERE o.id = approvals.order_id
+            AND o.tenant_id = (SELECT current_setting('app.tenant_id', true))
+            AND o.created_by = (SELECT current_setting('app.actor_id', true))
+        )`,
+    }),
+    pgPolicy('approvals_update', {
+      for: 'update',
+      to: appRw,
+      using: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (
+        (SELECT current_setting('app.actor_role', true)) <> 'retailer'
+        OR EXISTS (
+          SELECT 1 FROM sales_orders o
+          WHERE o.id = approvals.order_id AND o.created_by = (SELECT current_setting('app.actor_id', true))
+        )
+      )`,
+      withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (
+        (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')
+        OR status = 'expired'
+      )`,
+    }),
   ],
 ).enableRLS()

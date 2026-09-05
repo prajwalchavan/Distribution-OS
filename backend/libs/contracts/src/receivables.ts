@@ -2,6 +2,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import {
   BpsSchema,
+  DocumentRenderOutput,
   IdSchema,
   MutationBase,
   PaiseSchema,
@@ -9,6 +10,7 @@ import {
   QueryIntSchema,
 } from './common.js'
 import { CreditModeSchema, PaymentTermsSchema } from './retailers.js'
+import { SellerBrandingSchema } from './tenancy.js'
 
 /**
  * Receivables — the money ledger (ADR 0004). It owns `accounts`, `journal_entries`, `journal_lines`,
@@ -20,21 +22,32 @@ import { CreditModeSchema, PaymentTermsSchema } from './retailers.js'
  *   owner :3001      YES — the whole surface, plus the owner-only write-off and ageing rebuild
  *   manager :3002    YES — manager + accountant: the desk records payments, allocates, deposits,
  *                    bounces, reads the journal, the chart of accounts and the registers
- *   sales :3003      NO  — "the salesperson does NOT collect money" (docs/17 §D4). The rep app has no
- *                    receivables surface in this slice; see the note on the salesperson role below
+ *   sales :3003      YES — READS ONLY, and only three of them: `outstanding.get` (the dues chip on the
+ *                    beat and the shop card), `creditCheck` (the on-device check before submit, docs/22
+ *                    §4 S4) and `ledger.get` (the shop's statement on the visit screen). "The salesperson
+ *                    does NOT collect money" (docs/17 §D4) forbids COLLECTING, not SEEING: every other
+ *                    procedure in this file — every receipt, allocation, deposit, bounce, write-off and
+ *                    the books — refuses the salesperson in PERMISSIONS, so mounting the key exposes no
+ *                    way to record a rupee (docs/23 §8.1, §3.3)
  *   warehouse :3004  NO  — the warehouse role never touches money
- *   delivery :3005   YES — the crew collects at the shop door: `receipts.create`, the read surfaces and
- *                    `creditCheck` before a van sale. Never `reverse`/`deposit`/`bounce`/`journal`
+ *   delivery :3005   YES — the crew collects at the shop door: `receipts.create`, `receipts.list/get/
+ *                    document`, `outstanding.get` for the shop at the door, `ledger.get` and `creditCheck`
+ *                    before a van sale. Never `outstanding.list` (the tenant register — the crew needs
+ *                    one shop at a time, docs/23 §5.3), never `reverse`/`deposit`/`bounce`/`journal`
  *   retailer :3006   YES — its own bills only: `outstanding.get`, `ledger.get`, `receipts.list/get`
  *                    (RLS narrows every one of them to the shop) and `payments.initiate`, the shop's own
  *                    online-payment path. A retailer never creates, allocates or reverses a receipt
  *
- * TWO RULES FROM THE FOUNDER (docs/17 §D2 and §D4) THAT SHAPE THIS FILE:
+ * THREE RULES FROM THE FOUNDER (docs/17 §D2, §D4 and docs/22 2026-09-05) THAT SHAPE THIS FILE:
  *
- *  1. Only the delivery crew and the desk take money, plus the shop paying online for itself. There is
- *     deliberately no salesperson anywhere in this contract's permission rows, and the shop's online
- *     payment is `payments.initiate` — a separate procedure with the retailer role — never a widening of
- *     `receipts.create`.
+ *  1. Only the delivery crew and the desk take money, plus the shop paying online for itself. The
+ *     salesperson appears in exactly three READ rows of this contract's permissions (`outstanding.get`,
+ *     `creditCheck`, `ledger.get`) and in no write, and the shop's online payment is `payments.initiate`
+ *     — a separate procedure with the retailer role — never a widening of `receipts.create`.
+ *  3. The ACCOUNTANT IS THE MONEY DESK (docs/22, 2026-09-05): owner, manager and accountant —
+ *     `ROLE_GROUPS.MONEY_DESK` — record office receipts, reverse, deposit, bounce, allocate, write off
+ *     and send statements. The accountant reads everything else and writes no price, scheme, credit
+ *     limit, approval or setting anywhere in the contract.
  *  2. Cash discount is REPORTED on the invoice and realised at receipt as a financial credit note. There
  *     is therefore no on-invoice deduction procedure: `receipts.create` realises the condition when the
  *     money lands inside the window, and `cashDiscounts.list` is the desk's "collect before it shuts" queue.
@@ -160,6 +173,8 @@ export const ReceiptSchema = z.object({
   bounceReason: z.string().nullable(),
   bankChargesPaise: PaiseSchema,
   proofObjectKey: z.string().nullable(),
+  /** The rendered receipt (`receipts.document`), null until the worker has written it. */
+  pdfObjectKey: z.string().nullable(),
   note: z.string().nullable(),
   createdAt: z.string(),
 })
@@ -406,7 +421,24 @@ export const ReceiptGetOutput = z.object({
   allocations: z.array(AllocationSchema),
   /** The reversing receipt, when this one was reversed or bounced. */
   reversal: ReceiptSchema.nullable(),
+  /** The distributor's own name and logo: the receipt is the third white-label document (docs/22 §4 D6). */
+  seller: SellerBrandingSchema,
 })
+
+/** A5 for the office printer, 80 mm thermal for the crew's Bluetooth printer at the door. */
+export const ReceiptDocumentFormatSchema = z.enum(['a5', 'thermal80'])
+export type ReceiptDocumentFormat = z.infer<typeof ReceiptDocumentFormatSchema>
+
+/**
+ * The printed / WhatsApp receipt. Never renders inline (docs/20 rule 3, coordination §3.4): until the
+ * renderer slice exists every call answers `{ status: 'queued', objectKey: null, url: null }` and
+ * enqueues `documents.pdf.render` with the `receipt` template; that is a normal state, not an error.
+ */
+export const ReceiptDocumentInput = z.object({
+  id: IdSchema,
+  format: ReceiptDocumentFormatSchema.default('a5'),
+})
+export const ReceiptDocumentOutput = DocumentRenderOutput
 
 /** A receipt is never edited. `reversalId` is the client-generated id of the mirror receipt. */
 export const ReverseReceiptInput = MutationBase.extend({
@@ -532,7 +564,7 @@ export const OutstandingGetOutput = RetailerOutstandingSchema.extend({
   upiQrPayload: z.string().nullable(),
 })
 
-/** The ageing register. Reads the summary table joined to retailers; never available to the shop. */
+/** The ageing register: the desk's own (BACK_OFFICE). Reads the summary table joined to retailers; never the shop, never the crew, never the rep. */
 export const OutstandingListInput = z.object({
   beatId: IdSchema.optional(),
   overdueOnly: QueryBoolSchema.optional(),
@@ -545,10 +577,12 @@ export const OutstandingListInput = z.object({
 export const OutstandingListOutput = z.object({
   items: z.array(OutstandingListItemSchema),
   nextCursor: z.string().nullable(),
+  /** Over EVERY row the filter matches, not the page: the owner's `<AgeingBuckets>` needs tenant totals. */
   totals: z.object({
     outstandingPaise: PaiseSchema,
     overduePaise: PaiseSchema,
     retailers: z.number().int(),
+    buckets: AgeingBucketsSchema,
   }),
 })
 
@@ -689,6 +723,44 @@ export const RebuildAgeingOutput = z.object({
   overduePaise: PaiseSchema,
 })
 
+/**
+ * The outstanding trend and the ageing history, read from `ageing_snapshots` (written nightly and by
+ * `ageing.rebuild`). Never a live scan: one row per bucket of the grain, summed over the tenant, a beat
+ * or one shop. Window caps (docs/23 §1.2): day ≤ 92 points, week ≤ 53, month ≤ 24 — a wider window is
+ * 400 `window_too_wide`. Week buckets are Monday-anchored, month buckets calendar months, both IST;
+ * each point is the LAST snapshot inside its bucket.
+ */
+export const AgeingHistoryGrainSchema = z.enum(['day', 'week', 'month'])
+export type AgeingHistoryGrain = z.infer<typeof AgeingHistoryGrainSchema>
+
+export const AgeingHistoryPointSchema = z.object({
+  /** The snapshot date the point was taken from (IST). */
+  asOf: z.string(),
+  outstandingPaise: PaiseSchema,
+  overduePaise: PaiseSchema,
+  openBills: z.number().int(),
+  buckets: AgeingBucketsSchema,
+})
+export type AgeingHistoryPoint = z.infer<typeof AgeingHistoryPointSchema>
+
+export const AgeingHistoryInput = z
+  .object({
+    from: IsoDateSchema,
+    to: IsoDateSchema,
+    grain: AgeingHistoryGrainSchema.default('day'),
+    /** Sum over the shops of one beat. With `retailerId` too, the filters intersect (that shop, if on that beat). */
+    beatId: IdSchema.optional(),
+    /** One shop's history. */
+    retailerId: IdSchema.optional(),
+  })
+  .refine((i) => i.from <= i.to, 'from must not be after to')
+export const AgeingHistoryOutput = z.object({
+  grain: AgeingHistoryGrainSchema,
+  from: z.string(),
+  to: z.string(),
+  points: z.array(AgeingHistoryPointSchema),
+})
+
 // ---------------------------------------------------------------------------------------------------------------
 // the router: mount as `receivables: receivablesContract` in contract.ts
 
@@ -718,6 +790,14 @@ export const receivablesContract = {
       })
       .input(ReceiptGetInput)
       .output(ReceiptGetOutput),
+    document: oc
+      .route({
+        method: 'GET',
+        path: '/receipts/{id}/document',
+        summary: 'The printable receipt (A5 or 80 mm thermal) with the distributor branding',
+      })
+      .input(ReceiptDocumentInput)
+      .output(ReceiptDocumentOutput),
     reverse: oc
       .route({
         method: 'POST',
@@ -866,5 +946,13 @@ export const receivablesContract = {
       })
       .input(RebuildAgeingInput)
       .output(RebuildAgeingOutput),
+    history: oc
+      .route({
+        method: 'GET',
+        path: '/receivables/ageing/history',
+        summary: 'Outstanding and ageing buckets over time, from the nightly snapshots',
+      })
+      .input(AgeingHistoryInput)
+      .output(AgeingHistoryOutput),
   },
 }

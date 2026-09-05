@@ -15,10 +15,10 @@ import { dirname, join, resolve } from 'node:path'
  * Two drivers behind `OBJECT_STORAGE_DRIVER`:
  *
  * - `local` (the default, and the only one that works on the founder's Mac today): bytes land under
- *   `OBJECT_STORAGE_DIR` (default `backend/.storage`, git-ignored). `putUrl()` answers
- *   `{ url: null, inline: true }`, meaning "there is no pre-signed PUT here — send the bytes on the
- *   create call and the service will `put()` them". `getUrl()` answers an HMAC-signed relative URL a
- *   service can serve after checking it with `verifyLocalObjectUrl()`.
+ *   `OBJECT_STORAGE_DIR` (default `backend/.storage`, git-ignored). `putUrl()` and `getUrl()` answer
+ *   HMAC-signed relative URLs (`/storage/{key}?expires&signature`) that every service serves through
+ *   `StorageController` after checking them with `verifyLocalObjectUrl()` — a PUT writes the file, a
+ *   GET streams it — so the upload flow on one Mac is the same flow the apps use against S3.
  * - `s3`: pre-signed PUT and GET, SigV4 signed here with `node:crypto`. No AWS SDK: a pre-signed URL
  *   is a query string, and the whole of SigV4 for one is below in `presignS3`.
  *
@@ -26,7 +26,16 @@ import { dirname, join, resolve } from 'node:path'
  * S3 with the pre-signed URL, or hands the bytes to one create call on the local driver.
  */
 
-/** The one key convention, fixed in coordination §3.3: `tenant/{tenantId}/{domain}/{entityId}/{name}.{ext}`. */
+/**
+ * The one key convention, fixed in coordination §3.3: `tenant/{tenantId}/{domain}/{entityId}/{name}.{ext}`.
+ *
+ * The first seven are coordination's own list. The platform-gaps slice (docs/23 §8.13) added the
+ * domains `files.uploadUrl` mints — `logo` (the white-label logo, entity = the tenant), `expense`
+ * (a trip expense proof), `import` (an importer source file), `damage` (a gate photo) — and
+ * `documents`, where the worker's PDF renderer writes every rendered document as
+ * `tenant/{tenantId}/documents/{kind}/{id}.pdf` (kind = invoice | credit_note | challan | receipt).
+ * `receipts` mirrors the `file_domain` enum in @dos/db for a receipt proof photo.
+ */
 export const OBJECT_DOMAINS = [
   'docs',
   'invoices',
@@ -35,6 +44,12 @@ export const OBJECT_DOMAINS = [
   'claims',
   'exports',
   'statements',
+  'logo',
+  'expense',
+  'import',
+  'damage',
+  'documents',
+  'receipts',
 ] as const
 
 export type ObjectDomain = (typeof OBJECT_DOMAINS)[number]
@@ -162,6 +177,28 @@ export function assertObjectKey(key: string): void {
   }
 }
 
+/** The parts of a canonical key, or null when the key is not of the `tenant/{tenantId}/{domain}/{entityId}/{name}` shape. */
+export interface ParsedObjectKey {
+  tenantId: string
+  domain: ObjectDomain
+  entityId: string
+  /** `{name}.{ext}`, the last segment. */
+  fileName: string
+}
+
+export function parseObjectKey(key: string): ParsedObjectKey | null {
+  try {
+    assertObjectKey(key)
+  } catch {
+    return null
+  }
+  const parts = key.split('/')
+  if (parts.length !== 5 || parts[0] !== 'tenant') return null
+  const domain = parts[2] as ObjectDomain
+  if (!OBJECT_DOMAINS.includes(domain)) return null
+  return { tenantId: parts[1] ?? '', domain, entityId: parts[3] ?? '', fileName: parts[4] ?? '' }
+}
+
 /**
  * Tenant scoping. A retailer id in the URL must never reach another distributor's bytes, so every
  * procedure that takes a key from the wire calls this with `currentTenant().tenantId` first.
@@ -232,18 +269,25 @@ function localSigningSecret(env: NodeJS.ProcessEnv): string {
   return DEV_SIGNING_SECRET
 }
 
-function localSignature(key: string, expires: number, secret: string): string {
+/** A GET signature covers key + expiry (the original form); a PUT signature also covers the verb. */
+function localSignature(
+  key: string,
+  expires: number,
+  secret: string,
+  method: 'GET' | 'PUT' = 'GET',
+): string {
   return createHmac('sha256', secret)
-    .update(`${key}\n${String(expires)}`)
+    .update(method === 'GET' ? `${key}\n${String(expires)}` : `PUT\n${key}\n${String(expires)}`)
     .digest('hex')
 }
 
 /**
- * Verify a URL minted by the local driver's `getUrl`. The service that serves `/storage/*` calls this
- * before opening the file; a wrong or expired signature is a 403, never a read.
+ * Verify a URL minted by the local driver's `getUrl` (or, with `method: 'PUT'`, its `putUrl`). The
+ * service that serves `/storage/*` calls this before opening or writing the file; a wrong or expired
+ * signature is a 403, never a read or a write.
  */
 export function verifyLocalObjectUrl(
-  i: { key: string; expires: number; signature: string },
+  i: { key: string; expires: number; signature: string; method?: 'GET' | 'PUT' },
   env: NodeJS.ProcessEnv = process.env,
   now: Date = new Date(),
 ): boolean {
@@ -251,7 +295,7 @@ export function verifyLocalObjectUrl(
   let expected: string
   try {
     assertObjectKey(i.key)
-    expected = localSignature(i.key, i.expires, localSigningSecret(env))
+    expected = localSignature(i.key, i.expires, localSigningSecret(env), i.method ?? 'GET')
   } catch {
     return false
   }
@@ -274,26 +318,36 @@ function createLocalStorage(env: NodeJS.ProcessEnv, now: () => Date): ObjectStor
     return full
   }
 
+  const signedUrl = (key: string, ttl: number, method: 'GET' | 'PUT'): string => {
+    const expires = Math.floor(now().getTime() / 1000) + ttl
+    const signature = localSignature(key, expires, localSigningSecret(env), method)
+    const path = key.split('/').map(encodeURIComponent).join('/')
+    return `${base}/storage/${path}?expires=${String(expires)}&signature=${signature}`
+  }
+
   return {
+    /**
+     * The local driver pre-signs a PUT to the service's own `/storage/{key}` route
+     * (`StorageController` in `@dos/core`'s service layer), which verifies the signature, enforces the
+     * allow-list and writes the file — so an app uploads a logo or a POD photo on the founder's Mac
+     * exactly the way it will against S3: PUT the bytes to `url` with `headers`. `inline` stays false
+     * here for the same reason; a driver with genuinely nowhere to PUT would answer `inline: true`.
+     */
     async putUrl(key, opts) {
       assertObjectKey(key)
       assertContentType(key, opts.mimeType, opts.bytes)
       const ttl = opts.ttlSeconds ?? defaultTtl
       return {
-        url: null,
-        method: null,
-        headers: {},
+        url: signedUrl(key, ttl, 'PUT'),
+        method: 'PUT',
+        headers: { 'content-type': opts.mimeType },
         expiresAt: new Date(now().getTime() + ttl * 1000).toISOString(),
-        inline: true,
+        inline: false,
       }
     },
     async getUrl(key, ttlSeconds) {
       assertObjectKey(key)
-      const ttl = ttlSeconds ?? defaultTtl
-      const expires = Math.floor(now().getTime() / 1000) + ttl
-      const signature = localSignature(key, expires, localSigningSecret(env))
-      const path = key.split('/').map(encodeURIComponent).join('/')
-      return `${base}/storage/${path}?expires=${String(expires)}&signature=${signature}`
+      return signedUrl(key, ttlSeconds ?? defaultTtl, 'GET')
     },
     async put(key, body, mimeType) {
       assertContentType(key, mimeType, body.byteLength)

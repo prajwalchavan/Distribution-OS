@@ -827,8 +827,15 @@ async function refreshOutstanding(
  * Three days of history (today, yesterday, a week ago) so the owner's ageing chart has a trend, each one
  * computed from the bills that existed and the money that had arrived by that date.
  */
+/**
+ * Today, yesterday and the last twelve Thursdays: enough history for the owner's outstanding-trend and
+ * ageing-history charts (`receivables.ageing.history`, docs/23 §8.1) to draw a real line — the nine
+ * carried-over opening bills alone in the early weeks, the fortnight's own bills piling on top.
+ */
+const SNAPSHOT_DAYS_BACK = [0, 1, ...Array.from({ length: 12 }, (_, i) => 7 * (i + 1))]
+
 async function writeAgeingSnapshots(db: Db, tenantId: string): Promise<void> {
-  for (const back of [0, 1, 7]) {
+  for (const back of SNAPSHOT_DAYS_BACK) {
     const asOfDate = daysAgo(back)
     const asOf = isoDate(asOfDate)
     const result = await db.execute(sql`

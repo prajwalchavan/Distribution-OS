@@ -33,6 +33,8 @@ import type {
   InvoicesListOutput,
   InvoiceUpiQrInput,
   InvoiceUpiQrOutput,
+  IssueForPackInput as IssueForPackWireInput,
+  IssueForPackOutput,
   IssueVanSaleInvoiceInput,
   IssueVanSaleInvoiceOutput,
   RequestIrnInput,
@@ -58,6 +60,7 @@ import {
   invoices,
   locations,
   outboxEvents,
+  packConfirmations,
   retailers,
   salesOrderLines,
   salesOrders,
@@ -71,18 +74,20 @@ import {
   BACK_OFFICE,
   currentTenant,
   DB,
+  documentRender,
   idempotent,
   nextDocumentNumber,
+  requestDocumentRender,
   requireDb,
   requireRole,
 } from '../../platform/index.js'
-import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
-import { InventoryService } from '../inventory/index.js'
+import { InventoryService, pgConstraint } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   addDays,
   asLedgerPoster,
+  asSystemRole,
   invoiceDateOf,
   invoiceTransition,
   isUniqueViolation,
@@ -144,6 +149,8 @@ type ListOut = z.infer<typeof InvoicesListOutput>
 type UpiIn = z.infer<typeof InvoiceUpiQrInput>
 type UpiOut = z.infer<typeof InvoiceUpiQrOutput>
 type PdfIn = z.infer<typeof InvoicePdfInput>
+type IssueParkedIn = z.infer<typeof IssueForPackWireInput>
+type IssueParkedOut = z.infer<typeof IssueForPackOutput>
 type PdfOut = z.infer<typeof InvoicePdfOutput>
 type EwbIn = z.infer<typeof SetEwayBillInput>
 type EwbOut = z.infer<typeof SetEwayBillOutput>
@@ -792,31 +799,133 @@ export class BillingService {
 
   /**
    * Nothing renders on the request path (scale rule 3). A bill whose PDF exists answers with a
-   * pre-signed link; otherwise `queued`, which is a normal state and never an error — the renderer is
-   * a separate slice after these ten (coordination §3.4).
+   * pre-signed link; otherwise the render is queued for the worker (`documents.pdf.render`, the
+   * `invoice` template, A4 or 80 mm thermal, original/duplicate/triplicate) and the answer is
+   * `queued` — a normal state, never an error.
    */
   async pdf(input: PdfIn): Promise<PdfOut> {
     requireRole(ANY_MEMBER)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const row = await this.findInvoice(tx, input.id)
-      const key = row.pdfObjectKey
-      if (!key) return { status: 'queued' as const, objectKey: null, url: null, expiresAt: null }
-      try {
-        const storage = createObjectStorage()
-        const url = await storage.getUrl(key)
-        return {
-          status: 'ready' as const,
-          objectKey: key,
-          url,
-          expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
-        }
-      } catch (error) {
-        if (error instanceof ObjectStorageError)
-          return { status: 'queued' as const, objectKey: key, url: null, expiresAt: null }
-        throw error
-      }
+      return documentRender(tx, {
+        kind: 'invoice',
+        id: row.id,
+        objectKey: row.pdfObjectKey,
+        format: input.format,
+        copy: input.copy,
+      })
     })
+  }
+
+  /**
+   * Bill a pack the warehouse PARKED with `issueInvoice: false` (docs/23 §8.2). The stock has already
+   * left and the order is already `packed`; this is the document alone, through the same
+   * `issueForPack` the pack path calls, from the (order line × lot) split the pack wrote into the
+   * stock ledger (`pack:<order>:<line>:<lot>` rows). One pack, one live invoice: a pack whose bill
+   * exists is 409 `already_invoiced`; a cancelled earlier bill does not block a new one.
+   */
+  async issueParkedPack(input: IssueParkedIn): Promise<IssueParkedOut> {
+    requireRole(BILLING_ISSUERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        // No FOR UPDATE: under RLS a row lock needs an UPDATE policy, and the accountant (a
+        // BILLING_ISSUER) has none on warehouse's table. The order lock inside `issueForPack` and
+        // `assertNoLiveInvoice` are what keep two bills from racing for one pack.
+        const [pack] = await tx
+          .select()
+          .from(packConfirmations)
+          .where(
+            and(
+              eq(packConfirmations.tenantId, ctx.tenantId),
+              eq(packConfirmations.id, input.packId),
+            ),
+          )
+          .limit(1)
+        if (!pack) throw new ORPCError('NOT_FOUND', { message: `pack ${input.packId} not found` })
+        if (pack.invoiceId) {
+          const [live] = await tx
+            .select({ id: invoices.id, state: invoices.state, invoiceNo: invoices.invoiceNo })
+            .from(invoices)
+            .where(and(eq(invoices.tenantId, ctx.tenantId), eq(invoices.id, pack.invoiceId)))
+            .limit(1)
+          if (live && live.state !== 'cancelled')
+            throw new ORPCError('CONFLICT', {
+              message: `pack ${pack.id} is already billed as ${live.invoiceNo ?? live.id}`,
+              data: { code: 'already_invoiced', invoiceId: live.id },
+            })
+        }
+        const packedOn = businessDate(pack.packedAt).date
+        const invoiceDate = invoiceDateOf(input.invoiceDate)
+        if (invoiceDate < packedOn)
+          throw new ORPCError('BAD_REQUEST', {
+            message: `invoiceDate ${invoiceDate} is before the pack date ${packedOn}`,
+          })
+        const lines = await this.packedSplit(tx, pack.orderId)
+        if (lines.length === 0)
+          throw new ORPCError('BAD_REQUEST', {
+            message: `pack ${pack.id} moved no stock; there is nothing to bill`,
+          })
+        const issued = await this.issueForPack(tx, {
+          orderId: pack.orderId,
+          packConfirmationId: pack.id,
+          lines,
+          issuedBy: ctx.actorId,
+          invoiceId: input.id,
+          invoiceDate,
+          deviceId: input.deviceId ?? null,
+        })
+        // module-boundary: `pack_confirmations.invoice_id` is warehouse's column and this is the one
+        // place outside warehouse that writes it — the parked pack's bill is issued here, and the
+        // stamp must land in the same transaction as the number (coordination §3.2's pattern; the
+        // `InvoiceIssued` event still carries `packConfirmationId` for any later consumer).
+        await asSystemRole(tx, () =>
+          tx
+            .update(packConfirmations)
+            .set({ invoiceId: issued.id, updatedAt: new Date() })
+            .where(
+              and(eq(packConfirmations.tenantId, ctx.tenantId), eq(packConfirmations.id, pack.id)),
+            ),
+        )
+        return { item: await this.detail(tx, issued) }
+      }),
+    )
+  }
+
+  /**
+   * The (order line × lot) split a pack posted, rebuilt from the `pack` ledger rows warehouse wrote
+   * (`postPick` keys them `pack:<orderId>:<orderLineId>:<lotId>`), with each line's pieces split into
+   * paid and free exactly as the pack did: paid first up to `picked_qty_pcs`, the rest free.
+   */
+  private async packedSplit(tx: Db, orderId: string): Promise<IssueForPackLine[]> {
+    const rows = await this.inventory.ledgerRowsByRef(tx, { refType: 'pack', refId: orderId })
+    const lines = await tx
+      .select()
+      .from(salesOrderLines)
+      .where(eq(salesOrderLines.orderId, orderId))
+      .orderBy(asc(salesOrderLines.lineNo))
+    const out: IssueForPackLine[] = []
+    for (const line of lines) {
+      const prefix = `pack:${orderId}:${line.id}:`
+      const picks = rows
+        .filter((r) => r.reason === 'sale' && r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
+        .map((r) => ({ lotId: r.lotId, qtyPcs: -r.qtyDelta }))
+      const moved = picks.reduce((sum, p) => sum + p.qtyPcs, 0)
+      if (moved === 0) continue
+      let paidLeft = Math.min(line.pickedQtyPcs > 0 ? line.pickedQtyPcs : line.qtyPcs, moved)
+      let freeLeft = moved - paidLeft
+      for (const pick of picks) {
+        const qtyPcs = Math.min(paidLeft, pick.qtyPcs)
+        paidLeft -= qtyPcs
+        const freeQtyPcs = Math.min(pick.qtyPcs - qtyPcs, freeLeft)
+        freeLeft -= freeQtyPcs
+        if (qtyPcs === 0 && freeQtyPcs === 0) continue
+        out.push({ orderLineId: line.id, lotId: pick.lotId, qtyPcs, freeQtyPcs })
+      }
+    }
+    return out
   }
 
   /** Manual entry from the government portal (docs/17 A8): only the four transport columns move. */
@@ -1304,10 +1413,15 @@ export class BillingService {
         })
         .returning()
     } catch (error) {
-      if (isUniqueViolation(error))
+      if (isUniqueViolation(error)) {
+        // The id is the client's (a pack billed from the desk, a van sale from the phone): a second
+        // press under an id that already names a bill is its own refusal, not "already billed".
+        if (pgConstraint(error) === 'invoices_pkey')
+          throw new ORPCError('CONFLICT', { message: `invoice ${i.invoiceId} already exists` })
         throw new ORPCError('CONFLICT', {
           message: `this order is already billed, or document number ${invoiceNo} is already booked in series ${i.seriesCode}`,
         })
+      }
       throw error
     }
     if (!row)
@@ -1337,6 +1451,8 @@ export class BillingService {
     await this.emit(tx, row, 'InvoiceIssued', {
       packConfirmationId: i.packConfirmationId,
     })
+    // The A4 original is rendered in the background so the print button usually finds it ready.
+    await requestDocumentRender(tx, { kind: 'invoice', id: row.id })
     return row
   }
 

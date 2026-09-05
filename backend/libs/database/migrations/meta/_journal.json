@@ -85,6 +85,48 @@
       "when": 1788569458673,
       "tag": "0011_warehouse_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788575760421,
+      "tag": "0012_platform_gaps_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788575760422,
+      "tag": "0013_platform_gaps_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788577362193,
+      "tag": "0014_delivery_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1788577383893,
+      "tag": "0015_delivery_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788584831001,
+      "tag": "0016_docint_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788584831002,
+      "tag": "0017_docint_guarantees",
+      "breakpoints": true
     }
   ]
 }

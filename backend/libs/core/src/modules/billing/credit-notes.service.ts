@@ -34,6 +34,7 @@ import {
   DB,
   idempotent,
   nextDocumentNumber,
+  requestDocumentRender,
   requireDb,
   requireRole,
 } from '../../platform/index.js'
@@ -439,6 +440,7 @@ export class CreditNotesService {
         deviceId,
       },
     })
+    await requestDocumentRender(tx, { kind: 'credit_note', id: row.id })
     return row
   }
 

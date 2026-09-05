@@ -7,6 +7,7 @@ import type { FastifyCorsOptions } from '@fastify/cors'
 import type pg from 'pg'
 import { HealthModule } from '../modules/health/index.js'
 import { DbModule, loadEnv, PG_POOL, type Env } from '../platform/index.js'
+import { ALLOWED_CONTENT_TYPES } from '../platform/object-storage.js'
 import { servicePort, type ServiceDefinition } from './define.js'
 import { ServiceModule } from './service.module.js'
 
@@ -32,11 +33,38 @@ export async function createServiceApp(
   const env = loadEnv()
   const app = await NestFactory.create<NestFastifyApplication>(
     serviceRootModule(def),
-    new FastifyAdapter({ logger: options.logger ?? env.NODE_ENV !== 'test' }),
+    new FastifyAdapter({
+      logger: options.logger ?? env.NODE_ENV !== 'test',
+      bodyLimit: STORAGE_BODY_LIMIT_BYTES,
+    }),
   )
+  registerStorageBodyParsers(app)
   app.enableCors(corsOptions(env))
   app.enableShutdownHooks()
   return app
+}
+
+/**
+ * The largest body a service accepts: the 25 MB the object-storage allow-list permits for a PDF or a
+ * HEIC photo, plus headroom. Only `PUT /storage/{key}` (the local driver's upload route) ever carries
+ * that much; every oRPC body is JSON and kilobytes.
+ */
+export const STORAGE_BODY_LIMIT_BYTES = 26 * 1024 * 1024
+
+/**
+ * Fastify parses `application/json` and `text/plain` and refuses every other content type with 415.
+ * The local storage driver's `PUT /storage/{key}` carries an image, a PDF, a CSV or a spreadsheet, so
+ * each storable type gets a raw-buffer parser. Registered on the spec harness too (`testing/app.ts`)
+ * so an upload round-trip is testable.
+ */
+export function registerStorageBodyParsers(app: NestFastifyApplication): void {
+  const fastify = app.getHttpAdapter().getInstance()
+  for (const mime of Object.keys(ALLOWED_CONTENT_TYPES)) {
+    if (mime === 'application/json' || fastify.hasContentTypeParser(mime)) continue
+    fastify.addContentTypeParser(mime, { parseAs: 'buffer' }, (_req, body, done) => {
+      done(null, body)
+    })
+  }
 }
 
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/

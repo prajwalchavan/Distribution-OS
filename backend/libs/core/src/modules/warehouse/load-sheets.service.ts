@@ -3,10 +3,14 @@ import { ORPCError } from '@orpc/server'
 import { and, desc, eq, gte, inArray, lt, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  ApproveLoadSheetInput,
+  ApproveLoadSheetOutput,
   CancelLoadSheetInput,
   CancelLoadSheetOutput,
   ChallanGetInput,
   ChallanGetOutput,
+  ChallanPdfInput,
+  ChallanPdfOutput,
   ChallansListInput,
   ChallansListOutput,
   ConfirmLoadSheetInput,
@@ -27,8 +31,13 @@ import {
   BACK_OFFICE,
   currentTenant,
   DB,
+  documentRender,
   idempotent,
+  isCheckViolation,
+  isPrivilegeViolation,
   nextDocumentNumber,
+  pgMessage,
+  requestDocumentRender,
   requireDb,
   requireRole,
 } from '../../platform/index.js'
@@ -69,6 +78,10 @@ type ListIn = z.infer<typeof LoadSheetsListInput>
 type ListOut = z.infer<typeof LoadSheetsListOutput>
 type GetIn = z.infer<typeof LoadSheetGetInput>
 type GetOut = z.infer<typeof LoadSheetGetOutput>
+type ApproveIn = z.infer<typeof ApproveLoadSheetInput>
+type ApproveOut = z.infer<typeof ApproveLoadSheetOutput>
+type ChallanPdfIn = z.infer<typeof ChallanPdfInput>
+type ChallanPdfOut = z.infer<typeof ChallanPdfOutput>
 type ConfirmIn = z.infer<typeof ConfirmLoadSheetInput>
 type ConfirmOut = z.infer<typeof ConfirmLoadSheetOutput>
 type CancelIn = z.infer<typeof CancelLoadSheetInput>
@@ -241,16 +254,80 @@ export class LoadSheetsService {
   // check-out
 
   /**
-   * The gate. In one transaction: the e-way-bill gate, the crew's blind package count, the van stock
-   * replaced by what was actually counted, the `transfer_out`/`transfer_in` pair per lot, the `DC`
-   * challan, and every packed order `packed → dispatched`.
+   * THE MANAGER'S PIN, given from the manager app (docs/22 decision 2026-09-05, warehouse.ts fact 2b):
+   * an owner or manager marks a draft sheet approved — `approved_by` is the approver's own actor id
+   * and `approved_at` the moment — so the warehouse phone may then confirm it. The database guard
+   * (`dos_load_sheet_approval_guard`, 0013) refuses any other role and any other id; a second approval
+   * of an approved sheet is 409 `already_approved`; a cancelled sheet cannot be approved. Audited.
+   */
+  async approve(input: ApproveIn): Promise<ApproveOut> {
+    requireRole(PIN_HOLDERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const sheet = await this.lockSheet(tx, input.id)
+        if (sheet.status !== 'draft')
+          throw new ORPCError('CONFLICT', {
+            message: `load sheet ${sheet.id} is ${sheet.status}; only a draft is approved`,
+          })
+        if (sheet.approvedBy !== null)
+          throw new ORPCError('CONFLICT', {
+            message: `load sheet ${sheet.id} was already approved by ${sheet.approvedBy}`,
+            data: {
+              code: 'already_approved',
+              approvedBy: sheet.approvedBy,
+              approvedAt: sheet.approvedAt,
+            },
+          })
+        const now = new Date()
+        let approved: LoadSheetRow
+        try {
+          approved = await this.updateSheet(tx, sheet.id, {
+            approvedBy: ctx.actorId,
+            approvedAt: now,
+          })
+        } catch (error) {
+          if (isPrivilegeViolation(error) || isCheckViolation(error))
+            throw new ORPCError('FORBIDDEN', { message: pgMessage(error) })
+          throw error
+        }
+        await writeAudit(tx, {
+          action: 'load_sheet.approve',
+          entityType: 'load_sheet',
+          entityId: sheet.id,
+          before: { approvedBy: null },
+          after: {
+            approvedBy: ctx.actorId,
+            approvedAt: now.toISOString(),
+            note: input.note ?? null,
+          },
+          deviceId: input.deviceId ?? null,
+        })
+        await emitWarehouseEvent(tx, 'load_sheet', approved.id, 'LoadSheetApproved', {
+          loadSheetId: approved.id,
+          tripId: approved.tripId,
+          approvedBy: ctx.actorId,
+        })
+        return { item: await loadSheetDetail(tx, approved, this.deps()) }
+      }),
+    )
+  }
+
+  /**
+   * The gate, on the warehouse device. In one transaction: the approval gate (409 `approval_required`
+   * until the manager has approved the sheet from the manager app — fact 2b; an owner/manager
+   * confirming directly IS the approval, the database fills it in), the e-way-bill gate, the crew's
+   * blind package count, the van stock replaced by what was actually counted, the
+   * `transfer_out`/`transfer_in` pair per lot, the `DC` challan, and every packed order
+   * `packed → dispatched`.
    *
-   * The manager's PIN is exactly "the caller holds an owner/manager token" (coordination §7 q15); a
-   * count that differs from the expectation needs a written reason and records who accepted it. Never
+   * A count that differs from the expectation needs a written reason and records `pinVerifiedBy =
+   * approvedBy`: the manager who approved the load owns its variance in the day-end register. Never
    * auto-accept a variance: the count is the last chance to notice a carton left on the dock.
    */
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
-    requireRole(PIN_HOLDERS)
+    requireRole(WAREHOUSE_DESK)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -260,6 +337,14 @@ export class LoadSheetsService {
           throw new ORPCError('CONFLICT', {
             message: `load sheet ${sheet.id} is ${sheet.status}; only a draft is checked out`,
           })
+        const selfApproving =
+          ctx.actorRole === 'owner' || ctx.actorRole === 'manager' || ctx.actorRole === 'system'
+        if (sheet.approvedBy === null && !selfApproving)
+          throw new ORPCError('CONFLICT', {
+            message: `load sheet ${sheet.id} has no manager approval yet; the manager gives the load-out PIN from the manager app first`,
+            data: { code: 'approval_required' },
+          })
+        const approver = sheet.approvedBy ?? ctx.actorId
         const ewbNo = input.ewbNo ?? sheet.ewbNo
         if (sheet.ewbRequired && !ewbNo)
           throw new ORPCError('BAD_REQUEST', {
@@ -347,7 +432,7 @@ export class LoadSheetsService {
           countedPackages: input.countedPackages,
           varianceNote: input.varianceNote ?? null,
           pinVerifiedBy:
-            input.countedPackages === sheet.expectedPackages ? sheet.pinVerifiedBy : ctx.actorId,
+            input.countedPackages === sheet.expectedPackages ? sheet.pinVerifiedBy : approver,
           loadValuePaise: (sheet.loadValuePaise ?? 0) - drafted.valuePaise + vanStock.valuePaise,
           ewbNo: ewbNo ?? null,
           challanNo: challan.challanNo,
@@ -371,6 +456,8 @@ export class LoadSheetsService {
           valuePaise: challan.valuePaise,
           ewbNo: challan.ewbNo,
         })
+        // The paper that rides with the vehicle is rendered in the background (docs/23 §8.3).
+        await requestDocumentRender(tx, { kind: 'challan', id: challan.id })
 
         return {
           item: await loadSheetDetail(tx, confirmed, this.deps()),
@@ -442,6 +529,25 @@ export class LoadSheetsService {
     return withTenant(db, currentTenant(), async (tx) => ({
       item: await challanDetail(tx, await this.findChallan(tx, input.id), this.seller),
     }))
+  }
+
+  /**
+   * The printed Rule 55 challan (docs/23 §8.3). Nothing renders on the request path: a challan whose
+   * PDF exists answers a signed link, otherwise the render is queued and the answer is `queued`.
+   */
+  async challanPdf(input: ChallanPdfIn): Promise<ChallanPdfOut> {
+    requireRole(FULFILMENT_READERS)
+    const db = requireDb(this.db)
+    return withTenant(db, currentTenant(), async (tx) => {
+      const challan = await this.findChallan(tx, input.id)
+      return documentRender(tx, {
+        kind: 'challan',
+        id: challan.id,
+        objectKey: challan.pdfObjectKey,
+        format: input.format,
+        copy: input.copy,
+      })
+    })
   }
 
   /**

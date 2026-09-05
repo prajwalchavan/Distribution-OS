@@ -64,12 +64,32 @@ describe('permission matrix', () => {
   })
 
   it('keeps money handling away from the rep and the books away from the field', () => {
-    // docs/17 §D4: only the desk and the delivery crew take money; a rep never collects.
-    for (const path of paths.filter((p) => p.startsWith('receivables.'))) {
+    // docs/17 §D4: only the desk and the delivery crew take money; a rep never collects. "Never
+    // collects" is not "never sees" (docs/22 §4, docs/23 §8.1): the rep reads a shop's dues, runs the
+    // credit check before submit and opens the statement — exactly three reads, and nothing else.
+    const repMayRead = [
+      'receivables.outstanding.get',
+      'receivables.creditCheck',
+      'receivables.ledger.get',
+    ]
+    for (const path of repMayRead) {
+      expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must allow salesperson`).toBe(
+        true,
+      )
+    }
+    for (const path of paths.filter(
+      (p) => p.startsWith('receivables.') && !repMayRead.includes(p),
+    )) {
       expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must refuse salesperson`).toBe(
         false,
       )
     }
+    // The crew reads one shop's dues at the door, never the tenant register or its history.
+    expect(isAllowed(permissionFor('receivables.outstanding.get'), 'delivery')).toBe(true)
+    expect(isAllowed(permissionFor('receivables.outstanding.list'), 'delivery')).toBe(false)
+    expect(isAllowed(permissionFor('receivables.ageing.history'), 'delivery')).toBe(false)
+    // The credit verdict carries the credit limit, which the shop never sees.
+    expect(isAllowed(permissionFor('receivables.creditCheck'), 'retailer')).toBe(false)
     // ADR 0002: PURCHASES, STOCK and GRN postings are reachable through the books.
     for (const path of ['receivables.journal.list', 'receivables.accounts.list'] as const) {
       for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
@@ -86,10 +106,193 @@ describe('permission matrix', () => {
       'receivables.allocations.remove',
       'receivables.writeOffs.create',
       'receivables.outstanding.list',
+      'receivables.ageing.history',
+      'receivables.ageing.rebuild',
+      'receivables.statements.send',
     ] as const) {
       expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
     }
     expect(permissionFor('receivables.payments.initiate')).toEqual(['retailer'])
+    // The shop may print its own receipt (the third white-label document).
+    expect(isAllowed(permissionFor('receivables.receipts.document'), 'retailer')).toBe(true)
+  })
+
+  it('makes the accountant the money desk and nothing more (docs/22, 2026-09-05)', () => {
+    expect(ROLE_GROUPS.MONEY_DESK).toEqual(['owner', 'manager', 'accountant'])
+    // May: record an office receipt, reverse, bank, bounce, allocate, write off, send statements.
+    for (const path of [
+      'receivables.receipts.create',
+      'receivables.receipts.reverse',
+      'receivables.receipts.deposit',
+      'receivables.receipts.bounce',
+      'receivables.allocations.create',
+      'receivables.allocations.remove',
+      'receivables.writeOffs.create',
+      'receivables.statements.send',
+      'receivables.cashDiscounts.list',
+      // ...and the day-end trip desk: the crew's cash handed over, the collections it took.
+      'delivery.trips.settle',
+      'delivery.trips.settlementPreview',
+      'delivery.collections.record',
+      'delivery.collections.list',
+      'delivery.expenses.list',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+    for (const path of [
+      'receivables.receipts.reverse',
+      'receivables.receipts.deposit',
+      'receivables.receipts.bounce',
+      'receivables.allocations.create',
+      'receivables.allocations.remove',
+      'receivables.writeOffs.create',
+      'delivery.trips.settle',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.MONEY_DESK)
+    }
+    // May NOT: a price, a scheme, a credit limit, an approval, a setting, a catalog row.
+    const accountantMustNot = [
+      'pricing.priceLists.upsert',
+      'pricing.priceLists.setItems',
+      'pricing.overrides.upsert',
+      'pricing.schemes.upsert',
+      'pricing.bargains.decide',
+      'pricing.bounds.set',
+      'retailers.setCredit',
+      'orders.confirm',
+      'orders.approvals.decide',
+      'procurement.discrepancies.resolve',
+      'warehouse.loadSheets.approve',
+      'tenancy.settings.set',
+      'tenancy.numbering.list',
+      'tenancy.numbering.upsert',
+      'tenancy.featureFlags.set',
+      'tenancy.tenant.update',
+      'tenancy.staff.create',
+      'tenantCatalog.upsertListing',
+      'tenantCatalog.upsertSupplier',
+      'tenantCatalog.upsertCost',
+      'tenantCatalog.repAuthorisations.set',
+      'tenantCatalog.brands.upsert',
+      'tenantCatalog.packConfigs.upsert',
+      // A trip plan, a vehicle, a doorstep write or the live map are not money-desk work.
+      'delivery.trips.create',
+      'delivery.trips.cancel',
+      'delivery.vehicles.upsert',
+      'delivery.vehicles.positions',
+      'delivery.deliveries.record',
+      'delivery.vanSales.create',
+      'delivery.gps.trace',
+    ] as const
+    for (const path of accountantMustNot) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
+        false,
+      )
+    }
+    // ...while reading every one of those surfaces.
+    for (const path of [
+      'pricing.priceLists.list',
+      'pricing.overrides.list',
+      'pricing.schemes.list',
+      'pricing.bargains.list',
+      'pricing.bounds.list',
+      'retailers.get',
+      'orders.approvals.list',
+      'procurement.discrepancies.list',
+      'tenancy.settings.get',
+      'tenancy.featureFlags.list',
+      'tenancy.audit.list',
+      'tenantCatalog.costs',
+      'tenantCatalog.brands.list',
+      'tenantCatalog.packConfigs.list',
+      'billing.registers.gstSummary',
+      'receivables.journal.list',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+    // The owner and the manager keep every one of the writes the accountant lost.
+    for (const path of accountantMustNot) {
+      for (const role of ['owner', 'manager'] as const) {
+        if (path === 'pricing.bounds.set' || path.startsWith('tenancy.')) continue
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
+  })
+
+  it('lets a shop place, submit and cancel its own order and read its deals', () => {
+    // docs/22 §4 draws R1 → S5: the retailer app must be able to PLACE an order (docs/23 §8.15).
+    for (const path of [
+      'orders.create',
+      'orders.setLines',
+      'orders.repeatLast',
+      'orders.submit',
+      'orders.cancel',
+      'orders.get',
+      'orders.list',
+      'pricing.quote',
+      'pricing.schemes.list',
+      'pricing.bargains.request',
+      'pricing.bargains.list',
+      'retailers.updateOwn',
+      'tenancy.branding.get',
+      'tenancy.featureFlags.list',
+      'files.readUrl',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must allow retailer`).toBe(true)
+    }
+    // ...and never confirms, decides, edits the shop of record or uploads anything.
+    for (const path of [
+      'orders.confirm',
+      'orders.approvals.list',
+      'orders.approvals.decide',
+      'pricing.bargains.decide',
+      'pricing.bounds.list',
+      'retailers.upsert',
+      'retailers.setCredit',
+      'retailers.beats.list',
+      'retailers.beats.assignments.list',
+      'tenancy.settings.get',
+      'tenancy.audit.list',
+      'files.uploadUrl',
+      'sync.upload',
+      'sync.errors.list',
+      'sync.pull',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
+    }
+    expect(permissionFor('retailers.updateOwn')).toEqual(['retailer'])
+  })
+
+  it('keeps settings with the owner and beats with the desk', () => {
+    for (const path of [
+      'tenancy.settings.set',
+      'tenancy.numbering.list',
+      'tenancy.numbering.upsert',
+      'tenancy.featureFlags.set',
+      'tenancy.tenant.update',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.OWNER_ONLY)
+    }
+    // The branding block and the flags reach every screen of every app, the shop's included.
+    for (const path of ['tenancy.branding.get', 'tenancy.featureFlags.list'] as const) {
+      for (const role of ALL_ROLES) {
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
+    expect(permissionFor('tenancy.settings.get')).toEqual(ROLE_GROUPS.STAFF)
+    expect(permissionFor('tenancy.audit.list')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    expect(permissionFor('tenancy.staff.update')).toEqual(['owner', 'manager'])
+    // docs/23 §8.14: a rep, a loader or a driver could create beats and assign anyone.
+    for (const path of ['retailers.beats.upsert', 'retailers.beats.assign'] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+    }
+    expect(permissionFor('retailers.beats.assignments.list')).toEqual(ROLE_GROUPS.STAFF)
+    expect(permissionFor('files.uploadUrl')).toEqual(ROLE_GROUPS.STAFF)
+    expect(permissionFor('files.readUrl')).toEqual(ROLE_GROUPS.ANY_MEMBER)
   })
 
   it('lets a shop and a rep read a bill but never write one', () => {
@@ -159,13 +362,22 @@ describe('permission matrix', () => {
     expect(permissionFor('billing.invoices.requestIrn')).toEqual(ROLE_GROUPS.BACK_OFFICE)
   })
 
-  it('has exactly one way to issue a pack invoice', () => {
+  it('has exactly one way to move stock for a pack invoice', () => {
     // `billing.invoices.issue` was removed with the warehouse slice (coordination §4 step 3): the
     // stock-and-state half now lives in `warehouse.packs.confirm`, which calls `issueForPack`. Two
     // HTTP callers would post `sale` rows twice for one order, so re-adding the procedure is a bug.
+    // `billing.invoices.issueForPack` is NOT that procedure: it bills a pack that was PARKED with
+    // `issueInvoice: false` and moves no stock (docs/23 §8.2); the same people who pack may call it.
     expect(paths).not.toContain('billing.invoices.issue')
     expect(permissionFor('billing.invoices.issue')).toBeUndefined()
     expect(paths).toContain('warehouse.packs.confirm')
+    expect(permissionFor('billing.invoices.issueForPack')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'warehouse',
+    ])
+    expect(isAllowed(permissionFor('billing.invoices.issueForPack'), 'delivery')).toBe(false)
   })
 
   it('keeps the godown floor away from the rep and the shopkeeper', () => {
@@ -191,6 +403,7 @@ describe('permission matrix', () => {
       'warehouse.loadSheets.get',
       'warehouse.challans.list',
       'warehouse.challans.get',
+      'warehouse.challans.pdf',
     ]
     for (const path of crewReads) {
       expect(isAllowed(permissionFor(path), 'delivery'), `${path} must allow delivery`).toBe(true)
@@ -201,15 +414,19 @@ describe('permission matrix', () => {
   })
 
   it('keeps the manager PIN steps away from the picker', () => {
-    // Holding an owner/manager token IS the manager's PIN (coordination §7 q15): cancelling a wave,
-    // checking a load out and cancelling a sheet all refuse the warehouse role.
+    // Holding an owner/manager token IS the manager's PIN (coordination §7 q15), and the PIN is given
+    // in the MANAGER app (docs/22 2026-09-05): cancelling a wave, APPROVING a load sheet and cancelling
+    // a sheet all refuse the warehouse role; the warehouse phone then CONFIRMS the approved sheet with
+    // the crew's count, and nothing else is typed on it.
     for (const path of [
       'warehouse.picklists.cancel',
-      'warehouse.loadSheets.confirm',
+      'warehouse.loadSheets.approve',
       'warehouse.loadSheets.cancel',
     ] as const) {
       expect(permissionFor(path), path).toEqual(['owner', 'manager'])
     }
+    expect(permissionFor('warehouse.loadSheets.confirm')).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+    expect(isAllowed(permissionFor('warehouse.loadSheets.confirm'), 'accountant')).toBe(false)
     // Freeing a live order's holds and typing a government e-way bill number are desk decisions.
     for (const path of [
       'warehouse.reservations.release',
@@ -225,6 +442,7 @@ describe('permission matrix', () => {
       'warehouse.picklists.pick',
       'warehouse.packs.confirm',
       'warehouse.loadSheets.create',
+      'warehouse.loadSheets.confirm',
       'warehouse.reservations.list',
     ] as const) {
       expect(permissionFor(path), path).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
@@ -239,6 +457,133 @@ describe('permission matrix', () => {
     }
   })
 
+  it('keeps the doorstep money with the crew and the desk, never the rep (delivery)', () => {
+    const deliveryPaths = paths.filter((p) => p.startsWith('delivery.'))
+    expect(deliveryPaths.length).toBeGreaterThan(0)
+    // docs/17 §D4: the salesperson NEVER collects and is in no row of the delivery block at all,
+    // except the one read every member has — where its shop's order is (`stops.list`).
+    for (const path of deliveryPaths.filter((p) => p !== 'delivery.stops.list')) {
+      expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must refuse salesperson`).toBe(
+        false,
+      )
+    }
+    // THE money-collection path of the field: the same four who may take a receipt.
+    expect(permissionFor('delivery.collections.record')).toEqual(
+      permissionFor('receivables.receipts.create'),
+    )
+    expect(permissionFor('delivery.collections.record')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'delivery',
+    ])
+    for (const path of [
+      'delivery.collections.record',
+      'delivery.collections.list',
+      'delivery.expenses.record',
+      'delivery.expenses.list',
+      'delivery.trips.settlementPreview',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'delivery'), `${path} must allow delivery`).toBe(true)
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+      // The godown never touches money (coordination §6): narrower than STOCK_VIEWERS on purpose.
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+    }
+    // Settling is the money desk's; the crew sees the cockpit and never posts the handover.
+    expect(permissionFor('delivery.trips.settle')).toEqual(ROLE_GROUPS.MONEY_DESK)
+    expect(isAllowed(permissionFor('delivery.trips.settle'), 'delivery')).toBe(false)
+    expect(isAllowed(permissionFor('delivery.trips.settle'), 'warehouse')).toBe(false)
+  })
+
+  it('lets the crew work the door and the godown only plan the trip (delivery)', () => {
+    // Doorstep writes: the crew, with the owner and the manager able to do the same from the office.
+    for (const path of [
+      'delivery.trips.return',
+      'delivery.stops.reorder',
+      'delivery.stops.start',
+      'delivery.stops.arrive',
+      'delivery.stops.fail',
+      'delivery.deliveries.record',
+      'delivery.deliveries.addPod',
+      'delivery.vanSales.create',
+      'delivery.gps.points',
+      'delivery.consents.grant',
+      'delivery.consents.get',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'delivery'])
+      // The van sale is billed by billing's own DOORSTEP procedure: the two must agree.
+      if (path === 'delivery.vanSales.create')
+        expect(permissionFor(path)).toEqual(permissionFor('billing.invoices.issueVanSale'))
+    }
+    // Planning and loading: the desk, the godown and the crew; never the accountant or the shop.
+    for (const path of [
+      'delivery.trips.create',
+      'delivery.trips.startLoading',
+      'delivery.trips.depart',
+      'delivery.stops.add',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'warehouse', 'delivery'])
+    }
+    // The godown reads the plan and writes nothing at the door and nothing about money.
+    const warehouseMay = [
+      'delivery.vehicles.list',
+      'delivery.trips.create',
+      'delivery.trips.list',
+      'delivery.trips.get',
+      'delivery.trips.startLoading',
+      'delivery.trips.depart',
+      'delivery.stops.list',
+      'delivery.stops.next',
+      'delivery.stops.add',
+    ]
+    for (const path of warehouseMay) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+    for (const path of paths.filter(
+      (p) => p.startsWith('delivery.') && !warehouseMay.includes(p),
+    )) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+    }
+    // Cancelling a trip, registering a vehicle and reading where people ARE (DPDP-audited: the live
+    // map and the trace, which `trip_points` RLS already limits to owner/manager) are the PIN holders'.
+    for (const path of [
+      'delivery.trips.cancel',
+      'delivery.vehicles.upsert',
+      'delivery.vehicles.positions',
+      'delivery.gps.trace',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+    }
+  })
+
+  it('lets a shop read only its own delivery status (delivery)', () => {
+    // The retailer app tracks its order (an ETA, never a coordinate) and opens its own POD.
+    const shopMay = ['delivery.stops.list', 'delivery.deliveries.list', 'delivery.deliveries.get']
+    for (const path of shopMay) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must allow retailer`).toBe(true)
+    }
+    for (const path of paths.filter((p) => p.startsWith('delivery.') && !shopMay.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
+    }
+    // Every delivery write refuses the shop: a POST in this block is never the retailer's.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('delivery.'))) {
+      if (row.method === 'POST')
+        expect(isAllowed(row.permission, 'retailer'), `${row.path} must refuse retailer`).toBe(
+          false,
+        )
+    }
+    // The GPS endpoint keeps its own path outside `/delivery` (ADR 0012) and is a doorstep write.
+    const gps = allProcedures().find((r) => r.path === 'delivery.gps.points')
+    expect(gps?.httpPath).toBe('/gps/points')
+    expect(gps?.method).toBe('POST')
+  })
+
   it('lets only auth and health be reached without a token', () => {
     const open = paths.filter((p) => permissionFor(p) === 'public')
     expect(open.sort()).toEqual(
@@ -248,6 +593,8 @@ describe('permission matrix', () => {
         'auth.logout',
         'auth.refresh',
         'auth.switchTenant',
+        'auth.forgotPassword',
+        'auth.resetPassword',
         'health.ping',
       ].sort(),
     )
@@ -273,6 +620,7 @@ describe('role groups', () => {
 
   it('keeps the back office to the three desk roles', () => {
     expect(ROLE_GROUPS.BACK_OFFICE).toEqual(['owner', 'manager', 'accountant'])
+    expect(ROLE_GROUPS.MONEY_DESK).toEqual(['owner', 'manager', 'accountant'])
     expect(ROLE_GROUPS.OWNER_ONLY).toEqual(['owner'])
     expect(ROLE_GROUPS.FIELD).toEqual(['salesperson', 'delivery'])
     expect(ROLE_GROUPS.STOCK_KEEPERS).toContain('warehouse')
@@ -346,6 +694,8 @@ describe('listProcedures', () => {
       'auth.sessions',
       'auth.revokeSession',
       'auth.changePassword',
+      'auth.forgotPassword',
+      'auth.resetPassword',
       'auth.jwks',
     ])
     expect(rows.find((r) => r.path === 'auth.jwks')?.httpPath).toBe('/.well-known/jwks.json')

@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common'
 import { and, asc, desc, eq, gte, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
+import { businessDate } from '@dos/domain'
 import type {
   AdjustStockInput,
   AdjustStockOutput,
@@ -86,6 +87,14 @@ export const STOCK_KEEPERS: readonly ActorRole[] = [
 
 /** Who may move stock and maintain locations/lots: the desk plus the godown. None of this touches a rate. */
 const STOCK_WRITERS: readonly ActorRole[] = [...BACK_OFFICE, 'warehouse']
+
+/** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
+const NEAR_EXPIRY_DAYS = 60
+
+/** Today in IST plus `days`, as `YYYY-MM-DD`. */
+function addDaysIst(days: number): string {
+  return businessDate(Date.now() + days * 86_400_000).date
+}
 
 /** Composite cursor for (lot, location)-keyed lists. */
 function splitCursor(cursor: string | undefined): { lotId: string; locationId: string } | null {
@@ -195,6 +204,12 @@ export class StockService {
         input.variantId ? eq(stockLots.variantId, input.variantId) : undefined,
         input.locationId ? eq(stockBalances.locationId, input.locationId) : undefined,
         input.lotId ? eq(stockBalances.lotId, input.lotId) : undefined,
+        // The near-expiry list (docs/23 §8.18): lots expiring on or before a date, or within the
+        // tenant's window (60 days). Lots with no expiry are excluded by either filter.
+        input.expiringBefore ? sql`${stockLots.expiryDate} <= ${input.expiringBefore}` : undefined,
+        input.nearExpiryOnly
+          ? sql`${stockLots.expiryDate} <= ${addDaysIst(NEAR_EXPIRY_DAYS)}`
+          : undefined,
         after
           ? sql`(${stockBalances.lotId}, ${stockBalances.locationId}) > (${after.lotId}, ${after.locationId})`
           : undefined,

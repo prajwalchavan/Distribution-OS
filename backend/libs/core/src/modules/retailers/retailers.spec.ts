@@ -1,6 +1,15 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
-import { createDb, createPool, memberships, retailerIdentities, tenants, users } from '@dos/db'
+import {
+  createDb,
+  createPool,
+  memberships,
+  retailerIdentities,
+  retailers,
+  tenants,
+  users,
+  withTenant,
+} from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
@@ -373,6 +382,118 @@ describeDb('retailers (DATABASE_URL)', () => {
     expect((await call(app, shop, 'GET', '/beats', {})).status).toBe(403)
     const beatsForStaff = await call<{ items: { id: string }[] }>(app, rep, 'GET', '/beats', {})
     expect(beatsForStaff.body.items.map((b) => b.id)).toContain(beatId)
+  })
+
+  it('tells the rep which beat is his today, and keeps beats and assignments with the desk', async () => {
+    // docs/23 §8.14: the rep is forced to itself; the desk reads anyone's
+    const mine = await call<{
+      items: { beatId: string; userId: string; beatName: string; userName: string }[]
+    }>(app, rep, 'GET', '/beats/assignments', { userId: ownerId })
+    expect(mine.status).toBe(200)
+    expect(mine.body.items).toHaveLength(1)
+    expect(mine.body.items[0]).toMatchObject({ beatId, userId: repId, userName: 'Rep' })
+    expect(mine.body.items[0]?.beatName).toContain('Station Road')
+    const desk = await call<{ items: { userId: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/beats/assignments',
+      { beatId },
+    )
+    expect(desk.body.items.map((a) => a.userId)).toContain(repId)
+    // an `on` date before the assignment started finds nothing; history lists it anyway
+    expect(
+      (
+        await call<{ items: unknown[] }>(app, owner, 'GET', '/beats/assignments', {
+          beatId,
+          on: '2026-08-01',
+        })
+      ).body.items,
+    ).toEqual([])
+    expect(
+      (
+        await call<{ items: unknown[] }>(app, owner, 'GET', '/beats/assignments', {
+          beatId,
+          on: '2026-08-01',
+          currentOnly: false,
+        })
+      ).body.items,
+    ).toHaveLength(1)
+    // a rep, a loader or a driver may not create a beat or assign one (ONBOARDERS)
+    expect(
+      (
+        await call(app, rep, 'POST', '/beats', {
+          idempotencyKey: `beat-rep-${run}`,
+          id: uuidv7(),
+          name: 'Mine',
+          visitDays: [],
+          active: true,
+        })
+      ).status,
+    ).toBe(403)
+    expect(
+      (
+        await call(app, rep, 'POST', `/beats/${beatId}/assign`, {
+          idempotencyKey: `assign-rep-${run}`,
+          assignmentId: uuidv7(),
+          userId: repId,
+          validFrom: '2026-09-01',
+        })
+      ).status,
+    ).toBe(403)
+    expect((await call(app, shop, 'GET', '/beats/assignments')).status).toBe(403)
+  })
+
+  it('lets the shop edit its own contact details and never its credit, tier or another shop', async () => {
+    // docs/23 §8.14 R11 — `retailers.updateOwn`; audited
+    const edited = await call<{ item: Record<string, unknown> }>(
+      app,
+      shop,
+      'POST',
+      '/retailers/me',
+      {
+        idempotencyKey: `own-${run}`,
+        id: retailerId,
+        ownerName: 'Ramesh (self)',
+        altPhone: `+917${run}9`,
+        gstin: '27AAAPZ1234C1ZV',
+        gstRegType: 'regular',
+      },
+    )
+    expect(edited.status).toBe(200)
+    expect(edited.body.item).toMatchObject({ ownerName: 'Ramesh (self)', gstin: '27AAAPZ1234C1ZV' })
+    for (const key of ['code', 'tier', 'creditLimitPaise', 'creditDays', 'creditMode'])
+      expect(edited.body.item).not.toHaveProperty(key)
+    // another shop of the same distributor is not the caller's: NOT_FOUND, never a hint
+    expect(
+      (
+        await call(app, shop, 'POST', '/retailers/me', {
+          idempotencyKey: `own-other-${run}`,
+          id: otherRetailerId,
+          ownerName: 'nope',
+        })
+      ).status,
+    ).toBe(404)
+    // staff never call it, and the shop never calls upsert
+    expect(
+      (
+        await call(app, rep, 'POST', '/retailers/me', {
+          idempotencyKey: `own-rep-${run}`,
+          id: retailerId,
+          ownerName: 'x',
+        })
+      ).status,
+    ).toBe(403)
+    // the database refuses a credit column from the shop's own row even inside a transaction (0013 trigger)
+    await expect(
+      withTenant(db, { tenantId, actorId: shopUserId, actorRole: 'retailer' }, (tx) =>
+        tx.update(retailers).set({ creditLimitPaise: 99_999 }).where(eq(retailers.id, retailerId)),
+      ),
+    ).rejects.toMatchObject({ cause: { code: '42501' } })
+    const trail = await db.execute(
+      sql`select 1 from audit_log where tenant_id = ${tenantId} and entity_id = ${retailerId} and action = 'retailer.update_own'`,
+    )
+    expect(trail.rows).toHaveLength(1)
   })
 
   it('refuses requests without tenant context', async () => {

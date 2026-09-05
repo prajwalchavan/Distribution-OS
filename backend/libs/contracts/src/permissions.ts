@@ -27,6 +27,13 @@ export const ROLE_GROUPS = {
   STAFF: ['owner', 'manager', 'accountant', 'salesperson', 'warehouse', 'delivery'],
   /** The desk: the only roles that may see purchase cost, credit terms and the books. */
   BACK_OFFICE: ['owner', 'manager', 'accountant'],
+  /**
+   * The money desk (docs/22 decision 2026-09-05): who records an office receipt, reverses one, banks a
+   * cheque, marks a bounce, allocates, writes off a debt and sends statements — and who takes the exports.
+   * The same three people as BACK_OFFICE, named separately because the accountant's WRITE scope is
+   * exactly this and nothing else: no price, scheme, credit limit, approval, setting or catalog row.
+   */
+  MONEY_DESK: ['owner', 'manager', 'accountant'],
   OWNER_ONLY: ['owner'],
   /** Who physically keeps stock and may count it. */
   STOCK_KEEPERS: ['owner', 'manager', 'warehouse'],
@@ -110,8 +117,59 @@ const BILLING_ISSUERS = [
  */
 const PIN_HOLDERS = ['owner', 'manager'] as const satisfies readonly MembershipRole[]
 
+/**
+ * Who RUNS the distributorship: the owner and the manager. Everything the founder took away from the
+ * accountant on 2026-09-05 (docs/22 §8) lands here — setting a price list, a scheme, an override, a
+ * retailer's credit terms; deciding an approval, a bargain, a gate-count discrepancy; confirming an
+ * order into fulfilment; editing the catalog overlay. Same two people as ONBOARDERS and PIN_HOLDERS,
+ * declared apart because "who may change the economics" is a different power from "who may bring a
+ * person in" or "whose token is the PIN", and the three will drift.
+ */
+const MANAGEMENT = ['owner', 'manager'] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who may look at a shop's dues and its statement: the desk, the rep on the beat, the crew at the door
+ * and the shop itself (RLS narrows it to its own). The founder's rule is "the salesperson never
+ * COLLECTS" (docs/17 §D4), not "never sees": the outstanding chip on the beat screen and the shop card
+ * (docs/22 §4, docs/23 §3.1) are this tuple. Exactly three receivables reads carry it.
+ */
+const DUES_READERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+  'delivery',
+  'retailer',
+] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who runs the credit check before an order: the desk, the rep on the device before submit (docs/22 §4
+ * S4) and the crew before a van sale. NOT the shop — the verdict carries the credit limit, which the
+ * retailer role never sees (retailers.ts). Same as STAFF minus the warehouse.
+ */
+const CREDIT_CHECKERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
+
 /** Who acts at the shop's door: the crew, with the desk able to do the same thing from the office. */
 const DOORSTEP = ['owner', 'manager', 'delivery'] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who plans and loads a trip (coordination §6): the desk, the godown that builds the load and the
+ * crew that drives it (a van-only day is planned by the crew itself). Never the accountant — a trip
+ * plan is not a money-desk write — and never a rep or a shop. A `delivery` caller may only plan a trip
+ * it is driver or helper on; the handler enforces that, the tuple only gates the verb.
+ */
+const TRIP_PLANNERS = [
+  'owner',
+  'manager',
+  'warehouse',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
 
 /**
  * Who may raise a credit note: the desk, and the delivery crew for a short delivery or a return taken
@@ -124,7 +182,7 @@ const CREDIT_NOTE_RAISERS = [
   'delivery',
 ] as const satisfies readonly MembershipRole[]
 
-const { ANY_MEMBER, STAFF, BACK_OFFICE, OWNER_ONLY } = ROLE_GROUPS
+const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
 export type ProcedurePath = ContractPaths<AppContract>
@@ -155,13 +213,37 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'auth.sessions': 'authenticated',
   'auth.revokeSession': 'authenticated',
   'auth.changePassword': 'authenticated',
+  // Self-service reset: no token by definition. `forgotPassword` always answers ok; `resetPassword`
+  // authenticates with the single-use token in the body.
+  'auth.forgotPassword': 'public',
+  'auth.resetPassword': 'public',
 
-  // Tenancy. Staff administration is the owner's desk; the accountant may look but not hire.
+  // Tenancy. Staff administration is the owner's desk; the accountant may look but not hire. The
+  // branding block and the feature flags are read by EVERY member including the shop (the app chrome and
+  // the "is this feature on" checks); settings are read by staff (never `secret.*` to a non-owner) and
+  // written by the owner alone, as are the numbering series and the tenant's legal identity (docs/22
+  // 2026-09-05: NO settings for the accountant). The audit trail is the desk's to read.
   'tenancy.me': ANY_MEMBER,
   'tenancy.staff.list': BACK_OFFICE,
   'tenancy.staff.create': ONBOARDERS,
+  'tenancy.staff.update': ONBOARDERS,
   'tenancy.staff.setPassword': ONBOARDERS,
   'tenancy.staff.setStatus': ONBOARDERS,
+  'tenancy.branding.get': ANY_MEMBER,
+  'tenancy.settings.get': STAFF,
+  'tenancy.settings.set': OWNER_ONLY,
+  'tenancy.numbering.list': OWNER_ONLY,
+  'tenancy.numbering.upsert': OWNER_ONLY,
+  'tenancy.featureFlags.list': ANY_MEMBER,
+  'tenancy.featureFlags.set': OWNER_ONLY,
+  'tenancy.tenant.update': OWNER_ONLY,
+  'tenancy.audit.list': BACK_OFFICE,
+
+  // Files. The guard gates the verb — staff mint upload URLs, any member may ask for a read URL — and
+  // the handler applies the per-domain table in files.ts (a supplier-invoice page is never readable by
+  // the field or the shop; a POD photo by the shop that received it). A shop uploads nothing.
+  'files.uploadUrl': STAFF,
+  'files.readUrl': ANY_MEMBER,
 
   // Global catalog: readable by everyone including the shopkeeper's app; only staff may propose.
   'catalog.search': ANY_MEMBER,
@@ -169,44 +251,66 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'catalog.propose': STAFF,
 
   // What this distributor sells. Cost endpoints are back office and are the reason the salesperson,
-  // delivery and retailer roles never appear on this block.
+  // delivery and retailer roles never appear on this block. Every WRITE to the overlay is MANAGEMENT:
+  // the accountant reads the catalog, the suppliers and the costs, and edits none of them (docs/22
+  // 2026-09-05). A rep reads its own brand authorisations; the buy-side pack sizes are the receiving
+  // side's (desk + gate) and carry no rate.
   'tenantCatalog.list': ANY_MEMBER,
-  'tenantCatalog.upsertListing': BACK_OFFICE,
+  'tenantCatalog.upsertListing': MANAGEMENT,
   'tenantCatalog.suppliers': STAFF,
-  'tenantCatalog.upsertSupplier': BACK_OFFICE,
+  'tenantCatalog.upsertSupplier': MANAGEMENT,
   'tenantCatalog.costs': BACK_OFFICE,
-  'tenantCatalog.upsertCost': BACK_OFFICE,
+  'tenantCatalog.upsertCost': MANAGEMENT,
+  'tenantCatalog.repAuthorisations.list': STAFF,
+  'tenantCatalog.repAuthorisations.set': MANAGEMENT,
+  'tenantCatalog.brands.list': STAFF,
+  'tenantCatalog.brands.upsert': MANAGEMENT,
+  'tenantCatalog.packConfigs.list': BACK_OFFICE_OR_WAREHOUSE,
+  'tenantCatalog.packConfigs.upsert': MANAGEMENT,
 
-  // Retailers. The shopkeeper reads its own record (the handler strips code, tier and credit).
+  // Retailers. The shopkeeper reads its own record (the handler strips code, tier and credit) and edits
+  // its own contact details through `updateOwn` — never through `upsert`. Credit terms are set by the
+  // owner and the manager alone (docs/22 2026-09-05: no credit limits for the accountant).
   'retailers.list': ANY_MEMBER,
   'retailers.get': ANY_MEMBER,
   'retailers.upsert': STAFF,
-  'retailers.setCredit': BACK_OFFICE,
+  'retailers.updateOwn': SHOPKEEPER_ONLY,
+  'retailers.setCredit': MANAGEMENT,
   // Back office only: a rep must not learn whether a phone exists in another distributor's network.
   'retailers.linkIdentity': ONBOARDERS,
+  // Beats are the desk's to create and assign (docs/23 §8.14: a rep, a loader or a driver could
+  // otherwise create beats and assign anyone); everyone in the field reads them, and a salesperson
+  // reads its own assignment to learn today's beat.
   'retailers.beats.list': STAFF,
-  'retailers.beats.upsert': STAFF,
-  'retailers.beats.assign': STAFF,
+  'retailers.beats.upsert': ONBOARDERS,
+  'retailers.beats.assign': ONBOARDERS,
+  'retailers.beats.assignments.list': STAFF,
   'retailers.visits.record': STAFF,
   'retailers.visits.list': STAFF,
 
-  // Offline queue. Served to staff apps only; the retailer app is online-first.
+  // Offline queue. Served to staff apps only; the retailer app is online-first. A field role reads its
+  // own rejections and pulls its own read set (the handler forces the actor; RLS narrows the rows).
   'sync.upload': STAFF,
+  'sync.errors.list': STAFF,
+  'sync.pull': STAFF,
 
-  // Pricing. Reps read rates and ask for bargains; only the desk changes the economics, and only the
-  // owner sets how far a rep may discount on their own.
+  // Pricing. Reps read rates, their own bound and ask for bargains; the SHOP reads its deals
+  // (`schemes.list` filtered to what applies to it, public shape) and the outcome of its own bargain
+  // requests (RLS: own rows). Only the owner and the manager change the economics or decide a bargain —
+  // the accountant reads (docs/22 2026-09-05) — and only the owner sets how far a rep may discount.
   'pricing.priceLists.list': STAFF,
-  'pricing.priceLists.upsert': BACK_OFFICE,
-  'pricing.priceLists.setItems': BACK_OFFICE,
+  'pricing.priceLists.upsert': MANAGEMENT,
+  'pricing.priceLists.setItems': MANAGEMENT,
   'pricing.overrides.list': STAFF,
-  'pricing.overrides.upsert': BACK_OFFICE,
-  'pricing.schemes.list': STAFF,
-  'pricing.schemes.upsert': BACK_OFFICE,
+  'pricing.overrides.upsert': MANAGEMENT,
+  'pricing.schemes.list': ANY_MEMBER,
+  'pricing.schemes.upsert': MANAGEMENT,
   'pricing.quote': ANY_MEMBER,
   'pricing.bargains.request': ANY_MEMBER,
-  'pricing.bargains.decide': BACK_OFFICE,
-  'pricing.bargains.list': STAFF,
+  'pricing.bargains.decide': MANAGEMENT,
+  'pricing.bargains.list': ANY_MEMBER,
   'pricing.bounds.set': OWNER_ONLY,
+  'pricing.bounds.list': STAFF,
 
   // Inventory. `sellable` is the only stock surface a rep or a shop ever sees; per-lot balances and
   // the ledger stay with the people who hold the stock.
@@ -218,6 +322,13 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'inventory.stock.transfer': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.ledger': STOCK_VIEWERS,
   'inventory.lots.upsert': BACK_OFFICE_OR_WAREHOUSE,
+  // A cycle count is the godown's paperwork: the stock keepers open and count, the desk posts the
+  // differences into the ledger (docs/23 §8.18), the accountant and the crew may read it.
+  'inventory.cycleCounts.open': ROLE_GROUPS.STOCK_KEEPERS,
+  'inventory.cycleCounts.count': ROLE_GROUPS.STOCK_KEEPERS,
+  'inventory.cycleCounts.post': BACK_OFFICE,
+  'inventory.cycleCounts.list': STOCK_VIEWERS,
+  'inventory.cycleCounts.get': STOCK_VIEWERS,
 
   // Procurement. Supplier invoices carry printed rates and become purchase cost: back office only.
   // GRN shapes carry pieces, not rates, so the warehouse reads them and does the blind gate count.
@@ -225,6 +336,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'procurement.supplierInvoices.list': BACK_OFFICE,
   'procurement.supplierInvoices.get': BACK_OFFICE,
   'procurement.supplierInvoices.matchLine': BACK_OFFICE,
+  'procurement.supplierInvoices.dispute': BACK_OFFICE,
+  'procurement.supplierInvoices.cancel': BACK_OFFICE,
   // Opening reads the approved invoice's lines and posting writes tenant_product_costs, whose RLS
   // policy is back office: the desk opens and posts, the gate counts.
   'procurement.grns.open': BACK_OFFICE,
@@ -233,47 +346,59 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'procurement.grns.list': BACK_OFFICE_OR_WAREHOUSE,
   'procurement.grns.get': BACK_OFFICE_OR_WAREHOUSE,
   'procurement.discrepancies.list': BACK_OFFICE_OR_WAREHOUSE,
+  // A gate-count finding is decided in the owner's approvals queue ("GRN exceptions", docs/23 O3): the
+  // owner and the manager, never the accountant (docs/22 2026-09-05: no approvals).
+  'procurement.discrepancies.resolve': MANAGEMENT,
   'procurement.purchaseOrders.upsert': BACK_OFFICE,
   'procurement.purchaseOrders.list': BACK_OFFICE,
 
-  // Orders. A shopkeeper may place, read and cancel its own; only staff submit, only the desk
-  // confirms (it reserves stock) and decides approvals.
+  // Orders. A shopkeeper may place, SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the
+  // approvals a submit raises stay invisible to the shop), read and cancel its own; the owner and the
+  // manager confirm (it reserves stock) and decide approvals — an approval is a decision the accountant
+  // does not take (docs/22 2026-09-05); the accountant reads the queue.
   'orders.create': ANY_MEMBER,
   'orders.setLines': ANY_MEMBER,
   'orders.repeatLast': ANY_MEMBER,
-  'orders.submit': STAFF,
-  'orders.confirm': BACK_OFFICE,
+  'orders.submit': ANY_MEMBER,
+  'orders.confirm': MANAGEMENT,
   'orders.cancel': ANY_MEMBER,
   'orders.get': ANY_MEMBER,
   'orders.list': ANY_MEMBER,
   'orders.approvals.list': BACK_OFFICE,
-  'orders.approvals.decide': BACK_OFFICE,
+  'orders.approvals.decide': MANAGEMENT,
 
-  // Receivables — the money ledger. Two rules from the founder (docs/17 §D4) shape this block:
-  // only the desk and the delivery crew take money, and a shop pays for itself through its own
-  // procedure. There is therefore NO salesperson anywhere below, and `payments.initiate` is the
-  // retailer's path rather than a wider `receipts.create`.
+  // Receivables — the money ledger. Three rules from the founder (docs/17 §D4, docs/22 2026-09-05)
+  // shape this block: only the desk and the delivery crew take money, and a shop pays for itself
+  // through its own procedure (`payments.initiate`, never a wider `receipts.create`); the salesperson
+  // appears in exactly three READ rows (dues, credit check, statement — "never collects" is not "never
+  // sees") and in no write; and the accountant is the MONEY_DESK — office receipts, reversals, banking,
+  // bounces, allocations, write-offs, statements — which is the whole of its write scope.
   'receivables.receipts.create': MONEY_COLLECTORS,
   'receivables.receipts.list': MONEY_READERS,
   'receivables.receipts.get': MONEY_READERS,
-  // Reversal, banking and cheque returns are desk work: they move money between accounts.
-  'receivables.receipts.reverse': BACK_OFFICE,
-  'receivables.receipts.deposit': BACK_OFFICE,
-  'receivables.receipts.bounce': BACK_OFFICE,
+  // The printed / WhatsApp receipt: whoever may read the receipt may print it, the shop included.
+  'receivables.receipts.document': MONEY_READERS,
+  // Reversal, banking and cheque returns are the money desk's: they move money between accounts.
+  'receivables.receipts.reverse': MONEY_DESK,
+  'receivables.receipts.deposit': MONEY_DESK,
+  'receivables.receipts.bounce': MONEY_DESK,
   // The shop starts an online payment against its own bills; it credits no AR by itself.
   'receivables.payments.initiate': SHOPKEEPER_ONLY,
-  'receivables.allocations.create': BACK_OFFICE,
-  'receivables.allocations.remove': BACK_OFFICE,
-  // Dues: a shop reads its own, the tenant-wide register is staff-only.
-  'receivables.outstanding.get': MONEY_READERS,
-  'receivables.outstanding.list': MONEY_COLLECTORS,
-  'receivables.creditCheck': MONEY_COLLECTORS,
-  'receivables.ledger.get': MONEY_READERS,
-  'receivables.statements.send': BACK_OFFICE,
-  // Writing off a debt is the owner's decision alone; so is forcing an ageing rebuild.
-  'receivables.writeOffs.create': OWNER_ONLY,
+  'receivables.allocations.create': MONEY_DESK,
+  'receivables.allocations.remove': MONEY_DESK,
+  // Dues: the rep sees the shop's, the crew the shop's at the door, the shop its own; the tenant-wide
+  // register and its history are the desk's alone (the crew needs one shop at a time, docs/23 §5.3).
+  'receivables.outstanding.get': DUES_READERS,
+  'receivables.outstanding.list': BACK_OFFICE,
+  'receivables.creditCheck': CREDIT_CHECKERS,
+  'receivables.ledger.get': DUES_READERS,
+  'receivables.statements.send': MONEY_DESK,
+  // Writing off a debt is a money-desk decision (docs/22 2026-09-05 names it for the accountant);
+  // forcing an ageing rebuild is the owner's alone.
+  'receivables.writeOffs.create': MONEY_DESK,
   'receivables.ageing.rebuild': OWNER_ONLY,
-  'receivables.cashDiscounts.list': BACK_OFFICE,
+  'receivables.ageing.history': BACK_OFFICE,
+  'receivables.cashDiscounts.list': MONEY_DESK,
   // The books. The 0007 RLS policies are the guarantee: these paths carry purchase and GRN postings.
   'receivables.accounts.list': BACK_OFFICE,
   'receivables.journal.list': BACK_OFFICE,
@@ -285,7 +410,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'billing.invoices.queue': BILLING_ISSUERS,
   // `billing.invoices.issue` USED TO BE HERE and was removed with the procedure at coordination §4
   // step 3: `warehouse.packs.confirm` now does the stock-and-state half and calls
-  // `BillingService.issueForPack`, so a pack invoice has exactly one caller and stock leaves once.
+  // `BillingService.issueForPack`, so stock leaves once. `issueForPack` below bills a pack that was
+  // PARKED with `issueInvoice: false` — the document only, never a piece of stock (billing.ts).
+  'billing.invoices.issueForPack': BILLING_ISSUERS,
   // A van sale is billed at the door from the tenant's normal series (docs/17 §D5).
   'billing.invoices.issueVanSale': DOORSTEP,
   'billing.invoices.importBrandDms': BACK_OFFICE,
@@ -312,8 +439,11 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   //    being packed or has been dispatched from `orders.get`, never from a warehouse endpoint.
   //  * STOCK_VIEWERS is the brief's FULFILMENT_READERS: the same list plus the accountant and the
   //    crew, who read the load sheet and the challan on the road but write nothing.
-  //  * PIN_HOLDERS guards the three steps that ARE the manager's PIN — cancelling a wave, checking a
-  //    load out, and cancelling a sheet — because holding an owner/manager token is the PIN (§7 q15).
+  //  * PIN_HOLDERS guards the three steps that ARE the manager's PIN — cancelling a wave, APPROVING a
+  //    load sheet, and cancelling a sheet — because holding an owner/manager token is the PIN (§7 q15).
+  //    The PIN is given in the MANAGER app (docs/22 2026-09-05): `loadSheets.approve` is PIN_HOLDERS and
+  //    `loadSheets.confirm` — the crew's count on the warehouse phone — is STOCK_KEEPERS, refusing an
+  //    unapproved sheet in the handler. Nothing is typed on the warehouse phone but the count.
   // `reservations.release` and `challans.recordEwb` are BACK_OFFICE: freeing a hold on a live order
   // and typing a government e-way bill number are desk decisions, not floor work.
   'warehouse.queue.list': ROLE_GROUPS.STOCK_KEEPERS,
@@ -330,14 +460,72 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'warehouse.loadSheets.create': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.loadSheets.list': STOCK_VIEWERS,
   'warehouse.loadSheets.get': STOCK_VIEWERS,
-  // Check-out moves stock, issues a numbered challan and dispatches the orders: the manager's PIN.
-  'warehouse.loadSheets.confirm': PIN_HOLDERS,
+  // The manager's PIN, from the manager app; the warehouse phone then confirms the approved sheet.
+  'warehouse.loadSheets.approve': PIN_HOLDERS,
+  'warehouse.loadSheets.confirm': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.loadSheets.cancel': PIN_HOLDERS,
   'warehouse.challans.list': STOCK_VIEWERS,
   'warehouse.challans.get': STOCK_VIEWERS,
+  'warehouse.challans.pdf': STOCK_VIEWERS,
   'warehouse.challans.recordEwb': BACK_OFFICE,
   'warehouse.reservations.list': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.reservations.release': BACK_OFFICE,
+
+  // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
+  // Five populations, one new tuple:
+  //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, depart, add a stop.
+  //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
+  //    consent, and the check-in (`trips.return`).
+  //  * MONEY_COLLECTORS is the field's ONLY money path (docs/17 §D4): `collections.record` wraps
+  //    `ReceivablesService.recordReceipt`, so the same four people who may take a receipt take it at
+  //    the door — the salesperson is in no row of this block. The same four keep the trip's cash story:
+  //    expenses, the collections register and the check-in cockpit. The godown is NOT here (it never
+  //    touches money; the `collections` RLS policy excludes it too), so `collections.list` and
+  //    `expenses.list` are narrower than coordination's STOCK_VIEWERS on purpose.
+  //  * MONEY_DESK settles (`trips.settle`): the day-end handover is a money-desk write; a variance beyond
+  //    tolerance is refused in the handler unless the OWNER accepts it (docs/22 2026-09-05: no approvals
+  //    for the accountant). PIN_HOLDERS cancel a trip, register a vehicle and read where people ARE —
+  //    the live map and the trace are DPDP-audited reads that `trip_points` RLS already limits to the
+  //    owner and the manager.
+  // The shop reads its own delivery status and nothing else: `stops.list` (ANY_MEMBER; RLS narrows it
+  // to its own stops, the mapper drops coordinates and the cash plan) and `deliveries.list/get`
+  // (MONEY_READERS; its own POD with a signed URL). Every write refuses the retailer.
+  'delivery.vehicles.list': STOCK_VIEWERS,
+  'delivery.vehicles.upsert': PIN_HOLDERS,
+  'delivery.vehicles.positions': PIN_HOLDERS,
+  'delivery.consents.grant': DOORSTEP,
+  'delivery.consents.get': DOORSTEP,
+  'delivery.trips.create': TRIP_PLANNERS,
+  'delivery.trips.list': STOCK_VIEWERS,
+  'delivery.trips.get': STOCK_VIEWERS,
+  'delivery.trips.startLoading': TRIP_PLANNERS,
+  'delivery.trips.depart': TRIP_PLANNERS,
+  'delivery.trips.return': DOORSTEP,
+  'delivery.trips.cancel': PIN_HOLDERS,
+  'delivery.trips.settlementPreview': MONEY_COLLECTORS,
+  'delivery.trips.settle': MONEY_DESK,
+  'delivery.stops.list': ANY_MEMBER,
+  'delivery.stops.next': STOCK_VIEWERS,
+  'delivery.stops.add': TRIP_PLANNERS,
+  'delivery.stops.reorder': DOORSTEP,
+  'delivery.stops.start': DOORSTEP,
+  'delivery.stops.arrive': DOORSTEP,
+  'delivery.stops.fail': DOORSTEP,
+  'delivery.deliveries.record': DOORSTEP,
+  'delivery.deliveries.addPod': DOORSTEP,
+  'delivery.deliveries.list': MONEY_READERS,
+  'delivery.deliveries.get': MONEY_READERS,
+  // THE money-collection path of the field (docs/17 §D4). Never the salesperson.
+  'delivery.collections.record': MONEY_COLLECTORS,
+  'delivery.collections.list': MONEY_COLLECTORS,
+  // Billed from the tenant's normal series (docs/17 §D5) by the crew at the door.
+  'delivery.vanSales.create': DOORSTEP,
+  'delivery.expenses.record': MONEY_COLLECTORS,
+  'delivery.expenses.list': MONEY_COLLECTORS,
+  // ADR 0012: the batch bypasses the sync queue; the caller must be the trip's crew (handler).
+  'delivery.gps.points': DOORSTEP,
+  'delivery.gps.trace': PIN_HOLDERS,
 }
 
 /**

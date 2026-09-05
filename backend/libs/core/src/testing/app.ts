@@ -6,6 +6,8 @@ import type { ModuleMetadata } from '@nestjs/common'
 import { SignJWT } from 'jose'
 import { uuidv7 } from '@dos/domain'
 import { AUTH_ALG, AUTH_AUDIENCE, AUTH_ISSUER, DbModule, loadAuthKeys } from '../platform/index.js'
+import { registerStorageBodyParsers, STORAGE_BODY_LIMIT_BYTES } from '../service/bootstrap.js'
+import { StorageController } from '../service/storage.controller.js'
 
 /**
  * Boots a Nest app for a spec exactly as main.ts does (Fastify + oRPC), with the real DbModule so
@@ -16,8 +18,13 @@ export async function bootTestApp(
 ): Promise<NestFastifyApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [ORPCModule.forRoot({}), DbModule, ...imports],
+    // The local object-storage route every service serves, so an upload round-trip is testable.
+    controllers: [StorageController],
   }).compile()
-  const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter())
+  const app = moduleRef.createNestApplication<NestFastifyApplication>(
+    new FastifyAdapter({ bodyLimit: STORAGE_BODY_LIMIT_BYTES }),
+  )
+  registerStorageBodyParsers(app)
   await app.init()
   await app.getHttpAdapter().getInstance().ready()
   return app

@@ -14,3 +14,6 @@ export {
   type CreditVerdict,
   type RetailerCredit,
 } from './credit.js'
+/** The open balance of one bill, as a plain function for the document loaders (billing's renderer data). */
+export { invoiceOpenPaise } from './allocation.js'
+export { loadReceiptDocument, type ReceiptDocument } from './documents.js'

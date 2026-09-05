@@ -11,11 +11,30 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
-import { id, paise, pieces, tenantPolicy, timestamps, tz } from './columns.js'
+import {
+  id,
+  paise,
+  pieces,
+  roleWritePolicies,
+  staffReadPolicy,
+  staffWritePolicy,
+  STOCK_KEEPER_ROLES,
+  tenantReadPolicy,
+  timestamps,
+  tz,
+} from './columns.js'
 import { productVariants } from './catalog.js'
 import { tenantRef } from './platform.js'
+import { users } from './tenancy.js'
 
-/** ADR 0003: append-only stock ledger in pieces, balances derived, MRP and expiry are lot attributes. */
+/**
+ * ADR 0003: append-only stock ledger in pieces, balances derived, MRP and expiry are lot attributes.
+ *
+ * RLS (migration 0012): every member READS stock — the `sellable_stock` view is `security_invoker`, so a
+ * shop's ATP hint reads `stock_balances` and `stock_lots` as the retailer role — and only STAFF writes
+ * it. The old FOR ALL policies let a shopkeeper token append a ledger row (never-list 9). A cycle count
+ * is the godown's own paperwork: staff read it, the stock keepers (owner, manager, warehouse) write it.
+ */
 
 export const locationKind = pgEnum('location_kind', [
   'warehouse',
@@ -42,7 +61,8 @@ export const locations = pgTable(
   },
   (t) => [
     uniqueIndex('locations_tenant_name_idx').on(t.tenantId, t.name),
-    tenantPolicy('locations_tenant'),
+    tenantReadPolicy('locations_read'),
+    ...staffWritePolicy('locations_write'),
   ],
 ).enableRLS()
 
@@ -66,7 +86,8 @@ export const stockLots = pgTable(
   (t) => [
     uniqueIndex('stock_lots_identity_idx').on(t.tenantId, t.variantId, t.batchNo, t.mrpPaise),
     index('stock_lots_expiry_idx').on(t.tenantId, t.expiryDate),
-    tenantPolicy('stock_lots_tenant'),
+    tenantReadPolicy('stock_lots_read'),
+    ...staffWritePolicy('stock_lots_write'),
   ],
 ).enableRLS()
 
@@ -117,7 +138,8 @@ export const stockLedger = pgTable(
     index('stock_ledger_lot_location_idx').on(t.tenantId, t.lotId, t.locationId),
     index('stock_ledger_ref_idx').on(t.tenantId, t.refType, t.refId),
     check('stock_ledger_qty_nonzero', sql`qty_delta <> 0`),
-    tenantPolicy('stock_ledger_tenant'),
+    tenantReadPolicy('stock_ledger_read'),
+    ...staffWritePolicy('stock_ledger_write'),
   ],
 ).enableRLS()
 
@@ -143,7 +165,8 @@ export const stockBalances = pgTable(
     index('stock_balances_location_idx').on(t.tenantId, t.locationId),
     check('stock_balances_on_hand_nonneg', sql`on_hand >= 0 OR negative_allowed`),
     check('stock_balances_reserved_nonneg', sql`reserved >= 0`),
-    tenantPolicy('stock_balances_tenant'),
+    tenantReadPolicy('stock_balances_read'),
+    ...staffWritePolicy('stock_balances_write'),
   ],
 ).enableRLS()
 
@@ -171,7 +194,8 @@ export const reservations = pgTable(
   (t) => [
     index('reservations_order_line_idx').on(t.tenantId, t.orderLineId),
     index('reservations_state_idx').on(t.tenantId, t.state),
-    tenantPolicy('reservations_tenant'),
+    tenantReadPolicy('reservations_read'),
+    ...staffWritePolicy('reservations_write'),
   ],
 ).enableRLS()
 
@@ -194,13 +218,17 @@ export const cycleCounts = pgTable(
     status: cycleCountStatus('status').notNull().default('open'),
     countedBy: text('counted_by'),
     countedAt: tz('counted_at'),
+    postedBy: text('posted_by').references(() => users.id),
     postedAt: tz('posted_at'),
     note: text('note'),
     ...timestamps,
   },
   (t) => [
     index('cycle_counts_location_idx').on(t.tenantId, t.locationId, t.createdAt),
-    tenantPolicy('cycle_counts_tenant'),
+    /** `inventory.cycleCounts.list` by status (docs/23 §8.18): the open counts on the warehouse home. */
+    index('cycle_counts_status_idx').on(t.tenantId, t.status, t.createdAt),
+    staffReadPolicy('cycle_counts_read'),
+    ...roleWritePolicies('cycle_counts_write', STOCK_KEEPER_ROLES),
   ],
 ).enableRLS()
 
@@ -221,6 +249,7 @@ export const cycleCountLines = pgTable(
   },
   (t) => [
     uniqueIndex('cycle_count_lines_idx').on(t.tenantId, t.cycleCountId, t.lotId),
-    tenantPolicy('cycle_count_lines_tenant'),
+    staffReadPolicy('cycle_count_lines_read'),
+    ...roleWritePolicies('cycle_count_lines_write', STOCK_KEEPER_ROLES),
   ],
 ).enableRLS()

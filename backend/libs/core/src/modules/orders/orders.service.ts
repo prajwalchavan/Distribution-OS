@@ -31,10 +31,10 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   nextDocumentNumber,
   requireDb,
   requireRole,
@@ -44,6 +44,7 @@ import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
 import {
   approvalFlags,
+  asSystem,
   availablePcs,
   createDraft,
   emitOrderEvent,
@@ -206,14 +207,21 @@ export class OrdersService {
   /**
    * Submit: the order number is allocated now (ADR 0001, never at draft), the approval gates run, and an order
    * that trips none is confirmed on the spot so the rep sees `confirmed` on the next sync.
+   *
+   * THE SHOP SUBMITS ITS OWN DRAFT the same way (docs/22 §4 R1 → S5, docs/23 §8.15): the same server
+   * re-pricing happened at `setLines`, the same approval gates run here, and the approvals a shop's
+   * order raises stay invisible to it (`loadDetail` strips them). The auto-confirm half reserves stock
+   * and moves the order to `confirmed`, both staff-only at the database, so for a retailer it runs
+   * under the system role (`asSystem`) while `actor_id` keeps recording the shopkeeper.
    */
   async submit(input: SubmitIn): Promise<SubmitOut> {
-    requireRole(STAFF)
+    requireRole(ORDER_ROLES)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockOrder(tx, input.id)
+        this.assertRetailerOwns(order)
         const to = transition(order.state, 'submit')
         const lines = await tx
           .select()
@@ -238,7 +246,10 @@ export class OrdersService {
         await recordTransition(tx, next, order.state, to, 'submit', input.deviceId ?? null, null)
         await emitOrderEvent(tx, next, 'OrderSubmitted')
         if (flags.length === 0) {
-          const confirmed = await this.confirmInTx(tx, next, input.deviceId ?? null)
+          const confirmed =
+            ctx.actorRole === 'retailer'
+              ? await asSystem(tx, () => this.confirmInTx(tx, next, input.deviceId ?? null))
+              : await this.confirmInTx(tx, next, input.deviceId ?? null)
           return { item: confirmed.item }
         }
         await tx.insert(approvals).values(
@@ -259,8 +270,9 @@ export class OrdersService {
     )
   }
 
+  /** Owner and manager confirm (docs/22 2026-09-05): it resolves approvals and reserves stock. */
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

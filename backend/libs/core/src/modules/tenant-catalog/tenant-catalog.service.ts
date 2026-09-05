@@ -33,6 +33,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   requireDb,
   requireRole,
   STAFF,
@@ -112,7 +113,7 @@ export class TenantCatalogService {
   }
 
   async upsertListing(input: ListingIn): Promise<ListingOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -163,7 +164,7 @@ export class TenantCatalogService {
   }
 
   async upsertSupplier(input: SupplierIn): Promise<SupplierOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -205,7 +206,7 @@ export class TenantCatalogService {
   }
 
   async upsertCost(input: CostIn): Promise<CostOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

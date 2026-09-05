@@ -9,6 +9,7 @@ import {
   hashPassword,
   memberships,
   tenants,
+  tenantSettings,
   users,
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
@@ -16,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AUTH_AUDIENCE, AUTH_ISSUER, loadAuthKeys } from '../../platform/index.js'
 import { bootTestApp, call } from '../../testing/app.js'
 import { AuthModule } from './index.js'
+import { signResetToken } from './tokens.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -412,6 +414,81 @@ describeDb('auth (DATABASE_URL)', () => {
       tenantId: tenantB,
     })
     expect(denied.status).toBe(403)
+  })
+
+  it('carries the distributor display name and logo on the sign-in reply (white label, docs/17 §D6)', async () => {
+    await db
+      .insert(tenantSettings)
+      .values({ tenantId: tenantA, key: 'branding.display_name', value: `Alice & Co ${run}` })
+      .onConflictDoNothing()
+    const res = await login(alice, password)
+    expect(res.status).toBe(200)
+    expect(res.body.tenant).toMatchObject({
+      legalName: 'Auth Tenant A',
+      displayName: `Alice & Co ${run}`,
+      logoUrl: null,
+    })
+    const b = res.body.memberships.find((m) => m.tenantId === tenantB)
+    expect(b).toMatchObject({
+      tenantName: 'Auth Tenant B',
+      displayName: 'Auth Tenant B',
+      logoUrl: null,
+    })
+    const me = await bearer<{ tenant: { displayName: string } }>(
+      res.body.accessToken,
+      'GET',
+      '/auth/me',
+    )
+    expect(me.body.tenant.displayName).toBe(`Alice & Co ${run}`)
+  })
+
+  it('resets a forgotten password with a single-use signed token and revokes every session', async () => {
+    // forgotPassword never reveals whether the username exists
+    expect(
+      (await call(app, null, 'POST', '/auth/forgot-password', { username: `nobody.${run}` })).body,
+    ).toEqual({ ok: true })
+    const first = await login(carol, password)
+    expect(first.status).toBe(200)
+    expect(
+      (await call(app, null, 'POST', '/auth/forgot-password', { username: carol })).body,
+    ).toEqual({ ok: true })
+    // the token travels by a channel that does not exist yet; here it is minted the way the service does
+    const keys = await loadAuthKeys()
+    const [row] = await db
+      .select({ hash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, carolId))
+    const { token } = await signResetToken(
+      { userId: carolId, passwordHash: row?.hash ?? null },
+      keys,
+    )
+    const malformed = await call<ErrorBody>(app, null, 'POST', '/auth/reset-password', {
+      token: 'not-a-token-at-all-not-a-token-at-all',
+      newPassword: 'Another123',
+    })
+    expect(malformed.status).toBe(400)
+    const forged = await call<ErrorBody>(app, null, 'POST', '/auth/reset-password', {
+      token: `${token.split('.')[0] ?? ''}.${'A'.repeat(86)}`,
+      newPassword: 'Another123',
+    })
+    expect(forged.status).toBe(401)
+    const reset = await call<ErrorBody>(app, null, 'POST', '/auth/reset-password', {
+      token,
+      newPassword: 'Another123',
+    })
+    expect(reset.body.message ?? '').toBe('')
+    expect(reset.status).toBe(200)
+    // every session is gone, the old password no longer works, the new one does
+    expect((await refresh(first.body.refreshToken)).status).toBe(401)
+    expect((await login(carol, password)).status).toBe(401)
+    expect((await login(carol, 'Another123')).status).toBe(200)
+    // single use: the fingerprint moved with the hash, so the same token is refused
+    const again = await call(app, null, 'POST', '/auth/reset-password', {
+      token,
+      newPassword: 'Third123',
+    })
+    expect(again.status).toBe(401)
+    expect((await login(carol, 'Another123')).status).toBe(200)
   })
 
   it('publishes the verifying key at /.well-known/jwks.json', async () => {

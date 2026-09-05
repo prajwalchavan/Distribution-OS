@@ -9,6 +9,7 @@ import { seedBilling } from './billing.js'
 import { seedCatalog } from './catalog.js'
 import { seedDelivery } from './delivery.js'
 import { seedPeople, type PeopleResult } from './people.js'
+import { seedPlatformGaps } from './platform-gaps.js'
 import { seedPricing } from './pricing.js'
 import { seedReceivables } from './receivables.js'
 import { seedReporting } from './reporting.js'
@@ -51,6 +52,8 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   await seedWarehouse(db, tenantId, sales, stock, people)
   await seedReceivables(db, tenantId, retailersRes, people)
   await seedReporting(db, tenantId, retailersRes, sales, people)
+  // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
+  await seedPlatformGaps(db, tenantId, stock, people)
 
   if (opts.printSignIn ?? true) printSignInTable(tenantId, people)
 }

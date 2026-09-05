@@ -31,6 +31,13 @@ export class ReceivablesController {
     )
   }
 
+  @Implement(contract.receivables.receipts.document)
+  receiptDocument(@OwnsReply() _reply: unknown) {
+    return implement(contract.receivables.receipts.document).handler(({ input }) =>
+      this.receivables.receiptDocument(input),
+    )
+  }
+
   @Implement(contract.receivables.receipts.reverse)
   reverseReceipt(@OwnsReply() _reply: unknown) {
     return implement(contract.receivables.receipts.reverse).handler(({ input }) =>
@@ -140,6 +147,13 @@ export class ReceivablesController {
   rebuildAgeing(@OwnsReply() _reply: unknown) {
     return implement(contract.receivables.ageing.rebuild).handler(({ input }) =>
       this.receivables.rebuildAgeing(input),
+    )
+  }
+
+  @Implement(contract.receivables.ageing.history)
+  ageingHistory(@OwnsReply() _reply: unknown) {
+    return implement(contract.receivables.ageing.history).handler(({ input }) =>
+      this.receivables.ageingHistory(input),
     )
   }
 }

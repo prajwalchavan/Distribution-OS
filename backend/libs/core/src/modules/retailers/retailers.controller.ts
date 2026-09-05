@@ -25,6 +25,11 @@ export class RetailersController {
     return implement(contract.retailers.upsert).handler(({ input }) => this.svc.upsert(input))
   }
 
+  @Implement(contract.retailers.updateOwn)
+  updateOwn(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.updateOwn).handler(({ input }) => this.svc.updateOwn(input))
+  }
+
   @Implement(contract.retailers.setCredit)
   setCredit(@OwnsReply() _reply: unknown) {
     return implement(contract.retailers.setCredit).handler(({ input }) => this.svc.setCredit(input))
@@ -55,6 +60,13 @@ export class RetailersController {
   assignBeat(@OwnsReply() _reply: unknown) {
     return implement(contract.retailers.beats.assign).handler(({ input }) =>
       this.svc.assignBeat(input),
+    )
+  }
+
+  @Implement(contract.retailers.beats.assignments.list)
+  listAssignments(@OwnsReply() _reply: unknown) {
+    return implement(contract.retailers.beats.assignments.list).handler(({ input }) =>
+      this.svc.listAssignments(input),
     )
   }
 

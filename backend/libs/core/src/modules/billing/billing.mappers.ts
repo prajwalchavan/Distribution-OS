@@ -216,6 +216,7 @@ export function toCreditNote(
     roundOffPaise: row.roundOffPaise,
     totalPaise: row.totalPaise,
     irn: row.irn,
+    pdfObjectKey: row.pdfObjectKey,
     issuedBy: row.issuedBy,
     issuedAt: iso(row.issuedAt),
     note: row.note,

@@ -1,10 +1,12 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, gte, ilike, lte, or, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, ilike, isNull, lte, or, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
 import type {
   AssignBeatInput,
   AssignBeatOutput,
+  BeatAssignmentsListInput,
+  BeatAssignmentsListOutput,
   BeatsListInput,
   BeatsListOutput,
   LinkIdentityInput,
@@ -17,6 +19,8 @@ import type {
   RetailersListOutput,
   SetCreditInput,
   SetCreditOutput,
+  UpdateOwnRetailerInput,
+  UpdateOwnRetailerOutput,
   UpsertBeatInput,
   UpsertBeatOutput,
   UpsertRetailerInput,
@@ -24,7 +28,7 @@ import type {
   VisitsListInput,
   VisitsListOutput,
 } from '@dos/contracts'
-import { uuidv7 } from '@dos/domain'
+import { businessDate, uuidv7 } from '@dos/domain'
 import {
   auditLog,
   beatAssignments,
@@ -39,13 +43,16 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
+  isPrivilegeViolation,
+  MANAGEMENT,
+  pgMessage,
   requireDb,
   requireRole,
   STAFF,
+  writeAudit,
 } from '../../platform/index.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
 import {
@@ -53,6 +60,7 @@ import {
   toAssignment,
   toBeat,
   toLink,
+  toPublic,
   toRetailer,
   toView,
   toVisit,
@@ -78,6 +86,10 @@ type VisitIn = z.infer<typeof RecordVisitInput>
 type VisitOut = z.infer<typeof RecordVisitOutput>
 type VisitsIn = z.infer<typeof VisitsListInput>
 type VisitsOut = z.infer<typeof VisitsListOutput>
+type AssignmentsIn = z.infer<typeof BeatAssignmentsListInput>
+type AssignmentsOut = z.infer<typeof BeatAssignmentsListOutput>
+type UpdateOwnIn = z.infer<typeof UpdateOwnRetailerInput>
+type UpdateOwnOut = z.infer<typeof UpdateOwnRetailerOutput>
 
 /** Roles allowed to update a retailer_identities row (mirrors the `retailer_identities_update` policy). */
 /**
@@ -135,15 +147,19 @@ export class RetailersService {
     })
   }
 
-  /** Any staff role creates/updates the shop record; only back-office actors may carry credit fields (else 403). */
+  /**
+   * Any staff role creates/updates the shop record; only the owner and the manager may carry credit
+   * fields (else 403 — the accountant sets no credit terms, docs/22 2026-09-05; the database trigger
+   * `dos_retailers_guard` refuses the same on every path).
+   */
   async upsert(input: UpsertIn): Promise<UpsertOut> {
     requireRole(STAFF)
     const ctx = currentTenant()
     const carriesCredit = CREDIT_KEYS.some((k) => input[k] !== undefined)
-    if (carriesCredit && !BACK_OFFICE.includes(ctx.actorRole)) {
+    if (carriesCredit && !MANAGEMENT.includes(ctx.actorRole)) {
       throw new ORPCError('FORBIDDEN', {
         message:
-          'tier and credit terms can only be set by owner, manager or accountant (use setCredit)',
+          'tier and credit terms can only be set by the owner or the manager (use setCredit)',
       })
     }
     const db = requireDb(this.db)
@@ -204,9 +220,9 @@ export class RetailersService {
     )
   }
 
-  /** Owner/manager/accountant only. Before/after go to audit_log (credit limit edits are a named sensitive action). */
+  /** Owner/manager only (docs/22 2026-09-05: no credit limits for the accountant). Before/after go to audit_log. */
   async setCredit(input: CreditIn): Promise<CreditOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -330,8 +346,9 @@ export class RetailersService {
     })
   }
 
+  /** Beats are the desk's to create (docs/23 §8.14): a rep, a loader or a driver may not. */
   async upsertBeat(input: BeatIn): Promise<BeatOut> {
-    requireRole(STAFF)
+    requireRole(ONBOARDERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -355,7 +372,7 @@ export class RetailersService {
   }
 
   async assignBeat(input: AssignIn): Promise<AssignOut> {
-    requireRole(STAFF)
+    requireRole(ONBOARDERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -388,6 +405,113 @@ export class RetailersService {
             message: 'beat assignment returned nothing',
           })
         return { item: toAssignment(row) }
+      }),
+    )
+  }
+
+  /**
+   * Who is on which beat (docs/23 §8.14): the rep's home screen learns TODAY's beat from here. A
+   * salesperson is forced to itself whatever `userId` says; the desk reads anyone's. `currentOnly`
+   * keeps the assignments valid on `on` (default today, IST).
+   */
+  async listAssignments(input: AssignmentsIn): Promise<AssignmentsOut> {
+    requireRole(STAFF)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    const on = input.on ?? businessDate().date
+    const userId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.userId
+    return withTenant(db, ctx, async (tx) => {
+      const filters: (SQL | undefined)[] = [
+        eq(beatAssignments.tenantId, ctx.tenantId),
+        input.beatId ? eq(beatAssignments.beatId, input.beatId) : undefined,
+        userId ? eq(beatAssignments.userId, userId) : undefined,
+        input.currentOnly ? lte(beatAssignments.validFrom, on) : undefined,
+        input.currentOnly
+          ? or(isNull(beatAssignments.validTo), gte(beatAssignments.validTo, on))
+          : undefined,
+      ]
+      const rows = await tx
+        .select({ assignment: beatAssignments, beatName: beats.name, userName: users.name })
+        .from(beatAssignments)
+        .innerJoin(beats, eq(beats.id, beatAssignments.beatId))
+        .innerJoin(users, eq(users.id, beatAssignments.userId))
+        .where(and(...filters.filter((f): f is SQL => f !== undefined)))
+        .orderBy(asc(beats.name), desc(beatAssignments.validFrom), asc(beatAssignments.id))
+        .limit(input.limit)
+      return {
+        items: rows.map((r) => ({
+          ...toAssignment(r.assignment),
+          beatName: r.beatName,
+          userName: r.userName,
+        })),
+      }
+    })
+  }
+
+  /**
+   * The shop edits its own contact and GST details from the retailer app (R11, docs/23 §8.14): never
+   * the name of record, the beat, the tier or a paisa of credit — the database trigger
+   * `dos_retailers_guard` says the same for every column the wire does not carry. A shop not linked
+   * to the caller is NOT_FOUND (RLS hides it), never a hint that it exists. Audited.
+   */
+  async updateOwn(input: UpdateOwnIn): Promise<UpdateOwnOut> {
+    requireRole(['retailer'])
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const [before] = await tx.select().from(retailers).where(eq(retailers.id, input.id))
+        if (!before) throw new ORPCError('NOT_FOUND', { message: 'retailer not found' })
+        const [link] = await tx
+          .select({ id: retailerLinks.id })
+          .from(retailerLinks)
+          .where(
+            and(
+              eq(retailerLinks.tenantId, ctx.tenantId),
+              eq(retailerLinks.retailerId, input.id),
+              eq(retailerLinks.userId, ctx.actorId),
+              eq(retailerLinks.status, 'active'),
+            ),
+          )
+          .limit(1)
+        if (!link) throw new ORPCError('NOT_FOUND', { message: 'retailer not found' })
+        const patch = {
+          ...(input.ownerName !== undefined ? { ownerName: input.ownerName } : {}),
+          ...(input.altPhone !== undefined ? { altPhone: input.altPhone } : {}),
+          ...(input.address !== undefined ? { address: input.address } : {}),
+          ...(input.gstin !== undefined ? { gstin: input.gstin } : {}),
+          ...(input.gstRegType !== undefined ? { gstRegType: input.gstRegType } : {}),
+        }
+        let row: typeof retailers.$inferSelect | undefined
+        try {
+          ;[row] = await tx
+            .update(retailers)
+            .set({ ...patch, updatedAt: new Date() })
+            .where(eq(retailers.id, input.id))
+            .returning()
+        } catch (error) {
+          if (isPrivilegeViolation(error))
+            throw new ORPCError('FORBIDDEN', { message: pgMessage(error) })
+          throw error
+        }
+        if (!row)
+          throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            message: 'retailer update returned nothing',
+          })
+        await writeAudit(tx, {
+          action: 'retailer.update_own',
+          entityType: 'retailer',
+          entityId: input.id,
+          before: {
+            ownerName: before.ownerName,
+            altPhone: before.altPhone,
+            address: before.address,
+            gstin: before.gstin,
+            gstRegType: before.gstRegType,
+          },
+          after: patch,
+        })
+        return { item: toPublic(row) }
       }),
     )
   }

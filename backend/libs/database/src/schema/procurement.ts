@@ -3,9 +3,11 @@ import {
   BACK_OFFICE_ROLES,
   bps,
   id,
+  INBOUND_ROLES,
   paise,
   pieces,
-  tenantPolicy,
+  roleWritePolicies,
+  staffReadPolicy,
   tenantRolePolicy,
   timestamps,
   tz,
@@ -30,6 +32,11 @@ import { users } from './tenancy.js'
  * Inbound side: PO (optional) → supplier invoice (from the docint pipeline or a brand-DMS export) → LR →
  * GRN with a blind gate count → stock ledger `grn` rows. Purchase rates are back-office only (same rule as
  * tenant_product_costs), so supplier_invoice_lines and grn_lines carry a role predicate.
+ *
+ * RLS (migration 0012): the priced documents (PO, supplier invoice and its lines) stay `BACK_OFFICE_ROLES`.
+ * The unpriced paperwork of receiving — the GRN, its pieces-only lines, the lorry receipt and the
+ * discrepancy — is read by every staff role and written by `INBOUND_ROLES` (the desk plus the floor
+ * that counts). The old FOR ALL policies let a shopkeeper token read and write a GRN.
  */
 
 export const purchaseOrderStatus = pgEnum('purchase_order_status', [
@@ -119,6 +126,11 @@ export const supplierInvoices = pgTable(
     dueDate: date('due_date', { mode: 'string' }),
     approvedBy: text('approved_by').references(() => users.id),
     approvedAt: tz('approved_at'),
+    /** `procurement.supplierInvoices.dispute` / `.cancel` (docs/23 §8.19): the statuses were unreachable before. */
+    disputedAt: tz('disputed_at'),
+    disputeReason: text('dispute_reason'),
+    cancelledAt: tz('cancelled_at'),
+    cancelReason: text('cancel_reason'),
     ...timestamps,
   },
   (t) => [
@@ -197,7 +209,8 @@ export const lorryReceipts = pgTable(
   },
   (t) => [
     index('lorry_receipts_invoice_idx').on(t.tenantId, t.supplierInvoiceId),
-    tenantPolicy('lorry_receipts_tenant'),
+    staffReadPolicy('lorry_receipts_read'),
+    ...roleWritePolicies('lorry_receipts_write', INBOUND_ROLES),
   ],
 ).enableRLS()
 
@@ -227,7 +240,8 @@ export const grns = pgTable(
   (t) => [
     index('grns_invoice_idx').on(t.tenantId, t.supplierInvoiceId),
     index('grns_status_idx').on(t.tenantId, t.status),
-    tenantPolicy('grns_tenant'),
+    staffReadPolicy('grns_read'),
+    ...roleWritePolicies('grns_write', INBOUND_ROLES),
   ],
 ).enableRLS()
 
@@ -252,7 +266,11 @@ export const grnLines = pgTable(
     damagedQtyPcs: pieces('damaged_qty_pcs').notNull().default(0),
     ...timestamps,
   },
-  (t) => [index('grn_lines_grn_idx').on(t.tenantId, t.grnId), tenantPolicy('grn_lines_tenant')],
+  (t) => [
+    index('grn_lines_grn_idx').on(t.tenantId, t.grnId),
+    staffReadPolicy('grn_lines_read'),
+    ...roleWritePolicies('grn_lines_write', INBOUND_ROLES),
+  ],
 ).enableRLS()
 
 export const discrepancyKind = pgEnum('discrepancy_kind', [
@@ -290,11 +308,14 @@ export const inboundDiscrepancies = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     note: text('note'),
+    /** `procurement.discrepancies.resolve` (docs/23 §8.19): who closed it as accepted / written off. */
+    resolvedBy: text('resolved_by').references(() => users.id),
     resolvedAt: tz('resolved_at'),
     ...timestamps,
   },
   (t) => [
     index('inbound_discrepancies_status_idx').on(t.tenantId, t.status),
-    tenantPolicy('inbound_discrepancies_tenant'),
+    staffReadPolicy('inbound_discrepancies_read'),
+    ...roleWritePolicies('inbound_discrepancies_write', INBOUND_ROLES),
   ],
 ).enableRLS()

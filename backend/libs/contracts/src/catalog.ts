@@ -1,3 +1,4 @@
+import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import {
   BpsSchema,
@@ -11,7 +12,16 @@ import {
   StateCodeSchema,
 } from './common.js'
 
-/** Global product master (ADR 0005) as seen by every app. Never carries cost. */
+/**
+ * Global product master (ADR 0005) as seen by every app, and the tenant overlay on it. Never carries
+ * cost except the two `costs` procedures, which are the desk's alone.
+ *
+ * WHICH SERVICES MOUNT `catalog` and `tenantCatalog`: all six (the shop browses what it may order).
+ * Writes to the tenant overlay — listings, suppliers, costs, brands, pack configs, rep authorisations
+ * — are the owner's and the manager's; the accountant reads everything and edits no catalog row
+ * (docs/22, 2026-09-05). The three sub-routers at the bottom (`repAuthorisationsContract`,
+ * `tenantBrandsContract`, `packConfigsContract`) are mounted under `tenantCatalog` in contract.ts.
+ */
 
 export const NetUnitSchema = z.enum(['g', 'kg', 'ml', 'l', 'pcs'])
 export const ProductStatusSchema = z.enum(['active', 'proposed', 'merged_into', 'discontinued'])
@@ -180,3 +190,192 @@ export const UpsertCostInput = MutationBase.extend({
   schemeMarginBps: BpsSchema.nullable().optional(),
 })
 export const UpsertCostOutput = z.object({ item: ProductCostSchema })
+
+// ---------------------------------------------------------------------------------------------------------------
+// rep authorisations — which brands each salesperson may sell (docs/02; `rep_product_authorisations`)
+
+/** `manufacturer` = employed by the brand and sells only it; `distributor` = the distributor's own rep on incentive. */
+export const EmployedBySchema = z.enum(['distributor', 'manufacturer'])
+export type EmployedBy = z.infer<typeof EmployedBySchema>
+
+export const RepAuthorisationSchema = z.object({
+  id: IdSchema,
+  userId: IdSchema,
+  brandId: IdSchema,
+  brandName: z.string(),
+  employedBy: EmployedBySchema,
+})
+export type RepAuthorisation = z.infer<typeof RepAuthorisationSchema>
+
+/** A salesperson reads only its own (`userId` is forced to the actor); no rows = every listed brand. */
+export const RepAuthorisationsListInput = z.object({ userId: IdSchema.optional() })
+export const RepAuthorisationsListOutput = z.object({ items: z.array(RepAuthorisationSchema) })
+
+/**
+ * REPLACES the rep's set: every brand not in `items` is removed, each listed one upserted under its
+ * client-generated row id. An empty list clears the restriction (the rep sells every listed brand).
+ */
+export const SetRepAuthorisationsInput = MutationBase.extend({
+  userId: IdSchema,
+  items: z
+    .array(
+      z.object({
+        id: IdSchema,
+        brandId: IdSchema,
+        employedBy: EmployedBySchema.default('distributor'),
+      }),
+    )
+    .max(50),
+})
+export const SetRepAuthorisationsOutput = RepAuthorisationsListOutput
+
+// ---------------------------------------------------------------------------------------------------------------
+// tenant brands — per-brand operating mode (docs/17 A1; `tenant_brands`)
+
+export const FulfilmentModeSchema = z.enum(['own', 'brand_dms'])
+export const TallyExportSourceSchema = z.enum(['dos', 'brand_dms', 'none'])
+/**
+ * `at_receipt_financial_cn` is the only mode billing implements today (docs/17 §D2: cash discount is
+ * reported on the bill and realised at receipt). `on_invoice` is accepted for storage so Too Yumm can
+ * be switched later, but nothing deducts on the invoice until that variant is built.
+ */
+export const CashDiscountModeSchema = z.enum(['on_invoice', 'at_receipt_financial_cn'])
+export const ClaimChannelSchema = z.enum(['dos', 'brand_dms'])
+export const SalesForceSchema = z.enum(['distributor', 'manufacturer'])
+
+/**
+ * How this distributor runs one brand. Too Yumm on FieldAssist is `fulfilmentMode: 'brand_dms'`: our
+ * reps must not see it as orderable, Tally must not receive it twice, claims settle in the brand DMS.
+ */
+export const TenantBrandSchema = z.object({
+  id: IdSchema,
+  brandId: IdSchema,
+  brandName: z.string(),
+  manufacturerId: IdSchema,
+  fulfilmentMode: FulfilmentModeSchema,
+  tallyExportSource: TallyExportSourceSchema,
+  cashDiscountMode: CashDiscountModeSchema,
+  claimChannel: ClaimChannelSchema,
+  salesForce: SalesForceSchema,
+})
+export type TenantBrand = z.infer<typeof TenantBrandSchema>
+
+export const TenantBrandsListOutput = z.object({ items: z.array(TenantBrandSchema) })
+
+/** One row per brand per tenant (`brandId` is the natural key; `id` is the row's client-generated id on first insert). */
+export const UpsertTenantBrandInput = MutationBase.extend({
+  id: IdSchema,
+  brandId: IdSchema,
+  fulfilmentMode: FulfilmentModeSchema.default('own'),
+  tallyExportSource: TallyExportSourceSchema.default('dos'),
+  cashDiscountMode: CashDiscountModeSchema.default('at_receipt_financial_cn'),
+  claimChannel: ClaimChannelSchema.default('dos'),
+  salesForce: SalesForceSchema.default('distributor'),
+})
+export const UpsertTenantBrandOutput = z.object({ item: TenantBrandSchema })
+
+// ---------------------------------------------------------------------------------------------------------------
+// supplier pack configs — buy-side pack sizes (docs/17 §B case-size precedence; `supplier_pack_configs`)
+
+/** What the margin is measured against for this supplier's pack: PTD, MRP or the net rate. An enum, never a rate. */
+export const MarginBasisSchema = z.enum(['ptd', 'mrp', 'net'])
+export type MarginBasis = z.infer<typeof MarginBasisSchema>
+
+/**
+ * Guru Kripa "x 90" vs Guiltfree "_120" vs Reliance "CS1": the same variant packs differently per
+ * supplier. BUY-SIDE ONLY — procurement and the GRN read it; the sell-side case size is
+ * `tenant_products.case_size_override` else the variant default. Carries no rate.
+ */
+export const SupplierPackConfigSchema = z.object({
+  id: IdSchema,
+  supplierId: IdSchema,
+  variantId: IdSchema,
+  pcsPerCase: z.number().int().positive(),
+  /** The supplier's own code and description for the pack, exactly as printed on its invoice. */
+  supplierCode: z.string().nullable(),
+  supplierDescription: z.string().nullable(),
+  marginBasis: MarginBasisSchema,
+})
+export type SupplierPackConfig = z.infer<typeof SupplierPackConfigSchema>
+
+export const PackConfigsListInput = z.object({
+  supplierId: IdSchema.optional(),
+  variantId: IdSchema.optional(),
+  limit: QueryIntSchema.min(1).max(500).default(200),
+  cursor: z.string().optional(),
+})
+export const PackConfigsListOutput = z.object({
+  items: z.array(SupplierPackConfigSchema),
+  nextCursor: z.string().nullable(),
+})
+
+/** One row per supplier per variant (the natural key); the review desk upserts one when it types a case size. */
+export const UpsertPackConfigInput = MutationBase.extend({
+  id: IdSchema,
+  supplierId: IdSchema,
+  variantId: IdSchema,
+  pcsPerCase: z.number().int().positive().max(10_000),
+  supplierCode: z.string().trim().max(40).nullable().optional(),
+  supplierDescription: z.string().trim().max(200).nullable().optional(),
+  marginBasis: MarginBasisSchema.default('ptd'),
+})
+export const UpsertPackConfigOutput = z.object({ item: SupplierPackConfigSchema })
+
+// ---------------------------------------------------------------------------------------------------------------
+// the sub-routers: mounted in contract.ts under `tenantCatalog` as `repAuthorisations`, `brands`, `packConfigs`
+
+export const repAuthorisationsContract = {
+  list: oc
+    .route({
+      method: 'GET',
+      path: '/tenant-catalog/rep-authorisations',
+      summary: 'Which brands a rep may sell (a salesperson sees only its own)',
+    })
+    .input(RepAuthorisationsListInput)
+    .output(RepAuthorisationsListOutput),
+  set: oc
+    .route({
+      method: 'POST',
+      path: '/tenant-catalog/rep-authorisations',
+      summary: "Replace a rep's authorised brands (owner/manager)",
+    })
+    .input(SetRepAuthorisationsInput)
+    .output(SetRepAuthorisationsOutput),
+}
+
+export const tenantBrandsContract = {
+  list: oc
+    .route({
+      method: 'GET',
+      path: '/tenant-catalog/brands',
+      summary: 'Per-brand operating mode: fulfilment, Tally source, cash discount, claims',
+    })
+    .output(TenantBrandsListOutput),
+  upsert: oc
+    .route({
+      method: 'POST',
+      path: '/tenant-catalog/brands',
+      summary: 'Set how this distributor runs a brand (owner/manager)',
+    })
+    .input(UpsertTenantBrandInput)
+    .output(UpsertTenantBrandOutput),
+}
+
+export const packConfigsContract = {
+  list: oc
+    .route({
+      method: 'GET',
+      path: '/tenant-catalog/pack-configs',
+      summary: 'Buy-side pack sizes per supplier and variant',
+    })
+    .input(PackConfigsListInput)
+    .output(PackConfigsListOutput),
+  upsert: oc
+    .route({
+      method: 'POST',
+      path: '/tenant-catalog/pack-configs',
+      summary: 'Set a supplier pack size for a variant (owner/manager)',
+    })
+    .input(UpsertPackConfigInput)
+    .output(UpsertPackConfigOutput),
+}

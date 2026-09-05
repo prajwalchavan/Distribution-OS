@@ -9,13 +9,27 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
-import { actorIs, id, tenantMatches, timestamps, tz } from './columns.js'
+import {
+  actorIs,
+  id,
+  ONBOARDER_ROLES,
+  roleWritePolicies,
+  tenantMatches,
+  tenantReadPolicy,
+  timestamps,
+  tz,
+} from './columns.js'
 import { appRw } from './roles.js'
 
 export const tenantPlan = pgEnum('tenant_plan', ['pilot', 'starter', 'growth'])
 export const tenantStatus = pgEnum('tenant_status', ['active', 'suspended', 'closed'])
 
-/** A tenant is one distributor business (e.g. Tarsun Enterprises). */
+/**
+ * A tenant is one distributor business (e.g. Tarsun Enterprises). Every member reads its own tenant's
+ * row (`tenancy.me`); only the owner edits it (`tenancy.tenant.update`, docs/23 §8.13 — legal name,
+ * GSTIN, state code, all of which print on a tax document). Creation and closure run as the system
+ * role: there is no owner yet when a distributor signs up.
+ */
 export const tenants = pgTable(
   'tenants',
   {
@@ -30,7 +44,18 @@ export const tenants = pgTable(
   },
   (t) => [
     uniqueIndex('tenants_slug_idx').on(t.slug),
-    pgPolicy('tenants_own_row', { for: 'all', to: appRw, using: tenantMatches('id') }),
+    pgPolicy('tenants_read', { for: 'select', to: appRw, using: tenantMatches('id') }),
+    pgPolicy('tenants_owner_update', {
+      for: 'update',
+      to: appRw,
+      using: sql`id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'system')`,
+      withCheck: sql`id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'system')`,
+    }),
+    pgPolicy('tenants_system_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql`(SELECT current_setting('app.actor_role', true)) = 'system'`,
+    }),
   ],
 ).enableRLS()
 
@@ -99,6 +124,12 @@ export const users = pgTable(
   ],
 ).enableRLS()
 
+/**
+ * Who belongs to which distributor, as what. Every member reads the roster of its own tenant (the
+ * owner app's staff list, a retailer app's "which distributors am I linked to" through the auth
+ * service); only the onboarders write it — the old FOR ALL policy let any member, a shopkeeper
+ * included, INSERT a membership and make itself the owner.
+ */
 export const memberships = pgTable(
   'memberships',
   {
@@ -116,11 +147,7 @@ export const memberships = pgTable(
   (t) => [
     uniqueIndex('memberships_tenant_user_idx').on(t.tenantId, t.userId),
     index('memberships_user_idx').on(t.userId),
-    pgPolicy('memberships_tenant', {
-      for: 'all',
-      to: appRw,
-      using: tenantMatches('tenant_id'),
-      withCheck: tenantMatches('tenant_id'),
-    }),
+    tenantReadPolicy('memberships_read'),
+    ...roleWritePolicies('memberships_write', ONBOARDER_ROLES),
   ],
 ).enableRLS()

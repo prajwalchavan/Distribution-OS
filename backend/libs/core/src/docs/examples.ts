@@ -5,10 +5,14 @@ import {
   approvals,
   bargainRequests,
   beats,
+  cycleCounts,
+  deliveryChallans,
   devices,
   grnLines,
   grns,
+  inboundDiscrepancies,
   invoices,
+  loadSheets,
   locations,
   memberships,
   priceListItems,
@@ -16,6 +20,7 @@ import {
   products,
   productVariants,
   purchaseOrders,
+  receipts,
   retailerLinks,
   retailers,
   salesOrderLines,
@@ -31,6 +36,7 @@ import {
   tenants,
   users,
   withSystem,
+  writeOffs,
   type Db,
 } from '@dos/db'
 import { contract, type ProcedureSummary } from '@dos/contracts'
@@ -217,10 +223,35 @@ export interface ExampleContext {
   approvalId?: string | undefined
   invoiceId?: string | undefined
 
+  /** Rows the platform-gaps procedures point at (docs/23 §8): every `{id}` route names a real one. */
+  receiptId?: string | undefined
+  /**
+   * An allocation the desk may take back (`allocations.remove`): one made from a receipt that is still
+   * `collected`/`deposited`. A write-off's or a reversed receipt's allocation is refused, so it is never
+   * the example.
+   */
+  allocationId?: string | undefined
+  challanId?: string | undefined
+  /** A pack confirmed with `issueInvoice: false` and still unbilled — the one `issueForPack` takes. */
+  parkedPackId?: string | undefined
+  /** A draft load sheet the manager has NOT approved yet (`loadSheets.approve`), else any draft. */
+  approvableLoadSheetId?: string | undefined
+  loadSheetId?: string | undefined
+  /** An `open` gate-count finding (`discrepancies.resolve`), else any. */
+  discrepancyId?: string | undefined
+  discrepancyStatus?: string | undefined
+  /** A supplier invoice still `extracted`/`in_review`/`approved` with no live GRN (dispute / cancel). */
+  disputableInvoiceId?: string | undefined
+  cycleCountId?: string | undefined
+  cycleCountStatus?: string | undefined
+  /** The lot on `cycleCountId`, so `cycleCounts.count` names a line that is on the count. */
+  cycleCountLotId?: string | undefined
   /** The shop the demo retailer login owns; the retailer app's document is scoped to it. */
   linkedRetailer?: DemoLinkedRetailer | undefined
   /** That shop's own orders, so the shopkeeper's document never points at somebody else's order. */
   linkedOrders?: DemoOrderSet | undefined
+  /** That shop's own latest receipt, for the same reason. */
+  linkedReceiptId?: string | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -364,8 +395,108 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectStock(tx, tenant.id, ctx)
   await collectProcurement(tx, tenant.id, ctx)
   await collectPricing(tx, tenant.id, ctx)
+  await collectPlatformGaps(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/** The rows behind the platform-gaps procedures (docs/23 §8): receipts, challans, parked packs, sheets, findings, counts. */
+async function collectPlatformGaps(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  ctx.receiptId = first(
+    await tx
+      .select({ id: receipts.id })
+      .from(receipts)
+      .where(and(eq(receipts.tenantId, tenantId), eq(receipts.status, 'collected')))
+      .orderBy(desc(receipts.receivedAt), desc(receipts.id))
+      .limit(1),
+  )?.id
+  ctx.allocationId = first(
+    (
+      await tx.execute(
+        sql`select a.id from allocations a
+              join receipts r on r.tenant_id = a.tenant_id and r.id = a.receipt_id
+             where a.tenant_id = ${tenantId} and a.amount_paise > 0
+               and r.status in ('collected', 'deposited')
+             order by a.id limit 1`,
+      )
+    ).rows as { id: string }[],
+  )?.id
+  ctx.challanId = first(
+    await tx
+      .select({ id: deliveryChallans.id })
+      .from(deliveryChallans)
+      .where(eq(deliveryChallans.tenantId, tenantId))
+      .orderBy(desc(deliveryChallans.id))
+      .limit(1),
+  )?.id
+  // A parked pack that MOVED stock comes first: `issueForPack` rebuilds the bill from the pack's
+  // `pack` ledger rows, and a pack of an order nothing was ever held for (a 100 % short pack) has
+  // none to bill. Any parked pack is still the fallback, so the note can say why the call refuses.
+  ctx.parkedPackId = first(
+    (
+      await tx.execute(
+        sql`select p.id from pack_confirmations p
+             where p.tenant_id = ${tenantId} and p.invoice_id is null
+             order by exists (select 1 from stock_ledger sl
+                               where sl.tenant_id = p.tenant_id
+                                 and sl.ref_type = 'pack' and sl.ref_id = p.order_id) desc,
+                      p.id limit 1`,
+      )
+    ).rows as { id: string }[],
+  )?.id
+  const sheets = await tx
+    .select({ id: loadSheets.id, status: loadSheets.status, approvedBy: loadSheets.approvedBy })
+    .from(loadSheets)
+    .where(eq(loadSheets.tenantId, tenantId))
+    .orderBy(desc(loadSheets.sheetDate), desc(loadSheets.id))
+    .limit(50)
+  ctx.approvableLoadSheetId = sheets.find((r) => r.status === 'draft' && r.approvedBy === null)?.id
+  ctx.loadSheetId = first(sheets)?.id
+  const findings = await tx
+    .select({ id: inboundDiscrepancies.id, status: inboundDiscrepancies.status })
+    .from(inboundDiscrepancies)
+    .where(eq(inboundDiscrepancies.tenantId, tenantId))
+    .orderBy(desc(inboundDiscrepancies.id))
+    .limit(50)
+  const finding = findings.find((r) => r.status === 'open') ?? first(findings)
+  ctx.discrepancyId = finding?.id
+  ctx.discrepancyStatus = finding?.status
+  ctx.disputableInvoiceId = first(
+    await tx
+      .select({ id: supplierInvoices.id })
+      .from(supplierInvoices)
+      .where(
+        and(
+          eq(supplierInvoices.tenantId, tenantId),
+          inArray(supplierInvoices.status, ['extracted', 'in_review', 'approved']),
+          sql`NOT EXISTS (SELECT 1 FROM grns g WHERE g.supplier_invoice_id = ${supplierInvoices.id} AND g.status <> 'cancelled')`,
+        ),
+      )
+      .orderBy(asc(supplierInvoices.createdAt))
+      .limit(1),
+  )?.id
+  const counts = await tx
+    .select({ id: cycleCounts.id, status: cycleCounts.status })
+    .from(cycleCounts)
+    .where(eq(cycleCounts.tenantId, tenantId))
+    .orderBy(desc(cycleCounts.id))
+    .limit(20)
+  const count =
+    counts.find((r) => r.status === 'open') ??
+    counts.find((r) => r.status === 'counted') ??
+    first(counts)
+  ctx.cycleCountId = count?.id
+  ctx.cycleCountStatus = count?.status
+  if (count) {
+    const line = first(
+      (
+        await tx.execute(
+          sql`select lot_id from cycle_count_lines where tenant_id = ${tenantId} and cycle_count_id = ${count.id} order by lot_id limit 1`,
+        )
+      ).rows as { lot_id: string }[],
+    )
+    ctx.cycleCountLotId = line?.lot_id
+  }
 }
 
 /**
@@ -569,6 +700,15 @@ async function collectLinkedOrders(tx: Db, tenantId: string, ctx: ExampleContext
     submittedOrderId: own.find((row) => row.state === 'submitted')?.id,
     confirmedOrderId: own.find((row) => row.state === 'confirmed')?.id,
   }
+  // The shop's own receipt: `receipts.get/document` answer 404 for anybody else's (RLS).
+  ctx.linkedReceiptId = first(
+    await tx
+      .select({ id: receipts.id })
+      .from(receipts)
+      .where(and(eq(receipts.tenantId, tenantId), eq(receipts.retailerId, retailerId)))
+      .orderBy(desc(receipts.receivedAt), desc(receipts.id))
+      .limit(1),
+  )?.id
 }
 
 async function collectCatalog(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
@@ -914,17 +1054,25 @@ type TakenIds = (candidates: readonly string[]) => Promise<ReadonlySet<string>>
  * Walking the sequence keeps the document deterministic (same database, same slots) and executable.
  */
 async function freeSlots(procedurePath: string, trail: string, taken: TakenIds): Promise<number[]> {
-  const candidates = Array.from({ length: SLOT_TRIES }, (_, slot) =>
-    createdId(procedurePath, trail, slot),
-  )
-  const used = await taken(candidates)
-  const free = candidates
-    .map((id, slot) => (used.has(id) ? -1 : slot))
-    .filter((slot) => slot >= 0)
-    .slice(0, SLOT_LANES)
-  // Every probed slot is taken: go past the window rather than republishing known-used ids.
-  return free.length > 0 ? free : Array.from({ length: SLOT_LANES }, (_, i) => SLOT_TRIES + i)
+  // One window at a time; a database that has spent a whole window (weeks of demoing and smoke runs)
+  // moves on to the next one rather than publishing ids nobody probed.
+  for (let window = 0; window < SLOT_WINDOWS; window++) {
+    const base = window * SLOT_TRIES
+    const candidates = Array.from({ length: SLOT_TRIES }, (_, i) =>
+      createdId(procedurePath, trail, base + i),
+    )
+    const used = await taken(candidates)
+    const free = candidates
+      .map((id, i) => (used.has(id) ? -1 : base + i))
+      .filter((slot) => slot >= 0)
+      .slice(0, SLOT_LANES)
+    if (free.length > 0) return free
+  }
+  return Array.from({ length: SLOT_LANES }, (_, i) => SLOT_WINDOWS * SLOT_TRIES + i)
 }
+
+/** How many windows of `SLOT_TRIES` are probed before giving up (4096 ids per procedure). */
+const SLOT_WINDOWS = 16
 
 async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
   const orders: TakenIds = async (candidates) =>
@@ -996,7 +1144,43 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(inArray(users.id, [...candidates]))
       ).map((row) => row.id),
     )
+  // A write-off's id is the client's and the row is never replaced, so two desks pressing the same
+  // example (owner, then manager) must not carry the same id: the second is a 409 by design.
+  const writeOffIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: writeOffs.id })
+          .from(writeOffs)
+          .where(and(eq(writeOffs.tenantId, tenantId), inArray(writeOffs.id, [...candidates])))
+      ).map((row) => row.id),
+    )
+  // The invoice id a parked pack is billed under is the client's too; the first press books it for
+  // good (an issued bill is immutable), so the next document must offer the next free one.
+  const invoiceIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(and(eq(invoices.tenantId, tenantId), inArray(invoices.id, [...candidates])))
+      ).map((row) => row.id),
+    )
+  const cycleCountIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: cycleCounts.id })
+          .from(cycleCounts)
+          .where(and(eq(cycleCounts.tenantId, tenantId), inArray(cycleCounts.id, [...candidates])))
+      ).map((row) => row.id),
+    )
   ctx.slotLanes = {
+    'inventory.cycleCounts.open': await freeSlots(
+      'inventory.cycleCounts.open',
+      'id',
+      cycleCountIds,
+    ),
     'orders.create': await freeSlots('orders.create', 'id', orders),
     'orders.repeatLast': await freeSlots('orders.repeatLast', 'id', orders),
     'orders.setLines': await freeSlots('orders.setLines', 'lines[0].id', orderLines),
@@ -1005,6 +1189,16 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
     'inventory.lots.upsert': await freeSlots('inventory.lots.upsert', 'id', lots),
     'tenancy.staff.create': await staffSlots(tx, staff),
     'procurement.grns.open': await freeSlots('procurement.grns.open', 'id', openGrns),
+    'receivables.writeOffs.create': await freeSlots(
+      'receivables.writeOffs.create',
+      'id',
+      writeOffIds,
+    ),
+    'billing.invoices.issueForPack': await freeSlots(
+      'billing.invoices.issueForPack',
+      'id',
+      invoiceIds,
+    ),
   }
 }
 
@@ -1181,8 +1375,11 @@ function byFieldName(key: string, ctx: ExampleContext): unknown {
       return ctx.invoiceId
     case 'lotId':
       return ctx.lotId
+    // `restockLocationId`: a cancelled bill's goods come back to the godown; the sampler's made-up
+    // uuid is a 404 there.
     case 'locationId':
     case 'fulfilFromLocationId':
+    case 'restockLocationId':
       return ctx.locationId
     case 'fromLocationId':
       return ctx.lotLocationId ?? ctx.locationId
@@ -1198,6 +1395,8 @@ function byFieldName(key: string, ctx: ExampleContext): unknown {
       return ctx.users?.salesperson?.id ?? ctx.users?.owner?.id
     case 'approvalId':
       return ctx.approvalId
+    case 'packId':
+      return ctx.parkedPackId
     default:
       return undefined
   }
@@ -1212,6 +1411,14 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   if (httpPath.startsWith('/pricing/bargains/')) return ctx.bargainRequestId
   if (httpPath.startsWith('/procurement/supplier-invoices/')) return ctx.supplierInvoiceId
   if (httpPath.startsWith('/procurement/grns/')) return ctx.grnId
+  if (httpPath.startsWith('/procurement/discrepancies/')) return ctx.discrepancyId
+  if (httpPath.startsWith('/receipts/')) return ctx.receiptId
+  if (httpPath.startsWith('/allocations/')) return ctx.allocationId
+  if (httpPath.startsWith('/invoices/')) return ctx.invoiceId
+  if (httpPath.startsWith('/warehouse/challans/')) return ctx.challanId
+  if (httpPath.startsWith('/warehouse/load-sheets/'))
+    return ctx.approvableLoadSheetId ?? ctx.loadSheetId
+  if (httpPath.startsWith('/inventory/cycle-counts/')) return ctx.cycleCountId
   return undefined
 }
 
@@ -1573,6 +1780,173 @@ const OVERRIDES: Record<
   // can, and each `.refine()` then refuses the body it built; neither is a fault of the contract.
   // A receipt's `allocations` belong to `strategy: 'explicit'` alone — the documented example is the
   // ordinary FIFO one, so the split is dropped and the money finds the oldest due bill by itself.
+  // --- platform gaps (docs/23 §8) ------------------------------------------------------------------
+  'auth.forgotPassword': (ctx, options) => ({ username: signInUser(ctx, options)?.username }),
+  // The token travels by SMS / WhatsApp and never appears on the wire; the example is the shape only.
+  'auth.resetPassword': () => ({
+    token: 'paste-the-token-from-the-reset-message-here',
+    newPassword: DEMO_PASSWORD,
+  }),
+  'tenancy.staff.update': (ctx, options) => ({
+    userId: spareStaffFor(ctx, options),
+    name: 'Demo Docs Staff (edited)',
+    phone: DROP,
+    locale: 'en-IN',
+  }),
+  'tenancy.settings.get': () => ({ keys: ['branding.display_name', 'branding.invoice_footer'] }),
+  // Echoes the demo values back, so pressing Execute changes nothing visible.
+  'tenancy.settings.set': () => ({
+    'items[0].key': 'branding.invoice_footer',
+    'items[0].value': 'Goods once sold will not be taken back. Subject to Kalyan jurisdiction.',
+  }),
+  // A series nothing has issued from, so the upsert is legal on every database state.
+  'tenancy.numbering.upsert': () => ({
+    seriesCode: 'INV-B2C',
+    prefix: 'B2C/',
+    startingNo: 1,
+    allocationMode: 'server',
+    fy: DROP,
+  }),
+  'tenancy.numbering.list': () => ({ fy: DROP }),
+  'tenancy.featureFlags.set': () => ({ 'items[0].flag': 'retailer_app', 'items[0].enabled': true }),
+  'tenancy.tenant.update': (ctx) => ({
+    legalName: 'Tarsun Enterprises',
+    gstin: DROP,
+    stateCode: '27',
+    ...(ctx.tenantSlug ? {} : {}),
+  }),
+  'tenancy.audit.list': () => ({
+    entityType: DROP,
+    entityId: DROP,
+    actorId: DROP,
+    action: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  // The domain a service's own roles may upload to (files.ts table): the owner its logo, the desk an
+  // import file, the godown a damage photo, the crew a proof of delivery.
+  'files.uploadUrl': (ctx, options) => {
+    const upload = uploadDomainFor(options)
+    return {
+      // One upload intent per domain: the same id under two domains is two keys, which is a 409.
+      id: docUuid(`files.uploadUrl#id#${upload.domain}`),
+      domain: upload.domain,
+      entityId:
+        upload.domain === 'logo' ? ctx.tenantId : docUuid(`files.uploadUrl#${upload.domain}`),
+      mimeType: upload.mimeType,
+      bytes: 20480,
+    }
+  },
+  'files.readUrl': (ctx) => ({
+    objectKey: `tenant/${ctx.tenantId ?? 'demo'}/logo/${ctx.tenantId ?? 'demo'}/${docUuid('files.uploadUrl#id#logo')}.png`,
+  }),
+  'tenantCatalog.repAuthorisations.list': (ctx) => ({ userId: ctx.users?.salesperson?.id ?? DROP }),
+  'tenantCatalog.repAuthorisations.set': (ctx) => ({
+    userId: ctx.users?.salesperson?.id,
+    'items[0].id': docUuid('tenantCatalog.repAuthorisations.set#items[0].id'),
+    'items[0].brandId': ctx.brandId,
+    'items[0].employedBy': 'distributor',
+  }),
+  'tenantCatalog.brands.upsert': (ctx) => ({
+    brandId: ctx.brandId,
+    fulfilmentMode: 'own',
+    tallyExportSource: 'dos',
+    cashDiscountMode: 'at_receipt_financial_cn',
+    claimChannel: 'dos',
+    salesForce: 'distributor',
+  }),
+  'tenantCatalog.packConfigs.upsert': (ctx) => ({
+    supplierId: ctx.supplierId,
+    variantId: ctx.variantId,
+    pcsPerCase: 24,
+    supplierCode: 'DOCS-PACK-24',
+    supplierDescription: DROP,
+    marginBasis: 'ptd',
+  }),
+  'retailers.updateOwn': (ctx) => ({
+    id: ctx.retailerId,
+    ownerName: 'Demo Shopkeeper',
+    altPhone: DROP,
+    address: DROP,
+    gstin: DROP,
+    gstRegType: DROP,
+  }),
+  'retailers.beats.assignments.list': (ctx) => ({
+    beatId: DROP,
+    userId: ctx.users?.salesperson?.id ?? DROP,
+    on: DROP,
+  }),
+  'sync.errors.list': () => ({ deviceId: DROP, since: DROP }),
+  'sync.pull': (ctx) => ({ deviceId: ctx.deviceId, since: DROP, tables: DROP }),
+  'pricing.bounds.list': (ctx) => ({ userId: ctx.users?.salesperson?.id ?? DROP }),
+  'inventory.cycleCounts.open': (ctx) => ({
+    id: createdId('inventory.cycleCounts.open', 'id', slotOf(ctx, 'inventory.cycleCounts.open')),
+    idempotencyKey: docsIdempotencyKey(
+      'inventory.cycleCounts.open',
+      slotOf(ctx, 'inventory.cycleCounts.open'),
+    ),
+    locationId: ctx.lotLocationId ?? ctx.locationId,
+    lotIds: ctx.lotId ? [ctx.lotId] : DROP,
+    note: 'Opened from the API docs',
+  }),
+  'inventory.cycleCounts.count': (ctx) => ({
+    id: ctx.cycleCountId,
+    'lines[0].lotId': ctx.cycleCountLotId ?? ctx.lotId,
+    'lines[0].countedPcs': ctx.lotQty ?? 12,
+  }),
+  'inventory.cycleCounts.post': (ctx) => ({ id: ctx.cycleCountId }),
+  'inventory.cycleCounts.get': (ctx) => ({ id: ctx.cycleCountId }),
+  'inventory.cycleCounts.list': () => ({ locationId: DROP, status: DROP }),
+  'inventory.stock.balances': () => ({ expiringBefore: DROP, nearExpiryOnly: DROP }),
+  'procurement.discrepancies.resolve': (ctx) => ({
+    id: ctx.discrepancyId,
+    status: 'accepted',
+    note: 'Accepted from the API docs',
+  }),
+  'procurement.supplierInvoices.dispute': (ctx) => ({
+    id: ctx.disputableInvoiceId ?? ctx.supplierInvoiceId,
+    reason: 'Rate on the bill differs from the agreed rate',
+  }),
+  'procurement.supplierInvoices.cancel': (ctx) => ({
+    id: ctx.disputableInvoiceId ?? ctx.supplierInvoiceId,
+    reason: 'Duplicate of an earlier bill',
+  }),
+  'receivables.receipts.document': (ctx) => ({ id: ctx.receiptId, format: 'a5' }),
+  'receivables.ageing.history': () => ({
+    from: '2026-08-01',
+    to: '2026-09-30',
+    grain: 'week',
+    beatId: DROP,
+    retailerId: DROP,
+  }),
+  'billing.invoices.issueForPack': (ctx) => ({
+    packId: ctx.parkedPackId,
+    invoiceDate: DROP,
+    deviceId: DROP,
+  }),
+  'warehouse.loadSheets.approve': (ctx) => ({
+    id: ctx.approvableLoadSheetId ?? ctx.loadSheetId,
+    note: 'Approved from the API docs',
+    deviceId: DROP,
+  }),
+  'warehouse.challans.pdf': (ctx) => ({ id: ctx.challanId, copy: 'original', format: 'a4' }),
+  // The two delivery inputs with a cross-field rule (a sibling module's; the example only has to
+  // parse): a geo check carries neither a key nor bytes, an expense proof is a key or bytes, not both.
+  'delivery.deliveries.addPod': (ctx) => ({
+    'evidence.kind': 'geo',
+    'evidence.objectKey': DROP,
+    'evidence.inline': DROP,
+    'evidence.payload': { distanceM: 40 },
+    'evidence.lat': 19.2437,
+    'evidence.lng': 73.1355,
+    ...(ctx.tenantId ? {} : {}),
+  }),
+  'delivery.expenses.record': () => ({
+    kind: 'diesel',
+    inline: DROP,
+    proofObjectKey: DROP,
+    note: 'Diesel at the Kalyan bypass pump',
+  }),
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
     allocations: DROP,
@@ -1591,6 +1965,16 @@ const OVERRIDES: Record<
 function draftOrder(ctx: ExampleContext, index: number): string | undefined {
   const drafts = ctx.draftOrderIds ?? []
   return drafts[index] ?? drafts[0]
+}
+
+/** Which file domain the roles of this service may upload to (files.ts per-domain table). */
+function uploadDomainFor(options: BuildExamplesOptions): { domain: string; mimeType: string } {
+  const roles = new Set(options.roles ?? [])
+  if (roles.size === 0 || roles.has('owner')) return { domain: 'logo', mimeType: 'image/png' }
+  if (roles.has('manager') || roles.has('accountant'))
+    return { domain: 'import', mimeType: 'text/csv' }
+  if (roles.has('warehouse')) return { domain: 'damage', mimeType: 'image/jpeg' }
+  return { domain: 'pod', mimeType: 'image/jpeg' }
 }
 
 /** `retailer_app` is the only source a retailer login may place an order under (docs/17, ADR 0006). */
@@ -1694,6 +2078,60 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
       : 'No pending approval in the demo data.',
   'sync.upload': () =>
     'Uploads one draft order under a fixed opId, so a second Execute is replayed rather than re-applied.',
+  'auth.forgotPassword': () =>
+    'Always answers ok. The reset token is handed to the delivery channel (SMS / WhatsApp, the notifications module); outside production it is written to the auth-service log.',
+  'auth.resetPassword': () =>
+    'Needs the single-use token from the reset message; the placeholder shown is refused with 401.',
+  'tenancy.settings.set': () =>
+    'Writes the footer printed under every invoice, and one audit_log row per key.',
+  'tenancy.numbering.upsert': () =>
+    'Creates (or edits) a series nothing has issued from yet. A series with issued documents answers 409 series_locked.',
+  'tenancy.featureFlags.set': () =>
+    'Re-enables an already enabled flag, so pressing Execute changes nothing.',
+  'files.uploadUrl': () =>
+    'Mints a pre-signed PUT for the logo (registered in file_objects as pending). PUT the bytes to `url` with `headers`, then set branding.logo_object_key to `objectKey` through tenancy.settings.set.',
+  'files.readUrl': () =>
+    'Signs a read URL for the key files.uploadUrl mints; the link answers 404 until bytes were PUT there.',
+  'billing.invoices.issueForPack': (ctx) =>
+    ctx.parkedPackId
+      ? 'Bills the one pack that was confirmed with issueInvoice:false. Once billed the same call answers 409 already_invoiced.'
+      : 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm). Confirm one with issueInvoice:false first.',
+  'warehouse.loadSheets.approve': (ctx) =>
+    ctx.approvableLoadSheetId
+      ? 'The manager app gives the load-out PIN: approves the draft sheet the warehouse phone is waiting on. A second Execute answers 409 already_approved.'
+      : 'Every draft load sheet in the demo data is already approved; create one with POST /warehouse/load-sheets first.',
+  'warehouse.challans.pdf': () =>
+    'Answers `queued` until the worker has rendered the challan, then `ready` with a signed URL. Run `pnpm --filter @dos/worker dev`.',
+  'receivables.receipts.document': () =>
+    'Answers `queued` until the worker has rendered the receipt, then `ready` with a signed URL. Run `pnpm --filter @dos/worker dev`.',
+  'inventory.cycleCounts.open': () =>
+    'Opens a real count of one lot at its location (expected pieces frozen now). A second Execute replays the first result.',
+  'inventory.cycleCounts.count': (ctx) =>
+    ctx.cycleCountStatus === 'open' || ctx.cycleCountStatus === 'counted'
+      ? undefined
+      : 'The demo count is already posted; open one with POST /inventory/cycle-counts first.',
+  'inventory.cycleCounts.post': (ctx) =>
+    ctx.cycleCountStatus === 'counted'
+      ? 'Posts the differences as cycle_count ledger rows.'
+      : ctx.cycleCountStatus === 'posted'
+        ? 'The demo count is already posted, so this answers 200 with no new ledger rows.'
+        : 'The demo count is still open: count every line first (POST /inventory/cycle-counts/{id}/count).',
+  'procurement.discrepancies.resolve': (ctx) =>
+    ctx.discrepancyStatus === 'open'
+      ? undefined
+      : `The demo finding is '${ctx.discrepancyStatus ?? 'unknown'}'; only an open or claimed finding is decided.`,
+  'procurement.supplierInvoices.dispute': (ctx) =>
+    ctx.disputableInvoiceId
+      ? 'Marks the one supplier invoice that is still under review as disputed. Pressing Execute twice answers the same disputed invoice.'
+      : 'Every demo supplier invoice is received or cancelled; book a new one with POST /procurement/supplier-invoices first.',
+  'procurement.supplierInvoices.cancel': (ctx) =>
+    ctx.disputableInvoiceId
+      ? 'Cancels a supplier invoice that never became stock. Disputing it first (the call above) does not block this.'
+      : 'Every demo supplier invoice is received or cancelled; book a new one first.',
+  'retailers.updateOwn': () =>
+    'The shop edits its own contact details; the example points at the shop linked to the demo retailer login.',
+  'sync.pull': () =>
+    'Omit `since` for the full read set; send back the `cursor` you get for the delta next time.',
 }
 
 /**
@@ -1715,6 +2153,15 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'procurement.supplierInvoices.list': ['supplierId'],
   'procurement.grns.list': [],
   'procurement.discrepancies.list': ['grnId'],
+  'tenancy.settings.get': ['keys'],
+  'files.readUrl': ['objectKey'],
+  'sync.pull': ['deviceId'],
+  'receivables.ageing.history': ['from', 'to', 'grain'],
+  'receivables.receipts.document': ['format'],
+  'warehouse.challans.pdf': ['copy', 'format'],
+  'tenantCatalog.repAuthorisations.list': ['userId'],
+  'pricing.bounds.list': ['userId'],
+  'retailers.beats.assignments.list': ['userId'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */
@@ -1904,6 +2351,7 @@ function scopeToService(ctx: ExampleContext, options: BuildExamplesOptions): Exa
     retailerPhone: linked.phone,
     retailerSearch: searchTerm(linked.name) ?? ctx.retailerSearch,
     ...present(ctx.linkedOrders),
+    ...(ctx.linkedReceiptId ? { receiptId: ctx.linkedReceiptId } : {}),
   }
 }
 

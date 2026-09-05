@@ -3,12 +3,16 @@ import { Implement, implement } from '@orpc/nest'
 import { contract } from '@dos/contracts'
 import { OwnsReply } from '../../platform/index.js'
 import { TenantGuard } from '../tenancy/index.js'
+import { CycleCountsService } from './cycle-counts.service.js'
 import { StockService } from './stock.service.js'
 
 @Controller()
 @UseGuards(TenantGuard)
 export class InventoryController {
-  constructor(private readonly stock: StockService) {}
+  constructor(
+    private readonly stock: StockService,
+    private readonly cycleCounts: CycleCountsService,
+  ) {}
 
   @Implement(contract.inventory.locations.list)
   listLocations(@OwnsReply() _reply: unknown) {
@@ -63,6 +67,41 @@ export class InventoryController {
   upsertLot(@OwnsReply() _reply: unknown) {
     return implement(contract.inventory.lots.upsert).handler(({ input }) =>
       this.stock.upsertLot(input),
+    )
+  }
+
+  @Implement(contract.inventory.cycleCounts.open)
+  openCycleCount(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.cycleCounts.open).handler(({ input }) =>
+      this.cycleCounts.open(input),
+    )
+  }
+
+  @Implement(contract.inventory.cycleCounts.count)
+  countCycleCount(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.cycleCounts.count).handler(({ input }) =>
+      this.cycleCounts.count(input),
+    )
+  }
+
+  @Implement(contract.inventory.cycleCounts.post)
+  postCycleCount(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.cycleCounts.post).handler(({ input }) =>
+      this.cycleCounts.post(input),
+    )
+  }
+
+  @Implement(contract.inventory.cycleCounts.list)
+  listCycleCounts(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.cycleCounts.list).handler(({ input }) =>
+      this.cycleCounts.list(input),
+    )
+  }
+
+  @Implement(contract.inventory.cycleCounts.get)
+  getCycleCount(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.cycleCounts.get).handler(({ input }) =>
+      this.cycleCounts.get(input),
     )
   }
 }

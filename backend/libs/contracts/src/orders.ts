@@ -6,6 +6,7 @@ import {
   MutationBase,
   PaiseSchema,
   PiecesSchema,
+  QueryBoolSchema,
   QueryIntSchema,
 } from './common.js'
 import { AppliedRuleSchema } from './pricing.js'
@@ -57,6 +58,8 @@ export const ApprovalKindSchema = z.enum([
   'return',
   'scheme_override',
   'manual_price',
+  /** A trip settlement whose cash or stock variance exceeded the tenant's tolerance (delivery). */
+  'trip_settlement',
 ])
 export type ApprovalKind = z.infer<typeof ApprovalKindSchema>
 export const ApprovalStatusSchema = z.enum(['pending', 'approved', 'rejected', 'expired'])
@@ -233,6 +236,10 @@ export const OrderGetOutput = OrderItemOutput
 
 export const OrdersListInput = z.object({
   state: OrderStateSchema.optional(),
+  /** Several states in one call (bracket notation on the query string: `states[0]=confirmed&states[1]=packed`). */
+  states: z.array(OrderStateSchema).max(10).optional(),
+  /** Still travelling: submitted, confirmed, picking, packed or dispatched — the shop card's "pending undelivered". */
+  openOnly: QueryBoolSchema.optional(),
   retailerId: IdSchema.optional(),
   salespersonId: IdSchema.optional(),
   /** Created on or after / on or before this IST calendar date. */
@@ -298,7 +305,8 @@ export const ordersContract = {
     .route({
       method: 'POST',
       path: '/orders/{id}/submit',
-      summary: 'Submit: assign the order number, raise approvals or auto-confirm',
+      summary:
+        'Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft)',
     })
     .input(SubmitOrderInput)
     .output(SubmitOrderOutput),

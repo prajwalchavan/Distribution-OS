@@ -110,3 +110,85 @@ export function newRefreshToken(): RefreshToken {
 export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex')
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// password reset — a signed, self-invalidating token; no table (docs/23 §8.12)
+
+/** Thirty minutes, as the contract promises. */
+export const RESET_TOKEN_TTL_SECONDS = 30 * 60
+/** Ed25519 through WebCrypto — the auth keys are `CryptoKey`s (jose), so no re-import is needed. */
+const RESET_ALG = { name: 'Ed25519' }
+
+/**
+ * A fingerprint of the CURRENT password hash. It travels inside the reset token, so the token is
+ * good for exactly one reset: the moment the password changes the fingerprint no longer matches and
+ * the same token is refused. Sixteen hex chars of a sha256 reveal nothing about the hash itself.
+ */
+export function passwordFingerprint(passwordHash: string | null): string {
+  return createHash('sha256')
+    .update(passwordHash ?? '', 'utf8')
+    .digest('hex')
+    .slice(0, 16)
+}
+
+/**
+ * The reset token: `base64url(JSON{u, p, e, j})` + `.` + `base64url(Ed25519 signature)`, signed with the
+ * auth key through WebCrypto (the same key that signs access tokens). Compact on purpose — a full JWT
+ * with its header and `kid` is longer than the 400 characters the contract allows in an SMS — and
+ * stateless: nothing is stored, because the signature and the password fingerprint (`p`) already
+ * give single use, and the channel that delivers it (SMS / WhatsApp) is the OTP layer docs/22 §7
+ * defers.
+ */
+export async function signResetToken(
+  i: { userId: string; passwordHash: string | null },
+  keys: AuthKeys,
+  now: Date = new Date(),
+): Promise<{ token: string; expiresAt: Date }> {
+  if (!keys.privateKey)
+    throw new Error('AUTH_JWT_PRIVATE_KEY is not configured: this process cannot sign reset tokens')
+  const exp = Math.floor(now.getTime() / 1000) + RESET_TOKEN_TTL_SECONDS
+  const body = Buffer.from(
+    JSON.stringify({ u: i.userId, p: passwordFingerprint(i.passwordHash), e: exp, j: uuidv7() }),
+    'utf8',
+  ).toString('base64url')
+  const signature = Buffer.from(
+    await crypto.subtle.sign(RESET_ALG, keys.privateKey, Buffer.from(body, 'utf8')),
+  ).toString('base64url')
+  return { token: `${body}.${signature}`, expiresAt: new Date(exp * 1000) }
+}
+
+/** The user and fingerprint of a reset token, or null when it is not a valid, unexpired reset token. */
+export async function verifyResetToken(
+  token: string,
+  keys: AuthKeys,
+  now: Date = new Date(),
+): Promise<{ userId: string; fingerprint: string } | null> {
+  const dot = token.indexOf('.')
+  if (dot <= 0 || token.indexOf('.', dot + 1) !== -1) return null
+  const body = token.slice(0, dot)
+  const signature = token.slice(dot + 1)
+  try {
+    const valid = await crypto.subtle.verify(
+      RESET_ALG,
+      keys.publicKey,
+      Buffer.from(signature, 'base64url'),
+      Buffer.from(body, 'utf8'),
+    )
+    if (!valid) return null
+    const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as {
+      u?: unknown
+      p?: unknown
+      e?: unknown
+    }
+    if (
+      typeof parsed.u !== 'string' ||
+      typeof parsed.p !== 'string' ||
+      typeof parsed.e !== 'number'
+    )
+      return null
+    if (parsed.e * 1000 < now.getTime() - 30_000) return null
+    return { userId: parsed.u, fingerprint: parsed.p }
+  } catch {
+    return null
+  }
+}

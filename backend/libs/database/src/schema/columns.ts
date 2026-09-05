@@ -55,6 +55,27 @@ export const CURATOR_ROLES = ['curator', 'system'] as const
  * the desk above it write them. `system` is the worker.
  */
 export const STOCK_KEEPER_ROLES = ['owner', 'manager', 'warehouse', 'system'] as const
+/**
+ * The two people who RUN the distributorship, plus the worker. Founder decision 2026-09-05 (docs/22 §8):
+ * the accountant is a money desk — office receipts, deposits, bounces, write-offs, reads and exports —
+ * and has NO say over prices, schemes, credit limits, approvals or settings. So every table that holds
+ * one of those is written by this set and read by the wider one; `BACK_OFFICE_ROLES` (which names the
+ * accountant) stays for the money and the books. Three aliases, one list, so a policy reads as what it
+ * guards: a price, a decision, a person joining the network.
+ */
+export const MANAGEMENT_ROLES = ['owner', 'manager', 'system'] as const
+/** Who sets a price list, a scheme, a retailer override, a brand's cash-discount mode. */
+export const PRICE_SETTER_ROLES = MANAGEMENT_ROLES
+/** Who decides an approval or a bargain, and whose token is the manager's PIN at load-out. */
+export const APPROVER_ROLES = MANAGEMENT_ROLES
+/** Who brings people, beats and shops into the network (permissions.ts ONBOARDERS + the worker). */
+export const ONBOARDER_ROLES = MANAGEMENT_ROLES
+/**
+ * Who handles goods coming IN: the desk that reviews a supplier bill and the floor that counts it.
+ * permissions.ts calls the same population BACK_OFFICE_OR_WAREHOUSE. Purchase COST never lives on
+ * these tables (`grn_lines` is pieces only); the priced supplier invoice stays `BACK_OFFICE_ROLES`.
+ */
+export const INBOUND_ROLES = ['owner', 'manager', 'accountant', 'warehouse', 'system'] as const
 
 /** Plain tenant isolation: any role that is a member of the tenant. */
 export const tenantPolicy = (name: string) =>
@@ -107,6 +128,33 @@ const tenantAndRoles = (roles: readonly string[]) =>
 /** Read-only access to a tenant table for a named set of roles (no write policy implied). */
 export const roleReadPolicy = (name: string, roles: readonly string[]) =>
   pgPolicy(name, { for: 'select', to: appRw, using: tenantAndRoles(roles) })
+
+/**
+ * SELECT for ANY member of the tenant, the shopkeeper included, and nothing else: the read half of
+ * what `tenantPolicy` grants. Pair it with `staffWritePolicy` or `roleWritePolicies` for the write
+ * half. This is the shape for reference data a shop legitimately reads while ordering — the price
+ * list, the schemes, the sellable stock, the feature flags — where the old FOR ALL policy let the same
+ * shopkeeper token INSERT a price or a ledger row (never-list 9, docs/22 §9).
+ */
+export const tenantReadPolicy = (name: string) =>
+  pgPolicy(name, { for: 'select', to: appRw, using: tenantMatches('tenant_id') })
+
+/**
+ * SELECT scoped to the actor's OWN rows for the field, tenant-wide for the desk: a rep reads its own
+ * auto-approve bound and its own brand authorisations, the owner and manager read everyone's. The
+ * `userColumn` is the column that names the row's person.
+ */
+export const backOfficeOrOwnRowPolicy = (name: string, userColumn: string) =>
+  pgPolicy(name, {
+    for: 'select',
+    to: appRw,
+    using: sql.raw(
+      `tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (
+        (SELECT current_setting('app.actor_role', true)) IN (${BACK_OFFICE_ROLES.map((r) => `'${r}'`).join(', ')})
+        OR ${userColumn} = (SELECT current_setting('app.actor_id', true))
+      )`,
+    ),
+  })
 
 /** INSERT-only access for a named set of roles: append to a table you are not allowed to read back. */
 export const roleInsertPolicy = (name: string, roles: readonly string[]) =>

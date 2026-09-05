@@ -14,4 +14,14 @@ export class SyncController {
   upload(@OwnsReply() _reply: unknown) {
     return implement(contract.sync.upload).handler(({ input }) => this.sync.upload(input))
   }
+
+  @Implement(contract.sync.errors.list)
+  listErrors(@OwnsReply() _reply: unknown) {
+    return implement(contract.sync.errors.list).handler(({ input }) => this.sync.listErrors(input))
+  }
+
+  @Implement(contract.sync.pull)
+  pull(@OwnsReply() _reply: unknown) {
+    return implement(contract.sync.pull).handler(({ input }) => this.sync.pull(input))
+  }
 }

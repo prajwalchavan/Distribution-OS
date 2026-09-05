@@ -12,6 +12,7 @@ import {
   BillingModule,
   WarehouseModule,
   SyncModule,
+  FilesModule,
 } from '@dos/core'
 
 /** Everything the distributor owner does at the desk or on the phone: masters, costs, prices, staff, approvals, registers, settings. */
@@ -33,6 +34,7 @@ export const service = defineService({
     BillingModule,
     WarehouseModule,
     SyncModule,
+    FilesModule,
   ],
   contractKeys: [
     'health',
@@ -48,5 +50,6 @@ export const service = defineService({
     'billing',
     'warehouse',
     'sync',
+    'files',
   ],
 })

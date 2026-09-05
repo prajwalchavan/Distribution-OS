@@ -6,13 +6,29 @@ import {
   integer,
   jsonb,
   pgEnum,
+  pgPolicy,
   pgTable,
   text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
-import { bps, id, paise, tenantPolicy, timestamps, tz } from './columns.js'
+import {
+  APPROVER_ROLES,
+  backOfficeOrOwnRowPolicy,
+  bps,
+  id,
+  OWNER_ROLES,
+  paise,
+  PRICE_SETTER_ROLES,
+  roleUpdatePolicy,
+  roleWritePolicies,
+  tenantOrOwnRetailerPolicy,
+  tenantReadPolicy,
+  timestamps,
+  tz,
+} from './columns.js'
 import { productVariants } from './catalog.js'
 import { tenantRef } from './platform.js'
+import { appRw } from './roles.js'
 import { claimChannel } from './tenant-catalog.js'
 import { retailers, retailerTier } from './retailers.js'
 import { users } from './tenancy.js'
@@ -21,6 +37,13 @@ import { users } from './tenancy.js'
  * ADR 0008: resolvePrice() order is fixed — price list tier → retailer override wins → schemes stack unless
  * `final` → approved bargain last → cash discount realised at receipt. All rules here are inputs to that pure
  * function in shared/domain; the engine never reads anything else.
+ *
+ * RLS (migration 0012, founder decision 2026-09-05 in docs/22 §8): every member READS the price list and
+ * the schemes — the engine runs on the rep's phone and in the shop's own app — and only the owner and
+ * the manager WRITE them (`PRICE_SETTER_ROLES`). The accountant is a money desk and sets no price; the
+ * old FOR ALL policies let any member, the shopkeeper included, insert a rate. A retailer's negotiated
+ * override and its bargains are its own rows: `tenantOrOwnRetailerPolicy`, so one shop never learns
+ * another's rate.
  */
 
 /** One price list per tier (A/B/C/D) or a named list; items carry the selling rate per variant. */
@@ -39,7 +62,8 @@ export const priceLists = pgTable(
   },
   (t) => [
     uniqueIndex('price_lists_tenant_name_idx').on(t.tenantId, t.name),
-    tenantPolicy('price_lists_tenant'),
+    tenantReadPolicy('price_lists_read'),
+    ...roleWritePolicies('price_lists_write', PRICE_SETTER_ROLES),
   ],
 ).enableRLS()
 
@@ -62,7 +86,10 @@ export const priceListItems = pgTable(
   },
   (t) => [
     uniqueIndex('price_list_items_idx').on(t.tenantId, t.priceListId, t.variantId),
-    tenantPolicy('price_list_items_tenant'),
+    /** Delta download for the offline rep (docs/23 §8.11 `updatedAfter`): what changed since the last open. */
+    index('price_list_items_updated_idx').on(t.tenantId, t.updatedAt),
+    tenantReadPolicy('price_list_items_read'),
+    ...roleWritePolicies('price_list_items_write', PRICE_SETTER_ROLES),
   ],
 ).enableRLS()
 
@@ -88,7 +115,9 @@ export const retailerPriceOverrides = pgTable(
   },
   (t) => [
     index('retailer_price_overrides_idx').on(t.tenantId, t.retailerId, t.variantId),
-    tenantPolicy('retailer_price_overrides_tenant'),
+    index('retailer_price_overrides_updated_idx').on(t.tenantId, t.updatedAt),
+    tenantOrOwnRetailerPolicy('retailer_price_overrides_read', 'retailer_id'),
+    ...roleWritePolicies('retailer_price_overrides_write', PRICE_SETTER_ROLES),
   ],
 ).enableRLS()
 
@@ -167,7 +196,9 @@ export const schemes = pgTable(
   },
   (t) => [
     index('schemes_tenant_valid_idx').on(t.tenantId, t.validFrom, t.validTo),
-    tenantPolicy('schemes_tenant'),
+    index('schemes_updated_idx').on(t.tenantId, t.updatedAt),
+    tenantReadPolicy('schemes_read'),
+    ...roleWritePolicies('schemes_write', PRICE_SETTER_ROLES),
   ],
 ).enableRLS()
 
@@ -210,7 +241,33 @@ export const bargainRequests = pgTable(
   },
   (t) => [
     index('bargain_requests_status_idx').on(t.tenantId, t.status, t.createdAt),
-    tenantPolicy('bargain_requests_tenant'),
+    index('bargain_requests_retailer_idx').on(t.tenantId, t.retailerId, t.createdAt),
+    // Staff read every request; a shop reads the ones asked for it, so it learns the answer (docs/23 §8.16).
+    tenantOrOwnRetailerPolicy('bargain_requests_read', 'retailer_id'),
+    // Who may ASK, and with what starting status. An owner/manager may file one already `approved`;
+    // a rep files `requested` or, inside its bound, `auto_approved`; a shop files `requested` for
+    // itself only. Nobody outside APPROVER_ROLES can write `approved` — that is the decision.
+    pgPolicy('bargain_requests_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (
+        (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'system')
+        OR ((SELECT current_setting('app.actor_role', true)) NOT IN ('retailer', 'owner', 'manager', 'system')
+            AND status IN ('requested', 'auto_approved')
+            AND requested_by = (SELECT current_setting('app.actor_id', true)))
+        OR ((SELECT current_setting('app.actor_role', true)) = 'retailer'
+            AND status = 'requested'
+            AND requested_by = (SELECT current_setting('app.actor_id', true))
+            AND retailer_id IN (
+              SELECT l.retailer_id FROM retailer_links l
+              WHERE l.tenant_id = (SELECT current_setting('app.tenant_id', true))
+                AND l.user_id = (SELECT current_setting('app.actor_id', true))
+                AND l.status = 'active'
+            ))
+      )`,
+    }),
+    // The decision: owner and manager only. The nightly expiry runs as the worker (system). No DELETE.
+    roleUpdatePolicy('bargain_requests_decide', APPROVER_ROLES),
   ],
 ).enableRLS()
 
@@ -237,6 +294,9 @@ export const repAutoApproveBounds = pgTable(
       t.userId,
       sql`coalesce(brand_id, '')`,
     ),
-    tenantPolicy('rep_auto_approve_bounds_tenant'),
+    // A rep reads its OWN bound (the on-device auto-approve, `pricing.bounds.list` docs/23 §8.16), the
+    // desk reads everyone's; the owner alone sets one (`pricing.bounds.set` is OWNER_ONLY).
+    backOfficeOrOwnRowPolicy('rep_auto_approve_bounds_read', 'user_id'),
+    ...roleWritePolicies('rep_auto_approve_bounds_write', OWNER_ROLES),
   ],
 ).enableRLS()

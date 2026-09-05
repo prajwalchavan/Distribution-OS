@@ -240,6 +240,8 @@ export const creditNotes = pgTable(
     issuedBy: text('issued_by').references(() => users.id),
     issuedAt: tz('issued_at'),
     note: text('note'),
+    /** The rendered note (worker `documents.pdf.render`, docs/23 §8.2), the same way `invoices.pdf_object_key` works. */
+    pdfObjectKey: text('pdf_object_key'),
     ...timestamps,
   },
   (t) => [

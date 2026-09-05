@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { StockReason } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
@@ -67,6 +67,16 @@ export interface ReserveInput {
 }
 
 /** What actually came off the rack for one order line, lot by lot (`postPick`). */
+export interface LedgerRefRow {
+  id: string
+  lotId: string
+  locationId: string
+  qtyDelta: number
+  reason: string
+  idempotencyKey: string
+  occurredAt: Date
+}
+
 export interface PostPickInput {
   orderLineId: string
   locationId: string
@@ -388,6 +398,36 @@ export class InventoryService {
    * `order_line_id` is deliberately a plain id on the table (orders is downstream of inventory), so the
    * order it belongs to is the caller's to resolve through `OrdersService` — never a join from here.
    */
+  /**
+   * The ledger rows one document wrote, by reference (coordination §3.9 `ledgerRowsByReason`'s
+   * sibling): billing rebuilds the (order line × lot) split of a PARKED pack from the `pack` rows
+   * warehouse posted (`billing.invoices.issueForPack`, docs/23 §8.2), and claims will read the
+   * `damage`/`expiry` rows the same way. Pieces and keys only — no cost anywhere on this table.
+   */
+  async ledgerRowsByRef(tx: Db, ref: { refType: string; refId: string }): Promise<LedgerRefRow[]> {
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({
+        id: stockLedger.id,
+        lotId: stockLedger.lotId,
+        locationId: stockLedger.locationId,
+        qtyDelta: stockLedger.qtyDelta,
+        reason: stockLedger.reason,
+        idempotencyKey: stockLedger.idempotencyKey,
+        occurredAt: stockLedger.occurredAt,
+      })
+      .from(stockLedger)
+      .where(
+        and(
+          eq(stockLedger.tenantId, tenantId),
+          eq(stockLedger.refType, ref.refType),
+          eq(stockLedger.refId, ref.refId),
+        ),
+      )
+      .orderBy(asc(stockLedger.id))
+    return rows
+  }
+
   async listReservations(tx: Db, filter: ReservationFilter): Promise<ReservationListRow[]> {
     const { tenantId } = currentTenant()
     if (filter.orderLineIds?.length === 0) return []

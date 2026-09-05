@@ -72,3 +72,21 @@ export const MutationBase = z.object({ idempotencyKey: IdempotencyKeySchema })
 /** GET inputs arrive as query strings; these accept both the typed value and its string form. */
 export const QueryBoolSchema = z.union([z.boolean(), z.stringbool()])
 export const QueryIntSchema = z.coerce.number().int()
+
+/**
+ * A rendered document (invoice PDF, challan PDF, receipt) is never produced on the request path
+ * (docs/20 rule 3, coordination §3.4): the first call queues `documents.pdf.render` and answers
+ * `queued` with no URL; once the worker has written the object every later call answers `ready` with
+ * a pre-signed URL. `queued` is a normal state, not an error. Shared by billing, warehouse and
+ * receivables so the three document procedures have one shape.
+ */
+export const DocumentRenderStatusSchema = z.enum(['ready', 'queued'])
+export type DocumentRenderStatus = z.infer<typeof DocumentRenderStatusSchema>
+
+export const DocumentRenderOutput = z.object({
+  status: DocumentRenderStatusSchema,
+  objectKey: z.string().nullable(),
+  url: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+})
+export type DocumentRender = z.infer<typeof DocumentRenderOutput>

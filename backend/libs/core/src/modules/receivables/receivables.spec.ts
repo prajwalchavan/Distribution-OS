@@ -1,7 +1,9 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import {
+  beatAssignments,
+  beats,
   bootstrapTenant,
   createDb,
   createPool,
@@ -691,8 +693,9 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(Number((charges.rows[0] as { charges: string }).charges)).toBe(35_000)
   })
 
-  it('writes off a bad debt as the owner and refuses the same call to the accountant', async () => {
-    const refused = await call(app, accountant, 'POST', '/receivables/write-offs', {
+  it('writes off a bad debt as the owner (the money desk may; the crew and the rep may not)', async () => {
+    // docs/22 2026-09-05: write-offs are the accountant's (MONEY_DESK); a collector at the door is not.
+    const refused = await call(app, crew, 'POST', '/receivables/write-offs', {
       idempotencyKey: `wo-refused-${run}`,
       id: uuidv7(),
       invoiceId: inv.i1,
@@ -700,6 +703,17 @@ describeDb('receivables (DATABASE_URL)', () => {
       reason: 'bad_debt',
     })
     expect(refused.status).toBe(403)
+    expect(
+      (
+        await call(app, accountant, 'POST', '/receivables/write-offs', {
+          idempotencyKey: `wo-acct-${run}`,
+          id: uuidv7(),
+          invoiceId: uuidv7(),
+          amountPaise: 1,
+          reason: 'bad_debt',
+        })
+      ).status,
+    ).toBe(404) // allowed through the matrix; the made-up invoice is simply not there
 
     const res = await call<{ item: { amountPaise: number }; invoice: Settled }>(
       app,
@@ -723,6 +737,38 @@ describeDb('receivables (DATABASE_URL)', () => {
         join accounts a on a.id = jl.account_id
        where jl.tenant_id = ${tenantId} and a.code = 'BAD_DEBTS'`)
     expect(Number((bad.rows[0] as { bad: string }).bad)).toBe(4_000)
+  })
+
+  it('refuses a second write-off under an id that already exists with 409, not a 500', async () => {
+    // Two desks pressing the same documented example (same client id, different idempotency keys)
+    // used to hit the primary key and answer "Internal server error". The id is the client's, so the
+    // second one is a conflict, and the books must not move.
+    const id = uuidv7()
+    const first = await call(app, owner, 'POST', '/receivables/write-offs', {
+      idempotencyKey: `wo-dup-a-${run}`,
+      id,
+      invoiceId: inv.h1,
+      amountPaise: 1_000,
+      reason: 'bad_debt',
+    })
+    expect(first.status).toBe(200)
+    const before = await arBalance(shop.h)
+    const second = await call<{ message: string }>(
+      app,
+      accountant,
+      'POST',
+      '/receivables/write-offs',
+      {
+        idempotencyKey: `wo-dup-b-${run}`,
+        id,
+        invoiceId: inv.h1,
+        amountPaise: 1_000,
+        reason: 'bad_debt',
+      },
+    )
+    expect(second.status).toBe(409)
+    expect(second.body.message).toContain('already exists')
+    expect(await arBalance(shop.h)).toBe(before)
   })
 
   // -------------------------------------------------------------------------------------------------------------
@@ -995,10 +1041,164 @@ describeDb('receivables (DATABASE_URL)', () => {
     ).toBe(403)
     expect((await call(app, rep, 'GET', '/receipts', { limit: 5 })).status).toBe(403)
     expect((await call(app, rep, 'GET', `/receipts/${inv.a1}`)).status).toBe(403)
-    expect((await call(app, rep, 'GET', `/receivables/outstanding/${shop.a}`)).status).toBe(403)
+    expect((await call(app, rep, 'GET', '/receivables/outstanding', { limit: 5 })).status).toBe(403)
     // and the database refuses too: the journal is invisible to a rep even inside a transaction
     const seen = await as(ctxFor('salesperson', repId), (tx) => tx.select().from(journalLines))
     expect(seen).toHaveLength(0)
+  })
+
+  it('shows a salesperson the dues, the statement and the credit check of the shops on its beats only', async () => {
+    // docs/23 §8.1: "never collects" is not "never sees" — but only for the shops it serves.
+    const beatId = uuidv7()
+    await db.insert(beats).values({ id: beatId, tenantId, name: `Beat ${run}`, visitDays: [] })
+    await db.update(retailers).set({ beatId }).where(eq(retailers.id, shop.a))
+    // nobody assigned yet: even a shop on a beat is off limits
+    expect((await call(app, rep, 'GET', `/receivables/outstanding/${shop.a}`)).status).toBe(403)
+    await db.insert(beatAssignments).values({
+      id: uuidv7(),
+      tenantId,
+      beatId,
+      userId: repId,
+      validFrom: day(-1),
+    })
+    const dues = await call<Outstanding>(app, rep, 'GET', `/receivables/outstanding/${shop.a}`)
+    expect(dues.status).toBe(200)
+    expect(dues.body.outstandingPaise).toBeGreaterThanOrEqual(0)
+    expect((await call(app, rep, 'GET', `/receivables/ledger/${shop.a}`)).status).toBe(200)
+    expect(
+      (
+        await call(app, rep, 'GET', '/receivables/credit-check', {
+          retailerId: shop.a,
+          orderTotalPaise: 100,
+        })
+      ).status,
+    ).toBe(200)
+    // shop b is on no beat of this rep
+    expect((await call(app, rep, 'GET', `/receivables/outstanding/${shop.b}`)).status).toBe(403)
+    expect((await call(app, rep, 'GET', `/receivables/ledger/${shop.b}`)).status).toBe(403)
+    expect(
+      (
+        await call(app, rep, 'GET', '/receivables/credit-check', {
+          retailerId: shop.b,
+          orderTotalPaise: 100,
+        })
+      ).status,
+    ).toBe(403)
+    // the crew reads one shop at the door, never the tenant register (docs/23 §5.3)
+    expect((await call(app, crew, 'GET', `/receivables/outstanding/${shop.b}`)).status).toBe(200)
+    expect((await call(app, crew, 'GET', '/receivables/outstanding', { limit: 5 })).status).toBe(
+      403,
+    )
+  })
+
+  it('sums the ageing buckets over every row of the register, and serves the history from the snapshots', async () => {
+    const register = await call<{
+      items: unknown[]
+      totals: { retailers: number; buckets: Record<string, number>; outstandingPaise: number }
+    }>(app, owner, 'GET', '/receivables/outstanding', { limit: 2 })
+    expect(register.status).toBe(200)
+    expect(register.body.items).toHaveLength(2)
+    expect(register.body.totals.retailers).toBeGreaterThan(2)
+    const b = register.body.totals.buckets
+    expect(Object.values(b).reduce((n, v) => n + v, 0)).toBeGreaterThan(0)
+    // shop c alone: exactly its six buckets
+    const c = await call<{ totals: { buckets: Record<string, number> } }>(
+      app,
+      owner,
+      'GET',
+      '/receivables/outstanding',
+      {
+        limit: 5,
+        q: `Shop 3 ${run}`,
+      },
+    )
+    expect(c.body.totals.buckets).toEqual({
+      b0_7: 1_000,
+      b8_15: 2_000,
+      b16_30: 3_000,
+      b31_60: 4_000,
+      b61_90: 5_000,
+      b90plus: 6_000,
+    })
+
+    const history = await call<{
+      grain: string
+      points: { asOf: string; outstandingPaise: number; buckets: Record<string, number> }[]
+    }>(app, accountant, 'GET', '/receivables/ageing/history', {
+      from: day(-7),
+      to: day(0),
+      grain: 'day',
+      retailerId: shop.c,
+    })
+    expect(history.status).toBe(200)
+    expect(history.body.grain).toBe('day')
+    expect(history.body.points.length).toBeGreaterThanOrEqual(1)
+    const today = history.body.points.find((p) => p.asOf === day(0))
+    expect(today?.buckets.b90plus).toBe(6_000)
+    expect(today?.outstandingPaise).toBe(21_000)
+    const weekly = await call<{ points: unknown[] }>(
+      app,
+      owner,
+      'GET',
+      '/receivables/ageing/history',
+      {
+        from: day(-60),
+        to: day(0),
+        grain: 'week',
+      },
+    )
+    expect(weekly.status).toBe(200)
+    expect(weekly.body.points.length).toBeGreaterThanOrEqual(1)
+    const tooWide = await call<{ data?: { code?: string } }>(
+      app,
+      owner,
+      'GET',
+      '/receivables/ageing/history',
+      {
+        from: day(-200),
+        to: day(0),
+        grain: 'day',
+      },
+    )
+    expect(tooWide.status).toBe(400)
+    expect(tooWide.body.data?.code).toBe('window_too_wide')
+    expect(
+      (await call(app, crew, 'GET', '/receivables/ageing/history', { from: day(-7), to: day(0) }))
+        .status,
+    ).toBe(403)
+  })
+
+  it('carries the distributor seller block on a receipt and queues its document for the renderer', async () => {
+    const list = await call<{ items: { id: string }[] }>(app, owner, 'GET', '/receipts', {
+      retailerId: shop.a,
+      limit: 1,
+    })
+    const receiptId = list.body.items[0]?.id ?? ''
+    expect(receiptId).not.toBe('')
+    const got = await call<{
+      seller: { displayName: string; legalName: string }
+      item: { pdfObjectKey: string | null }
+    }>(app, shopA, 'GET', `/receipts/${receiptId}`)
+    expect(got.status).toBe(200)
+    expect(got.body.seller.displayName).toBe(got.body.seller.legalName)
+    expect(got.body.item.pdfObjectKey).toBeNull()
+    const doc = await call<{ status: string; url: string | null; objectKey: string | null }>(
+      app,
+      shopA,
+      'GET',
+      `/receipts/${receiptId}/document`,
+      { format: 'thermal80' },
+    )
+    expect(doc.status).toBe(200)
+    expect(doc.body).toMatchObject({ status: 'queued', url: null })
+    // one durable render request, and pressing again does not queue a second
+    await call(app, owner, 'GET', `/receipts/${receiptId}/document`, { format: 'thermal80' })
+    const queued = await db.execute(sql`
+      select count(*)::int as n from outbox_events
+       where tenant_id = ${tenantId} and event_type = 'DocumentRenderRequested'
+         and aggregate_id = ${`receipt:${receiptId}:thermal80:original`} and published_at is null`)
+    expect((queued.rows[0] as { n: number }).n).toBe(1)
+    expect((await call(app, rep, 'GET', `/receipts/${receiptId}/document`)).status).toBe(403)
   })
 
   it('refuses every receivables procedure to the warehouse role', async () => {

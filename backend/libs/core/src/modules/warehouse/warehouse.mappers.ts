@@ -394,6 +394,8 @@ export function toLoadSheetSummary(
     expectedPackages: row.expectedPackages,
     countedPackages: row.countedPackages,
     varianceNote: row.varianceNote,
+    approvedBy: row.approvedBy,
+    approvedAt: row.approvedAt?.toISOString() ?? null,
     pinVerifiedBy: row.pinVerifiedBy,
     loadValuePaise: row.loadValuePaise ?? 0,
     ewbRequired: row.ewbRequired,

@@ -1,8 +1,9 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { SellerBrandingSchema } from './billing.js'
+import { InvoiceCopySchema, InvoiceFormatSchema } from './billing.js'
 import {
   BpsSchema,
+  DocumentRenderOutput,
   IdSchema,
   MutationBase,
   PaiseSchema,
@@ -11,6 +12,7 @@ import {
   QueryIntSchema,
 } from './common.js'
 import { OrderStateSchema } from './orders.js'
+import { SellerBrandingSchema } from './tenancy.js'
 
 /**
  * Warehouse — outbound fulfilment. It turns confirmed sales orders into picked, packed, invoiced and
@@ -22,11 +24,16 @@ import { OrderStateSchema } from './orders.js'
  * WHICH SERVICES MOUNT `warehouse` (docs/plans/00-coordination.md §6 table):
  *
  *   owner :3001      YES — the whole surface, including the manager's-PIN steps
- *   manager :3002    YES — manager + accountant: the manager runs load-out and cancels a wave, the
- *                    accountant reads the packs, the sheets and the challan register (never a write)
+ *   manager :3002    YES — manager + accountant: the manager APPROVES the load-out from this app
+ *                    (`loadSheets.approve`, the manager's PIN — docs/22 decision 2026-09-05) and cancels
+ *                    a wave or a sheet; the accountant reads the packs, the sheets and the challan
+ *                    register (never a write)
  *   sales :3003      NO  — a rep never sees the godown floor. A shop's order state reaches the rep
  *                    through `orders.get` / `orders.list`, which is where "being picked" is visible
- *   warehouse :3004  YES — the primary app: queue, picklists, picking, packing, load sheets
+ *   warehouse :3004  YES — the primary app: queue, picklists, picking, packing, load sheets. The
+ *                    warehouse device CONFIRMS the load-out (`loadSheets.confirm`, the crew's count at
+ *                    the gate) but only after the manager has approved the sheet from the manager app;
+ *                    it never approves, never cancels a wave or a sheet
  *   delivery :3005   YES — READS ONLY: `packs.list/get`, `loadSheets.list/get` and `challans.list/get`
  *                    are what was packed for the crew, its load sheet and the paperwork it carries.
  *                    Every other procedure refuses the delivery role in PERMISSIONS, so mounting the
@@ -44,6 +51,13 @@ import { OrderStateSchema } from './orders.js'
  *  2. WAREHOUSE DISPATCHES, not delivery (§5 item 4). `packed → dispatched` happens at
  *     `loadSheets.confirm`, when the goods physically leave with a challan; `delivery.trips.depart`
  *     treats an already-dispatched order as a no-op.
+ *  2b. THE MANAGER'S PIN IS GIVEN IN THE MANAGER APP (docs/22 decision 2026-09-05, docs/23 §4.3 option
+ *     a): `loadSheets.approve` (PIN_HOLDERS: owner, manager) marks a draft sheet approved with
+ *     `approvedBy` / `approvedAt`; `loadSheets.confirm` (STOCK_KEEPERS, so the warehouse phone may call
+ *     it) refuses an unapproved sheet with 409 `approval_required` and, when the crew's count differs
+ *     from `expectedPackages`, needs a `varianceNote` and records `pinVerifiedBy = approvedBy` — the
+ *     manager who approved the sheet owns its variance in the day-end register. Nothing is typed on the
+ *     warehouse phone that is not the count. `auth.stepUp` is therefore not built.
  *  3. GODOWN → VEHICLE IS `transfer_out` + `transfer_in` (§5 item 5), keyed `load:<sheetId>:<lotId>:out`
  *     and `:in`. `van_load` / `van_unload` belong to delivery's on-route movements.
  *  4. Order ids are used IN THE ORDER THE CALLER SUPPLIES (§4 item 3) — "last stop first" is the app's
@@ -339,7 +353,10 @@ export const LoadSheetSummarySchema = z.object({
   /** The crew's blind count at check-out; null while the sheet is a draft. */
   countedPackages: z.number().int().nonnegative().nullable(),
   varianceNote: z.string().nullable(),
-  /** The owner/manager token that accepted a variance — the manager's PIN (coordination §7 q15). */
+  /** The owner/manager who approved the sheet from the manager app (fact 2b); null while unapproved. */
+  approvedBy: IdSchema.nullable(),
+  approvedAt: z.string().nullable(),
+  /** The owner/manager who owns the count variance: copied from `approvedBy` at confirm when the count differs. */
   pinVerifiedBy: IdSchema.nullable(),
   loadValuePaise: PaiseSchema,
   ewbRequired: z.boolean(),
@@ -424,8 +441,8 @@ export type DeliveryChallanSummary = z.infer<typeof DeliveryChallanSummarySchema
 /**
  * The printed challan. `seller` is the DISTRIBUTOR's own name and logo (docs/17 §D6, `TENANT_SETTING_KEYS`
  * in `@dos/db`) — the same block the invoice prints, shared rather than duplicated. `pdfObjectKey` is
- * null until the deferred renderer exists (coordination §3.4); there is deliberately NO `challans.pdf`
- * procedure in this slice.
+ * null until the deferred renderer has written the file; `challans.pdf` queues that render and hands
+ * back the URL once it exists (docs/23 §8.3).
  */
 export const DeliveryChallanSchema = DeliveryChallanSummarySchema.extend({
   seller: SellerBrandingSchema,
@@ -667,11 +684,24 @@ export const LoadSheetGetInput = z.object({ id: IdSchema })
 export const LoadSheetGetOutput = LoadSheetItemOutput
 
 /**
- * Check-out, one transaction: the e-way bill gate (400 `ewb_required` above the tenant's threshold with
- * no number), the crew's blind package count (a variance needs a `varianceNote` and records
- * `pinVerifiedBy`), the van stock replaced by what was counted, a `transfer_out` + `transfer_in` pair
- * per lot keyed `load:<sheetId>:<lotId>:out|in`, the `DC` challan issued, and every packed order
- * `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
+ * The manager's PIN, given from the manager app (fact 2b): marks a draft sheet approved so the
+ * warehouse device may confirm it. Only while `status = 'draft'` and not yet approved (409
+ * `already_approved`); an `audit_log` row (`load_sheet.approve`) records it.
+ */
+export const ApproveLoadSheetInput = MutationBase.extend({
+  id: IdSchema,
+  note: z.string().trim().max(200).optional(),
+  deviceId: DeviceIdSchema.optional(),
+})
+export const ApproveLoadSheetOutput = LoadSheetItemOutput
+
+/**
+ * Check-out, one transaction, on the warehouse device once the sheet is approved (409
+ * `approval_required` otherwise): the e-way bill gate (400 `ewb_required` above the tenant's threshold
+ * with no number), the crew's blind package count (a variance needs a `varianceNote` and records
+ * `pinVerifiedBy = approvedBy`), the van stock replaced by what was counted, a `transfer_out` +
+ * `transfer_in` pair per lot keyed `load:<sheetId>:<lotId>:out|in`, the `DC` challan issued, and every
+ * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,
@@ -729,6 +759,19 @@ export const RecordEwbInput = MutationBase.extend({
   ewbNo: EwbNoSchema,
 })
 export const RecordEwbOutput = ChallanItemOutput
+
+/**
+ * The printed Rule 55 challan that rides with the vehicle. Never renders inline (docs/20 rule 3,
+ * coordination §3.4): until the renderer slice exists every call answers `{ status: 'queued',
+ * objectKey: null, url: null }` and enqueues `documents.pdf.render` with the `challan` template; that
+ * is a normal state, not an error. Three copies as the rules want, A4 or 80 mm thermal.
+ */
+export const ChallanPdfInput = z.object({
+  id: IdSchema,
+  copy: InvoiceCopySchema.default('original'),
+  format: InvoiceFormatSchema.default('a4'),
+})
+export const ChallanPdfOutput = DocumentRenderOutput
 
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — reservations
@@ -878,11 +921,21 @@ export const warehouseContract = {
       })
       .input(LoadSheetGetInput)
       .output(LoadSheetGetOutput),
+    approve: oc
+      .route({
+        method: 'POST',
+        path: '/warehouse/load-sheets/{id}/approve',
+        summary:
+          "Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it",
+      })
+      .input(ApproveLoadSheetInput)
+      .output(ApproveLoadSheetOutput),
     confirm: oc
       .route({
         method: 'POST',
         path: '/warehouse/load-sheets/{id}/confirm',
-        summary: 'Check out: count, move godown → vehicle, issue the challan, dispatch the orders',
+        summary:
+          'Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch',
       })
       .input(ConfirmLoadSheetInput)
       .output(ConfirmLoadSheetOutput),
@@ -912,6 +965,14 @@ export const warehouseContract = {
       })
       .input(ChallanGetInput)
       .output(ChallanGetOutput),
+    pdf: oc
+      .route({
+        method: 'GET',
+        path: '/warehouse/challans/{id}/pdf',
+        summary: 'The printed Rule 55 challan (queued until the renderer runs)',
+      })
+      .input(ChallanPdfInput)
+      .output(ChallanPdfOutput),
     recordEwb: oc
       .route({
         method: 'POST',

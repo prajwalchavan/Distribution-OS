@@ -280,6 +280,11 @@ export async function seedWarehouse(
           : expectedPackages,
         varianceNote: hasVariance ? 'one carton left on the dock, sent on the next trip' : null,
         pinVerifiedBy: hasVariance ? people.manager.id : null,
+        // The manager's load-out PIN is given in the MANAGER app (docs/22 §8, 2026-09-05): every confirmed
+        // sheet carries the approval the trigger in 0013 demands, and of today's two drafts the first is
+        // approved and waiting for the warehouse to count it out, the second is still waiting for the manager.
+        approvedBy: confirmed || vi === 0 ? people.manager.id : null,
+        approvedAt: confirmed || vi === 0 ? atIstTime(dayDate, 12, 10) : null,
         loadValuePaise,
         ewbRequired,
         ewbNo: ewbRequired ? '381012345678' : null,

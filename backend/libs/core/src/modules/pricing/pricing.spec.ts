@@ -420,6 +420,24 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(pending.body.items.map((b) => b.id)).toContain(id)
   })
 
+  it('lets a rep read its own auto-approve bound, and the desk everyone bound', async () => {
+    const mine = await call<{ items: { userId: string; maxDiscountBps: number }[] }>(
+      app,
+      rep,
+      'GET',
+      '/pricing/bounds',
+      {
+        userId: ownerId,
+      },
+    )
+    expect(mine.status).toBe(200)
+    expect(mine.body.items.length).toBeGreaterThan(0)
+    expect(mine.body.items.every((b) => b.userId === repId)).toBe(true)
+    const desk = await call<{ items: { userId: string }[] }>(app, owner, 'GET', '/pricing/bounds')
+    expect(desk.body.items.map((b) => b.userId)).toContain(repId)
+    expect((await call(app, shop, 'GET', '/pricing/bounds')).status).toBe(403)
+  })
+
   it('refuses a rep on owner/back-office writes', async () => {
     const bounds = await call(app, rep, 'POST', '/pricing/bounds', {
       idempotencyKey: `bound-rep-${run}`,
@@ -488,9 +506,33 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(askOther.status).toBe(403)
 
     expect((await call(app, shop, 'GET', '/pricing/price-lists', {})).status).toBe(403)
-    expect((await call(app, shop, 'GET', '/pricing/schemes', {})).status).toBe(403)
     expect((await call(app, shop, 'GET', '/pricing/overrides', {})).status).toBe(403)
-    expect((await call(app, shop, 'GET', '/pricing/bargains', {})).status).toBe(403)
+    // The shop reads its deals in the PUBLIC shape (docs/23 §8.16): never who funds a scheme or
+    // whether it is claimable — and only the schemes whose applicability includes its own shop.
+    const deals = await call<{ items: Record<string, unknown>[] }>(
+      app,
+      shop,
+      'GET',
+      '/pricing/schemes',
+      {},
+    )
+    expect(deals.status).toBe(200)
+    for (const item of deals.body.items) {
+      expect(item).not.toHaveProperty('fundingSource')
+      expect(item).not.toHaveProperty('claimable')
+      expect(item).not.toHaveProperty('sourceRef')
+    }
+    // ...and the outcome of its own bargain requests, nobody else's (RLS `bargain_requests_read`).
+    const asked = await call<{ items: { retailerId: string }[] }>(
+      app,
+      shop,
+      'GET',
+      '/pricing/bargains',
+      {},
+    )
+    expect(asked.status).toBe(200)
+    expect(asked.body.items.length).toBeGreaterThan(0)
+    expect(asked.body.items.every((b) => b.retailerId === shopC)).toBe(true)
   })
 
   it('rejects a quote for an unpriced or unknown variant with a clear 400', async () => {

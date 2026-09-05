@@ -214,6 +214,30 @@ export async function warehouseLocation(tx: Db): Promise<string> {
  * `system` and the caller's role is restored immediately, inside the same transaction; `actor_id` still
  * records the retailer. Delete this branch once the schema gives transitions a retailer-write policy.
  */
+/**
+ * Run `fn` with `app.actor_role = 'system'` for the duration, restoring the caller's role afterwards
+ * inside the same transaction. The escalation the retailer paths need: a shop's own submit reserves
+ * stock and moves its order to `confirmed` (both staff-only at the database), exactly as a rep's
+ * submit does, while `actor_id` keeps recording the shopkeeper. Re-entrant: an inner call inside an
+ * escalated transaction is a plain call, so the outer escalation is never dropped half-way.
+ */
+const escalated = new WeakSet<object>()
+
+export async function asSystem<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
+  const ctx = currentTenant()
+  if (ctx.actorRole === 'system' || escalated.has(tx)) return fn()
+  escalated.add(tx)
+  try {
+    await tx.execute(sql`select set_config('app.actor_role', 'system', true)`)
+    return await fn()
+  } finally {
+    escalated.delete(tx)
+    await tx
+      .execute(sql`select set_config('app.actor_role', ${ctx.actorRole}, true)`)
+      .catch(() => undefined)
+  }
+}
+
 export async function recordTransition(
   tx: Db,
   order: OrderRow,
@@ -239,14 +263,7 @@ export async function recordTransition(
     await tx.insert(orderStateTransitions).values(values)
     return
   }
-  try {
-    await tx.execute(sql`select set_config('app.actor_role', 'system', true)`)
-    await tx.insert(orderStateTransitions).values(values)
-  } finally {
-    await tx
-      .execute(sql`select set_config('app.actor_role', ${ctx.actorRole}, true)`)
-      .catch(() => undefined)
-  }
+  await asSystem(tx, () => tx.insert(orderStateTransitions).values(values))
 }
 
 /**
@@ -294,6 +311,11 @@ export async function listOrders(
 ): Promise<z.infer<typeof OrdersListOutput>> {
   const filters: (SQL | undefined)[] = [
     input.state ? eq(salesOrders.state, input.state) : undefined,
+    input.states && input.states.length > 0 ? inArray(salesOrders.state, input.states) : undefined,
+    // "pending undelivered" on the shop card (docs/23 §8.15): still travelling.
+    input.openOnly
+      ? inArray(salesOrders.state, ['submitted', 'confirmed', 'picking', 'packed', 'dispatched'])
+      : undefined,
     input.retailerId ? eq(salesOrders.retailerId, input.retailerId) : undefined,
     input.salespersonId ? eq(salesOrders.salespersonId, input.salespersonId) : undefined,
     input.from ? gte(salesOrders.createdAt, istStart(input.from)) : undefined,

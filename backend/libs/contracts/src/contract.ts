@@ -16,19 +16,24 @@ import {
   UpsertListingOutput,
   UpsertSupplierInput,
   UpsertSupplierOutput,
+  packConfigsContract,
+  repAuthorisationsContract,
+  tenantBrandsContract,
 } from './catalog.js'
 import { authContract } from './auth.js'
 import { HealthOutputSchema } from './health.js'
 import { syncContract } from './sync.js'
 import { inventoryContract } from './inventory.js'
 import { procurementContract } from './procurement.js'
-import { MeOutputSchema, staffContract } from './tenancy.js'
+import { tenancyContract } from './tenancy.js'
+import { filesContract } from './files.js'
 import { retailersContract } from './retailers.js'
 import { pricingContract } from './pricing.js'
 import { ordersContract } from './orders.js'
 import { receivablesContract } from './receivables.js'
 import { billingContract } from './billing.js'
 import { warehouseContract } from './warehouse.js'
+import { deliveryContract } from './delivery.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -42,12 +47,10 @@ export const contract = {
       .output(HealthOutputSchema),
   },
   auth: authContract,
-  tenancy: {
-    me: oc
-      .route({ method: 'GET', path: '/tenancy/me', summary: 'Current user, tenant and membership' })
-      .output(MeOutputSchema),
-    staff: staffContract,
-  },
+  // `me`, `staff`, `branding`, `settings`, `numbering`, `featureFlags`, `tenant`, `audit` (tenancy.ts).
+  tenancy: tenancyContract,
+  // Signed upload / read URLs for logos, POD photos, expense proofs, claim evidence, imports (files.ts).
+  files: filesContract,
   catalog: {
     search: oc
       .route({
@@ -109,7 +112,7 @@ export const contract = {
       .route({
         method: 'GET',
         path: '/tenant-catalog/costs',
-        summary: 'Purchase costs (owner/manager/accountant only)',
+        summary: 'Purchase costs (owner/manager/accountant read)',
       })
       .input(CostsListInput)
       .output(CostsListOutput),
@@ -117,10 +120,14 @@ export const contract = {
       .route({
         method: 'POST',
         path: '/tenant-catalog/costs',
-        summary: 'Set purchase cost (owner/manager/accountant only)',
+        summary: 'Set purchase cost (owner/manager only)',
       })
       .input(UpsertCostInput)
       .output(UpsertCostOutput),
+    // Which brands a rep may sell, per-brand operating mode, buy-side pack sizes (catalog.ts).
+    repAuthorisations: repAuthorisationsContract,
+    brands: tenantBrandsContract,
+    packConfigs: packConfigsContract,
   },
   retailers: retailersContract,
   sync: syncContract,
@@ -131,6 +138,7 @@ export const contract = {
   receivables: receivablesContract,
   billing: billingContract,
   warehouse: warehouseContract,
+  delivery: deliveryContract,
 }
 
 export type AppContract = typeof contract

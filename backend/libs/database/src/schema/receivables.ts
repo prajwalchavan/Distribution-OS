@@ -182,6 +182,8 @@ export const receipts = pgTable(
     /** Cash discount granted at receipt because the invoice was paid within its window (ADR 0004). */
     cashDiscountPaise: paise('cash_discount_paise').notNull().default(0),
     proofObjectKey: text('proof_object_key'),
+    /** The rendered receipt handed to the shop (`receivables.receipts.document`, docs/23 §8.1): the third white-label document. */
+    pdfObjectKey: text('pdf_object_key'),
     note: text('note'),
     /** Device that captured an offline receipt; half of the offline dedupe key (docs/07 §7.3). */
     deviceId: text('device_id'),
@@ -310,6 +312,8 @@ export const ageingSnapshots = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.tenantId, t.retailerId, t.asOf] }),
+    /** `receivables.ageing.history` (docs/23 §8.1): the tenant's outstanding trend over a date range, one row per shop per day. */
+    index('ageing_snapshots_as_of_idx').on(t.tenantId, t.asOf),
     tenantOrOwnRetailerPolicy('ageing_snapshots_read', 'retailer_id'),
     ...staffWritePolicy('ageing_snapshots_write'),
   ],

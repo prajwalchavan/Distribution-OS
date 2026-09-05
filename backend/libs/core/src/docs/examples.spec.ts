@@ -176,6 +176,7 @@ const FIXTURE: ExampleContext = {
   orderLineId: '01a06c94-5a6c-752a-8b3c-65716a473024',
   approvalId: '01a06c94-5a6c-752a-8b3c-65716a473025',
   invoiceId: '01a06c94-5a6c-752a-8b3c-65716a473026',
+  allocationId: '01a06c94-5a6c-752a-8b3c-65716a473027',
 }
 
 /** The same tenant seen from the shopkeeper app: one linked shop, its own orders, used-up id slots. */
@@ -293,6 +294,13 @@ describe('doc examples', () => {
     expect(examples.get('retailers.get')?.pathParams.id).toBe(FIXTURE.retailerId)
     expect(examples.get('orders.cancel')?.pathParams.id).toBe(FIXTURE.draftOrderIds?.[2])
     expect(examples.get('orders.confirm')?.pathParams.id).toBe(FIXTURE.submittedOrderId)
+    // The desk's undo and the cancel both name a row that exists, and the goods of a cancelled bill
+    // go back to a godown that exists — a made-up uuid in any of the three is a 404 on Execute.
+    expect(examples.get('receivables.allocations.remove')?.pathParams.id).toBe(FIXTURE.allocationId)
+    expect(examples.get('billing.invoices.cancel')?.pathParams.id).toBe(FIXTURE.invoiceId)
+    expect(examples.get('billing.invoices.cancel')?.body?.restockLocationId).toBe(
+      FIXTURE.locationId,
+    )
     const created = examples.get('retailers.upsert')?.body?.id
     expect(created).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     expect(created).not.toBe(FIXTURE.retailerId)
@@ -362,6 +370,12 @@ describe('every POST, on every service that serves it', () => {
     expect(offenders).toEqual([])
   })
 
+  /**
+   * Mutations whose body `id` is not the procedure's slot id: the shop editing its own EXISTING row,
+   * and the upload intent, whose id is per domain (one per service) and replays like any other.
+   */
+  const EXISTING_ROW_ID = new Set(['retailers.updateOwn', 'files.uploadUrl'])
+
   it('keys every mutation to the id it creates, so a second Execute replays', () => {
     for (const [service, examples] of byService) {
       for (const procedure of MUTATIONS) {
@@ -371,7 +385,11 @@ describe('every POST, on every service that serves it', () => {
         expect(body.idempotencyKey, `${service}: ${procedure.path}`).toBe(
           docsIdempotencyKey(procedure.path, slot),
         )
-        if (typeof body.id === 'string' && !examples.get(procedure.path)?.pathParams.id) {
+        if (
+          typeof body.id === 'string' &&
+          !examples.get(procedure.path)?.pathParams.id &&
+          !EXISTING_ROW_ID.has(procedure.path)
+        ) {
           expect(body.id, `${service}: ${procedure.path}`).toBe(
             createdId(procedure.path, 'id', slot),
           )

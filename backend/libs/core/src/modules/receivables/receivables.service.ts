@@ -1,10 +1,14 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AccountsListInput,
   AccountsListOutput,
+  AgeingHistoryInput,
+  AgeingHistoryOutput,
+  DocumentRender,
+  ReceiptDocumentInput,
   Allocation,
   BounceChequeInput,
   CashDiscountsListInput,
@@ -48,6 +52,7 @@ import { businessDate, uuidv7 } from '@dos/domain'
 import {
   allocations,
   auditLog,
+  beatAssignments,
   cashDiscountConditions,
   creditNotes,
   invoices,
@@ -103,6 +108,9 @@ import {
   stampReversed,
   type JournalEntryInput,
 } from './posting.js'
+import { ageingHistory } from './ageing-history.js'
+import { documentRender, type DocumentRenderKind } from '../../platform/documents.js'
+import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
 import {
   listAccounts,
@@ -145,6 +153,21 @@ const MONEY_COLLECTORS: readonly ActorRole[] = [
 ]
 /** Everyone who may look at a shop's dues, the shop itself included; RLS narrows it to its own rows. */
 const MONEY_READERS: readonly ActorRole[] = [...MONEY_COLLECTORS, 'retailer']
+/**
+ * Who may look at ONE shop's dues and statement: the money readers plus the SALESPERSON on the beat
+ * (docs/23 §8.1). "The salesperson never collects" (docs/17 §D4) forbids collecting, not seeing — the
+ * outstanding chip on the beat screen is this. A rep is scoped in the handler to the shops of its own
+ * beats (`assertRepServes`); nothing widens a write.
+ */
+const DUES_READERS: readonly ActorRole[] = [...MONEY_READERS, 'salesperson']
+/** Who runs the credit check before an order: the collectors plus the rep on the device (never the shop). */
+const CREDIT_CHECKERS: readonly ActorRole[] = [...MONEY_COLLECTORS, 'salesperson']
+/**
+ * The MONEY DESK (docs/22 2026-09-05): owner, manager, accountant — office receipts, reversals,
+ * banking, bounces, allocations, write-offs, statements. The same members as BACK_OFFICE; named so
+ * the accountant's write scope reads as exactly this list.
+ */
+const MONEY_DESK: readonly ActorRole[] = BACK_OFFICE
 /** The shop's own online-payment path, and nothing else in this module. */
 const SHOPKEEPER: readonly ActorRole[] = ['retailer']
 
@@ -649,7 +672,31 @@ export class ReceivablesService {
         item: toReceipt(found.row, found.allocatedPaise),
         allocations: rows.map(toAllocation),
         reversal: reversal ? toReceipt(reversal, reversalAllocated) : null,
+        // The receipt is the third white-label document (docs/22 §4 D6): the distributor's own block.
+        seller: await sellerBranding(tx),
       }
+    })
+  }
+
+  /**
+   * The printed / WhatsApp receipt. Nothing renders on the request path (docs/20 rule 3): the first
+   * call queues `documents.pdf.render` with the `receipt` template and answers `queued`; once the
+   * worker has written `receipts.pdf_object_key` every later call answers `ready` with a signed URL.
+   */
+  async receiptDocument(input: z.infer<typeof ReceiptDocumentInput>): Promise<DocumentRender> {
+    requireRole(MONEY_READERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      const found = await receiptWithAllocations(tx, input.id)
+      if (!found) throw new ORPCError('NOT_FOUND', { message: `receipt ${input.id} not found` })
+      const kind: DocumentRenderKind = 'receipt'
+      return documentRender(tx, {
+        kind,
+        id: found.row.id,
+        objectKey: found.row.pdfObjectKey,
+        format: input.format,
+      })
     })
   }
 
@@ -916,11 +963,12 @@ export class ReceivablesService {
   async getOutstanding(
     input: z.infer<typeof OutstandingGetInput>,
   ): Promise<z.infer<typeof OutstandingGetOutput>> {
-    requireRole(MONEY_READERS)
+    requireRole(DUES_READERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, async (tx) => {
       await this.requireRetailer(tx, input.retailerId)
+      await this.assertRepServes(tx, input.retailerId)
       const asOf = businessDate().date
       const summary = await loadOutstanding(tx, input.retailerId, asOf)
       const bills = input.includeBills
@@ -936,30 +984,48 @@ export class ReceivablesService {
     })
   }
 
+  /** The tenant register is the desk's alone: the crew needs one shop at a time (docs/23 §5.3). */
   async listOutstanding(
     input: z.infer<typeof OutstandingListInput>,
   ): Promise<z.infer<typeof OutstandingListOutput>> {
-    requireRole(MONEY_COLLECTORS)
+    requireRole(BACK_OFFICE)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) => listOutstanding(tx, input))
   }
 
   async creditCheck(input: z.infer<typeof CreditCheckInput>): Promise<CreditVerdict> {
-    requireRole(MONEY_COLLECTORS)
+    requireRole(CREDIT_CHECKERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
-    return withTenant(db, ctx, (tx) => checkCredit(tx, input.retailerId, input.orderTotalPaise))
+    return withTenant(db, ctx, async (tx) => {
+      await this.assertRepServes(tx, input.retailerId)
+      return checkCredit(tx, input.retailerId, input.orderTotalPaise)
+    })
+  }
+
+  /**
+   * The outstanding trend and the ageing history for the owner's charts (docs/23 §8.1), from the
+   * nightly `ageing_snapshots`; never a live scan. Back office only: it is the tenant register over time.
+   */
+  async ageingHistory(
+    input: z.infer<typeof AgeingHistoryInput>,
+  ): Promise<z.infer<typeof AgeingHistoryOutput>> {
+    requireRole(BACK_OFFICE)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) => ageingHistory(tx, input))
   }
 
   async getLedger(
     input: z.infer<typeof RetailerLedgerInput>,
   ): Promise<z.infer<typeof RetailerLedgerOutput>> {
-    requireRole(MONEY_READERS)
+    requireRole(DUES_READERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, async (tx) => {
       await this.requireRetailer(tx, input.retailerId)
+      await this.assertRepServes(tx, input.retailerId)
       const to = input.to ?? businessDate().date
       const from = input.from ?? shiftDate(to, -90)
       const earliest = shiftDate(to, -MAX_LEDGER_WINDOW_DAYS)
@@ -1131,7 +1197,7 @@ export class ReceivablesService {
   /** Owner only, no rupee limit (docs/plans/00-coordination.md §7 q12). Never a credit note: a write-off is
    * a financial entry, DR Bad debts / CR AR, plus the `allocations` row that closes the bill. */
   async createWriteOff(input: WriteOffIn): Promise<WriteOffOut> {
-    requireRole(OWNER)
+    requireRole(MONEY_DESK)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -1150,6 +1216,17 @@ export class ReceivablesService {
           throw new ORPCError('CONFLICT', {
             message: `bill ${invoice.invoiceNo ?? invoice.id} owes ${String(open)} paise; ${String(input.amountPaise)} was offered`,
           })
+        }
+        // The id is the client's. A second write-off under an id that already exists (a different
+        // idempotency key, so not a replay) is a 409, never the primary-key violation the insert
+        // below would otherwise surface as a 500.
+        const [clash] = await tx
+          .select({ id: writeOffs.id })
+          .from(writeOffs)
+          .where(and(eq(writeOffs.tenantId, ctx.tenantId), eq(writeOffs.id, input.id)))
+          .limit(1)
+        if (clash) {
+          throw new ORPCError('CONFLICT', { message: `write-off ${input.id} already exists` })
         }
         const [row] = await tx
           .insert(writeOffs)
@@ -1276,6 +1353,41 @@ export class ReceivablesService {
       .limit(1)
     if (!row) throw new ORPCError('NOT_FOUND', { message: `retailer ${retailerId} not found` })
     return row
+  }
+
+  /**
+   * A salesperson sees the dues of the shops it SERVES — the shops on a beat currently assigned to it —
+   * and nobody else's (docs/23 §8.1 "for its own shops"). RLS lets a staff role read every summary row,
+   * so this is the handler's rule; a shop off the rep's beats is a 403 with the reason.
+   */
+  private async assertRepServes(tx: Db, retailerId: string): Promise<void> {
+    const ctx = currentTenant()
+    if (ctx.actorRole !== 'salesperson') return
+    const today = businessDate().date
+    const [row] = await tx
+      .select({ id: retailers.id })
+      .from(retailers)
+      .innerJoin(
+        beatAssignments,
+        and(
+          eq(beatAssignments.tenantId, retailers.tenantId),
+          eq(beatAssignments.beatId, retailers.beatId),
+          eq(beatAssignments.userId, ctx.actorId),
+        ),
+      )
+      .where(
+        and(
+          eq(retailers.tenantId, ctx.tenantId),
+          eq(retailers.id, retailerId),
+          sql`${beatAssignments.validFrom} <= ${today}`,
+          sql`(${beatAssignments.validTo} is null or ${beatAssignments.validTo} >= ${today})`,
+        ),
+      )
+      .limit(1)
+    if (!row)
+      throw new ORPCError('FORBIDDEN', {
+        message: 'a salesperson sees the dues of the shops on its own beats only',
+      })
   }
 
   /** The receipt this call already produced, by its own id or by the crew's paper book number. */

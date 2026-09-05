@@ -486,6 +486,154 @@ describeDb('procurement (DATABASE_URL)', () => {
     expect((await call(app, rep, 'GET', '/procurement/purchase-orders', {})).status).toBe(403)
   })
 
+  it('decides a gate-count finding: owner or manager, never the accountant; audited', async () => {
+    // docs/23 §8.19 — `discrepancies.resolve` is the owner's "GRN exceptions" approval
+    const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
+    const open = await call<{ items: { id: string; status: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/procurement/discrepancies',
+      {
+        grnId,
+        status: 'open',
+      },
+    )
+    const finding = open.body.items[0]
+    expect(finding).toBeDefined()
+    const id = finding?.id ?? ''
+    expect(
+      (
+        await call(app, accountant, 'POST', `/procurement/discrepancies/${id}/resolve`, {
+          idempotencyKey: `disc-acc-${run}`,
+          id,
+          status: 'accepted',
+        })
+      ).status,
+    ).toBe(403)
+    const decided = await call<{
+      item: {
+        status: string
+        resolvedBy: string | null
+        resolvedAt: string | null
+        note: string | null
+      }
+    }>(app, manager, 'POST', `/procurement/discrepancies/${id}/resolve`, {
+      idempotencyKey: `disc-${run}`,
+      id,
+      status: 'accepted',
+      note: 'within tolerance',
+    })
+    expect(decided.status).toBe(200)
+    expect(decided.body.item).toMatchObject({
+      status: 'accepted',
+      resolvedBy: managerId,
+      note: 'within tolerance',
+    })
+    expect(decided.body.item.resolvedAt).not.toBeNull()
+    // decided is decided: a different answer is 409, the same answer replays
+    expect(
+      (
+        await call(app, owner, 'POST', `/procurement/discrepancies/${id}/resolve`, {
+          idempotencyKey: `disc-again-${run}`,
+          id,
+          status: 'written_off',
+        })
+      ).status,
+    ).toBe(409)
+    const trail = await db.execute(
+      sql`select 1 from audit_log where tenant_id = ${tenantId} and entity_id = ${id} and action = 'discrepancy.resolve'`,
+    )
+    expect(trail.rows).toHaveLength(1)
+  })
+
+  it('disputes and cancels a supplier invoice that never became stock, and refuses once it has', async () => {
+    // the received invoice: stock and cost have posted — neither dispute nor cancel may touch it
+    const received = await call<{ message: string }>(
+      app,
+      owner,
+      'POST',
+      `/procurement/supplier-invoices/${invoiceId}/dispute`,
+      {
+        idempotencyKey: `dispute-received-${run}`,
+        id: invoiceId,
+        reason: 'too late',
+      },
+    )
+    expect(received.status).toBe(409)
+    expect(
+      (
+        await call(app, owner, 'POST', `/procurement/supplier-invoices/${invoiceId}/cancel`, {
+          idempotencyKey: `cancel-received-${run}`,
+          id: invoiceId,
+          reason: 'too late',
+        })
+      ).status,
+    ).toBe(409)
+    // a fresh bill under review: dispute, then cancel
+    const freshId = uuidv7()
+    const fresh = await call<{ item: { status: string } }>(
+      app,
+      owner,
+      'POST',
+      '/procurement/supplier-invoices',
+      {
+        ...invoice,
+        idempotencyKey: `inv-fresh-${run}`,
+        id: freshId,
+        invoiceNo: `GK/${run}/F`,
+        irn: undefined,
+        lines: invoice.lines.map((l) => ({ ...l, id: uuidv7() })),
+      },
+    )
+    expect(fresh.status).toBe(200)
+    const disputed = await call<{
+      item: { status: string; disputedAt: string | null; disputeReason: string | null }
+    }>(app, owner, 'POST', `/procurement/supplier-invoices/${freshId}/dispute`, {
+      idempotencyKey: `dispute-${run}`,
+      id: freshId,
+      reason: 'rate differs from the agreed one',
+    })
+    expect(disputed.status).toBe(200)
+    expect(disputed.body.item).toMatchObject({
+      status: 'disputed',
+      disputeReason: 'rate differs from the agreed one',
+    })
+    expect(disputed.body.item.disputedAt).not.toBeNull()
+    expect(
+      (
+        await call(app, rep, 'POST', `/procurement/supplier-invoices/${freshId}/cancel`, {
+          idempotencyKey: `c-rep-${run}`,
+          id: freshId,
+          reason: 'x',
+        })
+      ).status,
+    ).toBe(403)
+    const cancelled = await call<{
+      item: { status: string; cancelledAt: string | null; cancelReason: string | null }
+    }>(app, owner, 'POST', `/procurement/supplier-invoices/${freshId}/cancel`, {
+      idempotencyKey: `cancel-${run}`,
+      id: freshId,
+      reason: 'duplicate of an earlier bill',
+    })
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item).toMatchObject({
+      status: 'cancelled',
+      cancelReason: 'duplicate of an earlier bill',
+    })
+    // a GRN can no longer be opened against it
+    expect(
+      (
+        await call(app, owner, 'POST', '/procurement/grns', {
+          idempotencyKey: `grn-cancelled-${run}`,
+          id: uuidv7(),
+          supplierInvoiceId: freshId,
+          locationId: godown,
+        })
+      ).status,
+    ).not.toBe(200)
+  })
+
   it('refuses requests without tenant context', async () => {
     expect((await call(app, null, 'GET', '/procurement/grns', {})).status).toBe(401)
   })

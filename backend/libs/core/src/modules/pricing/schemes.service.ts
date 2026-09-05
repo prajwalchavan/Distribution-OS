@@ -3,20 +3,30 @@ import { and, asc, eq, gt, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   Scheme,
+  SchemePublic,
   SchemesListInput,
   SchemesListOutput,
   UpsertSchemeInput,
   UpsertSchemeOutput,
 } from '@dos/contracts'
-import { schemes, withTenant, type Db, type SchemeApplicability, type SchemeSlab } from '@dos/db'
 import {
+  retailerLinks,
+  retailers,
+  schemes,
+  withTenant,
+  type Db,
+  type SchemeApplicability,
+  type SchemeSlab,
+} from '@dos/db'
+import {
+  ANY_MEMBER,
   BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   requireDb,
   requireRole,
-  STAFF,
 } from '../../platform/index.js'
 
 type SchemesIn = z.infer<typeof SchemesListInput>
@@ -32,8 +42,14 @@ type SchemeOut = z.infer<typeof UpsertSchemeOutput>
 export class SchemesService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
 
+  /**
+   * The back office reads the whole row; the field and the SHOP get `SchemePublicSchema` — never
+   * who funds it, whether it is claimable or the brand's circular reference (docs/17 §B [54–57]). A
+   * retailer additionally sees only the schemes whose `applicability` (tier, retailerIds, beatIds)
+   * includes a shop linked to its login: those are its "deals" (docs/23 §8.16).
+   */
   async listSchemes(input: SchemesIn): Promise<SchemesOut> {
-    requireRole(STAFF)
+    requireRole(ANY_MEMBER)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, async (tx) => {
@@ -45,16 +61,38 @@ export class SchemesService {
         input.brandId ? eq(schemes.brandId, input.brandId) : undefined,
         input.cursor ? gt(schemes.id, input.cursor) : undefined,
       ]
+      const shops = ctx.actorRole === 'retailer' ? await this.ownShops(tx) : null
       const rows = await tx
         .select()
         .from(schemes)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
         .orderBy(asc(schemes.id))
         .limit(input.limit + 1)
-      const items = rows.slice(0, input.limit).map(toScheme)
-      const last = items[items.length - 1]
+      const visible = shops ? rows.filter((row) => appliesToAny(row.applicability, shops)) : rows
+      const page = visible.slice(0, input.limit)
+      const items = BACK_OFFICE.includes(ctx.actorRole)
+        ? page.map(toScheme)
+        : page.map((row) => toSchemePublic(row))
+      const last = page[page.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
+  }
+
+  /** The shops linked to a retailer login, with the three dimensions applicability is written in. */
+  private async ownShops(tx: Db): Promise<ShopKey[]> {
+    const ctx = currentTenant()
+    return tx
+      .select({ id: retailers.id, tier: retailers.tier, beatId: retailers.beatId })
+      .from(retailers)
+      .innerJoin(
+        retailerLinks,
+        and(
+          eq(retailerLinks.retailerId, retailers.id),
+          eq(retailerLinks.userId, ctx.actorId),
+          eq(retailerLinks.status, 'active'),
+        ),
+      )
+      .where(eq(retailers.tenantId, ctx.tenantId))
   }
 
   /**
@@ -63,7 +101,7 @@ export class SchemesService {
    * economics keep pointing at exactly what they got (`applied_rules.version`).
    */
   async upsertScheme(input: SchemeIn): Promise<SchemeOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -117,6 +155,40 @@ export class SchemesService {
 }
 
 // ------------------------------------------------------------------------------------------------------ helpers
+
+interface ShopKey {
+  id: string
+  tier: string
+  beatId: string | null
+}
+
+/**
+ * The engine's rule (docs/17 §B): any listed dimension restricts, dimensions intersect, empty = all.
+ * A scheme applies to a shop when every dimension it names includes that shop.
+ */
+export function appliesToAny(applicability: SchemeApplicability | null, shops: ShopKey[]): boolean {
+  const a = applicability ?? {}
+  return shops.some(
+    (shop) =>
+      (!a.tiers || a.tiers.length === 0 || a.tiers.includes(shop.tier)) &&
+      (!a.retailerIds || a.retailerIds.length === 0 || a.retailerIds.includes(shop.id)) &&
+      (!a.beatIds ||
+        a.beatIds.length === 0 ||
+        (shop.beatId !== null && a.beatIds.includes(shop.beatId))),
+  )
+}
+
+/** The field's and the shop's view: the economics, never the funding, the claim or the brand's reference. */
+export function toSchemePublic(row: typeof schemes.$inferSelect): SchemePublic {
+  const {
+    fundingSource: _f,
+    claimable: _c,
+    claimWindowDays: _w,
+    sourceRef: _s,
+    ...rest
+  } = toScheme(row)
+  return rest
+}
 
 function compact<T extends object>(o: T): { [K in keyof T]?: Exclude<T[K], undefined> } {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as {

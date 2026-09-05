@@ -337,6 +337,152 @@ describeDb('inventory (DATABASE_URL)', () => {
     ).toBe(403)
   })
 
+  it('runs a cycle count: open freezes the expectation, count is blind, post writes the differences once', async () => {
+    // docs/23 §8.18 — STOCK_KEEPERS open and count, BACK_OFFICE posts; the accountant reads.
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
+    const before = (
+      await db.execute(
+        sql`select on_hand from stock_balances where tenant_id = ${tenantId} and lot_id = ${lotLate} and location_id = ${godown}`,
+      )
+    ).rows[0] as { on_hand: number }
+    const id = uuidv7()
+    const opened = await call<{
+      item: {
+        status: string
+        lineCount: number
+        lines: { lotId: string; expectedPcs: number; countedPcs: number | null }[]
+      }
+    }>(app, store, 'POST', '/inventory/cycle-counts', {
+      idempotencyKey: `cc-open-${run}`,
+      id,
+      locationId: godown,
+      lotIds: [lotLate],
+      note: 'weekly',
+    })
+    expect(opened.status).toBe(200)
+    expect(opened.body.item.status).toBe('open')
+    expect(opened.body.item.lines).toEqual([
+      expect.objectContaining({
+        lotId: lotLate,
+        expectedPcs: Number(before.on_hand),
+        countedPcs: null,
+      }),
+    ])
+    // posting before counting is refused; the rep may not open a count at all
+    expect(
+      (
+        await call(app, owner, 'POST', `/inventory/cycle-counts/${id}/post`, {
+          idempotencyKey: `cc-post-early-${run}`,
+          id,
+        })
+      ).status,
+    ).toBe(409)
+    expect(
+      (
+        await call(app, rep, 'POST', '/inventory/cycle-counts', {
+          idempotencyKey: `cc-rep-${run}`,
+          id: uuidv7(),
+          locationId: godown,
+        })
+      ).status,
+    ).toBe(403)
+    const counted = await call<{
+      item: { status: string; lines: { variancePcs: number | null }[] }
+    }>(app, store, 'POST', `/inventory/cycle-counts/${id}/count`, {
+      idempotencyKey: `cc-count-${run}`,
+      id,
+      lines: [{ lotId: lotLate, countedPcs: Number(before.on_hand) - 2 }],
+    })
+    expect(counted.status).toBe(200)
+    expect(counted.body.item.status).toBe('counted')
+    expect(counted.body.item.lines[0]?.variancePcs).toBe(-2)
+    // the godown may not post the difference into the books; the desk does, once
+    expect(
+      (
+        await call(app, store, 'POST', `/inventory/cycle-counts/${id}/post`, {
+          idempotencyKey: `cc-post-store-${run}`,
+          id,
+        })
+      ).status,
+    ).toBe(403)
+    const posted = await call<{
+      item: { status: string; postedBy: string | null }
+      entries: { reason: string; qtyDelta: number }[]
+    }>(app, owner, 'POST', `/inventory/cycle-counts/${id}/post`, {
+      idempotencyKey: `cc-post-${run}`,
+      id,
+    })
+    expect(posted.status).toBe(200)
+    expect(posted.body.item.status).toBe('posted')
+    expect(posted.body.item.postedBy).toBe(ownerId)
+    expect(posted.body.entries).toEqual([
+      expect.objectContaining({ reason: 'cycle_count', qtyDelta: -2 }),
+    ])
+    const after = (
+      await db.execute(
+        sql`select on_hand from stock_balances where tenant_id = ${tenantId} and lot_id = ${lotLate} and location_id = ${godown}`,
+      )
+    ).rows[0] as { on_hand: number }
+    expect(Number(after.on_hand)).toBe(Number(before.on_hand) - 2)
+    const replay = await call<{ entries: unknown[] }>(
+      app,
+      owner,
+      'POST',
+      `/inventory/cycle-counts/${id}/post`,
+      {
+        idempotencyKey: `cc-post-${run}`,
+        id,
+      },
+    )
+    expect(replay.body.entries).toHaveLength(1) // the stored reply, not a second posting
+    const ledger = await db.execute(
+      sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenantId} and ref_type = 'cycle_count' and ref_id = ${id}`,
+    )
+    expect((ledger.rows[0] as { n: number }).n).toBe(1)
+    // reads: the accountant lists and opens it; the rep sees nothing
+    const list = await call<{ items: { id: string; status: string; lineCount: number }[] }>(
+      app,
+      accountant,
+      'GET',
+      '/inventory/cycle-counts',
+      {
+        locationId: godown,
+        status: 'posted',
+      },
+    )
+    expect(list.body.items.find((c) => c.id === id)).toMatchObject({
+      status: 'posted',
+      lineCount: 1,
+    })
+    expect((await call(app, accountant, 'GET', `/inventory/cycle-counts/${id}`)).status).toBe(200)
+    expect((await call(app, rep, 'GET', `/inventory/cycle-counts/${id}`)).status).toBe(403)
+  })
+
+  it('filters balances to lots expiring before a date, or inside the near-expiry window', async () => {
+    // L1 expires 2027-03-01, L2 on 2027-06-01
+    const soon = await call<{ items: { lotId: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/inventory/balances',
+      {
+        expiringBefore: '2027-04-30',
+      },
+    )
+    expect(soon.status).toBe(200)
+    expect(soon.body.items.map((b) => b.lotId)).toContain(lotEarly)
+    expect(soon.body.items.map((b) => b.lotId)).not.toContain(lotLate)
+    const near = await call<{ items: { lotId: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/inventory/balances',
+      { nearExpiryOnly: true },
+    )
+    expect(near.status).toBe(200)
+  })
+
   it('keeps the ledger append-only even for the owner', async () => {
     await expect(
       withTenant(db, ownerCtx, (tx) =>

@@ -160,6 +160,159 @@ describeDb('catalog + tenant catalog (DATABASE_URL)', () => {
     expect(rows[0]?.n).toBe(1)
   })
 
+  it('keeps the catalog overlay writes with the owner and the manager, never the accountant', async () => {
+    // docs/22 2026-09-05: the accountant reads the catalog, the suppliers and the costs, and edits none.
+    const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
+    expect(
+      (
+        await call(app, accountant, 'POST', '/tenant-catalog/costs', {
+          idempotencyKey: `cost-acc-${run}`,
+          id: uuidv7(),
+          variantId,
+          purchaseRatePaise: 1,
+          landedCostPaise: 1,
+        })
+      ).status,
+    ).toBe(403)
+    expect(
+      (await call(app, accountant, 'GET', '/tenant-catalog/costs', { variantId })).status,
+    ).toBe(200)
+  })
+
+  it('sets and lists which brands a rep may sell; the rep reads only its own', async () => {
+    const manager: Actor = { tenantId, actorId: ownerId, role: 'manager' }
+    const set = await call<{
+      items: { userId: string; brandId: string; brandName: string; employedBy: string }[]
+    }>(app, manager, 'POST', '/tenant-catalog/rep-authorisations', {
+      idempotencyKey: `auth-${run}`,
+      userId: repId,
+      items: [{ id: uuidv7(), brandId, employedBy: 'manufacturer' }],
+    })
+    expect(set.status).toBe(200)
+    expect(set.body.items).toEqual([
+      expect.objectContaining({
+        userId: repId,
+        brandId,
+        brandName: `Campa ${run}`,
+        employedBy: 'manufacturer',
+      }),
+    ])
+    // the rep is forced to itself whatever it asks for
+    const mine = await call<{ items: { userId: string }[] }>(
+      app,
+      rep,
+      'GET',
+      '/tenant-catalog/rep-authorisations',
+      {
+        userId: ownerId,
+      },
+    )
+    expect(mine.body.items.map((i) => i.userId)).toEqual([repId])
+    // REPLACES: an empty list clears the restriction
+    const cleared = await call<{ items: unknown[] }>(
+      app,
+      owner,
+      'POST',
+      '/tenant-catalog/rep-authorisations',
+      {
+        idempotencyKey: `auth-clear-${run}`,
+        userId: repId,
+        items: [],
+      },
+    )
+    expect(cleared.body.items).toEqual([])
+    expect(
+      (
+        await call(app, rep, 'POST', '/tenant-catalog/rep-authorisations', {
+          idempotencyKey: `auth-rep-${run}`,
+          userId: repId,
+          items: [],
+        })
+      ).status,
+    ).toBe(403)
+  })
+
+  it('records how the distributor runs a brand and the buy-side pack per supplier', async () => {
+    const brand = await call<{
+      item: { brandId: string; brandName: string; fulfilmentMode: string; cashDiscountMode: string }
+    }>(app, owner, 'POST', '/tenant-catalog/brands', {
+      idempotencyKey: `brand-${run}`,
+      id: uuidv7(),
+      brandId,
+      fulfilmentMode: 'brand_dms',
+      tallyExportSource: 'brand_dms',
+    })
+    expect(brand.status).toBe(200)
+    expect(brand.body.item).toMatchObject({
+      brandId,
+      brandName: `Campa ${run}`,
+      fulfilmentMode: 'brand_dms',
+      cashDiscountMode: 'at_receipt_financial_cn',
+    })
+    // the natural key is (tenant, brand): a second upsert with a fresh id edits the same row
+    const again = await call<{ item: { fulfilmentMode: string } }>(
+      app,
+      owner,
+      'POST',
+      '/tenant-catalog/brands',
+      {
+        idempotencyKey: `brand-2-${run}`,
+        id: uuidv7(),
+        brandId,
+        fulfilmentMode: 'own',
+      },
+    )
+    expect(again.body.item.fulfilmentMode).toBe('own')
+    const list = await call<{ items: { brandId: string }[] }>(
+      app,
+      rep,
+      'GET',
+      '/tenant-catalog/brands',
+    )
+    expect(list.status).toBe(200)
+    expect(list.body.items.filter((b) => b.brandId === brandId)).toHaveLength(1)
+
+    const supplierId = uuidv7()
+    const supplier = await call(app, owner, 'POST', '/tenant-catalog/suppliers', {
+      idempotencyKey: `sup-${run}`,
+      id: supplierId,
+      name: `Guru Kripa ${run}`,
+    })
+    expect(supplier.status).toBe(200)
+    const pack = await call<{
+      item: { pcsPerCase: number; supplierCode: string | null; marginBasis: string }
+    }>(app, owner, 'POST', '/tenant-catalog/pack-configs', {
+      idempotencyKey: `pack-${run}`,
+      id: uuidv7(),
+      supplierId,
+      variantId,
+      pcsPerCase: 90,
+      supplierCode: 'x90',
+    })
+    expect(pack.status).toBe(200)
+    expect(pack.body.item).toMatchObject({
+      pcsPerCase: 90,
+      supplierCode: 'x90',
+      marginBasis: 'ptd',
+    })
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const packs = await call<{ items: { supplierId: string; pcsPerCase: number }[] }>(
+      app,
+      store,
+      'GET',
+      '/tenant-catalog/pack-configs',
+      {
+        supplierId,
+      },
+    )
+    expect(packs.body.items).toEqual([expect.objectContaining({ supplierId, pcsPerCase: 90 })])
+    // a pack config carries no rate, and the rep never reads it anyway
+    for (const row of packs.body.items)
+      for (const key of Object.keys(row))
+        expect(key.toLowerCase()).not.toMatch(/cost|rate|margin_?paise|ptd/)
+    expect((await call(app, rep, 'GET', '/tenant-catalog/pack-configs', {})).status).toBe(403)
+  })
+
   it('refuses requests without tenant context', async () => {
     const res = await call(app, null, 'GET', '/catalog/variants', {})
     expect(res.status).toBe(401)

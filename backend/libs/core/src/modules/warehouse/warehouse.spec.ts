@@ -99,6 +99,8 @@ interface LoadSheetBody {
   ewbNo: string | null
   challanNo: string | null
   pinVerifiedBy: string | null
+  approvedBy: string | null
+  approvedAt: string | null
   varianceNote: string | null
   vehicleRegNo: string | null
   orders: { orderId: string; invoiceNo: string | null; packages: number }[]
@@ -716,6 +718,140 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(line[0]?.picked_qty_pcs).toBe(18)
   })
 
+  it('bills a PARKED pack later through billing.invoices.issueForPack, from the pieces that actually left', async () => {
+    // docs/23 §8.2: a pack confirmed with issueInvoice:false had no HTTP path to be billed.
+    const parkedOrderId = await placeOrder([{ variantId: variantB, cases: 1 }], 'park-bill')
+    const packId = uuidv7()
+    const packed = await call<PackBody>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/orders/${parkedOrderId}/pack`,
+      {
+        idempotencyKey: `pack-park-bill-${run}`,
+        id: packId,
+        packages: 1,
+        issueInvoice: false,
+      },
+    )
+    expect(packed.status).toBe(200)
+    expect(packed.body.invoice).toBeNull()
+    expect(await orderState(parkedOrderId)).toBe('packed')
+    const ledgerBefore = (
+      await db.execute(
+        sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenantId} and ref_type = 'pack' and ref_id = ${parkedOrderId}`,
+      )
+    ).rows[0] as { n: number }
+    expect(ledgerBefore.n).toBeGreaterThan(0)
+
+    // the packer may not bill a parked pack? It may: BILLING_ISSUERS includes the warehouse.
+    const invoiceId = uuidv7()
+    const billed = await call<{
+      item: {
+        id: string
+        invoiceNo: string | null
+        state: string
+        lines: { qtyPcs: number; lotId: string | null }[]
+        totalPaise: number
+      }
+    }>(app, accountant, 'POST', `/warehouse/packs/${packId}/invoice`, {
+      idempotencyKey: `bill-park-${run}`,
+      id: invoiceId,
+      packId,
+    })
+    expect(billed.status).toBe(200)
+    expect(billed.body.item.state).toBe('issued')
+    expect(billed.body.item.invoiceNo).not.toBeNull()
+    expect(billed.body.item.lines.reduce((n, l) => n + l.qtyPcs, 0)).toBe(12) // one case of 12
+    expect(billed.body.item.lines.every((l) => l.lotId !== null)).toBe(true)
+    // the document only: the ledger did not move again, the pack row now points at the bill
+    const ledgerAfter = (
+      await db.execute(
+        sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenantId} and ref_type = 'pack' and ref_id = ${parkedOrderId}`,
+      )
+    ).rows[0] as { n: number }
+    expect(ledgerAfter.n).toBe(ledgerBefore.n)
+    const [pack] = (
+      await db.execute(sql`select invoice_id from pack_confirmations where id = ${packId}`)
+    ).rows as { invoice_id: string | null }[]
+    expect(pack?.invoice_id).toBe(invoiceId)
+    // a second bill for the same pack is 409, a replay of the same call is the same bill
+    const twice = await call<{ data?: { code?: string } }>(
+      app,
+      accountant,
+      'POST',
+      `/warehouse/packs/${packId}/invoice`,
+      {
+        idempotencyKey: `bill-park-2-${run}`,
+        id: uuidv7(),
+        packId,
+      },
+    )
+    expect(twice.status).toBe(409)
+    expect(twice.body.data?.code).toBe('already_invoiced')
+    const replay = await call<{ item: { id: string } }>(
+      app,
+      accountant,
+      'POST',
+      `/warehouse/packs/${packId}/invoice`,
+      {
+        idempotencyKey: `bill-park-${run}`,
+        id: invoiceId,
+        packId,
+      },
+    )
+    expect(replay.body.item.id).toBe(invoiceId)
+    // the crew may never bill (BILLING_ISSUERS), and the print of the bill is queued for the worker
+    expect(
+      (
+        await call(app, driver, 'POST', `/warehouse/packs/${packId}/invoice`, {
+          idempotencyKey: `bill-park-crew-${run}`,
+          id: uuidv7(),
+          packId,
+        })
+      ).status,
+    ).toBe(403)
+    const pdf = await call<{ status: string }>(app, packer, 'GET', `/invoices/${invoiceId}/pdf`)
+    expect(pdf.body.status).toBe('queued')
+    const requests = (
+      await db.execute(
+        sql`select count(*)::int as n from outbox_events where tenant_id = ${tenantId} and event_type = 'DocumentRenderRequested' and aggregate_id = ${`invoice:${invoiceId}:a4:original`}`,
+      )
+    ).rows[0] as { n: number }
+    expect(requests.n).toBe(1)
+
+    // A second parked pack billed under an invoice id that already names a bill (the desk pressed
+    // the same documented example twice) is refused by name, and the pack stays unbilled.
+    const secondOrderId = await placeOrder([{ variantId: variantB, cases: 1 }], 'park-bill-2')
+    const secondPackId = uuidv7()
+    const secondPacked = await call<PackBody>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/orders/${secondOrderId}/pack`,
+      {
+        idempotencyKey: `pack-park-bill-2-${run}`,
+        id: secondPackId,
+        packages: 1,
+        issueInvoice: false,
+      },
+    )
+    expect(secondPacked.status).toBe(200)
+    const clash = await call<{ message: string }>(
+      app,
+      accountant,
+      'POST',
+      `/warehouse/packs/${secondPackId}/invoice`,
+      { idempotencyKey: `bill-park-clash-${run}`, id: invoiceId, packId: secondPackId },
+    )
+    expect(clash.status).toBe(409)
+    expect(clash.body.message).toBe(`invoice ${invoiceId} already exists`)
+    const [secondPack] = (
+      await db.execute(sql`select invoice_id from pack_confirmations where id = ${secondPackId}`)
+    ).rows as { invoice_id: string | null }[]
+    expect(secondPack?.invoice_id).toBeNull()
+  })
+
   it('cancels an unstarted wave and gives every held piece back', async () => {
     const parked = await placeOrder([{ variantId: variantB, cases: 1 }], 'parked')
     const held = (await balanceOf(lotB, godown)).reserved
@@ -779,6 +915,59 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(await ledgerFor(sheetId)).toHaveLength(0)
   })
 
+  it('is confirmed on the warehouse phone only after the manager approved it from the manager app', async () => {
+    // docs/22 decision 2026-09-05 (warehouse.ts fact 2b): the PIN is given in the MANAGER app.
+    const unapproved = await call<{ data?: { code?: string } }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `packer-confirm-early-${run}`,
+        countedPackages: 2,
+        challanId: uuidv7(),
+        countedVanStock: [{ lotId: lotB, qtyPcs: 12 }],
+      },
+    )
+    expect(unapproved.status).toBe(409)
+    expect(unapproved.body.data?.code).toBe('approval_required')
+    expect(await ledgerFor(sheetId)).toHaveLength(0)
+
+    const approved = await call<{ item: LoadSheetBody }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/approve`,
+      { idempotencyKey: `approve-${run}`, note: 'checked the sheet' },
+    )
+    expect(approved.status).toBe(200)
+    expect(approved.body.item.status).toBe('draft')
+    expect(approved.body.item.approvedBy).toBe(managerId)
+    expect(approved.body.item.approvedAt).not.toBeNull()
+    // The database recorded WHO and WHEN, signed by the approver's own actor id (0013 trigger).
+    const [row] = (
+      await db.execute(sql`select approved_by, approved_at from load_sheets where id = ${sheetId}`)
+    ).rows as { approved_by: string; approved_at: string }[]
+    expect(row?.approved_by).toBe(managerId)
+    expect(row?.approved_at).not.toBeNull()
+    const again = await call<{ data?: { code?: string } }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/approve`,
+      { idempotencyKey: `approve-again-${run}` },
+    )
+    expect(again.status).toBe(409)
+    expect(again.body.data?.code).toBe('already_approved')
+    expect(
+      (
+        await db.execute(
+          sql`select 1 from audit_log where entity_id = ${sheetId} and action = 'load_sheet.approve'`,
+        )
+      ).rows,
+    ).toHaveLength(1)
+  })
+
   it('refuses a count that differs from the expectation without a note', async () => {
     const res = await call<{ message: string; data?: { code: string } }>(
       app,
@@ -839,7 +1028,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(rows.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
     expect((await balanceOf(lotB, van)).on_hand).toBe(12)
     expect((await balanceOf(lotLate, van)).on_hand).toBe(18)
-    expect(await outboxTypes(sheetId)).toEqual(['LoadSheetConfirmed'])
+    expect(await outboxTypes(sheetId)).toEqual(['LoadSheetApproved', 'LoadSheetConfirmed'])
     expect(await outboxTypes(challanId)).toEqual(['DeliveryChallanIssued'])
   })
 
@@ -1198,12 +1387,12 @@ describeDb('warehouse (DATABASE_URL)', () => {
   })
 
   it('keeps the manager PIN steps away from the godown floor', async () => {
+    // The warehouse phone confirms a load-out only after the manager app approved it (the test
+    // above); it never gives the approval itself, cancels a wave or frees a hold.
     expect(
       (
-        await call(app, packer, 'POST', `/warehouse/load-sheets/${sheetId}/confirm`, {
-          idempotencyKey: `packer-confirm-${run}`,
-          countedPackages: 1,
-          challanId: uuidv7(),
+        await call(app, packer, 'POST', `/warehouse/load-sheets/${sheetId}/approve`, {
+          idempotencyKey: `packer-approve-${run}`,
         })
       ).status,
     ).toBe(403)

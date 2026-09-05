@@ -129,7 +129,10 @@ function stableUuid(seed: string): string {
  * row. Used where the published example's own id would be spent after the first Execute.
  */
 function runScopedId(ctx: { service: string; operationId: string }): string {
-  return stableUuid(`${RUN_TAG}:${ctx.service}:${ctx.operationId}:client-id`)
+  // RUN_NONCE, not RUN_TAG: the row this id creates (a wave, a pack, a load sheet, a repeat order) is
+  // spent by the first run, and its target moves between runs (the next packable order), so the same
+  // id under a new idempotency key on the second run of the day was a permanent 409.
+  return stableUuid(`${RUN_NONCE}:${ctx.service}:${ctx.operationId}:client-id`)
 }
 
 /**

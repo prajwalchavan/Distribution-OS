@@ -74,6 +74,27 @@ export class ProcurementController {
     )
   }
 
+  @Implement(contract.procurement.discrepancies.resolve)
+  resolveDiscrepancy(@OwnsReply() _reply: unknown) {
+    return implement(contract.procurement.discrepancies.resolve).handler(({ input }) =>
+      this.grn.resolveDiscrepancy(input),
+    )
+  }
+
+  @Implement(contract.procurement.supplierInvoices.dispute)
+  disputeSupplierInvoice(@OwnsReply() _reply: unknown) {
+    return implement(contract.procurement.supplierInvoices.dispute).handler(({ input }) =>
+      this.invoices.dispute(input),
+    )
+  }
+
+  @Implement(contract.procurement.supplierInvoices.cancel)
+  cancelSupplierInvoice(@OwnsReply() _reply: unknown) {
+    return implement(contract.procurement.supplierInvoices.cancel).handler(({ input }) =>
+      this.invoices.cancel(input),
+    )
+  }
+
   @Implement(contract.procurement.purchaseOrders.upsert)
   upsertPurchaseOrder(@OwnsReply() _reply: unknown) {
     return implement(contract.procurement.purchaseOrders.upsert).handler(({ input }) =>

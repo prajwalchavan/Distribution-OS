@@ -63,6 +63,7 @@ export function toReceipt(row: ReceiptRow, allocatedPaise: number): Receipt {
     bounceReason: row.bounceReason,
     bankChargesPaise: row.bankChargesPaise,
     proofObjectKey: row.proofObjectKey,
+    pdfObjectKey: row.pdfObjectKey,
     note: row.note,
     createdAt: row.createdAt.toISOString(),
   }

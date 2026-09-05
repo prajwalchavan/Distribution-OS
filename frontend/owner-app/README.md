@@ -37,39 +37,58 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/tenancy/me` | Current user, tenant and membership | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/tenancy/staff` | People who work in this distributor | owner, manager, accountant |
 | POST | `/tenancy/staff` | Add a staff member with a temporary password | owner, manager |
+| POST | `/tenancy/staff/update` | Edit a staff member's name, phone or locale | owner, manager |
 | POST | `/tenancy/staff/set-password` | Reset a staff password; they must change it at next sign-in | owner, manager |
 | POST | `/tenancy/staff/set-status` | Enable or disable a staff membership (disabling revokes their sessions) | owner, manager |
+| GET | `/tenancy/branding` | The distributor's own name, logo and footer for every screen and document | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/tenancy/settings` | Tenant settings (secret.* keys to the owner only) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenancy/settings` | Set tenant settings (owner only, audited per key) | owner |
+| GET | `/tenancy/numbering-series` | Document number series for a financial year (owner only) | owner |
+| POST | `/tenancy/numbering-series` | Set a series prefix and starting number; locked once the first number is issued | owner |
+| GET | `/tenancy/feature-flags` | Which features are switched on for this distributor | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/tenancy/feature-flags` | Switch features on or off (owner only, audited) | owner |
+| POST | `/tenancy/tenant` | Edit the legal name, GSTIN and state (owner only, audited) | owner |
+| GET | `/tenancy/audit` | Who changed what: prices, credit, approvals, settings, exports, trace reads | owner, manager, accountant |
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager, accountant |
+| POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/tenant-catalog/suppliers` | Create or update a supplier | owner, manager, accountant |
-| GET | `/tenant-catalog/costs` | Purchase costs (owner/manager/accountant only) | owner, manager, accountant |
-| POST | `/tenant-catalog/costs` | Set purchase cost (owner/manager/accountant only) | owner, manager, accountant |
+| POST | `/tenant-catalog/suppliers` | Create or update a supplier | owner, manager |
+| GET | `/tenant-catalog/costs` | Purchase costs (owner/manager/accountant read) | owner, manager, accountant |
+| POST | `/tenant-catalog/costs` | Set purchase cost (owner/manager only) | owner, manager |
+| GET | `/tenant-catalog/rep-authorisations` | Which brands a rep may sell (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenant-catalog/rep-authorisations` | Replace a rep's authorised brands (owner/manager) | owner, manager |
+| GET | `/tenant-catalog/brands` | Per-brand operating mode: fulfilment, Tally source, cash discount, claims | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenant-catalog/brands` | Set how this distributor runs a brand (owner/manager) | owner, manager |
+| GET | `/tenant-catalog/pack-configs` | Buy-side pack sizes per supplier and variant | owner, manager, accountant, warehouse |
+| POST | `/tenant-catalog/pack-configs` | Set a supplier pack size for a variant (owner/manager) | owner, manager |
 | GET | `/retailers` | Retailers of this distributor (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager, accountant |
+| POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
 | POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/beats` | Create or update a beat | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/beats` | Create or update a beat | owner, manager |
+| POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
+| GET | `/beats/assignments` | Who is on which beat on a date (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/visits` | Record a shop visit (own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/visits` | Visits by retailer / rep / period | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/pricing/price-lists` | Price lists with their rates | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/pricing/price-lists` | Create or update a price list | owner, manager, accountant |
-| POST | `/pricing/price-lists/{priceListId}/items` | Set rates on a price list (upsert per variant) | owner, manager, accountant |
+| POST | `/pricing/price-lists` | Create or update a price list | owner, manager |
+| POST | `/pricing/price-lists/{priceListId}/items` | Set rates on a price list (upsert per variant) | owner, manager |
 | GET | `/pricing/overrides` | Retailer-specific rates | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/pricing/overrides` | Set a retailer-specific rate | owner, manager, accountant |
-| GET | `/pricing/schemes` | Schemes (the single table the engine reads) | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager, accountant |
+| POST | `/pricing/overrides` | Set a retailer-specific rate | owner, manager |
+| GET | `/pricing/schemes` | Schemes (the single table the engine reads; the field and the shop get the public shape) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager, accountant |
-| GET | `/pricing/bargains` | Bargain requests | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
+| GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
+| GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
 | GET | `/inventory/sellable` | Available-to-promise stock (the only stock surface for reps and retailers) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -78,48 +97,59 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
+| GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
 | POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices` | Supplier invoices (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices/{id}` | One supplier invoice with lines and rates (back office) | owner, manager, accountant |
 | POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager, accountant |
 | POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager, accountant |
 | POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line | owner, manager, warehouse |
 | POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager, accountant |
 | GET | `/procurement/grns` | Goods receipts | owner, manager, accountant, warehouse |
 | GET | `/procurement/grns/{id}` | One GRN with lines and discrepancies | owner, manager, accountant, warehouse |
 | GET | `/procurement/discrepancies` | Short/excess/damaged findings from gate counts | owner, manager, accountant, warehouse |
+| POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
 | POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
 | POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager, accountant |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
-| POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager, accountant |
+| POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager |
 | POST | `/receipts` | Record money from a shop and allocate it to bills (desk and delivery crew) | owner, manager, accountant, delivery |
 | GET | `/receipts` | Receipts (a shop sees only its own) | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
+| GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
 | POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
-| GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, delivery, retailer |
-| GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant, delivery |
-| GET | `/receivables/credit-check` | Whether this order fits the shop's credit terms | owner, manager, accountant, delivery |
-| GET | `/receivables/ledger/{retailerId}` | A shop's statement of account with a running balance | owner, manager, accountant, delivery, retailer |
+| GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
+| GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
+| GET | `/receivables/credit-check` | Whether this order fits the shop's credit terms | owner, manager, accountant, salesperson, delivery |
+| GET | `/receivables/ledger/{retailerId}` | A shop's statement of account with a running balance | owner, manager, accountant, salesperson, delivery, retailer |
 | POST | `/receivables/statements` | Queue statements for a beat or a list of shops | owner, manager, accountant |
-| POST | `/receivables/write-offs` | Write off a bad debt (owner only) | owner |
+| POST | `/receivables/write-offs` | Write off a bad debt (owner only) | owner, manager, accountant |
 | GET | `/receivables/cash-discounts` | Cash-discount windows still open, soonest first | owner, manager, accountant |
 | GET | `/receivables/accounts` | Chart of accounts with balances (trial balance) | owner, manager, accountant |
 | GET | `/receivables/journal` | The day book: journal entries with their lines (back office) | owner, manager, accountant |
 | POST | `/receivables/ageing/rebuild` | Recompute the outstanding summary and the ageing snapshot (owner only) | owner |
+| GET | `/receivables/ageing/history` | Outstanding and ageing buckets over time, from the nightly snapshots | owner, manager, accountant |
 | GET | `/billing/queue` | Orders waiting to be billed, oldest first | owner, manager, accountant, warehouse |
+| POST | `/warehouse/packs/{packId}/invoice` | Bill a pack that was confirmed without an invoice (stock has already left) | owner, manager, accountant, warehouse |
 | POST | `/invoices/van-sale` | Bill a sale off the van, from vehicle stock and the tenant series | owner, manager, delivery |
 | POST | `/invoices/brand-dms` | Store a brand DMS's own invoice verbatim; never a second legal document | owner, manager, accountant |
 | POST | `/invoices/{id}/cancel` | Cancel before dispatch, keeping the number; stock and money come back | owner, manager |
@@ -149,11 +179,17 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
-| POST | `/warehouse/load-sheets/{id}/confirm` | Check out: count, move godown → vehicle, issue the challan, dispatch the orders | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
 | POST | `/warehouse/challans/{id}/ewb` | Record the e-way bill number typed from the government portal | owner, manager, accountant |
 | GET | `/warehouse/reservations` | What the godown is holding, and for which order | owner, manager, warehouse |
 | POST | `/warehouse/reservations/release` | Free the pending holds of an order that will not be picked | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/errors` | Rejected offline writes for the "Needs attention" tray (own rows for field roles) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |

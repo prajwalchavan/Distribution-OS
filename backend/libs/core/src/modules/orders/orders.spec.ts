@@ -512,6 +512,72 @@ describeDb('orders (DATABASE_URL)', () => {
     ).toBe(403)
   })
 
+  it('lets the shop SUBMIT its own draft: same re-pricing, same gates, auto-confirm under the system role', async () => {
+    // docs/22 §4 R1 → S5 and docs/23 §8.15: the single most important retailer gap.
+    const id = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `create-shop3-${run}`,
+      id,
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 2, enteredUnit: 'piece' }],
+    })
+    expect(drafted.status).toBe(200)
+    const submitted = await call<{
+      item: Detail & { transitions: { event: string; actorId: string }[] }
+    }>(app, shop, 'POST', `/orders/${id}/submit`, { idempotencyKey: `submit-shop-${run}` })
+    expect(submitted.status).toBe(200)
+    // `indicate` mode, inside every limit: confirmed on the spot, exactly as a rep's submit would be
+    expect(submitted.body.item.state).toBe('confirmed')
+    expect(submitted.body.item.orderNo).toMatch(/^SO-\d{4}$/)
+    expect(submitted.body.item.approvalFlags).toEqual([])
+    // the audit rows name the shopkeeper, not "system"
+    expect(submitted.body.item.transitions.map((t) => t.event)).toEqual(['submit', 'confirm'])
+    expect(submitted.body.item.transitions.every((t) => t.actorId === shopUserId)).toBe(true)
+    // the pieces are held, and the escalation did not leak past the call
+    const held = await db.execute(
+      sql`select coalesce(sum(qty_pcs), 0)::int as held from reservations r
+            join sales_order_lines l on l.id = r.order_line_id
+           where l.order_id = ${id} and r.state = 'pending'`,
+    )
+    expect((held.rows[0] as { held: number }).held).toBe(2)
+    expect((await call(app, shop, 'GET', '/approvals', { status: 'pending' })).status).toBe(403)
+    // another shop's draft is never the caller's to submit
+    expect(
+      (
+        await call(app, shop, 'POST', `/orders/${strictOrder}/submit`, {
+          idempotencyKey: `submit-shop-other-${run}`,
+        })
+      ).status,
+    ).not.toBe(200)
+    // and the "pending undelivered" filter finds it, the states[] filter too
+    const open = await call<{ items: { id: string }[] }>(app, shop, 'GET', '/orders', {
+      openOnly: true,
+    })
+    expect(open.body.items.map((o) => o.id)).toContain(id)
+    const byStates = await call<{ items: { id: string; state: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/orders',
+      {
+        'states[0]': 'confirmed',
+        'states[1]': 'packed',
+        retailerId: retailerA,
+      },
+    )
+    expect(byStates.body.items.map((o) => o.id)).toContain(id)
+    expect(byStates.body.items.every((o) => o.state === 'confirmed' || o.state === 'packed')).toBe(
+      true,
+    )
+    // give the two pieces back so the stock arithmetic of the later tests is untouched
+    const released = await call<{ item: Detail }>(app, owner, 'POST', `/orders/${id}/cancel`, {
+      idempotencyKey: `cancel-shop3-${run}`,
+      reason: 'test cleanup',
+    })
+    expect(released.body.item.state).toBe('cancelled')
+  })
+
   it('refuses an illegal transition and a request without tenant context', async () => {
     const bad = await call<{ message: string }>(
       app,

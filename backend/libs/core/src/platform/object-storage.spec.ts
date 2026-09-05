@@ -67,10 +67,39 @@ describe('object storage — local driver', () => {
     )
   })
 
-  it('putUrl is inline with no URL, because there is nothing to pre-sign locally', async () => {
+  it('putUrl pre-signs a PUT to the service /storage route, so a local upload works like S3', async () => {
     const storage = createObjectStorage(env)
     const result = await storage.putUrl(key(), { mimeType: 'application/pdf', bytes: 1024 })
-    expect(result).toMatchObject({ url: null, method: null, inline: true, headers: {} })
+    expect(result).toMatchObject({
+      method: 'PUT',
+      inline: false,
+      headers: { 'content-type': 'application/pdf' },
+    })
+    expect(result.url).toMatch(/^\/storage\/tenant\/.*\?expires=\d+&signature=[0-9a-f]{64}$/)
+    const put = new URL(`http://x${result.url ?? ''}`)
+    const putKey = decodeURIComponent(put.pathname.replace(/^\/storage\//, ''))
+    expect(
+      verifyLocalObjectUrl(
+        {
+          key: putKey,
+          expires: Number(put.searchParams.get('expires')),
+          signature: put.searchParams.get('signature') ?? '',
+          method: 'PUT',
+        },
+        env,
+      ),
+    ).toBe(true)
+    // A PUT signature never opens the file for reading, and vice versa.
+    expect(
+      verifyLocalObjectUrl(
+        {
+          key: putKey,
+          expires: Number(put.searchParams.get('expires')),
+          signature: put.searchParams.get('signature') ?? '',
+        },
+        env,
+      ),
+    ).toBe(false)
     expect(Date.parse(result.expiresAt)).toBeGreaterThan(Date.now())
   })
 
@@ -177,7 +206,7 @@ describe('object storage — key and content guards', () => {
     })
     await expect(
       storage.putUrl(good, { mimeType: 'image/jpeg', bytes: limit }),
-    ).resolves.toMatchObject({ inline: true })
+    ).resolves.toMatchObject({ inline: false, method: 'PUT' })
   })
 })
 

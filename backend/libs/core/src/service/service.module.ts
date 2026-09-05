@@ -1,6 +1,7 @@
 import { Global, Module, type DynamicModule } from '@nestjs/common'
 import { SERVICE_INFO, type ServiceDefinition } from './define.js'
 import { DocsController } from './docs.controller.js'
+import { StorageController } from './storage.controller.js'
 import { SwaggerController } from './swagger.controller.js'
 
 /** Makes the service definition injectable everywhere (TenantGuard reads the allowed roles; the docs controllers the contract subset). */
@@ -11,7 +12,7 @@ export class ServiceModule {
     return {
       module: ServiceModule,
       providers: [{ provide: SERVICE_INFO, useValue: def }],
-      controllers: [DocsController, SwaggerController],
+      controllers: [DocsController, SwaggerController, StorageController],
       exports: [SERVICE_INFO],
     }
   }

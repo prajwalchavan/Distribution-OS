@@ -174,6 +174,14 @@ export const packConfirmations = pgTable(
 /**
  * What goes onto a vehicle: packed orders plus van-sale stock, by lot. Confirming the sheet posts the
  * `transfer_out`/`transfer_in` pair godown → vehicle, issues the Rule 55 challan and dispatches the orders.
+ *
+ * THE MANAGER'S PIN IS GIVEN IN THE MANAGER APP (founder, 2026-09-05, docs/22 §8): the warehouse phone
+ * builds the sheet and counts the cartons, the manager approves it from their own device, and only then
+ * does the warehouse confirm. That approval is `approved_by` + `approved_at`, and
+ * `dos_load_sheet_approval_guard()` (migration 0013) is what makes it binding: a sheet cannot reach
+ * `confirmed` without both, only an owner or manager may set them (and only to themselves), and a
+ * warehouse actor who tries to write them is refused. An owner or manager confirming directly is its
+ * own approval — the trigger fills the two columns from the actor — so the desk path stays one step.
  */
 export const loadSheets = pgTable(
   'load_sheets',
@@ -208,6 +216,9 @@ export const loadSheets = pgTable(
     /** A count that differs from the expectation needs a reason AND an owner/manager token. */
     varianceNote: text('variance_note'),
     pinVerifiedBy: text('pin_verified_by').references(() => users.id),
+    /** The manager's approval from the manager app; required before `status` may become `confirmed`. */
+    approvedBy: text('approved_by').references(() => users.id),
+    approvedAt: tz('approved_at'),
     /** Rule 55 delivery challan value and the e-way bill recorded when the load crosses the threshold (docs/17 A8). */
     loadValuePaise: paise('load_value_paise'),
     ewbRequired: boolean('ewb_required').notNull().default(false),

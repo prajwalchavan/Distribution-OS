@@ -15,6 +15,12 @@ import {
 /**
  * Retailers (ADR 0006): the distributor's private record of a shop, its beats, PJP visits and the link to the
  * global retailer identity. Credit, tier and code are NEVER visible to or writable by the retailer role.
+ *
+ * WHICH SERVICES MOUNT `retailers`: all six. The shop itself reaches `list`/`get` (its own rows, public
+ * shape) and `updateOwn`; the field reaches the shops and beats it serves; beats are CREATED and
+ * ASSIGNED by the desk alone (`beats.upsert`/`beats.assign` are ONBOARDERS — a rep, a loader or a driver
+ * could otherwise create beats and assign anyone, docs/23 §8.14), while `beats.assignments.list` tells
+ * a rep which beat is his today (a salesperson is forced to `userId = self`).
  */
 
 export const RetailerTierSchema = z.enum(['A', 'B', 'C', 'D'])
@@ -135,7 +141,23 @@ export const UpsertRetailerInput = MutationBase.extend({
 })
 export const UpsertRetailerOutput = z.object({ item: RetailerSchema })
 
-/** Owner/manager/accountant only; every change is written to audit_log. */
+/**
+ * What a shop may change about itself from the retailer app (R11): contact and GST details, never the
+ * name of record, the beat, the tier or a paisa of credit. `id` is the shop (a login may be linked to
+ * more than one shop of the same distributor); a shop not linked to the caller is NOT_FOUND. Omitted
+ * fields keep their value. Audited (`retailer.update_own`).
+ */
+export const UpdateOwnRetailerInput = MutationBase.extend({
+  id: IdSchema,
+  ownerName: z.string().trim().max(120).nullable().optional(),
+  altPhone: PhoneSchema.nullable().optional(),
+  address: AddressSchema.nullable().optional(),
+  gstin: GstinSchema.nullable().optional(),
+  gstRegType: GstRegTypeSchema.optional(),
+})
+export const UpdateOwnRetailerOutput = z.object({ item: RetailerPublicSchema })
+
+/** Owner/manager only (the accountant sets no credit limit, docs/22 2026-09-05); every change is written to audit_log. */
 export const SetCreditInput = MutationBase.extend({
   id: IdSchema,
   tier: RetailerTierSchema,
@@ -207,6 +229,27 @@ export const AssignBeatInput = MutationBase.extend({
   validTo: z.iso.date().nullable().optional(),
 })
 export const AssignBeatOutput = z.object({ item: BeatAssignmentSchema })
+
+/** An assignment with the names the beat screen and the rep's home need, so no second call. */
+export const BeatAssignmentViewSchema = BeatAssignmentSchema.extend({
+  beatName: z.string(),
+  userName: z.string(),
+})
+export type BeatAssignmentView = z.infer<typeof BeatAssignmentViewSchema>
+
+/**
+ * Who is on which beat. `on` keeps the assignments valid on that IST date (default: today); a
+ * salesperson always reads its own (`userId` is forced to the actor), the desk anyone's.
+ */
+export const BeatAssignmentsListInput = z.object({
+  beatId: IdSchema.optional(),
+  userId: IdSchema.optional(),
+  on: z.iso.date().optional(),
+  /** False lists history too: every assignment whatever its validity window. */
+  currentOnly: QueryBoolSchema.default(true),
+  limit: QueryIntSchema.min(1).max(500).default(100),
+})
+export const BeatAssignmentsListOutput = z.object({ items: z.array(BeatAssignmentViewSchema) })
 
 export const VisitSchema = z.object({
   id: IdSchema,
@@ -289,6 +332,14 @@ export const retailersContract = {
     })
     .input(LinkIdentityInput)
     .output(LinkIdentityOutput),
+  updateOwn: oc
+    .route({
+      method: 'POST',
+      path: '/retailers/me',
+      summary: 'The shop edits its own contact and GST details (never credit, tier or beat)',
+    })
+    .input(UpdateOwnRetailerInput)
+    .output(UpdateOwnRetailerOutput),
   beats: {
     list: oc
       .route({ method: 'GET', path: '/beats', summary: 'Beats of this distributor' })
@@ -306,6 +357,16 @@ export const retailersContract = {
       })
       .input(AssignBeatInput)
       .output(AssignBeatOutput),
+    assignments: {
+      list: oc
+        .route({
+          method: 'GET',
+          path: '/beats/assignments',
+          summary: 'Who is on which beat on a date (a salesperson sees only its own)',
+        })
+        .input(BeatAssignmentsListInput)
+        .output(BeatAssignmentsListOutput),
+    },
   },
   visits: {
     record: oc

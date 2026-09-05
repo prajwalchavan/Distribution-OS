@@ -11,6 +11,7 @@ import type {
 import { approvals, withTenant, type Db } from '@dos/db'
 import {
   BACK_OFFICE,
+  MANAGEMENT,
   currentTenant,
   DB,
   idempotent,
@@ -62,8 +63,9 @@ export class ApprovalsService {
     })
   }
 
+  /** Owner and manager decide; the accountant reads the queue and decides nothing (docs/22 2026-09-05). */
   async decide(input: DecideIn): Promise<DecideOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

@@ -26,3 +26,4 @@ export {
 } from './modules/billing/index.js'
 export { WarehouseModule, LoadSheetsService } from './modules/warehouse/index.js'
 export { SyncModule, SyncRegistry, SyncRejection } from './modules/sync/index.js'
+export { FilesModule, FilesService } from './modules/files/index.js'

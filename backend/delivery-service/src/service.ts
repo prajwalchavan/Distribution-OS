@@ -11,6 +11,7 @@ import {
   BillingModule,
   WarehouseModule,
   SyncModule,
+  FilesModule,
 } from '@dos/core'
 
 /** The delivery crew app: trips, stops, proof of delivery, collections, van sales from vehicle stock, GPS. Trip endpoints arrive with the delivery module. */
@@ -31,6 +32,7 @@ export const service = defineService({
     BillingModule,
     WarehouseModule,
     SyncModule,
+    FilesModule,
   ],
   contractKeys: [
     'health',
@@ -45,5 +47,6 @@ export const service = defineService({
     'billing',
     'warehouse',
     'sync',
+    'files',
   ],
 })

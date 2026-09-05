@@ -107,6 +107,13 @@ export class WarehouseController {
     )
   }
 
+  @Implement(contract.warehouse.loadSheets.approve)
+  approveLoadSheet(@OwnsReply() _reply: unknown) {
+    return implement(contract.warehouse.loadSheets.approve).handler(({ input }) =>
+      this.loadSheets.approve(input),
+    )
+  }
+
   @Implement(contract.warehouse.loadSheets.confirm)
   confirmLoadSheet(@OwnsReply() _reply: unknown) {
     return implement(contract.warehouse.loadSheets.confirm).handler(({ input }) =>
@@ -132,6 +139,13 @@ export class WarehouseController {
   getChallan(@OwnsReply() _reply: unknown) {
     return implement(contract.warehouse.challans.get).handler(({ input }) =>
       this.loadSheets.getChallan(input),
+    )
+  }
+
+  @Implement(contract.warehouse.challans.pdf)
+  challanPdf(@OwnsReply() _reply: unknown) {
+    return implement(contract.warehouse.challans.pdf).handler(({ input }) =>
+      this.loadSheets.challanPdf(input),
     )
   }
 

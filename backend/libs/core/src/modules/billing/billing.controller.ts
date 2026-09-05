@@ -33,6 +33,13 @@ export class BillingController {
   // leave the godown twice. `BillingService.issueForPack` stays — it is the DOCUMENT half, and warehouse
   // is its only caller.
 
+  @Implement(contract.billing.invoices.issueForPack)
+  issueForPack(@OwnsReply() _reply: unknown) {
+    return implement(contract.billing.invoices.issueForPack).handler(({ input }) =>
+      this.invoices.issueParkedPack(input),
+    )
+  }
+
   @Implement(contract.billing.invoices.issueVanSale)
   issueVanSale(@OwnsReply() _reply: unknown) {
     return implement(contract.billing.invoices.issueVanSale).handler(({ input }) =>

@@ -1,6 +1,17 @@
 # Build log — where we are, what is next
 
-## RESUME HERE (updated 2026-09-05 09:30 IST, session 3)
+## RESUME HERE (updated 2026-09-05 10:40 IST, session 3)
+
+**MODULE 3b DONE — platform-gaps (2026-09-05 10:40 IST), verified by the independent gate; NEXT: delivery (step 4 of 10) is starting.**
+The gate ran the full chain on the founder's database: `pnpm install` (lockfile unchanged), `turbo run build typecheck lint test --force`
+twice (48/48 tasks, **1254 tests**, both runs), `docs:readme:check` + `format:check` clean, `pnpm smoke` **844 calls · 0 BROKEN**, then
+`pnpm smoke --destructive` (844 · 0 BROKEN), `pnpm db:seed`, `pnpm smoke` again (844 · 0 BROKEN), every service `/health` + `/docs/openapi.json`
+checked against coordination §6 (`files` on owner/manager/warehouse/delivery/retailer, `receivables` + `billing` on sales, none on auth), and
+`pnpm db:seed` twice with identical row counts across all 126 tables. Four defects were found and fixed by the gate (details in the status row):
+a 500 on a repeated write-off id (now 409), two dead-end Swagger examples (`allocations.remove`, `invoices.cancel` pointed at made-up rows),
+a parked-pack example whose fixed invoice id collided after one press, and the delivery seed double-paying bills the receivables seed had
+already settled (which is what made `pnpm db:seed` fail). Delivery's slice (contract `delivery.ts`, migrations 0014/0015, seed) is in the
+working tree, its `modules/delivery` is NOT built yet — that is the next module. **Commit the snapshot before starting it.**
 
 **LAYOUT CHOSEN (2026-09-05): A Ledger.** Frontend visual work is unblocked; apps still start after the backend is complete.
 
@@ -129,6 +140,43 @@ in chat on 2026-09-04 23:20. Nothing is blocked on them: assumptions are recorde
 - Open item carried to the platform-gaps slice: a cancelled pack invoice cannot be re-billed (`pack_confirmations` is unique per order);
   `billing.invoices.issueForPack` for a parked pack is in docs/23 §8.2.
 
+**MODULE 3b OF 10 DONE — platform-gaps (2026-09-05 10:40 IST), verified independently by the gate agent:**
+
+- What landed: the 38 procedures docs/23 §8.1–8.3 and §8.11–8.19 asked for, plus a NEW `files` module (`uploadUrl` STAFF per domain,
+  `readUrl` ANY_MEMBER following the owning row's RLS; the local driver now pre-signs a PUT to `/storage/{key}` on every service so an upload
+  on one Mac is the S3 flow), the dependency-free PDF renderer (`@dos/core/documents` + worker job `documents.pdf.render`: invoice A4/A5/thermal
+  with three copies, credit note, Rule 55 challan, receipt; white-labelled from `tenant_settings`; every `*.pdf` procedure answers `ready` +
+  signed URL once rendered — proven by the gate: a shop's `invoices.pdf` on :3006 serves `application/pdf`, another shop's `files.readUrl` on the
+  same key is 403), tenancy settings/branding/numbering/feature flags/audit/staff.update, auth forgot/reset password (Ed25519 token bound to
+  the password hash, no table), `sync.errors.list` + `sync.pull`, receivables for the salesperson (dues + credit check of own-beat shops,
+  never a receipt), `billing.invoices.issueForPack` for a parked pack, `warehouse.loadSheets.approve` (manager app) + `confirm` for the
+  warehouse phone, retailer `orders.submit` / `updateOwn` / `schemes.list` / `bargains.list`, cycle counts, discrepancies.resolve, supplier
+  invoice dispute/cancel, rep authorisations, tenant brands, pack configs. Accountant narrowed to MONEY_DESK + reads. Migrations 0012/0013.
+- Gate verification: 48/48 turbo tasks forced, **1254 tests** (two consecutive runs), `docs:readme:check`, `format:check`; `pnpm smoke`
+  **844 calls · 0 BROKEN**; `pnpm smoke --destructive` 844 · 0 BROKEN → `pnpm db:seed` → `pnpm smoke` 844 · 0 BROKEN; `pnpm db:seed` twice
+  = identical counts on all 126 tables; every service's `/health` and `/docs/openapi.json` match coordination §6.
+- Defects found by the gate and fixed (each with a test so it cannot return):
+  1. `receivables.writeOffs.create` answered **500** when a second desk sent an id that already existed (the documented example pressed on
+     the owner and then the manager service): now a 409 `write-off … already exists`, spec case added; the example walks free id slots per
+     service lane like orders do.
+  2. `billing.invoices.issueForPack` under an invoice id that already names a bill answered the misleading "already billed, or document
+     number … booked" 409: now `invoice … already exists` (constraint-named), warehouse spec extended; the example walks free invoice-id slots
+     and prefers a parked pack that actually moved stock — the smoke now exercises the happy path (both parked packs billed 200).
+  3. Swagger examples for `allocations.remove` and `invoices.cancel` carried the sampler's made-up uuid (`{id}` and `restockLocationId`), so
+     "Try it out" was a permanent 404: `examples.ts` now reads a removable allocation and a real invoice, and returns goods to the real
+     godown; `examples.spec` asserts all three.
+  4. `pnpm db:seed` FAILED (`retailer_outstanding_summary nets to … but the AR account balance is …`): the in-flight delivery seed booked a
+     full doorstep payment for bills the receivables seed had already settled on this database (INV/0023, 0027, 0031, 0067 were allocated
+     twice). `seed-demo/delivery.ts` now collects at the door only where no other money is against the bill (its draw sequence unchanged, so
+     re-seeding stays a no-op) and numbers doorstep receipts by bill, not by position. The four double-booked receipts on the founder's
+     database were reversed THROUGH THE PRODUCT (`receipts.reverse` as the owner: mirror receipts, append-only journal) — nothing was
+     deleted; their `collections` rows and the settlements' UPI totals still show the money the crew reported.
+- Carried forward (not this slice's): the reset-token delivery channel (notifications), the outbox relay must register `handlePdfRenderJob`
+  when docint builds the registry (today the worker polls `DocumentRenderRequested` itself), JPEG-only logos, `file_objects.status` flips to
+  `uploaded` only on the local driver (S3 needs a bucket notification or `files.confirmUpload`), and `warehouse.packs.confirm` on an order that
+  holds no stock records a 100 % short pack that can never be billed (`issueForPack` refuses "moved no stock") — the seed's SO-0116/0117/0119
+  are confirmed without reservations; decide whether a pack with nothing held should be refused (docs/plans/00-coordination.md §7).
+
 ## Earlier resume notes (session 3, 22:10 IST)
 
 1. `brew services list | grep postgresql@17` must say `started`. Node 24: `export PATH=/opt/homebrew/bin:$PATH; eval "$(fnm env)"; fnm use 24`.
@@ -197,18 +245,18 @@ Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `d
 
 ## Status by module
 
-| Module                                                                                                  | Backend                                                 | App screens      |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------- |
-| platform (tenancy, idempotency, sync, outbox, retention, storage)                                       | ✅ verified                                             | after backend    |
-| auth (username + password, tokens, permission matrix)                                                   | ✅ verified (2026-09-04)                                | after backend    |
-| catalog + tenant-catalog · retailers · pricing · inventory · procurement · orders                       | ✅ verified                                             | after backend    |
-| 1 receivables                                                                                           | ✅ verified (2026-09-05)                                | after backend    |
-| 2 billing                                                                                               | ✅ verified (2026-09-05)                                | after backend    |
-| 3 warehouse                                                                                             | ✅ verified (2026-09-05, 962 tests, smoke 610/0 broken) | after backend    |
-| 3b platform gaps (docs/23 in built modules, files + PDF, accountant scope, manager load-sheet approval) | 🔄 chain                                                | after backend    |
-| 4 delivery · 5 docint · 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives       | ⏳ chained, one at a time                               | after backend    |
-| 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                         | —                |
-| six apps (layout A Ledger, design system being finalised)                                               | —                                                       | ⏳ after backend |
+| Module                                                                                                  | Backend                                                  | App screens      |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------- |
+| platform (tenancy, idempotency, sync, outbox, retention, storage)                                       | ✅ verified                                              | after backend    |
+| auth (username + password, tokens, permission matrix)                                                   | ✅ verified (2026-09-04)                                 | after backend    |
+| catalog + tenant-catalog · retailers · pricing · inventory · procurement · orders                       | ✅ verified                                              | after backend    |
+| 1 receivables                                                                                           | ✅ verified (2026-09-05)                                 | after backend    |
+| 2 billing                                                                                               | ✅ verified (2026-09-05)                                 | after backend    |
+| 3 warehouse                                                                                             | ✅ verified (2026-09-05, 962 tests, smoke 610/0 broken)  | after backend    |
+| 3b platform gaps (docs/23 in built modules, files + PDF, accountant scope, manager load-sheet approval) | ✅ verified (2026-09-05, 1254 tests, smoke 844/0 broken) | after backend    |
+| 4 delivery · 5 docint · 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives       | ⏳ chained, one at a time                                | after backend    |
+| 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                          | —                |
+| six apps (layout A Ledger, design system being finalised)                                               | —                                                        | ⏳ after backend |
 
 ## Known gaps to fix in the next schema regeneration (0002 is still local-only)
 

@@ -603,10 +603,27 @@ as settings rows — the same `tenancy.settings.*` procedures must cover them.
 
 ## 8. Gaps by backend module
 
+**Status (platform-gaps slice, 2026-09-05).** Every item in §8.1–8.3 and §8.11–8.19 is **DONE** on the
+backend: contract + permission row, handler in `@dos/core`, spec, demo data, README and `pnpm smoke` at 0 BROKEN
+(844 calls). Each block below opens with a DONE line naming the procedures the apps call; the original gap text is
+kept underneath as the record of why. Items in §8.4–8.10 belong to the unbuilt modules (delivery, docint,
+integrations, claims, notifications, reporting, incentives) and are unchanged. The renderer of §8.20 item 4 is
+built (`documents.pdf.render` in `backend/worker`, `@dos/core/documents`); §8.20 items 1 and 2 were decided by
+the founder on 2026-09-05 (docs/22 §8) and are implemented; item 3 is still the founder's; item 5 is served by
+`sync.pull` until PowerSync lands.
+
 Format: `proposed procedure` — route — input → output — screens — why. **planned in …** means no gap. Field gaps are additions to
 an existing shape. Counts at the end of each block are MISSING items (procedures + field gaps + permission mismatches).
 
-### 8.1 receivables (built) — 5
+### 8.1 receivables (built) — 5 · DONE
+
+- **DONE:** `receivables.ageing.history` (GET `/receivables/ageing/history`, BACK_OFFICE; day ≤ 92 / week ≤ 53 / month ≤ 24
+  points from `ageing_snapshots`, 400 `window_too_wide`); `OutstandingListOutput.totals.buckets` (summed over every
+  matching row); `receivables.outstanding.get` / `ledger.get` (DUES_READERS: + salesperson, scoped to the shops on its
+  own current beats) and `receivables.creditCheck` (CREDIT_CHECKERS: + salesperson, same scope); `receivables` +
+  `billing` mounted on sales-service (reads only); `receivables.receipts.document` (GET `/receipts/{id}/document`,
+  MONEY_READERS, `a5` | `thermal80`, queued → ready) + `ReceiptGetOutput.seller`; `delivery` dropped from
+  `receivables.outstanding.list` (now BACK_OFFICE). Write-offs are MONEY_DESK (owner, manager, accountant).
 
 - `receivables.ageing.history` — GET `/receivables/ageing/history` — `{ from, to, grain: day|week|month, beatId?, retailerId? }` →
   `{ points: [{ asOf, outstandingPaise, overduePaise, openBills, buckets }] }` — O2, O10 — `ageing_snapshots` is written nightly
@@ -621,7 +638,18 @@ an existing shape. Counts at the end of each block are MISSING items (procedures
   (docs/22 §4 D6) and has no document or seller identity today.
 - permission: drop `delivery` from `receivables.outstanding.list` — D3 — the crew needs one shop's dues, not the tenant register.
 
-### 8.2 billing (built) — 3
+### 8.2 billing (built) — 3 · DONE
+
+- **DONE:** `billing.invoices.issueForPack` (POST `/warehouse/packs/{packId}/invoice`, BILLING_ISSUERS; rebuilds the
+  line × lot split from the pack's `stock_ledger` rows, calls the same `BillingService.issueForPack`, moves no stock,
+  409 `already_invoiced`); the **PDF renderer**: `backend/worker/src/jobs/pdf-render.ts` drains
+  `DocumentRenderRequested` outbox rows every minute (and on a direct pg-boss send) through
+  `@dos/core/documents` `renderDocument()` — invoice (A4/A5 + 80 mm thermal, original/duplicate/triplicate), credit
+  note, delivery challan, receipt (A5 + thermal), white-labelled from `tenant_settings`, written to
+  `tenant/{tenantId}/documents/{kind}/{id}.pdf`, recorded on `pdf_object_key` (canonical) and in `file_objects`;
+  every `*.pdf` / `receipts.document` answers `ready` + signed URL once rendered; the canonical render is queued at
+  issue (invoice, credit note, challan, receipt). `billing` mounted on sales-service. `CreditNoteSchema.pdfObjectKey`
+  added so a rendered note is reachable through `files.readUrl`.
 
 - `billing.invoices.issueForPack` — POST `/warehouse/packs/{packId}/invoice` — `{ id, packId, invoiceDate?, deviceId? }` →
   `{ item: InvoiceDetail }` — M6, W6 — a pack confirmed with `issueInvoice: false` lands in `packs.list?invoiced=false` and
@@ -633,7 +661,14 @@ an existing shape. Counts at the end of each block are MISSING items (procedures
 - wiring: mount `billing` on sales-service (reads only; every write refuses the salesperson in PERMISSIONS) as billing.ts §"which
   services mount" already states — S2, S12. (Warehouse-service already mounts it in the in-flight slice.)
 
-### 8.3 warehouse (in flight) — 2
+### 8.3 warehouse (built) — 2 · DONE
+
+- **DONE:** `warehouse.challans.pdf` (GET `/warehouse/challans/{id}/pdf`, STOCK_VIEWERS, queued → ready);
+  the manager-PIN decision (docs/22 2026-09-05): `warehouse.loadSheets.approve` (POST
+  `/warehouse/load-sheets/{id}/approve`, PIN_HOLDERS = owner, manager — records `approvedBy`/`approvedAt`, audited,
+  409 `already_approved`) and `warehouse.loadSheets.confirm` re-permissioned to STOCK_KEEPERS (the warehouse phone),
+  refusing an unapproved sheet with 409 `approval_required`; a count variance records `pinVerifiedBy = approvedBy`.
+  `auth.stepUp` is not built. `warehouse` key mounted on owner, manager, warehouse, delivery.
 
 - (done in the working tree, verify at commit) `WarehouseModule` + key on warehouse-, owner-, manager-, delivery-service per
   coordination §6 — W1–W7, W11, M5–M7, O5, O15, D1.
@@ -695,7 +730,15 @@ invoicedPaise, orders }] }` — O6 row sparkline, S2 shop card — `retailer_pur
 
 - Covered: S9, D12 (`progress.mine`), O20, M21.
 
-### 8.11 sync (built) — 3
+### 8.11 sync (built) — 3 · DONE (2 of 3; handlers pending)
+
+- **DONE:** `sync.errors.list` (GET `/sync/errors`, STAFF; a field role reads its own rows, the desk everyone's;
+  `deviceId`, `since`, `unresolvedOnly`, cursor) and `sync.pull` (GET `/sync/pull`, STAFF; every table registered
+  for the role via `SyncRegistry.registerPull`, rows since an opaque cursor with a 5 s overlap, `hasMore` + cursor;
+  registered pulls: `retailers` (a rep: shops of its current beats), `beats`, `beat_assignments`, `visits`,
+  `price_lists`, `price_list_items`, `schemes` (public shape off the back office), `retailer_price_overrides`,
+  `sales_orders` / `sales_order_lines` (a rep: own, 90 days), `tenant_products`). NOT done: upload handlers for
+  `visits`, `bargain_requests`, `retailers`, `grn_lines` — still the owning modules' work.
 
 - `sync.errors.list` — GET `/sync/errors` — `{ deviceId?, since?, limit, cursor }` → `{ items: SyncRejection + createdAt +
 resolved }` — S5, D10 — rejections are durable in `sync_errors` and unreadable; the "Needs attention" tray has no backend until
@@ -708,7 +751,14 @@ cursor }` — S1–S3, D1 — no delta download exists; without PowerSync every 
   S7, W3 — only `sales_orders`, `sales_order_lines`, `receipts`, `allocations`, `pick_lines` have handlers today; delivery's six
   are planned.
 
-### 8.12 auth (built) — 3
+### 8.12 auth (built) — 3 · DONE (2 of 3 + field)
+
+- **DONE:** `auth.forgotPassword` (always `ok`; rate-limited 5/hour per username and per IP on `otp_rate_limits`) and
+  `auth.resetPassword` (a compact Ed25519-signed token bound to the current password hash — single use without a
+  table — 30 min; every session revoked); the token's DELIVERY CHANNEL is the notifications module's (outside
+  production it is written to the auth-service log). `AuthTenantSchema` / `MembershipSummarySchema` carry
+  `displayName` + `logoUrl` (signed, 24 h). NOT built: `auth.loginWithLink` (future, founder) and `auth.stepUp`
+  (superseded by the manager-app decision).
 
 - `auth.forgotPassword` / `auth.resetPassword` — POST `/auth/forgot-password`, `/auth/reset-password` — `{ username }` →
   `{ ok }` / `{ token, newPassword }` → `{ ok }` — X1, R1 — no self-service reset; a retailer has no owner to call. Channel is
@@ -720,7 +770,18 @@ cursor }` — S1–S3, D1 — no delta download exists; without PowerSync every 
   today. Skip if load-out confirms in the manager app.
 - field: `AuthTenantSchema` and `MembershipSummarySchema` gain `displayName`, `logoUrl` — X1, R2.
 
-### 8.13 tenancy + platform files (built) — 10
+### 8.13 tenancy + platform files (built) — 10 · DONE
+
+- **DONE:** `tenancy.branding.get` (ANY_MEMBER incl. retailer, service-mediated), `tenancy.settings.get` (STAFF, never
+  `secret.*` to a non-owner) / `tenancy.settings.set` (OWNER_ONLY, one `audit_log` row per key, secrets redacted in
+  the trail), `files.uploadUrl` (STAFF + the per-domain table: logo owner; pod delivery/owner/manager; expense +
+  import desk; claim owner/manager; damage warehouse/delivery/owner/manager; registered in `file_objects`) and
+  `files.readUrl` (ANY_MEMBER; per-domain readers, document domains follow the owning row's RLS), both over the
+  object-storage platform — the local driver now pre-signs a PUT to `/storage/{key}` on every service, so an upload
+  works on one Mac exactly as against S3; `tenancy.numbering.list` / `upsert` (OWNER_ONLY; `lockedAfterFirstIssue`,
+  409 `series_locked`, database guard); `tenancy.featureFlags.list` (ANY_MEMBER) / `set` (OWNER_ONLY, audited);
+  `tenancy.tenant.update` (OWNER_ONLY, audited); `tenancy.audit.list` (BACK_OFFICE, keyset by time, ≤ 92 days);
+  `tenancy.staff.update` (ONBOARDERS, audited).
 
 - `tenancy.branding.get` — GET `/tenancy/branding` — none → `SellerBrandingSchema` (+ `logoUrl` signed, 24 h) — X3 on all six
   apps, D2 notification text, R2 — the only branding today is inside a document; ANY_MEMBER incl. retailer, service-mediated.
@@ -748,7 +809,12 @@ startingNo, allocationMode }` → `{ items: [{ …, nextNo, lockedAfterFirstIssu
 - `tenancy.staff.update` — POST `/tenancy/staff/update` — `{ idempotencyKey, userId, name?, phone?, locale? }` → `{ ok }`,
   ONBOARDERS — O7 — staff can be created, disabled and reset, not edited.
 
-### 8.14 retailers (built) — 3
+### 8.14 retailers (built) — 3 · DONE
+
+- **DONE:** `retailers.beats.assignments.list` (GET `/beats/assignments`, STAFF; a salesperson forced to self;
+  `on`, `currentOnly`), `retailers.updateOwn` (POST `/retailers/me`, retailer only; contact + GST fields, audited,
+  the 0013 trigger refuses everything else), `retailers.beats.upsert` / `assign` moved to ONBOARDERS,
+  `retailers.setCredit` and the credit fields of `upsert` to owner/manager.
 
 - `retailers.beats.assignments.list` — GET `/beats/assignments` — `{ beatId?, userId?, on?: IsoDate }` → `{ items: BeatAssignment
   - beatName + userName }`(STAFF; a salesperson forced to self) — S1, O7, M14 —`beat_assignments`is written by`beats.assign`and never read; the rep cannot learn today's beat. Reporting's planned`RetailersService.beatAssignmentsFor` is the internal
@@ -758,14 +824,25 @@ startingNo, allocationMode }` → `{ items: [{ …, nextNo, lockedAfterFirstIssu
 - permission: `retailers.beats.upsert` and `retailers.beats.assign` from STAFF to ONBOARDERS — S, W, D cross-checks — a rep, a
   loader or a driver can create beats and assign anyone today.
 
-### 8.15 orders (built) — 2
+### 8.15 orders (built) — 2 · DONE
+
+- **DONE:** `orders.submit` for the retailer (ANY_MEMBER; own draft only; same re-pricing at `setLines`, same
+  approval gates; the auto-confirm half — reservations, `confirmed` — runs under the system role while the audit rows
+  name the shopkeeper); `OrdersListInput.states[]` and `openOnly`; `orders.confirm` and `approvals.decide` are
+  owner/manager.
 
 - permission: `orders.submit` for `retailer` (own order only; `assertRetailerOwns`) and `OrdersService.submit` from
   `requireRole(STAFF)` to `ORDER_ROLES` — R7 — the shop can draft and never submit; docs/22 §4 draws R1 → S5 directly.
   Approvals raised at submit stay invisible to the shop (already stripped by `loadDetail`).
 - field: `OrdersListInput.states[]` (or `openOnly`) — S2 "pending undelivered" needs confirmed..dispatched in one call.
 
-### 8.16 pricing (built) — 3
+### 8.16 pricing (built) — 3 · DONE
+
+- **DONE:** `pricing.bounds.list` (GET `/pricing/bounds`, STAFF; salesperson forced to self); `pricing.schemes.list`
+  for every member — the back office gets `SchemeSchema`, everyone else `SchemePublicSchema` (no `fundingSource`,
+  `claimable`, `claimWindowDays`, `sourceRef`), the retailer only the schemes whose applicability (tier / retailerIds /
+  beatIds) includes a shop linked to it; `pricing.bargains.list` for the retailer (RLS: own rows). Price, scheme and
+  override writes and `bargains.decide` are owner/manager; the accountant's bargain request waits like a rep's.
 
 - `pricing.bounds.list` — GET `/pricing/bounds` — `{ userId? }` → `{ items: RepBound[] }` (STAFF; salesperson forced to self) —
   S3 (on-device auto-approve), O7 — `rep_auto_approve_bounds` has a setter and no reader.
@@ -773,7 +850,12 @@ startingNo, allocationMode }` → `{ items: [{ …, nextNo, lockedAfterFirstIssu
   and stripping `fundingSource`, `claimable`, `sourceRef` — R9 — the shop's "deals".
 - permission: `pricing.bargains.list` for `retailer` (RLS: own rows) — R10 — the shop asks and never hears the answer.
 
-### 8.17 catalog / tenant-catalog (built) — 3
+### 8.17 catalog / tenant-catalog (built) — 3 · DONE
+
+- **DONE:** `tenantCatalog.repAuthorisations.list` (STAFF, self-scoped for a rep) / `set` (owner/manager; REPLACES
+  the set, audited), `tenantCatalog.brands.list` (STAFF) / `upsert` (owner/manager; natural key `brandId`, audited),
+  `tenantCatalog.packConfigs.list` (desk + warehouse) / `upsert` (owner/manager; natural key supplier × variant).
+  `upsertListing` / `upsertSupplier` / `upsertCost` are owner/manager (the accountant reads).
 
 - `tenantCatalog.repAuthorisations.list` / `.set` — GET/POST `/tenant-catalog/rep-authorisations` — `{ userId, brandIds[] }` →
   `{ items }` (list STAFF self-scoped, set BACK_OFFICE) — S3, S11, O7 — docs/02 "authorised product lists per rep";
@@ -784,7 +866,11 @@ startingNo, allocationMode }` → `{ items: [{ …, nextNo, lockedAfterFirstIssu
 pcsPerCase, code }` — M3/M4 (buy-side pack sizes for the GRN) — `supplier_pack_configs` has no procedure; docint's
   `matches.choose` takes `pcsPerCase` but nothing lists or edits the configs.
 
-### 8.18 inventory (built) — 2
+### 8.18 inventory (built) — 2 · DONE
+
+- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (BACK_OFFICE; one `cycle_count` ledger row
+  per non-zero variance, keyed `cycle_count:<countId>:<lotId>`), `list` / `get` (STOCK_VIEWERS);
+  `StockBalancesInput.expiringBefore` and `nearExpiryOnly` (60-day window).
 
 - `inventory.cycleCounts.open` / `.count` / `.post` / `.list` — POST/GET `/inventory/cycle-counts` — `{ id, locationId, lotIds? }`
   → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, BACK_OFFICE post) — W8, M16, O15 —
@@ -792,7 +878,12 @@ pcsPerCase, code }` — M3/M4 (buy-side pack sizes for the GRN) — `supplier_pa
 - field: `StockBalancesInput.expiringBefore: IsoDate` and `nearExpiryOnly` — W8, O15 — the near-expiry list is a client-side
   filter over pages today.
 
-### 8.19 procurement (built) — 2
+### 8.19 procurement (built) — 2 · DONE
+
+- **DONE:** `procurement.discrepancies.resolve` (owner/manager — the O3 "GRN exceptions" decision; from `open` or
+  `claimed`; `resolvedBy`, audited), `procurement.supplierInvoices.dispute` (BACK_OFFICE; extracted/in_review/approved
+  only) and `cancel` (BACK_OFFICE; never once received or with a live GRN); `disputedAt` / `disputeReason` /
+  `cancelledAt` / `cancelReason` and `DiscrepancySchema.resolvedBy` on the wire.
 
 - `procurement.discrepancies.resolve` — POST `/procurement/discrepancies/{id}/resolve` — `{ idempotencyKey, id, status:
 accepted|claimed|credited|written_off, note? }` → `{ item }`, BACK_OFFICE — M4, O3 (GRN exceptions) — status has no writer;
@@ -802,12 +893,18 @@ id, reason }` → `{ item }` — M4 — the `disputed` / `cancelled` statuses in
 
 ### 8.20 Cross-cutting decisions the frontend needs before its first screen
 
-1. Accountant write scope (§2.3): narrow the matrix or amend docs/22 — it changes which manager-app screens the accountant gets.
-2. Manager's PIN on the warehouse device (§4.3): read-only W7 + confirm in M7, or `auth.stepUp`.
-3. Retailer sign-in without a password (§6.1): ship the pilot with username + password for shops, or bring the OTP / link layer
-   forward.
-4. PDF renderer ownership (8.2): every print and every WhatsApp attachment waits on it.
-5. Offline read path (8.11): PowerSync before the pilot, or `sync.pull` / `updatedAfter` filters on the six list procedures.
+1. Accountant write scope (§2.3) — **DECIDED and DONE** (docs/22 2026-09-05): the accountant is the money desk
+   (`ROLE_GROUPS.MONEY_DESK`: receipts, reversals, deposits, bounces, allocations, write-offs, statements) and reads
+   everything else; no price, scheme, credit limit, approval, catalog write or setting.
+2. Manager's PIN on the warehouse device (§4.3) — **DECIDED and DONE** (docs/22 2026-09-05): the manager app
+   approves the load sheet (`loadSheets.approve`), the warehouse phone confirms it (`loadSheets.confirm`); no
+   `auth.stepUp`. W7 shows "waiting for the manager" until `approvedBy` is set.
+3. Retailer sign-in without a password (§6.1) — still the founder's: the pilot ships username + password for shops;
+   `auth.forgotPassword` / `resetPassword` exist, their SMS / WhatsApp delivery arrives with notifications.
+4. PDF renderer ownership (8.2) — **DONE** (platform-gaps slice): `backend/worker` `documents.pdf.render`, pure Node,
+   no headless browser; every print button and WhatsApp attachment reads `pdfObjectKey` / `*.pdf`.
+5. Offline read path (8.11) — **DONE as `sync.pull`** until PowerSync lands; the six list procedures need no
+   `updatedAfter` filter because the pull is table-wide.
 
 ---
 

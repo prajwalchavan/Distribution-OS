@@ -80,6 +80,22 @@ export class AuthController {
     )
   }
 
+  @Implement(contract.auth.forgotPassword)
+  forgotPassword(@OwnsReply() _reply: unknown, @Req() req: FastifyRequest) {
+    const client = clientInfo(req)
+    return implement(contract.auth.forgotPassword).handler(({ input }) =>
+      this.auth.forgotPassword(input, client),
+    )
+  }
+
+  @Implement(contract.auth.resetPassword)
+  resetPassword(@OwnsReply() _reply: unknown, @Req() req: FastifyRequest) {
+    const client = clientInfo(req)
+    return implement(contract.auth.resetPassword).handler(({ input }) =>
+      this.auth.resetPassword(input, client),
+    )
+  }
+
   /** Public: the verifying half of the signing key, so any service or integrator can check a token. */
   @Implement(contract.auth.jwks)
   jwks(@OwnsReply() _reply: unknown) {

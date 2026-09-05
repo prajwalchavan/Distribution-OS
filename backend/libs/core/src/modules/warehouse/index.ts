@@ -10,3 +10,5 @@ export { WarehouseModule } from './warehouse.module.js'
 export { LoadSheetsService, type ConfirmedLoad } from './load-sheets.service.js'
 export { PackingService } from './packing.service.js'
 export { PicklistsService, type RecordedPick } from './picklists.service.js'
+/** The challan data the worker's PDF renderer prints from (docs/23 §8.3): the same mapper `challans.get` uses. */
+export { loadChallanDocument } from './documents.js'

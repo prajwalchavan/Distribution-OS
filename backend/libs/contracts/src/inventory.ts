@@ -13,6 +13,11 @@ import {
  * Inventory (ADR 0003): append-only stock ledger in pieces, derived balances, lots carry batch/MRP/expiry.
  * Nothing here carries cost. `stock.sellable` (ATP = on_hand - reserved) is the ONLY stock surface reps and
  * retailers see; per-lot balances, adjustments, transfers and the ledger are for the people who keep the stock.
+ *
+ * WHICH SERVICES MOUNT `inventory`: all six (`stock.sellable` is the shop's ATP hint). A cycle count
+ * (`cycleCounts.*`, docs/23 §8.18) is the godown's paperwork: the stock keepers open and count it, the
+ * desk posts the differences as `cycle_count` ledger rows — one lot at a time through `stock.adjust`
+ * was the only way before.
  */
 
 export const LocationKindSchema = z.enum([
@@ -143,6 +148,10 @@ export const StockBalancesInput = z.object({
   variantId: IdSchema.optional(),
   locationId: IdSchema.optional(),
   lotId: IdSchema.optional(),
+  /** Lots whose expiry is on or before this IST date (the near-expiry list, docs/23 §8.18). */
+  expiringBefore: z.iso.date().optional(),
+  /** Lots expiring within the tenant's near-expiry window (default 60 days); lots with no expiry are excluded. */
+  nearExpiryOnly: QueryBoolSchema.optional(),
   limit: QueryIntSchema.min(1).max(500).default(200),
   /** `${lotId}:${locationId}` of the last row. */
   cursor: z.string().optional(),
@@ -219,6 +228,92 @@ export const LedgerListOutput = z.object({
   nextCursor: z.string().nullable(),
 })
 
+// ---------------------------------------------------------------------------------------------------------------
+// cycle counts — a physical count of one location, posted as `cycle_count` ledger rows for the differences
+
+export const CycleCountStatusSchema = z.enum(['open', 'counted', 'posted', 'cancelled'])
+export type CycleCountStatus = z.infer<typeof CycleCountStatusSchema>
+
+/** One lot of the counted location: what the ledger says, what the floor found. Pieces only, never a cost. */
+export const CycleCountLineSchema = z.object({
+  id: IdSchema,
+  lotId: IdSchema,
+  variantId: IdSchema,
+  batchNo: z.string(),
+  expiryDate: z.string().nullable(),
+  /** On-hand at the moment the count was opened. */
+  expectedPcs: PiecesSchema,
+  countedPcs: PiecesSchema.nullable(),
+  /** `countedPcs − expectedPcs`; null until counted. */
+  variancePcs: z.number().int().nullable(),
+})
+export type CycleCountLine = z.infer<typeof CycleCountLineSchema>
+
+export const CycleCountSchema = z.object({
+  id: IdSchema,
+  locationId: IdSchema,
+  status: CycleCountStatusSchema,
+  lineCount: z.number().int(),
+  countedBy: IdSchema.nullable(),
+  countedAt: z.string().nullable(),
+  postedBy: IdSchema.nullable(),
+  postedAt: z.string().nullable(),
+  note: z.string().nullable(),
+  createdAt: z.string(),
+})
+export type CycleCount = z.infer<typeof CycleCountSchema>
+
+export const CycleCountDetailSchema = CycleCountSchema.extend({
+  lines: z.array(CycleCountLineSchema),
+})
+export type CycleCountDetail = z.infer<typeof CycleCountDetailSchema>
+
+const CycleCountItemOutput = z.object({ item: CycleCountDetailSchema })
+
+/**
+ * Opens a count: one line per lot with a balance at the location (or only `lotIds`), `expectedPcs`
+ * frozen from `stock_balances` at that moment. Lines are server-created — the client cannot know the
+ * lots in advance — under the count's client-generated id.
+ */
+export const OpenCycleCountInput = MutationBase.extend({
+  id: IdSchema,
+  locationId: IdSchema,
+  lotIds: z.array(IdSchema).max(500).optional(),
+  note: z.string().trim().max(200).optional(),
+})
+export const OpenCycleCountOutput = CycleCountItemOutput
+
+/** The blind count. Every line must be counted before posting; lines may be sent in several calls. */
+export const CountCycleCountInput = MutationBase.extend({
+  id: IdSchema,
+  lines: z
+    .array(z.object({ lotId: IdSchema, countedPcs: PiecesSchema }))
+    .min(1)
+    .max(500),
+})
+export const CountCycleCountOutput = CycleCountItemOutput
+
+/** Posts one `cycle_count` ledger row per line whose variance is not zero; `open → counted → posted`. */
+export const PostCycleCountInput = MutationBase.extend({ id: IdSchema })
+export const PostCycleCountOutput = z.object({
+  item: CycleCountDetailSchema,
+  entries: z.array(LedgerEntrySchema),
+})
+
+export const CycleCountsListInput = z.object({
+  locationId: IdSchema.optional(),
+  status: CycleCountStatusSchema.optional(),
+  limit: QueryIntSchema.min(1).max(200).default(50),
+  cursor: z.string().optional(),
+})
+export const CycleCountsListOutput = z.object({
+  items: z.array(CycleCountSchema),
+  nextCursor: z.string().nullable(),
+})
+
+export const CycleCountGetInput = z.object({ id: IdSchema })
+export const CycleCountGetOutput = CycleCountItemOutput
+
 export const inventoryContract = {
   locations: {
     list: oc
@@ -285,5 +380,47 @@ export const inventoryContract = {
       })
       .input(UpsertLotInput)
       .output(UpsertLotOutput),
+  },
+  cycleCounts: {
+    open: oc
+      .route({
+        method: 'POST',
+        path: '/inventory/cycle-counts',
+        summary: 'Open a physical count of a location (expected pieces frozen per lot)',
+      })
+      .input(OpenCycleCountInput)
+      .output(OpenCycleCountOutput),
+    count: oc
+      .route({
+        method: 'POST',
+        path: '/inventory/cycle-counts/{id}/count',
+        summary: 'Record counted pieces per lot (blind)',
+      })
+      .input(CountCycleCountInput)
+      .output(CountCycleCountOutput),
+    post: oc
+      .route({
+        method: 'POST',
+        path: '/inventory/cycle-counts/{id}/post',
+        summary: 'Post the differences as cycle_count ledger rows (back office)',
+      })
+      .input(PostCycleCountInput)
+      .output(PostCycleCountOutput),
+    list: oc
+      .route({
+        method: 'GET',
+        path: '/inventory/cycle-counts',
+        summary: 'Cycle counts by location and status',
+      })
+      .input(CycleCountsListInput)
+      .output(CycleCountsListOutput),
+    get: oc
+      .route({
+        method: 'GET',
+        path: '/inventory/cycle-counts/{id}',
+        summary: 'One cycle count with its lines',
+      })
+      .input(CycleCountGetInput)
+      .output(CycleCountGetOutput),
   },
 }

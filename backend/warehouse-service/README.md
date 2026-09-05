@@ -30,25 +30,43 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/tenancy/me` | Current user, tenant and membership | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/tenancy/staff` | People who work in this distributor | owner, manager, accountant |
 | POST | `/tenancy/staff` | Add a staff member with a temporary password | owner, manager |
+| POST | `/tenancy/staff/update` | Edit a staff member's name, phone or locale | owner, manager |
 | POST | `/tenancy/staff/set-password` | Reset a staff password; they must change it at next sign-in | owner, manager |
 | POST | `/tenancy/staff/set-status` | Enable or disable a staff membership (disabling revokes their sessions) | owner, manager |
+| GET | `/tenancy/branding` | The distributor's own name, logo and footer for every screen and document | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/tenancy/settings` | Tenant settings (secret.* keys to the owner only) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenancy/settings` | Set tenant settings (owner only, audited per key) | owner |
+| GET | `/tenancy/numbering-series` | Document number series for a financial year (owner only) | owner |
+| POST | `/tenancy/numbering-series` | Set a series prefix and starting number; locked once the first number is issued | owner |
+| GET | `/tenancy/feature-flags` | Which features are switched on for this distributor | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/tenancy/feature-flags` | Switch features on or off (owner only, audited) | owner |
+| POST | `/tenancy/tenant` | Edit the legal name, GSTIN and state (owner only, audited) | owner |
+| GET | `/tenancy/audit` | Who changed what: prices, credit, approvals, settings, exports, trace reads | owner, manager, accountant |
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager, accountant |
+| POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/tenant-catalog/suppliers` | Create or update a supplier | owner, manager, accountant |
-| GET | `/tenant-catalog/costs` | Purchase costs (owner/manager/accountant only) | owner, manager, accountant |
-| POST | `/tenant-catalog/costs` | Set purchase cost (owner/manager/accountant only) | owner, manager, accountant |
+| POST | `/tenant-catalog/suppliers` | Create or update a supplier | owner, manager |
+| GET | `/tenant-catalog/costs` | Purchase costs (owner/manager/accountant read) | owner, manager, accountant |
+| POST | `/tenant-catalog/costs` | Set purchase cost (owner/manager only) | owner, manager |
+| GET | `/tenant-catalog/rep-authorisations` | Which brands a rep may sell (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenant-catalog/rep-authorisations` | Replace a rep's authorised brands (owner/manager) | owner, manager |
+| GET | `/tenant-catalog/brands` | Per-brand operating mode: fulfilment, Tally source, cash discount, claims | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/tenant-catalog/brands` | Set how this distributor runs a brand (owner/manager) | owner, manager |
+| GET | `/tenant-catalog/pack-configs` | Buy-side pack sizes per supplier and variant | owner, manager, accountant, warehouse |
+| POST | `/tenant-catalog/pack-configs` | Set a supplier pack size for a variant (owner/manager) | owner, manager |
 | GET | `/retailers` | Retailers of this distributor (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager, accountant |
+| POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
 | POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | GET | `/beats` | Beats of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/beats` | Create or update a beat | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/beats` | Create or update a beat | owner, manager |
+| POST | `/beats/{id}/assign` | Assign a salesperson to a beat for a date range | owner, manager |
+| GET | `/beats/assignments` | Who is on which beat on a date (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/visits` | Record a shop visit (own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/visits` | Visits by retailer / rep / period | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -59,29 +77,38 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
+| GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
 | POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices` | Supplier invoices (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices/{id}` | One supplier invoice with lines and rates (back office) | owner, manager, accountant |
 | POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager, accountant |
 | POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager, accountant |
 | POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line | owner, manager, warehouse |
 | POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager, accountant |
 | GET | `/procurement/grns` | Goods receipts | owner, manager, accountant, warehouse |
 | GET | `/procurement/grns/{id}` | One GRN with lines and discrepancies | owner, manager, accountant, warehouse |
 | GET | `/procurement/discrepancies` | Short/excess/damaged findings from gate counts | owner, manager, accountant, warehouse |
+| POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
 | POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
 | POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager, accountant |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
-| POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager, accountant |
+| POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager |
 | GET | `/billing/queue` | Orders waiting to be billed, oldest first | owner, manager, accountant, warehouse |
+| POST | `/warehouse/packs/{packId}/invoice` | Bill a pack that was confirmed without an invoice (stock has already left) | owner, manager, accountant, warehouse |
 | POST | `/invoices/van-sale` | Bill a sale off the van, from vehicle stock and the tenant series | owner, manager, delivery |
 | POST | `/invoices/brand-dms` | Store a brand DMS's own invoice verbatim; never a second legal document | owner, manager, accountant |
 | POST | `/invoices/{id}/cancel` | Cancel before dispatch, keeping the number; stock and money come back | owner, manager |
@@ -111,14 +138,20 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
-| POST | `/warehouse/load-sheets/{id}/confirm` | Check out: count, move godown → vehicle, issue the challan, dispatch the orders | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
 | POST | `/warehouse/challans/{id}/ewb` | Record the e-way bill number typed from the government portal | owner, manager, accountant |
 | GET | `/warehouse/reservations` | What the godown is holding, and for which order | owner, manager, warehouse |
 | POST | `/warehouse/reservations/release` | Free the pending holds of an order that will not be picked | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/errors` | Rejected offline writes for the "Needs attention" tray (own rows for field roles) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 
 ### GET `/health/ping`
 
@@ -403,6 +436,110 @@ request.json
 }
 ```
 
+### POST `/tenancy/staff/update`
+
+Edit a staff member's name, phone or locale · contract `tenancy.staff.update`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `userId` | uuid | yes |
+| `name` | string | no |
+| `phone` | string | no |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenancy/staff/update" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "name": "Sharma Kirana Store",
+  "phone": "+919876543210",
+  "locale": "en-IN"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenancy/staff/update",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/tenancy/staff/set-password`
 
 Reset a staff password; they must change it at next sign-in · contract `tenancy.staff.setPassword`
@@ -590,6 +727,847 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/branding`
+
+The distributor's own name, logo and footer for every screen and document · contract `tenancy.branding.get`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenancy/branding" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "displayName": "text",
+  "legalName": "Campa Cola 750 ml",
+  "gstin": "27AAPFU0939F1ZV",
+  "stateCode": "27",
+  "fssai": "text",
+  "address": {
+    "line1": "text",
+    "line2": "text",
+    "landmark": "text",
+    "area": "text",
+    "city": "text",
+    "pincode": "421301"
+  },
+  "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+  "logoUrl": "docs/2026/09/invoice-0042.jpg",
+  "invoiceFooter": "text",
+  "upiVpa": "text"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/settings`
+
+Tenant settings (secret.* keys to the owner only) · contract `tenancy.settings.get`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `keys` | string[] | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenancy/settings" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "key": "text",
+      "value": "text",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/settings`
+
+Set tenant settings (owner only, audited per key) · contract `tenancy.settings.set`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `items` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenancy/settings" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "items": [
+    {
+      "key": "text",
+      "value": "text"
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "key": "text",
+      "value": "text",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenancy/settings",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/numbering-series`
+
+Document number series for a financial year (owner only) · contract `tenancy.numbering.list`
+
+**Roles:** owner
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `fy` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenancy/numbering-series?fy=2026-27" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "fy": "2026-27",
+  "items": [
+    {
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "prefix": "text",
+      "startingNo": 1,
+      "nextNo": 1,
+      "allocationMode": "server",
+      "lockedAfterFirstIssue": true
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /tenancy/numbering-series",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/numbering-series`
+
+Set a series prefix and starting number; locked once the first number is issued · contract `tenancy.numbering.upsert`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `seriesCode` | string | yes |
+| `prefix` | string | yes |
+| `startingNo` | integer | yes |
+| `allocationMode` | server | external | no |
+| `fy` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenancy/numbering-series" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "seriesCode": "R-0001",
+  "prefix": "text",
+  "startingNo": 1,
+  "allocationMode": "server",
+  "fy": "2026-27"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "prefix": "text",
+    "startingNo": 1,
+    "nextNo": 1,
+    "allocationMode": "server",
+    "lockedAfterFirstIssue": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenancy/numbering-series",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/feature-flags`
+
+Which features are switched on for this distributor · contract `tenancy.featureFlags.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenancy/feature-flags" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "flag": "van_sales",
+      "enabled": true
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/feature-flags`
+
+Switch features on or off (owner only, audited) · contract `tenancy.featureFlags.set`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `items` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenancy/feature-flags" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "items": [
+    {
+      "flag": "van_sales",
+      "enabled": true
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "flag": "van_sales",
+      "enabled": true
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenancy/feature-flags",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/tenant`
+
+Edit the legal name, GSTIN and state (owner only, audited) · contract `tenancy.tenant.update`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `legalName` | string | yes |
+| `gstin` | string | no |
+| `stateCode` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenancy/tenant" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "legalName": "Campa Cola 750 ml",
+  "gstin": "27AAPFU0939F1ZV",
+  "stateCode": "27"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "slug": "text",
+    "legalName": "Campa Cola 750 ml",
+    "gstin": "27AAPFU0939F1ZV",
+    "stateCode": "27",
+    "plan": "pilot",
+    "status": "active"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenancy/tenant",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/audit`
+
+Who changed what: prices, credit, approvals, settings, exports, trace reads · contract `tenancy.audit.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `entityType` | string | no |
+| `entityId` | string | no |
+| `actorId` | uuid | no |
+| `action` | string | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenancy/audit?entityType=text&entityId=01a06d21-94b0-7dc3-8aad-22f00b372c7e&actorId=01a06d81-8fbe-749f-8c31-d150f1cb90ee&action=text&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+      "actorRole": "text",
+      "action": "text",
+      "entityType": "text",
+      "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+      "before": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "after": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+      "occurredAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /tenancy/audit",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -1013,7 +1991,7 @@ curl "http://localhost:3004/tenant-catalog/products?q=campa&listedOnly=true&bran
 
 List/unlist a variant and set order rules · contract `tenantCatalog.upsertListing`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -1216,7 +2194,7 @@ curl "http://localhost:3004/tenant-catalog/suppliers" \
 
 Create or update a supplier · contract `tenantCatalog.upsertSupplier`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -1338,7 +2316,7 @@ request.json
 
 ### GET `/tenant-catalog/costs`
 
-Purchase costs (owner/manager/accountant only) · contract `tenantCatalog.costs`
+Purchase costs (owner/manager/accountant read) · contract `tenantCatalog.costs`
 
 **Roles:** owner, manager, accountant
 
@@ -1428,9 +2406,9 @@ curl "http://localhost:3004/tenant-catalog/costs?variantId=01a06df0-2faf-79a2-84
 
 ### POST `/tenant-catalog/costs`
 
-Set purchase cost (owner/manager/accountant only) · contract `tenantCatalog.upsertCost`
+Set purchase cost (owner/manager only) · contract `tenantCatalog.upsertCost`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -1502,6 +2480,597 @@ request.json
 {
   "statusCode": 403,
   "message": "the warehouse role may not call POST /tenant-catalog/costs",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenant-catalog/rep-authorisations`
+
+Which brands a rep may sell (a salesperson sees only its own) · contract `tenantCatalog.repAuthorisations.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenant-catalog/rep-authorisations?userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "employedBy": "distributor"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenant-catalog/rep-authorisations`
+
+Replace a rep's authorised brands (owner/manager) · contract `tenantCatalog.repAuthorisations.set`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `userId` | uuid | yes |
+| `items` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenant-catalog/rep-authorisations" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "employedBy": "distributor"
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "employedBy": "distributor"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenant-catalog/rep-authorisations",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenant-catalog/brands`
+
+Per-brand operating mode: fulfilment, Tally source, cash discount, claims · contract `tenantCatalog.brands.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenant-catalog/brands" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "manufacturerId": "01a06d31-cc31-7f93-8dce-8b32a928ea08",
+      "fulfilmentMode": "own",
+      "tallyExportSource": "dos",
+      "cashDiscountMode": "on_invoice",
+      "claimChannel": "dos",
+      "salesForce": "distributor"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenant-catalog/brands`
+
+Set how this distributor runs a brand (owner/manager) · contract `tenantCatalog.brands.upsert`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `brandId` | uuid | yes |
+| `fulfilmentMode` | own | brand_dms | no |
+| `tallyExportSource` | dos | brand_dms | none | no |
+| `cashDiscountMode` | on_invoice | at_receipt_financial_cn | no |
+| `claimChannel` | dos | brand_dms | no |
+| `salesForce` | distributor | manufacturer | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenant-catalog/brands" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+  "fulfilmentMode": "own",
+  "tallyExportSource": "dos",
+  "cashDiscountMode": "at_receipt_financial_cn",
+  "claimChannel": "dos",
+  "salesForce": "distributor"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "manufacturerId": "01a06d31-cc31-7f93-8dce-8b32a928ea08",
+    "fulfilmentMode": "own",
+    "tallyExportSource": "dos",
+    "cashDiscountMode": "on_invoice",
+    "claimChannel": "dos",
+    "salesForce": "distributor"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenant-catalog/brands",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenant-catalog/pack-configs`
+
+Buy-side pack sizes per supplier and variant · contract `tenantCatalog.packConfigs.list`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `supplierId` | uuid | no |
+| `variantId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/tenant-catalog/pack-configs?supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&variantId=01a06df0-2faf-79a2-8456-92042e49f147&limit=200" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "pcsPerCase": 24,
+      "supplierCode": "R-0001",
+      "supplierDescription": "Confirmed on phone with the shopkeeper",
+      "marginBasis": "ptd"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenant-catalog/pack-configs`
+
+Set a supplier pack size for a variant (owner/manager) · contract `tenantCatalog.packConfigs.upsert`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `supplierId` | uuid | yes |
+| `variantId` | uuid | yes |
+| `pcsPerCase` | integer | yes |
+| `supplierCode` | string | no |
+| `supplierDescription` | string | no |
+| `marginBasis` | ptd | mrp | net | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/tenant-catalog/pack-configs" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+  "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+  "pcsPerCase": 24,
+  "supplierCode": "R-0001",
+  "supplierDescription": "Confirmed on phone with the shopkeeper",
+  "marginBasis": "ptd"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+    "pcsPerCase": 24,
+    "supplierCode": "R-0001",
+    "supplierDescription": "Confirmed on phone with the shopkeeper",
+    "marginBasis": "ptd"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /tenant-catalog/pack-configs",
   "error": "Forbidden"
 }
 ```
@@ -1962,7 +3531,7 @@ request.json
 
 Set tier and credit terms (owner/manager/accountant only) · contract `retailers.setCredit`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -2228,6 +3797,145 @@ request.json
 }
 ```
 
+### POST `/retailers/me`
+
+The shop edits its own contact and GST details (never credit, tier or beat) · contract `retailers.updateOwn`
+
+**Roles:** retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `ownerName` | string | no |
+| `altPhone` | string | no |
+| `address` | object | no |
+| `gstin` | string | no |
+| `gstRegType` | unregistered | regular | composition | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/retailers/me" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "ownerName": "Ramesh Sharma",
+  "altPhone": "+919876543210",
+  "address": {
+    "line1": "text",
+    "line2": "text",
+    "landmark": "text",
+    "area": "text",
+    "city": "text",
+    "pincode": "421301"
+  },
+  "gstin": "27AAPFU0939F1ZV",
+  "gstRegType": "unregistered"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "name": "Sharma Kirana Store",
+    "ownerName": "Ramesh Sharma",
+    "phone": "+919876543210",
+    "altPhone": "+919876543210",
+    "address": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "lat": 19.2403,
+    "lng": 73.1305,
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "gstRegType": "unregistered",
+    "gstin": "27AAPFU0939F1ZV",
+    "stateCode": "27",
+    "paymentTerms": "PRE",
+    "cashDiscountBps": 500,
+    "cashDiscountDays": 7,
+    "active": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /retailers/me",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/beats`
 
 Beats of this distributor · contract `retailers.beats.list`
@@ -2319,7 +4027,7 @@ curl "http://localhost:3004/beats?activeOnly=true" \
 
 Create or update a beat · contract `retailers.beats.upsert`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+**Roles:** owner, manager
 
 **Request body**
 
@@ -2384,7 +4092,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /beats",
   "error": "Forbidden"
 }
 ```
@@ -2433,7 +4141,7 @@ request.json
 
 Assign a salesperson to a beat for a date range · contract `retailers.beats.assign`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+**Roles:** owner, manager
 
 **Request body**
 
@@ -2496,7 +4204,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /beats/{id}/assign",
   "error": "Forbidden"
 }
 ```
@@ -2538,6 +4246,97 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/beats/assignments`
+
+Who is on which beat on a date (a salesperson sees only its own) · contract `retailers.beats.assignments.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `beatId` | uuid | no |
+| `userId` | uuid | no |
+| `on` | date | no |
+| `currentOnly` | boolean | string | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/beats/assignments?beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&on=2026-09-04&currentOnly=true&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "validFrom": "2026-09-04",
+      "validTo": "2026-09-04",
+      "beatName": "Campa Cola 750 ml",
+      "userName": "sunil.tarsun"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -3084,13 +4883,15 @@ On-hand and reserved per lot per location (stock keepers only) · contract `inve
 | `variantId` | uuid | no |
 | `locationId` | uuid | no |
 | `lotId` | uuid | no |
+| `expiringBefore` | date | no |
+| `nearExpiryOnly` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3004/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&limit=200" \
+curl "http://localhost:3004/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&limit=200" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -3646,6 +5447,622 @@ request.json
 }
 ```
 
+### POST `/inventory/cycle-counts`
+
+Open a physical count of a location (expected pieces frozen per lot) · contract `inventory.cycleCounts.open`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `locationId` | uuid | yes |
+| `lotIds` | uuid[] | no |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/inventory/cycle-counts" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+  "lotIds": [
+    "01a06dc6-1c19-701b-8a21-982c1b2f8bc3"
+  ],
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "status": "open",
+    "lineCount": 1,
+    "countedBy": "01a06dcb-e8a1-73d0-8639-cb22ee34f6ae",
+    "countedAt": "2026-09-04T10:30:00.000Z",
+    "postedBy": "01a06de9-54f1-7219-8c65-f2d22351b4e8",
+    "postedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "variancePcs": 24
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/inventory/cycle-counts/{id}/count`
+
+Record counted pieces per lot (blind) · contract `inventory.cycleCounts.count`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lines` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/inventory/cycle-counts/01a06d17-0be7-794a-8dab-9b14cf78673b/count" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lines": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "countedPcs": 24
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "status": "open",
+    "lineCount": 1,
+    "countedBy": "01a06dcb-e8a1-73d0-8639-cb22ee34f6ae",
+    "countedAt": "2026-09-04T10:30:00.000Z",
+    "postedBy": "01a06de9-54f1-7219-8c65-f2d22351b4e8",
+    "postedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "variancePcs": 24
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/inventory/cycle-counts/{id}/post`
+
+Post the differences as cycle_count ledger rows (back office) · contract `inventory.cycleCounts.post`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/inventory/cycle-counts/01a06d17-0be7-794a-8dab-9b14cf78673b/post" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "status": "open",
+    "lineCount": 1,
+    "countedBy": "01a06dcb-e8a1-73d0-8639-cb22ee34f6ae",
+    "countedAt": "2026-09-04T10:30:00.000Z",
+    "postedBy": "01a06de9-54f1-7219-8c65-f2d22351b4e8",
+    "postedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "variancePcs": 24
+      }
+    ]
+  },
+  "entries": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "occurredAt": "2026-09-04T10:30:00.000Z",
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "qtyDelta": 24,
+      "reason": "opening",
+      "refType": "text",
+      "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+      "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+      "note": null
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /inventory/cycle-counts/{id}/post",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/inventory/cycle-counts`
+
+Cycle counts by location and status · contract `inventory.cycleCounts.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `locationId` | uuid | no |
+| `status` | open | counted | posted | cancelled | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/inventory/cycle-counts?locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&status=open&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "status": "open",
+      "lineCount": 1,
+      "countedBy": "01a06dcb-e8a1-73d0-8639-cb22ee34f6ae",
+      "countedAt": "2026-09-04T10:30:00.000Z",
+      "postedBy": "01a06de9-54f1-7219-8c65-f2d22351b4e8",
+      "postedAt": "2026-09-04T10:30:00.000Z",
+      "note": null,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/inventory/cycle-counts/{id}`
+
+One cycle count with its lines · contract `inventory.cycleCounts.get`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/inventory/cycle-counts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "status": "open",
+    "lineCount": 1,
+    "countedBy": "01a06dcb-e8a1-73d0-8639-cb22ee34f6ae",
+    "countedAt": "2026-09-04T10:30:00.000Z",
+    "postedBy": "01a06de9-54f1-7219-8c65-f2d22351b4e8",
+    "postedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "variancePcs": 24
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/procurement/supplier-invoices`
 
 Record a reviewed supplier invoice with its lines (back office) · contract `procurement.supplierInvoices.create`
@@ -3775,6 +6192,10 @@ request.json
     "dueDate": "2026-09-04",
     "approvedBy": "text",
     "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -3919,6 +6340,10 @@ curl "http://localhost:3004/procurement/supplier-invoices?status=extracted&suppl
       "dueDate": "2026-09-04",
       "approvedBy": "text",
       "approvedAt": "2026-09-04T10:30:00.000Z",
+      "disputedAt": "2026-09-04T10:30:00.000Z",
+      "disputeReason": null,
+      "cancelledAt": null,
+      "cancelReason": null,
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
   ],
@@ -4025,6 +6450,10 @@ curl "http://localhost:3004/procurement/supplier-invoices/01a06d17-0be7-794a-8da
     "dueDate": "2026-09-04",
     "approvedBy": "text",
     "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -4180,6 +6609,10 @@ request.json
     "dueDate": "2026-09-04",
     "approvedBy": "text",
     "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -4227,6 +6660,340 @@ request.json
 {
   "statusCode": 403,
   "message": "the warehouse role may not call POST /procurement/supplier-invoices/{id}/lines/{lineId}/match",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/procurement/supplier-invoices/{id}/dispute`
+
+Mark a supplier invoice disputed before any GRN posts against it · contract `procurement.supplierInvoices.dispute`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/procurement/supplier-invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/dispute" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "source": "docint",
+    "status": "extracted",
+    "invoiceNo": "SO-0042",
+    "invoiceDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ewayBillNo": "291012345678",
+    "supplierGstin": "27AAPFU0939F1ZV",
+    "placeOfSupplyState": "text",
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "freightPaise": 4000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "dueDate": "2026-09-04",
+    "approvedBy": "text",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "description": "Confirmed on phone with the shopkeeper",
+        "supplierCode": "R-0001",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "mfgDate": "2026-09-04",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "printedQty": 24,
+        "printedUnit": "text",
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "cessBps": 500,
+        "taxablePaise": 4000,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /procurement/supplier-invoices/{id}/dispute",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/procurement/supplier-invoices/{id}/cancel`
+
+Cancel a supplier invoice that never became stock · contract `procurement.supplierInvoices.cancel`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/procurement/supplier-invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "source": "docint",
+    "status": "extracted",
+    "invoiceNo": "SO-0042",
+    "invoiceDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ewayBillNo": "291012345678",
+    "supplierGstin": "27AAPFU0939F1ZV",
+    "placeOfSupplyState": "text",
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "freightPaise": 4000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "dueDate": "2026-09-04",
+    "approvedBy": "text",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "description": "Confirmed on phone with the shopkeeper",
+        "supplierCode": "R-0001",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "mfgDate": "2026-09-04",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "printedQty": 24,
+        "printedUnit": "text",
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "cessBps": 500,
+        "taxablePaise": 4000,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /procurement/supplier-invoices/{id}/cancel",
   "error": "Forbidden"
 }
 ```
@@ -4353,6 +7120,7 @@ request.json
         "qtyPcs": 24,
         "status": "open",
         "note": null,
+        "resolvedBy": null,
         "resolvedAt": null,
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
@@ -4495,6 +7263,7 @@ request.json
         "qtyPcs": 24,
         "status": "open",
         "note": null,
+        "resolvedBy": null,
         "resolvedAt": null,
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
@@ -4639,6 +7408,7 @@ request.json
         "qtyPcs": 24,
         "status": "open",
         "note": null,
+        "resolvedBy": null,
         "resolvedAt": null,
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
@@ -4867,6 +7637,7 @@ curl "http://localhost:3004/procurement/grns/01a06d17-0be7-794a-8dab-9b14cf78673
         "qtyPcs": 24,
         "status": "open",
         "note": null,
+        "resolvedBy": null,
         "resolvedAt": null,
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
@@ -4971,6 +7742,7 @@ curl "http://localhost:3004/procurement/discrepancies?grnId=01a06dbb-51b1-75fd-8
       "qtyPcs": 24,
       "status": "open",
       "note": null,
+      "resolvedBy": null,
       "resolvedAt": null,
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
@@ -5016,6 +7788,129 @@ curl "http://localhost:3004/procurement/discrepancies?grnId=01a06dbb-51b1-75fd-8
       }
     ]
   }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/procurement/discrepancies/{id}/resolve`
+
+Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) · contract `procurement.discrepancies.resolve`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `status` | claimed | credited | accepted | written_off | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/procurement/discrepancies/01a06d17-0be7-794a-8dab-9b14cf78673b/resolve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "status": "claimed",
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+    "grnLineId": "01a06d06-3156-737b-8e98-8470db8a94ac",
+    "kind": "short",
+    "qtyPcs": 24,
+    "status": "open",
+    "note": null,
+    "resolvedBy": null,
+    "resolvedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /procurement/discrepancies/{id}/resolve",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
 }
 ```
 
@@ -5878,9 +8773,9 @@ request.json
 
 ### POST `/orders/{id}/submit`
 
-Submit: assign the order number, raise approvals or auto-confirm · contract `orders.submit`
+Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) · contract `orders.submit`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
 
 **Request body**
 
@@ -6082,7 +8977,7 @@ request.json
 
 Confirm and reserve stock (back office) · contract `orders.confirm`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -6683,6 +9578,8 @@ Orders (a retailer sees only its own) · contract `orders.list`
 | Field | Type | Required |
 |---|---|---|
 | `state` | draft | submitted | confirmed | picking | packed | dispatched | delivered | partially_delivered | closed | cancelled | no |
+| `states` | draft | submitted | confirmed | picking | packed | dispatched | delivered | partially_delivered | closed | cancelled[] | no |
+| `openOnly` | boolean | string | no |
 | `retailerId` | uuid | no |
 | `salespersonId` | uuid | no |
 | `from` | string | no |
@@ -6694,7 +9591,7 @@ Orders (a retailer sees only its own) · contract `orders.list`
 **Example request**
 
 ```bash
-curl "http://localhost:3004/orders?state=draft&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&salespersonId=01a06d29-a152-76c4-87b4-301e496c0602&from=2026-09-04&to=2026-09-04&q=campa&limit=50" \
+curl "http://localhost:3004/orders?state=draft&openOnly=true&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&salespersonId=01a06d29-a152-76c4-87b4-301e496c0602&from=2026-09-04&to=2026-09-04&q=campa&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -6798,7 +9695,7 @@ Approval queue (back office) · contract `orders.approvals.list`
 |---|---|---|
 | `status` | pending | approved | rejected | expired | no |
 | `orderId` | uuid | no |
-| `kind` | credit_limit | bargain | below_floor | return | scheme_override | manual_price | no |
+| `kind` | credit_limit | bargain | below_floor | return | scheme_override | manual_price | trip_settlement | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
@@ -6891,7 +9788,7 @@ curl "http://localhost:3004/approvals?status=pending&orderId=01a06d67-52a6-70c4-
 
 Approve or reject; the last approval approved confirms the order · contract `orders.approvals.decide`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -7191,6 +10088,246 @@ curl "http://localhost:3004/billing/queue?locationId=01a06d18-e60a-7abc-87f8-910
       }
     ]
   }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/packs/{packId}/invoice`
+
+Bill a pack that was confirmed without an invoice (stock has already left) · contract `billing.invoices.issueForPack`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `packId` | uuid | yes |
+| `invoiceDate` | date | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/packs/01a06dfc-c72b-7578-8d88-28f8e0d9054b/invoice" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "packId": "01a06dfc-c72b-7578-8d88-28f8e0d9054b",
+  "invoiceDate": "2026-09-04",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
 }
 ```
 
@@ -8881,6 +12018,7 @@ request.json
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "irn": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
     "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
     "issuedAt": "2026-09-04T10:30:00.000Z",
     "note": null,
@@ -9041,6 +12179,7 @@ request.json
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "irn": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
     "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
     "issuedAt": "2026-09-04T10:30:00.000Z",
     "note": null,
@@ -9211,6 +12350,7 @@ request.json
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "irn": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
     "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
     "issuedAt": "2026-09-04T10:30:00.000Z",
     "note": null,
@@ -9368,6 +12508,7 @@ curl "http://localhost:3004/credit-notes/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "irn": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
     "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
     "issuedAt": "2026-09-04T10:30:00.000Z",
     "note": null,
@@ -11384,6 +14525,8 @@ request.json
     "expectedPackages": 1,
     "countedPackages": 1,
     "varianceNote": "Confirmed on phone with the shopkeeper",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
     "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
     "loadValuePaise": 4000,
     "ewbRequired": true,
@@ -11577,6 +14720,8 @@ curl "http://localhost:3004/warehouse/load-sheets?status=draft&tripId=01a06d0b-b
       "expectedPackages": 1,
       "countedPackages": 1,
       "varianceNote": "Confirmed on phone with the shopkeeper",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
       "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
       "loadValuePaise": 4000,
       "ewbRequired": true,
@@ -11678,6 +14823,8 @@ curl "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf
     "expectedPackages": 1,
     "countedPackages": 1,
     "varianceNote": "Confirmed on phone with the shopkeeper",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
     "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
     "loadValuePaise": 4000,
     "ewbRequired": true,
@@ -11829,11 +14976,224 @@ curl "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf
 }
 ```
 
-### POST `/warehouse/load-sheets/{id}/confirm`
+### POST `/warehouse/load-sheets/{id}/approve`
 
-Check out: count, move godown → vehicle, issue the challan, dispatch the orders · contract `warehouse.loadSheets.confirm`
+Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it · contract `warehouse.loadSheets.approve`
 
 **Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `note` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf78673b/approve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "note": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "draft",
+    "sheetDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleRegNo": "SO-0042",
+    "orderCount": 1,
+    "expectedPackages": 1,
+    "countedPackages": 1,
+    "varianceNote": "Confirmed on phone with the shopkeeper",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+    "loadValuePaise": 4000,
+    "ewbRequired": true,
+    "ewbNo": "291012345678",
+    "challanNo": "SO-0042",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "packages": 1,
+        "stopSequence": 1
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "source": "order"
+      }
+    ],
+    "challan": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z",
+      "seller": {
+        "displayName": "text",
+        "legalName": "Campa Cola 750 ml",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "fssai": "text",
+        "address": {
+          "line1": "text",
+          "line2": "text",
+          "landmark": "text",
+          "area": "text",
+          "city": "text",
+          "pincode": "421301"
+        },
+        "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "logoUrl": "docs/2026/09/invoice-0042.jpg",
+        "invoiceFooter": "text",
+        "upiVpa": "text"
+      },
+      "lines": [
+        {
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
+          "hsnCode": "22021010",
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24,
+          "caseSize": 24,
+          "cases": 1,
+          "loosePcs": 24,
+          "taxableValuePaise": 4000,
+          "gstBps": 500
+        }
+      ],
+      "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/load-sheets/{id}/approve",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/load-sheets/{id}/confirm`
+
+Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch · contract `warehouse.loadSheets.confirm`
+
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -11887,6 +15247,8 @@ request.json
     "expectedPackages": 1,
     "countedPackages": 1,
     "varianceNote": "Confirmed on phone with the shopkeeper",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
     "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
     "loadValuePaise": 4000,
     "ewbRequired": true,
@@ -12047,7 +15409,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "the warehouse role may not call POST /warehouse/load-sheets/{id}/confirm",
+  "message": "warehouse-service does not serve the owner role",
   "error": "Forbidden"
 }
 ```
@@ -12150,6 +15512,8 @@ request.json
     "expectedPackages": 1,
     "countedPackages": 1,
     "varianceNote": "Confirmed on phone with the shopkeeper",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
     "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
     "loadValuePaise": 4000,
     "ewbRequired": true,
@@ -12484,6 +15848,98 @@ curl "http://localhost:3004/warehouse/challans/01a06d17-0be7-794a-8dab-9b14cf786
     ],
     "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
   }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/challans/{id}/pdf`
+
+The printed Rule 55 challan (queued until the renderer runs) · contract `warehouse.challans.pdf`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `copy` | original | duplicate | triplicate | no |
+| `format` | a4 | thermal80 | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/challans/01a06d17-0be7-794a-8dab-9b14cf78673b/pdf?copy=original&format=a4" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "status": "ready",
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "expiresAt": "2026-09-04T10:30:00.000Z"
 }
 ```
 
@@ -13039,6 +16495,391 @@ request.json
 }
 ```
 
+### GET `/sync/errors`
+
+Rejected offline writes for the "Needs attention" tray (own rows for field roles) · contract `sync.errors.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `deviceId` | string | no |
+| `since` | datetime | no |
+| `unresolvedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/sync/errors?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a4bb&since=2026-09-04T10%3A30%3A00.000Z&unresolvedOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "opId": "op-000123",
+      "table": "sales_orders",
+      "rowId": "01a06de8-3cac-72d1-85d1-76dbdb3dbb96",
+      "code": "R-0001",
+      "messageHi": "Confirmed on phone with the shopkeeper",
+      "messageEn": "Confirmed on phone with the shopkeeper",
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "resolved": true,
+      "resolvedAt": null
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/sync/pull`
+
+Delta download of the device read set since a cursor (never a cost column) · contract `sync.pull`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `deviceId` | string | yes |
+| `since` | string | no |
+| `tables` | string[] | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/sync/pull?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a4bb&since=text&limit=200" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "changes": [
+    {
+      "table": "sales_orders",
+      "rows": [
+        {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      ],
+      "deleted": [
+        "01a06d32-576c-75db-8145-4e6798adafc6"
+      ]
+    }
+  ],
+  "hasMore": true,
+  "asOf": "2026-09-04"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/files/upload-url`
+
+Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import · contract `files.uploadUrl`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `domain` | logo | pod | expense | claim | import | damage | yes |
+| `entityId` | uuid | yes |
+| `mimeType` | image/jpeg | image/png | image/webp | image/heic | application/pdf | text/csv | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | application/json | yes |
+| `bytes` | integer | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/files/upload-url" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "domain": "logo",
+  "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+  "mimeType": "image/jpeg",
+  "bytes": 1
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "method": "PUT",
+  "headers": {
+    "line1": "12 Station Road",
+    "city": "Kalyan West",
+    "pincode": "421301"
+  },
+  "inline": true,
+  "expiresAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/files/read-url`
+
+A short-lived read URL for an object key this role may open · contract `files.readUrl`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `objectKey` | string | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/files/read-url?objectKey=docs%2F2026%2F09%2Finvoice-0042.jpg" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "expiresAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -13049,8 +16890,18 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `tenancy.me` | – | – | – | – | ✓ | – | – |
 | `tenancy.staff.list` | – | – | – | – | – | – | – |
 | `tenancy.staff.create` | – | – | – | – | – | – | – |
+| `tenancy.staff.update` | – | – | – | – | – | – | – |
 | `tenancy.staff.setPassword` | – | – | – | – | – | – | – |
 | `tenancy.staff.setStatus` | – | – | – | – | – | – | – |
+| `tenancy.branding.get` | – | – | – | – | ✓ | – | – |
+| `tenancy.settings.get` | – | – | – | – | ✓ | – | – |
+| `tenancy.settings.set` | – | – | – | – | – | – | – |
+| `tenancy.numbering.list` | – | – | – | – | – | – | – |
+| `tenancy.numbering.upsert` | – | – | – | – | – | – | – |
+| `tenancy.featureFlags.list` | – | – | – | – | ✓ | – | – |
+| `tenancy.featureFlags.set` | – | – | – | – | – | – | – |
+| `tenancy.tenant.update` | – | – | – | – | – | – | – |
+| `tenancy.audit.list` | – | – | – | – | – | – | – |
 | `catalog.search` | – | – | – | – | ✓ | – | – |
 | `catalog.manufacturers` | – | – | – | – | ✓ | – | – |
 | `catalog.propose` | – | – | – | – | ✓ | – | – |
@@ -13060,14 +16911,22 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `tenantCatalog.upsertSupplier` | – | – | – | – | – | – | – |
 | `tenantCatalog.costs` | – | – | – | – | – | – | – |
 | `tenantCatalog.upsertCost` | – | – | – | – | – | – | – |
+| `tenantCatalog.repAuthorisations.list` | – | – | – | – | ✓ | – | – |
+| `tenantCatalog.repAuthorisations.set` | – | – | – | – | – | – | – |
+| `tenantCatalog.brands.list` | – | – | – | – | ✓ | – | – |
+| `tenantCatalog.brands.upsert` | – | – | – | – | – | – | – |
+| `tenantCatalog.packConfigs.list` | – | – | – | – | ✓ | – | – |
+| `tenantCatalog.packConfigs.upsert` | – | – | – | – | – | – | – |
 | `retailers.list` | – | – | – | – | ✓ | – | – |
 | `retailers.get` | – | – | – | – | ✓ | – | – |
 | `retailers.upsert` | – | – | – | – | ✓ | – | – |
 | `retailers.setCredit` | – | – | – | – | – | – | – |
 | `retailers.linkIdentity` | – | – | – | – | – | – | – |
+| `retailers.updateOwn` | – | – | – | – | – | – | – |
 | `retailers.beats.list` | – | – | – | – | ✓ | – | – |
-| `retailers.beats.upsert` | – | – | – | – | ✓ | – | – |
-| `retailers.beats.assign` | – | – | – | – | ✓ | – | – |
+| `retailers.beats.upsert` | – | – | – | – | – | – | – |
+| `retailers.beats.assign` | – | – | – | – | – | – | – |
+| `retailers.beats.assignments.list` | – | – | – | – | ✓ | – | – |
 | `retailers.visits.record` | – | – | – | – | ✓ | – | – |
 | `retailers.visits.list` | – | – | – | – | ✓ | – | – |
 | `inventory.locations.list` | – | – | – | – | ✓ | – | – |
@@ -13078,16 +16937,24 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `inventory.stock.transfer` | – | – | – | – | ✓ | – | – |
 | `inventory.stock.ledger` | – | – | – | – | ✓ | – | – |
 | `inventory.lots.upsert` | – | – | – | – | ✓ | – | – |
+| `inventory.cycleCounts.open` | – | – | – | – | ✓ | – | – |
+| `inventory.cycleCounts.count` | – | – | – | – | ✓ | – | – |
+| `inventory.cycleCounts.post` | – | – | – | – | – | – | – |
+| `inventory.cycleCounts.list` | – | – | – | – | ✓ | – | – |
+| `inventory.cycleCounts.get` | – | – | – | – | ✓ | – | – |
 | `procurement.supplierInvoices.create` | – | – | – | – | – | – | – |
 | `procurement.supplierInvoices.list` | – | – | – | – | – | – | – |
 | `procurement.supplierInvoices.get` | – | – | – | – | – | – | – |
 | `procurement.supplierInvoices.matchLine` | – | – | – | – | – | – | – |
+| `procurement.supplierInvoices.dispute` | – | – | – | – | – | – | – |
+| `procurement.supplierInvoices.cancel` | – | – | – | – | – | – | – |
 | `procurement.grns.open` | – | – | – | – | – | – | – |
 | `procurement.grns.count` | – | – | – | – | ✓ | – | – |
 | `procurement.grns.post` | – | – | – | – | – | – | – |
 | `procurement.grns.list` | – | – | – | – | ✓ | – | – |
 | `procurement.grns.get` | – | – | – | – | ✓ | – | – |
 | `procurement.discrepancies.list` | – | – | – | – | ✓ | – | – |
+| `procurement.discrepancies.resolve` | – | – | – | – | – | – | – |
 | `procurement.purchaseOrders.upsert` | – | – | – | – | – | – | – |
 | `procurement.purchaseOrders.list` | – | – | – | – | – | – | – |
 | `orders.create` | – | – | – | – | ✓ | – | – |
@@ -13101,6 +16968,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `orders.approvals.list` | – | – | – | – | – | – | – |
 | `orders.approvals.decide` | – | – | – | – | – | – | – |
 | `billing.invoices.queue` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.issueForPack` | – | – | – | – | ✓ | – | – |
 | `billing.invoices.issueVanSale` | – | – | – | – | – | – | – |
 | `billing.invoices.importBrandDms` | – | – | – | – | – | – | – |
 | `billing.invoices.cancel` | – | – | – | – | – | – | – |
@@ -13130,11 +16998,17 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `warehouse.loadSheets.create` | – | – | – | – | ✓ | – | – |
 | `warehouse.loadSheets.list` | – | – | – | – | ✓ | – | – |
 | `warehouse.loadSheets.get` | – | – | – | – | ✓ | – | – |
-| `warehouse.loadSheets.confirm` | – | – | – | – | – | – | – |
+| `warehouse.loadSheets.approve` | – | – | – | – | – | – | – |
+| `warehouse.loadSheets.confirm` | – | – | – | – | ✓ | – | – |
 | `warehouse.loadSheets.cancel` | – | – | – | – | – | – | – |
 | `warehouse.challans.list` | – | – | – | – | ✓ | – | – |
 | `warehouse.challans.get` | – | – | – | – | ✓ | – | – |
+| `warehouse.challans.pdf` | – | – | – | – | ✓ | – | – |
 | `warehouse.challans.recordEwb` | – | – | – | – | – | – | – |
 | `warehouse.reservations.list` | – | – | – | – | ✓ | – | – |
 | `warehouse.reservations.release` | – | – | – | – | – | – | – |
 | `sync.upload` | – | – | – | – | ✓ | – | – |
+| `sync.errors.list` | – | – | – | – | ✓ | – | – |
+| `sync.pull` | – | – | – | – | ✓ | – | – |
+| `files.uploadUrl` | – | – | – | – | ✓ | – | – |
+| `files.readUrl` | – | – | – | – | ✓ | – | – |

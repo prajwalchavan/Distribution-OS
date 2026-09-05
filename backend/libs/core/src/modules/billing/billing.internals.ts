@@ -1,6 +1,5 @@
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
-import type { SellerBranding } from '@dos/contracts'
 import {
   businessDate,
   invoiceMachine,
@@ -14,13 +13,9 @@ import {
   retailerIdentities,
   retailers,
   tenantProducts,
-  tenants,
-  tenantSettings,
-  TENANT_SETTING_KEYS,
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
 
 /**
  * The plumbing every billing procedure shares: the machine guard, the dated HSN rates, the sell-side
@@ -105,6 +100,19 @@ const LEDGER_POSTING_ROLES = new Set([
 export async function asLedgerPoster<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
   const ctx = currentTenant()
   if (LEDGER_POSTING_ROLES.has(ctx.actorRole)) return fn()
+  return asSystemRole(tx, fn)
+}
+
+/**
+ * Run `fn` as the system role for the statements inside it, restoring the caller's role after —
+ * the one documented escalation pattern (`modules/orders`' `recordTransition`). Billing uses it to
+ * stamp `pack_confirmations.invoice_id` when a BILLING_ISSUER who is not a stock keeper (the
+ * accountant) bills a parked pack: the column is warehouse's, the write is derived from the bill
+ * just issued, and `issued_by` still records the accountant.
+ */
+export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
+  const ctx = currentTenant()
+  if (ctx.actorRole === 'system') return fn()
   try {
     await tx.execute(sql`select set_config('app.actor_role', 'system', true)`)
     return await fn()
@@ -303,105 +311,13 @@ export function placeOfSupplyOf(buyer: BuyerProfile): string {
 }
 
 /**
- * The DISTRIBUTOR's own identity on every document a shopkeeper sees (docs/17 §D answer 6). Read from
- * `tenant_settings` — readable by every staff role since migration 0009 — with `tenants` as the
- * fallback, so a distributor that has configured nothing still prints its legal name rather than ours.
- * A logo that has never been uploaded is simply absent: `logoUrl` is null and the sheet prints no logo.
+ * The DISTRIBUTOR's own identity on every document a shopkeeper sees (docs/17 §D answer 6). The loader
+ * moved to `modules/tenancy/branding.ts` at the platform-gaps slice — tenancy owns `tenant_settings`,
+ * and receivables (which billing imports) needs the same block on a receipt, so it could not stay
+ * here without a cycle. Re-exported so every billing call site and the warehouse's `sellerBranding`
+ * import keep working unchanged.
  */
-export async function loadSeller(tx: Db): Promise<SellerBranding> {
-  const { tenantId } = currentTenant()
-  const [tenant] = await tx
-    .select({ legalName: tenants.legalName, gstin: tenants.gstin, stateCode: tenants.stateCode })
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
-    .limit(1)
-  if (!tenant)
-    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `tenant ${tenantId} not found` })
-  const settings = await loadSettings(tx, [
-    TENANT_SETTING_KEYS.brandingDisplayName,
-    TENANT_SETTING_KEYS.brandingLogoObjectKey,
-    TENANT_SETTING_KEYS.brandingInvoiceFooter,
-    TENANT_SETTING_KEYS.brandingAddress,
-    TENANT_SETTING_KEYS.sellerFssai,
-    TENANT_SETTING_KEYS.upiVpa,
-  ])
-  const logoObjectKey = asText(settings.get(TENANT_SETTING_KEYS.brandingLogoObjectKey))
-  return {
-    displayName: asText(settings.get(TENANT_SETTING_KEYS.brandingDisplayName)) ?? tenant.legalName,
-    legalName: tenant.legalName,
-    gstin: tenant.gstin,
-    stateCode: tenant.stateCode,
-    fssai: asText(settings.get(TENANT_SETTING_KEYS.sellerFssai)),
-    address: asAddress(settings.get(TENANT_SETTING_KEYS.brandingAddress)),
-    logoObjectKey,
-    logoUrl: logoObjectKey === null ? null : await signedLogoUrl(logoObjectKey),
-    invoiceFooter: asText(settings.get(TENANT_SETTING_KEYS.brandingInvoiceFooter)),
-    upiVpa: asText(settings.get(TENANT_SETTING_KEYS.upiVpa)),
-  }
-}
-
-/**
- * The values of a handful of settings keys. A key that is absent means "not configured", never "".
- *
- * WHY THE ESCALATION. Migration 0009 gives `tenant_settings` a staff read policy that deliberately
- * excludes the `retailer` role — a shopkeeper is a guest in the distributor's tenant and has no business
- * reading its configuration. But the shopkeeper is exactly who needs the white-label name on the bill it
- * is looking at, and the UPI id it is about to pay into (docs/17 §D4: the retailer app pays online, §D6:
- * every document carries the distributor's own name). So for THIS read only, and only for the named
- * non-secret keys, `app.actor_role` becomes `system` for one statement and is restored immediately
- * inside the same transaction — the pattern `modules/orders`' `recordTransition` already uses. The
- * `secret.` guard below is what makes the escalation safe for ever: a credential added in six months
- * cannot be reached through it even if a caller asks for it by name.
- */
-export async function loadSettings(tx: Db, keys: readonly string[]): Promise<Map<string, unknown>> {
-  const ctx = currentTenant()
-  if (keys.length === 0) return new Map()
-  const secret = keys.find((key) => key.startsWith('secret.'))
-  if (secret !== undefined)
-    throw new ORPCError('INTERNAL_SERVER_ERROR', {
-      message: `${secret} is a credential; it is owner-only and never read for a document`,
-    })
-  const read = async (): Promise<Map<string, unknown>> => {
-    const rows = await tx
-      .select({ key: tenantSettings.key, value: tenantSettings.value })
-      .from(tenantSettings)
-      .where(and(eq(tenantSettings.tenantId, ctx.tenantId), inArray(tenantSettings.key, [...keys])))
-    return new Map(rows.map((r) => [r.key, r.value]))
-  }
-  if (ctx.actorRole !== 'retailer') return read()
-  try {
-    await tx.execute(sql`select set_config('app.actor_role', 'system', true)`)
-    return await read()
-  } finally {
-    await tx
-      .execute(sql`select set_config('app.actor_role', ${ctx.actorRole}, true)`)
-      .catch(() => undefined)
-  }
-}
-
-/** A jsonb setting that should be a non-empty string. Anything else reads as "not configured". */
-function asText(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value : null
-}
-
-function asAddress(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null
-}
-
-/**
- * A short-lived link to the logo. Object storage is configuration, so a tenant on the local driver or a
- * misconfigured bucket must never turn a bill into a 500: the document simply prints without a logo.
- */
-async function signedLogoUrl(key: string): Promise<string | null> {
-  try {
-    return await createObjectStorage().getUrl(key)
-  } catch (error) {
-    if (error instanceof ObjectStorageError) return null
-    throw error
-  }
-}
+export { sellerBranding as loadSeller, loadSettings } from '../tenancy/index.js'
 
 // ---------------------------------------------------------------------------------------------------------------
 // the UPI intent printed as a QR

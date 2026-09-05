@@ -16,6 +16,8 @@ import type {
   OpenGrnOutput,
   PostGrnInput,
   PostGrnOutput,
+  ResolveDiscrepancyInput,
+  ResolveDiscrepancyOutput,
 } from '@dos/contracts'
 import { multiply, paise, uuidv7 } from '@dos/domain'
 import {
@@ -36,9 +38,11 @@ import {
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   nextDocumentNumber,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import { InventoryService, type LedgerEntryInput } from '../inventory/index.js'
 import {
@@ -60,6 +64,8 @@ type ListOut = z.infer<typeof GrnsListOutput>
 type GetIn = z.infer<typeof GrnGetInput>
 type GetOut = z.infer<typeof GrnGetOutput>
 type DiscIn = z.infer<typeof DiscrepanciesListInput>
+type ResolveIn = z.infer<typeof ResolveDiscrepancyInput>
+type ResolveOut = z.infer<typeof ResolveDiscrepancyOutput>
 type DiscOut = z.infer<typeof DiscrepanciesListOutput>
 
 /** Who counts at the gate. Accountants do not; reps and delivery never see a GRN. */
@@ -422,6 +428,52 @@ export class GrnService {
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
+  }
+
+  /**
+   * The desk's decision on a gate-count finding (docs/23 §8.19; the owner's "GRN exceptions" queue):
+   * `accepted`, `claimed`, `credited` or `written_off`, from `open` or `claimed` only. Owner and
+   * manager, never the accountant (docs/22 2026-09-05: no approvals). Audited.
+   */
+  async resolveDiscrepancy(input: ResolveIn): Promise<ResolveOut> {
+    requireRole(MANAGEMENT)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const [row] = await tx
+          .select()
+          .from(inboundDiscrepancies)
+          .where(eq(inboundDiscrepancies.id, input.id))
+          .for('update')
+        if (!row) throw new ORPCError('NOT_FOUND', { message: `discrepancy ${input.id} not found` })
+        if (row.status === input.status) return { item: toDiscrepancy(row) }
+        if (row.status !== 'open' && row.status !== 'claimed')
+          throw new ORPCError('CONFLICT', {
+            message: `discrepancy ${row.id} is ${row.status}; only an open or claimed finding is decided`,
+          })
+        const now = new Date()
+        const [updated] = await tx
+          .update(inboundDiscrepancies)
+          .set({
+            status: input.status,
+            note: input.note ?? row.note,
+            resolvedBy: ctx.actorId,
+            resolvedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(inboundDiscrepancies.id, row.id))
+          .returning()
+        await writeAudit(tx, {
+          action: 'discrepancy.resolve',
+          entityType: 'inbound_discrepancy',
+          entityId: row.id,
+          before: { status: row.status },
+          after: { status: input.status, note: input.note ?? null },
+        })
+        return { item: toDiscrepancy(updated ?? row) }
+      }),
+    )
   }
 
   /** Per-lot cost row (owner/manager/accountant only under RLS). One row per (variant, lot); later GRNs of the same lot update it. */

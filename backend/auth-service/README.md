@@ -41,6 +41,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/auth/sessions` | Devices signed in as this user | any signed-in role |
 | POST | `/auth/sessions/revoke` | Sign one of your devices out | any signed-in role |
 | POST | `/auth/change-password` | Change your password; every other session is revoked | any signed-in role |
+| POST | `/auth/forgot-password` | Ask for a password reset; always answers ok, the token travels by a later channel | public |
+| POST | `/auth/reset-password` | Set a new password with a single-use reset token; every session is revoked | public |
 | GET | `/.well-known/jwks.json` | Public keys that verify access tokens | public |
 
 ### GET `/health/ping`
@@ -134,7 +136,9 @@ request.json
   "tenant": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "slug": "text",
-    "legalName": "Campa Cola 750 ml"
+    "legalName": "Campa Cola 750 ml",
+    "displayName": "text",
+    "logoUrl": "docs/2026/09/invoice-0042.jpg"
   },
   "role": "owner",
   "memberships": [
@@ -142,6 +146,8 @@ request.json
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
       "tenantSlug": "text",
       "tenantName": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
       "status": "invited"
     }
@@ -239,7 +245,9 @@ request.json
   "tenant": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "slug": "text",
-    "legalName": "Campa Cola 750 ml"
+    "legalName": "Campa Cola 750 ml",
+    "displayName": "text",
+    "logoUrl": "docs/2026/09/invoice-0042.jpg"
   },
   "role": "owner",
   "memberships": [
@@ -247,6 +255,8 @@ request.json
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
       "tenantSlug": "text",
       "tenantName": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
       "status": "invited"
     }
@@ -423,7 +433,9 @@ request.json
   "tenant": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "slug": "text",
-    "legalName": "Campa Cola 750 ml"
+    "legalName": "Campa Cola 750 ml",
+    "displayName": "text",
+    "logoUrl": "docs/2026/09/invoice-0042.jpg"
   },
   "role": "owner",
   "memberships": [
@@ -431,6 +443,8 @@ request.json
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
       "tenantSlug": "text",
       "tenantName": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
       "status": "invited"
     }
@@ -507,7 +521,9 @@ curl "http://localhost:3000/auth/me" \
   "tenant": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "slug": "text",
-    "legalName": "Campa Cola 750 ml"
+    "legalName": "Campa Cola 750 ml",
+    "displayName": "text",
+    "logoUrl": "docs/2026/09/invoice-0042.jpg"
   },
   "role": "owner",
   "memberships": [
@@ -515,6 +531,8 @@ curl "http://localhost:3000/auth/me" \
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
       "tenantSlug": "text",
       "tenantName": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
       "status": "invited"
     }
@@ -779,6 +797,162 @@ request.json
 }
 ```
 
+### POST `/auth/forgot-password`
+
+Ask for a password reset; always answers ok, the token travels by a later channel · contract `auth.forgotPassword`
+
+**Roles:** public
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `username` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/forgot-password" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "username": "sunil.tarsun"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/reset-password`
+
+Set a new password with a single-use reset token; every session is revoked · contract `auth.resetPassword`
+
+**Roles:** public
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `token` | string | yes |
+| `newPassword` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/reset-password" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "token": "text",
+  "newPassword": "Dos@1234"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/.well-known/jwks.json`
 
 Public keys that verify access tokens · contract `auth.jwks`
@@ -832,4 +1006,6 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `auth.sessions` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.revokeSession` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.changePassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.forgotPassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.resetPassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.jwks` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

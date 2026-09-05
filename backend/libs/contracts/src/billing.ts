@@ -2,6 +2,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import {
   BpsSchema,
+  DocumentRenderOutput,
   GstinSchema,
   IdSchema,
   MutationBase,
@@ -15,6 +16,7 @@ import { EnteredUnitSchema, OrderStateSchema } from './orders.js'
 import { AppliedRuleSchema } from './pricing.js'
 import { InvoicePaymentStateSchema } from './receivables.js'
 import { AddressSchema } from './retailers.js'
+import { SellerBrandingSchema } from './tenancy.js'
 
 /**
  * Billing — the tax document. It owns `invoices`, `invoice_lines`, `credit_notes`, `credit_note_lines`
@@ -32,9 +34,10 @@ import { AddressSchema } from './retailers.js'
  *                    PERMISSIONS, so mounting the key exposes no money surface: a rep may see THAT a
  *                    bill exists for a shop it serves and never the registers, never a cost
  *   warehouse :3004  YES — the warehouse desk bills at pack and reads what it billed: `invoices.queue`,
- *                    `invoices.setEwayBill`, `invoices.get/list/pdf`. The document itself is issued by
- *                    `warehouse.packs.confirm` calling `BillingService.issueForPack` (coordination §4
- *                    step 3), NOT by an HTTP procedure here; the warehouse may never cancel a bill
+ *                    `invoices.issueForPack` (a pack that was parked with `issueInvoice: false`),
+ *                    `invoices.setEwayBill`, `invoices.get/list/pdf`. The document for a normal pack is
+ *                    issued by `warehouse.packs.confirm` calling `BillingService.issueForPack`
+ *                    (coordination §4 step 3); the warehouse may never cancel a bill
  *   delivery :3005   YES — the doorstep set: `invoices.issueVanSale`, the short-delivery credit note,
  *                    the bill and its UPI QR at the shop door
  *   retailer :3006   YES — its own bills only. RLS (`invoices_read` / `credit_notes_read` through the
@@ -59,8 +62,10 @@ import { AddressSchema } from './retailers.js'
  *     numbering complexity the brief described does not exist.
  *  5. The product is WHITE-LABELLED (§D6). Every document a shopkeeper sees carries the DISTRIBUTOR's own
  *     name and logo, never "Distribution OS": `InvoiceDetail.seller` and `CreditNoteDetail.seller` carry
- *     it, read from `tenant_settings` keys `display_name`, `logo_asset_id`, `invoice_footer`, `upi_vpa`
- *     (falling back to `tenants.legal_name`), which is also what the UPI QR's payee name is built from.
+ *     it. The block itself, `SellerBrandingSchema`, is declared in `tenancy.ts` (it is the tenant's
+ *     identity, shared with the challan, the receipt and every app's chrome through
+ *     `tenancy.branding.get`) and read from `TENANT_SETTING_KEYS` with `tenants.legal_name` as the
+ *     fallback, which is also what the UPI QR's payee name is built from.
  *
  * Money is integer paise, quantities integer pieces, percentages basis points; `invoiceDate`/`noteDate`
  * and `fy` are IST (`businessDate()`, `financialYear()`); ids are client-generated UUIDv7. No output
@@ -118,10 +123,6 @@ export type CreditNoteState = z.infer<typeof CreditNoteStateSchema>
 export const InvoiceCopySchema = z.enum(['original', 'duplicate', 'triplicate'])
 export const InvoiceFormatSchema = z.enum(['a4', 'thermal80'])
 
-/** Nothing renders on the request path (scale rule 3): a PDF is either already made or queued. */
-export const DocumentRenderStatusSchema = z.enum(['ready', 'queued'])
-export type DocumentRenderStatus = z.infer<typeof DocumentRenderStatusSchema>
-
 /** `skipped` = the tenant has e-invoicing off; `stubbed` = the local deterministic placeholder. */
 export const IrnStatusSchema = z.enum(['skipped', 'stubbed', 'ready'])
 export type IrnStatus = z.infer<typeof IrnStatusSchema>
@@ -132,25 +133,8 @@ export const GstSummaryGroupBySchema = z.enum(['hsn', 'rate'])
 // ---------------------------------------------------------------------------------------------------------------
 // output shapes
 
-/**
- * The distributor's own identity on every document a shopkeeper sees (§D6). Read from `tenant_settings`
- * (`display_name`, `logo_asset_id`, `invoice_footer`, `upi_vpa`) with `tenants.legal_name` / `gstin` as
- * the fallback. `logoUrl` is a pre-signed object-storage URL and is null until a logo is uploaded.
- */
-export const SellerBrandingSchema = z.object({
-  displayName: z.string(),
-  legalName: z.string(),
-  gstin: z.string().nullable(),
-  stateCode: StateCodeSchema,
-  fssai: z.string().nullable(),
-  address: AddressSchema.nullable(),
-  logoObjectKey: z.string().nullable(),
-  logoUrl: z.string().nullable(),
-  /** The tenant's own terms/footer line printed under the totals. */
-  invoiceFooter: z.string().nullable(),
-  upiVpa: z.string().nullable(),
-})
-export type SellerBranding = z.infer<typeof SellerBrandingSchema>
+// The distributor's own identity on every document (§D6) is `SellerBrandingSchema` from `./tenancy.js`
+// — `InvoiceDetail.seller` and `CreditNoteDetail.seller` below use it; it is not declared here.
 
 /**
  * One printed line. Everything except quantity and tax is copied verbatim from the order line: the
@@ -348,6 +332,8 @@ export const CreditNoteSchema = z.object({
   roundOffPaise: PaiseSchema,
   totalPaise: PaiseSchema,
   irn: z.string().nullable(),
+  /** The rendered note (`tenant/{tenantId}/documents/credit_note/{id}.pdf`), null until the worker has written it; open it with `files.readUrl`. */
+  pdfObjectKey: z.string().nullable(),
   issuedBy: IdSchema.nullable(),
   issuedAt: z.string().nullable(),
   note: z.string().nullable(),
@@ -419,7 +405,27 @@ export const BillingQueueOutput = z.object({
 // `PERMISSIONS` row. `warehouse.packs.confirm` now does the stock-and-state half — `postPick`,
 // `recordPick`, `applyFulfilmentEvent('pack')` — and calls `BillingService.issueForPack()` in the same
 // transaction. Two HTTP callers would post `sale` rows twice for one order; one caller is the guarantee.
-// `issueForPack` stays an exported service method with no procedure of its own.
+//
+// `invoices.issueForPack` BELOW IS NOT THAT PROCEDURE. It bills a pack that `packs.confirm` PARKED with
+// `issueInvoice: false` (docs/23 §8.2): the stock has already left and the order is already `packed`, so
+// the handler calls the SAME exported `BillingService.issueForPack(tx, pack)` for the document alone and
+// never posts a piece of stock. A pack that already has a live invoice is 409 `already_invoiced`; a
+// replay returns the stored response. One pack, one invoice, whichever of the two callers reached it.
+
+/**
+ * Bill a parked pack: the warehouse confirmed the cartons with `issueInvoice: false` (a shop whose
+ * GSTIN was being checked, a bill the desk wanted to eyeball first) and the order sits in
+ * `packs.list?invoiced=false` / `invoices.queue` with `hasDraftInvoice`. Quantities are the PACKED
+ * quantities; `invoiceDate` defaults to today in IST and may not precede the pack date.
+ */
+export const IssueForPackInput = MutationBase.extend({
+  /** Client-generated id of the invoice this call issues. */
+  id: IdSchema,
+  packId: IdSchema,
+  invoiceDate: IsoDateSchema.optional(),
+  deviceId: DeviceIdSchema.optional(),
+})
+export const IssueForPackOutput = InvoiceItemOutput
 
 /**
  * A sale made off the van. Same tenant series as any other bill and no device-allocated number
@@ -546,12 +552,7 @@ export const InvoicePdfInput = z.object({
   copy: InvoiceCopySchema.default('original'),
   format: InvoiceFormatSchema.default('a4'),
 })
-export const InvoicePdfOutput = z.object({
-  status: DocumentRenderStatusSchema,
-  objectKey: z.string().nullable(),
-  url: z.string().nullable(),
-  expiresAt: z.string().nullable(),
-})
+export const InvoicePdfOutput = DocumentRenderOutput
 
 // ---------------------------------------------------------------------------------------------------------------
 // invoices — the two document keys that may still be written after issue
@@ -786,7 +787,16 @@ export const billingContract = {
       })
       .input(BillingQueueInput)
       .output(BillingQueueOutput),
-    // No `issue` here: `warehouse.packs.confirm` is the only caller (coordination §4 step 3).
+    // No `issue` here: `warehouse.packs.confirm` is the caller for a normal pack (coordination §4 step 3);
+    // `issueForPack` bills a pack that was PARKED and never posts stock (see the note above its input).
+    issueForPack: oc
+      .route({
+        method: 'POST',
+        path: '/warehouse/packs/{packId}/invoice',
+        summary: 'Bill a pack that was confirmed without an invoice (stock has already left)',
+      })
+      .input(IssueForPackInput)
+      .output(IssueForPackOutput),
     issueVanSale: oc
       .route({
         method: 'POST',

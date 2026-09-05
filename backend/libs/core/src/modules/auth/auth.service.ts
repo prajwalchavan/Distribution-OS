@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gt, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import type {
   AuthMe,
   AuthOk,
@@ -8,10 +8,12 @@ import type {
   AuthTenant,
   AuthUser,
   ChangePasswordIn,
+  ForgotPasswordIn,
   LoginIn,
   LogoutIn,
   MembershipSummary,
   RefreshIn,
+  ResetPasswordIn,
   RevokeSessionIn,
   SessionsList,
   SwitchTenantIn,
@@ -24,7 +26,10 @@ import {
   hashPassword,
   memberships,
   normalizeUsername,
+  otpRateLimits,
   tenants,
+  tenantSettings,
+  TENANT_SETTING_KEYS,
   users,
   validatePassword,
   verifyPassword,
@@ -34,8 +39,17 @@ import {
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { DB, loadAuthKeys, requireDb, type AuthKeys } from '../../platform/index.js'
+import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
 import { SIGN_IN_REQUIRED, type AuthClaims } from './auth-context.js'
-import { authTtl, hashRefreshToken, newRefreshToken, signAccessToken } from './tokens.js'
+import {
+  authTtl,
+  hashRefreshToken,
+  newRefreshToken,
+  passwordFingerprint,
+  signAccessToken,
+  signResetToken,
+  verifyResetToken,
+} from './tokens.js'
 
 /** Five consecutive failures lock the account for fifteen minutes (design 2026-09-04). */
 export const MAX_FAILED_LOGINS = 5
@@ -62,7 +76,17 @@ type SessionRow = typeof authSessions.$inferSelect
 type MembershipRow = {
   membership: typeof memberships.$inferSelect
   tenant: typeof tenants.$inferSelect
+  /** The distributor's own name and logo (docs/17 §D6), filled by `loadMemberships`. */
+  branding: TenantBranding
 }
+
+interface TenantBranding {
+  displayName: string
+  logoUrl: string | null
+}
+
+/** How long a logo link in a sign-in reply stays good: a day, like `tenancy.branding.get`. */
+const LOGO_URL_TTL_SECONDS = 24 * 60 * 60
 
 /**
  * Failure bookkeeping (failed_login_count, a revoked session, the audit event) must COMMIT even though the
@@ -300,7 +324,7 @@ export class AuthService {
       const active = current?.membership.status === 'active' ? current : null
       return {
         user: toAuthUser(user),
-        tenant: active ? toAuthTenant(active.tenant) : null,
+        tenant: active ? toAuthTenant(active) : null,
         role: active?.membership.role ?? null,
         memberships: rows.map(toMembershipSummary),
         session: toAuthSession(session),
@@ -406,10 +430,135 @@ export class AuthService {
     return unwrap(outcome)
   }
 
+  // ---------------------------------------------------------------- self-service reset (docs/23 §8.12)
+
+  /**
+   * Always `ok`: whether the username exists is never revealed on the wire. When it does, a signed
+   * reset token (30 minutes, bound to the current password hash so it works exactly once) is handed
+   * to the delivery channel. THE CHANNEL IS NOT BUILT YET — SMS / WhatsApp is the OTP layer docs/22 §7
+   * defers to the notifications module — so `deliverResetToken` logs the token outside production
+   * and does nothing in production. No table is involved (docs/23 §8.12's "hashed token store" is
+   * unnecessary: the signature and the password fingerprint give single use without state).
+   */
+  async forgotPassword(input: ForgotPasswordIn, client: ClientInfo): Promise<AuthOk> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    const username = normalizeUsername(input.username)
+    await withSystem(db, async (tx) => {
+      const now = new Date()
+      // Abuse control on the same table OTPs will use: five requests per username per hour, and per
+      // caller IP per hour; past that the call still answers ok and issues nothing.
+      const allowed =
+        (await underResetLimit(tx, `reset:user:${username}`, now)) &&
+        (await underResetLimit(tx, `reset:ip:${client.ip ?? 'unknown'}`, now))
+      if (!allowed) return
+      const user = await findUserByUsername(tx, username)
+      if (!user || user.status !== 'active') return
+      const reset = await signResetToken(
+        { userId: user.id, passwordHash: user.passwordHash },
+        keys,
+        now,
+      )
+      deliverResetToken({
+        username,
+        phone: user.phone,
+        token: reset.token,
+        expiresAt: reset.expiresAt,
+      })
+    })
+    return { ok: true }
+  }
+
+  /**
+   * Exchange a reset token for a new password. The token must verify, be unexpired, and carry the
+   * fingerprint of the password that is STILL current — a second use after a successful reset (or a
+   * token issued before the owner reset the password by hand) is refused. Every session of the user
+   * is revoked; the lockout counter is cleared.
+   */
+  async resetPassword(input: ResetPasswordIn, client: ClientInfo): Promise<AuthOk> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    const problem = validatePassword(input.newPassword)
+    if (problem) throw new ORPCError('BAD_REQUEST', { message: problem })
+    // A string that is not even token-shaped is the caller's mistake (400); a well-formed token that
+    // fails its signature, has expired or was already used is 401, as the contract says.
+    if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(input.token))
+      throw new ORPCError('BAD_REQUEST', { message: 'token is not a password reset token' })
+    const claims = await verifyResetToken(input.token, keys)
+    if (!claims) throw resetInvalid()
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<AuthOk>> => {
+      const now = new Date()
+      const user = await findUserById(tx, claims.userId)
+      if (!user || user.status !== 'active') return fail(resetInvalid())
+      if (passwordFingerprint(user.passwordHash) !== claims.fingerprint) return fail(resetInvalid())
+      await tx
+        .update(users)
+        .set({
+          passwordHash: await hashPassword(input.newPassword),
+          passwordChangedAt: now,
+          mustChangePassword: false,
+          failedLoginCount: 0,
+          lockedUntil: null,
+          updatedAt: now,
+        })
+        .where(eq(users.id, user.id))
+      await tx
+        .update(authSessions)
+        .set({ revokedAt: now, revokedReason: 'password_reset' })
+        .where(and(eq(authSessions.userId, user.id), isNull(authSessions.revokedAt)))
+      await logEvent(tx, {
+        userId: user.id,
+        username: user.username,
+        kind: 'password_changed',
+        client,
+      })
+      return ok({ ok: true as const })
+    })
+    return unwrap(outcome)
+  }
+
   private dummy(): Promise<string> {
     this.dummyHash ??= hashPassword(uuidv7())
     return this.dummyHash
   }
+}
+
+/** Five reset requests per key per hour (`otp_rate_limits`, the OTP layer's own abuse table). */
+const RESET_REQUESTS_PER_HOUR = 5
+
+async function underResetLimit(tx: Db, key: string, now: Date): Promise<boolean> {
+  const windowStart = new Date(Math.floor(now.getTime() / 3_600_000) * 3_600_000)
+  const [row] = await tx
+    .insert(otpRateLimits)
+    .values({ key, windowStart, attempts: 1 })
+    .onConflictDoUpdate({
+      target: [otpRateLimits.key, otpRateLimits.windowStart],
+      set: { attempts: sql`${otpRateLimits.attempts} + 1` },
+    })
+    .returning({ attempts: otpRateLimits.attempts })
+  return (row?.attempts ?? 1) <= RESET_REQUESTS_PER_HOUR
+}
+
+const resetInvalid = () =>
+  new ORPCError('UNAUTHORIZED', {
+    message: 'This reset link is invalid or has expired. Ask for a new one.',
+  })
+
+/**
+ * Where a reset token goes. Until the notifications module owns the SMS / WhatsApp channel this is
+ * the service log — and only outside production, where a token in a log would be a leak. The shape
+ * is the one the channel will take: username, phone, token, expiry.
+ */
+function deliverResetToken(i: {
+  username: string
+  phone: string
+  token: string
+  expiresAt: Date
+}): void {
+  if (process.env.NODE_ENV === 'production') return
+  console.warn(
+    `[auth] password reset for ${i.username} (${i.phone}), valid until ${i.expiresAt.toISOString()} — no delivery channel yet; token: ${i.token}`,
+  )
 }
 
 // ------------------------------------------------------------------ transaction helpers
@@ -431,12 +580,82 @@ async function findUserById(tx: Db, id: string): Promise<UserRow | undefined> {
 
 /** Every membership of the user with its tenant, oldest first (the default when no tenant is asked for). */
 async function loadMemberships(tx: Db, userId: string): Promise<MembershipRow[]> {
-  return tx
+  const rows = await tx
     .select({ membership: memberships, tenant: tenants })
     .from(memberships)
     .innerJoin(tenants, eq(tenants.id, memberships.tenantId))
     .where(eq(memberships.userId, userId))
     .orderBy(asc(memberships.createdAt), asc(memberships.id))
+  const branding = await loadBranding(
+    tx,
+    rows.map((r) => r.tenant),
+  )
+  return rows.map((r) => ({
+    ...r,
+    branding: branding.get(r.tenant.id) ?? { displayName: r.tenant.legalName, logoUrl: null },
+  }))
+}
+
+/**
+ * The white-label name and logo of each tenant (docs/17 §D6): `branding.display_name` and a signed
+ * link to `branding.logo_object_key`, read as the system role because sign-in is not tenant-scoped.
+ * One query for every membership, so a shopkeeper linked to three distributors costs three signed
+ * URLs and one SELECT. A tenant without a logo answers null; a storage fault never breaks sign-in.
+ */
+async function loadBranding(
+  tx: Db,
+  rows: readonly (typeof tenants.$inferSelect)[],
+): Promise<Map<string, TenantBranding>> {
+  const out = new Map<string, TenantBranding>()
+  if (rows.length === 0) return out
+  const ids = [...new Set(rows.map((t) => t.id))]
+  const settings = await tx
+    .select({
+      tenantId: tenantSettings.tenantId,
+      key: tenantSettings.key,
+      value: tenantSettings.value,
+    })
+    .from(tenantSettings)
+    .where(
+      and(
+        inArray(tenantSettings.tenantId, ids),
+        inArray(tenantSettings.key, [
+          TENANT_SETTING_KEYS.brandingDisplayName,
+          TENANT_SETTING_KEYS.brandingLogoObjectKey,
+        ]),
+      ),
+    )
+  const byTenant = new Map<string, Map<string, unknown>>()
+  for (const s of settings) {
+    const map = byTenant.get(s.tenantId) ?? new Map<string, unknown>()
+    map.set(s.key, s.value)
+    byTenant.set(s.tenantId, map)
+  }
+  for (const tenant of rows) {
+    if (out.has(tenant.id)) continue
+    const map = byTenant.get(tenant.id)
+    const displayName =
+      asText(map?.get(TENANT_SETTING_KEYS.brandingDisplayName)) ?? tenant.legalName
+    const logoKey = asText(map?.get(TENANT_SETTING_KEYS.brandingLogoObjectKey))
+    out.set(tenant.id, {
+      displayName,
+      logoUrl: logoKey === null ? null : await signedLogoUrl(logoKey),
+    })
+  }
+  return out
+}
+
+function asText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+async function signedLogoUrl(key: string): Promise<string | null> {
+  try {
+    return await createObjectStorage().getUrl(key, LOGO_URL_TTL_SECONDS)
+  } catch (error) {
+    if (error instanceof ObjectStorageError) return null
+    throw error
+  }
 }
 
 /** Matches the current hash or the previous one, so a rotated-away token can be recognised as reuse. */
@@ -587,7 +806,7 @@ async function issuePair(
     refreshToken: session.refresh.token,
     refreshExpiresAt: session.row.refreshExpiresAt.toISOString(),
     user: toAuthUser(user),
-    tenant: toAuthTenant(membership.tenant),
+    tenant: toAuthTenant(membership),
     role,
     memberships: rows.map(toMembershipSummary),
   }
@@ -625,8 +844,14 @@ function toAuthUser(row: UserRow): AuthUser {
   }
 }
 
-function toAuthTenant(row: typeof tenants.$inferSelect): AuthTenant {
-  return { id: row.id, slug: row.slug, legalName: row.legalName }
+function toAuthTenant(row: MembershipRow): AuthTenant {
+  return {
+    id: row.tenant.id,
+    slug: row.tenant.slug,
+    legalName: row.tenant.legalName,
+    displayName: row.branding.displayName,
+    logoUrl: row.branding.logoUrl,
+  }
 }
 
 function toMembershipSummary(row: MembershipRow): MembershipSummary {
@@ -634,6 +859,8 @@ function toMembershipSummary(row: MembershipRow): MembershipSummary {
     tenantId: row.membership.tenantId,
     tenantSlug: row.tenant.slug,
     tenantName: row.tenant.legalName,
+    displayName: row.branding.displayName,
+    logoUrl: row.branding.logoUrl,
     role: row.membership.role,
     status: row.membership.status,
   }

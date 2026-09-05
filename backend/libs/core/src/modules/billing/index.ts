@@ -44,3 +44,8 @@ export {
   type PeriodFilter,
   type SchemeSpendRow,
 } from './registers.service.js'
+/**
+ * The document data the worker's PDF renderer prints from: the same mappers `invoices.get` and
+ * `creditNotes.get` answer with (docs/23 §8.2, platform-gaps slice). Plain functions, no Nest DI.
+ */
+export { loadCreditNoteDocument, loadInvoiceDocument } from './documents.js'

@@ -1,10 +1,14 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, lt, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
 import type {
+  CancelSupplierInvoiceInput,
+  CancelSupplierInvoiceOutput,
   CreateSupplierInvoiceInput,
   CreateSupplierInvoiceOutput,
+  DisputeSupplierInvoiceInput,
+  DisputeSupplierInvoiceOutput,
   MatchLineInput,
   MatchLineOutput,
   PurchaseOrdersListInput,
@@ -18,6 +22,7 @@ import type {
 } from '@dos/contracts'
 import { multiply, paise, sum, uuidv7, type Paise } from '@dos/domain'
 import {
+  grns,
   productVariants,
   purchaseOrders,
   supplierInvoiceLines,
@@ -34,6 +39,7 @@ import {
   nextDocumentNumber,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import { pgConstraint } from '../inventory/index.js'
 import {
@@ -44,6 +50,10 @@ import {
   type InvoiceRow,
 } from './procurement.mappers.js'
 
+type DisputeIn = z.infer<typeof DisputeSupplierInvoiceInput>
+type DisputeOut = z.infer<typeof DisputeSupplierInvoiceOutput>
+type CancelIn = z.infer<typeof CancelSupplierInvoiceInput>
+type CancelOut = z.infer<typeof CancelSupplierInvoiceOutput>
 type CreateIn = z.infer<typeof CreateSupplierInvoiceInput>
 type CreateOut = z.infer<typeof CreateSupplierInvoiceOutput>
 type ListIn = z.infer<typeof SupplierInvoicesListInput>
@@ -380,6 +390,94 @@ export class SupplierInvoiceService {
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
+  }
+
+  /**
+   * `extracted | in_review | approved → disputed` (docs/23 §8.19): the supplier's bill does not match
+   * what was agreed. A `received` invoice cannot be disputed — the GRN has posted stock and cost; the
+   * correction is a discrepancy claim or a supplier credit. Audited.
+   */
+  async dispute(input: DisputeIn): Promise<DisputeOut> {
+    requireRole(BACK_OFFICE)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const row = await this.lockInvoice(tx, input.id)
+        if (row.status === 'disputed') return { item: await this.load(tx, row.id) }
+        if (!['extracted', 'in_review', 'approved'].includes(row.status))
+          throw new ORPCError('CONFLICT', {
+            message: `supplier invoice ${row.invoiceNo} is ${row.status}; only an extracted, in-review or approved invoice can be disputed`,
+          })
+        const now = new Date()
+        await tx
+          .update(supplierInvoices)
+          .set({ status: 'disputed', disputedAt: now, disputeReason: input.reason, updatedAt: now })
+          .where(eq(supplierInvoices.id, row.id))
+        await writeAudit(tx, {
+          action: 'supplier_invoice.dispute',
+          entityType: 'supplier_invoice',
+          entityId: row.id,
+          before: { status: row.status },
+          after: { status: 'disputed', reason: input.reason },
+        })
+        return { item: await this.load(tx, row.id) }
+      }),
+    )
+  }
+
+  /** `extracted | in_review | approved | disputed → cancelled`; never once a live GRN has been opened on it. */
+  async cancel(input: CancelIn): Promise<CancelOut> {
+    requireRole(BACK_OFFICE)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const row = await this.lockInvoice(tx, input.id)
+        if (row.status === 'cancelled') return { item: await this.load(tx, row.id) }
+        if (row.status === 'received')
+          throw new ORPCError('CONFLICT', {
+            message: `supplier invoice ${row.invoiceNo} is received; stock and cost have posted, so it cannot be cancelled`,
+          })
+        const [grn] = await tx
+          .select({ id: grns.id, status: grns.status })
+          .from(grns)
+          .where(and(eq(grns.supplierInvoiceId, row.id), sql`${grns.status} <> 'cancelled'`))
+          .limit(1)
+        if (grn)
+          throw new ORPCError('CONFLICT', {
+            message: `supplier invoice ${row.invoiceNo} has GRN ${grn.id} (${grn.status}) open on it; cancel the GRN first`,
+          })
+        const now = new Date()
+        await tx
+          .update(supplierInvoices)
+          .set({
+            status: 'cancelled',
+            cancelledAt: now,
+            cancelReason: input.reason,
+            updatedAt: now,
+          })
+          .where(eq(supplierInvoices.id, row.id))
+        await writeAudit(tx, {
+          action: 'supplier_invoice.cancel',
+          entityType: 'supplier_invoice',
+          entityId: row.id,
+          before: { status: row.status },
+          after: { status: 'cancelled', reason: input.reason },
+        })
+        return { item: await this.load(tx, row.id) }
+      }),
+    )
+  }
+
+  private async lockInvoice(tx: Db, id: string): Promise<InvoiceRow> {
+    const [row] = await tx
+      .select()
+      .from(supplierInvoices)
+      .where(eq(supplierInvoices.id, id))
+      .for('update')
+    if (!row) throw new ORPCError('NOT_FOUND', { message: `supplier invoice ${id} not found` })
+    return row
   }
 
   /** Header + lines, or 404. Used by the GRN service too (same module). */
