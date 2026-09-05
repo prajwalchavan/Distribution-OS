@@ -232,6 +232,7 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | 2026-09-05 | **Keep developing until a hard blocker**; never stop between backend modules; verify, record, launch next in the same turn                                                                                                             | CLAUDE.md session protocol, docs/18                                    |
 | 2026-09-05 | Commit at module boundaries with a message stating what is complete and what is in progress                                                                                                                                            | git history                                                            |
 | 2026-09-05 | This file is the single source of truth; updated in the same turn as any founder decision                                                                                                                                              | §0 rules, CLAUDE.md                                                    |
+| 2026-09-05 | **Layout chosen: A Ledger** (of A Ledger / B Instrument / C Panel / D Signal). Applies to all six apps; design system finalised on it.                                                                                                 | docs/design/UX-00-design-system.md, layout artifact                    |
 
 ## 9. Non-negotiables (never list)
 
@@ -257,3 +258,4 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | Date       | Change                                                                                                                                                                         | Source                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | 2026-09-05 | File created: system map, order-to-cash loop, stock-in, money, sign-in diagrams; decisions register consolidated from docs/15, docs/17 §D and the 2026-09-04/05 build sessions | Founder: "keep a single source of truth that survives compression" |
+| 2026-09-05 | §8: founder picked layout **A Ledger** for all six apps                                                                                                                        | Founder message                                                    |

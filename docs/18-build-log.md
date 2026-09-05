@@ -2,6 +2,8 @@
 
 ## RESUME HERE (updated 2026-09-05 09:30 IST, session 3)
 
+**LAYOUT CHOSEN (2026-09-05): A Ledger.** Frontend visual work is unblocked; apps still start after the backend is complete.
+
 **Single source of truth: `docs/22-source-of-truth.md`** (read it before this file). Rendered view: https://claude.ai/code/artifact/24c323d8-5b45-4045-8e16-e0e549233fdd — republish it after editing the markdown with `python3 docs/tools/render-source-of-truth.py <out.html>` and the Artifact tool on that same URL.
 
 **STANDING INSTRUCTION FROM THE FOUNDER (2026-09-05 09:20): "I expected you to complete all modules then stop. Now on keep developing until
