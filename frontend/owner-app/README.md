@@ -295,3 +295,17 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/claims/{id}/cancel` | Discard a draft claim (never a numbered one) | owner, manager, accountant |
 | POST | `/claims/{id}/statements` | Queue the claim sheet in the brand's format (rendered by the worker, never inline) | owner, manager, accountant |
 | GET | `/claims/{id}/statements` | Claim sheets requested for a claim and whether each is ready | owner, manager, accountant |
+| GET | `/notifications/messages` | Message log (staff) and inbox (a shop sees only messages to its own shop) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/notifications/messages/{id}` | One message with its variables and retry state (a push / WhatsApp tap lands here) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/notifications/messages/send` | Send a bill, receipt or statement to one shop now (queued; the worker sends it) | owner, manager, accountant, delivery |
+| POST | `/notifications/messages/{id}/resend` | Requeue a failed message (attempts are kept; a delivered one is never resent) | owner, manager, accountant |
+| POST | `/notifications/messages/{id}/read` | Mark my own push / in-app notice read (never a WhatsApp or SMS row) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/notifications/templates` | Platform defaults plus this distributor’s overrides, per key, channel and language | owner, manager, accountant |
+| POST | `/notifications/templates` | Set this distributor’s own wording for a key, channel and language | owner, manager |
+| POST | `/notifications/broadcasts` | Send a template to every shop on a beat or a named list (queued per shop) | owner, manager |
+| GET | `/notifications/broadcasts` | Broadcast history with delivery counts | owner, manager, accountant |
+| GET | `/notifications/broadcasts/{id}` | One broadcast with counts and every recipient’s outcome | owner, manager, accountant |
+| POST | `/notifications/push-tokens` | Register or refresh this device’s push token for the signed-in staff member | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
+| POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |

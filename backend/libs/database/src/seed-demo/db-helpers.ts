@@ -1,4 +1,5 @@
-import type { PgTable } from 'drizzle-orm/pg-core'
+import { getTableColumns, sql, type SQL } from 'drizzle-orm'
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import type { Db } from '../client.js'
 
 /**
@@ -13,4 +14,30 @@ export async function insertMany<T extends PgTable>(
 ): Promise<void> {
   if (rows.length === 0) return
   await db.insert(table).values(rows).onConflictDoNothing()
+}
+
+/**
+ * The rollup tables (`daily_*`, `retailer_behaviour`, `owner_summary`) are DERIVED rows the worker
+ * rewrites by upsert on their primary key (docs/plans/reporting.md §4 rule 4), never business records,
+ * so the seed treats them the same way: an existing row is brought up to what this seed computes (a
+ * column added by a later migration gets its value on the founder's already-seeded database), a missing
+ * one is inserted. Still idempotent — the same seed produces the same values. `columns` names the
+ * columns to refresh; everything else (the key, `computed_at` defaults) is left alone.
+ */
+export async function upsertMany<T extends PgTable>(
+  db: Db,
+  table: T,
+  rows: T['$inferInsert'][],
+  target: PgColumn[],
+  columns: (keyof T['_']['columns'] & string)[],
+): Promise<void> {
+  if (rows.length === 0) return
+  const all = getTableColumns(table) as Record<string, PgColumn>
+  const set: Record<string, SQL> = {}
+  for (const key of columns) {
+    const column = all[key]
+    if (!column) throw new Error(`upsertMany: ${String(key)} is not a column of the table`)
+    set[key] = sql.raw(`excluded."${column.name}"`)
+  }
+  await db.insert(table).values(rows).onConflictDoUpdate({ target, set })
 }

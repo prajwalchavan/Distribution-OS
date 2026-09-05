@@ -22,6 +22,10 @@ import {
   correctionsLog,
   creditNoteLines,
   creditNotes,
+  dailyOwnerStats,
+  dailyRepStats,
+  dailyRetailerStats,
+  dailyTenantStats,
   deliveries,
   deliveryChallans,
   deliveryLines,
@@ -47,6 +51,7 @@ import {
   memberships,
   messages,
   numberingSeries,
+  ownerSummary,
   packConfirmations,
   pickLines,
   picklists,
@@ -55,6 +60,7 @@ import {
   priceListItems,
   pushTokens,
   receipts,
+  retailerBehaviour,
   retailerIdentities,
   retailerLinks,
   retailerOutstandingSummary,
@@ -241,6 +247,15 @@ describeDb('row level security and ledger guarantees', () => {
   const inboundA = uuidv7()
   const broadcastA = uuidv7()
   const beatB = uuidv7()
+  /**
+   * Migration 0027/0028 fixtures (reporting): one day of the distributorship (`daily_tenant_stats`, with
+   * its beat and payment-mode mixes), the rep's and the owner's field day (`daily_rep_stats`), both shops'
+   * day rows (`daily_retailer_stats`) and habits (`retailer_behaviour`), the owner's home-screen row and
+   * the cost-bearing day (`owner_summary`, `daily_owner_stats`); beside them tenant B's own shop, so the
+   * shop↔tenant guard has a foreign row to refuse.
+   */
+  const statsDay = '2026-09-01'
+  const retailerOfB = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -1275,6 +1290,95 @@ describeDb('row level security and ledger guarantees', () => {
       queuedCount: 1,
     })
     await db.insert(beats).values({ id: beatB, tenantId: tenantB, name: `Beat B ${run}` })
+    // Reporting fixtures (0027/0028): the rollup rows the owner's graphs read, written the way the
+    // worker writes them — by the owner connection, outside RLS.
+    await db.insert(dailyTenantStats).values({
+      tenantId: tenantA,
+      day: statsDay,
+      ordersCount: 2,
+      invoicedPaise: 368_000,
+      collectedPaise: 118_000,
+      outstandingPaise: 250_000,
+      overduePaise: 0,
+      deliveredStops: 1,
+      partialStops: 1,
+      onTimeStops: 2,
+      podStops: 2,
+      orderedPcs: 74,
+      pickedPcs: 74,
+      activeRetailers: 2,
+      byBrand: { [brandA]: { invoicedPaise: 368_000, invoiceCount: 2 } },
+      byBeat: { [beatA]: { invoicedPaise: 118_000, invoiceCount: 1 } },
+      byPaymentMode: { cash: 118_000 },
+    })
+    await db.insert(dailyRepStats).values([
+      {
+        tenantId: tenantA,
+        userId: rep,
+        day: statsDay,
+        visits: 4,
+        productiveVisits: 2,
+        ordersCount: 2,
+        orderValuePaise: 368_000,
+        linesSold: 2,
+      },
+      { tenantId: tenantA, userId: owner, day: statsDay, visits: 1, productiveVisits: 0 },
+    ])
+    await db.insert(dailyRetailerStats).values([
+      {
+        tenantId: tenantA,
+        retailerId: retailerA,
+        day: statsDay,
+        ordersCount: 1,
+        invoicedPaise: 118_000,
+        collectedPaise: 118_000,
+        linesSold: 1,
+      },
+      {
+        tenantId: tenantA,
+        retailerId: retailerB,
+        day: statsDay,
+        ordersCount: 1,
+        invoicedPaise: 250_000,
+        linesSold: 1,
+      },
+    ])
+    await db.insert(retailerBehaviour).values([
+      { tenantId: tenantA, retailerId: retailerA, ordersLast30: 1, valueLast30Paise: 118_000 },
+      {
+        tenantId: tenantA,
+        retailerId: retailerB,
+        ordersLast30: 1,
+        valueLast30Paise: 250_000,
+        lapsedRisk: 30,
+      },
+    ])
+    await db.insert(ownerSummary).values({
+      tenantId: tenantA,
+      todayInvoicedPaise: 368_000,
+      mtdSalesPaise: 368_000,
+      mtdGrossMarginPaise: 28_000,
+      stockValuePaise: 1_200_000,
+    })
+    await db.insert(dailyOwnerStats).values({
+      tenantId: tenantA,
+      day: statsDay,
+      netSalesPaise: 296_000,
+      cogsPaise: 268_000,
+      grossMarginPaise: 28_000,
+      stockValuePaise: 1_200_000,
+      nearExpiryValuePaise: 36_000,
+      schemeSpendCompanyPaise: 4_000,
+      byBrand: { [brandA]: { cogsPaise: 268_000, grossMarginPaise: 28_000 } },
+    })
+    await db.insert(retailers).values({
+      id: retailerOfB,
+      tenantId: tenantB,
+      code: `B${run}`,
+      name: 'Shop of tenant B',
+      phone: `+91900${run}9`,
+      stateCode: '27',
+    })
   })
 
   afterAll(async () => {
@@ -1395,7 +1499,8 @@ describeDb('row level security and ledger guarantees', () => {
       { tenantId: tenantB, actorId: owner, actorRole: 'owner' },
       (tx) => tx.select().from(retailers),
     )
-    expect(seen).toHaveLength(0)
+    // tenant B's own shop (the reporting guard fixture) and nothing of tenant A's
+    expect(seen.map((r) => r.id)).toEqual([retailerOfB])
     await expect(
       withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, (tx) =>
         tx.insert(retailers).values({
@@ -5080,6 +5185,221 @@ describeDb('row level security and ledger guarantees', () => {
     )
     await rejectsWith(
       db.update(broadcasts).set({ beatId: beatB }).where(eq(broadcasts.id, broadcastA)),
+      /belongs to another tenant/,
+    )
+  })
+
+  // ---------------------------------------------------------------------------------------------
+  // Reporting (0027/0028): the six rollup tables the owner's graphs read. The shop is a customer of the
+  // distributorship, not a member of it — it never reads the tenant's day, another shop's habits or its
+  // own series here (docs/plans/reporting.md §3 item 1, §4 rule 14); cost and margin stay with the back
+  // office (docs/22 §9 never-list 1); the rep reads only its own field day.
+
+  it('shows the distributorship’s day, every shop’s habits and each shop’s series to staff, and none of it to the shop', async () => {
+    for (const role of [
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+      'warehouse',
+      'delivery',
+    ] as const) {
+      const days = await as(role)((tx) =>
+        tx.select().from(dailyTenantStats).where(eq(dailyTenantStats.day, statsDay)),
+      )
+      expect(
+        days.map((d) => d.tenantId),
+        `${role} reads the tenant's day`,
+      ).toEqual([tenantA])
+      expect(days[0]?.byBeat, `${role} reads the beat mix`).toEqual({
+        [beatA]: { invoicedPaise: 118_000, invoiceCount: 1 },
+      })
+      expect(
+        (await as(role)((tx) => tx.select().from(retailerBehaviour))).map((r) => r.retailerId),
+        `${role} reads every shop's habits`,
+      ).toEqual(expect.arrayContaining([retailerA, retailerB]))
+      expect(
+        (await as(role)((tx) => tx.select().from(dailyRetailerStats))).map((r) => r.retailerId),
+        `${role} reads every shop's day rows`,
+      ).toEqual(expect.arrayContaining([retailerA, retailerB]))
+    }
+    // the shop: not the tenant's day, not even its OWN habits or series — a shop never sees a report
+    const asShop = as('retailer')
+    expect(await asShop((tx) => tx.select().from(dailyTenantStats))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(retailerBehaviour))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(dailyRetailerStats))).toHaveLength(0)
+    await rejectsWith(
+      asShop((tx) =>
+        tx
+          .insert(dailyTenantStats)
+          .values({ tenantId: tenantA, day: '2026-09-02', ordersCount: 1 }),
+      ),
+      /row-level security/,
+    )
+    await rejectsWith(
+      asShop((tx) =>
+        tx
+          .insert(retailerBehaviour)
+          .values({ tenantId: tenantA, retailerId: retailerA, ordersLast30: 99 }),
+      ),
+      /row-level security/,
+    )
+    expect(
+      await asShop((tx) =>
+        tx
+          .update(dailyRetailerStats)
+          .set({ invoicedPaise: 1 })
+          .where(eq(dailyRetailerStats.retailerId, retailerA))
+          .returning({ retailerId: dailyRetailerStats.retailerId }),
+      ),
+    ).toHaveLength(0)
+  })
+
+  it('keeps the cost-bearing day series and the owner’s home row to the back office: not the rep, the godown, the crew or the shop', async () => {
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      const days = await as(role)((tx) =>
+        tx.select().from(dailyOwnerStats).where(eq(dailyOwnerStats.day, statsDay)),
+      )
+      expect(
+        days.map((d) => d.grossMarginPaise),
+        `${role} reads the margin`,
+      ).toEqual([28_000])
+      expect(
+        (await as(role)((tx) => tx.select().from(ownerSummary))).map((o) => o.mtdGrossMarginPaise),
+        `${role} reads the home row`,
+      ).toEqual([28_000])
+    }
+    for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(dailyOwnerStats)),
+        `${role} reads no cost row`,
+      ).toHaveLength(0)
+      expect(
+        await as(role)((tx) => tx.select().from(ownerSummary)),
+        `${role} reads no home row`,
+      ).toHaveLength(0)
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(dailyOwnerStats).values({ tenantId: tenantA, day: '2026-09-02' }),
+        ),
+        /row-level security/,
+      )
+      expect(
+        await as(role)((tx) =>
+          tx
+            .update(dailyOwnerStats)
+            .set({ cogsPaise: 0, grossMarginPaise: 296_000 })
+            .where(eq(dailyOwnerStats.day, statsDay))
+            .returning({ day: dailyOwnerStats.day }),
+        ),
+        `${role} rewrites no cost row`,
+      ).toHaveLength(0)
+    }
+    // the arithmetic is a constraint, not service code: margin is net sales less cost, always
+    await rejectsWith(
+      db
+        .insert(dailyOwnerStats)
+        .values({ tenantId: tenantA, day: '2026-09-02', netSalesPaise: 100, cogsPaise: 90 }),
+      /daily_owner_stats_margin_identity/,
+    )
+  })
+
+  it('shows a rep only its own field day, the desk everyone’s, and lets nobody but the worker write one', async () => {
+    const asRep = as('salesperson')
+    const mine = await asRep((tx) =>
+      tx.select().from(dailyRepStats).where(eq(dailyRepStats.day, statsDay)),
+    )
+    expect(mine.map((r) => r.userId)).toEqual([rep])
+    // the index the cross-rep reads stand on leads with the tenant, then the day
+    const [idx] = (
+      await db.execute(
+        sql`SELECT indexdef FROM pg_indexes WHERE indexname = 'daily_rep_stats_day_idx'`,
+      )
+    ).rows as { indexdef: string }[]
+    expect(idx?.indexdef).toContain('(tenant_id, day)')
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      expect(
+        (
+          await as(role)((tx) =>
+            tx.select().from(dailyRepStats).where(eq(dailyRepStats.day, statsDay)),
+          )
+        ).map((r) => r.userId),
+        `${role} reads every rep's day`,
+      ).toEqual(expect.arrayContaining([rep, owner]))
+    }
+    for (const role of ['owner', 'salesperson', 'retailer'] as const) {
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(dailyRepStats).values({ tenantId: tenantA, userId: rep, day: '2026-09-02' }),
+        ),
+        /row-level security/,
+      )
+    }
+    expect(
+      await asRep((tx) =>
+        tx
+          .update(dailyRepStats)
+          .set({ productiveVisits: 99 })
+          .where(eq(dailyRepStats.userId, rep))
+          .returning({ userId: dailyRepStats.userId }),
+      ),
+    ).toHaveLength(0)
+    // the worker's rollup is the one writer
+    const written = await withTenant(
+      db,
+      { tenantId: tenantA, actorId: owner, actorRole: 'system' },
+      (tx) =>
+        tx
+          .insert(dailyRepStats)
+          .values({ tenantId: tenantA, userId: rep, day: '2026-09-02', visits: 3 })
+          .onConflictDoUpdate({
+            target: [dailyRepStats.tenantId, dailyRepStats.userId, dailyRepStats.day],
+            set: { visits: 3 },
+          })
+          .returning({ day: dailyRepStats.day }),
+    )
+    expect(written).toEqual([{ day: '2026-09-02' }])
+  })
+
+  it('keeps the rollups inside the tenant, and a shop’s day row on a shop of its own tenant', async () => {
+    const asOtherTenant = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, fn)
+    for (const table of [
+      dailyTenantStats,
+      dailyRepStats,
+      dailyRetailerStats,
+      dailyOwnerStats,
+      retailerBehaviour,
+      ownerSummary,
+    ]) {
+      expect(await asOtherTenant((tx) => tx.select().from(table))).toHaveLength(0)
+    }
+    // tenant B's owner cannot file a day row on tenant A's shop: RLS refuses the row (wrong tenant)
+    await rejectsWith(
+      asOtherTenant((tx) =>
+        tx
+          .insert(dailyRetailerStats)
+          .values({ tenantId: tenantB, retailerId: retailerA, day: statsDay, ordersCount: 1 }),
+      ),
+      /belongs to another tenant/,
+    )
+    // and the owner connection (the worker's cross-tenant rollup, a seed) cannot either: a foreign-key
+    // check bypasses row security, so the guard trigger is the rule
+    await rejectsWith(
+      db
+        .insert(dailyRetailerStats)
+        .values({ tenantId: tenantA, retailerId: retailerOfB, day: statsDay, ordersCount: 1 }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.insert(retailerBehaviour).values({ tenantId: tenantA, retailerId: retailerOfB }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db
+        .update(retailerBehaviour)
+        .set({ retailerId: retailerOfB })
+        .where(eq(retailerBehaviour.retailerId, retailerB)),
       /belongs to another tenant/,
     )
   })

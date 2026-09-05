@@ -22,6 +22,8 @@ export interface VariantRow {
   productKey: string
   brandKey: string
   manufacturerKey: string
+  /** `products.category` — the key of the owner's category-mix chart (seed-demo/reporting.ts). */
+  category: string
   name: string
   netQty: number
   netUnit: 'ml' | 'g'
@@ -561,6 +563,7 @@ export async function seedCatalog(db: Db): Promise<VariantRow[]> {
       productKey: p.key,
       brandKey: p.brandKey,
       manufacturerKey: p.manufacturerKey,
+      category: p.category,
       name: `${p.name} ${v.name}`,
       netQty: v.netQty,
       netUnit: v.netUnit,

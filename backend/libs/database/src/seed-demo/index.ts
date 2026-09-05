@@ -12,6 +12,7 @@ import { seedDelivery } from './delivery.js'
 import { seedDeliveryRoad } from './delivery-road.js'
 import { seedDocint } from './docint.js'
 import { seedIntegrations } from './integrations.js'
+import { seedNotifications } from './notifications.js'
 import { seedPeople, type PeopleResult } from './people.js'
 import { seedPlatformGaps } from './platform-gaps.js'
 import { seedPricing } from './pricing.js'
@@ -59,7 +60,7 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   // on the first seed of a fresh database and the order only appeared on the second run).
   await seedPendingVanSaleOrder(db, tenantId, variants, retailersRes, people)
   await seedReceivables(db, tenantId, retailersRes, people)
-  await seedReporting(db, tenantId, retailersRes, sales, people)
+  await seedReporting(db, tenantId, variants, tenantCatalog, retailersRes, sales, people)
   // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
   await seedPlatformGaps(db, tenantId, stock, people)
   // After stock: the document readings equal the supplier invoices it booked (docs/plans/docint.md §6).
@@ -72,6 +73,9 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   // After sales, stock and integrations: the claims read the August scheme bills, the damaged-bin
   // ledger rows and the gate-count shortage back from the database (docs/plans/claims.md §6).
   await seedClaims(db, tenantId, variants, tenantCatalog, stock, people)
+  // Last of all: the message log points at the orders, bills, deliveries and receipts every seed
+  // above wrote, and reads the shops' opt-ins the retailers seed recorded (docs/plans/notifications.md §6).
+  await seedNotifications(db, tenantId, retailersRes, sales, people)
 
   if (opts.printSignIn ?? true) printSignInTable(tenantId, people)
 }

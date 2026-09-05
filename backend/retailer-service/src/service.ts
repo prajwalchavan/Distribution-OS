@@ -11,6 +11,7 @@ import {
   BillingModule,
   FilesModule,
   DeliveryModule,
+  NotificationsModule,
 } from '@dos/core'
 
 /** The shopkeeper app: one card per linked distributor, catalog with availability, own orders, bills and dues. Row-level security limits every read to the shop itself. */
@@ -31,6 +32,7 @@ export const service = defineService({
     BillingModule,
     FilesModule,
     DeliveryModule,
+    NotificationsModule,
   ],
   contractKeys: [
     'health',
@@ -45,5 +47,6 @@ export const service = defineService({
     'billing',
     'files',
     'delivery',
+    'notifications',
   ],
 })

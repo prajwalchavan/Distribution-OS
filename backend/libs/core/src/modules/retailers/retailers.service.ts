@@ -72,6 +72,7 @@ import {
   type RetailerProbe,
   type RetailerSnapshot,
 } from './import.js'
+import { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
 import {
   pickCredit,
@@ -182,6 +183,21 @@ export class RetailersService {
 
   labels(tx: Db, ids: readonly string[]): ReturnType<typeof retailerLabels> {
     return retailerLabels(tx, ids)
+  }
+
+  /**
+   * How a shop may be reached — phone of record, WhatsApp opt-in, language, opt-out (coordination
+   * §3.9: the one read notifications makes of this module). Never the global identity's phone.
+   */
+  contactPreferences(tx: Db, retailerId: string): Promise<ContactPreferences | null> {
+    return contactPreferences(tx, retailerId)
+  }
+
+  contactPreferencesFor(
+    tx: Db,
+    retailerIds: readonly string[],
+  ): Promise<Map<string, ContactPreferences>> {
+    return contactPreferencesFor(tx, retailerIds)
   }
 
   /** Staff see every retailer of the tenant; the retailer role only its own linked rows, without code/tier/credit (RLS + toView). */

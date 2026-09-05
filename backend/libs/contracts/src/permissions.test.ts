@@ -63,6 +63,11 @@ describe('permission matrix', () => {
       'claims.lines.list',
       'claims.get',
       'claims.build',
+      // Stock at cost, MTD margin, the margin and stock series (reporting).
+      'reporting.dashboard.owner',
+      'reporting.registers.stockValue',
+      'reporting.series.stock',
+      'reporting.series.grossMargin',
     ] as const
     for (const path of costly) {
       const permission = permissionFor(path)
@@ -225,6 +230,14 @@ describe('permission matrix', () => {
       'tenantCatalog.packConfigs.list',
       'billing.registers.gstSummary',
       'receivables.journal.list',
+      // ...the registers and the money series are its home screen (M12, reporting)...
+      'reporting.dashboard.owner',
+      'reporting.series.collections',
+      'reporting.registers.collections',
+      'reporting.registers.gstSalesRegister',
+      'reporting.registers.gstPurchaseRegister',
+      'reporting.exports.request',
+      'reporting.exports.get',
       // ...and takes the exports and keeps the Tally names (docs/22: "reads and exports everything").
       'integrations.imports.list',
       'integrations.imports.rows.list',
@@ -942,6 +955,110 @@ describe('permission matrix', () => {
       const row = allProcedures().find((r) => r.path === path)
       expect(row?.httpPath, path).toBe(httpPath)
       expect(row?.method, path).toBe('POST')
+    }
+  })
+
+  it('keeps the tiles, the graphs and the registers with the desk, a field role to its own (reporting)', () => {
+    const reportingPaths = paths.filter((p) => p.startsWith('reporting.'))
+    expect(reportingPaths).toHaveLength(33)
+    // A shop never opens a report (docs/plans/reporting.md §1): no row of the block names the retailer,
+    // and retailer-service does not mount the key at all.
+    for (const path of reportingPaths) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
+    }
+    // Everything is a read except queueing an export, which is the one POST.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('reporting.'))) {
+      expect(row.method, row.path).toBe(row.path === 'reporting.exports.request' ? 'POST' : 'GET')
+    }
+    // The owner reads everything; the manager everything but the margin trend (O17 is owner-only).
+    for (const path of reportingPaths) {
+      expect(isAllowed(permissionFor(path), 'owner'), `${path} must allow owner`).toBe(true)
+      expect(isAllowed(permissionFor(path), 'manager'), `${path} must allow manager`).toBe(
+        path !== 'reporting.series.grossMargin',
+      )
+    }
+    expect(permissionFor('reporting.series.grossMargin')).toEqual(ROLE_GROUPS.OWNER_ONLY)
+    // The accountant reads and exports everything (docs/22 2026-09-05) — the registers, the money
+    // series, the rankings, stock at cost — and never the margin series.
+    for (const path of reportingPaths) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} for accountant`).toBe(
+        path !== 'reporting.series.grossMargin',
+      )
+    }
+    expect(permissionFor('reporting.exports.request')).toEqual(ROLE_GROUPS.MONEY_DESK)
+    expect(permissionFor('reporting.exports.request')).toEqual(
+      permissionFor('integrations.exports.request'),
+    )
+    // The rep sees ITS OWN numbers and its shops' habits — nothing tenant-wide, no register of money,
+    // no export, and never a cost.
+    const repMay = [
+      'reporting.dashboard.rep',
+      'reporting.dailyStats.rep',
+      'reporting.retailers.behaviour',
+      'reporting.retailers.series',
+      'reporting.retailers.lapsed',
+      'reporting.registers.repProductivity',
+      'reporting.series.productivity',
+    ]
+    for (const path of repMay) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'salesperson'])
+    }
+    for (const path of reportingPaths.filter((p) => !repMay.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must refuse salesperson`).toBe(
+        false,
+      )
+    }
+    // The godown reads the fill rate (register and series) and nothing else.
+    const warehouseMay = ['reporting.registers.fillRate', 'reporting.series.fillRate']
+    for (const path of warehouseMay) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'warehouse'])
+      expect(permissionFor(path), path).toEqual(permissionFor('inventory.stock.adjust'))
+    }
+    for (const path of reportingPaths.filter((p) => !warehouseMay.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+    }
+    // The crew reads its own trips' performance (register and series) and nothing else.
+    const crewMay = [
+      'reporting.registers.deliveryPerformance',
+      'reporting.series.deliveryPerformance',
+    ]
+    for (const path of crewMay) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'delivery'])
+    }
+    for (const path of reportingPaths.filter((p) => !crewMay.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'delivery'), `${path} must refuse delivery`).toBe(false)
+    }
+    // Cost and margin never reach the field: the never-list (docs/22 §9 item 1) at the matrix.
+    for (const path of [
+      'reporting.dashboard.owner',
+      'reporting.registers.stockValue',
+      'reporting.series.stock',
+      'reporting.series.grossMargin',
+      'reporting.series.schemeSpend',
+      'reporting.registers.schemeSpend',
+    ] as const) {
+      for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // The wrapped GST register is guarded exactly like the register it wraps.
+    expect(permissionFor('reporting.registers.gstSalesRegister')).toEqual(
+      permissionFor('billing.registers.gstSummary'),
+    )
+    // The series family lives under one prefix; the docs/23 §1.2 generic read keeps its path.
+    for (const [path, httpPath] of [
+      ['reporting.series.get', '/reporting/series'],
+      ['reporting.series.growth', '/reporting/series/growth'],
+      ['reporting.series.grossMargin', '/reporting/series/gross-margin'],
+      ['reporting.retailers.series', '/reporting/retailers/{id}/series'],
+      ['reporting.registers.gstSalesRegister', '/reporting/registers/gst-sales'],
+      ['reporting.exports.request', '/reporting/exports'],
+      ['reporting.exports.get', '/reporting/exports/{id}'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
     }
   })
 

@@ -87,7 +87,16 @@ export interface InvoiceRecord {
   ageDays: number
   totalPaise: number
   state: 'issued' | 'partially_paid' | 'paid'
-  lines: { invoiceLineId: string; qtyPcs: number }[]
+  /** Per line: what was billed, what the godown actually picked, and the ex-GST value (for the day rollups). */
+  lines: {
+    invoiceLineId: string
+    variantId: string
+    qtyPcs: number
+    freeQtyPcs: number
+    pickedQtyPcs: number
+    ratePaise: number
+    taxablePaise: number
+  }[]
 }
 
 export interface RetailerOutstanding {
@@ -620,7 +629,12 @@ export async function seedSales(
       state,
       lines: orderLines.map((l, i) => ({
         invoiceLineId: demoId('invoice-line', `${invoiceId}:${i}`),
+        variantId: l.variantId,
         qtyPcs: l.qtyPcs,
+        freeQtyPcs: l.freeQtyPcs ?? 0,
+        pickedQtyPcs: l.pickedQtyPcs ?? l.qtyPcs,
+        ratePaise: l.ratePaise ?? 0,
+        taxablePaise: (l.lineTotalPaise ?? 0) - (l.taxPaise ?? 0),
       })),
     }
     invoices_.push(record)

@@ -1,22 +1,26 @@
-/** Visits, pre-aggregated stats, approvals, audit trail, sync errors and notifications. */
-import { insertMany } from './db-helpers.js'
+/** Visits, pre-aggregated stats, approvals, audit trail and sync errors (notifications: seed-demo/notifications.ts). */
+import { insertMany, upsertMany } from './db-helpers.js'
 import {
   approvals,
   auditLog,
+  dailyOwnerStats,
   dailyRepStats,
+  dailyRetailerStats,
   dailyTenantStats,
-  messages,
   ownerSummary,
   retailerBehaviour,
   syncErrors,
-  templates,
   visits,
+  type DailyMarginMix,
+  type DailyMix,
 } from '../schema/index.js'
 import type { Db } from '../client.js'
+import { brandId, type VariantRow } from './catalog.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
-import type { OrderRecord, SalesResult } from './sales.js'
+import type { InvoiceRecord, OrderRecord, SalesResult } from './sales.js'
 import type { RetailerRow, RetailersResult } from './retailers.js'
+import type { TenantCatalogResult } from './tenant-catalog.js'
 import {
   atIstTime,
   daysAgo,
@@ -41,11 +45,17 @@ const NO_ORDER_REASONS = [
 export async function seedReporting(
   db: Db,
   tenantId: string,
+  variants: VariantRow[],
+  tenantCatalog: TenantCatalogResult,
   retailersRes: RetailersResult,
   sales: SalesResult,
   people: PeopleResult,
 ): Promise<void> {
   const rng = makeRng('dos-demo:reporting')
+  // A second generator for the day-series columns added with migration 0027, so the draws below that
+  // shaped the visits, the approvals and the sync errors on the founder's database stay exactly as they were.
+  const seriesRng = makeRng('dos-demo:reporting:series')
+  const variantById = new Map(variants.map((v) => [v.id, v]))
   const retailerById = new Map(retailersRes.retailers.map((r) => [r.id, r]))
   const beatRetailers: Record<string, RetailerRow[]> = { rahul: [], amit: [], pooja: [] }
   for (const r of retailersRes.retailers) {
@@ -163,10 +173,34 @@ export async function seedReporting(
     invoicesByDay.set(key, (invoicesByDay.get(key) ?? 0) + inv.totalPaise)
   }
 
+  const invoiceRowsByDay = new Map<string, InvoiceRecord[]>()
+  for (const inv of sales.invoices) {
+    const key = isoDate(inv.invoiceDate)
+    const arr = invoiceRowsByDay.get(key) ?? []
+    arr.push(inv)
+    invoiceRowsByDay.set(key, arr)
+  }
+  const shortInvoiceIds = new Set(sales.shortDeliveries.map((s) => s.invoiceId))
+  const beatIdByIndex = retailersRes.beats.map((b) => b.id)
+  /** A line's value with GST, from its ex-tax value and the variant's rate — what a mix chart stacks. */
+  const lineInclTax = (taxablePaise: number, v: VariantRow | undefined) =>
+    taxablePaise + Math.round((taxablePaise * ((v?.gstBps ?? 0) + (v?.cessBps ?? 0))) / 10_000)
+  const addMix = (mix: DailyMix, key: string, invoicedPaise: number) => {
+    const entry = mix[key] ?? { invoicedPaise: 0, invoiceCount: 0 }
+    entry.invoicedPaise += invoicedPaise
+    entry.invoiceCount += 1
+    mix[key] = entry
+  }
+
   const tenantStatRows: (typeof dailyTenantStats.$inferInsert)[] = []
+  const ownerStatRows: (typeof dailyOwnerStats.$inferInsert)[] = []
+  const mtdSalesForStock = sales.invoices
+    .filter((inv) => isoDate(inv.invoiceDate).startsWith(isoDate(TODAY).slice(0, 7)))
+    .reduce((s, inv) => s + inv.totalPaise, 0)
   for (const day of workDays) {
     const key = isoDate(day)
     const dayOrders = ordersByDay.get(key) ?? []
+    const dayInvoices = invoiceRowsByDay.get(key) ?? []
     const invoicedPaise = invoicesByDay.get(key) ?? 0
     const ageDays = Math.round((TODAY.getTime() - day.getTime()) / 86_400_000)
     const collectedPaise = ageDays >= 2 ? Math.round(invoicedPaise * (0.5 + rng() * 0.3)) : 0
@@ -174,19 +208,187 @@ export async function seedReporting(
     const deliveredStops = dayOrders.filter((o) =>
       ['packed', 'dispatched', 'delivered', 'closed'].includes(o.state),
     ).length
+    const failedStops = deliveredStops > 0 && randChance(rng, 0.2) ? 1 : 0
+
+    // --- the day-series columns of 0027: the outstanding trend's overdue line, the last mile's
+    //     partial / on-time / POD counters, the fill rate's pieces, and the four mixes. ---
+    const outstandingPaise = Math.max(0, invoicedPaise - collectedPaise)
+    const overduePaise = ageDays > 7 ? Math.round(outstandingPaise * 0.35) : 0
+    const partialStops = Math.min(
+      deliveredStops,
+      dayInvoices.filter((inv) => shortInvoiceIds.has(inv.id)).length,
+    )
+    const attemptedStops = deliveredStops + partialStops
+    const onTimeStops = Math.round(attemptedStops * (0.8 + seriesRng() * 0.15))
+    const podStops = Math.round(attemptedStops * (0.85 + seriesRng() * 0.15))
+    let orderedPcs = 0
+    let pickedPcs = 0
+    const byBrand: DailyMix = {}
+    const byCategory: DailyMix = {}
+    const byBeat: DailyMix = {}
+    // the cost-bearing half of the day, for daily_owner_stats (back office only)
+    let netSalesPaise = 0
+    let cogsPaise = 0
+    let schemeSpendCompanyPaise = 0
+    const marginByBrand: DailyMarginMix = {}
+    for (const inv of dayInvoices) {
+      const beatId = beatIdByIndex[inv.beatIndex]
+      if (beatId) addMix(byBeat, beatId, inv.totalPaise)
+      const brandsOnInvoice = new Map<string, number>()
+      const categoriesOnInvoice = new Map<string, number>()
+      for (const line of inv.lines) {
+        const v = variantById.get(line.variantId)
+        orderedPcs += line.qtyPcs
+        pickedPcs += line.pickedQtyPcs
+        const incl = lineInclTax(line.taxablePaise, v)
+        const brandKey = v ? brandId(v.brandKey) : 'unknown'
+        const category = v?.category ?? 'Uncategorised'
+        brandsOnInvoice.set(brandKey, (brandsOnInvoice.get(brandKey) ?? 0) + incl)
+        categoriesOnInvoice.set(category, (categoriesOnInvoice.get(category) ?? 0) + incl)
+        const cost = tenantCatalog.costsByVariantId.get(line.variantId)
+        const perPiece = cost ? cost.landedCostPaise || cost.purchaseRatePaise : 0
+        // free goods leave at cost and bring in nothing; the brand funds them (the Campa 12+1 scheme)
+        const lineCogs = perPiece * (line.qtyPcs + line.freeQtyPcs)
+        netSalesPaise += line.taxablePaise
+        cogsPaise += lineCogs
+        schemeSpendCompanyPaise += line.freeQtyPcs * line.ratePaise
+        const m = marginByBrand[brandKey] ?? { cogsPaise: 0, grossMarginPaise: 0 }
+        m.cogsPaise += lineCogs
+        m.grossMarginPaise += line.taxablePaise - lineCogs
+        marginByBrand[brandKey] = m
+      }
+      for (const [k, paise] of brandsOnInvoice) addMix(byBrand, k, paise)
+      for (const [k, paise] of categoriesOnInvoice) addMix(byCategory, k, paise)
+    }
+    // collections by mode: cash first, UPI second, the rest by cheque — summing exactly to the day's total
+    const cashPaise = Math.round(collectedPaise * 0.55)
+    const upiPaise = Math.round(collectedPaise * 0.35)
+    const byPaymentMode =
+      collectedPaise > 0
+        ? { cash: cashPaise, upi: upiPaise, cheque: collectedPaise - cashPaise - upiPaise }
+        : {}
+
     tenantStatRows.push({
       tenantId,
       day: key,
       ordersCount: dayOrders.length,
       invoicedPaise,
       collectedPaise,
-      outstandingPaise: Math.max(0, invoicedPaise - collectedPaise),
+      outstandingPaise,
+      overduePaise,
       deliveredStops,
-      failedStops: deliveredStops > 0 && randChance(rng, 0.2) ? 1 : 0,
+      partialStops,
+      failedStops,
+      onTimeStops,
+      podStops,
+      orderedPcs,
+      pickedPcs,
       activeRetailers,
+      byBrand,
+      byCategory,
+      byBeat,
+      byPaymentMode,
+    })
+
+    // stock at cost drifts a little day to day around the same figure the owner_summary row shows
+    const stockValuePaise = Math.round(mtdSalesForStock * 0.4 * (0.92 + seriesRng() * 0.16))
+    ownerStatRows.push({
+      tenantId,
+      day: key,
+      netSalesPaise,
+      cogsPaise,
+      grossMarginPaise: netSalesPaise - cogsPaise,
+      stockValuePaise,
+      nearExpiryValuePaise: Math.round(stockValuePaise * 0.03),
+      schemeSpendCompanyPaise,
+      schemeSpendDistributorPaise: 0,
+      byBrand: marginByBrand,
     })
   }
-  await insertMany(db, dailyTenantStats, tenantStatRows)
+  await upsertMany(
+    db,
+    dailyTenantStats,
+    tenantStatRows,
+    [dailyTenantStats.tenantId, dailyTenantStats.day],
+    [
+      'ordersCount',
+      'invoicedPaise',
+      'collectedPaise',
+      'outstandingPaise',
+      'overduePaise',
+      'deliveredStops',
+      'partialStops',
+      'failedStops',
+      'onTimeStops',
+      'podStops',
+      'orderedPcs',
+      'pickedPcs',
+      'activeRetailers',
+      'byBrand',
+      'byCategory',
+      'byBeat',
+      'byPaymentMode',
+    ],
+  )
+  await upsertMany(
+    db,
+    dailyOwnerStats,
+    ownerStatRows,
+    [dailyOwnerStats.tenantId, dailyOwnerStats.day],
+    [
+      'netSalesPaise',
+      'cogsPaise',
+      'grossMarginPaise',
+      'stockValuePaise',
+      'nearExpiryValuePaise',
+      'schemeSpendCompanyPaise',
+      'schemeSpendDistributorPaise',
+      'byBrand',
+    ],
+  )
+
+  // --- daily_retailer_stats: one row per shop per day it ordered, plus the day its money came in. ---
+  const retailerStatByKey = new Map<string, typeof dailyRetailerStats.$inferInsert>()
+  const retailerDayRow = (retailerId: string, dayKey: string) => {
+    const k = `${retailerId}:${dayKey}`
+    const row = retailerStatByKey.get(k) ?? {
+      tenantId,
+      retailerId,
+      day: dayKey,
+      ordersCount: 0,
+      invoicedPaise: 0,
+      collectedPaise: 0,
+      linesSold: 0,
+    }
+    retailerStatByKey.set(k, row)
+    return row
+  }
+  for (const o of sales.orders) {
+    if (o.state === 'draft' || o.state === 'cancelled') continue
+    const row = retailerDayRow(o.retailerId, isoDate(o.day))
+    row.ordersCount = (row.ordersCount ?? 0) + 1
+    row.linesSold = (row.linesSold ?? 0) + o.lineCount
+  }
+  const todayKey = isoDate(TODAY)
+  for (const inv of sales.invoices) {
+    const row = retailerDayRow(inv.retailerId, isoDate(inv.invoiceDate))
+    row.invoicedPaise = (row.invoicedPaise ?? 0) + inv.totalPaise
+    if (inv.state === 'issued') continue
+    // paid on the credit terms, never in the future: a paid bill lands its money `creditDays` later
+    const creditDays = retailerById.get(inv.retailerId)?.creditDays ?? 0
+    const paidOn = new Date(inv.invoiceDate.getTime() + creditDays * 86_400_000)
+    const paidKey = paidOn.getTime() < TODAY.getTime() ? isoDate(paidOn) : todayKey
+    const collected = inv.state === 'paid' ? inv.totalPaise : Math.round(inv.totalPaise / 2)
+    const paidRow = retailerDayRow(inv.retailerId, paidKey)
+    paidRow.collectedPaise = (paidRow.collectedPaise ?? 0) + collected
+  }
+  await upsertMany(
+    db,
+    dailyRetailerStats,
+    [...retailerStatByKey.values()],
+    [dailyRetailerStats.tenantId, dailyRetailerStats.retailerId, dailyRetailerStats.day],
+    ['ordersCount', 'invoicedPaise', 'collectedPaise', 'linesSold'],
+  )
 
   // --- retailer_behaviour: one row per retailer. ---
   const ordersByRetailer = new Map<string, OrderRecord[]>()
@@ -351,54 +553,5 @@ export async function seedReporting(
   }))
   await insertMany(db, syncErrors, syncErrorRows)
 
-  // --- WhatsApp notifications for a sample of recent invoices, and the invoice_issued templates. ---
-  const recentInvoices = sales.invoices.slice(0, 10)
-  const messageRows = recentInvoices.map((inv, i) => {
-    const retailer = retailerById.get(inv.retailerId)
-    return {
-      id: demoId('message', inv.id),
-      tenantId,
-      channel: 'whatsapp' as const,
-      templateKey: 'invoice_issued',
-      to: retailer?.phone ?? '+919800000000',
-      recipientRetailerId: inv.retailerId,
-      locale: 'hi-IN',
-      payload: {
-        invoiceNo: inv.invoiceNo,
-        amountPaise: inv.totalPaise,
-        retailerName: retailer?.name ?? '',
-      },
-      status: i < 8 ? ('delivered' as const) : ('sent' as const),
-      costPaise: 35,
-      refType: 'invoice',
-      refId: inv.id,
-      sentAt: atIstTime(inv.invoiceDate, 18, 35),
-      deliveredAt: i < 8 ? atIstTime(inv.invoiceDate, 18, 36) : null,
-      idempotencyKey: `whatsapp:invoice_issued:${inv.id}`,
-    }
-  })
-  await insertMany(db, messages, messageRows)
-
-  await insertMany(db, templates, [
-    {
-      id: demoId('template', 'invoice_issued:hi'),
-      tenantId,
-      key: 'invoice_issued',
-      channel: 'whatsapp' as const,
-      locale: 'hi-IN',
-      providerTemplateName: 'invoice_issued_hi',
-      body: 'नमस्ते {{retailerName}}, आपका बिल {{invoiceNo}} राशि ₹{{amount}} जारी हो गया है। धन्यवाद - Tarsun Enterprises',
-      variables: ['retailerName', 'invoiceNo', 'amount'],
-    },
-    {
-      id: demoId('template', 'invoice_issued:en'),
-      tenantId,
-      key: 'invoice_issued',
-      channel: 'whatsapp' as const,
-      locale: 'en-IN',
-      providerTemplateName: 'invoice_issued_en',
-      body: 'Hi {{retailerName}}, your invoice {{invoiceNo}} for ₹{{amount}} has been issued. Thank you - Tarsun Enterprises',
-      variables: ['retailerName', 'invoiceNo', 'amount'],
-    },
-  ])
+  // WhatsApp notifications and templates moved to seed-demo/notifications.ts (module 8).
 }

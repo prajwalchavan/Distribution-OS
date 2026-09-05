@@ -217,6 +217,33 @@ const SHOP_MESSENGERS = [
   'delivery',
 ] as const satisfies readonly MembershipRole[]
 
+/**
+ * Who reads a rep's numbers (coordination §6 names this tuple for `reporting.dashboard.rep`,
+ * `dailyStats.rep`, `retailers.behaviour/lapsed`, `registers.repProductivity`): the desk, and the rep
+ * itself — whose `userId` the handler FORCES to its own id whatever it sent, and whose shop reads are
+ * scoped to its own beats. The same four people as TRIAGE, declared apart: reading what a shop texted
+ * is not reading a rep's strike rate, and the two will drift. Never the godown, the crew or the shop.
+ */
+const REP_PERFORMANCE_READERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who reads a trip's performance (coordination §6: `reporting.registers.deliveryPerformance`): the desk,
+ * and the crew — whose `driverId` the handler FORCES to its own id, so it sees the trips it drove or
+ * helped on and nobody else's. The same four as MONEY_COLLECTORS, declared apart: stops, on-time and POD
+ * coverage are not money. Never the rep, the godown or the shop.
+ */
+const CREW_PERFORMANCE_READERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
+
 const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
@@ -715,6 +742,63 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'notifications.pushTokens.unregister': STAFF,
   'notifications.inbound.list': TRIAGE,
   'notifications.inbound.markHandled': TRIAGE,
+
+  // Reporting — the tiles, the owner's GRAPHS and the registers (coordination §6; the founder's graphs
+  // decision docs/22 §8 2026-09-04; the accountant's scope 2026-09-05). Five populations, two new tuples:
+  //  * BACK_OFFICE reads the distributorship: the owner's home, every tenant-level series (sales,
+  //    collections, outstanding, ageing, growth, the mixes, the rankings, stock at cost, scheme spend),
+  //    the daily sales register, scheme spend, stock value, collections, both GST registers and the
+  //    export's status. The accountant "reads and exports everything" (docs/22): the registers and the
+  //    money series are its home screen (M12). `dashboard.owner`, `registers.stockValue` and
+  //    `series.stock` carry PURCHASE COST and margin — BACK_OFFICE is exactly the never-list's boundary
+  //    (docs/22 §9 item 1), and `daily_owner_stats` / `owner_summary` RLS agree.
+  //  * OWNER_ONLY reads the margin SERIES (`series.grossMargin`): O17 is an owner-only route (docs/23
+  //    §1.2 "grossMargin must exist only on owner-service"), so the manager sees MTD margin on the home
+  //    tile and never the trend by brand.
+  //  * REP_PERFORMANCE_READERS (new): the desk plus the rep for the rep's own numbers — its day, its
+  //    per-day rows, its productivity register and series, and the shop-card reads (`behaviour`,
+  //    `lapsed`, the shop's own series) scoped by the handler to the shops on its own beats.
+  //  * BACK_OFFICE_OR_WAREHOUSE reads the fill rate (register and series): picking accuracy is the
+  //    godown's job (docs/23 §4.2 W1); nothing else in the block reaches the warehouse role.
+  //  * CREW_PERFORMANCE_READERS (new): the desk plus the crew for the trips it drove — the delivery
+  //    performance register and series, `driverId` forced to the caller.
+  //  * MONEY_DESK queues an export: `exports.request` is the same power as `integrations.exports.request`
+  //    ("who takes the exports"); the row it makes is audited and rendered off the request path.
+  // The retailer appears in NO row: reporting is not mounted on retailer-service at all (reporting.ts
+  // header), and the 0027 policies give a shop's session zero rows of every rollup table.
+  'reporting.dashboard.owner': BACK_OFFICE,
+  'reporting.dashboard.rep': REP_PERFORMANCE_READERS,
+  'reporting.series.get': BACK_OFFICE,
+  'reporting.series.sales': BACK_OFFICE,
+  'reporting.series.collections': BACK_OFFICE,
+  'reporting.series.outstanding': BACK_OFFICE,
+  'reporting.series.ageing': BACK_OFFICE,
+  'reporting.series.growth': BACK_OFFICE,
+  'reporting.series.brandMix': BACK_OFFICE,
+  'reporting.series.categoryMix': BACK_OFFICE,
+  'reporting.series.topShops': BACK_OFFICE,
+  'reporting.series.topBeats': BACK_OFFICE,
+  'reporting.series.productivity': REP_PERFORMANCE_READERS,
+  'reporting.series.fillRate': BACK_OFFICE_OR_WAREHOUSE,
+  'reporting.series.deliveryPerformance': CREW_PERFORMANCE_READERS,
+  'reporting.series.stock': BACK_OFFICE,
+  'reporting.series.grossMargin': OWNER_ONLY,
+  'reporting.series.schemeSpend': BACK_OFFICE,
+  'reporting.dailyStats.tenant': BACK_OFFICE,
+  'reporting.dailyStats.rep': REP_PERFORMANCE_READERS,
+  'reporting.retailers.behaviour': REP_PERFORMANCE_READERS,
+  'reporting.retailers.series': REP_PERFORMANCE_READERS,
+  'reporting.retailers.lapsed': REP_PERFORMANCE_READERS,
+  'reporting.registers.repProductivity': REP_PERFORMANCE_READERS,
+  'reporting.registers.schemeSpend': BACK_OFFICE,
+  'reporting.registers.stockValue': BACK_OFFICE,
+  'reporting.registers.fillRate': BACK_OFFICE_OR_WAREHOUSE,
+  'reporting.registers.deliveryPerformance': CREW_PERFORMANCE_READERS,
+  'reporting.registers.collections': BACK_OFFICE,
+  'reporting.registers.gstSalesRegister': BACK_OFFICE,
+  'reporting.registers.gstPurchaseRegister': BACK_OFFICE,
+  'reporting.exports.request': MONEY_DESK,
+  'reporting.exports.get': BACK_OFFICE,
 }
 
 /**

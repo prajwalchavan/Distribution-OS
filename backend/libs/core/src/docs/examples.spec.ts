@@ -427,6 +427,8 @@ describe('every POST, on every service that serves it', () => {
     'delivery.vehicles.upsert',
     'delivery.deliveries.record',
     'integrations.tally.mappings.upsert',
+    // echoes the tenant's own wording back: the id is the override's, the natural key decides
+    'notifications.templates.upsert',
   ])
 
   it('keys every mutation to the id it creates, so a second Execute replays', () => {

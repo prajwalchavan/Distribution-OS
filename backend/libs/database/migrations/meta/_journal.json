@@ -190,6 +190,20 @@
       "when": 1788613343100,
       "tag": "0026_claims_cancel_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788618717559,
+      "tag": "0027_reporting_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788618717560,
+      "tag": "0028_reporting_guards",
+      "breakpoints": true
     }
   ]
 }

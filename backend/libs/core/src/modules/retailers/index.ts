@@ -24,3 +24,8 @@ export {
   type RetailerProbe,
   type RetailerSnapshot,
 } from './import.js'
+/**
+ * How a shop may be reached (coordination §3.9 / §4: notifications → retailers). Plain functions so
+ * the worker's outbox handlers and sweeps read them without Nest DI; the service delegates to them.
+ */
+export { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'

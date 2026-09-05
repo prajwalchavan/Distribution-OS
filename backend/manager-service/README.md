@@ -288,6 +288,20 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/claims/{id}/cancel` | Discard a draft claim (never a numbered one) | owner, manager, accountant |
 | POST | `/claims/{id}/statements` | Queue the claim sheet in the brand's format (rendered by the worker, never inline) | owner, manager, accountant |
 | GET | `/claims/{id}/statements` | Claim sheets requested for a claim and whether each is ready | owner, manager, accountant |
+| GET | `/notifications/messages` | Message log (staff) and inbox (a shop sees only messages to its own shop) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/notifications/messages/{id}` | One message with its variables and retry state (a push / WhatsApp tap lands here) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/notifications/messages/send` | Send a bill, receipt or statement to one shop now (queued; the worker sends it) | owner, manager, accountant, delivery |
+| POST | `/notifications/messages/{id}/resend` | Requeue a failed message (attempts are kept; a delivered one is never resent) | owner, manager, accountant |
+| POST | `/notifications/messages/{id}/read` | Mark my own push / in-app notice read (never a WhatsApp or SMS row) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/notifications/templates` | Platform defaults plus this distributor’s overrides, per key, channel and language | owner, manager, accountant |
+| POST | `/notifications/templates` | Set this distributor’s own wording for a key, channel and language | owner, manager |
+| POST | `/notifications/broadcasts` | Send a template to every shop on a beat or a named list (queued per shop) | owner, manager |
+| GET | `/notifications/broadcasts` | Broadcast history with delivery counts | owner, manager, accountant |
+| GET | `/notifications/broadcasts/{id}` | One broadcast with counts and every recipient’s outcome | owner, manager, accountant |
+| POST | `/notifications/push-tokens` | Register or refresh this device’s push token for the signed-in staff member | owner, manager, accountant, salesperson, warehouse, delivery |
+| POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
+| POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
 
 ### GET `/health/ping`
 
@@ -38004,6 +38018,1680 @@ curl "http://localhost:3002/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/statemen
 }
 ```
 
+### GET `/notifications/messages`
+
+Message log (staff) and inbox (a shop sees only messages to its own shop) · contract `notifications.messages.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `channel` | whatsapp | sms | push | email | in_app | no |
+| `status` | queued | sent | delivered | read | failed | skipped | no |
+| `refType` | order | invoice | delivery | receipt | trip_stop | retailer | broadcast | no |
+| `refId` | uuid | no |
+| `retailerId` | uuid | no |
+| `mine` | boolean | string | no |
+| `unreadOnly` | boolean | string | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/messages?channel=whatsapp&status=queued&refType=order&refId=01a06dee-c83b-7a4d-837e-fb9a8786f9b5&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&mine=true&unreadOnly=true&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "channel": "whatsapp",
+      "templateKey": "text",
+      "destination": "text",
+      "recipientUserId": "01a06d67-8333-7d03-8e16-9dfc587135e2",
+      "recipientRetailerId": "01a06da5-c958-7cd1-8b88-689fa03e40d4",
+      "retailerName": "text",
+      "senderName": "text",
+      "locale": "en-IN",
+      "body": "text",
+      "status": "queued",
+      "refType": "order",
+      "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+      "scheduledAt": "2026-09-04T10:30:00.000Z",
+      "sentAt": "2026-09-04T10:30:00.000Z",
+      "deliveredAt": "2026-09-04T10:30:00.000Z",
+      "readAt": "2026-09-04T10:30:00.000Z",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "costPaise": 4000,
+      "providerMessageId": "Confirmed on phone with the shopkeeper",
+      "error": "text"
+    }
+  ],
+  "nextCursor": null,
+  "unreadCount": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/notifications/messages/{id}`
+
+One message with its variables and retry state (a push / WhatsApp tap lands here) · contract `notifications.messages.get`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/messages/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "destination": "text",
+    "recipientUserId": "01a06d67-8333-7d03-8e16-9dfc587135e2",
+    "recipientRetailerId": "01a06da5-c958-7cd1-8b88-689fa03e40d4",
+    "retailerName": "text",
+    "senderName": "text",
+    "locale": "en-IN",
+    "body": "text",
+    "status": "queued",
+    "refType": "order",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+    "scheduledAt": "2026-09-04T10:30:00.000Z",
+    "sentAt": "2026-09-04T10:30:00.000Z",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "readAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "costPaise": 4000,
+    "providerMessageId": "Confirmed on phone with the shopkeeper",
+    "error": "text",
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "attempts": 1,
+    "nextAttemptAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/messages/send`
+
+Send a bill, receipt or statement to one shop now (queued; the worker sends it) · contract `notifications.messages.send`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `retailerId` | uuid | yes |
+| `templateKey` | string | yes |
+| `refType` | order | invoice | delivery | receipt | trip_stop | retailer | broadcast | yes |
+| `refId` | uuid | yes |
+| `channel` | whatsapp | sms | no |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+| `variables` | record | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/messages/send" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "templateKey": "text",
+  "refType": "order",
+  "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+  "channel": "whatsapp",
+  "locale": "en-IN",
+  "variables": {}
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "destination": "text",
+    "recipientUserId": "01a06d67-8333-7d03-8e16-9dfc587135e2",
+    "recipientRetailerId": "01a06da5-c958-7cd1-8b88-689fa03e40d4",
+    "retailerName": "text",
+    "senderName": "text",
+    "locale": "en-IN",
+    "body": "text",
+    "status": "queued",
+    "refType": "order",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+    "scheduledAt": "2026-09-04T10:30:00.000Z",
+    "sentAt": "2026-09-04T10:30:00.000Z",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "readAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "costPaise": 4000,
+    "providerMessageId": "Confirmed on phone with the shopkeeper",
+    "error": "text",
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "attempts": 1,
+    "nextAttemptAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/messages/{id}/resend`
+
+Requeue a failed message (attempts are kept; a delivered one is never resent) · contract `notifications.messages.resend`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/messages/01a06d17-0be7-794a-8dab-9b14cf78673b/resend" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "destination": "text",
+    "recipientUserId": "01a06d67-8333-7d03-8e16-9dfc587135e2",
+    "recipientRetailerId": "01a06da5-c958-7cd1-8b88-689fa03e40d4",
+    "retailerName": "text",
+    "senderName": "text",
+    "locale": "en-IN",
+    "body": "text",
+    "status": "queued",
+    "refType": "order",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+    "scheduledAt": "2026-09-04T10:30:00.000Z",
+    "sentAt": "2026-09-04T10:30:00.000Z",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "readAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "costPaise": 4000,
+    "providerMessageId": "Confirmed on phone with the shopkeeper",
+    "error": "text",
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "attempts": 1,
+    "nextAttemptAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/messages/{id}/read`
+
+Mark my own push / in-app notice read (never a WhatsApp or SMS row) · contract `notifications.messages.markRead`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/messages/01a06d17-0be7-794a-8dab-9b14cf78673b/read" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "destination": "text",
+    "recipientUserId": "01a06d67-8333-7d03-8e16-9dfc587135e2",
+    "recipientRetailerId": "01a06da5-c958-7cd1-8b88-689fa03e40d4",
+    "retailerName": "text",
+    "senderName": "text",
+    "locale": "en-IN",
+    "body": "text",
+    "status": "queued",
+    "refType": "order",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+    "scheduledAt": "2026-09-04T10:30:00.000Z",
+    "sentAt": "2026-09-04T10:30:00.000Z",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "readAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "costPaise": 4000,
+    "providerMessageId": "Confirmed on phone with the shopkeeper",
+    "error": "text",
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "attempts": 1,
+    "nextAttemptAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/notifications/templates`
+
+Platform defaults plus this distributor’s overrides, per key, channel and language · contract `notifications.templates.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `key` | string | no |
+| `channel` | whatsapp | sms | push | email | in_app | no |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+| `activeOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/templates?key=text&channel=whatsapp&locale=en-IN&activeOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+      "key": "text",
+      "channel": "whatsapp",
+      "locale": "en-IN",
+      "providerTemplateName": "text",
+      "body": "text",
+      "variables": [
+        "text"
+      ],
+      "active": true,
+      "isOverride": true,
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/templates`
+
+Set this distributor’s own wording for a key, channel and language · contract `notifications.templates.upsert`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `key` | string | yes |
+| `channel` | whatsapp | sms | push | email | in_app | yes |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+| `providerTemplateName` | string | no |
+| `body` | string | yes |
+| `variables` | string[] | no |
+| `active` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/templates" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "key": "text",
+  "channel": "whatsapp",
+  "locale": "en-IN",
+  "providerTemplateName": "text",
+  "body": "text",
+  "variables": [],
+  "active": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+    "key": "text",
+    "channel": "whatsapp",
+    "locale": "en-IN",
+    "providerTemplateName": "text",
+    "body": "text",
+    "variables": [
+      "text"
+    ],
+    "active": true,
+    "isOverride": true,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "created": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the accountant role may not call POST /notifications/templates",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/broadcasts`
+
+Send a template to every shop on a beat or a named list (queued per shop) · contract `notifications.broadcasts.create`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `channel` | whatsapp | sms | in_app | yes |
+| `templateKey` | string | yes |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+| `variables` | record | no |
+| `audience` | object | object | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/broadcasts" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "channel": "whatsapp",
+  "templateKey": "text",
+  "locale": "en-IN",
+  "variables": {},
+  "audience": {
+    "kind": "beat",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f"
+  }
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "locale": "en-IN",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "beatName": "Campa Cola 750 ml",
+    "variables": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "totalRecipients": 1,
+    "queuedCount": 1,
+    "sentCount": 1,
+    "deliveredCount": 1,
+    "failedCount": 1,
+    "skippedCount": 1,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdByName": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "skipped": [
+    {
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "reason": "no_phone"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the accountant role may not call POST /notifications/broadcasts",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/notifications/broadcasts`
+
+Broadcast history with delivery counts · contract `notifications.broadcasts.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `beatId` | uuid | no |
+| `channel` | whatsapp | sms | in_app | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/broadcasts?beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&channel=whatsapp&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "channel": "whatsapp",
+      "templateKey": "text",
+      "locale": "en-IN",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml",
+      "variables": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "totalRecipients": 1,
+      "queuedCount": 1,
+      "sentCount": 1,
+      "deliveredCount": 1,
+      "failedCount": 1,
+      "skippedCount": 1,
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "createdByName": "text",
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/notifications/broadcasts/{id}`
+
+One broadcast with counts and every recipient’s outcome · contract `notifications.broadcasts.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/broadcasts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "templateKey": "text",
+    "locale": "en-IN",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "beatName": "Campa Cola 750 ml",
+    "variables": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "totalRecipients": 1,
+    "queuedCount": 1,
+    "sentCount": 1,
+    "deliveredCount": 1,
+    "failedCount": 1,
+    "skippedCount": 1,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdByName": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "recipients": [
+    {
+      "messageId": "01a06d96-ec7b-7ba8-8b93-9c78a4431867",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "channel": "whatsapp",
+      "status": "queued",
+      "sentAt": "2026-09-04T10:30:00.000Z",
+      "deliveredAt": "2026-09-04T10:30:00.000Z",
+      "error": "text"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/push-tokens`
+
+Register or refresh this device’s push token for the signed-in staff member · contract `notifications.pushTokens.register`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `deviceId` | string | yes |
+| `token` | string | yes |
+| `platform` | android | ios | web | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/push-tokens" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "token": "text",
+  "platform": "android"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "platform": "android",
+    "lastSeenAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "created": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/push-tokens/{id}/unregister`
+
+Remove my own device’s push token (sign-out) · contract `notifications.pushTokens.unregister`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/push-tokens/01a06d17-0be7-794a-8dab-9b14cf78673b/unregister" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/notifications/inbound`
+
+Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) · contract `notifications.inbound.list`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `retailerId` | uuid | no |
+| `channel` | whatsapp | sms | push | email | in_app | no |
+| `handled` | boolean | string | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/notifications/inbound?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&channel=whatsapp&handled=true&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "channel": "whatsapp",
+      "fromPhone": "+919876543210",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "body": "text",
+      "mediaObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "mediaUrl": "docs/2026/09/invoice-0042.jpg",
+      "receivedAt": "2026-09-04T10:30:00.000Z",
+      "handled": true
+    }
+  ],
+  "nextCursor": null,
+  "unhandledCount": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/notifications/inbound/{id}/handled`
+
+Mark an inbound message handled (the text itself is never edited) · contract `notifications.inbound.markHandled`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/notifications/inbound/01a06d17-0be7-794a-8dab-9b14cf78673b/handled" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "fromPhone": "+919876543210",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "body": "text",
+    "mediaObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "mediaUrl": "docs/2026/09/invoice-0042.jpg",
+    "receivedAt": "2026-09-04T10:30:00.000Z",
+    "handled": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -38272,3 +39960,17 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `claims.cancel` | – | ✓ | ✓ | – | – | – | – |
 | `claims.statements.generate` | – | ✓ | ✓ | – | – | – | – |
 | `claims.statements.list` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.messages.list` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.messages.get` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.messages.send` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.messages.resend` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.messages.markRead` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.templates.list` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.templates.upsert` | – | ✓ | – | – | – | – | – |
+| `notifications.broadcasts.create` | – | ✓ | – | – | – | – | – |
+| `notifications.broadcasts.list` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.broadcasts.get` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.pushTokens.register` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.pushTokens.unregister` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.inbound.list` | – | ✓ | ✓ | – | – | – | – |
+| `notifications.inbound.markHandled` | – | ✓ | ✓ | – | – | – | – |

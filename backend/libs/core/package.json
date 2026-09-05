@@ -87,6 +87,10 @@
     "./claims": {
       "types": "./dist/modules/claims/worker.d.ts",
       "default": "./dist/modules/claims/worker.js"
+    },
+    "./notifications": {
+      "types": "./dist/modules/notifications/worker.d.ts",
+      "default": "./dist/modules/notifications/worker.js"
     }
   }
 }

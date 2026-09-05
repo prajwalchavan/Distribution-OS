@@ -38,6 +38,7 @@ import { docintContract } from './docint.js'
 import { integrationsContract } from './integrations.js'
 import { claimsContract } from './claims.js'
 import { notificationsContract } from './notifications.js'
+import { reportingContract } from './reporting.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -151,6 +152,8 @@ export const contract = {
   claims: claimsContract,
   // Every WhatsApp / SMS / push / in-app row, templates, broadcasts, push tokens, inbound triage (notifications.ts).
   notifications: notificationsContract,
+  // Dashboards, the chart-ready series family (the owner's graphs), the registers, CSV exports (reporting.ts).
+  reporting: reportingContract,
 }
 
 export type AppContract = typeof contract

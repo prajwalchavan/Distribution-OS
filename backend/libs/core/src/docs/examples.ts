@@ -17,8 +17,11 @@ import {
 import {
   approvals,
   auditLog,
+  authSessions,
   bargainRequests,
+  beatAssignments,
   beats,
+  broadcasts,
   claimLines,
   claims,
   cycleCounts,
@@ -35,15 +38,18 @@ import {
   grnLines,
   grns,
   inboundDiscrepancies,
+  inboundMessages,
   invoices,
   loadSheets,
   locations,
   memberships,
+  messages,
   priceListItems,
   priceLists,
   products,
   productVariants,
   purchaseOrders,
+  pushTokens,
   receipts,
   retailerLinks,
   retailers,
@@ -56,6 +62,7 @@ import {
   supplierInvoices,
   supplierPackConfigs,
   suppliers,
+  templates,
   tenantProductCosts,
   tenantProducts,
   tenants,
@@ -68,6 +75,7 @@ import {
   type Db,
 } from '@dos/db'
 import { contract, MAX_CLAIM_BUILD_LINES, type ProcedureSummary } from '@dos/contracts'
+import { businessDate } from '@dos/domain'
 import { BACK_OFFICE } from '../platform/authz.js'
 import { DB } from '../platform/db.module.js'
 import { sample, type ZodLike } from './sample.js'
@@ -227,6 +235,36 @@ export interface IntegrationsExamples {
   exportId?: string | undefined
   exportFrom?: string | undefined
   exportTo?: string | undefined
+}
+
+/** The message log as the seed left it (docs/plans/notifications.md §6). */
+export interface NotificationsExamples {
+  /** A bill notice to a shop on the first beat — readable by every staff role, the rep included. */
+  messageId?: string | undefined
+  /** The linked shop's own row (the retailer app's document). */
+  linkedMessageId?: string | undefined
+  /** The dead-lettered send (five failed attempts): resend. */
+  failedMessageId?: string | undefined
+  /** Each staff member's own in-app notice, by user id: markRead. */
+  ownNotices: Record<string, string>
+  /** The linked shop's own in-app notice (welcome): the retailer app's markRead. */
+  linkedNoticeId?: string | undefined
+  /** The seeded scheme broadcast. */
+  broadcastId?: string | undefined
+  /** An inbound text from a shop on the first beat, so the rep's document can triage it. */
+  inboundId?: string | undefined
+  /** The tenant's own WhatsApp bill wording, echoed back by the upsert example (a no-op). */
+  override?:
+    | {
+        id: string
+        key: string
+        channel: string
+        locale: string
+        providerTemplateName: string | null
+        body: string
+        variables: string[]
+      }
+    | undefined
 }
 
 /** The claims desk as the seed left it (docs/plans/claims.md §6). */
@@ -410,6 +448,8 @@ export interface ExampleContext {
   integrations?: IntegrationsExamples | undefined
   /** The claims desk: the seeded claims every claims example points at. */
   claims?: ClaimsExamples | undefined
+  /** The message log, the inboxes, the broadcast and the device tokens (notifications). */
+  notifications?: NotificationsExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -558,8 +598,116 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectDocint(tx, tenant.id, ctx)
   await collectIntegrations(tx, tenant.id, ctx)
   await collectClaims(tx, tenant.id, ctx)
+  await collectNotifications(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/**
+ * The message log as the seed left it: a bill notice on the rep's beat, the linked shop's own rows,
+ * the dead letter to resend, everyone's own unread notice, the broadcast, an inbound text, the
+ * tenant's own bill wording.
+ */
+async function collectNotifications(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: NotificationsExamples = { ownNotices: {} }
+  ctx.notifications = out
+  // The shops the example salesperson serves today: the sales-service document must point at a
+  // message and an inbound text the rep is allowed to see (its own beats, the handler rule).
+  const rep = ctx.users?.salesperson?.id
+  const repShops = new Set(
+    rep
+      ? (
+          await tx
+            .select({ id: retailers.id })
+            .from(retailers)
+            .innerJoin(
+              beatAssignments,
+              and(
+                eq(beatAssignments.tenantId, retailers.tenantId),
+                eq(beatAssignments.beatId, retailers.beatId),
+                eq(beatAssignments.userId, rep),
+              ),
+            )
+            .where(
+              and(
+                eq(retailers.tenantId, tenantId),
+                sql`${beatAssignments.validFrom} <= ${businessDate().date}`,
+                sql`(${beatAssignments.validTo} is null or ${beatAssignments.validTo} >= ${businessDate().date})`,
+              ),
+            )
+            .limit(500)
+        ).map((r) => r.id)
+      : [],
+  )
+  const rows = await tx
+    .select({
+      id: messages.id,
+      channel: messages.channel,
+      status: messages.status,
+      templateKey: messages.templateKey,
+      recipientUserId: messages.recipientUserId,
+      recipientRetailerId: messages.recipientRetailerId,
+      readAt: messages.readAt,
+    })
+    .from(messages)
+    .where(eq(messages.tenantId, tenantId))
+    .orderBy(desc(messages.id))
+    .limit(500)
+  const shopRows = rows.filter((r) => r.channel === 'whatsapp' || r.channel === 'sms')
+  out.messageId =
+    shopRows.find((r) => r.recipientRetailerId !== null && repShops.has(r.recipientRetailerId))
+      ?.id ?? shopRows[0]?.id
+  const linked = ctx.linkedRetailer?.retailerId
+  if (linked) {
+    out.linkedMessageId = shopRows.find((r) => r.recipientRetailerId === linked)?.id
+    out.linkedNoticeId = rows.find(
+      (r) => r.channel === 'in_app' && r.recipientRetailerId === linked,
+    )?.id
+  }
+  out.failedMessageId =
+    rows.find((r) => r.status === 'failed')?.id ?? rows.find((r) => r.status === 'queued')?.id
+  for (const r of rows) {
+    if ((r.channel !== 'in_app' && r.channel !== 'push') || !r.recipientUserId) continue
+    if (r.recipientRetailerId) continue
+    const held = out.ownNotices[r.recipientUserId]
+    // prefer an unread one, so the example really marks something
+    if (!held || (r.readAt === null && rows.find((x) => x.id === held)?.readAt !== null))
+      out.ownNotices[r.recipientUserId] = r.id
+  }
+  out.broadcastId = first(
+    await tx
+      .select({ id: broadcasts.id })
+      .from(broadcasts)
+      .where(eq(broadcasts.tenantId, tenantId))
+      .orderBy(asc(broadcasts.createdAt))
+      .limit(1),
+  )?.id
+  const inbound = await tx
+    .select({ id: inboundMessages.id, retailerId: inboundMessages.retailerId })
+    .from(inboundMessages)
+    .where(eq(inboundMessages.tenantId, tenantId))
+    .orderBy(asc(inboundMessages.receivedAt))
+    .limit(50)
+  out.inboundId =
+    inbound.find((i) => i.retailerId !== null && repShops.has(i.retailerId))?.id ?? inbound[0]?.id
+  const override = first(
+    await tx
+      .select()
+      .from(templates)
+      .where(and(eq(templates.tenantId, tenantId), eq(templates.active, true)))
+      .orderBy(asc(templates.key), asc(templates.channel), asc(templates.locale))
+      .limit(1),
+  )
+  if (override)
+    out.override = {
+      id: override.id,
+      key: override.key,
+      channel: override.channel,
+      locale: override.locale,
+      providerTemplateName: override.providerTemplateName,
+      body: override.body,
+      variables: override.variables,
+    }
 }
 
 /** The claims desk as the seed left it: a settled claim, a draft to build, a submitted one to sheet, a payment to reconcile. */
@@ -1210,10 +1358,34 @@ async function collectPeople(tx: Db, tenantId: string, ctx: ExampleContext): Pro
     .orderBy(asc(memberships.createdAt))
     .limit(200)
 
+  // The account of each role that people ACTUALLY use: the one that signed in most recently
+  // (`auth_sessions`), so the sign-in example and every "my own row" example (the inbox notice a
+  // caller marks read) name the same person as the one reading the document. A person with a
+  // username can sign in at all, so they come before someone invited but never given one; the
+  // membership's age breaks the remaining ties.
+  const lastSignIn = new Map<string, number>()
+  if (staff.length > 0) {
+    const sessions = await tx
+      .select({ userId: authSessions.userId, at: sql<Date>`max(${authSessions.lastUsedAt})` })
+      .from(authSessions)
+      .where(
+        and(
+          eq(authSessions.tenantId, tenantId),
+          inArray(
+            authSessions.userId,
+            staff.map((row) => row.id),
+          ),
+        ),
+      )
+      .groupBy(authSessions.userId)
+    for (const row of sessions) lastSignIn.set(row.userId, new Date(row.at).getTime())
+  }
   const byRole: Record<string, DemoUser> = {}
-  // A person with a username can actually sign in, so they make the better example for their role;
-  // someone invited but never given one still fills a `userId` field if nobody else does.
-  for (const row of [...staff].sort((a, b) => Number(!a.username) - Number(!b.username))) {
+  for (const row of [...staff].sort(
+    (a, b) =>
+      Number(!a.username) - Number(!b.username) ||
+      (lastSignIn.get(b.id) ?? 0) - (lastSignIn.get(a.id) ?? 0),
+  )) {
     byRole[row.role] ??= { id: row.id, username: row.username, name: row.name }
   }
   ctx.users = byRole
@@ -1979,6 +2151,50 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           ).map((row) => row.id),
         ),
     ),
+    // notifications: the on-demand send and the broadcast each create a row under the client's id.
+    'notifications.messages.send': await freeSlots(
+      'notifications.messages.send',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: messages.id })
+              .from(messages)
+              .where(and(eq(messages.tenantId, tenantId), inArray(messages.id, [...candidates])))
+          ).map((row) => row.id),
+        ),
+    ),
+    'notifications.pushTokens.register': await freeSlots(
+      'notifications.pushTokens.register',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: pushTokens.id })
+              .from(pushTokens)
+              .where(
+                and(eq(pushTokens.tenantId, tenantId), inArray(pushTokens.id, [...candidates])),
+              )
+          ).map((row) => row.id),
+        ),
+    ),
+    'notifications.broadcasts.create': await freeSlots(
+      'notifications.broadcasts.create',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: broadcasts.id })
+              .from(broadcasts)
+              .where(
+                and(eq(broadcasts.tenantId, tenantId), inArray(broadcasts.id, [...candidates])),
+              )
+          ).map((row) => row.id),
+        ),
+    ),
   }
 }
 
@@ -2218,7 +2434,38 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   // The claim THIS document opens: every `{id}` under /claims/ defaults to it (overrides pick the
   // seeded settled / draft / submitted claim where a read or a sheet wants a finished one).
   if (httpPath.startsWith('/claims/')) return createdClaimId(ctx)
+  if (httpPath.startsWith('/notifications/messages/')) return ctx.notifications?.messageId
+  if (httpPath.startsWith('/notifications/broadcasts/')) return ctx.notifications?.broadcastId
+  if (httpPath.startsWith('/notifications/push-tokens/')) return docsPushTokenId(ctx)
+  if (httpPath.startsWith('/notifications/inbound/')) return ctx.notifications?.inboundId
   return undefined
+}
+
+/**
+ * The device token the register example writes and the unregister example removes, on this
+ * service's lane. The register is an UPSERT on (user, device) — a second press refreshes the row
+ * under whatever id it already has — so the slot only has to keep two services' first presses apart.
+ */
+function docsPushTokenId(ctx: ExampleContext): string {
+  return createdId(
+    'notifications.pushTokens.register',
+    'id',
+    slotOf(ctx, 'notifications.pushTokens.register'),
+  )
+}
+
+/** The message the send example queues, on this service's lane. */
+function createdMessageId(ctx: ExampleContext): string {
+  return createdId('notifications.messages.send', 'id', slotOf(ctx, 'notifications.messages.send'))
+}
+
+/** The broadcast the create example queues, on this service's lane. */
+function createdBroadcastId(ctx: ExampleContext): string {
+  return createdId(
+    'notifications.broadcasts.create',
+    'id',
+    slotOf(ctx, 'notifications.broadcasts.create'),
+  )
 }
 
 /** The claim `claims.open` creates, on this service's lane; its children walk with the same slot. */
@@ -2338,6 +2585,12 @@ function spareStaffFor(ctx: ExampleContext, options: BuildExamplesOptions): stri
     (row) => JUNIOR_ROLES.includes(row.role) && !served.has(row.role),
   )
   return safe?.id ?? ctx.spareUserId ?? ctx.users?.salesperson?.id
+}
+
+/** The signed-in staff member's own in-app notice — the only row `markRead` accepts from it. */
+function ownNoticeFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  const user = signInUser(ctx, options)
+  return user ? ctx.notifications?.ownNotices[user.id] : undefined
 }
 
 function signInUser(ctx: ExampleContext, options: BuildExamplesOptions): DemoUser | undefined {
@@ -3400,6 +3653,96 @@ const OVERRIDES: Record<
   'claims.statements.list': (ctx) => ({
     id: ctx.claims?.settledClaimId ?? ctx.claims?.submittedClaimId ?? createdClaimId(ctx),
   }),
+  // notifications: the log, the inboxes and the broadcast the seed left; the on-demand send and the
+  // broadcast create rows under slot-walked ids; every `{id}` names a row THIS sign-in may touch.
+  'notifications.messages.list': () => ({
+    channel: DROP,
+    status: DROP,
+    refType: DROP,
+    refId: DROP,
+    retailerId: DROP,
+    mine: DROP,
+    unreadOnly: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  'notifications.messages.get': (ctx, options) => ({
+    id: servesOnlyRetailer(options)
+      ? (ctx.notifications?.linkedMessageId ?? ctx.notifications?.messageId)
+      : ctx.notifications?.messageId,
+  }),
+  'notifications.messages.send': (ctx) => ({
+    id: createdMessageId(ctx),
+    idempotencyKey: docsIdempotencyKey(
+      'notifications.messages.send',
+      slotOf(ctx, 'notifications.messages.send'),
+    ),
+    retailerId: ctx.retailerId,
+    templateKey: 'invoice_issued',
+    refType: 'invoice',
+    refId: ctx.invoiceId ?? docUuid('notifications.messages.send#refId'),
+    channel: DROP,
+    locale: DROP,
+    variables: {
+      invoiceNo: 'INV/26-27/0042',
+      totalRupees: '₹1,234.50',
+      dueDate: '2026-09-30',
+      upiLink: 'upi://pay?pa=tarsun@okhdfcbank&pn=Tarsun%20Enterprises&am=1234.50&cu=INR',
+    },
+  }),
+  'notifications.messages.resend': (ctx) => ({
+    id: ctx.notifications?.failedMessageId ?? ctx.notifications?.messageId,
+  }),
+  'notifications.messages.markRead': (ctx, options) => ({
+    id: servesOnlyRetailer(options)
+      ? (ctx.notifications?.linkedNoticeId ?? ctx.notifications?.linkedMessageId)
+      : (ownNoticeFor(ctx, options) ?? ctx.notifications?.messageId),
+  }),
+  'notifications.templates.list': () => ({ key: DROP, channel: DROP, locale: DROP }),
+  'notifications.templates.upsert': (ctx) => ({
+    id: ctx.notifications?.override?.id ?? docUuid('notifications.templates.upsert#id'),
+    key: ctx.notifications?.override?.key ?? 'invoice_issued',
+    channel: ctx.notifications?.override?.channel ?? 'whatsapp',
+    locale: ctx.notifications?.override?.locale ?? 'en-IN',
+    providerTemplateName: ctx.notifications?.override?.providerTemplateName ?? DROP,
+    body:
+      ctx.notifications?.override?.body ??
+      'Your bill {{invoiceNo}} for {{totalRupees}} is ready, due by {{dueDate}}. Pay by UPI: {{upiLink}} — {{distributorName}}',
+    variables: ctx.notifications?.override?.variables ?? [
+      'invoiceNo',
+      'totalRupees',
+      'dueDate',
+      'upiLink',
+    ],
+    active: true,
+  }),
+  'notifications.broadcasts.create': (ctx) => ({
+    id: createdBroadcastId(ctx),
+    idempotencyKey: docsIdempotencyKey(
+      'notifications.broadcasts.create',
+      slotOf(ctx, 'notifications.broadcasts.create'),
+    ),
+    channel: 'whatsapp',
+    templateKey: 'scheme_announcement',
+    locale: DROP,
+    variables: { schemeName: 'Campa 750 ml: buy 12 get 1 free', validTill: '30 Sep 2026' },
+    'audience.kind': 'beat',
+    'audience.beatId': ctx.beatId,
+  }),
+  'notifications.broadcasts.list': () => ({ beatId: DROP, channel: DROP, from: DROP, to: DROP }),
+  'notifications.pushTokens.register': (ctx) => ({
+    id: docsPushTokenId(ctx),
+    deviceId: ctx.deviceId ?? 'swagger-ui',
+    token: 'ExponentPushToken[docs-example]',
+    platform: 'android',
+  }),
+  'notifications.inbound.list': () => ({
+    retailerId: DROP,
+    channel: DROP,
+    handled: DROP,
+    from: DROP,
+    to: DROP,
+  }),
   // integrations: the wizard walks ONE import per service lane — the seeded TradeEzee party file is
   // staged again under a fresh job id, mapped, dry-run, its garbled row pinned to the shop it really is,
   // committed and confirmed — under keys that move with the create slot so the steps replay together.
@@ -3596,6 +3939,18 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
     'Applies the matched rows for real (shops created or updated). Reversible with rollback until confirm.',
   'integrations.imports.rollback': () =>
     'Undoes a committed, unconfirmed import. The wizard job of this document is confirmed by then, so this answers 409; call it on a committed job.',
+  'notifications.messages.send': (ctx) =>
+    `Queues ONE row (${createdMessageId(ctx)}) to the example shop — WhatsApp if it opted in, else SMS — under the caller's key; the worker sends it within a minute through the stub provider (no credentials configured). A second Execute replays.`,
+  'notifications.messages.resend': () =>
+    'Points at the seeded dead-lettered send (five failed attempts): requeues it for one more try, attempts kept. Once the worker has sent it, this answers 409 `already_sent` — a delivered message is never resent.',
+  'notifications.messages.markRead': () =>
+    'Marks the signed-in user’s own in-app notice read (idempotent). A WhatsApp / SMS row answers 400 `channel_not_markable`: its read state comes from the provider.',
+  'notifications.templates.upsert': () =>
+    'Echoes the tenant’s own WhatsApp bill wording back unchanged (`created: false`). Change `body` to customise it; `{{distributorName}}` must stay — it is the white label.',
+  'notifications.broadcasts.create': (ctx) =>
+    `Queues one message per active shop on the example beat (${createdBroadcastId(ctx)}): WhatsApp for the shops that opted in, SMS for the rest, shops without a phone reported as skipped. The worker sends them within a minute (stub provider). A second Execute replays.`,
+  'notifications.pushTokens.unregister': () =>
+    'Removes the device the register example above wrote (sign-out). A device already gone answers `ok: true`; somebody else’s device is 404.',
   'auth.refresh': () => 'Paste the refreshToken from POST /auth/login; it rotates on every use.',
   'auth.logout': () => 'Paste the refreshToken from POST /auth/login.',
   'auth.switchTenant': () => 'Paste the refreshToken from POST /auth/login.',
