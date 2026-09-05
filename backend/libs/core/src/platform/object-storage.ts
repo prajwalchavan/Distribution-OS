@@ -50,6 +50,8 @@ export const OBJECT_DOMAINS = [
   'damage',
   'documents',
   'receipts',
+  /** Voice order captures (`modules/ai` intake). Nothing mints one yet — see the ai module's notes. */
+  'voice',
 ] as const
 
 export type ObjectDomain = (typeof OBJECT_DOMAINS)[number]
@@ -95,6 +97,15 @@ export const ALLOWED_CONTENT_TYPES: Readonly<
   'application/json': { extensions: ['json'], maxBytes: 64 * MB },
   /** The Tally import file the integrations exporter writes (coordination §3.5). */
   'application/xml': { extensions: ['xml'], maxBytes: 64 * MB },
+  /**
+   * Voice order notes (`modules/ai` intake). Two minutes of phone audio is well under a megabyte;
+   * the cap is generous rather than tight because a refused upload loses a shopkeeper's order.
+   */
+  'audio/mp4': { extensions: ['m4a', 'mp4'], maxBytes: 10 * MB },
+  'audio/mpeg': { extensions: ['mp3'], maxBytes: 10 * MB },
+  'audio/aac': { extensions: ['aac'], maxBytes: 10 * MB },
+  'audio/ogg': { extensions: ['ogg', 'opus'], maxBytes: 10 * MB },
+  'audio/wav': { extensions: ['wav'], maxBytes: 25 * MB },
 }
 
 export interface PutUrlOptions {

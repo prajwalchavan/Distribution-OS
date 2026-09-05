@@ -1,10 +1,12 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, withTenant, type Db } from './client.js'
 import {
   accounts,
   achievements,
+  aiForecasts,
+  aiOrderDrafts,
   allocations,
   approvals,
   auditLog,
@@ -57,6 +59,8 @@ import {
   packConfirmations,
   pickLines,
   picklists,
+  platformAdmins,
+  platformAudit,
   podEvidence,
   priceLists,
   priceListItems,
@@ -69,6 +73,7 @@ import {
   retailerPriceOverrides,
   retailers,
   returnPolicies,
+  routePlans,
   reviewSessions,
   salesOrderLines,
   salesOrders,
@@ -76,9 +81,11 @@ import {
   stockBalances,
   stockLedger,
   stockLots,
+  subscriptions,
   supplierAliases,
   supplierInvoices,
   suppliers,
+  supportGrants,
   syncErrors,
   tallyMappings,
   tallySyncLedger,
@@ -281,6 +288,24 @@ describeDb('row level security and ledger guarantees', () => {
   const payoutDriver = uuidv7()
   const payoutOtherDriver = uuidv7()
   const outsider = uuidv7()
+
+  /**
+   * Migrations 0031/0032 fixtures (ai — the founder's v1 AI decision, docs/22 §8 2026-09-05). Four
+   * drafts, so every branch of the read policy has a row that must be shown and a row that must be
+   * refused: shop A texted on WhatsApp (its shop is on the rep's beat), the rep recorded a voice order
+   * for the same shop, the desk typed one for shop B (which is on NO beat), and one arrived from a
+   * number nobody has matched to a shop yet. One forecast on the godown, and one route plan per van, so
+   * "the crew of THIS trip" has another crew's plan to be wrong about. `godownB` is a location of the
+   * other distributorship, so the forecast tenant guard has a foreign row to refuse.
+   */
+  const draftShopA = uuidv7()
+  const draftRepVoice = uuidv7()
+  const draftShopB = uuidv7()
+  const draftUnmatched = uuidv7()
+  const forecastA = uuidv7()
+  const routePlanA = uuidv7()
+  const routePlanB = uuidv7()
+  const godownB = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -1510,6 +1535,110 @@ describeDb('row level security and ledger guarantees', () => {
         periodTo: closedTo,
         amountPaise: 250_000,
         breakdown: [{ targetId: targetOtherDriver, metric: 'collections', payoutPaise: 250_000 }],
+      },
+    ])
+
+    // ai (0031/0032)
+    await db.insert(locations).values({
+      id: godownB,
+      tenantId: tenantB,
+      kind: 'warehouse',
+      name: `Godown B ${run}`,
+    })
+    await db.insert(aiOrderDrafts).values([
+      {
+        id: draftShopA,
+        tenantId: tenantA,
+        source: 'whatsapp',
+        retailerId: retailerA,
+        inboundMessageId: inboundA,
+        rawText: 'bhai 2 case cola kal',
+        parsedLines: [
+          {
+            text: '2 case cola',
+            variantId: variant,
+            qtyPcs: 48,
+            cases: 2,
+            unit: 'case',
+            confidenceBps: 9_100,
+            candidates: [{ variantId: variant, label: 'Cola 250ml', scoreBps: 9_100 }],
+          },
+        ],
+        matchConfidenceBps: 9_100,
+        status: 'needs_review',
+        provider: 'stub',
+        model: 'deterministic',
+        idempotencyKey: `ai-draft-a-${run}`,
+      },
+      {
+        id: draftRepVoice,
+        tenantId: tenantA,
+        source: 'voice',
+        retailerId: retailerA,
+        audioObjectKey: `tenant/${tenantA}/audio/${run}.m4a`,
+        transcript: 'do case cola aur ek dozen chips',
+        parsedLines: [],
+        matchConfidenceBps: 7_400,
+        status: 'parsed',
+        createdBy: rep,
+        provider: 'stub',
+        model: 'deterministic',
+        idempotencyKey: `ai-draft-voice-${run}`,
+      },
+      {
+        id: draftShopB,
+        tenantId: tenantA,
+        source: 'text',
+        retailerId: retailerB,
+        rawText: '1 case chips',
+        parsedLines: [],
+        matchConfidenceBps: 8_000,
+        status: 'parsed',
+        createdBy: manager,
+        idempotencyKey: `ai-draft-b-${run}`,
+      },
+      {
+        id: draftUnmatched,
+        tenantId: tenantA,
+        source: 'whatsapp',
+        rawText: '3 case cola bhejo',
+        parsedLines: [],
+        matchConfidenceBps: 2_000,
+        status: 'needs_review',
+        idempotencyKey: `ai-draft-unmatched-${run}`,
+      },
+    ])
+    await db.insert(aiForecasts).values({
+      id: forecastA,
+      tenantId: tenantA,
+      variantId: variant,
+      locationId: godownA,
+      horizonDays: 7,
+      expectedQtyPcs: 96,
+      reorderQtyPcs: 48,
+      onHandPcs: 120,
+      daysCover: 9,
+      method: 'moving_average_28',
+      confidenceBps: 6_500,
+    })
+    await db.insert(routePlans).values([
+      {
+        id: routePlanA,
+        tenantId: tenantA,
+        tripId: tripA,
+        method: 'nearest_neighbour_2opt',
+        sequence: [{ stopId: stopA, seq: 1, etaAt: null, distanceM: 1_800 }],
+        totalDistanceM: 1_800,
+        totalDurationS: 600,
+      },
+      {
+        id: routePlanB,
+        tenantId: tenantA,
+        tripId: tripB,
+        method: 'nearest_neighbour_2opt',
+        sequence: [{ stopId: stopB, seq: 1, etaAt: null, distanceM: 2_400 }],
+        totalDistanceM: 2_400,
+        totalDurationS: 900,
       },
     ])
   })
@@ -5860,5 +5989,1115 @@ describeDb('row level security and ledger guarantees', () => {
       )
     ).rows as { indexdef: string }[]
     expect(idx?.indexdef).toContain('(tenant_id, period_from, period_to)')
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Migrations 0031/0032 (ai). The founder put every AI feature in v1 (docs/22 §8, 2026-09-05): a
+  // shop's WhatsApp sentence or a rep's spoken one becomes a DRAFT order a human always confirms, the
+  // ledger becomes a reorder suggestion, and a trip's stops get a proposed sequence the driver may
+  // override. Three tables, three different populations, and the database is what keeps them apart.
+
+  it('shows an order draft to the desk, to the rep whose beat the shop is on and to the shop itself, and to nobody else', async () => {
+    const ids = (rows: { id: string }[]) => rows.map((r) => r.id).sort()
+    const all = [draftShopA, draftRepVoice, draftShopB, draftUnmatched].sort()
+
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      expect(
+        ids(await as(role)((tx) => tx.select().from(aiOrderDrafts))),
+        `${role} reads every draft of the distributorship`,
+      ).toEqual(all)
+    }
+
+    // The rep works beat A, and shop A is on it: it reads shop A's WhatsApp draft and the voice order
+    // it recorded itself. Shop B is on no beat, and the unmatched draft names no shop at all — both
+    // belong to the desk until someone puts a shop on them.
+    expect(ids(await as('salesperson')((tx) => tx.select().from(aiOrderDrafts)))).toEqual(
+      [draftShopA, draftRepVoice].sort(),
+    )
+
+    // The shop reads its own words and no other shop's.
+    expect(ids(await as('retailer')((tx) => tx.select().from(aiOrderDrafts)))).toEqual(
+      [draftShopA, draftRepVoice].sort(),
+    )
+    expect(
+      ids(await as('retailer', otherShopUser)((tx) => tx.select().from(aiOrderDrafts))),
+    ).toEqual([draftShopB])
+
+    // The godown and the crew take no orders: neither sees a single draft.
+    for (const role of ['warehouse', 'delivery'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(aiOrderDrafts)),
+        `${role} reads no draft`,
+      ).toHaveLength(0)
+    }
+
+    // Tenant isolation, asserted at the database and not at the guard.
+    expect(
+      await withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, (tx) =>
+        tx.select().from(aiOrderDrafts),
+      ),
+    ).toHaveLength(0)
+  })
+
+  it('lets a rep or a shop file only a draft it could read back, and refuses the godown, the crew and every delete', async () => {
+    const draft = (over: Record<string, unknown>) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      source: 'text' as const,
+      parsedLines: [],
+      idempotencyKey: uuidv7(),
+      ...over,
+    })
+
+    // the rep captures for a shop on its own beat, naming itself
+    const mine = draft({ retailerId: retailerA, createdBy: rep })
+    expect(
+      await as('salesperson')((tx) =>
+        tx.insert(aiOrderDrafts).values(mine).returning({ id: aiOrderDrafts.id }),
+      ),
+      'INSERT … RETURNING needs the row to pass the SELECT policy too',
+    ).toEqual([{ id: mine.id }])
+
+    // A rep may walk into any shop and take an order there — beats are a plan, not a fence, and
+    // `orders.create` is not beat-scoped either — so its OWN capture for a shop off its beat is a row
+    // it may file and read back. What the beat decides is what it sees WITHOUT having created it.
+    const offBeat = draft({ retailerId: retailerB, createdBy: rep })
+    expect(
+      await as('salesperson')((tx) =>
+        tx.insert(aiOrderDrafts).values(offBeat).returning({ id: aiOrderDrafts.id }),
+      ),
+    ).toEqual([{ id: offBeat.id }])
+    // ...but it never files one in nobody's name for a shop that is not on its beat, which is how a
+    // rep would otherwise plant a row on another rep's shop and read it back
+    await rejectsWith(
+      as('salesperson')((tx) => tx.insert(aiOrderDrafts).values(draft({ retailerId: retailerB }))),
+      /row-level security/,
+    )
+    await rejectsWith(
+      as('salesperson')((tx) =>
+        tx.insert(aiOrderDrafts).values(draft({ retailerId: retailerB, createdBy: manager })),
+      ),
+      /row-level security/,
+    )
+    await db.delete(aiOrderDrafts).where(eq(aiOrderDrafts.id, offBeat.id))
+
+    // the shop files for itself and never for the shop next door
+    const ours = draft({ retailerId: retailerA, source: 'text' as const })
+    expect(
+      await as('retailer')((tx) =>
+        tx.insert(aiOrderDrafts).values(ours).returning({ id: aiOrderDrafts.id }),
+      ),
+    ).toEqual([{ id: ours.id }])
+    await rejectsWith(
+      as('retailer')((tx) => tx.insert(aiOrderDrafts).values(draft({ retailerId: retailerB }))),
+      /row-level security/,
+    )
+
+    // the godown and the crew write none
+    for (const role of ['warehouse', 'delivery'] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(aiOrderDrafts).values(draft({ retailerId: retailerA }))),
+        /row-level security/,
+      )
+    }
+
+    // a rep cannot edit a draft of another beat, and cannot see it to try
+    expect(
+      await as('salesperson')((tx) =>
+        tx
+          .update(aiOrderDrafts)
+          .set({ status: 'rejected' })
+          .where(eq(aiOrderDrafts.id, draftShopB))
+          .returning({ id: aiOrderDrafts.id }),
+      ),
+    ).toHaveLength(0)
+
+    // a draft is rejected with a reason, never erased: nobody holds a DELETE policy, the owner included
+    for (const role of ['owner', 'manager', 'salesperson', 'retailer'] as const) {
+      expect(
+        await as(role)((tx) =>
+          tx
+            .delete(aiOrderDrafts)
+            .where(eq(aiOrderDrafts.id, mine.id))
+            .returning({ id: aiOrderDrafts.id }),
+        ),
+        `${role} deletes no draft`,
+      ).toHaveLength(0)
+    }
+    await db.delete(aiOrderDrafts).where(eq(aiOrderDrafts.id, mine.id))
+    await db.delete(aiOrderDrafts).where(eq(aiOrderDrafts.id, ours.id))
+  })
+
+  it('never lets a parsed draft become an order without a person on it, and never under another distributorship', async () => {
+    const scratch = uuidv7()
+    await db.insert(aiOrderDrafts).values({
+      id: scratch,
+      tenantId: tenantA,
+      source: 'whatsapp',
+      retailerId: retailerA,
+      rawText: '2 case cola',
+      parsedLines: [],
+      status: 'needs_review',
+      idempotencyKey: `ai-draft-scratch-${run}`,
+    })
+    const confirm = (over: Record<string, unknown>) =>
+      as('manager')((tx) =>
+        tx
+          .update(aiOrderDrafts)
+          .set({ status: 'confirmed', ...over })
+          .where(eq(aiOrderDrafts.id, scratch)),
+      )
+
+    await rejectsWith(confirm({}), /must name who reviewed it/)
+    await rejectsWith(
+      confirm({ reviewedBy: manager, reviewedAt: new Date() }),
+      /must point at the order it created/,
+    )
+    // the parser is never the reviewer: an actor whose role is `system` cannot confirm at all
+    await rejectsWith(
+      withTenant(db, { tenantId: tenantA, actorId: manager, actorRole: 'system' }, (tx) =>
+        tx
+          .update(aiOrderDrafts)
+          .set({
+            status: 'confirmed',
+            reviewedBy: manager,
+            reviewedAt: new Date(),
+            createdOrderId: orderA,
+          })
+          .where(eq(aiOrderDrafts.id, scratch)),
+      ),
+      /never confirms its own draft/,
+    )
+    // a rejection carries the reason the reviewer gave
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx
+          .update(aiOrderDrafts)
+          .set({ status: 'rejected', reviewedBy: manager, reviewedAt: new Date() })
+          .where(eq(aiOrderDrafts.id, scratch)),
+      ),
+      /must carry the reason/,
+    )
+    // ...and the whole thing works when a person actually did it
+    expect(
+      await as('manager')((tx) =>
+        tx
+          .update(aiOrderDrafts)
+          .set({
+            status: 'confirmed',
+            reviewedBy: manager,
+            reviewedAt: new Date(),
+            createdOrderId: orderA,
+          })
+          .where(eq(aiOrderDrafts.id, scratch))
+          .returning({ id: aiOrderDrafts.id }),
+      ),
+    ).toEqual([{ id: scratch }])
+
+    // `users`, `retailers` and `sales_orders` are reached by foreign keys that prove nothing about
+    // tenancy (and an FK check bypasses row security), so the guard binds even the owner connection
+    // the worker and the seeds run on.
+    await rejectsWith(
+      db.insert(aiOrderDrafts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        source: 'whatsapp',
+        retailerId: retailerOfB,
+        parsedLines: [],
+        idempotencyKey: uuidv7(),
+      }),
+      /shop .* belongs to another distributorship/,
+    )
+    await rejectsWith(
+      db.insert(aiOrderDrafts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        source: 'text',
+        retailerId: retailerA,
+        createdBy: outsider,
+        parsedLines: [],
+        idempotencyKey: uuidv7(),
+      }),
+      /created_by: user .* is not a member/,
+    )
+
+    // an offline replay of the same capture is a no-op, not a second draft
+    await rejectsWith(
+      db.insert(aiOrderDrafts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        source: 'whatsapp',
+        retailerId: retailerA,
+        parsedLines: [],
+        idempotencyKey: `ai-draft-scratch-${run}`,
+      }),
+      /ai_order_drafts_idempotency_idx/,
+    )
+    // ...and one inbound message is parsed once, however often the relay retries it
+    await rejectsWith(
+      db.insert(aiOrderDrafts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        source: 'whatsapp',
+        retailerId: retailerA,
+        inboundMessageId: inboundA,
+        parsedLines: [],
+        idempotencyKey: uuidv7(),
+      }),
+      /ai_order_drafts_inbound_idx/,
+    )
+
+    await db.delete(aiOrderDrafts).where(eq(aiOrderDrafts.id, scratch))
+  })
+
+  it('keeps a demand forecast to the desk and the godown, writable by the worker alone', async () => {
+    for (const role of ['owner', 'manager', 'accountant', 'warehouse'] as const) {
+      expect(
+        (await as(role)((tx) => tx.select().from(aiForecasts))).map((f) => f.id),
+        `${role} reads the buying plan`,
+      ).toEqual([forecastA])
+    }
+    // A forecast says what the distributor is about to buy: the field does not need it and the shop
+    // must never learn it (docs/22 §9 never-list 1 in its planning form).
+    for (const role of ['salesperson', 'delivery', 'retailer'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(aiForecasts)),
+        `${role} reads no forecast`,
+      ).toHaveLength(0)
+    }
+
+    const row = () => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      variantId: variant,
+      locationId: godownA,
+      horizonDays: 14,
+      expectedQtyPcs: 200,
+      reorderQtyPcs: 90,
+      onHandPcs: 120,
+      daysCover: 8,
+      method: 'moving_average_28',
+      confidenceBps: 6_000,
+    })
+    // Nobody edits a computed number by hand — not even the owner. The request enqueues a job instead.
+    for (const role of ['owner', 'manager', 'accountant', 'warehouse', 'salesperson'] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(aiForecasts).values(row())),
+        /row-level security/,
+      )
+    }
+    expect(
+      await as('owner')((tx) =>
+        tx
+          .update(aiForecasts)
+          .set({ reorderQtyPcs: 1 })
+          .where(eq(aiForecasts.id, forecastA))
+          .returning({ id: aiForecasts.id }),
+      ),
+      'not even the owner nudges a forecast',
+    ).toHaveLength(0)
+
+    // the sweep rewrites in place, keyed by (tenant, variant, location, horizon), so a retry is a no-op
+    const swept = await withTenant(
+      db,
+      { tenantId: tenantA, actorId: owner, actorRole: 'system' },
+      (tx) =>
+        tx
+          .insert(aiForecasts)
+          .values({ ...row(), horizonDays: 7 })
+          .onConflictDoUpdate({
+            target: [
+              aiForecasts.tenantId,
+              aiForecasts.variantId,
+              aiForecasts.locationId,
+              aiForecasts.horizonDays,
+            ],
+            set: { reorderQtyPcs: 72, computedAt: new Date() },
+          })
+          .returning({ id: aiForecasts.id }),
+    )
+    expect(swept, 'the worker sweep is the one writer, and it upserts').toEqual([{ id: forecastA }])
+
+    // the cross-tenant sweep cannot file another distributorship's godown here
+    await rejectsWith(
+      db.insert(aiForecasts).values({ ...row(), locationId: godownB }),
+      /location .* belongs to another distributorship/,
+    )
+    await withTenant(db, { tenantId: tenantA, actorId: owner, actorRole: 'system' }, (tx) =>
+      tx.update(aiForecasts).set({ reorderQtyPcs: 48 }).where(eq(aiForecasts.id, forecastA)),
+    )
+  })
+
+  it('lets the crew read and APPLY the route of its own trip, and never rewrite the one the desk computed', async () => {
+    const ids = (rows: { id: string }[]) => rows.map((r) => r.id).sort()
+    // The desk AND THE GODOWN read every plan: `ai.routing.get` is granted to `warehouse` by the
+    // permission matrix, because the van is loaded in the order it will be emptied. Migration 0035
+    // widened `route_plans_read` to say the same thing — before it, that screen answered `item: null`
+    // for ever, which is a refusal nobody can see.
+    for (const role of ['owner', 'manager', 'accountant', 'warehouse'] as const) {
+      expect(
+        ids(await as(role)((tx) => tx.select().from(routePlans))),
+        `${role} sees the board`,
+      ).toEqual([routePlanA, routePlanB].sort())
+    }
+    // A route names every shop on the van and the hour their goods are on it: a rep and a shop read
+    // none, and each crew reads only the trip it is on.
+    for (const role of ['salesperson', 'retailer'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(routePlans)),
+        `${role} reads no route plan`,
+      ).toHaveLength(0)
+    }
+    expect(ids(await as('delivery')((tx) => tx.select().from(routePlans)))).toEqual([routePlanA])
+    expect(ids(await as('delivery', otherDriver)((tx) => tx.select().from(routePlans)))).toEqual([
+      routePlanB,
+    ])
+
+    const planRow = (over: Record<string, unknown> = {}) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      tripId: tripA,
+      method: 'manual' as const,
+      sequence: [],
+      ...over,
+    })
+    // Planning is an operational decision: the accountant is a money desk (docs/22 §8, 2026-09-05),
+    // the godown loads what it is told, and the field takes orders.
+    for (const role of ['accountant', 'warehouse', 'salesperson', 'retailer'] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(routePlans).values(planRow())),
+        /row-level security/,
+      )
+    }
+    // The CREW OF THIS TRIP may ask the solver for a better round — `ai.routing.plan` is granted to
+    // `delivery`, and migration 0035 gave `route_plans_insert` the same crew-of-this-trip branch the
+    // read and update policies already carried, so `RoutingService.plan` writes the row as the driver
+    // instead of escalating to `system`. A driver on ANOTHER trip is still refused, by the policy.
+    expect(
+      await as('delivery')((tx) =>
+        tx.insert(routePlans).values(planRow()).returning({ id: routePlans.id }),
+      ),
+    ).toHaveLength(1)
+    await rejectsWith(
+      as('delivery', otherDriver)((tx) => tx.insert(routePlans).values(planRow())),
+      /row-level security/,
+    )
+
+    // the crew applies its own plan, as itself
+    expect(
+      await as('delivery')((tx) =>
+        tx
+          .update(routePlans)
+          .set({ appliedAt: new Date(), appliedBy: driver, overridden: false })
+          .where(eq(routePlans.id, routePlanA))
+          .returning({ id: routePlans.id }),
+      ),
+    ).toEqual([{ id: routePlanA }])
+    // ...and may say it went its own way, which is the driver's right
+    expect(
+      await as('delivery')((tx) =>
+        tx
+          .update(routePlans)
+          .set({ overridden: true })
+          .where(eq(routePlans.id, routePlanA))
+          .returning({ id: routePlans.id }),
+      ),
+    ).toEqual([{ id: routePlanA }])
+    // ...but never rewrites the sequence, the distance or the method and passes it off as the plan
+    await rejectsWith(
+      as('delivery')((tx) =>
+        tx
+          .update(routePlans)
+          .set({ sequence: [{ stopId: stopB, seq: 1, etaAt: null, distanceM: 0 }] })
+          .where(eq(routePlans.id, routePlanA)),
+      ),
+      /never rewrite the one the desk computed/,
+    )
+    await rejectsWith(
+      as('delivery')((tx) =>
+        tx.update(routePlans).set({ totalDistanceM: 1 }).where(eq(routePlans.id, routePlanA)),
+      ),
+      /never rewrite the one the desk computed/,
+    )
+    // ...and applies as themselves, never in the other crew's name
+    await rejectsWith(
+      as('delivery')((tx) =>
+        tx.update(routePlans).set({ appliedBy: otherDriver }).where(eq(routePlans.id, routePlanA)),
+      ),
+      /applies a plan as themselves/,
+    )
+    // the other crew cannot even see this trip's plan to touch it
+    expect(
+      await as(
+        'delivery',
+        otherDriver,
+      )((tx) =>
+        tx
+          .update(routePlans)
+          .set({ overridden: true })
+          .where(eq(routePlans.id, routePlanA))
+          .returning({ id: routePlans.id }),
+      ),
+    ).toHaveLength(0)
+
+    // a trip runs one route: a second applied plan on the same trip is refused by the partial unique
+    const second = planRow()
+    await as('manager')((tx) => tx.insert(routePlans).values(second))
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx
+          .update(routePlans)
+          .set({ appliedAt: new Date(), appliedBy: manager })
+          .where(eq(routePlans.id, second.id)),
+      ),
+      /route_plans_applied_idx/,
+    )
+    // a plan is superseded, never erased: no DELETE policy, the owner included
+    expect(
+      await as('owner')((tx) =>
+        tx.delete(routePlans).where(eq(routePlans.id, second.id)).returning({ id: routePlans.id }),
+      ),
+    ).toHaveLength(0)
+    await db.delete(routePlans).where(eq(routePlans.id, second.id))
+
+    // the trip is a trip of this distributorship, whatever the foreign key says
+    await rejectsWith(
+      db.insert(routePlans).values({ ...planRow(), tenantId: tenantB }),
+      /trip .* belongs to another distributorship/,
+    )
+    expect(
+      await withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, (tx) =>
+        tx.select().from(routePlans),
+      ),
+    ).toHaveLength(0)
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Migrations 0033/0034 — module 13, the platform console (founder decision 2026-09-05, docs/22 §2 row 7
+  // and §8: "organisation onboarding, plans and subscription state, support-access grants — time-boxed,
+  // owner-approved, audited"). Four GLOBAL tables, the only business tables in the product that carry no
+  // tenant predicate at all: they are reached by ACTOR ROLE alone, because a platform admin holds no
+  // membership anywhere. So the refusals below are the ones that matter — a distributor's owner, manager
+  // and accountant must not read who our staff are, what anybody pays, or what we did; and our own staff
+  // must not be able to let themselves into a customer's data without that customer's owner saying yes.
+
+  describe('the platform console (module 13)', () => {
+    const platformSuper = uuidv7()
+    const platformSupport = uuidv7()
+    const adminSuperRow = uuidv7()
+    const adminSupportRow = uuidv7()
+    const subscriptionA = uuidv7()
+    const subscriptionB = uuidv7()
+    /** Tenant A: one grant its owner already approved, one still waiting. Tenant B: one of its own. */
+    const grantA = uuidv7()
+    const grantPending = uuidv7()
+    const grantB = uuidv7()
+    const auditA = uuidv7()
+
+    const days = (n: number) => new Date(Date.now() + n * 86_400_000)
+
+    /**
+     * The console's own actor: `platform_admin` is a value of `ActorRole` and NOT of `membership_role`,
+     * so no tenant sign-in can ever produce it. `tenantId` is whatever tenant the console is looking at;
+     * none of the four tables' policies compare it, which is exactly what makes them global.
+     */
+    const asPlatform =
+      (actorId: string = platformSuper, tenantId: string = tenantA) =>
+      <T>(fn: (tx: Db) => Promise<T>) =>
+        withTenant(db, { tenantId, actorId, actorRole: 'platform_admin' }, fn)
+
+    const TENANT_ROLES = [
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+      'warehouse',
+      'delivery',
+      'retailer',
+    ] as const
+
+    beforeAll(async () => {
+      await db.insert(users).values([
+        { id: platformSuper, phone: `+91902${run}1`, name: 'Platform super' },
+        { id: platformSupport, phone: `+91902${run}2`, name: 'Platform support' },
+      ])
+      // The founding row is written by the migrating connection, which has no app.actor_role: that is
+      // the only way a first administrator can exist (0034 §2).
+      await db.insert(platformAdmins).values([
+        { id: adminSuperRow, userId: platformSuper, role: 'super' },
+        {
+          id: adminSupportRow,
+          userId: platformSupport,
+          role: 'support',
+          createdBy: platformSuper,
+        },
+      ])
+      await db.insert(subscriptions).values([
+        {
+          id: subscriptionA,
+          tenantId: tenantA,
+          plan: 'standard',
+          status: 'active',
+          periodStart: '2026-09-01',
+          periodEnd: '2027-08-31',
+          seats: 12,
+          pricePaiseMonth: 250_000,
+          updatedBy: platformSuper,
+        },
+        {
+          id: subscriptionB,
+          tenantId: tenantB,
+          plan: 'pro',
+          status: 'trial',
+          trialEndsAt: days(21),
+          seats: 4,
+        },
+      ])
+      await db.insert(supportGrants).values([
+        {
+          id: grantA,
+          tenantId: tenantA,
+          adminUserId: platformSupport,
+          reason: 'invoice numbering ticket',
+          expiresAt: days(3),
+          approvedBy: owner,
+          approvedAt: new Date(),
+          scope: 'read',
+        },
+        {
+          id: grantPending,
+          tenantId: tenantA,
+          adminUserId: platformSupport,
+          reason: 'stock ledger correction, waiting for the owner',
+          expiresAt: days(5),
+          scope: 'read_write',
+        },
+        {
+          id: grantB,
+          tenantId: tenantB,
+          adminUserId: platformSupport,
+          reason: 'another distributorship entirely',
+          expiresAt: days(5),
+        },
+      ])
+      await db.insert(platformAudit).values({
+        id: auditA,
+        adminUserId: platformSupport,
+        action: 'support.requested',
+        tenantId: tenantA,
+        payload: { grantId: grantA },
+      })
+    })
+
+    it('keeps the console to Distribution OS staff: no distributor role reads an administrator, a subscription or our trail', async () => {
+      for (const role of TENANT_ROLES) {
+        expect(
+          await as(role)((tx) => tx.select().from(subscriptions)),
+          `${role} reads no subscription`,
+        ).toHaveLength(0)
+        expect(
+          await as(role)((tx) => tx.select().from(platformAdmins)),
+          `${role} reads no console account`,
+        ).toHaveLength(0)
+        expect(
+          await as(role)((tx) => tx.select().from(platformAudit)),
+          `${role} reads no platform audit row`,
+        ).toHaveLength(0)
+      }
+      // An owner never learns what ANOTHER distributor pays — nor what its own does: the console
+      // records revenue, the owner app has no billing screen (docs/22 §8, docs/25 P2-22). If a "your
+      // plan" card is ever wanted, it is one narrow own-tenant SELECT policy, added deliberately.
+      expect(
+        await withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, (tx) =>
+          tx.select().from(subscriptions),
+        ),
+        'the owner of another distributorship reads no subscription either',
+      ).toHaveLength(0)
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx
+            .insert(subscriptions)
+            .values({ id: uuidv7(), tenantId: tenantA, plan: 'pro', status: 'active' }),
+        ),
+        /row-level security/,
+      )
+      expect(
+        await as('owner')((tx) =>
+          tx
+            .update(subscriptions)
+            .set({ seats: 999 })
+            .where(eq(subscriptions.id, subscriptionA))
+            .returning({ id: subscriptions.id }),
+        ),
+        'nor does an owner give itself more seats',
+      ).toHaveLength(0)
+      // ...and our own staff read every distributor's row, which is the whole job of the console
+      expect(
+        (
+          await asPlatform()((tx) =>
+            tx
+              .select()
+              .from(subscriptions)
+              .where(inArray(subscriptions.tenantId, [tenantA, tenantB])),
+          )
+        )
+          .map((s) => s.id)
+          .sort(),
+      ).toEqual([subscriptionA, subscriptionB].sort())
+    })
+
+    it('shows a distributor its own support grants and no other, and lets its owner approve or revoke but never rewrite one', async () => {
+      expect(
+        (await as('owner')((tx) => tx.select().from(supportGrants))).map((g) => g.id).sort(),
+        'the owner sees every request against its own distributorship',
+      ).toEqual([grantA, grantPending].sort())
+      // Answering a support request is the owner's own decision: not the manager's, not the money
+      // desk's (docs/22 §8, accountant scope 2026-09-05), and certainly not the field's.
+      for (const role of [
+        'manager',
+        'accountant',
+        'salesperson',
+        'warehouse',
+        'delivery',
+        'retailer',
+      ] as const) {
+        expect(
+          await as(role)((tx) => tx.select().from(supportGrants)),
+          `${role} reads no support grant`,
+        ).toHaveLength(0)
+      }
+      expect(
+        (
+          await withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, (tx) =>
+            tx.select().from(supportGrants),
+          )
+        ).map((g) => g.id),
+        'another distributorship sees only its own',
+      ).toEqual([grantB])
+
+      // the owner approves, under its own name
+      expect(
+        await as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ approvedBy: owner, approvedAt: new Date(), updatedAt: new Date() })
+            .where(eq(supportGrants.id, grantPending))
+            .returning({ id: supportGrants.id }),
+        ),
+      ).toEqual([{ id: grantPending }])
+      // ...and may not re-scope it, push the window out, or rewrite the reason we gave
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx.update(supportGrants).set({ scope: 'read' }).where(eq(supportGrants.id, grantPending)),
+        ),
+        /not theirs to rewrite/,
+      )
+      // Once open, the window never moves again — not by an hour, not by a fortnight.
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ expiresAt: days(20) })
+            .where(eq(supportGrants.id, grantPending)),
+        ),
+        /never moved afterwards/,
+      )
+
+      // ...but AT THE MOMENT OF APPROVAL the owner may take LESS than was asked for, which is what
+      // `tenancy.support.approve.hours` is for ("two hours, not four"), and never more. Migration
+      // 0036 is what draws that line; 0034 froze the column against the owner outright, which made
+      // the contract's own "may shorten it, never lengthen it" impossible to serve.
+      const shortenable = uuidv7()
+      const lengthenable = uuidv7()
+      await db.insert(supportGrants).values([
+        {
+          id: shortenable,
+          tenantId: tenantA,
+          adminUserId: platformSupport,
+          reason: 'four hours to read the numbering series',
+          expiresAt: days(4),
+        },
+        {
+          id: lengthenable,
+          tenantId: tenantA,
+          adminUserId: platformSupport,
+          reason: 'two hours to read the numbering series',
+          expiresAt: days(2),
+        },
+      ])
+      expect(
+        await as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ approvedBy: owner, approvedAt: new Date(), expiresAt: days(1) })
+            .where(eq(supportGrants.id, shortenable))
+            .returning({ id: supportGrants.id }),
+        ),
+        'the owner may open a shorter window than the one asked for',
+      ).toEqual([{ id: shortenable }])
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ approvedBy: owner, approvedAt: new Date(), expiresAt: days(10) })
+            .where(eq(supportGrants.id, lengthenable)),
+        ),
+        /never lengthen it/,
+      )
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ revokedAt: new Date(), revokedBy: manager })
+            .where(eq(supportGrants.id, grantPending)),
+        ),
+        /revokes as themselves/,
+      )
+      // an owner answers a request; it never files one
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx.insert(supportGrants).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            adminUserId: platformSupport,
+            reason: 'let me invite you in',
+            expiresAt: days(2),
+          }),
+        ),
+        /never files one/,
+      )
+      // it revokes, and after that the grant is closed for good
+      await as('owner')((tx) =>
+        tx
+          .update(supportGrants)
+          .set({ revokedAt: new Date(), revokedBy: owner })
+          .where(eq(supportGrants.id, grantPending)),
+      )
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ revokedAt: null, revokedBy: null })
+            .where(eq(supportGrants.id, grantPending)),
+        ),
+        /a revoked grant is closed/,
+      )
+      // a grant is revoked and kept: no DELETE policy, and no delete at all
+      expect(
+        await as('owner')((tx) =>
+          tx
+            .delete(supportGrants)
+            .where(eq(supportGrants.id, grantPending))
+            .returning({ id: supportGrants.id }),
+        ),
+      ).toHaveLength(0)
+      await rejectsWith(
+        db.delete(supportGrants).where(eq(supportGrants.id, grantPending)),
+        /append-only/,
+      )
+    })
+
+    it('never lets the requester approve their own access, and holds the window to thirty days', async () => {
+      const request = () => ({
+        id: uuidv7(),
+        tenantId: tenantA,
+        adminUserId: platformSupport,
+        reason: 'ticket 41: numbering series stuck',
+        expiresAt: days(3),
+      })
+      // we ask...
+      const filedId = uuidv7()
+      expect(
+        await asPlatform(platformSupport)((tx) =>
+          tx
+            .insert(supportGrants)
+            .values({ ...request(), id: filedId })
+            .returning({ id: supportGrants.id }),
+        ),
+      ).toEqual([{ id: filedId }])
+      // ...and may never answer, on the way in or afterwards
+      await rejectsWith(
+        asPlatform(platformSupport)((tx) =>
+          tx
+            .insert(supportGrants)
+            .values({ ...request(), approvedBy: owner, approvedAt: new Date() }),
+        ),
+        /files a request, never an approval/,
+      )
+      await rejectsWith(
+        asPlatform(platformSupport)((tx) =>
+          tx
+            .update(supportGrants)
+            .set({ approvedBy: owner, approvedAt: new Date() })
+            .where(eq(supportGrants.id, filedId)),
+        ),
+        /only the distributorship own owner approves/,
+      )
+      // an approved grant keeps the scope and the window the owner said yes to
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx.update(supportGrants).set({ scope: 'read_write' }).where(eq(supportGrants.id, grantA)),
+        ),
+        /keeps the scope and the window the owner approved/,
+      )
+      // not even the migrating connection can forge an approval: it is the tenant's own active owner
+      await rejectsWith(
+        db
+          .update(supportGrants)
+          .set({ approvedBy: platformSupport, approvedAt: new Date() })
+          .where(eq(supportGrants.id, filedId)),
+        /the requester never approves their own access/,
+      )
+      await rejectsWith(
+        db
+          .update(supportGrants)
+          .set({ approvedBy: rep, approvedAt: new Date() })
+          .where(eq(supportGrants.id, filedId)),
+        /approved by the distributorship own owner/,
+      )
+      // an `owner`-role token whose user is not an owner MEMBER of that distributorship approves nothing
+      await rejectsWith(
+        withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, (tx) =>
+          tx
+            .update(supportGrants)
+            .set({ approvedBy: outsider, approvedAt: new Date() })
+            .where(eq(supportGrants.id, grantB)),
+        ),
+        /approved by the distributorship own owner/,
+      )
+      // time-boxed, in the database rather than in a service that the next endpoint could bypass
+      await rejectsWith(
+        asPlatform(platformSupport)((tx) =>
+          tx.insert(supportGrants).values({ ...request(), expiresAt: days(45) }),
+        ),
+        /time-boxed to at most 30 days/,
+      )
+      await rejectsWith(
+        asPlatform(platformSupport)((tx) =>
+          tx.insert(supportGrants).values({ ...request(), expiresAt: days(-1) }),
+        ),
+        /the window ends after the request/,
+      )
+      // and only one of ours asks at all
+      await rejectsWith(
+        asPlatform()((tx) => tx.insert(supportGrants).values({ ...request(), adminUserId: owner })),
+        /is not an active platform administrator/,
+      )
+    })
+
+    it('keeps the platform trail append-only and filed under the person who acted', async () => {
+      expect(
+        (
+          await asPlatform()((tx) =>
+            tx.select().from(platformAudit).where(eq(platformAudit.tenantId, tenantA)),
+          )
+        ).map((r) => r.id),
+      ).toEqual([auditA])
+      const row = {
+        id: uuidv7(),
+        adminUserId: platformSupport,
+        action: 'support.opened',
+        tenantId: tenantA,
+        payload: { grantId: grantA },
+      }
+      // a row is filed under the person who acted, never under a colleague (the INSERT check pins it,
+      // exactly as `audit_log` pins actor_id)
+      await rejectsWith(
+        asPlatform()((tx) => tx.insert(platformAudit).values(row)),
+        /row-level security/,
+      )
+      expect(
+        await asPlatform(platformSupport)((tx) =>
+          tx.insert(platformAudit).values(row).returning({ id: platformAudit.id }),
+        ),
+      ).toEqual([{ id: row.id }])
+      // ...and under somebody who is one of ours at all
+      await rejectsWith(
+        db
+          .insert(platformAudit)
+          .values({ id: uuidv7(), adminUserId: owner, action: 'support.opened', payload: {} }),
+        /is not a platform administrator/,
+      )
+      // append-only for every role, the connection that runs the migrations included
+      await rejectsWith(
+        db.update(platformAudit).set({ action: 'edited' }).where(eq(platformAudit.id, auditA)),
+        /append-only/,
+      )
+      await rejectsWith(db.delete(platformAudit).where(eq(platformAudit.id, auditA)), /append-only/)
+      expect(
+        await asPlatform()((tx) =>
+          tx
+            .update(platformAudit)
+            .set({ action: 'edited' })
+            .where(eq(platformAudit.id, auditA))
+            .returning({ id: platformAudit.id }),
+        ),
+        'there is no UPDATE policy at all, so the console reaches no row to change',
+      ).toHaveLength(0)
+    })
+
+    it('lets only an active super administrator open a console account, and nobody edit their own', async () => {
+      expect(
+        (
+          await asPlatform()((tx) =>
+            tx
+              .select()
+              .from(platformAdmins)
+              .where(inArray(platformAdmins.id, [adminSuperRow, adminSupportRow])),
+          )
+        )
+          .map((a) => a.id)
+          .sort(),
+      ).toEqual([adminSuperRow, adminSupportRow].sort())
+
+      const newcomer = uuidv7()
+      await db.insert(users).values({ id: newcomer, phone: `+91902${run}3`, name: 'New colleague' })
+      const account = () => ({
+        id: uuidv7(),
+        userId: newcomer,
+        role: 'billing' as const,
+        createdBy: platformSuper,
+      })
+      await rejectsWith(
+        asPlatform(platformSupport)((tx) => tx.insert(platformAdmins).values(account())),
+        /only an active super administrator/,
+      )
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx.insert(platformAdmins).values({ ...account(), createdBy: platformSupport }),
+        ),
+        /names the super administrator who added them/,
+      )
+      const created = account()
+      expect(
+        await asPlatform()((tx) =>
+          tx.insert(platformAdmins).values(created).returning({ id: platformAdmins.id }),
+        ),
+      ).toEqual([{ id: created.id }])
+      // no self-promotion and no self-restore, whatever level the actor holds
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .update(platformAdmins)
+            .set({ role: 'super' })
+            .where(eq(platformAdmins.id, adminSuperRow)),
+        ),
+        /nobody edits their own console account/,
+      )
+      // an account is disabled, never deleted: the audit trail keeps its subjects
+      await asPlatform()((tx) =>
+        tx
+          .update(platformAdmins)
+          .set({ disabledAt: new Date() })
+          .where(eq(platformAdmins.id, created.id)),
+      )
+      expect(
+        await asPlatform()((tx) =>
+          tx
+            .delete(platformAdmins)
+            .where(eq(platformAdmins.id, created.id))
+            .returning({ id: platformAdmins.id }),
+        ),
+      ).toHaveLength(0)
+      await rejectsWith(
+        db.delete(platformAdmins).where(eq(platformAdmins.id, created.id)),
+        /append-only/,
+      )
+      // ...and a disabled administrator asks for nothing more
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx.insert(supportGrants).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            adminUserId: newcomer,
+            reason: 'after being disabled',
+            expiresAt: days(2),
+          }),
+        ),
+        /is not an active platform administrator/,
+      )
+    })
+
+    it('keeps a subscription row honest, and lets the console onboard a distributor without entering it', async () => {
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx.update(subscriptions).set({ seats: -1 }).where(eq(subscriptions.id, subscriptionA)),
+        ),
+        /seat count is never negative/,
+      )
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .update(subscriptions)
+            .set({ pricePaiseMonth: -100 })
+            .where(eq(subscriptions.id, subscriptionA)),
+        ),
+        /price is never negative/,
+      )
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .update(subscriptions)
+            .set({ status: 'trial', trialEndsAt: null })
+            .where(eq(subscriptions.id, subscriptionA)),
+        ),
+        /a trial must say when it ends/,
+      )
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .update(subscriptions)
+            .set({ periodStart: '2026-09-01', periodEnd: '2026-08-01' })
+            .where(eq(subscriptions.id, subscriptionA)),
+        ),
+        /period ends after it starts/,
+      )
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .update(subscriptions)
+            .set({ updatedBy: rep })
+            .where(eq(subscriptions.id, subscriptionA)),
+        ),
+        /is not a platform administrator/,
+      )
+      // one distributor, one subscription state
+      await rejectsWith(
+        asPlatform()((tx) =>
+          tx
+            .insert(subscriptions)
+            .values({ id: uuidv7(), tenantId: tenantB, plan: 'starter', status: 'active' }),
+        ),
+        /subscriptions_tenant_idx/,
+      )
+
+      // The console reads every distributorship and stamps the onboarding; reading a distributor's
+      // BUSINESS data still needs an owner-approved grant — this is the tenant row itself, nothing in it.
+      expect(
+        (
+          await asPlatform()((tx) =>
+            tx
+              .select({ id: tenants.id })
+              .from(tenants)
+              .where(inArray(tenants.id, [tenantA, tenantB])),
+          )
+        )
+          .map((t) => t.id)
+          .sort(),
+      ).toEqual([tenantA, tenantB].sort())
+      expect(
+        await asPlatform()((tx) =>
+          tx
+            .update(tenants)
+            .set({ onboardedAt: new Date(), onboardedBy: platformSuper, plan: 'standard' })
+            .where(eq(tenants.id, tenantA))
+            .returning({ id: tenants.id }),
+        ),
+      ).toEqual([{ id: tenantA }])
+      expect(
+        (await as('owner')((tx) => tx.select({ id: tenants.id }).from(tenants))).map((t) => t.id),
+        'and the distributor still sees only itself',
+      ).toEqual([tenantA])
+    })
   })
 })

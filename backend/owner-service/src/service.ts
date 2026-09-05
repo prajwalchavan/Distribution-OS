@@ -20,6 +20,7 @@ import {
   NotificationsModule,
   ReportingModule,
   IncentivesModule,
+  AiModule,
 } from '@dos/core'
 
 /** Everything the distributor owner does at the desk or on the phone: masters, costs, prices, staff, approvals, registers, settings. */
@@ -49,6 +50,7 @@ export const service = defineService({
     NotificationsModule,
     ReportingModule,
     IncentivesModule,
+    AiModule,
   ],
   contractKeys: [
     'health',
@@ -72,5 +74,6 @@ export const service = defineService({
     'notifications',
     'reporting',
     'incentives',
+    'ai',
   ],
 })

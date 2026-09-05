@@ -45,6 +45,15 @@ export const STAFF_ROLES = [
   'warehouse',
   'system',
 ] as const
+/**
+ * Distribution OS's OWN staff, plus the worker (module 13, founder decision 2026-09-05, docs/22 §2
+ * row 7). `platform_admin` is a GLOBAL actor: it holds no membership anywhere, so it is deliberately
+ * NOT a value of the `membership_role` enum — a value there would let a tenant's onboarders write
+ * themselves into the console. It reaches the database the same way every other actor does, through
+ * `app.actor_role`, which only `admin-service` ever sets to this value, and the policies built from
+ * this list are the only ones in the schema that do not mention `tenant_id` at all.
+ */
+export const PLATFORM_ROLES = ['platform_admin', 'system'] as const
 export const BACK_OFFICE_ROLES = ['owner', 'manager', 'accountant', 'system'] as const
 export const OWNER_ROLES = ['owner', 'system'] as const
 export const CURATOR_ROLES = ['curator', 'system'] as const
@@ -230,6 +239,29 @@ export const staffWritePolicy = (name: string) => {
     pgPolicy(`${name}_delete`, { for: 'delete', to: appRw, using: predicate }),
   ]
 }
+
+/**
+ * SELECT on a GLOBAL platform table (module 13): Distribution OS staff and the worker, nobody else.
+ * There is no tenant predicate on purpose — the console's own tables belong to no distributor — so a
+ * tenant actor is refused by role alone, whatever `app.tenant_id` happens to hold.
+ */
+export const platformReadPolicy = (name: string) =>
+  pgPolicy(name, { for: 'select', to: appRw, using: actorRoleIn(PLATFORM_ROLES) })
+
+/**
+ * INSERT and UPDATE on a global platform table, split per command, and DELIBERATELY NO DELETE: an
+ * administrator is disabled, a support grant is revoked, an audit row is a record, and a subscription
+ * that ends is `cancelled`. Nothing in the console is erased, so nothing here grants a delete.
+ */
+export const platformWritePolicies = (name: string) => [
+  pgPolicy(`${name}_insert`, { for: 'insert', to: appRw, withCheck: actorRoleIn(PLATFORM_ROLES) }),
+  pgPolicy(`${name}_update`, {
+    for: 'update',
+    to: appRw,
+    using: actorRoleIn(PLATFORM_ROLES),
+    withCheck: actorRoleIn(PLATFORM_ROLES),
+  }),
+]
 
 /** Global (non-tenant) reference data: readable by every role, writable only by the curator/system role. */
 export const globalCuratedPolicies = (name: string) => {

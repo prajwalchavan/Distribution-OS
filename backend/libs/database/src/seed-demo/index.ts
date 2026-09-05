@@ -10,6 +10,8 @@
  * separates them is `inDemoScope`: the same builders below, the same catalog, different ids.
  */
 import type { Db } from '../client.js'
+import { seedAi } from './ai.js'
+import { seedPlatformSupport } from './platform-admin.js'
 import { seedBilling, seedPendingVanSaleOrder } from './billing.js'
 import { seedCatalog, type VariantRow } from './catalog.js'
 import { seedClaims } from './claims.js'
@@ -131,6 +133,14 @@ export async function seedDemo(
       // wrote, so a rep's progress bar, the leaderboard and the payout register all agree
       // (docs/plans/incentives.md §6).
       await seedIncentives(db, tenantId, people)
+      // Module 12 (docs/22 §8, 2026-09-05): drafts off the inbound texts the notifications seed
+      // wrote, reorder suggestions read out of the stock ledger, and one unapplied route plan for
+      // the open trip. Last, because every one of those rows points at what the seeds above wrote.
+      await seedAi(db, tenantId, variants, retailersRes, stock, delivery, people)
+      // The owner's half of platform support access (module 13's console is the other half): one
+      // Distribution OS staff account and one PENDING request against this distributor, so the owner
+      // app has a decision to take and `tenancy.support.*` answers a real row.
+      await seedPlatformSupport(db, tenantId, opts.passwordHash)
     }
 
     if (opts.printSignIn ?? true) printSignInTable(tenantId, label, people)

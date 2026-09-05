@@ -42,6 +42,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/tenancy/feature-flags` | Switch features on or off (owner only, audited) | owner |
 | POST | `/tenancy/tenant` | Edit the legal name, GSTIN and state (owner only, audited) | owner |
 | GET | `/tenancy/audit` | Who changed what: prices, credit, approvals, settings, exports, trace reads | owner, manager, accountant |
+| GET | `/tenancy/support-grants` | Requests from Distribution OS support to look inside this distributor | owner |
+| POST | `/tenancy/support-grants/{id}/approve` | Open a time-boxed support window (the owner may shorten it, never lengthen it) | owner |
+| POST | `/tenancy/support-grants/{id}/revoke` | Refuse a support request, or close a window that is already open | owner |
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -192,6 +195,17 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
+| POST | `/ai/intake/text` | Read a message into a draft order (never creates an order) | owner, manager, salesperson, retailer |
+| POST | `/ai/intake/voice` | Transcribe a voice note and read it into a draft order | owner, manager, salesperson, retailer |
+| GET | `/ai/drafts` | The draft queue (a shop sees only its own) | owner, manager, salesperson, retailer |
+| GET | `/ai/drafts/{id}` | One draft with its text, transcript and lines | owner, manager, salesperson, retailer |
+| POST | `/ai/drafts/{id}/confirm` | Confirm the corrected lines: creates and submits a normal sales order | owner, manager, salesperson, retailer |
+| POST | `/ai/drafts/{id}/reject` | Throw the draft away with a reason | owner, manager, salesperson, retailer |
+| POST | `/ai/forecast/run` | Queue a demand forecast pass (one per day per location) | owner, manager, accountant |
+| GET | `/ai/forecast` | Reorder suggestions with days of cover (no cost, no value) | owner, manager, accountant, warehouse |
+| POST | `/ai/routing/trips/{tripId}/plan` | Sequence a trip's open stops; writes nothing on the trip | owner, manager, delivery |
+| GET | `/ai/routing/trips/{tripId}/plan` | The trip's current route plan, or null when none was computed | owner, manager, warehouse, delivery |
+| POST | `/ai/routing/trips/{tripId}/plan/apply` | Write the planned sequence onto the trip through delivery.stops.reorder | owner, manager, delivery |
 
 ### GET `/health/ping`
 
@@ -1608,6 +1622,362 @@ curl "http://localhost:3006/tenancy/audit?entityType=text&entityId=01a06d21-94b0
       }
     ]
   }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/tenancy/support-grants`
+
+Requests from Distribution OS support to look inside this distributor · contract `tenancy.support.list`
+
+**Roles:** owner
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | requested | approved | rejected | revoked | expired | no |
+| `openOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/tenancy/support-grants?status=requested&openOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "status": "requested",
+      "scope": "read_only",
+      "reason": "Confirmed on phone with the shopkeeper",
+      "requestedHours": 1,
+      "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+      "requestedByName": "text",
+      "requestedAt": "2026-09-04T10:30:00.000Z",
+      "decidedBy": null,
+      "decidedAt": null,
+      "decisionNote": "Confirmed on phone with the shopkeeper",
+      "expiresAt": "2026-09-04T10:30:00.000Z",
+      "revokedBy": null,
+      "revokedAt": null,
+      "revokeReason": null,
+      "active": true
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /tenancy/support-grants",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/support-grants/{id}/approve`
+
+Open a time-boxed support window (the owner may shorten it, never lengthen it) · contract `tenancy.support.approve`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `hours` | integer | no |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/tenancy/support-grants/01a06d17-0be7-794a-8dab-9b14cf78673b/approve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "hours": 1,
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "requested",
+    "scope": "read_only",
+    "reason": "Confirmed on phone with the shopkeeper",
+    "requestedHours": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "requestedByName": "text",
+    "requestedAt": "2026-09-04T10:30:00.000Z",
+    "decidedBy": null,
+    "decidedAt": null,
+    "decisionNote": "Confirmed on phone with the shopkeeper",
+    "expiresAt": "2026-09-04T10:30:00.000Z",
+    "revokedBy": null,
+    "revokedAt": null,
+    "revokeReason": null,
+    "active": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /tenancy/support-grants/{id}/approve",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/support-grants/{id}/revoke`
+
+Refuse a support request, or close a window that is already open · contract `tenancy.support.revoke`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/tenancy/support-grants/01a06d17-0be7-794a-8dab-9b14cf78673b/revoke" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "requested",
+    "scope": "read_only",
+    "reason": "Confirmed on phone with the shopkeeper",
+    "requestedHours": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "requestedByName": "text",
+    "requestedAt": "2026-09-04T10:30:00.000Z",
+    "decidedBy": null,
+    "decidedAt": null,
+    "decisionNote": "Confirmed on phone with the shopkeeper",
+    "expiresAt": "2026-09-04T10:30:00.000Z",
+    "revokedBy": null,
+    "revokedAt": null,
+    "revokeReason": null,
+    "active": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /tenancy/support-grants/{id}/revoke",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
 }
 ```
 
@@ -22366,6 +22736,1619 @@ request.json
 }
 ```
 
+### POST `/ai/intake/text`
+
+Read a message into a draft order (never creates an order) · contract `ai.intake.parseText`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `source` | whatsapp | text | yes |
+| `retailerId` | uuid | no |
+| `inboundMessageId` | uuid | no |
+| `text` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/intake/text" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "source": "whatsapp",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+  "text": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "whatsapp",
+    "status": "parsed",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+    "preview": "text",
+    "lineCount": 1,
+    "matchedLineCount": 1,
+    "unmatchedLineCount": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "orderNo": "SO-0042",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z",
+    "rejectReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "rawText": "text",
+    "transcript": "text",
+    "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "lines": [
+      {
+        "lineNo": 1,
+        "rawText": "text",
+        "status": "matched",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "packSize": 24,
+        "qtyPcs": 24,
+        "cases": 1,
+        "unit": "piece",
+        "confidenceBps": 500,
+        "candidates": [
+          {
+            "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+            "variantName": "Campa Cola 750 ml",
+            "scoreBps": 500
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/intake/voice`
+
+Transcribe a voice note and read it into a draft order · contract `ai.intake.transcribe`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `audioObjectKey` | string | yes |
+| `retailerId` | uuid | no |
+| `language` | en-IN | hi-IN | mr-IN | no |
+| `durationMs` | integer | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/intake/voice" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "language": "en-IN",
+  "durationMs": 1
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "whatsapp",
+    "status": "parsed",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+    "preview": "text",
+    "lineCount": 1,
+    "matchedLineCount": 1,
+    "unmatchedLineCount": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "orderNo": "SO-0042",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z",
+    "rejectReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "rawText": "text",
+    "transcript": "text",
+    "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "lines": [
+      {
+        "lineNo": 1,
+        "rawText": "text",
+        "status": "matched",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "packSize": 24,
+        "qtyPcs": 24,
+        "cases": 1,
+        "unit": "piece",
+        "confidenceBps": 500,
+        "candidates": [
+          {
+            "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+            "variantName": "Campa Cola 750 ml",
+            "scoreBps": 500
+          }
+        ]
+      }
+    ]
+  },
+  "transcript": "text"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/ai/drafts`
+
+The draft queue (a shop sees only its own) · contract `ai.drafts.list`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | parsed | needs_review | confirmed | rejected | expired | no |
+| `retailerId` | uuid | no |
+| `source` | whatsapp | voice | text | no |
+| `from` | date | no |
+| `to` | date | no |
+| `mine` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/ai/drafts?status=parsed&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&source=whatsapp&from=2026-09-04&to=2026-09-04&mine=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "source": "whatsapp",
+      "status": "parsed",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+      "preview": "text",
+      "lineCount": 1,
+      "matchedLineCount": 1,
+      "unmatchedLineCount": 1,
+      "confidenceBps": 500,
+      "needsHumanConfirmation": true,
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+      "reviewedAt": "2026-09-04T10:30:00.000Z",
+      "rejectReason": null,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/ai/drafts/{id}`
+
+One draft with its text, transcript and lines · contract `ai.drafts.get`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/ai/drafts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "whatsapp",
+    "status": "parsed",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+    "preview": "text",
+    "lineCount": 1,
+    "matchedLineCount": 1,
+    "unmatchedLineCount": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "orderNo": "SO-0042",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z",
+    "rejectReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "rawText": "text",
+    "transcript": "text",
+    "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "lines": [
+      {
+        "lineNo": 1,
+        "rawText": "text",
+        "status": "matched",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "packSize": 24,
+        "qtyPcs": 24,
+        "cases": 1,
+        "unit": "piece",
+        "confidenceBps": 500,
+        "candidates": [
+          {
+            "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+            "variantName": "Campa Cola 750 ml",
+            "scoreBps": 500
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/drafts/{id}/confirm`
+
+Confirm the corrected lines: creates and submits a normal sales order · contract `ai.drafts.confirm`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `orderId` | uuid | yes |
+| `retailerId` | uuid | no |
+| `lines` | object[] | yes |
+| `expectedDeliveryDate` | date | no |
+| `note` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/drafts/01a06d17-0be7-794a-8dab-9b14cf78673b/confirm" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "enteredQty": 24,
+      "enteredUnit": "piece",
+      "draftLineNo": 1
+    }
+  ],
+  "expectedDeliveryDate": "2026-09-04",
+  "note": null,
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "whatsapp",
+    "status": "parsed",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+    "preview": "text",
+    "lineCount": 1,
+    "matchedLineCount": 1,
+    "unmatchedLineCount": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "orderNo": "SO-0042",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z",
+    "rejectReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "rawText": "text",
+    "transcript": "text",
+    "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "lines": [
+      {
+        "lineNo": 1,
+        "rawText": "text",
+        "status": "matched",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "packSize": 24,
+        "qtyPcs": 24,
+        "cases": 1,
+        "unit": "piece",
+        "confidenceBps": 500,
+        "candidates": [
+          {
+            "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+            "variantName": "Campa Cola 750 ml",
+            "scoreBps": 500
+          }
+        ]
+      }
+    ]
+  },
+  "order": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "state": "draft",
+    "source": "salesperson",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "salespersonId": "01a06d29-a152-76c4-87b4-301e496c0602",
+    "pricingDateMode": "order",
+    "paymentTerms": "PRE",
+    "fulfilFromLocationId": "01a06dc8-c767-7943-8fdd-07b3dd890c64",
+    "externalRef": null,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "approvalFlags": [
+      "text"
+    ],
+    "expectedDeliveryDate": "2026-09-04",
+    "note": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "deliveredQtyPcs": 24,
+        "listRatePaise": 4000,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ],
+        "priceLocked": true
+      }
+    ],
+    "transitions": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "fromState": "draft",
+        "toState": "draft",
+        "event": "submit",
+        "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+        "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+        "reason": null,
+        "occurredAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "approvals": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "kind": "credit_limit",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "entityType": "text",
+        "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+        "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+        "status": "pending",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "decidedBy": null,
+        "decidedAt": null,
+        "decisionNote": "Confirmed on phone with the shopkeeper",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/drafts/{id}/reject`
+
+Throw the draft away with a reason · contract `ai.drafts.reject`
+
+**Roles:** owner, manager, salesperson, retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/drafts/01a06d17-0be7-794a-8dab-9b14cf78673b/reject" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "whatsapp",
+    "status": "parsed",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "inboundMessageId": "01a06d61-804e-78e0-8317-bfee7e73ed22",
+    "preview": "text",
+    "lineCount": 1,
+    "matchedLineCount": 1,
+    "unmatchedLineCount": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "orderNo": "SO-0042",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z",
+    "rejectReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "rawText": "text",
+    "transcript": "text",
+    "audioObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "lines": [
+      {
+        "lineNo": 1,
+        "rawText": "text",
+        "status": "matched",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "packSize": 24,
+        "qtyPcs": 24,
+        "cases": 1,
+        "unit": "piece",
+        "confidenceBps": 500,
+        "candidates": [
+          {
+            "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+            "variantName": "Campa Cola 750 ml",
+            "scoreBps": 500
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/forecast/run`
+
+Queue a demand forecast pass (one per day per location) · contract `ai.forecast.run`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `locationId` | uuid | no |
+| `asOfDate` | date | no |
+| `lookbackDays` | integer | no |
+| `horizonDays` | integer | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/forecast/run" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+  "asOfDate": "2026-09-04",
+  "lookbackDays": 7,
+  "horizonDays": 7
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e",
+    "status": "queued",
+    "asOfDate": "2026-09-04",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "horizonDays": 7,
+    "queuedAt": "2026-09-04T10:30:00.000Z",
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true
+  },
+  "created": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /ai/forecast/run",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/ai/forecast`
+
+Reorder suggestions with days of cover (no cost, no value) · contract `ai.forecast.list`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `locationId` | uuid | no |
+| `variantId` | uuid | no |
+| `horizonDays` | integer | no |
+| `coverDays` | integer | no |
+| `belowCover` | boolean | string | no |
+| `q` | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/ai/forecast?locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&variantId=01a06df0-2faf-79a2-8456-92042e49f147&horizonDays=14&coverDays=21&belowCover=true&q=campa&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "packSize": 24,
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "locationName": "text",
+      "horizonDays": 7,
+      "expectedQtyPcs": 24,
+      "onHandPcs": 24,
+      "reorderQtyPcs": 24,
+      "reorderCases": 1,
+      "daysCover": 1,
+      "belowCover": true,
+      "method": "text",
+      "confidenceBps": 500,
+      "needsHumanConfirmation": true,
+      "computedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "lastComputedAt": "2026-09-04T10:30:00.000Z",
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /ai/forecast",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/routing/trips/{tripId}/plan`
+
+Sequence a trip's open stops; writes nothing on the trip · contract `ai.routing.plan`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/routing/trips/01a06d0b-bd31-7813-8e79-aa7c39f75385/plan" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "status": "draft",
+    "method": "nearest_neighbour_2opt",
+    "stopCount": 1,
+    "unpinnedStops": 1,
+    "totalDistanceM": 1,
+    "totalDurationS": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "appliedAt": "2026-09-04T10:30:00.000Z",
+    "appliedBy": "01a06d26-7fe2-7476-84fc-72dabcafa6b5",
+    "overridden": true,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "sequence": 1,
+        "currentSequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "distanceM": 1,
+        "etaAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /ai/routing/trips/{tripId}/plan",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/ai/routing/trips/{tripId}/plan`
+
+The trip's current route plan, or null when none was computed · contract `ai.routing.get`
+
+**Roles:** owner, manager, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | yes |
+| `planId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/ai/routing/trips/01a06d0b-bd31-7813-8e79-aa7c39f75385/plan?planId=01a06dd8-e2b2-70ec-873d-c18168012faf" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "status": "draft",
+    "method": "nearest_neighbour_2opt",
+    "stopCount": 1,
+    "unpinnedStops": 1,
+    "totalDistanceM": 1,
+    "totalDurationS": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "appliedAt": "2026-09-04T10:30:00.000Z",
+    "appliedBy": "01a06d26-7fe2-7476-84fc-72dabcafa6b5",
+    "overridden": true,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "sequence": 1,
+        "currentSequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "distanceM": 1,
+        "etaAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /ai/routing/trips/{tripId}/plan",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/ai/routing/trips/{tripId}/plan/apply`
+
+Write the planned sequence onto the trip through delivery.stops.reorder · contract `ai.routing.apply`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/ai/routing/trips/01a06d0b-bd31-7813-8e79-aa7c39f75385/plan/apply" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "status": "draft",
+    "method": "nearest_neighbour_2opt",
+    "stopCount": 1,
+    "unpinnedStops": 1,
+    "totalDistanceM": 1,
+    "totalDurationS": 1,
+    "confidenceBps": 500,
+    "needsHumanConfirmation": true,
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "appliedAt": "2026-09-04T10:30:00.000Z",
+    "appliedBy": "01a06d26-7fe2-7476-84fc-72dabcafa6b5",
+    "overridden": true,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "sequence": 1,
+        "currentSequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "distanceM": 1,
+        "etaAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  },
+  "stops": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "sequence": 1,
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "state": "pending",
+      "failureReason": null,
+      "failureNote": "Confirmed on phone with the shopkeeper",
+      "plannedCollectionPaise": 4000,
+      "etaAt": "2026-09-04T10:30:00.000Z",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "arrivedAt": "2026-09-04T10:30:00.000Z",
+      "completedAt": "2026-09-04T10:30:00.000Z",
+      "arrivedLat": 19.2403,
+      "arrivedLng": 73.1305,
+      "vehicleRegNo": "SO-0042",
+      "deliveries": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+          "invoiceNo": "SO-0042",
+          "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+          "invoiceTotalPaise": 2680000,
+          "outcome": "delivered",
+          "deliveredAt": "2026-09-04T10:30:00.000Z",
+          "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+        }
+      ],
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /ai/routing/trips/{tripId}/plan/apply",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -22388,6 +24371,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `tenancy.featureFlags.set` | – | – | – | – | – | – | – |
 | `tenancy.tenant.update` | – | – | – | – | – | – | – |
 | `tenancy.audit.list` | – | – | – | – | – | – | – |
+| `tenancy.support.list` | – | – | – | – | – | – | – |
+| `tenancy.support.approve` | – | – | – | – | – | – | – |
+| `tenancy.support.revoke` | – | – | – | – | – | – | – |
 | `catalog.search` | – | – | – | – | – | – | ✓ |
 | `catalog.manufacturers` | – | – | – | – | – | – | ✓ |
 | `catalog.propose` | – | – | – | – | – | – | – |
@@ -22538,3 +24524,14 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `notifications.pushTokens.unregister` | – | – | – | – | – | – | – |
 | `notifications.inbound.list` | – | – | – | – | – | – | – |
 | `notifications.inbound.markHandled` | – | – | – | – | – | – | – |
+| `ai.intake.parseText` | – | – | – | – | – | – | ✓ |
+| `ai.intake.transcribe` | – | – | – | – | – | – | ✓ |
+| `ai.drafts.list` | – | – | – | – | – | – | ✓ |
+| `ai.drafts.get` | – | – | – | – | – | – | ✓ |
+| `ai.drafts.confirm` | – | – | – | – | – | – | ✓ |
+| `ai.drafts.reject` | – | – | – | – | – | – | ✓ |
+| `ai.forecast.run` | – | – | – | – | – | – | – |
+| `ai.forecast.list` | – | – | – | – | – | – | – |
+| `ai.routing.plan` | – | – | – | – | – | – | – |
+| `ai.routing.get` | – | – | – | – | – | – | – |
+| `ai.routing.apply` | – | – | – | – | – | – | – |

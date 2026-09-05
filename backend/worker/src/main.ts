@@ -5,6 +5,7 @@ loadDotenv()
 import { registerClaimSheetRenderer } from '@dos/core/claims'
 import { DOCUMENT_RENDER_EVENT } from '@dos/core/documents'
 import { logger } from './logger.js'
+import { registerAiJobs } from './jobs/ai.js'
 import { registerDocintJobs } from './jobs/docint.js'
 import {
   INTEGRATIONS_SWEEP,
@@ -47,6 +48,9 @@ await registerReportingJobs(boss, db)
 // Incentives (coordination §1 slot 10): the hourly achievement sweep and the single-target recompute
 // the relay runs for `targets.refresh` — `achievements` is a worker-only table (jobs/incentives.ts).
 await registerIncentivesJobs(boss, db)
+// AI (module 12, docs/22 §8): the demand-forecast pass off `AiForecastRequested` and nightly at
+// 03:40 IST, plus the inbound-WhatsApp handler that turns a shop's text into a draft order.
+await registerAiJobs(boss, db)
 await boss.createQueue(INTEGRATIONS_SWEEP)
 await boss.work(INTEGRATIONS_SWEEP, async () => {
   await sweepIntegrations(db, boss)
@@ -74,7 +78,7 @@ await boss.work(PDF_RENDER, async ([job]) => {
   await renderPending(db)
 })
 logger.info(
-  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST, incentives achievement sweep hourly',
+  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST, incentives achievement sweep hourly, ai forecast pass on demand + nightly 03:40 IST',
 )
 
 const shutdown = async (): Promise<void> => {

@@ -21,7 +21,13 @@ import {
 } from './columns.js'
 import { appRw } from './roles.js'
 
-export const tenantPlan = pgEnum('tenant_plan', ['pilot', 'starter', 'growth'])
+/**
+ * What a distributor is on. `pilot` and `growth` are the original two names; `standard` and `pro` were
+ * APPENDED for the platform console (module 13, founder decision 2026-09-05) — enum values are added at
+ * the end and never reordered, because the order is on disk. `subscriptions.plan` reuses this type so
+ * the console and the tenant row can never disagree about what a plan is called.
+ */
+export const tenantPlan = pgEnum('tenant_plan', ['pilot', 'starter', 'growth', 'standard', 'pro'])
 export const tenantStatus = pgEnum('tenant_status', ['active', 'suspended', 'closed'])
 
 /**
@@ -40,11 +46,47 @@ export const tenants = pgTable(
     stateCode: text('state_code').notNull(),
     plan: tenantPlan('plan').notNull().default('pilot'),
     status: tenantStatus('status').notNull().default('active'),
+    /**
+     * Module 13 onboarding (founder decision 2026-09-05): when the platform console admitted this
+     * distributor, and which platform admin did it. Null for the tenants the seed created before the
+     * console existed — the columns are nullable on purpose, migrations are expand-only, and a tenant
+     * that predates the console is not a tenant that was onboarded by nobody.
+     */
+    onboardedAt: tz('onboarded_at'),
+    onboardedBy: text('onboarded_by').references(() => users.id),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('tenants_slug_idx').on(t.slug),
     pgPolicy('tenants_read', { for: 'select', to: appRw, using: tenantMatches('id') }),
+    /**
+     * The platform console (module 13) is the one actor that legitimately sees every distributor: it
+     * onboards them, suspends them and reads the list. `platform_admin` holds no membership, so every
+     * other policy on this table (each of which compares `id` to `app.tenant_id`) can never admit it;
+     * these three do, by role alone. No tenant actor can ever present this role — `membership_role`
+     * has no such value and the hand-written migration asserts it never gains one.
+     *
+     * Note what is NOT here: the console does not write `memberships` or `users`. Creating a
+     * distributor's first owner runs through `bootstrapTenant()` under `withSystem()`; a platform admin
+     * who wants to act inside a live tenant needs an owner-approved `support_grants` row, which is the
+     * whole point of that table.
+     */
+    pgPolicy('tenants_platform_read', {
+      for: 'select',
+      to: appRw,
+      using: sql`(SELECT current_setting('app.actor_role', true)) IN ('platform_admin', 'system')`,
+    }),
+    pgPolicy('tenants_platform_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql`(SELECT current_setting('app.actor_role', true)) = 'platform_admin'`,
+    }),
+    pgPolicy('tenants_platform_update', {
+      for: 'update',
+      to: appRw,
+      using: sql`(SELECT current_setting('app.actor_role', true)) = 'platform_admin'`,
+      withCheck: sql`(SELECT current_setting('app.actor_role', true)) = 'platform_admin'`,
+    }),
     pgPolicy('tenants_owner_update', {
       for: 'update',
       to: appRw,

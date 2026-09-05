@@ -5,6 +5,7 @@ import {
   LocaleSchema,
   MembershipRoleSchema,
   PasswordSchema,
+  PlatformRoleSchema,
   UsernameSchema,
 } from './common.js'
 
@@ -29,6 +30,17 @@ import {
  * a WhatsApp message) and `auth.stepUp` (the manager's PIN typed on the warehouse phone) are NOT
  * declared: the first is the same future layer, the second is superseded by the founder's decision of
  * 2026-09-05 that load-out is approved from the MANAGER app (`warehouse.loadSheets.approve`).
+ *
+ * PLATFORM STAFF (docs/22 §2 and the founder's decision of 2026-09-05: the platform console is in v1).
+ * A `platform_admin` is staff of Distribution OS itself: it holds NO membership, so it has no tenant to
+ * sign into and `LoginInput`'s tenant-picking machinery is meaningless for it. It therefore gets its own
+ * three procedures — `platformLogin`, `platformRefresh`, `platformMe` — rather than a nullable `tenant`
+ * on `TokenPairOutput`, which would have made "every signed-in session has a distributor" untrue for the
+ * six apps that rely on it. The access token they mint carries `role: 'platform_admin'` and NO `tid`;
+ * `TenantGuard` accepts such a token on **admin-service (:3007) only** and refuses it, before any
+ * business logic, on all six tenant services. The same password rules, lockout, device-bound rotating
+ * refresh token and `auth_events` trail apply — a platform session is not a privileged shortcut, and it
+ * reads a distributor's rows only through an owner-approved `support_grants` window (tenancy.ts).
  *
  * WHITE-LABEL (docs/17 §D6): `AuthTenantSchema` and `MembershipSummarySchema` carry the distributor's
  * `displayName` and a pre-signed `logoUrl` so the sign-in landing and the retailer's distributor cards
@@ -159,6 +171,50 @@ export const AuthMeOutput = z.object({
 })
 export type AuthMe = z.infer<typeof AuthMeOutput>
 
+// ---------------------------------------------------------------------------------------------------------------
+// platform staff: a session with a role and no tenant (admin-service :3007)
+
+/**
+ * Sign-in for Distribution OS staff. No `tenantId`: a platform admin belongs to no distributor, and
+ * sending one would be meaningless rather than merely ignored. Everything else — the device-bound
+ * session, the lockout after five failures, the identical 401 for an unknown username and a wrong
+ * password — is exactly `LoginInput`'s behaviour.
+ */
+export const PlatformLoginInput = z.object({
+  username: UsernameSchema,
+  password: PasswordInputSchema,
+  /** Client-generated UUIDv7, stable for the life of the install: one session per device. */
+  deviceId: IdSchema,
+  deviceName: z.string().min(1).max(120).optional(),
+  platform: AuthPlatformSchema.optional(),
+})
+export type PlatformLoginIn = z.infer<typeof PlatformLoginInput>
+
+/**
+ * What `platformLogin` and `platformRefresh` return. The differences from `TokenPairOutput` are the
+ * point of the separate procedure: there is no `tenant`, no `memberships` and no membership `role` —
+ * the access token behind it carries `role: 'platform_admin'` and no `tid`, and every one of the six
+ * tenant services refuses it at the guard.
+ */
+export const PlatformTokenPairOutput = z.object({
+  accessToken: z.string(),
+  tokenType: z.literal('Bearer'),
+  accessExpiresIn: z.number().int().positive(),
+  refreshToken: RefreshTokenSchema,
+  refreshExpiresAt: z.iso.datetime(),
+  user: AuthUserSchema,
+  role: PlatformRoleSchema,
+})
+export type PlatformTokenPair = z.infer<typeof PlatformTokenPairOutput>
+
+/** The signed-in platform user and this device's session. No tenant, by construction. */
+export const PlatformMeOutput = z.object({
+  user: AuthUserSchema,
+  role: PlatformRoleSchema,
+  session: AuthSessionSchema,
+})
+export type PlatformMe = z.infer<typeof PlatformMeOutput>
+
 export const SessionsListOutput = z.object({
   items: z.array(AuthSessionSchema.extend({ current: z.boolean() })),
 })
@@ -255,6 +311,33 @@ export const authContract = {
       summary: 'The signed-in user, the active membership and this session',
     })
     .output(AuthMeOutput)
+    .errors(TOKEN_ERRORS),
+  // Distribution OS staff: a session with a role and no tenant, accepted by admin-service alone.
+  platformLogin: oc
+    .route({
+      method: 'POST',
+      path: '/auth/platform/login',
+      summary: 'Sign in as Distribution OS platform staff (no distributor)',
+    })
+    .input(PlatformLoginInput)
+    .output(PlatformTokenPairOutput)
+    .errors(SIGN_IN_ERRORS),
+  platformRefresh: oc
+    .route({
+      method: 'POST',
+      path: '/auth/platform/refresh',
+      summary: 'Exchange a platform refresh token for a new pair (rotates the refresh token)',
+    })
+    .input(RefreshInput)
+    .output(PlatformTokenPairOutput)
+    .errors(SESSION_ERRORS),
+  platformMe: oc
+    .route({
+      method: 'GET',
+      path: '/auth/platform/me',
+      summary: 'The signed-in platform user and this session',
+    })
+    .output(PlatformMeOutput)
     .errors(TOKEN_ERRORS),
   sessions: oc
     .route({ method: 'GET', path: '/auth/sessions', summary: 'Devices signed in as this user' })

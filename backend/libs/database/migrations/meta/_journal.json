@@ -218,6 +218,55 @@
       "when": 1788623807821,
       "tag": "0030_incentives_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788637201573,
+      "tag": "0031_ai_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788637201574,
+      "tag": "0032_ai_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788638756538,
+      "tag": "0033_platform_admin_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788638756539,
+      "tag": "0034_platform_admin_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788643054512,
+      "tag": "0035_support_and_routing_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788643054513,
+      "tag": "0036_support_owner_decision",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788643054514,
+      "tag": "0037_support_requester_name",
+      "breakpoints": true
     }
   ]
 }

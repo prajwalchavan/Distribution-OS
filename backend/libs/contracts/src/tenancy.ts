@@ -8,6 +8,7 @@ import {
   MutationBase,
   PasswordSchema,
   PhoneSchema,
+  QueryBoolSchema,
   QueryIntSchema,
   StateCodeSchema,
   UsernameSchema,
@@ -17,13 +18,15 @@ import { AddressSchema } from './retailers.js'
 /**
  * Tenancy — the distributor itself: who it is (`me`, `tenant.update`), how it looks to a shopkeeper
  * (`branding.get`), how it is configured (`settings`, `numbering`, `featureFlags`), who works in it
- * (`staff`) and who changed what (`audit`). It owns `tenants`, `memberships`, `tenant_settings`,
- * `numbering_series`, `feature_flags` and `audit_log`.
+ * (`staff`), who changed what (`audit`) and who at Distribution OS may look inside it and until when
+ * (`support`). It owns `tenants`, `memberships`, `tenant_settings`, `numbering_series`,
+ * `feature_flags`, `audit_log` and `support_grants`.
  *
  * WHICH SERVICES MOUNT `tenancy` (every one of the six; auth-service :3000 mounts nothing here):
  *
  *   owner :3001      YES — the whole surface. This is the only service where `settings.set`,
- *                    `numbering.upsert`, `featureFlags.set` and `tenant.update` can succeed (OWNER_ONLY)
+ *                    `numbering.upsert`, `featureFlags.set`, `tenant.update` and `support.approve` /
+ *                    `support.revoke` can succeed (OWNER_ONLY)
  *   manager :3002    YES — manager + accountant: `me`, `branding.get`, `settings.get` (non-secret keys,
  *                    e.g. the e-way bill threshold on the load-out desk), `featureFlags.list`,
  *                    `audit.list`, `staff.list`; the manager also runs `staff.create/update/
@@ -65,14 +68,31 @@ const CursorInput = {
 // ---------------------------------------------------------------------------------------------------------------
 // the tenant, the user, the membership
 
+/**
+ * The subscription tier the distributor is sold (`tenants.plan`). Declared apart from `TenantSchema`
+ * so the platform console (`admin.ts`) names the same values the tenant row carries — the plan on a
+ * subscription and the plan on the tenant are one setting, never two lists that drift.
+ *
+ * `standard` and `pro` were appended to the `tenant_plan` enum by migration `0033_platform_admin_expand`,
+ * whose guarantees sibling refuses to finish unless the database holds them ("tenant_plan is missing
+ * the % value the console sells"). The wire follows the column: a plan the console can sell and the
+ * database can store but the contract cannot name would 404 every tenant on that plan.
+ */
+export const TenantPlanSchema = z.enum(['pilot', 'starter', 'growth', 'standard', 'pro'])
+export type TenantPlan = z.infer<typeof TenantPlanSchema>
+
+/** `suspended` keeps the data and refuses every sign-in; `closed` is the end of the relationship. */
+export const TenantStatusSchema = z.enum(['active', 'suspended', 'closed'])
+export type TenantStatus = z.infer<typeof TenantStatusSchema>
+
 export const TenantSchema = z.object({
   id: IdSchema,
   slug: z.string().min(2).max(40),
   legalName: z.string().min(2).max(200),
   gstin: GstinSchema.nullable(),
   stateCode: StateCodeSchema,
-  plan: z.enum(['pilot', 'starter', 'growth']),
-  status: z.enum(['active', 'suspended', 'closed']),
+  plan: TenantPlanSchema,
+  status: TenantStatusSchema,
 })
 export type Tenant = z.infer<typeof TenantSchema>
 
@@ -338,6 +358,140 @@ export const AuditListOutput = z.object({
 export type AuditList = z.infer<typeof AuditListOutput>
 
 // ---------------------------------------------------------------------------------------------------------------
+// support access — a time-boxed, OWNER-APPROVED, audited grant (docs/17 §B [57], docs/22 §2)
+
+/**
+ * How far a support grant reaches. `read_only` is the default and the only scope the console asks for
+ * unless a person at the distributor says otherwise: a support engineer looking at why an invoice will
+ * not issue does not need to issue it. `read_write` exists because some faults can only be repaired
+ * from inside the tenant, and it is a separate word on the owner's approval screen precisely so the
+ * owner is choosing it, not tolerating it. Neither scope reaches a `secret.*` setting or a password.
+ */
+export const SupportScopeSchema = z.enum(['read_only', 'read_write'])
+export type SupportScope = z.infer<typeof SupportScopeSchema>
+
+/**
+ * `requested` — a platform admin asked and NOTHING is open yet; the owner sees a card in its app.
+ * `approved` — the owner said yes; the grant is live from `approvedAt` until `expiresAt` and then
+ * lapses on its own (`expired`). `rejected` — the owner said no. `revoked` — either side pulled it
+ * before it lapsed. There is no state in which support reads a tenant's rows without an `approved`
+ * row whose `expiresAt` is still in the future: `active` below is derived from exactly that.
+ */
+export const SupportGrantStatusSchema = z.enum([
+  'requested',
+  'approved',
+  'rejected',
+  'revoked',
+  'expired',
+])
+export type SupportGrantStatus = z.infer<typeof SupportGrantStatusSchema>
+
+/**
+ * One request for support access to ONE distributor. Both sides read the same row: the platform
+ * console through `admin.support.list` (which adds the tenant it belongs to) and the owner through
+ * `tenancy.support.list`. `reason` is written by the platform admin and is shown to the owner
+ * verbatim — it is the whole basis on which the owner decides.
+ */
+export const SupportGrantSchema = z.object({
+  id: IdSchema,
+  status: SupportGrantStatusSchema,
+  scope: SupportScopeSchema,
+  /** Why access is being asked for, in the platform admin's own words; shown to the owner. */
+  reason: z.string().min(1).max(500),
+  /** Hours asked for, 1–72; the owner may approve a SHORTER window, never a longer one. */
+  requestedHours: z.number().int().min(1).max(72),
+  /** The Distribution OS staff user who asked, and their name for the owner's card. */
+  requestedBy: IdSchema,
+  requestedByName: z.string().min(1).max(120),
+  requestedAt: z.iso.datetime(),
+  /** The owner who decided; null while `requested`. */
+  decidedBy: IdSchema.nullable(),
+  decidedAt: z.iso.datetime().nullable(),
+  decisionNote: z.string().max(500).nullable(),
+  /** When the approved window closes. Null until approval; never extended — a new request is made. */
+  expiresAt: z.iso.datetime().nullable(),
+  revokedBy: IdSchema.nullable(),
+  revokedAt: z.iso.datetime().nullable(),
+  revokeReason: z.string().max(500).nullable(),
+  /** Derived, never stored: `status === 'approved'` and `expiresAt` is still in the future. */
+  active: z.boolean(),
+})
+export type SupportGrant = z.infer<typeof SupportGrantSchema>
+
+export const SupportGrantItemOutput = z.object({ item: SupportGrantSchema })
+export type SupportGrantItem = z.infer<typeof SupportGrantItemOutput>
+
+/** Newest first. Defaults to the grants that still matter: `requested` and live `approved` ones. */
+export const SupportListInput = z.object({
+  status: SupportGrantStatusSchema.optional(),
+  /** Only the grants that are open right now (requested, or approved and not yet expired). */
+  openOnly: QueryBoolSchema.optional(),
+  ...CursorInput,
+})
+export const SupportListOutput = z.object({
+  items: z.array(SupportGrantSchema),
+  nextCursor: z.string().nullable(),
+})
+export type SupportList = z.infer<typeof SupportListOutput>
+
+/**
+ * The owner opens the window. `hours` may SHORTEN what was asked for (the handler refuses a value
+ * above `requestedHours`); omitting it approves exactly what was asked. Audited (`support.approve`),
+ * and the grant lapses on its own at `expiresAt` with nobody having to remember it.
+ */
+export const SupportApproveInput = MutationBase.extend({
+  id: IdSchema,
+  hours: z.number().int().min(1).max(72).optional(),
+  note: z.string().trim().max(500).optional(),
+})
+export type SupportApproveIn = z.infer<typeof SupportApproveInput>
+
+/**
+ * The owner shuts the window — before it opens (a rejection) or while it is open (a revocation); the
+ * handler picks `rejected` or `revoked` from the row's current status. Every session opened under the
+ * grant stops at the next request. Audited (`support.revoke`).
+ */
+export const SupportRevokeInput = MutationBase.extend({
+  id: IdSchema,
+  reason: z.string().trim().max(500).optional(),
+})
+export type SupportRevokeIn = z.infer<typeof SupportRevokeInput>
+
+/**
+ * The OWNER's half of the support-access flow (docs/22 §2: "time-boxed, owner-approved, audited").
+ * The platform console asks (`admin.support.request`) and can withdraw its own ask
+ * (`admin.support.revoke`); nothing here is reachable by a platform actor and nothing in `admin.*` is
+ * reachable by the owner. Mounted on owner-service alone — no other role decides who may look inside
+ * this distributor's books.
+ */
+export const supportContract = {
+  list: oc
+    .route({
+      method: 'GET',
+      path: '/tenancy/support-grants',
+      summary: 'Requests from Distribution OS support to look inside this distributor',
+    })
+    .input(SupportListInput)
+    .output(SupportListOutput),
+  approve: oc
+    .route({
+      method: 'POST',
+      path: '/tenancy/support-grants/{id}/approve',
+      summary: 'Open a time-boxed support window (the owner may shorten it, never lengthen it)',
+    })
+    .input(SupportApproveInput)
+    .output(SupportGrantItemOutput),
+  revoke: oc
+    .route({
+      method: 'POST',
+      path: '/tenancy/support-grants/{id}/revoke',
+      summary: 'Refuse a support request, or close a window that is already open',
+    })
+    .input(SupportRevokeInput)
+    .output(SupportGrantItemOutput),
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // staff administration
 
 /**
@@ -543,4 +697,6 @@ export const tenancyContract = {
       .input(AuditListInput)
       .output(AuditListOutput),
   },
+  // The owner's half of platform support access: see the request, open a time-boxed window, shut it.
+  support: supportContract,
 }

@@ -727,6 +727,31 @@ class Fixtures {
       `select id from approvals where tenant_id=$1 and status::text = any($2) order by created_at desc limit 1`,
       [this.tenantId, statuses],
     )
+
+  /**
+   * The one support request the owner can still APPROVE: not yet answered, not closed, and its window
+   * has not lapsed. Once the demo one is answered there is nothing left to press — which is a SKIP,
+   * not a fault, so the plan says so rather than sending a made-up id into a permanent 404.
+   */
+  approvableSupportGrant = () =>
+    this.liveScalar(
+      `select id from support_grants
+        where tenant_id=$1 and approved_at is null and revoked_at is null and expires_at > now()
+        order by requested_at limit 1`,
+      [this.tenantId],
+    )
+
+  /**
+   * A grant the owner can still SHUT — a request it has not answered, or a window it has opened.
+   * Wider than the one above on purpose: revoking an APPROVED grant is the more interesting half of
+   * the flow, and it is the half `--destructive` should actually exercise.
+   */
+  revocableSupportGrant = () =>
+    this.liveScalar(
+      `select id from support_grants where tenant_id=$1 and revoked_at is null
+        order by approved_at nulls first, requested_at limit 1`,
+      [this.tenantId],
+    )
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1265,6 +1290,18 @@ async function planFor(
     // --- pricing: `scope` is an all-optional object with a cross-field rule ----------------------
     case 'pricing.schemes.upsert':
       return { pinned: { scope: { all: true } } }
+
+    // --- platform support access: the owner answers the ONE open request, or there is nothing ----
+    case 'tenancy.support.approve': {
+      const id = await fx.approvableSupportGrant()
+      return id
+        ? { pathParams: { id } }
+        : { skip: 'no support request is waiting for the owner to answer' }
+    }
+    case 'tenancy.support.revoke': {
+      const id = await fx.revocableSupportGrant()
+      return id ? { pathParams: { id } } : { skip: 'no support grant is still open' }
+    }
 
     // --- approvals / bargains: only a pending row can be decided --------------------------------
     case 'orders.approvals.decide':

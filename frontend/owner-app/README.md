@@ -49,6 +49,9 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/tenancy/feature-flags` | Switch features on or off (owner only, audited) | owner |
 | POST | `/tenancy/tenant` | Edit the legal name, GSTIN and state (owner only, audited) | owner |
 | GET | `/tenancy/audit` | Who changed what: prices, credit, approvals, settings, exports, trace reads | owner, manager, accountant |
+| GET | `/tenancy/support-grants` | Requests from Distribution OS support to look inside this distributor | owner |
+| POST | `/tenancy/support-grants/{id}/approve` | Open a time-boxed support window (the owner may shorten it, never lengthen it) | owner |
+| POST | `/tenancy/support-grants/{id}/revoke` | Refuse a support request, or close a window that is already open | owner |
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -356,3 +359,14 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/incentives/statements/{id}/reopen` | Clear an approval so the statement can be computed again (owner) | owner |
 | GET | `/incentives/statements/{id}` | One statement with its per-target breakdown (a rep: its own) | owner, manager, accountant, salesperson, delivery |
 | GET | `/incentives/statements` | The payout register and a rep's own statement history (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| POST | `/ai/intake/text` | Read a message into a draft order (never creates an order) | owner, manager, salesperson, retailer |
+| POST | `/ai/intake/voice` | Transcribe a voice note and read it into a draft order | owner, manager, salesperson, retailer |
+| GET | `/ai/drafts` | The draft queue (a shop sees only its own) | owner, manager, salesperson, retailer |
+| GET | `/ai/drafts/{id}` | One draft with its text, transcript and lines | owner, manager, salesperson, retailer |
+| POST | `/ai/drafts/{id}/confirm` | Confirm the corrected lines: creates and submits a normal sales order | owner, manager, salesperson, retailer |
+| POST | `/ai/drafts/{id}/reject` | Throw the draft away with a reason | owner, manager, salesperson, retailer |
+| POST | `/ai/forecast/run` | Queue a demand forecast pass (one per day per location) | owner, manager, accountant |
+| GET | `/ai/forecast` | Reorder suggestions with days of cover (no cost, no value) | owner, manager, accountant, warehouse |
+| POST | `/ai/routing/trips/{tripId}/plan` | Sequence a trip's open stops; writes nothing on the trip | owner, manager, delivery |
+| GET | `/ai/routing/trips/{tripId}/plan` | The trip's current route plan, or null when none was computed | owner, manager, warehouse, delivery |
+| POST | `/ai/routing/trips/{tripId}/plan/apply` | Write the planned sequence onto the trip through delivery.stops.reorder | owner, manager, delivery |

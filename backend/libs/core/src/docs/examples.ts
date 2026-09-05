@@ -64,6 +64,7 @@ import {
   supplierInvoices,
   supplierPackConfigs,
   suppliers,
+  supportGrants,
   targets,
   templates,
   tenantProductCosts,
@@ -243,6 +244,34 @@ export interface ReportingExamples {
  * on the delivery service's document, and vice versa. `targetFor` / `statementFor` pick the row the
  * calling service's own login can actually open, and fall back to any row for the back office.
  */
+/**
+ * The rows the `ai` document points at (module 12, docs/22 §8). Every one is SEEDED
+ * (`seed-demo/ai.ts`): a draft that is still open, its first matched line, a forecast row for the
+ * godown and the one unapplied route plan on the open trip — so "Try it out" reads a real draft,
+ * confirms a real order, and applies a real plan.
+ */
+export interface AiExamples {
+  /** A draft nobody has answered yet: `drafts.get`, `drafts.confirm`, `drafts.reject`. */
+  openDraftId?: string | undefined
+  /** Its shop, and the first line the parser matched — what `confirm`'s example sends back. */
+  openDraftRetailerId?: string | undefined
+  openDraftLineNo?: number | undefined
+  openDraftVariantId?: string | undefined
+  openDraftQty?: number | undefined
+  openDraftUnit?: 'piece' | 'inner' | 'case' | undefined
+  /** A draft a shopkeeper's own login may see — the retailer document names this one. */
+  shopDraftId?: string | undefined
+  /** A variant and a godown that have a forecast row, so `forecast` filters answer with something. */
+  forecastVariantId?: string | undefined
+  forecastLocationId?: string | undefined
+  forecastHorizonDays?: number | undefined
+  /** The trip the seeded plan belongs to, and the plan itself (unapplied, so `apply` works once). */
+  routeTripId?: string | undefined
+  routePlanId?: string | undefined
+  /** A phrase from this tenant's own listing, so `intake.parseText`'s example matches a real SKU. */
+  intakePhrase?: string | undefined
+}
+
 export interface IncentivesExamples {
   /** An OPEN target per rep / crew member: `targets.get`, `targets.refresh`. */
   targetByUser?: Record<string, string> | undefined
@@ -439,6 +468,13 @@ export interface ExampleContext {
   orderLineId?: string | undefined
   approvalId?: string | undefined
   invoiceId?: string | undefined
+  /**
+   * The support request the owner still has to answer (`tenancy.support.approve` / `.revoke`): the
+   * oldest one that is neither approved nor closed. Undefined when Distribution OS support has never
+   * asked to look inside this distributor — which is the normal state, and then the two examples
+   * publish no id and the harness skips them rather than pressing a made-up one.
+   */
+  supportGrantId?: string | undefined
 
   /** Rows the platform-gaps procedures point at (docs/23 §8): every `{id}` route names a real one. */
   receiptId?: string | undefined
@@ -504,6 +540,8 @@ export interface ExampleContext {
   reporting?: ReportingExamples | undefined
   /** The targets, achievements and statements the incentives examples point at. */
   incentives?: IncentivesExamples | undefined
+  /** The drafts, forecast rows and route plan the `ai` examples point at (seed-demo/ai.ts). */
+  ai?: AiExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -655,6 +693,7 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectNotifications(tx, tenant.id, ctx)
   await collectReporting(tx, tenant.id, ctx)
   await collectIncentives(tx, tenant.id, ctx)
+  await collectAi(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
 }
@@ -790,6 +829,89 @@ async function collectIncentives(tx: Db, tenantId: string, ctx: ExampleContext):
   out.pendingUserId = pending?.userId
   out.pendingFrom = pending?.periodFrom
   out.pendingTo = pending?.periodTo
+}
+
+/**
+ * The `ai` rows the document points at (module 12, docs/22 §8, seeded by `seed-demo/ai.ts`).
+ *
+ * Every id below is a row that EXISTS and is still answerable: an OPEN draft (never the confirmed
+ * or rejected one, or `confirm` would answer 409 for ever), a forecast row for the godown, and the
+ * one UNAPPLIED route plan on the open trip. `intakePhrase` is taken from this distributor's own
+ * listing, so the published `intake.parseText` example parses into a real SKU rather than into an
+ * unmatched line the reader would take for a bug.
+ */
+async function collectAi(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: AiExamples = {}
+  ctx.ai = out
+  const draftRows = (
+    await tx.execute(
+      sql`select id, retailer_id, status::text as status, parsed_lines
+            from ai_order_drafts
+           where tenant_id = ${tenantId} and status in ('parsed', 'needs_review')
+           order by created_at asc, id asc limit 10`,
+    )
+  ).rows as {
+    id: string
+    retailer_id: string | null
+    status: string
+    parsed_lines: { variantId: string | null; qtyPcs: number; cases: number | null; unit: string }[]
+  }[]
+  // The example draft must have a MATCHED line, because `confirm`'s body is that line sent back.
+  const usable =
+    draftRows.find((r) => r.retailer_id && r.parsed_lines.some((l) => l.variantId)) ?? draftRows[0]
+  out.openDraftId = usable?.id
+  out.openDraftRetailerId = usable?.retailer_id ?? undefined
+  const lineIndex = usable?.parsed_lines.findIndex((l) => l.variantId) ?? -1
+  const line = lineIndex >= 0 ? usable?.parsed_lines[lineIndex] : undefined
+  if (line) {
+    out.openDraftLineNo = lineIndex + 1
+    out.openDraftVariantId = line.variantId ?? undefined
+    out.openDraftQty = line.cases && line.cases > 0 ? line.cases : Math.max(1, line.qtyPcs)
+    out.openDraftUnit = line.unit === 'case' || line.unit === 'inner' ? line.unit : 'piece'
+  }
+  // The shopkeeper document names a draft its own login may read — STRICTLY the shop that login is
+  // LINKED to (`ctx.linkedRetailer`, not the document's primary `retailerId`, which is whatever shop
+  // the desk's examples point at). RLS hides every other, so another shop's id would be a 404 the
+  // reader takes for a bug; with none, the field falls through and the operation still documents its
+  // shape. `collectRetailerLogin` runs before this, so the link is already known.
+  const shopRetailerId = ctx.linkedRetailer?.retailerId
+  out.shopDraftId = shopRetailerId
+    ? draftRows.find((r) => r.retailer_id === shopRetailerId)?.id
+    : undefined
+
+  const forecast = (
+    await tx.execute(
+      sql`select variant_id, location_id, horizon_days from ai_forecasts
+           where tenant_id = ${tenantId} order by days_cover asc nulls last, id asc limit 1`,
+    )
+  ).rows[0] as { variant_id: string; location_id: string; horizon_days: number } | undefined
+  out.forecastVariantId = forecast?.variant_id
+  out.forecastLocationId = forecast?.location_id
+  out.forecastHorizonDays = forecast?.horizon_days
+
+  const plan = (
+    await tx.execute(
+      sql`select id, trip_id from route_plans
+           where tenant_id = ${tenantId} and applied_at is null
+           order by computed_at desc, id desc limit 1`,
+    )
+  ).rows[0] as { id: string; trip_id: string } | undefined
+  out.routePlanId = plan?.id
+  out.routeTripId = plan?.trip_id ?? ctx.activeTripId ?? ctx.plannedTripId
+
+  // A phrase this distributor actually lists, in the shape a shopkeeper writes it.
+  const listed = (
+    await tx.execute(
+      sql`select trim(coalesce(b.name, '') || ' ' || p.name || ' ' || v.name) as label
+            from tenant_products tp
+            join product_variants v on v.id = tp.variant_id
+            join products p on p.id = v.product_id
+            left join brands b on b.id = p.brand_id
+           where tp.tenant_id = ${tenantId} and tp.listed = true
+           order by tp.sort_order asc, v.id asc limit 1`,
+    )
+  ).rows[0] as { label: string } | undefined
+  out.intakePhrase = listed?.label.replace(/\s+/g, ' ').trim()
 }
 
 /**
@@ -1678,6 +1800,25 @@ async function collectOrders(tx: Db, tenantId: string, ctx: ExampleContext): Pro
     .limit(50)
   ctx.approvalId = (decisions.find((row) => row.status === 'pending') ?? first(decisions))?.id
 
+  // The owner's support card: the request that is still open. `expires_at > now()` matters — an ask
+  // whose window has already lapsed can no longer be approved, so publishing it would hand the reader
+  // an example that is refused by design.
+  ctx.supportGrantId = first(
+    await tx
+      .select({ id: supportGrants.id })
+      .from(supportGrants)
+      .where(
+        and(
+          eq(supportGrants.tenantId, tenantId),
+          isNull(supportGrants.approvedAt),
+          isNull(supportGrants.revokedAt),
+          sql`${supportGrants.expiresAt} > now()`,
+        ),
+      )
+      .orderBy(asc(supportGrants.requestedAt))
+      .limit(1),
+  )?.id
+
   ctx.invoiceId = first(
     await tx
       .select({ id: invoices.id })
@@ -2298,6 +2439,26 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           )
       ).map((row) => row.id),
     )
+  const aiDraftIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx.execute(
+          sql`select id from ai_order_drafts where tenant_id = ${tenantId} and id = any(${sql.raw(
+            `array[${[...candidates].map((id) => `'${id.replace(/'/g, "''")}'`).join(', ') || `''`}]`,
+          )})`,
+        )
+      ).rows.map((row) => String((row as { id: string }).id)),
+    )
+  const aiPlanIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx.execute(
+          sql`select id from route_plans where tenant_id = ${tenantId} and id = any(${sql.raw(
+            `array[${[...candidates].map((id) => `'${id.replace(/'/g, "''")}'`).join(', ') || `''`}]`,
+          )})`,
+        )
+      ).rows.map((row) => String((row as { id: string }).id)),
+    )
   ctx.slotLanes = {
     'tenantCatalog.packConfigs.upsert': await freeSlots(
       'tenantCatalog.packConfigs.upsert',
@@ -2409,6 +2570,13 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           ).map((row) => row.id),
         ),
     ),
+    // The three ai procedures that CREATE a row: a draft from a text, a draft from a voice note, and
+    // the order a confirm makes. Each walks its own lane past the ids this database already holds, so
+    // a document generated after the first "Try it out" still documents a call that works.
+    'ai.intake.parseText': await freeSlots('ai.intake.parseText', 'id', aiDraftIds),
+    'ai.intake.transcribe': await freeSlots('ai.intake.transcribe', 'id', aiDraftIds),
+    'ai.drafts.confirm': await freeSlots('ai.drafts.confirm', 'orderId', orders),
+    'ai.routing.plan': await freeSlots('ai.routing.plan', 'id', aiPlanIds),
   }
 }
 
@@ -2658,6 +2826,7 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   if (httpPath.startsWith('/notifications/broadcasts/')) return ctx.notifications?.broadcastId
   if (httpPath.startsWith('/notifications/push-tokens/')) return docsPushTokenId(ctx)
   if (httpPath.startsWith('/notifications/inbound/')) return ctx.notifications?.inboundId
+  if (httpPath.startsWith('/tenancy/support-grants/')) return ctx.supportGrantId
   return undefined
 }
 
@@ -4233,6 +4402,136 @@ const OVERRIDES: Record<
   'receivables.outstanding.get': (ctx) => ({ retailerId: ctx.retailerId }),
   'receivables.ledger.get': (ctx) => ({ retailerId: ctx.retailerId }),
   'receivables.creditCheck': (ctx) => ({ retailerId: ctx.retailerId, orderTotalPaise: 0 }),
+
+  // ---------------------------------------------------------------------------------------------
+  // ai (module 12, docs/22 §8). Everything here answers a SEEDED row, and everything it creates —
+  // a draft, an order, a route plan — walks the free-slot sequence, so pressing the page twice
+  // works: the second press replays on the same idempotency key rather than colliding.
+  'ai.intake.parseText': (ctx, options) => ({
+    // The one CREATING field: a fresh draft id per press, keyed the same way as every other creator.
+    id: createdId('ai.intake.parseText', 'id', slotOf(ctx, 'ai.intake.parseText')),
+    idempotencyKey: docsIdempotencyKey('ai.intake.parseText', slotOf(ctx, 'ai.intake.parseText')),
+    source: 'whatsapp',
+    retailerId: aiDraftRetailer(ctx, options),
+    // A phrase off this distributor's own listing, so the answer is a matched line and not a puzzle.
+    text: `2 case ${ctx.ai?.intakePhrase ?? 'Campa Campa Cola 1 L'}`,
+    inboundMessageId: DROP,
+  }),
+  // The audio key is canonical and anchored at this tenant. Nothing has been uploaded to it — the
+  // deterministic transcriber answers from the shop's own catalogue (docs/22 §8: stub drivers for
+  // now) — so the example is a real, repeatable call rather than a 404 waiting to happen.
+  'ai.intake.transcribe': (ctx, options) => {
+    const slot = slotOf(ctx, 'ai.intake.transcribe')
+    const id = createdId('ai.intake.transcribe', 'id', slot)
+    return {
+      id,
+      idempotencyKey: docsIdempotencyKey('ai.intake.transcribe', slot),
+      audioObjectKey: `tenant/${ctx.tenantId ?? 'tenant'}/voice/${id}/note.m4a`,
+      retailerId: aiDraftRetailer(ctx, options),
+      language: 'en-IN',
+      durationMs: 4200,
+    }
+  },
+  'ai.drafts.list': () => ({
+    status: DROP,
+    retailerId: DROP,
+    source: DROP,
+    from: DROP,
+    to: DROP,
+    mine: DROP,
+  }),
+  'ai.drafts.get': (ctx, options) => ({ id: aiDraftFor(ctx, options) }),
+  // The corrected lines a human sends back: the draft's own first matched line, unchanged. Confirming
+  // creates an ORDER, so its id walks the same free-slot sequence `orders.create` does.
+  'ai.drafts.confirm': (ctx, options) => {
+    const slot = slotOf(ctx, 'ai.drafts.confirm')
+    return {
+      id: aiDraftToConfirm(ctx),
+      idempotencyKey: docsIdempotencyKey('ai.drafts.confirm', slot),
+      orderId: createdId('ai.drafts.confirm', 'orderId', slot),
+      retailerId: aiDraftRetailer(ctx, options),
+      // Field TRAILS, not a nested literal: an undefined value here falls through to the field-name
+      // map and then to the schema sampler, so the document still generates against a database with
+      // no demo data at all (`examples.spec.ts` holds exactly that).
+      'lines[0].id': createdId('ai.drafts.confirm', 'lines[0].id', slot),
+      'lines[0].variantId': ctx.ai?.openDraftVariantId,
+      'lines[0].enteredQty': ctx.ai?.openDraftQty ?? 1,
+      'lines[0].enteredUnit': ctx.ai?.openDraftUnit ?? 'case',
+      'lines[0].draftLineNo': ctx.ai?.openDraftLineNo ?? 1,
+      expectedDeliveryDate: DROP,
+      note: DROP,
+      deviceId: ctx.deviceId,
+    }
+  },
+  'ai.drafts.reject': (ctx) => ({
+    id: aiDraftToReject(ctx),
+    idempotencyKey: docsIdempotencyKey('ai.drafts.reject', slotOf(ctx, 'ai.intake.transcribe')),
+    reason: 'Not an order — the shop asked for a bill copy',
+  }),
+  // Queues a pass; the worker computes it. Idempotent per day, so pressing it twice is a no-op.
+  'ai.forecast.run': (ctx) => ({
+    id: createdId('ai.forecast.run', 'id', slotOf(ctx, 'ai.forecast.run')),
+    idempotencyKey: docsIdempotencyKey('ai.forecast.run', slotOf(ctx, 'ai.forecast.run')),
+    locationId: ctx.ai?.forecastLocationId ?? DROP,
+    asOfDate: DROP,
+    lookbackDays: DROP,
+    horizonDays: ctx.ai?.forecastHorizonDays ?? 14,
+  }),
+  'ai.forecast.list': (ctx) => ({
+    locationId: ctx.ai?.forecastLocationId ?? DROP,
+    variantId: DROP,
+    horizonDays: ctx.ai?.forecastHorizonDays ?? 14,
+    coverDays: 21,
+    belowCover: DROP,
+    q: DROP,
+  }),
+  'ai.routing.plan': (ctx) => ({
+    id: createdId('ai.routing.plan', 'id', slotOf(ctx, 'ai.routing.plan')),
+    idempotencyKey: docsIdempotencyKey('ai.routing.plan', slotOf(ctx, 'ai.routing.plan')),
+    tripId: ctx.ai?.routeTripId,
+  }),
+  'ai.routing.get': (ctx) => ({ tripId: ctx.ai?.routeTripId, planId: DROP }),
+  // The SEEDED plan, which is deliberately left unapplied so this operation works the first time and
+  // replays on its key afterwards.
+  'ai.routing.apply': (ctx) => ({
+    id: ctx.ai?.routePlanId,
+    idempotencyKey: docsIdempotencyKey('ai.routing.apply', slotOf(ctx, 'ai.routing.apply')),
+    tripId: ctx.ai?.routeTripId,
+    deviceId: ctx.deviceId,
+  }),
+}
+
+/**
+ * The shop a capture names. A shopkeeper's login may only ever speak for its OWN shop (the handler
+ * forces it and answers 403 otherwise), so the retailer document names `ctx.retailerId` — the shop
+ * that login is linked to — and every other document names the shop of the draft it is showing.
+ */
+function aiDraftRetailer(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  return options.roles?.includes('retailer')
+    ? (ctx.linkedRetailer?.retailerId ?? ctx.retailerId)
+    : (ctx.ai?.openDraftRetailerId ?? ctx.retailerId)
+}
+
+/**
+ * The draft a READ points at: a seeded, still-open one, and for the shopkeeper document one of ITS
+ * OWN shop's (RLS hides every other, so any other id is a 404 the reader would take for a bug).
+ */
+function aiDraftFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  return options.roles?.includes('retailer') ? ctx.ai?.shopDraftId : ctx.ai?.openDraftId
+}
+
+/**
+ * The draft an ANSWER acts on: the one THIS document's own `intake` operation created a moment
+ * earlier (`parseText` for confirm, `transcribe` for reject — the order the document renders them
+ * in). Answering consumes a draft, so pointing either at a seeded row would work exactly once and
+ * refuse for ever after; a draft the page created itself is fresh on every generation.
+ */
+function aiDraftToConfirm(ctx: ExampleContext): string {
+  return createdId('ai.intake.parseText', 'id', slotOf(ctx, 'ai.intake.parseText'))
+}
+
+function aiDraftToReject(ctx: ExampleContext): string {
+  return createdId('ai.intake.transcribe', 'id', slotOf(ctx, 'ai.intake.transcribe'))
 }
 
 function draftOrder(ctx: ExampleContext, index: number): string | undefined {

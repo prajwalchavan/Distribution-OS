@@ -99,6 +99,10 @@
     "./incentives": {
       "types": "./dist/modules/incentives/worker.d.ts",
       "default": "./dist/modules/incentives/worker.js"
+    },
+    "./ai": {
+      "types": "./dist/modules/ai/worker.d.ts",
+      "default": "./dist/modules/ai/worker.js"
     }
   }
 }

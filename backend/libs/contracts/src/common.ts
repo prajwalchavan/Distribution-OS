@@ -45,6 +45,22 @@ export const MembershipRoleSchema = z.enum([
 export type MembershipRole = z.infer<typeof MembershipRoleSchema>
 
 /**
+ * A PLATFORM role: staff of Distribution OS itself, not of any distributor (docs/22 §2, the founder's
+ * decision of 2026-09-05 to build the platform console in v1). It is deliberately NOT a value of
+ * `MembershipRoleSchema`: a `platform_admin` holds no membership, its access token carries no `tid`,
+ * and it is accepted by `admin-service` (:3007) and the auth service alone. The two enums are
+ * disjoint, which is what makes "no tenant role may call `admin.*`, and `platform_admin` may call
+ * nothing under a tenant service" a type-level fact rather than a hand-checked convention.
+ *
+ * `curator` and `support` exist in the database's `platform_role` enum for the global catalog curator
+ * and for the time-boxed, owner-approved support grant (docs/17 §B [57]); neither signs into an app of
+ * its own, so neither appears on the wire here. Support access is a GRANT on top of a `platform_admin`
+ * session (`admin.support.*` + `tenancy.support.*`), not a separate login.
+ */
+export const PlatformRoleSchema = z.enum(['platform_admin'])
+export type PlatformRole = z.infer<typeof PlatformRoleSchema>
+
+/**
  * Sign-in name. Lowercase, 3–32 characters, starts with a letter or digit, then letters, digits,
  * dots and underscores. Unique across the platform; a user invited without one cannot sign in yet.
  */

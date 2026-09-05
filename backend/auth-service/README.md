@@ -38,6 +38,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/auth/logout` | Revoke this device session | public |
 | POST | `/auth/switch-tenant` | Open a session on another membership of the same user | public |
 | GET | `/auth/me` | The signed-in user, the active membership and this session | any signed-in role |
+| POST | `/auth/platform/login` | Sign in as Distribution OS platform staff (no distributor) | public |
+| POST | `/auth/platform/refresh` | Exchange a platform refresh token for a new pair (rotates the refresh token) | public |
+| GET | `/auth/platform/me` | The signed-in platform user and this session | platform_admin |
 | GET | `/auth/sessions` | Devices signed in as this user | any signed-in role |
 | POST | `/auth/sessions/revoke` | Sign one of your devices out | any signed-in role |
 | POST | `/auth/change-password` | Change your password; every other session is revoked | any signed-in role |
@@ -569,6 +572,260 @@ curl "http://localhost:3000/auth/me" \
 }
 ```
 
+### POST `/auth/platform/login`
+
+Sign in as Distribution OS platform staff (no distributor) · contract `auth.platformLogin`
+
+**Roles:** public
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `username` | string | yes |
+| `password` | string | yes |
+| `deviceId` | uuid | yes |
+| `deviceName` | string | no |
+| `platform` | web | android | ios | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/platform/login" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "username": "sunil.tarsun",
+  "password": "Dos@1234",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "deviceName": "text",
+  "platform": "web"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…",
+  "tokenType": "Bearer",
+  "accessExpiresIn": 1,
+  "refreshToken": "dvRVefW6iYMCcmo4hNcsaPfXvmANyxisdZd75S-F7Gk",
+  "refreshExpiresAt": "2026-09-04T10:30:00.000Z",
+  "user": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "username": "sunil.tarsun",
+    "name": "Sharma Kirana Store",
+    "locale": "en-IN",
+    "mustChangePassword": true
+  },
+  "role": "platform_admin"
+}
+```
+
+**Failure responses**
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/auth/platform/refresh`
+
+Exchange a platform refresh token for a new pair (rotates the refresh token) · contract `auth.platformRefresh`
+
+**Roles:** public
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `refreshToken` | string | yes |
+| `deviceId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/platform/refresh" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "refreshToken": "dvRVefW6iYMCcmo4hNcsaPfXvmANyxisdZd75S-F7Gk",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "accessToken": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…",
+  "tokenType": "Bearer",
+  "accessExpiresIn": 1,
+  "refreshToken": "dvRVefW6iYMCcmo4hNcsaPfXvmANyxisdZd75S-F7Gk",
+  "refreshExpiresAt": "2026-09-04T10:30:00.000Z",
+  "user": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "username": "sunil.tarsun",
+    "name": "Sharma Kirana Store",
+    "locale": "en-IN",
+    "mustChangePassword": true
+  },
+  "role": "platform_admin"
+}
+```
+
+**Failure responses**
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/auth/platform/me`
+
+The signed-in platform user and this session · contract `auth.platformMe`
+
+**Roles:** platform_admin
+
+**Example request**
+
+```bash
+curl "http://localhost:3000/auth/platform/me" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "user": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "username": "sunil.tarsun",
+    "name": "Sharma Kirana Store",
+    "locale": "en-IN",
+    "mustChangePassword": true
+  },
+  "role": "platform_admin",
+  "session": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "deviceName": "text",
+    "platform": "web",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lastUsedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the owner role may not call GET /auth/platform/me",
+  "error": "Forbidden"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/auth/sessions`
 
 Devices signed in as this user · contract `auth.sessions`
@@ -1003,6 +1260,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `auth.logout` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.switchTenant` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.me` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.platformLogin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.platformRefresh` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.platformMe` | – | – | – | – | – | – | – |
 | `auth.sessions` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.revokeSession` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.changePassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

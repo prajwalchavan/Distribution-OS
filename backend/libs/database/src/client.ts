@@ -16,6 +16,14 @@ export type ActorRole =
   | 'warehouse'
   | 'curator'
   | 'support'
+  /**
+   * Module 13 (founder decision 2026-09-05, docs/22 §2 row 7): Distribution OS's own staff in the
+   * platform console. A GLOBAL actor with no membership in any tenant — deliberately absent from the
+   * `membership_role` enum — so it never arrives from a tenant sign-in; only `admin-service` (:3007)
+   * issues it, and only the four `platform_admin` tables plus `tenants` have policies that admit it.
+   * Reading a distributor's own business data still needs an owner-approved `support_grants` row.
+   */
+  | 'platform_admin'
   | 'system'
 
 export interface TenantContext {

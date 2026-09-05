@@ -4,6 +4,7 @@ import { ORPCError } from '@orpc/server'
 import { contract } from '@dos/contracts'
 import { OwnsReply } from '../../platform/index.js'
 import { TenantConfigService } from './config.service.js'
+import { SupportAccessService } from './support.service.js'
 import { TenancyService } from './tenancy.service.js'
 import { TenantGuard } from './tenant.guard.js'
 
@@ -13,6 +14,7 @@ export class TenancyController {
   constructor(
     private readonly tenancy: TenancyService,
     private readonly config: TenantConfigService,
+    private readonly support: SupportAccessService,
   ) {}
 
   @Implement(contract.tenancy.me)
@@ -114,6 +116,28 @@ export class TenancyController {
   auditList(@OwnsReply() _reply: unknown) {
     return implement(contract.tenancy.audit.list).handler(({ input }) =>
       this.config.listAudit(input),
+    )
+  }
+
+  // The owner's half of platform support access. The console asks (`admin.support.request`); only
+  // these three answer, and only an owner may call them (`OWNER_ONLY` in permissions.ts).
+
+  @Implement(contract.tenancy.support.list)
+  supportList(@OwnsReply() _reply: unknown) {
+    return implement(contract.tenancy.support.list).handler(({ input }) => this.support.list(input))
+  }
+
+  @Implement(contract.tenancy.support.approve)
+  supportApprove(@OwnsReply() _reply: unknown) {
+    return implement(contract.tenancy.support.approve).handler(({ input }) =>
+      this.support.approve(input),
+    )
+  }
+
+  @Implement(contract.tenancy.support.revoke)
+  supportRevoke(@OwnsReply() _reply: unknown) {
+    return implement(contract.tenancy.support.revoke).handler(({ input }) =>
+      this.support.revoke(input),
     )
   }
 }

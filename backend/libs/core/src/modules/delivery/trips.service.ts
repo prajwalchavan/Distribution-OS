@@ -44,6 +44,7 @@ import {
   trips,
   tripStops,
   withTenant,
+  type ActorRole,
   type Db,
 } from '@dos/db'
 import {
@@ -99,6 +100,18 @@ import {
   toTrip,
   type TripDetailDeps,
 } from './delivery.mappers.js'
+
+/** One stop as the route optimiser needs it: where it stands today, and where the shop actually is. */
+export interface RoutingStop {
+  stopId: string
+  sequence: number
+  retailerId: string
+  retailerName: string
+  lat: number | null
+  lng: number | null
+  /** Delivered, partial, failed or skipped: a plan may not move it, and the optimiser is told so. */
+  terminal: boolean
+}
 
 type CreateIn = z.infer<typeof CreateTripInput>
 type CreateOut = z.infer<typeof CreateTripOutput>
@@ -547,50 +560,112 @@ export class TripsService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const trip = await lockTrip(tx, input.id)
         assertCrewOrDesk(trip, DOORSTEP)
-        if (TRIP_TERMINAL.has(trip.state) || trip.state === 'closing')
-          throw new ORPCError('CONFLICT', {
-            message: `trip ${trip.tripNo ?? trip.id} is ${trip.state}; nothing left to reorder`,
-          })
-        const existing = new Map((await stopsOf(tx, trip.id)).map((s) => [s.id, s]))
-        const targets = new Set<number>()
-        for (const entry of input.order) {
-          const stop = existing.get(entry.stopId)
-          if (!stop)
-            throw new ORPCError('BAD_REQUEST', {
-              message: `stop ${entry.stopId} is not on this trip`,
-            })
-          if (STOP_TERMINAL.has(stop.state) && stop.sequence !== entry.sequence)
-            throw new ORPCError('CONFLICT', {
-              message: `stop ${entry.stopId} is ${stop.state} and keeps its sequence`,
-            })
-          if (targets.has(entry.sequence))
-            throw new ORPCError('BAD_REQUEST', {
-              message: `two stops are given sequence ${String(entry.sequence)}`,
-            })
-          targets.add(entry.sequence)
-        }
-        const untouched = [...existing.values()].filter(
-          (s) => !input.order.some((o) => o.stopId === s.id),
-        )
-        for (const s of untouched)
-          if (targets.has(s.sequence))
-            throw new ORPCError('CONFLICT', {
-              message: `sequence ${String(s.sequence)} is held by stop ${s.id}, which is not in the order`,
-            })
-        const now = new Date()
-        const ids = input.order.map((o) => o.stopId)
-        await tx
-          .update(tripStops)
-          .set({ sequence: sql`${tripStops.sequence} + 1000`, updatedAt: now })
-          .where(inArray(tripStops.id, ids))
-        for (const entry of input.order)
-          await tx
-            .update(tripStops)
-            .set({ sequence: entry.sequence, updatedAt: now })
-            .where(eq(tripStops.id, entry.stopId))
+        await this.reorderStopsInTx(tx, trip, input.order)
         return { item: await this.detail(tx, trip) }
       }),
     )
+  }
+
+  /**
+   * The re-sequencing itself, transaction-scoped, so `modules/ai`'s `routing.apply` writes a computed
+   * sequence through exactly this code — the same validation, the same refusals and the same
+   * two-pass swap the crew's own drag-and-drop goes through (coordination §3.9, §4: ai → delivery).
+   * There is no second way to move a stop.
+   */
+  async reorderStopsInTx(
+    tx: Db,
+    trip: TripRow,
+    order: readonly { stopId: string; sequence: number }[],
+  ): Promise<void> {
+    if (TRIP_TERMINAL.has(trip.state) || trip.state === 'closing')
+      throw new ORPCError('CONFLICT', {
+        message: `trip ${trip.tripNo ?? trip.id} is ${trip.state}; nothing left to reorder`,
+      })
+    const existing = new Map((await stopsOf(tx, trip.id)).map((s) => [s.id, s]))
+    const targets = new Set<number>()
+    for (const entry of order) {
+      const stop = existing.get(entry.stopId)
+      if (!stop)
+        throw new ORPCError('BAD_REQUEST', {
+          message: `stop ${entry.stopId} is not on this trip`,
+        })
+      if (STOP_TERMINAL.has(stop.state) && stop.sequence !== entry.sequence)
+        throw new ORPCError('CONFLICT', {
+          message: `stop ${entry.stopId} is ${stop.state} and keeps its sequence`,
+        })
+      if (targets.has(entry.sequence))
+        throw new ORPCError('BAD_REQUEST', {
+          message: `two stops are given sequence ${String(entry.sequence)}`,
+        })
+      targets.add(entry.sequence)
+    }
+    const untouched = [...existing.values()].filter((s) => !order.some((o) => o.stopId === s.id))
+    for (const s of untouched)
+      if (targets.has(s.sequence))
+        throw new ORPCError('CONFLICT', {
+          message: `sequence ${String(s.sequence)} is held by stop ${s.id}, which is not in the order`,
+        })
+    // Two passes: park every moving stop 1000 above itself, then set the new numbers. A single pass
+    // would collide with the unique (trip, sequence) index halfway through a swap.
+    const now = new Date()
+    const ids = order.map((o) => o.stopId)
+    await tx
+      .update(tripStops)
+      .set({ sequence: sql`${tripStops.sequence} + 1000`, updatedAt: now })
+      .where(inArray(tripStops.id, ids))
+    for (const entry of order)
+      await tx
+        .update(tripStops)
+        .set({ sequence: entry.sequence, updatedAt: now })
+        .where(eq(tripStops.id, entry.stopId))
+  }
+
+  /**
+   * A trip the caller may plan a route for, locked. `desk` names the roles that pass on sight; a
+   * `delivery` caller falls through to the crew check, so a driver sequences its OWN trip and no
+   * other. RLS has already hidden another crew's trip (404), this only turns that into a clear 403.
+   */
+  async tripForRouting(tx: Db, tripId: string, desk: readonly ActorRole[]): Promise<TripRow> {
+    const trip = await lockTrip(tx, tripId)
+    assertCrewOrDesk(trip, desk)
+    return trip
+  }
+
+  /** The same, without the row lock: the read side of `ai.routing.get`. */
+  async tripForReading(tx: Db, tripId: string, desk: readonly ActorRole[]): Promise<TripRow> {
+    const trip = await findTrip(tx, tripId)
+    assertCrewOrDesk(trip, desk)
+    return trip
+  }
+
+  /**
+   * The stops of a trip with the shop's PIN, for the route optimiser (coordination §3.9: ai reads
+   * delivery's stops through this, never through `trip_stops`). Terminal stops are included and
+   * flagged, because a plan may not move one — the optimiser needs to know they are spoken for.
+   */
+  async routingStops(tx: Db, tripId: string): Promise<RoutingStop[]> {
+    const result = await tx.execute(sql`
+      select s.id, s.sequence, s.retailer_id, s.state, r.name as retailer_name, r.lat, r.lng
+      from trip_stops s
+      join retailers r on r.id = s.retailer_id
+      where s.trip_id = ${tripId}
+      order by s.sequence asc, s.id asc
+    `)
+    return result.rows.map((row) => ({
+      stopId: String(row.id),
+      sequence: Number(row.sequence),
+      retailerId: String(row.retailer_id),
+      retailerName: String(row.retailer_name),
+      lat: row.lat === null ? null : Number(row.lat),
+      lng: row.lng === null ? null : Number(row.lng),
+      terminal: STOP_TERMINAL.has(String(row.state) as MachineStopState),
+    }))
+  }
+
+  /** Every stop of a trip in its current order, mapped for the wire. */
+  async stopsOfTrip(tx: Db, trip: TripRow): Promise<Stop[]> {
+    const vehicle = await loadVehicle(tx, trip.vehicleId)
+    return mapStops(tx, await stopsOf(tx, trip.id), this.deps(), () => vehicle.regNo)
   }
 
   async startStop(input: StartStopIn): Promise<StartStopOut> {

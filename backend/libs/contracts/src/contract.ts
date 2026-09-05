@@ -40,6 +40,8 @@ import { claimsContract } from './claims.js'
 import { notificationsContract } from './notifications.js'
 import { reportingContract } from './reporting.js'
 import { incentivesContract } from './incentives.js'
+import { aiContract } from './ai.js'
+import { adminContract } from './admin.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -157,6 +159,13 @@ export const contract = {
   reporting: reportingContract,
   // Staff targets, live achievement and the COMPUTED (never paid) payout statement (incentives.ts).
   incentives: incentivesContract,
+  // Assistive only, always human-confirmed: free-text and voice order intake into DRAFTS, demand
+  // forecasting for purchase planning, route optimisation for a trip (ai.ts). Nothing here decides.
+  ai: aiContract,
+  // The platform console of Distribution OS itself: onboarding a distributor, subscriptions, the
+  // console's half of the owner-approved support grant, global users, platform counts, audit
+  // (admin.ts). Served by admin-service :3007 alone, to `platform_admin` alone.
+  admin: adminContract,
 }
 
 export type AppContract = typeof contract

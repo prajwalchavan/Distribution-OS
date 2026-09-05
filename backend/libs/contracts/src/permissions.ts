@@ -1,4 +1,4 @@
-import type { MembershipRole } from './common.js'
+import type { MembershipRole, PlatformRole } from './common.js'
 import { contract, type AppContract } from './contract.js'
 
 /**
@@ -20,6 +20,19 @@ export const ALL_ROLES = [
   'retailer',
 ] as const satisfies readonly MembershipRole[]
 
+/**
+ * Staff of Distribution OS itself (docs/22 §2, the platform console decided on 2026-09-05). NOT part
+ * of `ALL_ROLES`: `platform_admin` is not a membership, holds no tenant, and every generated README,
+ * permission-matrix spec and role column that walks `ALL_ROLES` is about the six apps' roles. Keeping
+ * the two lists apart is what makes the two guarantees structural rather than remembered — a tenant
+ * role can never satisfy an `admin.*` row and `platform_admin` can never satisfy a tenant row,
+ * because the enums are disjoint.
+ */
+export const PLATFORM_ROLES = ['platform_admin'] as const satisfies readonly PlatformRole[]
+
+/** Every role the matrix can name: a membership role inside one tenant, or a platform role. */
+export type PermissionRole = MembershipRole | PlatformRole
+
 export const ROLE_GROUPS = {
   /** Everyone with an active membership, the shopkeeper included. */
   ANY_MEMBER: ALL_ROLES,
@@ -39,16 +52,25 @@ export const ROLE_GROUPS = {
   STOCK_KEEPERS: ['owner', 'manager', 'warehouse'],
   /** Out on the beat: sees shops and orders, never cost. */
   FIELD: ['salesperson', 'delivery'],
-} as const satisfies Record<string, readonly MembershipRole[]>
+  /**
+   * Distribution OS's own staff, and the only group that is not a membership role (docs/22 §2, the
+   * founder's platform-console decision of 2026-09-05). It guards `admin.*` and nothing else: a
+   * `platform_admin` token carries no `tid`, `TenantGuard` accepts it on admin-service :3007 alone,
+   * and no procedure of the six tenant services names this group. Reading a distributor's own rows is
+   * NOT in this group's gift — it needs an owner-approved `support_grants` window (tenancy.ts).
+   */
+  PLATFORM: PLATFORM_ROLES,
+} as const satisfies Record<string, readonly PermissionRole[]>
 
 export type RoleGroup = keyof typeof ROLE_GROUPS
 
 /**
  * 'public' = no token at all (sign-in, the JWKS document, liveness).
- * 'authenticated' = a valid access token, whatever the membership role is.
- * A role list = a valid access token whose membership role is in the list.
+ * 'authenticated' = a valid access token, whatever role is on it.
+ * A role list = a valid access token whose role is in the list. Almost every list is membership roles;
+ * the `admin.*` rows are the single exception and name `platform_admin` instead (ROLE_GROUPS.PLATFORM).
  */
-export type Permission = readonly MembershipRole[] | 'public' | 'authenticated'
+export type Permission = readonly PermissionRole[] | 'public' | 'authenticated'
 
 /** Back office plus the warehouse role, which does the physical receiving and stock work. */
 const BACK_OFFICE_OR_WAREHOUSE = [
@@ -261,7 +283,38 @@ const INCENTIVE_READERS = [
   'delivery',
 ] as const satisfies readonly MembershipRole[]
 
-const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
+/**
+ * Who may turn a message or a voice note into a DRAFT order and confirm one into a real order (docs/22
+ * §8, 2026-09-05: the AI features are all in v1). The desk that runs the distributorship, the rep whose
+ * shops they are — narrowed by the handler to the shops on its own beats — and the shop itself, forced
+ * to its own `retailerId`. The four roles that already reach `orders.create` in practice, and no wider:
+ * confirming a draft creates the order through `orders.create/setLines/submit`, so this tuple can only
+ * ever be a NARROWING of `orders.*` (ANY_MEMBER), never a second, softer way in. The accountant is
+ * absent — a draft order is not a money-desk write (docs/22 §8, 2026-09-05: no prices, no approvals) —
+ * and so are the godown and the crew, neither of which takes an order.
+ */
+const DRAFT_ORDER_TAKERS = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who may sequence a trip's stops with the optimiser and push that sequence onto the trip: the desk, and
+ * the crew that drives it (the handler narrows a `delivery` caller to a trip it is driver or helper on,
+ * the way `delivery.trips.*` already does). The same three people as DOORSTEP, declared apart because
+ * planning a day's route is not standing at a door and the two will drift. The godown READS a plan
+ * (`ai.routing.get` is TRIP_PLANNERS — the loader wants the order the van will be emptied in) and never
+ * computes or applies one; a rep and a shop appear in no routing row at all.
+ */
+const ROUTE_OPTIMISERS = [
+  'owner',
+  'manager',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
+
+const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY, PLATFORM } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
 export type ProcedurePath = ContractPaths<AppContract>
@@ -296,6 +349,15 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // authenticates with the single-use token in the body.
   'auth.forgotPassword': 'public',
   'auth.resetPassword': 'public',
+  // Distribution OS staff (docs/22 §2, 2026-09-05). Sign-in is public for the same reason every
+  // sign-in is; the refresh authenticates with the refresh token in its body. `platformMe` is the one
+  // procedure outside `admin.*` that names PLATFORM: a membership role asking "who am I as platform
+  // staff" is not a question with an answer, so it is refused rather than answered with nulls. The
+  // shared session procedures (`logout`, `sessions`, `revokeSession`, `changePassword`) stay
+  // 'authenticated' and serve a platform session unchanged — a session is a session.
+  'auth.platformLogin': 'public',
+  'auth.platformRefresh': 'public',
+  'auth.platformMe': PLATFORM,
 
   // Tenancy. Staff administration is the owner's desk; the accountant may look but not hire. The
   // branding block and the feature flags are read by EVERY member including the shop (the app chrome and
@@ -317,6 +379,14 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'tenancy.featureFlags.set': OWNER_ONLY,
   'tenancy.tenant.update': OWNER_ONLY,
   'tenancy.audit.list': BACK_OFFICE,
+  // Platform support access is the OWNER's decision alone (docs/17 §B [57], docs/22 §2): who at
+  // Distribution OS may look inside this distributor's books, and for how many hours. Not the
+  // manager's (it is not day-to-day running) and not the accountant's (it is not money): the same
+  // OWNER_ONLY as the settings and the legal identity. The console's half of the flow is `admin.support.*`,
+  // which no tenant role can reach and which cannot open a window by itself.
+  'tenancy.support.list': OWNER_ONLY,
+  'tenancy.support.approve': OWNER_ONLY,
+  'tenancy.support.revoke': OWNER_ONLY,
 
   // Files. The guard gates the verb — staff mint upload URLs, any member may ask for a read URL — and
   // the handler applies the per-domain table in files.ts (a supplier-invoice page is never readable by
@@ -851,6 +921,65 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'incentives.statements.reopen': OWNER_ONLY,
   'incentives.statements.get': INCENTIVE_READERS,
   'incentives.statements.list': INCENTIVE_READERS,
+
+  // AI — assistive only, always human-confirmed (docs/22 §8, 2026-09-05; ai.ts header). Nothing on this
+  // block decides anything: a parse writes a DRAFT, a forecast writes a SUGGESTION, a plan writes a
+  // SEQUENCE, and each becomes real only when a human calls `drafts.confirm`, places a purchase order or
+  // calls `routing.apply`. Three populations:
+  //  * DRAFT_ORDER_TAKERS (new) read a message or a voice note into a draft and confirm it: the owner,
+  //    the manager, the rep for its own shops and the shop for itself. `drafts.confirm` runs
+  //    `orders.create → setLines → submit`, all ANY_MEMBER, so this tuple is a NARROWING of the ordering
+  //    surface and never a widening. The accountant, the godown and the crew take no orders.
+  //  * The buying desk forecasts: `forecast.run` is BACK_OFFICE (it enqueues a worker pass over the
+  //    tenant's history), `forecast.list` is BACK_OFFICE_OR_WAREHOUSE — the godown reads what is about to
+  //    run out where it stands. The suggestion carries pieces, days of cover and a supplier and NO
+  //    purchase rate or stock value (ai.ts, docs/22 §9 non-negotiable 1), which is what makes the
+  //    warehouse read safe; a rep and a shop are refused outright.
+  //  * ROUTE_OPTIMISERS (new) compute and apply a route; TRIP_PLANNERS also READ one, adding the godown.
+  //    `routing.apply` writes through `delivery.stops.reorder`, whose own permission is DOORSTEP, so the
+  //    tuple cannot let anyone move a stop who could not already move it by hand.
+  'ai.intake.parseText': DRAFT_ORDER_TAKERS,
+  'ai.intake.transcribe': DRAFT_ORDER_TAKERS,
+  'ai.drafts.list': DRAFT_ORDER_TAKERS,
+  'ai.drafts.get': DRAFT_ORDER_TAKERS,
+  'ai.drafts.confirm': DRAFT_ORDER_TAKERS,
+  'ai.drafts.reject': DRAFT_ORDER_TAKERS,
+  'ai.forecast.run': BACK_OFFICE,
+  'ai.forecast.list': BACK_OFFICE_OR_WAREHOUSE,
+  'ai.routing.plan': ROUTE_OPTIMISERS,
+  'ai.routing.get': TRIP_PLANNERS,
+  'ai.routing.apply': ROUTE_OPTIMISERS,
+
+  // Admin — the platform console of Distribution OS itself (module 13; docs/22 §2 row 7 and the
+  // founder's decision of 2026-09-05). ONE population, and it is the only block in this file whose
+  // roles are not memberships: `ROLE_GROUPS.PLATFORM` is `['platform_admin']`, a role no distributor
+  // ever holds. That single fact carries both halves of the guarantee, and neither is a convention
+  // somebody has to remember:
+  //  * No tenant role can reach any row here — `platform_admin` is not a member of `MembershipRole`,
+  //    so no membership role is in any of these lists, and admin-service :3007 serves `platform_admin`
+  //    alone, refusing every other role at the service gate before a handler runs.
+  //  * `platform_admin` can reach nothing under a tenant service — it appears in no other row of this
+  //    table (`auth.platformMe` is the auth service, not a tenant one), and the six tenant services do
+  //    not serve the role, so a platform token is refused twice over.
+  // Looking INSIDE a distributor is not on this block at all: `support.request` only ASKS, the
+  // distributor's OWNER decides through `tenancy.support.approve` (OWNER_ONLY, above), the window is
+  // time-boxed and every step is audited (docs/17 §B [57]). `metrics.overview` answers counts and
+  // bytes — never a rupee of a distributor's trade, never a cost, never a margin (docs/22 §9 item 1).
+  'admin.tenants.create': PLATFORM,
+  'admin.tenants.list': PLATFORM,
+  'admin.tenants.get': PLATFORM,
+  'admin.tenants.suspend': PLATFORM,
+  'admin.tenants.reactivate': PLATFORM,
+  'admin.subscriptions.upsert': PLATFORM,
+  'admin.subscriptions.list': PLATFORM,
+  'admin.subscriptions.get': PLATFORM,
+  'admin.support.request': PLATFORM,
+  'admin.support.list': PLATFORM,
+  'admin.support.revoke': PLATFORM,
+  'admin.users.list': PLATFORM,
+  'admin.users.disable': PLATFORM,
+  'admin.metrics.overview': PLATFORM,
+  'admin.audit.list': PLATFORM,
 }
 
 /**
@@ -862,12 +991,13 @@ export function permissionFor(path: string): Permission | undefined {
 }
 
 /**
- * `role` is the membership role from a verified access token, or null when there is no valid token.
- * An undeclared permission (undefined) is always a refusal.
+ * `role` is the role from a verified access token — a membership role for the six apps, or
+ * `platform_admin` for a console session — or null when there is no valid token. An undeclared
+ * permission (undefined) is always a refusal.
  */
 export function isAllowed(
   permission: Permission | undefined,
-  role: MembershipRole | null,
+  role: PermissionRole | null,
 ): boolean {
   if (permission === undefined) return false
   if (permission === 'public') return true

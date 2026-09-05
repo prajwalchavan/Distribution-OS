@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { contract } from './contract.js'
-import { MembershipRoleSchema, type MembershipRole } from './common.js'
+import {
+  MembershipRoleSchema,
+  PlatformRoleSchema,
+  type MembershipRole,
+  type PlatformRole,
+} from './common.js'
 import {
   ALL_ROLES,
   allProcedures,
@@ -8,6 +13,7 @@ import {
   listProcedures,
   PERMISSIONS,
   permissionFor,
+  PLATFORM_ROLES,
   ROLE_GROUPS,
 } from './permissions.js'
 
@@ -37,11 +43,22 @@ describe('permission matrix', () => {
     expect(Object.keys(PERMISSIONS).filter((p) => !known.has(p))).toEqual([])
   })
 
-  it('names only real membership roles', () => {
+  it('names only real roles, and mixes membership with platform roles nowhere', () => {
     for (const [path, permission] of Object.entries(PERMISSIONS)) {
       if (permission === 'public' || permission === 'authenticated') continue
       expect(permission.length, path).toBeGreaterThan(0)
-      for (const role of permission) expect(MembershipRoleSchema.safeParse(role).success).toBe(true)
+      const membership = permission.filter((r) => MembershipRoleSchema.safeParse(r).success)
+      const platform = permission.filter((r) => PlatformRoleSchema.safeParse(r).success)
+      // Every named role is one or the other...
+      expect(membership.length + platform.length, `${path} names an unknown role`).toBe(
+        permission.length,
+      )
+      // ...and never both in one row: a procedure is either a distributor's or the platform's, and a
+      // row that mixed them would be the one way a tenant role could reach the console.
+      expect(
+        membership.length === 0 || platform.length === 0,
+        `${path} mixes membership and platform roles`,
+      ).toBe(true)
       expect(new Set(permission).size, `${path} lists a role twice`).toBe(permission.length)
     }
   })
@@ -1151,6 +1168,104 @@ describe('permission matrix', () => {
     }
   })
 
+  it('keeps the assistant advisory: drafts with the order takers, buying with the desk, routes with the crew (ai)', () => {
+    const aiPaths = paths.filter((p) => p.startsWith('ai.'))
+    expect(aiPaths).toHaveLength(11)
+    // Nothing on this contract is a money surface, so the accountant — the money desk and nothing more
+    // (docs/22, 2026-09-05) — reads only the forecast, which is BACK_OFFICE.
+    const accountantMay = ['ai.forecast.run', 'ai.forecast.list']
+    for (const path of aiPaths) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} for accountant`).toBe(
+        accountantMay.includes(path),
+      )
+      // The owner reaches every AI surface; it is the app the whole assistant was asked for.
+      expect(isAllowed(permissionFor(path), 'owner'), `${path} for owner`).toBe(true)
+    }
+    // Intake and drafts: the desk, the rep for its own shops, the shop for itself. Never the accountant,
+    // the godown or the crew. `confirm` creates the order through orders.create/setLines/submit, all of
+    // which are ANY_MEMBER, so this tuple can only narrow the ordering surface.
+    const draftPaths = aiPaths.filter(
+      (p) => p.startsWith('ai.intake.') || p.startsWith('ai.drafts.'),
+    )
+    expect(draftPaths).toHaveLength(6)
+    for (const path of draftPaths) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'salesperson', 'retailer'])
+      for (const role of ['accountant', 'warehouse', 'delivery'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+      // Every draft procedure is a narrowing of an ordering procedure the same role already reaches.
+      for (const role of ALL_ROLES) {
+        if (!isAllowed(permissionFor(path), role)) continue
+        expect(
+          isAllowed(permissionFor('orders.create'), role),
+          `${path} widens orders.create`,
+        ).toBe(true)
+        expect(
+          isAllowed(permissionFor('orders.submit'), role),
+          `${path} widens orders.submit`,
+        ).toBe(true)
+      }
+    }
+    // Buying: the desk runs the pass, the godown reads what is short. A suggestion carries pieces, days
+    // of cover and a supplier and no purchase rate — that is what makes the warehouse read safe.
+    expect(permissionFor('ai.forecast.run')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    expect(permissionFor('ai.forecast.list')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'warehouse',
+    ])
+    expect(isAllowed(permissionFor('ai.forecast.run'), 'warehouse')).toBe(false)
+    for (const path of ['ai.forecast.run', 'ai.forecast.list'] as const) {
+      for (const role of ['salesperson', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Routing: the desk and the crew compute and apply, the godown also reads (it loads the van in that
+    // order). `apply` writes through `delivery.stops.reorder`, so it must not admit a role that cannot
+    // already re-sequence a trip by hand.
+    for (const path of ['ai.routing.plan', 'ai.routing.apply'] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'delivery'])
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+      for (const role of ALL_ROLES) {
+        if (!isAllowed(permissionFor(path), role)) continue
+        expect(
+          isAllowed(permissionFor('delivery.stops.reorder'), role),
+          `${path} widens delivery.stops.reorder`,
+        ).toBe(true)
+      }
+    }
+    expect(permissionFor('ai.routing.get')).toEqual(['owner', 'manager', 'warehouse', 'delivery'])
+    for (const path of aiPaths.filter((p) => p.startsWith('ai.routing.'))) {
+      for (const role of ['accountant', 'salesperson', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Reads are GETs; everything that writes a draft, a run or a sequence is a POST.
+    const gets = new Set(['ai.drafts.list', 'ai.drafts.get', 'ai.forecast.list', 'ai.routing.get'])
+    for (const row of allProcedures().filter((r) => r.path.startsWith('ai.'))) {
+      expect(row.method, row.path).toBe(gets.has(row.path) ? 'GET' : 'POST')
+    }
+    for (const [path, httpPath] of [
+      ['ai.intake.parseText', '/ai/intake/text'],
+      ['ai.intake.transcribe', '/ai/intake/voice'],
+      ['ai.drafts.list', '/ai/drafts'],
+      ['ai.drafts.get', '/ai/drafts/{id}'],
+      ['ai.drafts.confirm', '/ai/drafts/{id}/confirm'],
+      ['ai.drafts.reject', '/ai/drafts/{id}/reject'],
+      ['ai.forecast.run', '/ai/forecast/run'],
+      ['ai.forecast.list', '/ai/forecast'],
+      ['ai.routing.plan', '/ai/routing/trips/{tripId}/plan'],
+      ['ai.routing.get', '/ai/routing/trips/{tripId}/plan'],
+      ['ai.routing.apply', '/ai/routing/trips/{tripId}/plan/apply'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+    }
+  })
+
   it('lets only auth and health be reached without a token', () => {
     const open = paths.filter((p) => permissionFor(p) === 'public')
     expect(open.sort()).toEqual(
@@ -1162,9 +1277,148 @@ describe('permission matrix', () => {
         'auth.switchTenant',
         'auth.forgotPassword',
         'auth.resetPassword',
+        // The platform console's sign-in and its refresh: public for the same reason every sign-in is.
+        'auth.platformLogin',
+        'auth.platformRefresh',
         'health.ping',
       ].sort(),
     )
+  })
+
+  it('keeps the platform console and the six apps out of each other (admin)', () => {
+    const adminPaths = paths.filter((p) => p.startsWith('admin.'))
+    expect(adminPaths).toHaveLength(15)
+    // Every admin row is the platform group and only the platform group.
+    for (const path of adminPaths) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.PLATFORM)
+      expect(permissionFor(path), path).toEqual(['platform_admin'])
+    }
+    // NO tenant role may call `admin.*` — not the owner of a distributorship, not any of the other six.
+    for (const path of adminPaths) {
+      for (const role of ALL_ROLES) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+      expect(isAllowed(permissionFor(path), null), `${path} must refuse an anonymous caller`).toBe(
+        false,
+      )
+    }
+    // ...and `platform_admin` may call NOTHING under any tenant service: the only paths outside
+    // `admin.*` it reaches are on the auth service (its own sign-in, refresh and `me`) and health.
+    const platformMayReach = new Set([
+      ...adminPaths,
+      'auth.platformLogin',
+      'auth.platformRefresh',
+      'auth.platformMe',
+      // Shared session management: 'authenticated', and a platform session is a session.
+      'auth.login',
+      'auth.refresh',
+      'auth.logout',
+      'auth.switchTenant',
+      'auth.jwks',
+      'auth.forgotPassword',
+      'auth.resetPassword',
+      'auth.me',
+      'auth.sessions',
+      'auth.revokeSession',
+      'auth.changePassword',
+      'health.ping',
+    ])
+    for (const path of paths) {
+      expect(isAllowed(permissionFor(path), 'platform_admin'), `${path} for platform_admin`).toBe(
+        platformMayReach.has(path),
+      )
+    }
+    // Said the other way round, because this is the guarantee the founder asked for: nothing a
+    // distributor's app calls is reachable by the console.
+    for (const path of paths.filter((p) => !p.startsWith('auth.') && !p.startsWith('health.'))) {
+      expect(
+        isAllowed(permissionFor(path), 'platform_admin'),
+        `${path} must refuse platform_admin`,
+      ).toBe(path.startsWith('admin.'))
+    }
+    // Reads are GETs; onboarding, suspension, plans, a support ask and a user lock are POSTs.
+    const gets = new Set([
+      'admin.tenants.list',
+      'admin.tenants.get',
+      'admin.subscriptions.list',
+      'admin.subscriptions.get',
+      'admin.support.list',
+      'admin.users.list',
+      'admin.metrics.overview',
+      'admin.audit.list',
+    ])
+    for (const row of allProcedures().filter((r) => r.path.startsWith('admin.'))) {
+      expect(row.method, row.path).toBe(gets.has(row.path) ? 'GET' : 'POST')
+      expect(row.httpPath.startsWith('/admin/'), row.path).toBe(true)
+    }
+    for (const [path, httpPath] of [
+      ['admin.tenants.create', '/admin/tenants'],
+      ['admin.tenants.get', '/admin/tenants/{id}'],
+      ['admin.tenants.suspend', '/admin/tenants/{id}/suspend'],
+      ['admin.tenants.reactivate', '/admin/tenants/{id}/reactivate'],
+      ['admin.subscriptions.upsert', '/admin/subscriptions'],
+      ['admin.support.request', '/admin/support-grants'],
+      ['admin.support.revoke', '/admin/support-grants/{id}/revoke'],
+      ['admin.users.disable', '/admin/users/{id}/disable'],
+      ['admin.metrics.overview', '/admin/metrics'],
+      ['admin.audit.list', '/admin/audit'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+    }
+  })
+
+  it('gives the console the ask and the owner the decision (support access)', () => {
+    // docs/17 §B [57] and docs/22 §2: time-boxed, OWNER-approved, audited. The two halves live in two
+    // contracts that cannot reach each other, and only the owner's half can open a window.
+    for (const path of [
+      'tenancy.support.list',
+      'tenancy.support.approve',
+      'tenancy.support.revoke',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.OWNER_ONLY)
+      // Not the manager's (not day-to-day running) and not the accountant's (not money).
+      for (const role of ALL_ROLES.filter((r) => r !== 'owner')) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+      expect(
+        isAllowed(permissionFor(path), 'platform_admin'),
+        `${path} must refuse platform_admin`,
+      ).toBe(false)
+    }
+    // The console asks and withdraws; there is no procedure under `admin.` that approves.
+    expect(paths).toContain('admin.support.request')
+    expect(paths).toContain('admin.support.revoke')
+    expect(paths).not.toContain('admin.support.approve')
+    expect(paths).not.toContain('admin.support.grant')
+    for (const path of ['admin.support.request', 'admin.support.revoke'] as const) {
+      for (const role of ALL_ROLES) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+  })
+
+  it('gives platform staff their own sign-in, with no tenant in it (auth)', () => {
+    // A platform admin holds no membership, so `auth.login`'s tenant machinery is meaningless for it:
+    // it gets three procedures of its own rather than a nullable tenant on every app's token pair.
+    expect(permissionFor('auth.platformLogin')).toBe('public')
+    expect(permissionFor('auth.platformRefresh')).toBe('public')
+    expect(permissionFor('auth.platformMe')).toEqual(ROLE_GROUPS.PLATFORM)
+    // "Who am I as platform staff" has no answer for a membership role, so it is refused, not nulled.
+    for (const role of ALL_ROLES) {
+      expect(isAllowed(permissionFor('auth.platformMe'), role), `platformMe refuses ${role}`).toBe(
+        false,
+      )
+    }
+    for (const [path, httpPath, method] of [
+      ['auth.platformLogin', '/auth/platform/login', 'POST'],
+      ['auth.platformRefresh', '/auth/platform/refresh', 'POST'],
+      ['auth.platformMe', '/auth/platform/me', 'GET'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+      expect(row?.method, path).toBe(method)
+    }
   })
 })
 
@@ -1192,6 +1446,24 @@ describe('role groups', () => {
     expect(ROLE_GROUPS.FIELD).toEqual(['salesperson', 'delivery'])
     expect(ROLE_GROUPS.STOCK_KEEPERS).toContain('warehouse')
   })
+
+  it('keeps the platform group disjoint from every membership group', () => {
+    expect(ROLE_GROUPS.PLATFORM).toEqual(PLATFORM_ROLES)
+    expect(PLATFORM_ROLES).toEqual(['platform_admin'])
+    for (const role of PLATFORM_ROLES) {
+      expect(PlatformRoleSchema.safeParse(role).success).toBe(true)
+      // Never a membership: `ALL_ROLES` is the six apps' roles and the platform is not one of them.
+      expect(MembershipRoleSchema.safeParse(role).success).toBe(false)
+      expect(ALL_ROLES as readonly string[]).not.toContain(role)
+    }
+    // No other group lets platform staff in through a side door.
+    for (const [name, group] of Object.entries(ROLE_GROUPS)) {
+      if (name === 'PLATFORM') continue
+      for (const role of PLATFORM_ROLES) {
+        expect(group as readonly string[], `${name} must not contain ${role}`).not.toContain(role)
+      }
+    }
+  })
 })
 
 describe('isAllowed', () => {
@@ -1203,6 +1475,8 @@ describe('isAllowed', () => {
   it('needs a token for an authenticated procedure', () => {
     expect(isAllowed('authenticated', null)).toBe(false)
     for (const role of ALL_ROLES) expect(isAllowed('authenticated', role)).toBe(true)
+    // A platform session is a session: the shared auth procedures serve it unchanged.
+    expect(isAllowed('authenticated', 'platform_admin')).toBe(true)
   })
 
   it('matches the role against the list', () => {
@@ -1210,6 +1484,11 @@ describe('isAllowed', () => {
     expect(isAllowed(ROLE_GROUPS.BACK_OFFICE, 'salesperson')).toBe(false)
     expect(isAllowed(ROLE_GROUPS.BACK_OFFICE, null)).toBe(false)
     expect(isAllowed(ROLE_GROUPS.STOCK_KEEPERS, 'warehouse')).toBe(true)
+    // The two enums never satisfy each other's lists.
+    expect(isAllowed(ROLE_GROUPS.PLATFORM, 'platform_admin')).toBe(true)
+    expect(isAllowed(ROLE_GROUPS.PLATFORM, 'owner')).toBe(false)
+    expect(isAllowed(ROLE_GROUPS.OWNER_ONLY, 'platform_admin')).toBe(false)
+    expect(isAllowed(ROLE_GROUPS.ANY_MEMBER, 'platform_admin')).toBe(false)
   })
 
   it('refuses an undeclared procedure', () => {
@@ -1218,10 +1497,11 @@ describe('isAllowed', () => {
   })
 
   it('agrees with the matrix for every procedure and every role', () => {
+    const everyRole: readonly (MembershipRole | PlatformRole)[] = [...ALL_ROLES, ...PLATFORM_ROLES]
     for (const p of allProcedures()) {
-      const allowedRoles = ALL_ROLES.filter((role: MembershipRole) => isAllowed(p.permission, role))
+      const allowedRoles = everyRole.filter((role) => isAllowed(p.permission, role))
       if (p.permission === 'public' || p.permission === 'authenticated') {
-        expect(allowedRoles.length, p.path).toBe(ALL_ROLES.length)
+        expect(allowedRoles.length, p.path).toBe(everyRole.length)
       } else {
         expect(allowedRoles.length, p.path).toBe(p.permission?.length)
       }
@@ -1258,6 +1538,9 @@ describe('listProcedures', () => {
       'auth.logout',
       'auth.switchTenant',
       'auth.me',
+      'auth.platformLogin',
+      'auth.platformRefresh',
+      'auth.platformMe',
       'auth.sessions',
       'auth.revokeSession',
       'auth.changePassword',
