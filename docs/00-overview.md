@@ -7,6 +7,7 @@ lakhs of users without rewriting the ledgers, the tenancy model or the sync prot
 
 ## Read in this order
 
+0. [**Single source of truth**](22-source-of-truth.md) — six apps, flows as diagrams, dated founder decisions, never-list. Read this before anything else; it is updated the moment a decision is made.
 1. [Positioning and standout features](01-positioning-and-standout-features.md) — what this is and is not; the three "conversion truths" the pilot must prove.
 2. [Five apps and surfaces](02-five-apps-and-surfaces.md) — five products, two store binaries (Team, Retailer) plus a web console; van sales resolved.
 3. [Scope and must-not-build](03-scope-and-must-not-build.md) — pilot / v1 / later, the cut line, what is deliberately not built.

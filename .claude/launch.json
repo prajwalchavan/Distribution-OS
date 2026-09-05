@@ -126,6 +126,15 @@
         "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/retailer-app web -- --port 5178"
       ],
       "port": 5178
+    },
+    {
+      "name": "docs-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/bdc392e9-21d1-4d15-9ffa-7a88c7db4de9/scratchpad && /opt/homebrew/opt/postgresql@17/bin/psql --version >/dev/null 2>&1; python3 -m http.server 8765"
+      ],
+      "port": 8765
     }
   ]
 }

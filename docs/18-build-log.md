@@ -2,6 +2,8 @@
 
 ## RESUME HERE (updated 2026-09-05 09:30 IST, session 3)
 
+**Single source of truth: `docs/22-source-of-truth.md`** (read it before this file). Rendered view: https://claude.ai/code/artifact/24c323d8-5b45-4045-8e16-e0e549233fdd — republish it after editing the markdown with `python3 docs/tools/render-source-of-truth.py <out.html>` and the Artifact tool on that same URL.
+
 **STANDING INSTRUCTION FROM THE FOUNDER (2026-09-05 09:20): "I expected you to complete all modules then stop. Now on keep developing until
 there is a hard blocker."** So: every turn that receives a module-completion notification must (1) verify independently (full turbo run,
 `pnpm smoke`, `docs:readme:check`, `format:check`), (2) record the result here, and (3) LAUNCH THE NEXT MODULE IN THE SAME TURN. Never end a turn
