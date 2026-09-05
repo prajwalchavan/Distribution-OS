@@ -1,0 +1,667 @@
+<title>Distribution OS Layout Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  :root {
+    --page-bg: #ECECE7;
+    --page-fg: #1B1E1A;
+    --page-mut: #5C6058;
+    --page-line: #D2D3CA;
+    --page-card: #FFFFFF;
+    --page-accent: #0E6E78;
+    --shell: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #14161A; --page-fg: #ECEDE8; --page-mut: #9AA096;
+      --page-line: #2B2F33; --page-card: #1B1E22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #14161A; --page-fg: #ECEDE8; --page-mut: #9AA096;
+    --page-line: #2B2F33; --page-card: #1B1E22;
+  }
+
+  body { background: var(--page-bg); color: var(--page-fg); font-family: var(--shell); -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 96px; }
+
+  header.top { padding: 8px 0 28px; border-bottom: 1px solid var(--page-line); margin-bottom: 36px; }
+  .eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--page-mut); font-weight: 600; }
+  h1 { font-size: clamp(30px, 4vw, 42px); line-height: 1.08; margin: 12px 0 14px; font-weight: 700; letter-spacing: -.022em; text-wrap: balance; }
+  .lede { font-size: 17px; line-height: 1.55; color: var(--page-mut); max-width: 66ch; margin: 0 0 6px; }
+  .lede strong { color: var(--page-fg); font-weight: 600; }
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 26px; }
+  .rule { background: var(--page-card); border: 1px solid var(--page-line); border-radius: 8px; padding: 12px 14px; }
+  .rule b { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
+  .rule span { font-size: 12.5px; line-height: 1.45; color: var(--page-mut); }
+
+  section.opt { margin-top: 56px; scroll-margin-top: 20px; }
+  .opt-head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; margin-bottom: 6px; }
+  .badge { font-size: 12px; font-weight: 800; letter-spacing: .09em; padding: 4px 9px; border-radius: 5px; background: var(--page-fg); color: var(--page-bg); }
+  .opt-head h2 { font-size: 27px; margin: 0; font-weight: 700; letter-spacing: -.018em; }
+  .opt-head .tag { font-size: 14px; color: var(--page-mut); }
+  .opt-desc { font-size: 15px; line-height: 1.6; color: var(--page-mut); max-width: 74ch; margin: 6px 0 20px; }
+  .opt-desc em { color: var(--page-fg); font-style: normal; font-weight: 600; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+  .frame { border-radius: 10px; overflow: hidden; border: 1px solid var(--page-line); box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px -12px rgba(0,0,0,.18); }
+  .frame-label { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--page-mut); margin: 0 0 7px 2px; }
+  .phone { width: 300px; border-radius: 26px; padding: 8px; background: #2A2D28; box-shadow: 0 10px 30px -14px rgba(0,0,0,.5); }
+  .phone-inner { border-radius: 19px; overflow: hidden; height: 604px; position: relative; }
+  .scroll-note { font-size: 11.5px; color: var(--page-mut); margin: 8px 2px 0; }
+
+  .verdict { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .verdict { grid-template-columns: 1fr; } }
+  .verdict div { border-left: 3px solid var(--page-line); padding: 2px 0 2px 12px; }
+  .verdict b { font-size: 12.5px; display: block; margin-bottom: 3px; }
+  .verdict p { font-size: 13.5px; line-height: 1.5; color: var(--page-mut); margin: 0; }
+  .verdict .good { border-left-color: #4E9270; }
+  .verdict .risk { border-left-color: #A8832F; }
+
+  .closing { margin-top: 64px; padding-top: 28px; border-top: 1px solid var(--page-line); }
+  .closing h2 { font-size: 22px; margin: 0 0 12px; }
+  .closing p { font-size: 15px; line-height: 1.6; color: var(--page-mut); max-width: 70ch; }
+  .closing ol { font-size: 15px; line-height: 1.65; color: var(--page-mut); max-width: 70ch; padding-left: 20px; }
+  .closing ol strong { color: var(--page-fg); }
+
+  /* ============ shared mock primitives ============ */
+  .m { font-variant-numeric: tabular-nums; }
+  .mock { position: relative; }
+  .mock * { box-sizing: border-box; }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Distribution OS &middot; pick one</div>
+  <h1>Four ways the apps could look</h1>
+  <p class="lede">Same product, same screens, same data &mdash; four visual directions. Every one shows the <strong>owner dashboard</strong> on the left as it appears on an office PC, and a <strong>salesperson's shop screen</strong> on the right as it appears on a phone in the field. The numbers are your real demo data: Tarsun Enterprises, Station Road beat, 68 invoices worth &#8377;12,47,075.</p>
+  <p class="lede">Pick the one that feels right and I build all six apps in it. You are choosing character, not layout &mdash; where things sit is fixed by how the work is done.</p>
+  <div class="rules">
+    <div class="rule"><b>All four obey the same rules</b><span>Set by research into what actually breaks field apps in India.</span></div>
+    <div class="rule"><b>Readable in Kalyan sun</b><span>7:1 text contrast minimum. Light background always, on phones.</span></div>
+    <div class="rule"><b>Big enough for a thumb</b><span>11&nbsp;mm targets, not the 7&nbsp;mm the phone makers suggest.</span></div>
+    <div class="rule"><b>Works with wet hands</b><span>Monsoon. Taps only, no swipe-to-confirm anywhere.</span></div>
+    <div class="rule"><b>Money never misread</b><span>Figures align in columns, one size larger than the words.</span></div>
+  </div>
+</header>
+
+<!-- ============================================================ A ============================================================ -->
+<section class="opt">
+  <div class="opt-head"><span class="badge">A</span><h2>Ledger</h2><span class="tag">warm paper, ink, hairlines</span></div>
+  <p class="opt-desc">The look of a well-kept accounts book. A warm off-white page rather than the cold grey every dashboard uses, near-black text, thin rules instead of boxes, and a single deep teal for anything you can act on. Dense and quiet. <em>Nothing decorative anywhere.</em> Colour appears only when it means something: green paid, amber due, red overdue.</p>
+  <div class="stage">
+    <div>
+      <p class="frame-label">Owner &middot; office PC</p>
+      <div class="frame">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#F2F2EF;color:#1B1E1A;display:grid;grid-template-columns:172px 1fr;height:520px;">
+          <aside style="background:#FFFFFF;border-right:1px solid #D5D6CF;padding:16px 0;">
+            <div style="padding:0 16px 16px;border-bottom:1px solid #EAEAE5;">
+              <div style="font-weight:700;font-size:14px;letter-spacing:-.01em;">Tarsun Enterprises</div>
+              <div style="font-size:11.5px;color:#6A6E66;margin-top:2px;">Kalyan &middot; FY 2026-27</div>
+            </div>
+            <nav style="padding:12px 8px;font-size:13px;">
+              <div style="padding:7px 10px;border-radius:5px;background:#EBF3F4;color:#0B5A63;font-weight:600;">Dashboard</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Orders</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Billing</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Outstanding</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Stock</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Shops</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Prices</div>
+              <div style="font-size:10.5px;letter-spacing:.08em;color:#8E9188;padding:14px 10px 5px;font-weight:600;">SETUP</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Staff</div>
+              <div style="padding:7px 10px;color:#4B4F49;">Settings</div>
+            </nav>
+          </aside>
+          <main style="padding:18px 20px;overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #D5D6CF;padding-bottom:11px;">
+              <div style="font-size:19px;font-weight:700;letter-spacing:-.015em;">Today</div>
+              <div style="font-size:12px;color:#6A6E66;" class="m">Thu 3 Sep 2026</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #D5D6CF;">
+              <div style="padding:13px 14px 13px 0;border-right:1px solid #EAEAE5;">
+                <div style="font-size:10.5px;letter-spacing:.06em;color:#6A6E66;font-weight:600;">SALES</div>
+                <div class="m" style="font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.02em;">&#8377;1,84,200</div>
+                <div class="m" style="font-size:11.5px;color:#0F5B2E;margin-top:2px;">&#9650; 12% vs last Thu</div>
+              </div>
+              <div style="padding:13px 14px;border-right:1px solid #EAEAE5;">
+                <div style="font-size:10.5px;letter-spacing:.06em;color:#6A6E66;font-weight:600;">COLLECTED</div>
+                <div class="m" style="font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.02em;">&#8377;1,41,500</div>
+                <div class="m" style="font-size:11.5px;color:#6A6E66;margin-top:2px;">9 of 14 stops</div>
+              </div>
+              <div style="padding:13px 14px;border-right:1px solid #EAEAE5;">
+                <div style="font-size:10.5px;letter-spacing:.06em;color:#6A6E66;font-weight:600;">OUTSTANDING</div>
+                <div class="m" style="font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.02em;">&#8377;8,62,400</div>
+                <div class="m" style="font-size:11.5px;color:#9E1C1C;margin-top:2px;">&#8377;94,100 overdue</div>
+              </div>
+              <div style="padding:13px 0 13px 14px;">
+                <div style="font-size:10.5px;letter-spacing:.06em;color:#6A6E66;font-weight:600;">FILL RATE</div>
+                <div class="m" style="font-size:23px;font-weight:700;margin-top:3px;letter-spacing:-.02em;">96.2%</div>
+                <div class="m" style="font-size:11.5px;color:#6A6E66;margin-top:2px;">4 short lines</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px;padding-top:15px;">
+              <div>
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:9px;">Sales &amp; collections &middot; 14 days</div>
+                <svg viewBox="0 0 340 116" style="width:100%;height:116px;display:block;">
+                  <line x1="0" y1="8" x2="340" y2="8" stroke="#EAEAE5" stroke-width="1"/>
+                  <line x1="0" y1="42" x2="340" y2="42" stroke="#EAEAE5" stroke-width="1"/>
+                  <line x1="0" y1="76" x2="340" y2="76" stroke="#EAEAE5" stroke-width="1"/>
+                  <line x1="0" y1="100" x2="340" y2="100" stroke="#D5D6CF" stroke-width="1"/>
+                  <path d="M4,72 L30,64 L56,78 L82,52 L108,58 L134,40 L160,49 L186,33 L212,44 L238,28 L264,36 L290,22 L316,30 L336,16" fill="none" stroke="#0E6E78" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M4,86 L30,80 L56,90 L82,70 L108,76 L134,62 L160,70 L186,55 L212,66 L238,50 L264,58 L290,45 L316,52 L336,40" fill="none" stroke="#A8832F" stroke-width="2" stroke-dasharray="3 3" stroke-linejoin="round"/>
+                  <circle cx="336" cy="16" r="3" fill="#0E6E78"/>
+                  <text x="0" y="112" font-size="8.5" fill="#6A6E66" font-family="Inter">21 Aug</text>
+                  <text x="305" y="112" font-size="8.5" fill="#6A6E66" font-family="Inter">3 Sep</text>
+                </svg>
+                <div style="display:flex;gap:14px;font-size:11px;color:#6A6E66;margin-top:5px;">
+                  <span><span style="display:inline-block;width:14px;height:2px;background:#0E6E78;vertical-align:middle;"></span> Sales</span>
+                  <span><span style="display:inline-block;width:14px;height:2px;background:#A8832F;vertical-align:middle;"></span> Collections</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:9px;">Money owed, by age</div>
+                <div style="font-size:11.5px;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;"><span style="width:38px;color:#6A6E66;">0&ndash;7 d</span><span style="flex:1;height:15px;background:#E8F4EA;"><span style="display:block;height:15px;width:74%;background:#4E9270;"></span></span><span class="m" style="width:56px;text-align:right;font-weight:600;">5,12,300</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;"><span style="width:38px;color:#6A6E66;">8&ndash;15</span><span style="flex:1;height:15px;background:#FDF4E3;"><span style="display:block;height:15px;width:38%;background:#A8832F;"></span></span><span class="m" style="width:56px;text-align:right;font-weight:600;">2,56,000</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;"><span style="width:38px;color:#6A6E66;">16&ndash;30</span><span style="flex:1;height:15px;background:#FBEDE0;"><span style="display:block;height:15px;width:14%;background:#A05C1F;"></span></span><span class="m" style="width:56px;text-align:right;font-weight:600;">94,100</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="width:38px;color:#6A6E66;">31+</span><span style="flex:1;height:15px;background:#FDEFED;"><span style="display:block;height:15px;width:5%;background:#9E1C1C;"></span></span><span class="m" style="width:56px;text-align:right;font-weight:600;">0</span></div>
+                </div>
+                <div style="margin-top:14px;font-size:12.5px;font-weight:600;margin-bottom:7px;">Needs you</div>
+                <div style="font-size:11.5px;border-top:1px solid #EAEAE5;padding-top:6px;display:flex;justify-content:space-between;"><span>Rate below floor &middot; Sharma Kirana</span><span style="color:#0E6E78;font-weight:600;">Open</span></div>
+                <div style="font-size:11.5px;border-top:1px solid #EAEAE5;padding-top:6px;margin-top:6px;display:flex;justify-content:space-between;"><span>Over credit limit &middot; R-0008</span><span style="color:#0E6E78;font-weight:600;">Open</span></div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="frame-label">Salesperson &middot; phone</p>
+      <div class="phone"><div class="phone-inner">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#F2F2EF;color:#1B1E1A;height:100%;display:flex;flex-direction:column;">
+          <div style="background:#FFFFFF;padding:13px 15px 11px;border-bottom:1px solid #D5D6CF;">
+            <div style="font-size:11.5px;color:#6A6E66;">Station Road &middot; stop 7 of 18</div>
+            <div style="font-size:19px;font-weight:700;margin-top:2px;letter-spacing:-.015em;">Shree Ganesh Kirana</div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <span class="m" style="font-size:11px;background:#FDEFED;color:#9E1C1C;padding:3px 7px;border-radius:4px;font-weight:600;">Owes &#8377;18,400</span>
+              <span class="m" style="font-size:11px;background:#F2F2EF;color:#4B4F49;padding:3px 7px;border-radius:4px;">Limit &#8377;26,800</span>
+            </div>
+          </div>
+          <div style="flex:1;padding:13px 15px 0;overflow:hidden;">
+            <div style="font-size:11px;letter-spacing:.06em;color:#6A6E66;font-weight:600;margin-bottom:9px;">USUAL ORDER</div>
+            <div style="background:#FFFFFF;border:1px solid #EAEAE5;border-radius:7px;">
+              <div style="padding:11px 13px;border-bottom:1px solid #F2F2EF;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                  <div><div style="font-size:14px;font-weight:600;">Campa Cola 750 ml</div><div class="m" style="font-size:11.5px;color:#6A6E66;margin-top:1px;">&#8377;34.00/pc &middot; 24 pc case</div></div>
+                  <div class="m" style="font-size:15px;font-weight:700;">&#8377;816</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:9px;">
+                  <button style="width:38px;height:38px;border-radius:6px;border:1px solid #D5D6CF;background:#FFF;font-size:19px;color:#1B1E1A;line-height:1;">&minus;</button>
+                  <div class="m" style="font-size:17px;font-weight:700;min-width:26px;text-align:center;">1</div>
+                  <button style="width:38px;height:38px;border-radius:6px;border:1px solid #0E6E78;background:#0E6E78;color:#fff;font-size:19px;line-height:1;">+</button>
+                  <span style="font-size:12px;color:#6A6E66;">case</span>
+                </div>
+              </div>
+              <div style="padding:11px 13px;border-bottom:1px solid #F2F2EF;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                  <div><div style="font-size:14px;font-weight:600;">Campa Orange 500 ml</div><div class="m" style="font-size:11.5px;color:#6A6E66;margin-top:1px;">&#8377;17.00/pc &middot; 24 pc case</div></div>
+                  <div class="m" style="font-size:15px;font-weight:700;">&#8377;816</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:9px;">
+                  <button style="width:38px;height:38px;border-radius:6px;border:1px solid #D5D6CF;background:#FFF;font-size:19px;color:#1B1E1A;line-height:1;">&minus;</button>
+                  <div class="m" style="font-size:17px;font-weight:700;min-width:26px;text-align:center;">2</div>
+                  <button style="width:38px;height:38px;border-radius:6px;border:1px solid #0E6E78;background:#0E6E78;color:#fff;font-size:19px;line-height:1;">+</button>
+                  <span style="font-size:12px;color:#6A6E66;">case</span>
+                </div>
+              </div>
+              <div style="padding:10px 13px;background:#EBF3F4;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:#0B5A63;font-weight:600;">Scheme applied &middot; 1 free per 10</span>
+                <span class="m" style="font-size:12px;color:#0B5A63;font-weight:700;">&minus;&#8377;68</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border-top:1px solid #D5D6CF;padding:11px 15px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;">
+              <span style="font-size:12.5px;color:#4B4F49;">3 items &middot; 4 cases</span>
+              <span class="m" style="font-size:22px;font-weight:700;letter-spacing:-.02em;">&#8377;1,564</span>
+            </div>
+            <button style="width:100%;height:50px;border-radius:8px;border:none;background:#0E6E78;color:#fff;font-size:16px;font-weight:600;">Place order</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="good"><b>Why you might pick it</b><p>Feels like the ledger it replaces, so staff trust it immediately. The most numbers visible at once without crowding. Ages slowly.</p></div>
+    <div class="risk"><b>What you give up</b><p>Deliberately plain. It will never make anyone say "wow" in a demo.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ B ============================================================ -->
+<section class="opt">
+  <div class="opt-head"><span class="badge">B</span><h2>Instrument</h2><span class="tag">white, sharp, near-black</span></div>
+  <p class="opt-desc">Pure white, hard black text, square corners, one electric accent. Figures set in a mono typeface so every column locks. The look of tools built for people who use them all day &mdash; Linear, Stripe, a trading terminal. <em>The most modern of the four, and the most severe.</em></p>
+  <div class="stage">
+    <div>
+      <p class="frame-label">Owner &middot; office PC</p>
+      <div class="frame">
+        <div class="mock" style="font-family:'IBM Plex Sans',sans-serif;background:#FFFFFF;color:#0A0A0A;display:grid;grid-template-columns:168px 1fr;height:520px;">
+          <aside style="background:#FAFAFA;border-right:1px solid #E4E4E4;padding:15px 0;">
+            <div style="padding:0 15px 14px;">
+              <div style="font-weight:700;font-size:13.5px;letter-spacing:-.01em;">TARSUN</div>
+              <div style="font-size:11px;color:#737373;margin-top:1px;">FY 26-27</div>
+            </div>
+            <nav style="font-size:12.5px;">
+              <div style="padding:6px 15px;border-left:2px solid #4338CA;background:#FFF;color:#4338CA;font-weight:600;">Dashboard</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Orders</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Billing</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Outstanding</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Stock</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Shops</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Prices</div>
+              <div style="font-size:10px;letter-spacing:.1em;color:#A3A3A3;padding:13px 15px 4px;font-weight:600;">SETUP</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Staff</div>
+              <div style="padding:6px 15px;border-left:2px solid transparent;color:#404040;">Settings</div>
+            </nav>
+          </aside>
+          <main style="padding:17px 20px;overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <div style="font-size:17px;font-weight:700;letter-spacing:-.02em;">Dashboard</div>
+              <div style="display:flex;gap:5px;">
+                <span style="font-size:11px;padding:4px 9px;border:1px solid #4338CA;color:#4338CA;font-weight:600;">14D</span>
+                <span style="font-size:11px;padding:4px 9px;border:1px solid #E4E4E4;color:#737373;">30D</span>
+                <span style="font-size:11px;padding:4px 9px;border:1px solid #E4E4E4;color:#737373;">FY</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;">
+              <div style="border:1px solid #E4E4E4;padding:11px 12px;">
+                <div style="font-size:10px;letter-spacing:.09em;color:#737373;font-weight:600;">SALES</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;margin-top:4px;letter-spacing:-.02em;">184,200</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#15803D;margin-top:2px;">+12.0%</div>
+              </div>
+              <div style="border:1px solid #E4E4E4;padding:11px 12px;">
+                <div style="font-size:10px;letter-spacing:.09em;color:#737373;font-weight:600;">COLLECTED</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;margin-top:4px;letter-spacing:-.02em;">141,500</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;margin-top:2px;">9/14 stops</div>
+              </div>
+              <div style="border:1px solid #E4E4E4;padding:11px 12px;">
+                <div style="font-size:10px;letter-spacing:.09em;color:#737373;font-weight:600;">OUTSTANDING</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;margin-top:4px;letter-spacing:-.02em;">862,400</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#B91C1C;margin-top:2px;">94,100 late</div>
+              </div>
+              <div style="border:1px solid #E4E4E4;padding:11px 12px;">
+                <div style="font-size:10px;letter-spacing:.09em;color:#737373;font-weight:600;">FILL RATE</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;margin-top:4px;letter-spacing:-.02em;">96.2%</div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;margin-top:2px;">4 short</div>
+              </div>
+            </div>
+            <div style="border:1px solid #E4E4E4;margin-top:11px;padding:12px 13px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;">
+                <span style="font-size:12px;font-weight:600;">Sales vs collections</span>
+                <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#737373;">21 Aug &ndash; 3 Sep</span>
+              </div>
+              <svg viewBox="0 0 340 92" style="width:100%;height:92px;display:block;">
+                <line x1="0" y1="6" x2="340" y2="6" stroke="#F0F0F0"/><line x1="0" y1="34" x2="340" y2="34" stroke="#F0F0F0"/><line x1="0" y1="62" x2="340" y2="62" stroke="#F0F0F0"/><line x1="0" y1="80" x2="340" y2="80" stroke="#E4E4E4"/>
+                <g fill="#4338CA">
+                  <rect x="4" y="52" width="14" height="28"/><rect x="28" y="46" width="14" height="34"/><rect x="52" y="58" width="14" height="22"/><rect x="76" y="36" width="14" height="44"/><rect x="100" y="42" width="14" height="38"/><rect x="124" y="28" width="14" height="52"/><rect x="148" y="38" width="14" height="42"/><rect x="172" y="22" width="14" height="58"/><rect x="196" y="33" width="14" height="47"/><rect x="220" y="18" width="14" height="62"/><rect x="244" y="26" width="14" height="54"/><rect x="268" y="14" width="14" height="66"/><rect x="292" y="21" width="14" height="59"/><rect x="316" y="9" width="14" height="71"/>
+                </g>
+                <path d="M11,66 L35,60 L59,70 L83,52 L107,57 L131,44 L155,52 L179,38 L203,48 L227,34 L251,41 L275,29 L299,36 L323,24" fill="none" stroke="#0A0A0A" stroke-width="1.6"/>
+                <text x="0" y="90" font-size="8" fill="#737373" font-family="IBM Plex Mono">21 Aug</text><text x="304" y="90" font-size="8" fill="#737373" font-family="IBM Plex Mono">3 Sep</text>
+              </svg>
+            </div>
+            <div style="border:1px solid #E4E4E4;border-top:none;">
+              <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr .7fr;font-size:10px;letter-spacing:.08em;color:#737373;font-weight:600;background:#FAFAFA;border-bottom:1px solid #E4E4E4;padding:6px 12px;">
+                <span>SHOP</span><span>BEAT</span><span style="text-align:right;">OWES</span><span style="text-align:right;">AGE</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr .7fr;font-size:12px;padding:6px 12px;border-bottom:1px solid #F0F0F0;"><span>Om Sai Provision Store</span><span style="color:#737373;">Station Road</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;">42,800</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;color:#B91C1C;">34d</span></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr .7fr;font-size:12px;padding:6px 12px;border-bottom:1px solid #F0F0F0;"><span>Mahalaxmi General Stores</span><span style="color:#737373;">Station Road</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;">31,200</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;color:#A16207;">19d</span></div>
+              <div style="display:grid;grid-template-columns:1.5fr 1fr .8fr .7fr;font-size:12px;padding:6px 12px;"><span>Sharma Kirana Stores</span><span style="color:#737373;">Station Road</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;">20,100</span><span class="m" style="font-family:'IBM Plex Mono',monospace;text-align:right;color:#737373;">6d</span></div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="frame-label">Salesperson &middot; phone</p>
+      <div class="phone"><div class="phone-inner">
+        <div class="mock" style="font-family:'IBM Plex Sans',sans-serif;background:#FFFFFF;color:#0A0A0A;height:100%;display:flex;flex-direction:column;">
+          <div style="padding:13px 15px 12px;border-bottom:2px solid #0A0A0A;">
+            <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;letter-spacing:.03em;">STOP 07/18 &middot; STATION ROAD</div>
+            <div style="font-size:19px;font-weight:700;margin-top:3px;letter-spacing:-.02em;">Shree Ganesh Kirana</div>
+            <div style="display:flex;gap:14px;margin-top:9px;">
+              <div><div style="font-size:9.5px;letter-spacing:.08em;color:#737373;font-weight:600;">OWES</div><div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#B91C1C;">18,400</div></div>
+              <div><div style="font-size:9.5px;letter-spacing:.08em;color:#737373;font-weight:600;">LIMIT</div><div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;">26,800</div></div>
+              <div><div style="font-size:9.5px;letter-spacing:.08em;color:#737373;font-weight:600;">LAST</div><div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;">27 Aug</div></div>
+            </div>
+          </div>
+          <div style="flex:1;padding:12px 15px 0;overflow:hidden;">
+            <div style="font-size:10px;letter-spacing:.09em;color:#737373;font-weight:600;margin-bottom:9px;">USUAL ORDER</div>
+            <div style="border:1px solid #E4E4E4;padding:11px 12px;margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:13.5px;font-weight:600;">Campa Cola 750 ml</div><div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;margin-top:1px;">34.00/pc &middot; 24/case</div></div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;">816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:9px;">
+                <button style="width:38px;height:38px;border:1px solid #D4D4D4;background:#FFF;font-size:18px;color:#0A0A0A;line-height:1;">&minus;</button>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;min-width:24px;text-align:center;">1</div>
+                <button style="width:38px;height:38px;border:1px solid #4338CA;background:#4338CA;color:#fff;font-size:18px;line-height:1;">+</button>
+                <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;">CASE</span>
+              </div>
+            </div>
+            <div style="border:1px solid #E4E4E4;padding:11px 12px;margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:13.5px;font-weight:600;">Campa Orange 500 ml</div><div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;margin-top:1px;">17.00/pc &middot; 24/case</div></div>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;">816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:9px;">
+                <button style="width:38px;height:38px;border:1px solid #D4D4D4;background:#FFF;font-size:18px;color:#0A0A0A;line-height:1;">&minus;</button>
+                <div class="m" style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;min-width:24px;text-align:center;">2</div>
+                <button style="width:38px;height:38px;border:1px solid #4338CA;background:#4338CA;color:#fff;font-size:18px;line-height:1;">+</button>
+                <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#737373;">CASE</span>
+              </div>
+            </div>
+            <div style="border-left:2px solid #4338CA;padding:7px 10px;background:#F5F5FF;display:flex;justify-content:space-between;">
+              <span style="font-size:11.5px;color:#4338CA;font-weight:600;">Scheme &middot; 1 free per 10</span>
+              <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#4338CA;font-weight:600;">&minus;68</span>
+            </div>
+          </div>
+          <div style="border-top:2px solid #0A0A0A;padding:11px 15px 15px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;">
+              <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#737373;">3 ITEMS &middot; 4 CASES</span>
+              <span class="m" style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;letter-spacing:-.02em;">&#8377;1,564</span>
+            </div>
+            <button style="width:100%;height:50px;border:none;background:#0A0A0A;color:#fff;font-size:15px;font-weight:600;letter-spacing:.02em;">PLACE ORDER</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="good"><b>Why you might pick it</b><p>The most current-looking. Mono figures make columns unmistakable. Demos extremely well to anyone technical.</p></div>
+    <div class="risk"><b>What you give up</b><p>Cold. All-caps labels and hard edges can read as unfriendly to a shopkeeper or a new hire.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ C ============================================================ -->
+<section class="opt">
+  <div class="opt-head"><span class="badge">C</span><h2>Panel</h2><span class="tag">soft cards, rounded, roomier</span></div>
+  <p class="opt-desc">Rounded cards floating on a light ground, generous spacing, a friendly blue. The familiar shape of a modern business app &mdash; the one that looks least like the software you are replacing. <em>Easiest on a new employee, at the cost of showing fewer rows per screen.</em></p>
+  <div class="stage">
+    <div>
+      <p class="frame-label">Owner &middot; office PC</p>
+      <div class="frame">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#F1F4F9;color:#111827;display:grid;grid-template-columns:176px 1fr;height:520px;">
+          <aside style="background:#FFFFFF;padding:16px 11px;">
+            <div style="padding:0 6px 15px;display:flex;align-items:center;gap:8px;">
+              <div style="width:29px;height:29px;border-radius:8px;background:#2563EB;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">T</div>
+              <div><div style="font-weight:700;font-size:13px;">Tarsun</div><div style="font-size:10.5px;color:#6B7280;">Kalyan</div></div>
+            </div>
+            <nav style="font-size:13px;">
+              <div style="padding:9px 11px;border-radius:8px;background:#EFF6FF;color:#1D4ED8;font-weight:600;margin-bottom:2px;">Dashboard</div>
+              <div style="padding:9px 11px;color:#374151;margin-bottom:2px;">Orders</div>
+              <div style="padding:9px 11px;color:#374151;margin-bottom:2px;">Billing</div>
+              <div style="padding:9px 11px;color:#374151;margin-bottom:2px;">Outstanding</div>
+              <div style="padding:9px 11px;color:#374151;margin-bottom:2px;">Stock</div>
+              <div style="padding:9px 11px;color:#374151;margin-bottom:2px;">Shops</div>
+              <div style="padding:9px 11px;color:#374151;">Prices</div>
+            </nav>
+          </aside>
+          <main style="padding:18px 20px;overflow:hidden;">
+            <div style="font-size:19px;font-weight:700;margin-bottom:14px;letter-spacing:-.015em;">Good evening, Sunil</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;">
+              <div style="background:#fff;border-radius:11px;padding:13px 14px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:11.5px;color:#6B7280;font-weight:500;">Sales today</div>
+                <div class="m" style="font-size:21px;font-weight:700;margin-top:4px;letter-spacing:-.02em;">&#8377;1,84,200</div>
+                <div class="m" style="font-size:11.5px;color:#047857;margin-top:3px;font-weight:600;">&#9650; 12%</div>
+              </div>
+              <div style="background:#fff;border-radius:11px;padding:13px 14px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:11.5px;color:#6B7280;font-weight:500;">Collected</div>
+                <div class="m" style="font-size:21px;font-weight:700;margin-top:4px;letter-spacing:-.02em;">&#8377;1,41,500</div>
+                <div class="m" style="font-size:11.5px;color:#6B7280;margin-top:3px;">9 of 14 stops</div>
+              </div>
+              <div style="background:#fff;border-radius:11px;padding:13px 14px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:11.5px;color:#6B7280;font-weight:500;">Outstanding</div>
+                <div class="m" style="font-size:21px;font-weight:700;margin-top:4px;letter-spacing:-.02em;">&#8377;8,62,400</div>
+                <div class="m" style="font-size:11.5px;color:#B91C1C;margin-top:3px;font-weight:600;">&#8377;94,100 overdue</div>
+              </div>
+              <div style="background:#fff;border-radius:11px;padding:13px 14px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:11.5px;color:#6B7280;font-weight:500;">Fill rate</div>
+                <div class="m" style="font-size:21px;font-weight:700;margin-top:4px;letter-spacing:-.02em;">96.2%</div>
+                <div class="m" style="font-size:11.5px;color:#6B7280;margin-top:3px;">4 short lines</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:12px;">
+              <div style="background:#fff;border-radius:11px;padding:14px 15px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Sales &amp; collections</div>
+                <svg viewBox="0 0 320 118" style="width:100%;height:118px;display:block;">
+                  <defs><linearGradient id="cgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2563EB" stop-opacity=".22"/><stop offset="100%" stop-color="#2563EB" stop-opacity="0"/></linearGradient></defs>
+                  <line x1="0" y1="12" x2="320" y2="12" stroke="#F3F4F6"/><line x1="0" y1="46" x2="320" y2="46" stroke="#F3F4F6"/><line x1="0" y1="80" x2="320" y2="80" stroke="#F3F4F6"/><line x1="0" y1="100" x2="320" y2="100" stroke="#E5E7EB"/>
+                  <path d="M6,74 L30,66 L54,80 L78,54 L102,60 L126,42 L150,51 L174,35 L198,46 L222,30 L246,38 L270,24 L294,32 L314,18 L314,100 L6,100 Z" fill="url(#cgrad)"/>
+                  <path d="M6,74 L30,66 L54,80 L78,54 L102,60 L126,42 L150,51 L174,35 L198,46 L222,30 L246,38 L270,24 L294,32 L314,18" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+                  <path d="M6,88 L30,82 L54,92 L78,72 L102,78 L126,64 L150,72 L174,57 L198,68 L222,52 L246,60 L270,47 L294,54 L314,42" fill="none" stroke="#10B981" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+                  <circle cx="314" cy="18" r="3.6" fill="#2563EB" stroke="#fff" stroke-width="1.6"/>
+                  <text x="0" y="114" font-size="8.5" fill="#9CA3AF" font-family="Inter">21 Aug</text><text x="286" y="114" font-size="8.5" fill="#9CA3AF" font-family="Inter">3 Sep</text>
+                </svg>
+              </div>
+              <div style="background:#fff;border-radius:11px;padding:14px 15px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+                <div style="font-size:13px;font-weight:600;margin-bottom:11px;">Needs your approval</div>
+                <div style="border:1px solid #FEE2E2;background:#FEF2F2;border-radius:9px;padding:9px 11px;margin-bottom:8px;">
+                  <div style="font-size:12.5px;font-weight:600;color:#991B1B;">Over credit limit</div>
+                  <div class="m" style="font-size:11.5px;color:#7F1D1D;margin-top:2px;">Krishna Kirana &middot; &#8377;3,200 over</div>
+                </div>
+                <div style="border:1px solid #FEF3C7;background:#FFFBEB;border-radius:9px;padding:9px 11px;margin-bottom:10px;">
+                  <div style="font-size:12.5px;font-weight:600;color:#92400E;">Rate below floor</div>
+                  <div class="m" style="font-size:11.5px;color:#78350F;margin-top:2px;">Sharma Kirana &middot; &#8377;1.50/pc</div>
+                </div>
+                <button style="width:100%;height:34px;border-radius:8px;border:none;background:#2563EB;color:#fff;font-size:12.5px;font-weight:600;">Review 2 requests</button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="frame-label">Salesperson &middot; phone</p>
+      <div class="phone"><div class="phone-inner">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#F1F4F9;color:#111827;height:100%;display:flex;flex-direction:column;">
+          <div style="background:#fff;padding:14px 15px 13px;border-bottom:1px solid #E5E7EB;">
+            <div style="font-size:11.5px;color:#6B7280;">Station Road &middot; 7 of 18</div>
+            <div style="font-size:19px;font-weight:700;margin-top:2px;letter-spacing:-.015em;">Shree Ganesh Kirana</div>
+            <div style="display:flex;gap:7px;margin-top:9px;">
+              <span class="m" style="font-size:11.5px;background:#FEF2F2;color:#B91C1C;padding:4px 9px;border-radius:99px;font-weight:600;">&#8377;18,400 due</span>
+              <span class="m" style="font-size:11.5px;background:#F3F4F6;color:#4B5563;padding:4px 9px;border-radius:99px;">Limit &#8377;26,800</span>
+            </div>
+          </div>
+          <div style="flex:1;padding:13px 13px 0;overflow:hidden;">
+            <div style="font-size:11.5px;color:#6B7280;font-weight:600;margin-bottom:9px;padding-left:2px;">Usual order</div>
+            <div style="background:#fff;border-radius:12px;padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:14px;font-weight:600;">Campa Cola 750 ml</div><div class="m" style="font-size:11.5px;color:#6B7280;margin-top:2px;">&#8377;34.00/pc &middot; 24 pc case</div></div>
+                <div class="m" style="font-size:15px;font-weight:700;">&#8377;816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:10px;">
+                <button style="width:38px;height:38px;border-radius:99px;border:1px solid #D1D5DB;background:#fff;font-size:18px;color:#374151;line-height:1;">&minus;</button>
+                <div class="m" style="font-size:17px;font-weight:700;min-width:24px;text-align:center;">1</div>
+                <button style="width:38px;height:38px;border-radius:99px;border:none;background:#2563EB;color:#fff;font-size:18px;line-height:1;">+</button>
+                <span style="font-size:12px;color:#6B7280;">case</span>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:12px 13px;margin-bottom:9px;box-shadow:0 1px 2px rgba(16,24,40,.06);">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:14px;font-weight:600;">Campa Orange 500 ml</div><div class="m" style="font-size:11.5px;color:#6B7280;margin-top:2px;">&#8377;17.00/pc &middot; 24 pc case</div></div>
+                <div class="m" style="font-size:15px;font-weight:700;">&#8377;816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:10px;">
+                <button style="width:38px;height:38px;border-radius:99px;border:1px solid #D1D5DB;background:#fff;font-size:18px;color:#374151;line-height:1;">&minus;</button>
+                <div class="m" style="font-size:17px;font-weight:700;min-width:24px;text-align:center;">2</div>
+                <button style="width:38px;height:38px;border-radius:99px;border:none;background:#2563EB;color:#fff;font-size:18px;line-height:1;">+</button>
+                <span style="font-size:12px;color:#6B7280;">case</span>
+              </div>
+            </div>
+            <div style="background:#ECFDF5;border-radius:10px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:#047857;font-weight:600;">Scheme &middot; 1 free per 10</span>
+              <span class="m" style="font-size:12.5px;color:#047857;font-weight:700;">&minus;&#8377;68</span>
+            </div>
+          </div>
+          <div style="background:#fff;border-top:1px solid #E5E7EB;padding:12px 15px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+              <span style="font-size:12.5px;color:#6B7280;">3 items &middot; 4 cases</span>
+              <span class="m" style="font-size:22px;font-weight:700;letter-spacing:-.02em;">&#8377;1,564</span>
+            </div>
+            <button style="width:100%;height:50px;border-radius:12px;border:none;background:#2563EB;color:#fff;font-size:16px;font-weight:600;">Place order</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="good"><b>Why you might pick it</b><p>The friendliest and the most familiar. New staff need the least explaining. Looks modern to a non-technical buyer.</p></div>
+    <div class="risk"><b>What you give up</b><p>Rounded cards and padding cost roughly a third of the rows per screen. It also resembles many other business apps.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ D ============================================================ -->
+<section class="opt">
+  <div class="opt-head"><span class="badge">D</span><h2>Signal</h2><span class="tag">bold type, colour that means something</span></div>
+  <p class="opt-desc">Big figures, heavy weights, and strong colour bands carrying the status so it reads at arm's length in bright sun. Built for the phone first, then made denser for the desk. <em>The most legible of the four in the worst conditions, and the loudest.</em></p>
+  <div class="stage">
+    <div>
+      <p class="frame-label">Owner &middot; office PC</p>
+      <div class="frame">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#FFFFFF;color:#16181D;display:grid;grid-template-columns:0 1fr;height:520px;">
+          <main style="grid-column:1 / -1;overflow:hidden;">
+            <div style="background:#16181D;color:#fff;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:22px;">
+                <span style="font-weight:800;font-size:15px;letter-spacing:-.01em;">Tarsun Enterprises</span>
+                <span style="font-size:13px;color:#9BA3AF;">Dashboard</span><span style="font-size:13px;color:#9BA3AF;">Orders</span><span style="font-size:13px;color:#9BA3AF;">Billing</span><span style="font-size:13px;color:#9BA3AF;">Money</span><span style="font-size:13px;color:#9BA3AF;">Stock</span>
+              </div>
+              <span class="m" style="font-size:12px;color:#9BA3AF;">3 Sep 2026</span>
+            </div>
+            <div style="padding:17px 20px;">
+              <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;">
+                <div style="background:#0B4F3F;color:#fff;border-radius:12px;padding:16px 17px;">
+                  <div style="font-size:12px;font-weight:600;color:#8FDCC0;letter-spacing:.02em;">SALES TODAY</div>
+                  <div class="m" style="font-size:34px;font-weight:800;margin-top:5px;letter-spacing:-.03em;line-height:1.05;">&#8377;1,84,200</div>
+                  <div class="m" style="font-size:13px;margin-top:5px;color:#8FDCC0;font-weight:600;">&#9650; 12% vs last Thursday</div>
+                </div>
+                <div style="background:#F5F6F7;border-radius:12px;padding:16px 17px;">
+                  <div style="font-size:12px;font-weight:600;color:#5B6270;letter-spacing:.02em;">COLLECTED</div>
+                  <div class="m" style="font-size:29px;font-weight:800;margin-top:5px;letter-spacing:-.03em;line-height:1.05;">&#8377;1,41,500</div>
+                  <div class="m" style="font-size:12.5px;margin-top:5px;color:#5B6270;">9 of 14 stops done</div>
+                </div>
+                <div style="background:#FFF1EE;border:2px solid #C0392B;border-radius:12px;padding:16px 17px;">
+                  <div style="font-size:12px;font-weight:600;color:#9B2C1C;letter-spacing:.02em;">OVERDUE</div>
+                  <div class="m" style="font-size:29px;font-weight:800;margin-top:5px;letter-spacing:-.03em;line-height:1.05;color:#9B2C1C;">&#8377;94,100</div>
+                  <div class="m" style="font-size:12.5px;margin-top:5px;color:#9B2C1C;font-weight:600;">6 shops &middot; oldest 34 days</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-top:13px;">
+                <div style="border:1px solid #E3E5E8;border-radius:12px;padding:14px 16px;">
+                  <div style="font-size:13.5px;font-weight:700;margin-bottom:11px;">Sales, last 14 days</div>
+                  <svg viewBox="0 0 320 108" style="width:100%;height:108px;display:block;">
+                    <line x1="0" y1="8" x2="320" y2="8" stroke="#EFF0F2"/><line x1="0" y1="42" x2="320" y2="42" stroke="#EFF0F2"/><line x1="0" y1="76" x2="320" y2="76" stroke="#EFF0F2"/><line x1="0" y1="92" x2="320" y2="92" stroke="#D9DBDF" stroke-width="1.5"/>
+                    <g fill="#0B4F3F">
+                      <rect x="4" y="62" width="16" height="30" rx="2.5"/><rect x="27" y="55" width="16" height="37" rx="2.5"/><rect x="50" y="68" width="16" height="24" rx="2.5"/><rect x="73" y="44" width="16" height="48" rx="2.5"/><rect x="96" y="50" width="16" height="42" rx="2.5"/><rect x="119" y="35" width="16" height="57" rx="2.5"/><rect x="142" y="46" width="16" height="46" rx="2.5"/><rect x="165" y="29" width="16" height="63" rx="2.5"/><rect x="188" y="40" width="16" height="52" rx="2.5"/><rect x="211" y="24" width="16" height="68" rx="2.5"/><rect x="234" y="33" width="16" height="59" rx="2.5"/><rect x="257" y="19" width="16" height="73" rx="2.5"/><rect x="280" y="27" width="16" height="65" rx="2.5"/>
+                    </g>
+                    <rect x="303" y="12" width="16" height="80" rx="2.5" fill="#12B981"/>
+                    <text x="0" y="105" font-size="9" fill="#8A9099" font-family="Inter">21 Aug</text><text x="284" y="105" font-size="9" fill="#16181D" font-family="Inter" font-weight="700">Today</text>
+                  </svg>
+                </div>
+                <div style="border:1px solid #E3E5E8;border-radius:12px;padding:14px 16px;">
+                  <div style="font-size:13.5px;font-weight:700;margin-bottom:11px;">Who owes the most</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F0F1F3;">
+                    <div><div style="font-size:13px;font-weight:600;">Om Sai Provision</div><div class="m" style="font-size:11px;color:#8A9099;">34 days</div></div>
+                    <div class="m" style="font-size:15px;font-weight:800;color:#9B2C1C;">&#8377;42,800</div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F0F1F3;">
+                    <div><div style="font-size:13px;font-weight:600;">Mahalaxmi General</div><div class="m" style="font-size:11px;color:#8A9099;">19 days</div></div>
+                    <div class="m" style="font-size:15px;font-weight:800;color:#A96A12;">&#8377;31,200</div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
+                    <div><div style="font-size:13px;font-weight:600;">Sharma Kirana</div><div class="m" style="font-size:11px;color:#8A9099;">6 days</div></div>
+                    <div class="m" style="font-size:15px;font-weight:800;">&#8377;20,100</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="frame-label">Salesperson &middot; phone</p>
+      <div class="phone"><div class="phone-inner">
+        <div class="mock" style="font-family:'Inter',sans-serif;background:#FFFFFF;color:#16181D;height:100%;display:flex;flex-direction:column;">
+          <div style="background:#16181D;color:#fff;padding:13px 16px 14px;">
+            <div style="font-size:12px;color:#9BA3AF;font-weight:500;">Station Road &middot; stop 7 of 18</div>
+            <div style="font-size:21px;font-weight:800;margin-top:3px;letter-spacing:-.02em;">Shree Ganesh Kirana</div>
+          </div>
+          <div style="background:#FFF1EE;border-bottom:2px solid #C0392B;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:#9B2C1C;font-weight:700;">Owes you</span>
+            <span class="m" style="font-size:19px;color:#9B2C1C;font-weight:800;letter-spacing:-.02em;">&#8377;18,400</span>
+          </div>
+          <div style="flex:1;padding:14px 16px 0;overflow:hidden;">
+            <div style="font-size:12px;color:#5B6270;font-weight:700;letter-spacing:.03em;margin-bottom:10px;">USUAL ORDER</div>
+            <div style="border-bottom:1px solid #EFF0F2;padding-bottom:12px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:15px;font-weight:700;">Campa Cola 750 ml</div><div class="m" style="font-size:12px;color:#5B6270;margin-top:2px;">&#8377;34.00 &times; 24 pc</div></div>
+                <div class="m" style="font-size:17px;font-weight:800;">&#8377;816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;margin-top:11px;">
+                <button style="width:42px;height:42px;border-radius:9px;border:2px solid #D9DBDF;background:#fff;font-size:20px;font-weight:700;color:#16181D;line-height:1;">&minus;</button>
+                <div class="m" style="font-size:20px;font-weight:800;min-width:26px;text-align:center;">1</div>
+                <button style="width:42px;height:42px;border-radius:9px;border:none;background:#0B4F3F;color:#fff;font-size:20px;font-weight:700;line-height:1;">+</button>
+                <span style="font-size:13px;color:#5B6270;font-weight:600;">case</span>
+              </div>
+            </div>
+            <div style="border-bottom:1px solid #EFF0F2;padding-bottom:12px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;">
+                <div><div style="font-size:15px;font-weight:700;">Campa Orange 500 ml</div><div class="m" style="font-size:12px;color:#5B6270;margin-top:2px;">&#8377;17.00 &times; 24 pc</div></div>
+                <div class="m" style="font-size:17px;font-weight:800;">&#8377;816</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;margin-top:11px;">
+                <button style="width:42px;height:42px;border-radius:9px;border:2px solid #D9DBDF;background:#fff;font-size:20px;font-weight:700;color:#16181D;line-height:1;">&minus;</button>
+                <div class="m" style="font-size:20px;font-weight:800;min-width:26px;text-align:center;">2</div>
+                <button style="width:42px;height:42px;border-radius:9px;border:none;background:#0B4F3F;color:#fff;font-size:20px;font-weight:700;line-height:1;">+</button>
+                <span style="font-size:13px;color:#5B6270;font-weight:600;">case</span>
+              </div>
+            </div>
+            <div style="background:#E7F7EF;border-radius:9px;padding:10px 13px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:#0B4F3F;font-weight:700;">Free: 1 per 10</span>
+              <span class="m" style="font-size:14px;color:#0B4F3F;font-weight:800;">&minus;&#8377;68</span>
+            </div>
+          </div>
+          <div style="padding:12px 16px 16px;border-top:1px solid #EFF0F2;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;">
+              <span style="font-size:13px;color:#5B6270;font-weight:600;">3 items &middot; 4 cases</span>
+              <span class="m" style="font-size:27px;font-weight:800;letter-spacing:-.03em;">&#8377;1,564</span>
+            </div>
+            <button style="width:100%;height:54px;border-radius:11px;border:none;background:#0B4F3F;color:#fff;font-size:17px;font-weight:700;">Place order</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div class="good"><b>Why you might pick it</b><p>Easiest to read at a glance, in sun, at arm's length. A rider or loader can use it without stopping to focus.</p></div>
+    <div class="risk"><b>What you give up</b><p>Loud. Big type and strong bands mean fewer rows, and the desk screens have to work harder to stay calm.</p></div>
+  </div>
+</section>
+
+<div class="closing">
+  <h2>How to choose</h2>
+  <p>Look at the phone screens first. Six people will use those all day; you will use the desk screen. Then reply with a single letter.</p>
+  <ol>
+    <li><strong>A, Ledger</strong> &mdash; if you want it to feel like the books, and to show the most information.</li>
+    <li><strong>B, Instrument</strong> &mdash; if you want it to look unmistakably modern and precise.</li>
+    <li><strong>C, Panel</strong> &mdash; if you want it to feel easy and familiar to a new employee.</li>
+    <li><strong>D, Signal</strong> &mdash; if readability in sunlight and at speed matters more than density.</li>
+  </ol>
+  <p>You can also mix: for example "D on the phones, A on the desk", or "B but warmer". Nothing here is final. Once you pick, I build the full component set in that direction and every one of the six apps uses it.</p>
+</div>
+</div>
