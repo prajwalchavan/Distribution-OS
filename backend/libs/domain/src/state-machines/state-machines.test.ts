@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  documentMachine,
   invoiceMachine,
   ONDC_STATUS,
   orderMachine,
+  reviewSessionMachine,
   stopMachine,
   tripMachine,
   TransitionError,
@@ -79,5 +81,49 @@ describe('state machines', () => {
       'partially_paid',
       'written_off',
     ])
+  })
+
+  /**
+   * The nine states are exactly the `document_status` enum (schema/docint.ts). Document intake never
+   * commits on its own (never-list 6): the only road to `committed` runs through a human's
+   * `review_submitted`, and a red check keeps `needs_review` from ever reaching `reviewed` in code.
+   */
+  it('walks a supplier bill from capture to the booked draft, by hand only', () => {
+    let s = documentMachine.initial
+    for (const e of [
+      'submit',
+      'verified',
+      'flag',
+      'start_review',
+      'review_submitted',
+      'commit',
+    ] as const) {
+      s = documentMachine.next(s, e)
+    }
+    expect(s).toBe('committed')
+    expect(documentMachine.isTerminal(s)).toBe(true)
+    expect(documentMachine.next('extracting', 'extracted')).toBe('extracted')
+    expect(documentMachine.can('extracting', 'commit')).toBe(false)
+    expect(documentMachine.can('extracted', 'commit')).toBe(false)
+    expect(documentMachine.can('uploaded', 'verified')).toBe(false)
+    expect(documentMachine.next('needs_review', 'release')).toBe('extracted')
+    expect(documentMachine.next('needs_review', 'start_review')).toBe('needs_review')
+    expect(documentMachine.next('extracted', 'retry')).toBe('extracting')
+    expect(documentMachine.can('committed', 'reject')).toBe(false)
+    expect(documentMachine.can('failed', 'retry')).toBe(false)
+    expect(Object.keys(documentMachine.transitions).sort()).toEqual([
+      'committed',
+      'extracted',
+      'extracting',
+      'failed',
+      'needs_review',
+      'rejected',
+      'reviewed',
+      'uploaded',
+      'verifying',
+    ])
+    expect(reviewSessionMachine.next('open', 'submit')).toBe('submitted')
+    expect(reviewSessionMachine.next('open', 'abandon')).toBe('abandoned')
+    expect(reviewSessionMachine.can('submitted', 'abandon')).toBe(false)
   })
 })

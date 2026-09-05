@@ -34,6 +34,8 @@ import { receivablesContract } from './receivables.js'
 import { billingContract } from './billing.js'
 import { warehouseContract } from './warehouse.js'
 import { deliveryContract } from './delivery.js'
+import { docintContract } from './docint.js'
+import { integrationsContract } from './integrations.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -139,6 +141,10 @@ export const contract = {
   billing: billingContract,
   warehouse: warehouseContract,
   delivery: deliveryContract,
+  // Inbound document intake: capture → QR → extraction → SKU match → review → supplier invoice DRAFT (docint.ts).
+  docint: docintContract,
+  // The file bridge: the generic mapped importer (wizard + saved profiles), export jobs, Tally XML (integrations.ts).
+  integrations: integrationsContract,
 }
 
 export type AppContract = typeof contract

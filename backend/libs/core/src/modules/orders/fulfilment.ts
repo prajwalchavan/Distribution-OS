@@ -57,8 +57,15 @@ export interface FulfilmentLine {
   sellCaseSize: number
 }
 
-/** The three moves warehouse makes on the order aggregate. Nothing else may be driven from outside. */
-export type FulfilmentEvent = 'start_picking' | 'pack' | 'dispatch'
+/**
+ * The moves the godown and the van make on the order aggregate. Warehouse drives the first three
+ * (`picklists.start`, `packs.confirm`, `loadSheets.confirm`); DELIVERY drives the last three from the
+ * doorstep (coordination §3.9 and §4): `deliver_all` / `deliver_partial` after `recordDelivered`, and
+ * `return_undelivered` (`dispatched → packed`) for a failed stop or a trip that came back with the bill
+ * still on the van. Nothing else may be driven from outside.
+ */
+export type FulfilmentEvent =
+  'start_picking' | 'pack' | 'dispatch' | 'deliver_all' | 'deliver_partial' | 'return_undelivered'
 
 /** States a fulfilment queue is ever interested in: the order is confirmed but not yet out of the door. */
 export const FULFILMENT_STATES = [
@@ -282,6 +289,66 @@ export async function recordPick(
     await tx
       .update(salesOrderLines)
       .set({ pickedQtyPcs: line.pickedQtyPcs, updatedAt: now })
+      .where(eq(salesOrderLines.id, line.orderLineId))
+  }
+}
+
+export interface DeliveredLine {
+  orderLineId: string
+  /** Pieces the shop actually accepted at the door — paid and free alike. */
+  deliveredQtyPcs: number
+}
+
+/**
+ * Writes back what the shop accepted (coordination §3.9, the delivery slice's one addition here). The
+ * ONLY writer of `sales_order_lines.delivered_qty_pcs`, and — like `recordPick` — deliberately not a
+ * state change: the delivery module moves the order through `applyFulfilmentEvent('deliver_all' |
+ * 'deliver_partial')` right after. Additive on purpose: a bill delivered in two attempts (a failed
+ * stop, then a second trip) accumulates; a replay is guarded by the delivery's own idempotency, not
+ * here. Refuses a line that is not on the order, a negative quantity, and a total beyond the paid and
+ * free pieces of the line, because each means the caller has mis-summed its delivery lines.
+ */
+export async function recordDelivered(
+  tx: Db,
+  orderId: string,
+  delivered: readonly DeliveredLine[],
+): Promise<void> {
+  if (delivered.length === 0) return
+  const lines = await tx
+    .select({
+      id: salesOrderLines.id,
+      qtyPcs: salesOrderLines.qtyPcs,
+      freeQtyPcs: salesOrderLines.freeQtyPcs,
+      deliveredQtyPcs: salesOrderLines.deliveredQtyPcs,
+    })
+    .from(salesOrderLines)
+    .where(eq(salesOrderLines.orderId, orderId))
+  const byId = new Map(lines.map((l) => [l.id, l]))
+  for (const line of delivered) {
+    const ordered = byId.get(line.orderLineId)
+    if (!ordered)
+      throw new ORPCError('BAD_REQUEST', {
+        message: `line ${line.orderLineId} does not belong to order ${orderId}`,
+      })
+    const ceiling = ordered.qtyPcs + ordered.freeQtyPcs
+    if (
+      !Number.isInteger(line.deliveredQtyPcs) ||
+      line.deliveredQtyPcs < 0 ||
+      ordered.deliveredQtyPcs + line.deliveredQtyPcs > ceiling
+    )
+      throw new ORPCError('BAD_REQUEST', {
+        message: `delivered ${String(line.deliveredQtyPcs)} pieces on line ${line.orderLineId}, which has ${String(ceiling - ordered.deliveredQtyPcs)} left to deliver`,
+      })
+  }
+  const now = new Date()
+  for (const line of delivered) {
+    if (line.deliveredQtyPcs === 0) continue
+    await tx
+      .update(salesOrderLines)
+      .set({
+        deliveredQtyPcs: sql`${salesOrderLines.deliveredQtyPcs} + ${line.deliveredQtyPcs}`,
+        updatedAt: now,
+      })
       .where(eq(salesOrderLines.id, line.orderLineId))
   }
 }

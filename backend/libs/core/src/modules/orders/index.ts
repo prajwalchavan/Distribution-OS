@@ -12,6 +12,7 @@ export { checkCredit, outstandingPaise, type CreditVerdict } from '../receivable
  * Types only — the queries themselves stay behind the service, so nothing outside this module can run one.
  */
 export type {
+  DeliveredLine,
   FulfilmentEvent,
   FulfilmentLine,
   FulfilmentOrder,

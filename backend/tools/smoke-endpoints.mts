@@ -114,6 +114,9 @@ function destructiveReason(operationId: string): string | undefined {
 // ---------------------------------------------------------------------------------------------------------------
 // deterministic ids — so a second run replays instead of duplicating
 
+/** The one vehicle every service's throwaway trip is planned on; it never carries stock. */
+const SMOKE_VEHICLE_ID = '01920000-0000-7000-8000-00000000c0de'
+
 /** A stable UUIDv7-shaped id derived from a seed string. Same seed, same row, every run. */
 function stableUuid(seed: string): string {
   const h = createHash('sha256').update(seed).digest()
@@ -434,6 +437,113 @@ class Fixtures {
         order by m.created_at limit 1`,
       [this.tenantId, username],
     )
+  // --- delivery: the road, read live because every trip step moves the next one's row -------------
+  userIdOf = (username: string) =>
+    this.scalar(`user:${username}`, `select id from users where username=$1 limit 1`, [username])
+  /** The retailer at the top of the list who is NOT the retailer app's shop: a throwaway stop for it. */
+  stopRetailerId = () =>
+    this.scalar(
+      'stopRetailer',
+      `select id from retailers where tenant_id=$1 and active order by code desc limit 1`,
+      this.t(),
+    )
+  /** A bill that is packed or dispatched and rides on no trip: the one planned delivery this run makes. */
+  freeInvoice = () =>
+    this.rows(
+      `select i.id, i.retailer_id from invoices i join sales_orders o on o.id = i.order_id
+        where i.tenant_id=$1 and o.state::text in ('packed','dispatched')
+          and i.state::text in ('issued','partially_paid')
+          and not exists (select 1 from deliveries d where d.invoice_id = i.id)
+        order by i.id desc limit 1`,
+      this.t(),
+    ).then((r) => (r[0] ? { id: r[0].id as string, retailerId: r[0].retailer_id as string } : null))
+  invoiceLinesOf = (invoiceId: string) =>
+    this.rows(
+      `select id, qty_pcs, free_qty_pcs from invoice_lines where tenant_id=$1 and invoice_id=$2 order by line_no`,
+      [this.tenantId, invoiceId],
+    )
+  /** A trip the signed-in user may read: the desk any, the crew one it is on. */
+  visibleTrip = (actorId: string | null, crewOnly: boolean, states?: string[]) =>
+    this.liveScalar(
+      `select id from trips where tenant_id=$1
+          and ($2::text is null or not $3::boolean or driver_id=$2 or helper_id=$2)
+          and ($4::text[] is null or state::text = any($4))
+        order by (state::text='active') desc, trip_date desc, id desc limit 1`,
+      [this.tenantId, actorId, crewOnly, states ?? null],
+    )
+  /** The stop of a trip that still has to be visited; `withBill` = one with a planned delivery on it. */
+  openStopOf = (tripId: string, withBill: boolean) =>
+    this.liveScalar(
+      `select s.id from trip_stops s where s.tenant_id=$1 and s.trip_id=$2
+          and s.state::text in ('pending','started','arrived')
+          and ($3::boolean = exists (select 1 from deliveries d where d.stop_id = s.id and d.outcome is null))
+        order by s.sequence limit 1`,
+      [this.tenantId, tripId, withBill],
+    )
+  anyStopOf = (tripId: string) =>
+    this.liveScalar(
+      `select id from trip_stops where tenant_id=$1 and trip_id=$2 order by sequence limit 1`,
+      [this.tenantId, tripId],
+    )
+  stopSequence = (stopId: string) =>
+    this.liveScalar(`select sequence from trip_stops where tenant_id=$1 and id=$2`, [
+      this.tenantId,
+      stopId,
+    ])
+  plannedDeliveryOf = (tripId: string) =>
+    this.rows(
+      `select d.id, d.stop_id, d.invoice_id, d.retailer_id from deliveries d
+        where d.tenant_id=$1 and d.trip_id=$2 and d.outcome is null order by d.id limit 1`,
+      [this.tenantId, tripId],
+    ).then((r) =>
+      r[0]
+        ? {
+            id: r[0].id as string,
+            stopId: r[0].stop_id as string,
+            invoiceId: r[0].invoice_id as string,
+            retailerId: r[0].retailer_id as string,
+          }
+        : null,
+    )
+  /** A delivery the signed-in user may open: the shop its own, the crew its trip's, the desk any. */
+  visibleDelivery = (actorId: string | null, crewOnly: boolean, scopeRetailerId: string | null) =>
+    this.liveScalar(
+      `select d.id from deliveries d join trips t on t.id = d.trip_id
+        where d.tenant_id=$1 and d.outcome is not null
+          and ($2::text is null or d.retailer_id=$2)
+          and ($3::text is null or not $4::boolean or t.driver_id=$3 or t.helper_id=$3)
+        order by d.id desc limit 1`,
+      [this.tenantId, scopeRetailerId, actorId, crewOnly],
+    )
+  /**
+   * An ACTIVE trip with van sales on whose vehicle holds sellable pieces (the crew's own when
+   * `crewOnly`), and the variant with the most of them: a one-piece van sale from the real van.
+   */
+  vanSaleLine = (actorId: string | null, crewOnly: boolean) =>
+    this.rows(
+      `select t.id as trip_id, l.variant_id, (sb.on_hand - sb.reserved) as available
+         from trips t join vehicles v on v.id = t.vehicle_id
+         join stock_balances sb on sb.location_id = v.location_id and sb.tenant_id = t.tenant_id
+         join stock_lots l on l.id = sb.lot_id
+        where t.tenant_id=$1 and t.state::text = 'active' and t.van_sales_enabled
+          and ($2::text is null or not $3::boolean or t.driver_id=$2 or t.helper_id=$2)
+          and (sb.on_hand - sb.reserved) > 0
+        order by available desc, t.id, sb.lot_id limit 1`,
+      [this.tenantId, actorId, crewOnly],
+    ).then((r) =>
+      r[0] ? { tripId: r[0].trip_id as string, variantId: r[0].variant_id as string } : null,
+    )
+  vehicleId = () =>
+    this.scalar(
+      'vehicle',
+      `select id from vehicles where tenant_id=$1 and active order by reg_no limit 1`,
+      this.t(),
+    )
+  tripState = (tripId: string) =>
+    this.liveScalar(`select state::text from trips where tenant_id=$1 and id=$2`, [
+      this.tenantId,
+      tripId,
+    ])
   bargainAskedRate = (id: string) =>
     this.liveScalar(`select asked_rate_paise from bargain_requests where tenant_id=$1 and id=$2`, [
       this.tenantId,
@@ -660,6 +770,11 @@ interface GenContext {
   urlSeed: string
   /** Values the operation's override already decided, keyed by property name. */
   pinned: Record<string, unknown>
+  /**
+   * A POST to THIS service under THIS session, for the one plan that needs a row created just before
+   * it can run (`trips.cancel` cancels a plan of its own, never the demo's).
+   */
+  post: (path: string, body: Record<string, unknown>) => Promise<CallResult>
 }
 
 /** The value an OpenAPI node carries as an example, if any (several shapes are in the wild). */
@@ -975,6 +1090,15 @@ interface RunChain {
   orderId: string | null
   /** The throwaway receipt this run created, walked collected → deposited → reversed. */
   receiptId: string | null
+  /**
+   * The throwaway trip this run planned on the smoke vehicle and walked planned → loading → active →
+   * closing → settled, with one stop carrying a real bill (delivered at the door) and one to fail.
+   */
+  tripId: string | null
+  /** Days from today the throwaway trip is dated; the plan `trips.cancel` throws away sits the day after. */
+  tripDayOffset: number | null
+  stopWithBill: string | null
+  deliveryId: string | null
 }
 
 /** Runs later than its position in the document, because it invalidates what earlier ones need. */
@@ -991,6 +1115,33 @@ const ORDER_HINT: Record<string, number> = {
   // books: DR Cash / CR AR, DR Bank / CR Cash, then the mirror entry that undoes both.
   'receivables.receipts.deposit': 60,
   'receivables.receipts.reverse': 70,
+  // The road, in the order a day happens: the smoke vehicle, the plan with its two stops, the load,
+  // the departure, the door (bill, proof, money, van sale, expense, breadcrumbs, a shop closed), the
+  // return and the settlement. Each step needs the row the one before it left behind.
+  'delivery.vehicles.upsert': 20,
+  'delivery.trips.create': 21,
+  'delivery.stops.reorder': 22,
+  'delivery.trips.startLoading': 23,
+  'delivery.trips.depart': 24,
+  // after depart: the crew may add a stop only to its ACTIVE trip (a van-sale shop)
+  'delivery.stops.add': 25,
+  'delivery.stops.start': 26,
+  'delivery.stops.arrive': 27,
+  'delivery.deliveries.record': 28,
+  'delivery.deliveries.addPod': 29,
+  'delivery.collections.record': 30,
+  'delivery.vanSales.create': 31,
+  'delivery.expenses.record': 32,
+  'delivery.gps.points': 33,
+  'delivery.stops.fail': 34,
+  'delivery.trips.return': 40,
+  'delivery.trips.settlementPreview': 41,
+  'delivery.trips.settle': 42,
+  'delivery.gps.trace': 43,
+  'delivery.deliveries.get': 44,
+  'delivery.deliveries.list': 44,
+  'delivery.trips.get': 44,
+  'delivery.stops.next': 44,
 }
 
 async function planFor(
@@ -1366,6 +1517,377 @@ async function planFor(
       return orderId ? { pinned: { orderId } } : {}
     }
 
+    // --- delivery: one throwaway day on the road per run, on a smoke vehicle with no stock --------
+    // Like the order chain, the trip is once-through (settled trips do not reopen), so its ids are
+    // scoped to THIS run (`RUN_NONCE`): every run plans, drives and settles a fresh throwaway trip.
+    // ONE smoke vehicle for the whole harness, created by the first PIN_HOLDER service to run
+    // (owner), so the delivery service — which may not add a vehicle — still plans on a van that
+    // carries no stock. A real vehicle would carry the demo's van stock, and a settlement that counts
+    // nothing would write it off as a miscount.
+    case 'delivery.vehicles.upsert':
+      return {
+        pinned: {
+          id: SMOKE_VEHICLE_ID,
+          regNo: 'MH-05-SM-0001',
+          name: 'Smoke van',
+          kind: 'pickup',
+        },
+      }
+    case 'delivery.trips.create': {
+      if (!isAllowed(permissionFor(op.operationId), ctx.role)) return {}
+      const crewId =
+        ctx.role === 'delivery'
+          ? await fx.userIdOf(target.username)
+          : await fx.userIdOf('santosh.kamble')
+      const vehicle = await fx.liveScalar(`select id from vehicles where tenant_id=$1 and id=$2`, [
+        fx.tenantId,
+        SMOKE_VEHICLE_ID,
+      ])
+      const retailerId = await fx.stopRetailerId()
+      if (!crewId || !vehicle || !retailerId)
+        return {
+          skip: 'no smoke vehicle yet (owner-service creates it in delivery.vehicles.upsert) or no crew',
+        }
+      // stop 1 carries one real packed bill (delivered at the door later in the run) when any is
+      // free to ride; stop 2 carries nothing and is the one the crew fails ("shop closed")
+      const bill = await fx.freeInvoice()
+      // A driver is on one trip a day, so each run walks the date forward: slot per service, seven
+      // days per earlier run of the day, never a date two runs or two services share.
+      const earlier = await fx.liveScalar(
+        `select count(*) from trips where tenant_id=$1 and driver_id=$2 and created_at::date = current_date`,
+        [fx.tenantId, crewId],
+      )
+      const dayOffset = 2 + servicePhoneSlot(target.name) + 7 * Number(earlier ?? 0)
+      chain.tripDayOffset = dayOffset
+      const tripDate = istDate(dayOffset)
+      return {
+        body: {
+          idempotencyKey: 'sealed below',
+          id: stableUuid(`${RUN_NONCE}:${target.name}:trip`),
+          tripDate,
+          vehicleId: vehicle,
+          driverId: crewId,
+          vanSalesEnabled: true,
+          openingCashPaise: 0,
+          stops: [
+            ...(bill
+              ? [
+                  {
+                    id: stableUuid(`${RUN_NONCE}:${target.name}:trip:stop-1`),
+                    sequence: 1,
+                    retailerId: bill.retailerId,
+                    invoiceIds: [bill.id],
+                  },
+                ]
+              : []),
+            {
+              id: stableUuid(`${RUN_NONCE}:${target.name}:trip:stop-2`),
+              sequence: 2,
+              retailerId,
+              invoiceIds: [],
+            },
+          ],
+        },
+      }
+    }
+    // A cancelled trip is terminal and the idempotent seed never recreates one, so pointing this at
+    // the demo's planned trip (the published example) would take the delivery app's "tomorrow" away
+    // for good on the first `--destructive` run. The run cancels a plan of its own instead: a second
+    // throwaway trip on the smoke vehicle, dated the day after this run's day trip so the same
+    // driver is free, with one stop and no bill. Nothing outside the smoke vehicle is touched.
+    case 'delivery.trips.cancel': {
+      if (!isAllowed(permissionFor(op.operationId), ctx.role))
+        return { pathParams: { id: await fx.visibleTrip(null, false) } }
+      if (!chain.tripId || chain.tripDayOffset === null)
+        return { skip: 'no throwaway trip: delivery.trips.create did not run' }
+      const crewId =
+        ctx.role === 'delivery'
+          ? await fx.userIdOf(target.username)
+          : await fx.userIdOf('santosh.kamble')
+      const retailerId = await fx.stopRetailerId()
+      if (!crewId || !retailerId) return { skip: 'no crew or no shop for a plan to cancel' }
+      const id = stableUuid(`${RUN_NONCE}:${target.name}:trip-to-cancel`)
+      const planned = await ctx.post('/delivery/trips', {
+        idempotencyKey: `smoke:${target.name}:trip-to-cancel:${RUN_NONCE}`,
+        id,
+        tripDate: istDate(chain.tripDayOffset + 1),
+        vehicleId: SMOKE_VEHICLE_ID,
+        driverId: crewId,
+        vanSalesEnabled: true,
+        openingCashPaise: 0,
+        stops: [
+          {
+            id: stableUuid(`${RUN_NONCE}:${target.name}:trip-to-cancel:stop-1`),
+            sequence: 1,
+            retailerId,
+            invoiceIds: [],
+          },
+        ],
+      })
+      if (planned.status !== 200)
+        return {
+          skip: `could not plan a trip to cancel: delivery.trips.create → HTTP ${String(planned.status)} ${messageOf(planned.body)}`,
+        }
+      return { pathParams: { id }, pinned: { id, reason: 'pnpm smoke: a plan that never left' } }
+    }
+    case 'delivery.stops.add': {
+      if (!chain.tripId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no throwaway trip: delivery.trips.create did not run' }
+          : { pathParams: { id: await fx.visibleTrip(null, false) } }
+      const retailerId = await fx.stopRetailerId()
+      return {
+        pathParams: { id: chain.tripId },
+        body: {
+          idempotencyKey: 'sealed below',
+          id: chain.tripId,
+          stop: {
+            id: stableUuid(`${RUN_NONCE}:${target.name}:trip:stop-3`),
+            sequence: 3,
+            retailerId: retailerId ?? '',
+            invoiceIds: [],
+          },
+        },
+      }
+    }
+    case 'delivery.stops.reorder': {
+      const tripId = chain.tripId ?? (await fx.visibleTrip(null, false))
+      if (!tripId) return { skip: 'no trip in the demo data' }
+      const stopId = await fx.anyStopOf(tripId)
+      const sequence = stopId ? await fx.stopSequence(stopId) : null
+      if (!stopId || sequence === null) return { skip: 'the trip has no stop to reorder' }
+      return {
+        pathParams: { id: tripId },
+        body: {
+          idempotencyKey: 'sealed below',
+          id: tripId,
+          order: [{ stopId, sequence: Number(sequence) }],
+        },
+      }
+    }
+    // The three moves only ever touch THIS run's throwaway trip: pointed at a demo trip they would
+    // take the founder's active trip off the road. A role that may not call them is still pressed
+    // (against any trip it can see) so the 403 the matrix promises is proven.
+    case 'delivery.trips.startLoading':
+    case 'delivery.trips.depart':
+    case 'delivery.trips.return': {
+      if (chain.tripId) return { pathParams: { id: chain.tripId }, pinned: { id: chain.tripId } }
+      if (isAllowed(permissionFor(op.operationId), ctx.role))
+        return { skip: 'no throwaway trip: delivery.trips.create did not run' }
+      const any = await fx.visibleTrip(null, false)
+      return any ? { pathParams: { id: any }, pinned: { id: any } } : {}
+    }
+    case 'delivery.trips.get':
+    case 'delivery.trips.settlementPreview':
+    case 'delivery.stops.next':
+    case 'delivery.gps.trace': {
+      const actor = await fx.userIdOf(target.username)
+      const tripId = chain.tripId ?? (await fx.visibleTrip(actor, ctx.role === 'delivery'))
+      return tripId ? { pathParams: { id: tripId } } : { skip: 'no trip in the demo data' }
+    }
+    case 'delivery.stops.start':
+    case 'delivery.stops.arrive': {
+      const tripId = chain.tripId
+      const stopId = tripId ? await fx.openStopOf(tripId, true) : null
+      if (!stopId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no open stop with a bill on the throwaway trip' }
+          : { pathParams: { id: await fx.anyStopOf((await fx.visibleTrip(null, false)) ?? '') } }
+      return {
+        pathParams: { id: stopId },
+        pinned: {
+          id: stopId,
+          ...(op.operationId === 'delivery.stops.arrive' ? { lat: 19.2437, lng: 73.1355 } : {}),
+        },
+      }
+    }
+    case 'delivery.stops.fail': {
+      const stopId = chain.tripId ? await fx.openStopOf(chain.tripId, false) : null
+      if (!stopId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no open stop without a bill on the throwaway trip' }
+          : { pathParams: { id: await fx.anyStopOf((await fx.visibleTrip(null, false)) ?? '') } }
+      return {
+        pathParams: { id: stopId },
+        body: {
+          idempotencyKey: 'sealed below',
+          id: stopId,
+          failureReason: 'shop_closed',
+        },
+      }
+    }
+    case 'delivery.deliveries.record': {
+      const planned = chain.tripId ? await fx.plannedDeliveryOf(chain.tripId) : null
+      if (!planned)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? {
+              skip: 'no planned bill on the throwaway trip (no packed bill was free to ride on it)',
+            }
+          : {}
+      const lines = await fx.invoiceLinesOf(planned.invoiceId)
+      return {
+        body: {
+          idempotencyKey: 'sealed below',
+          id: planned.id,
+          tripId: chain.tripId,
+          stopId: planned.stopId,
+          invoiceId: planned.invoiceId,
+          receiverName: 'Shop staff',
+          lines: lines.map((l, i) => ({
+            id: stableUuid(`${RUN_NONCE}:${target.name}:delivery-line:${String(i)}`),
+            invoiceLineId: l.id,
+            deliveredQtyPcs: Number(l.qty_pcs) + Number(l.free_qty_pcs),
+            returnedQtyPcs: 0,
+          })),
+          pod: [
+            {
+              id: stableUuid(`${RUN_NONCE}:${target.name}:pod`),
+              kind: 'signature',
+              inline: {
+                mimeType: 'image/png',
+                contentBase64:
+                  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+              },
+            },
+          ],
+        },
+      }
+    }
+    case 'delivery.deliveries.addPod': {
+      const actor = await fx.userIdOf(target.username)
+      const deliveryId =
+        chain.deliveryId ??
+        (await fx.visibleDelivery(actor, ctx.role === 'delivery', ctx.scopeRetailerId))
+      if (!deliveryId) return { skip: 'no delivery in the demo data' }
+      return {
+        pathParams: { id: deliveryId },
+        pinned: {
+          id: deliveryId,
+          'evidence.id': stableUuid(`${RUN_NONCE}:${target.name}:pod-geo`),
+        },
+      }
+    }
+    case 'delivery.deliveries.get': {
+      const actor = await fx.userIdOf(target.username)
+      const deliveryId =
+        chain.deliveryId ??
+        (await fx.visibleDelivery(actor, ctx.role === 'delivery', ctx.scopeRetailerId))
+      return deliveryId
+        ? { pathParams: { id: deliveryId } }
+        : { skip: 'no delivery in the demo data' }
+    }
+    case 'delivery.collections.record': {
+      if (!chain.tripId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no throwaway trip: delivery.trips.create did not run' }
+          : {}
+      const stopId = await fx.anyStopOf(chain.tripId)
+      const retailerId = stopId
+        ? await fx.liveScalar(`select retailer_id from trip_stops where id=$1`, [stopId])
+        : null
+      if (!retailerId) return { skip: 'the throwaway trip has no stop' }
+      return {
+        body: {
+          idempotencyKey: 'sealed below',
+          id: stableUuid(`${RUN_NONCE}:${target.name}:collection`),
+          receiptId: stableUuid(`${RUN_NONCE}:${target.name}:collection-receipt`),
+          tripId: chain.tripId,
+          stopId,
+          retailerId,
+          mode: 'cash',
+          // One rupee, on account when the shop owes nothing: enough to prove the receipt and the
+          // journal entry, small enough to leave the demo books readable.
+          amountPaise: 100,
+        },
+      }
+    }
+    case 'delivery.vanSales.create': {
+      // The smoke vehicle carries no stock, so the van sale is made from the real active trip's
+      // van (the tempo the warehouse seed loaded): one piece, so the demo van never runs dry.
+      const actor = await fx.userIdOf(target.username)
+      const line = await fx.vanSaleLine(actor, ctx.role === 'delivery')
+      const retailerId = await fx.stopRetailerId()
+      if (!line || !retailerId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no active trip with van sales on and stock on its vehicle' }
+          : {}
+      return {
+        body: {
+          idempotencyKey: 'sealed below',
+          id: stableUuid(`${RUN_TAG}:${target.name}:van-sale`),
+          tripId: line.tripId,
+          retailerId,
+          invoiceId: stableUuid(`${RUN_TAG}:${target.name}:van-sale-invoice`),
+          deliveryId: stableUuid(`${RUN_TAG}:${target.name}:van-sale-delivery`),
+          lines: [
+            {
+              id: stableUuid(`${RUN_TAG}:${target.name}:van-sale-line`),
+              variantId: line.variantId,
+              enteredQty: 1,
+              enteredUnit: 'piece',
+            },
+          ],
+        },
+      }
+    }
+    case 'delivery.expenses.record': {
+      const tripId = chain.tripId ?? (await fx.visibleTrip(null, false, ['active', 'closing']))
+      if (!tripId) return { skip: 'no trip on the road' }
+      return {
+        pinned: {
+          id: stableUuid(`${RUN_NONCE}:${target.name}:expense`),
+          tripId,
+          amountPaise: 100,
+        },
+      }
+    }
+    case 'delivery.gps.points': {
+      const actor = await fx.userIdOf(target.username)
+      const tripId = chain.tripId ?? (await fx.visibleTrip(actor, true, ['active']))
+      if (!tripId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no active trip the signed-in user is crew on' }
+          : {}
+      const at = `${istDate()}T04:00:00.000Z`
+      return {
+        body: {
+          idempotencyKey: 'sealed below',
+          tripId,
+          deviceId: deviceIdFor(target.username),
+          points: [
+            { recordedAt: at, lat: 19.2455, lng: 73.1305, accuracyM: 8, speedMps: 3 },
+            { recordedAt: `${istDate()}T04:00:30.000Z`, lat: 19.2458, lng: 73.131, accuracyM: 8 },
+          ],
+        },
+      }
+    }
+    case 'delivery.trips.settle': {
+      if (!chain.tripId)
+        return isAllowed(permissionFor(op.operationId), ctx.role)
+          ? { skip: 'no throwaway trip: delivery.trips.create did not run' }
+          : {}
+      // Handed over exactly what the cockpit expects: opening 0 + the one-rupee collection − the
+      // one-rupee expense. Nothing sits on the smoke vehicle, so no lot is counted.
+      const expected = await fx.liveScalar(
+        `select t.opening_cash_paise
+              + coalesce((select sum(c.amount_paise) from collections c where c.trip_id=t.id and c.mode='cash'), 0)
+              - coalesce((select sum(e.amount_paise) from trip_expenses e where e.trip_id=t.id), 0)
+           from trips t where t.tenant_id=$1 and t.id=$2`,
+        [fx.tenantId, chain.tripId],
+      )
+      return {
+        pathParams: { id: chain.tripId },
+        body: {
+          idempotencyKey: 'sealed below',
+          id: stableUuid(`${RUN_NONCE}:${target.name}:settlement`),
+          tripId: chain.tripId,
+          handedOverCashPaise: Math.max(0, Number(expected ?? 0)),
+          counted: [],
+          note: 'pnpm smoke: the throwaway trip, settled to the paisa',
+        },
+      }
+    }
+
     // --- staff: never point a status/password change at the account this run is signed in as -----
     case 'tenancy.staff.setStatus':
     case 'tenancy.staff.setPassword': {
@@ -1489,10 +2011,14 @@ function classify(
   return { classification: 'BROKEN', reason: `unexpected status ${status}` }
 }
 
-async function callJson(
-  url: string,
-  init: RequestInit,
-): Promise<{ status: number | null; body: unknown; ms: number; transport?: string }> {
+interface CallResult {
+  status: number | null
+  body: unknown
+  ms: number
+  transport?: string
+}
+
+async function callJson(url: string, init: RequestInit): Promise<CallResult> {
   const started = Date.now()
   try {
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
@@ -1617,6 +2143,10 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
     tenantId: session.tenantId,
     orderId: null,
     receiptId: null,
+    tripId: null,
+    tripDayOffset: null,
+    stopWithBill: null,
+    deliveryId: null,
   }
   const results: Result[] = []
 
@@ -1652,6 +2182,12 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       scopeRetailerId,
       urlSeed: op.path,
       pinned: {},
+      post: (path, body) =>
+        callJson(`${base}${path}`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(body),
+        }),
     }
     const plan = await planFor(op, ctx, chain, target)
     if (plan.skip) {
@@ -1800,6 +2336,14 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       const b = res.body as { items?: { id: string; current: boolean }[] } | null
       chain.sessionId = b?.items?.find((s) => !s.current)?.id ?? null
     }
+    if (op.operationId === 'delivery.trips.create') {
+      const b = res.body as { item?: { id?: string } } | null
+      if (b?.item?.id) chain.tripId = b.item.id
+    }
+    if (op.operationId === 'delivery.deliveries.record') {
+      const b = res.body as { item?: { id?: string } } | null
+      if (b?.item?.id) chain.deliveryId = b.item.id
+    }
   }
 
   return results
@@ -1863,6 +2407,70 @@ function tally(results: Result[]): Record<Classification, number> {
   return counts
 }
 
+/**
+ * A service whose role cannot finish the day leaves its throwaway trip open: the godown plans and
+ * departs but never returns (not DOORSTEP), the crew returns but never settles (not the money desk).
+ * Left alone those trips pile up as `active` / `closing` rows dated weeks ahead and crowd the trip
+ * board and the docs. So the run ends the way a day does: the owner returns whatever is still out on
+ * the smoke vehicle and settles whatever is closing, to the paisa (nothing sits on that van, so no lot
+ * is counted); a plan that never left is cancelled. Nothing outside the smoke vehicle is touched.
+ */
+async function sweepSmokeTrips(owner: LoginResult, fx: Fixtures): Promise<void> {
+  const open = await fx.rows(
+    `select t.id, t.state::text as state, t.opening_cash_paise,
+            coalesce((select sum(c.amount_paise) from collections c where c.trip_id = t.id and c.mode = 'cash'), 0) as cash,
+            coalesce((select sum(e.amount_paise) from trip_expenses e where e.trip_id = t.id), 0) as spent
+       from trips t join vehicles v on v.id = t.vehicle_id
+      where t.tenant_id = $1 and (v.id = $2 or v.reg_no like 'MH-05-SM-%')
+        and t.state::text in ('planned', 'loading', 'active', 'closing')
+      order by t.id`,
+    [fx.tenantId, SMOKE_VEHICLE_ID],
+  )
+  if (open.length === 0) return
+  const headers = {
+    authorization: `Bearer ${owner.accessToken}`,
+    'content-type': 'application/json',
+  }
+  const base = `http://localhost:${String(SERVICES.find((s) => s.name === 'owner')?.port ?? 3001)}`
+  const post = (path: string, body: Record<string, unknown>) =>
+    callJson(`${base}${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ idempotencyKey: `smoke:sweep:${RUN_NONCE}:${path}`, ...body }),
+    })
+  let swept = 0
+  for (const trip of open) {
+    const id = trip.id as string
+    let state = trip.state as string
+    if (state === 'planned' || state === 'loading') {
+      const res = await post(`/delivery/trips/${id}/cancel`, { id, reason: 'pnpm smoke: sweep' })
+      if (res.status === 200) swept += 1
+      continue
+    }
+    if (state === 'active') {
+      const res = await post(`/delivery/trips/${id}/return`, { id })
+      if (res.status !== 200) continue
+      state = 'closing'
+    }
+    if (state === 'closing') {
+      const expected = Number(trip.opening_cash_paise) + Number(trip.cash) - Number(trip.spent)
+      const res = await post(`/delivery/trips/${id}/settle`, {
+        id: stableUuid(`${RUN_NONCE}:sweep:settlement:${id}`),
+        tripId: id,
+        handedOverCashPaise: Math.max(0, expected),
+        counted: [],
+        acceptVariance: true,
+        note: 'pnpm smoke: sweep of a throwaway trip left open by a role that cannot settle',
+      })
+      if (res.status === 200) swept += 1
+    }
+  }
+  out()
+  out(
+    `   sweep: ${String(swept)} of ${String(open.length)} throwaway trip(s) on the smoke vehicle closed by the owner`,
+  )
+}
+
 async function main(): Promise<void> {
   const targets = ONLY_SERVICE ? SERVICES.filter((s) => s.name === ONLY_SERVICE) : SERVICES
   if (targets.length === 0) {
@@ -1901,6 +2509,7 @@ async function main(): Promise<void> {
     all.push(...results)
   }
 
+  await sweepSmokeTrips(owner, fx)
   await fx.close()
 
   const skipped = all.filter((r) => r.classification === 'SKIPPED')

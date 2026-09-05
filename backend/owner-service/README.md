@@ -186,6 +186,38 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/delivery/vehicles` | Vehicles of this distributor | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/vehicles` | Create or update a vehicle (and its stock location) | owner, manager |
+| GET | `/delivery/vehicle-positions` | Where every vehicle is now — the live map (audited read) | owner, manager |
+| POST | `/delivery/consents` | Record the caller's answer to the location-tracking notice (DPDP) | owner, manager, delivery |
+| GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
+| POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
+| GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (needs the driver's location consent) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
+| POST | `/delivery/trips/{id}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
+| GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/delivery/trips/{id}/next-stop` | The next open stop of a trip with the shop to visit | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/trips/{id}/stops` | Add a stop to a trip (a late bill, or the shop a van sale goes to) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/stops/reorder` | Re-sequence the open stops of a trip | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/start` | Heading to the stop: pending → started | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/arrive` | At the door: started → arrived, with the geofence distance as evidence | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/fail` | Nothing delivered: arrived → failed with a reason; stock stays on the van | owner, manager, delivery |
+| POST | `/delivery/deliveries` | Deliver a bill in full or in part with proof; a shortfall or return raises one credit note | owner, manager, delivery |
+| POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
+| GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
+| GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
+| GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
+| POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
+| GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
+| POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
+| GET | `/delivery/trips/{id}/trace` | Replay a trip's track (audited read) | owner, manager |
 
 ### GET `/health/ping`
 
@@ -21270,6 +21302,5225 @@ curl "http://localhost:3001/files/read-url?objectKey=docs%2F2026%2F09%2Finvoice-
 }
 ```
 
+### GET `/delivery/vehicles`
+
+Vehicles of this distributor · contract `delivery.vehicles.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `activeOnly` | boolean | string | no |
+| `kind` | tempo | three_wheeler | pickup | truck | bike | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/vehicles?activeOnly=true&kind=tempo" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "regNo": "SO-0042",
+      "name": "Sharma Kirana Store",
+      "kind": "tempo",
+      "capacityCases": 1,
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "active": true,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/vehicles`
+
+Create or update a vehicle (and its stock location) · contract `delivery.vehicles.upsert`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `regNo` | string | yes |
+| `name` | string | no |
+| `kind` | tempo | three_wheeler | pickup | truck | bike | no |
+| `capacityCases` | integer | no |
+| `active` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/vehicles" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "regNo": "SO-0042",
+  "name": "Sharma Kirana Store",
+  "kind": "tempo",
+  "capacityCases": 1,
+  "active": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "regNo": "SO-0042",
+    "name": "Sharma Kirana Store",
+    "kind": "tempo",
+    "capacityCases": 1,
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "active": true,
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "created": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/vehicle-positions`
+
+Where every vehicle is now — the live map (audited read) · contract `delivery.vehicles.positions`
+
+**Roles:** owner, manager
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `vehicleId` | uuid | no |
+| `staleAfterMinutes` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/vehicle-positions?vehicleId=01a06d9c-98d8-7445-8ff2-d0ee7a6163da&staleAfterMinutes=30" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+      "regNo": "SO-0042",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "tripNo": "SO-0042",
+      "tripState": "planned",
+      "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+      "lat": 19.2403,
+      "lng": 73.1305,
+      "recordedAt": "2026-09-04T10:30:00.000Z",
+      "updatedAt": "2026-09-04T10:30:00.000Z",
+      "stale": true,
+      "stopsDone": 1,
+      "stopsPlanned": 1
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/consents`
+
+Record the caller's answer to the location-tracking notice (DPDP) · contract `delivery.consents.grant`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `granted` | boolean | yes |
+| `noticeVersion` | string | yes |
+| `locale` | en-IN | hi-IN | mr-IN | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/consents" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "granted": true,
+  "noticeVersion": "text",
+  "locale": "en-IN",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "granted": true,
+    "noticeVersion": "text",
+    "locale": "en-IN",
+    "grantedAt": "2026-09-04T10:30:00.000Z",
+    "withdrawnAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/consents`
+
+The current location consent of the caller (or of a driver, for the desk) · contract `delivery.consents.get`
+
+**Roles:** owner, manager, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/consents?userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "granted": true,
+    "noticeVersion": "text",
+    "locale": "en-IN",
+    "grantedAt": "2026-09-04T10:30:00.000Z",
+    "withdrawnAt": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips`
+
+Plan a trip with its stops · contract `delivery.trips.create`
+
+**Roles:** owner, manager, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripDate` | date | yes |
+| `vehicleId` | uuid | yes |
+| `driverId` | uuid | yes |
+| `helperId` | uuid | no |
+| `vanSalesEnabled` | boolean | no |
+| `openingCashPaise` | integer | no |
+| `stops` | object[] | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripDate": "2026-09-04",
+  "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+  "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+  "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+  "vanSalesEnabled": false,
+  "openingCashPaise": 0,
+  "stops": [],
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trips`
+
+Trips (the crew sees only its own) · contract `delivery.trips.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `state` | planned | loading | active | closing | settled | settled_with_variance | cancelled | no |
+| `states` | planned | loading | active | closing | settled | settled_with_variance | cancelled[] | no |
+| `vehicleId` | uuid | no |
+| `driverId` | uuid | no |
+| `from` | date | no |
+| `to` | date | no |
+| `mine` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/trips?state=planned&vehicleId=01a06d9c-98d8-7445-8ff2-d0ee7a6163da&driverId=01a06d0f-6f2a-7a8b-8ee0-f77be48eb068&from=2026-09-04&to=2026-09-04&mine=false&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripNo": "SO-0042",
+      "tripDate": "2026-09-04",
+      "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+      "vehicleRegNo": "SO-0042",
+      "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+      "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+      "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+      "state": "planned",
+      "vanSalesEnabled": true,
+      "plannedStops": 1,
+      "stopsCompleted": 1,
+      "startOdometerKm": 1,
+      "endOdometerKm": 1,
+      "openingCashPaise": 4000,
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "endedAt": null,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trips/{id}`
+
+One trip with stops, collections, expenses, settlement and the tenant's policy · contract `delivery.trips.get`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/start-loading`
+
+planned → loading: the godown builds the load sheet · contract `delivery.trips.startLoading`
+
+**Roles:** owner, manager, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/start-loading" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/depart`
+
+Start the trip: loading → active (needs the driver's location consent) · contract `delivery.trips.depart`
+
+**Roles:** owner, manager, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `startOdometerKm` | integer | no |
+| `openingCashPaise` | integer | no |
+| `occurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/depart" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "startOdometerKm": 1,
+  "openingCashPaise": 4000,
+  "occurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/return`
+
+Check in: active → closing; open stops fail and their orders go back to packed · contract `delivery.trips.return`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `endOdometerKm` | integer | no |
+| `occurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/return" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "endOdometerKm": 1,
+  "occurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/cancel`
+
+Cancel a trip that has not left (planned / loading) · contract `delivery.trips.cancel`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trips/{id}/settlement`
+
+The check-in cockpit: expected cash, collections by mode, expenses, van stock · contract `delivery.trips.settlementPreview`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/settlement" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "tripState": "planned",
+  "openingCashPaise": 4000,
+  "cashCollectedPaise": 4000,
+  "upiCollectedPaise": 4000,
+  "chequeCollectedPaise": 4000,
+  "expensesPaise": 4000,
+  "expectedCashPaise": 4000,
+  "tolerancePaise": 4000,
+  "expectedVanStock": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "batchNo": "SO-0042",
+      "expiryDate": "2026-09-04",
+      "caseSize": 24,
+      "expectedPcs": 24,
+      "cases": 1,
+      "loosePcs": 24
+    }
+  ],
+  "stopsPlanned": 1,
+  "stopsDelivered": 1,
+  "stopsPartial": 1,
+  "stopsFailed": 1,
+  "collectionsCount": 1,
+  "settlement": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "expectedCashPaise": 4000,
+    "handedOverCashPaise": 4000,
+    "cashVariancePaise": 4000,
+    "upiCollectedPaise": 4000,
+    "chequeCollectedPaise": 4000,
+    "expensesPaise": 4000,
+    "stockVariance": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "deltaPcs": 24
+      }
+    ],
+    "hasVariance": true,
+    "settledBy": null,
+    "settledAt": "2026-09-04T10:30:00.000Z",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "note": null
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/settle`
+
+Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner · contract `delivery.trips.settle`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+| `handedOverCashPaise` | integer | yes |
+| `counted` | object[] | no |
+| `note` | string | no |
+| `acceptVariance` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/settle" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "handedOverCashPaise": 4000,
+  "counted": [],
+  "note": "Confirmed on phone with the shopkeeper",
+  "acceptVariance": false
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "expectedCashPaise": 4000,
+    "handedOverCashPaise": 4000,
+    "cashVariancePaise": 4000,
+    "upiCollectedPaise": 4000,
+    "chequeCollectedPaise": 4000,
+    "expensesPaise": 4000,
+    "stockVariance": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "expectedPcs": 24,
+        "countedPcs": 24,
+        "deltaPcs": 24
+      }
+    ],
+    "hasVariance": true,
+    "settledBy": null,
+    "settledAt": "2026-09-04T10:30:00.000Z",
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "note": null
+  },
+  "tripState": "planned",
+  "stockAdjustments": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "expectedPcs": 24,
+      "countedPcs": 24,
+      "deltaPcs": 24
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/stops`
+
+Stops (a shop sees only its own, with an ETA and never a coordinate) · contract `delivery.stops.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | no |
+| `retailerId` | uuid | no |
+| `state` | pending | started | arrived | delivered | partial | failed | skipped | no |
+| `date` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/stops?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&state=pending&date=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "sequence": 1,
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "state": "pending",
+      "failureReason": null,
+      "failureNote": "Confirmed on phone with the shopkeeper",
+      "plannedCollectionPaise": 4000,
+      "etaAt": "2026-09-04T10:30:00.000Z",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "arrivedAt": "2026-09-04T10:30:00.000Z",
+      "completedAt": "2026-09-04T10:30:00.000Z",
+      "arrivedLat": 19.2403,
+      "arrivedLng": 73.1305,
+      "vehicleRegNo": "SO-0042",
+      "deliveries": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+          "invoiceNo": "SO-0042",
+          "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+          "invoiceTotalPaise": 2680000,
+          "outcome": "delivered",
+          "deliveredAt": "2026-09-04T10:30:00.000Z",
+          "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+        }
+      ],
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trips/{id}/next-stop`
+
+The next open stop of a trip with the shop to visit · contract `delivery.stops.next`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/next-stop" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "state": "pending",
+    "failureReason": null,
+    "failureNote": "Confirmed on phone with the shopkeeper",
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedLat": 19.2403,
+    "arrivedLng": 73.1305,
+    "vehicleRegNo": "SO-0042",
+    "deliveries": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "invoiceTotalPaise": 2680000,
+        "outcome": "delivered",
+        "deliveredAt": "2026-09-04T10:30:00.000Z",
+        "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+      }
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "retailer": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "name": "Sharma Kirana Store",
+    "ownerName": "Ramesh Sharma",
+    "phone": "+919876543210",
+    "address": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "lat": 19.2403,
+    "lng": 73.1305,
+    "gstin": "27AAPFU0939F1ZV",
+    "paymentTerms": "PRE"
+  },
+  "remaining": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/stops`
+
+Add a stop to a trip (a late bill, or the shop a van sale goes to) · contract `delivery.stops.add`
+
+**Roles:** owner, manager, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `stop` | object | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/stops" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "stop": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "invoiceIds": [],
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z"
+  },
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/trips/{id}/stops/reorder`
+
+Re-sequence the open stops of a trip · contract `delivery.stops.reorder`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `order` | object[] | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/stops/reorder" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "order": [
+    {
+      "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "sequence": 1
+    }
+  ],
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/stops/{id}/start`
+
+Heading to the stop: pending → started · contract `delivery.stops.start`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `occurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/stops/01a06d17-0be7-794a-8dab-9b14cf78673b/start" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "occurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "state": "pending",
+    "failureReason": null,
+    "failureNote": "Confirmed on phone with the shopkeeper",
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedLat": 19.2403,
+    "arrivedLng": 73.1305,
+    "vehicleRegNo": "SO-0042",
+    "deliveries": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "invoiceTotalPaise": 2680000,
+        "outcome": "delivered",
+        "deliveredAt": "2026-09-04T10:30:00.000Z",
+        "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+      }
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/stops/{id}/arrive`
+
+At the door: started → arrived, with the geofence distance as evidence · contract `delivery.stops.arrive`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lat` | number | no |
+| `lng` | number | no |
+| `accuracyM` | number | no |
+| `occurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/stops/01a06d17-0be7-794a-8dab-9b14cf78673b/arrive" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lat": 19.2403,
+  "lng": 73.1305,
+  "accuracyM": 1,
+  "occurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "state": "pending",
+    "failureReason": null,
+    "failureNote": "Confirmed on phone with the shopkeeper",
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedLat": 19.2403,
+    "arrivedLng": 73.1305,
+    "vehicleRegNo": "SO-0042",
+    "deliveries": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "invoiceTotalPaise": 2680000,
+        "outcome": "delivered",
+        "deliveredAt": "2026-09-04T10:30:00.000Z",
+        "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+      }
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "distanceM": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/stops/{id}/fail`
+
+Nothing delivered: arrived → failed with a reason; stock stays on the van · contract `delivery.stops.fail`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `failureReason` | shop_closed | refused | no_cash | wrong_address | damaged_goods | other | yes |
+| `failureNote` | string | no |
+| `occurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/stops/01a06d17-0be7-794a-8dab-9b14cf78673b/fail" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "failureReason": "shop_closed",
+  "failureNote": "Confirmed on phone with the shopkeeper",
+  "occurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "state": "pending",
+    "failureReason": null,
+    "failureNote": "Confirmed on phone with the shopkeeper",
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedLat": 19.2403,
+    "arrivedLng": 73.1305,
+    "vehicleRegNo": "SO-0042",
+    "deliveries": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "invoiceTotalPaise": 2680000,
+        "outcome": "delivered",
+        "deliveredAt": "2026-09-04T10:30:00.000Z",
+        "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+      }
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "deliveries": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "outcome": "delivered",
+      "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+      "deliveredAt": "2026-09-04T10:30:00.000Z",
+      "receiverName": "text",
+      "note": null,
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+      "shortPcs": 24,
+      "returnedPcs": 24,
+      "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+      "podKinds": [
+        "photo"
+      ],
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/deliveries`
+
+Deliver a bill in full or in part with proof; a shortfall or return raises one credit note · contract `delivery.deliveries.record`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+| `stopId` | uuid | yes |
+| `invoiceId` | uuid | yes |
+| `receiverName` | string | no |
+| `note` | string | no |
+| `deliveredAt` | datetime | no |
+| `deviceId` | string | no |
+| `lines` | object[] | yes |
+| `pod` | object[] | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/deliveries" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+  "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+  "receiverName": "text",
+  "note": "Confirmed on phone with the shopkeeper",
+  "deliveredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+      "deliveredQtyPcs": 24,
+      "returnedQtyPcs": 0,
+      "returnedSaleable": true,
+      "reason": "refused"
+    }
+  ],
+  "pod": []
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "outcome": "delivered",
+    "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "receiverName": "text",
+    "note": null,
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "shortPcs": 24,
+    "returnedPcs": 24,
+    "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+    "podKinds": [
+      "photo"
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "deliveredQtyPcs": 24,
+        "returnedQtyPcs": 24,
+        "returnedSaleable": true,
+        "reason": null
+      }
+    ],
+    "pod": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+        "kind": "photo",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "capturedAt": "2026-09-04T10:30:00.000Z",
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "creditNote": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "creditNoteNo": "Confirmed on phone with the shopkeeper",
+      "noteDate": "2026-09-04",
+      "reason": "short_delivery",
+      "state": "draft",
+      "totalPaise": 2680000
+    }
+  },
+  "stop": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "sequence": 1,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "state": "pending",
+    "failureReason": null,
+    "failureNote": "Confirmed on phone with the shopkeeper",
+    "plannedCollectionPaise": 4000,
+    "etaAt": "2026-09-04T10:30:00.000Z",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "arrivedLat": 19.2403,
+    "arrivedLng": 73.1305,
+    "vehicleRegNo": "SO-0042",
+    "deliveries": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "invoiceTotalPaise": 2680000,
+        "outcome": "delivered",
+        "deliveredAt": "2026-09-04T10:30:00.000Z",
+        "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+      }
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/deliveries/{id}/pod`
+
+Attach proof of delivery that arrived after the delivery · contract `delivery.deliveries.addPod`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `evidence` | object | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/deliveries/01a06d17-0be7-794a-8dab-9b14cf78673b/pod" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "evidence": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "photo",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "inline": {
+      "mimeType": "image/jpeg",
+      "contentBase64": "text"
+    },
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "lat": 19.2403,
+    "lng": 73.1305,
+    "capturedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+    "kind": "photo",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "payload": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "lat": 19.2403,
+    "lng": 73.1305,
+    "capturedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/deliveries`
+
+Delivery register (a shop sees only its own bills' deliveries) · contract `delivery.deliveries.list`
+
+**Roles:** owner, manager, accountant, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | no |
+| `stopId` | uuid | no |
+| `invoiceId` | uuid | no |
+| `retailerId` | uuid | no |
+| `outcome` | delivered | partial | returned | failed | no |
+| `attemptedOnly` | boolean | string | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&stopId=01a06d5c-e42f-7382-88a1-ae0ef12689a5&invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&outcome=delivered&attemptedOnly=false&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "outcome": "delivered",
+      "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+      "deliveredAt": "2026-09-04T10:30:00.000Z",
+      "receiverName": "text",
+      "note": null,
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+      "shortPcs": 24,
+      "returnedPcs": 24,
+      "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+      "podKinds": [
+        "photo"
+      ],
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/deliveries/{id}`
+
+One delivery with its lines, proof (signed read URLs) and credit note · contract `delivery.deliveries.get`
+
+**Roles:** owner, manager, accountant, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/deliveries/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "outcome": "delivered",
+    "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "receiverName": "text",
+    "note": null,
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "shortPcs": 24,
+    "returnedPcs": 24,
+    "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+    "podKinds": [
+      "photo"
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "deliveredQtyPcs": 24,
+        "returnedQtyPcs": 24,
+        "returnedSaleable": true,
+        "reason": null
+      }
+    ],
+    "pod": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+        "kind": "photo",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "capturedAt": "2026-09-04T10:30:00.000Z",
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "creditNote": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "creditNoteNo": "Confirmed on phone with the shopkeeper",
+      "noteDate": "2026-09-04",
+      "reason": "short_delivery",
+      "state": "draft",
+      "totalPaise": 2680000
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/collections`
+
+Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first · contract `delivery.collections.record`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `receiptId` | uuid | yes |
+| `tripId` | uuid | yes |
+| `stopId` | uuid | no |
+| `retailerId` | uuid | yes |
+| `mode` | cash | upi | cheque | yes |
+| `amountPaise` | integer | yes |
+| `reference` | string | no |
+| `upiVpa` | string | no |
+| `chequeDate` | date | no |
+| `bankName` | string | no |
+| `proofObjectKey` | string | no |
+| `allocations` | object[] | no |
+| `clientReceiptNo` | string | no |
+| `collectedAt` | datetime | no |
+| `note` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/collections" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "mode": "cash",
+  "amountPaise": 4000,
+  "reference": "text",
+  "upiVpa": "text",
+  "chequeDate": "2026-09-04",
+  "bankName": "text",
+  "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+  "allocations": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "amountPaise": 4000
+    }
+  ],
+  "clientReceiptNo": "SO-0042",
+  "collectedAt": "2026-09-04T10:30:00.000Z",
+  "note": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+    "receiptNo": "SO-0042",
+    "mode": "cash",
+    "amountPaise": 4000,
+    "reference": "text",
+    "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+    "collectedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "receipt": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "receiptNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "mode": "cash",
+    "amountPaise": 4000,
+    "allocatedPaise": 4000,
+    "unallocatedPaise": 4000,
+    "cashDiscountPaise": 12000,
+    "status": "collected",
+    "receivedAt": "2026-09-04T10:30:00.000Z",
+    "receivedBy": "01a06dc0-aa61-7a49-82d5-f4e819644369",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "reference": "text",
+    "upiVpa": "text",
+    "chequeDate": "2026-09-04",
+    "bankName": "text",
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "clientReceiptNo": "SO-0042",
+    "reversesReceiptId": "01a06d9b-237b-70a8-81eb-834f978a5d14",
+    "depositedAt": "2026-09-04T10:30:00.000Z",
+    "depositRef": "text",
+    "depositAccountId": "01a06d4f-abbd-7d82-86ef-d39cf53c7623",
+    "bouncedAt": "2026-09-04T10:30:00.000Z",
+    "bounceReason": null,
+    "bankChargesPaise": 4000,
+    "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "allocations": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+      "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+      "writeOffId": "01a06d59-68b7-766e-8494-96904895db18",
+      "amountPaise": 4000,
+      "allocatedAt": "2026-09-04T10:30:00.000Z",
+      "allocatedBy": "01a06d83-2db2-7449-8f15-c2bd4fbc3f1c"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "state": "draft",
+      "openPaise": 4000
+    }
+  ],
+  "cashDiscountPaise": 12000,
+  "unallocatedPaise": 4000,
+  "outstanding": {
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "outstandingPaise": 2680000,
+    "overduePaise": 4000,
+    "unallocatedCreditPaise": 4000,
+    "openBills": 1,
+    "oldestDueDate": "2026-09-04",
+    "oldestInvoiceDate": "2026-09-04",
+    "lastReceiptAt": "2026-09-04T10:30:00.000Z",
+    "lastReceiptPaise": 4000,
+    "buckets": {
+      "b0_7": 1,
+      "b8_15": 1,
+      "b16_30": 1,
+      "b31_60": 1,
+      "b61_90": 1,
+      "b90plus": 1
+    },
+    "asOf": "2026-09-04"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/collections`
+
+What the crew collected, with totals by mode · contract `delivery.collections.list`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | no |
+| `retailerId` | uuid | no |
+| `mode` | cash | upi | cheque | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/collections?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&mode=cash&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+      "receiptNo": "SO-0042",
+      "mode": "cash",
+      "amountPaise": 4000,
+      "reference": "text",
+      "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+      "collectedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "cashPaise": 4000,
+    "upiPaise": 4000,
+    "chequePaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/van-sales`
+
+Sell from van stock: order, bill on the normal series, delivery and collection in one call · contract `delivery.vanSales.create`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+| `stopId` | uuid | no |
+| `retailerId` | uuid | yes |
+| `invoiceId` | uuid | yes |
+| `deliveryId` | uuid | yes |
+| `invoiceDate` | date | no |
+| `lines` | object[] | yes |
+| `collect` | object | no |
+| `note` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/van-sales" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+  "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+  "invoiceDate": "2026-09-04",
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "enteredQty": 24,
+      "enteredUnit": "piece"
+    }
+  ],
+  "collect": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+    "mode": "cash",
+    "amountPaise": 4000,
+    "reference": "text",
+    "upiVpa": "text",
+    "chequeDate": "2026-09-04",
+    "bankName": "text",
+    "clientReceiptNo": "SO-0042"
+  },
+  "note": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "order": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "state": "draft",
+    "source": "salesperson",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "salespersonId": "01a06d29-a152-76c4-87b4-301e496c0602",
+    "pricingDateMode": "order",
+    "paymentTerms": "PRE",
+    "fulfilFromLocationId": "01a06dc8-c767-7943-8fdd-07b3dd890c64",
+    "externalRef": null,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "approvalFlags": [
+      "text"
+    ],
+    "expectedDeliveryDate": "2026-09-04",
+    "note": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "deliveredQtyPcs": 24,
+        "listRatePaise": 4000,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ],
+        "priceLocked": true
+      }
+    ],
+    "transitions": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "fromState": "draft",
+        "toState": "draft",
+        "event": "submit",
+        "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+        "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+        "reason": null,
+        "occurredAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "approvals": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "kind": "credit_limit",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "entityType": "text",
+        "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+        "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+        "status": "pending",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "decidedBy": null,
+        "decidedAt": null,
+        "decisionNote": "Confirmed on phone with the shopkeeper",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  },
+  "invoice": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  },
+  "delivery": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "outcome": "delivered",
+    "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "receiverName": "text",
+    "note": null,
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "shortPcs": 24,
+    "returnedPcs": 24,
+    "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+    "podKinds": [
+      "photo"
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "collection": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+    "receiptNo": "SO-0042",
+    "mode": "cash",
+    "amountPaise": 4000,
+    "reference": "text",
+    "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+    "collectedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "receipt": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "receiptNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "mode": "cash",
+    "amountPaise": 4000,
+    "allocatedPaise": 4000,
+    "unallocatedPaise": 4000,
+    "cashDiscountPaise": 12000,
+    "status": "collected",
+    "receivedAt": "2026-09-04T10:30:00.000Z",
+    "receivedBy": "01a06dc0-aa61-7a49-82d5-f4e819644369",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "reference": "text",
+    "upiVpa": "text",
+    "chequeDate": "2026-09-04",
+    "bankName": "text",
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "clientReceiptNo": "SO-0042",
+    "reversesReceiptId": "01a06d9b-237b-70a8-81eb-834f978a5d14",
+    "depositedAt": "2026-09-04T10:30:00.000Z",
+    "depositRef": "text",
+    "depositAccountId": "01a06d4f-abbd-7d82-86ef-d39cf53c7623",
+    "bouncedAt": "2026-09-04T10:30:00.000Z",
+    "bounceReason": null,
+    "bankChargesPaise": 4000,
+    "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/expenses`
+
+Record a trip expense with its proof · contract `delivery.expenses.record`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `tripId` | uuid | yes |
+| `kind` | diesel | toll | parking | loading | food | repair | other | yes |
+| `amountPaise` | integer | yes |
+| `proofObjectKey` | string | no |
+| `inline` | object | no |
+| `note` | string | no |
+| `incurredAt` | datetime | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/delivery/expenses" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "kind": "diesel",
+  "amountPaise": 4000,
+  "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+  "inline": {
+    "mimeType": "image/jpeg",
+    "contentBase64": "text"
+  },
+  "note": "Confirmed on phone with the shopkeeper",
+  "incurredAt": "2026-09-04T10:30:00.000Z",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "kind": "diesel",
+    "amountPaise": 4000,
+    "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "note": null,
+    "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+    "recordedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/expenses`
+
+Trip expenses with a total · contract `delivery.expenses.list`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | no |
+| `kind` | diesel | toll | parking | loading | food | repair | other | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/expenses?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&kind=diesel&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "kind": "diesel",
+      "amountPaise": 4000,
+      "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "note": null,
+      "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+      "recordedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null,
+  "totalPaise": 2680000
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/gps/points`
+
+A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) · contract `delivery.gps.points`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `tripId` | uuid | yes |
+| `deviceId` | string | yes |
+| `points` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/gps/points" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "points": [
+    {
+      "recordedAt": "2026-09-04T10:30:00.000Z",
+      "lat": 19.2403,
+      "lng": 73.1305,
+      "accuracyM": 1,
+      "speedMps": 1,
+      "heading": 1,
+      "battery": 1
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "accepted": 1,
+  "duplicates": 1,
+  "dropped": 1,
+  "skewed": 1,
+  "throttled": true,
+  "retryAfterSeconds": 1,
+  "tripState": "planned",
+  "positionUpdated": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trips/{id}/trace`
+
+Replay a trip's track (audited read) · contract `delivery.gps.trace`
+
+**Roles:** owner, manager
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `deviceId` | string | no |
+| `everyNth` | integer | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/trace?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a4bb&everyNth=5&limit=500" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "recordedAt": "2026-09-04T10:30:00.000Z",
+      "lat": 19.2403,
+      "lng": 73.1305,
+      "accuracyM": 1,
+      "speedMps": 1,
+      "heading": 1,
+      "battery": 1,
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+    }
+  ],
+  "nextCursor": null,
+  "truncated": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -21436,3 +26687,35 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `sync.pull` | ✓ | – | – | – | – | – | – |
 | `files.uploadUrl` | ✓ | – | – | – | – | – | – |
 | `files.readUrl` | ✓ | – | – | – | – | – | – |
+| `delivery.vehicles.list` | ✓ | – | – | – | – | – | – |
+| `delivery.vehicles.upsert` | ✓ | – | – | – | – | – | – |
+| `delivery.vehicles.positions` | ✓ | – | – | – | – | – | – |
+| `delivery.consents.grant` | ✓ | – | – | – | – | – | – |
+| `delivery.consents.get` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.create` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.list` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.get` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.startLoading` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.depart` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.return` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.cancel` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.settlementPreview` | ✓ | – | – | – | – | – | – |
+| `delivery.trips.settle` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.list` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.next` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.add` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.reorder` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.start` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.arrive` | ✓ | – | – | – | – | – | – |
+| `delivery.stops.fail` | ✓ | – | – | – | – | – | – |
+| `delivery.deliveries.record` | ✓ | – | – | – | – | – | – |
+| `delivery.deliveries.addPod` | ✓ | – | – | – | – | – | – |
+| `delivery.deliveries.list` | ✓ | – | – | – | – | – | – |
+| `delivery.deliveries.get` | ✓ | – | – | – | – | – | – |
+| `delivery.collections.record` | ✓ | – | – | – | – | – | – |
+| `delivery.collections.list` | ✓ | – | – | – | – | – | – |
+| `delivery.vanSales.create` | ✓ | – | – | – | – | – | – |
+| `delivery.expenses.record` | ✓ | – | – | – | – | – | – |
+| `delivery.expenses.list` | ✓ | – | – | – | – | – | – |
+| `delivery.gps.points` | ✓ | – | – | – | – | – | – |
+| `delivery.gps.trace` | ✓ | – | – | – | – | – | – |

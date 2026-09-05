@@ -254,6 +254,32 @@ export interface InvoiceRef {
   state: InvoiceRow['state']
 }
 
+/**
+ * The bill as the DOORSTEP sees it (coordination §3.9, the delivery slice's read helper): the header
+ * the crew hands over and, per line, the pieces the shop was billed for and the order line they came
+ * from — so `deliveries.record` can check `delivered + returned = qty + free` and write the delivered
+ * pieces back to the order. Sale quantities and identity only; no rate leaves billing through here.
+ */
+export interface InvoiceForDelivery {
+  id: string
+  invoiceNo: string | null
+  orderId: string | null
+  retailerId: string
+  source: InvoiceRow['source']
+  state: InvoiceRow['state']
+  invoiceDate: string
+  totalPaise: number
+  lines: {
+    id: string
+    orderLineId: string | null
+    variantId: string
+    lotId: string | null
+    description: string
+    qtyPcs: number
+    freeQtyPcs: number
+  }[]
+}
+
 interface PricedLine {
   row: typeof invoiceLines.$inferInsert
   grossPaise: number
@@ -1088,6 +1114,35 @@ export class BillingService {
       .from(invoices)
       .where(and(eq(invoices.tenantId, tenantId), inArray(invoices.id, ids)))
     return new Map(rows.map((r) => [r.id, r]))
+  }
+
+  /** The bill and its lines for the doorstep (`InvoiceForDelivery`); a bill the caller may not see is NOT_FOUND. */
+  async invoiceForDelivery(tx: Db, invoiceId: string): Promise<InvoiceForDelivery> {
+    const row = await this.findInvoice(tx, invoiceId)
+    const lines = await tx
+      .select({
+        id: invoiceLines.id,
+        orderLineId: invoiceLines.orderLineId,
+        variantId: invoiceLines.variantId,
+        lotId: invoiceLines.lotId,
+        description: invoiceLines.description,
+        qtyPcs: invoiceLines.qtyPcs,
+        freeQtyPcs: invoiceLines.freeQtyPcs,
+      })
+      .from(invoiceLines)
+      .where(eq(invoiceLines.invoiceId, row.id))
+      .orderBy(asc(invoiceLines.lineNo))
+    return {
+      id: row.id,
+      invoiceNo: row.invoiceNo,
+      orderId: row.orderId,
+      retailerId: row.retailerId,
+      source: row.source,
+      state: row.state,
+      invoiceDate: row.invoiceDate,
+      totalPaise: row.totalPaise,
+      lines,
+    }
   }
 
   private async lockInvoice(tx: Db, id: string): Promise<InvoiceRow> {

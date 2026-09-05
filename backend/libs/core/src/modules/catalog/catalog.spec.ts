@@ -279,11 +279,12 @@ describeDb('catalog + tenant catalog (DATABASE_URL)', () => {
       name: `Guru Kripa ${run}`,
     })
     expect(supplier.status).toBe(200)
+    const packId = uuidv7()
     const pack = await call<{
-      item: { pcsPerCase: number; supplierCode: string | null; marginBasis: string }
+      item: { id: string; pcsPerCase: number; supplierCode: string | null; marginBasis: string }
     }>(app, owner, 'POST', '/tenant-catalog/pack-configs', {
       idempotencyKey: `pack-${run}`,
-      id: uuidv7(),
+      id: packId,
       supplierId,
       variantId,
       pcsPerCase: 90,
@@ -291,10 +292,48 @@ describeDb('catalog + tenant catalog (DATABASE_URL)', () => {
     })
     expect(pack.status).toBe(200)
     expect(pack.body.item).toMatchObject({
+      id: packId,
       pcsPerCase: 90,
       supplierCode: 'x90',
       marginBasis: 'ptd',
     })
+    // the natural key is (supplier, variant): a second write for the pair updates THAT row and keeps
+    // its id, whatever id the client sent
+    const samePair = await call<{ item: { id: string; pcsPerCase: number } }>(
+      app,
+      owner,
+      'POST',
+      '/tenant-catalog/pack-configs',
+      {
+        idempotencyKey: `pack-again-${run}`,
+        id: uuidv7(),
+        supplierId,
+        variantId,
+        pcsPerCase: 90,
+        supplierCode: 'x90-again',
+      },
+    )
+    expect(samePair.status).toBe(200)
+    expect(samePair.body.item.id).toBe(packId)
+    // but an id that already names ANOTHER pair is a client bug: a conflict, never a 500
+    const secondVariantId = uuidv7()
+    const second = await call(app, rep, 'POST', '/catalog/proposals', {
+      ...proposal,
+      idempotencyKey: `propose-second-${run}`,
+      productId: uuidv7(),
+      variantId: secondVariantId,
+      productName: `Campa Lemon ${run}`,
+      variantName: `Campa Lemon 750 ml ${run}`,
+    })
+    expect(second.status).toBe(200)
+    const reused = await call(app, owner, 'POST', '/tenant-catalog/pack-configs', {
+      idempotencyKey: `pack-reused-${run}`,
+      id: packId,
+      supplierId,
+      variantId: secondVariantId,
+      pcsPerCase: 24,
+    })
+    expect(reused.status).toBe(409)
     const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
     const packs = await call<{ items: { supplierId: string; pcsPerCase: number }[] }>(
       app,

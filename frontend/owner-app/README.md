@@ -193,3 +193,35 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/delivery/vehicles` | Vehicles of this distributor | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/vehicles` | Create or update a vehicle (and its stock location) | owner, manager |
+| GET | `/delivery/vehicle-positions` | Where every vehicle is now — the live map (audited read) | owner, manager |
+| POST | `/delivery/consents` | Record the caller's answer to the location-tracking notice (DPDP) | owner, manager, delivery |
+| GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
+| POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
+| GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (needs the driver's location consent) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
+| POST | `/delivery/trips/{id}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
+| GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/delivery/trips/{id}/next-stop` | The next open stop of a trip with the shop to visit | owner, manager, accountant, warehouse, delivery |
+| POST | `/delivery/trips/{id}/stops` | Add a stop to a trip (a late bill, or the shop a van sale goes to) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/stops/reorder` | Re-sequence the open stops of a trip | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/start` | Heading to the stop: pending → started | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/arrive` | At the door: started → arrived, with the geofence distance as evidence | owner, manager, delivery |
+| POST | `/delivery/stops/{id}/fail` | Nothing delivered: arrived → failed with a reason; stock stays on the van | owner, manager, delivery |
+| POST | `/delivery/deliveries` | Deliver a bill in full or in part with proof; a shortfall or return raises one credit note | owner, manager, delivery |
+| POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
+| GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
+| GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
+| GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
+| POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
+| GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
+| POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
+| GET | `/delivery/trips/{id}/trace` | Replay a trip's track (audited read) | owner, manager |

@@ -12,9 +12,10 @@ import {
   WarehouseModule,
   SyncModule,
   FilesModule,
+  DeliveryModule,
 } from '@dos/core'
 
-/** The delivery crew app: trips, stops, proof of delivery, collections, van sales from vehicle stock, GPS. Trip endpoints arrive with the delivery module. */
+/** The delivery crew app: trips, stops, proof of delivery, collections, van sales from vehicle stock, GPS breadcrumbs, the check-in cockpit. */
 export const service = defineService({
   name: 'delivery',
   title: 'Delivery service',
@@ -33,6 +34,7 @@ export const service = defineService({
     WarehouseModule,
     SyncModule,
     FilesModule,
+    DeliveryModule,
   ],
   contractKeys: [
     'health',
@@ -48,5 +50,6 @@ export const service = defineService({
     'warehouse',
     'sync',
     'files',
+    'delivery',
   ],
 })

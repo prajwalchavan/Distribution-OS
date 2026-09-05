@@ -127,6 +127,27 @@
       "when": 1788584831002,
       "tag": "0017_docint_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788595083438,
+      "tag": "0018_integrations_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788595083439,
+      "tag": "0019_integrations_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788595586925,
+      "tag": "0020_outbox_relay",
+      "breakpoints": true
     }
   ]
 }

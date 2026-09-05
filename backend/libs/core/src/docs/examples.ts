@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto'
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm'
 import {
   approvals,
   bargainRequests,
   beats,
   cycleCounts,
+  deliveries,
   deliveryChallans,
   devices,
   grnLines,
@@ -30,11 +31,15 @@ import {
   stockLots,
   supplierInvoiceLines,
   supplierInvoices,
+  supplierPackConfigs,
   suppliers,
   tenantProductCosts,
   tenantProducts,
   tenants,
+  trips,
+  tripStops,
   users,
+  vehicles,
   withSystem,
   writeOffs,
   type Db,
@@ -81,6 +86,20 @@ const DOCS_BATCH_MRP_PAISE = 2000
 
 /** Marker for "leave this optional field out of the example entirely". */
 const DROP = Symbol('drop')
+
+/** A 1×1 PNG: the smallest proof-of-delivery photo an example can carry inline (`InlineFileInput`). */
+const DOCS_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
+/** `YYYY-MM-DD` plus `days`, as a calendar date — no timezone can creep in. */
+function addDaysIso(isoDate: string, days: number): string {
+  const at = Date.UTC(
+    Number(isoDate.slice(0, 4)),
+    Number(isoDate.slice(5, 7)) - 1,
+    Number(isoDate.slice(8, 10)),
+  )
+  return new Date(at + days * 86_400_000).toISOString().slice(0, 10)
+}
 
 export interface DemoUser {
   id: string
@@ -186,6 +205,11 @@ export interface ExampleContext {
   docsLotId?: string | undefined
 
   supplierId?: string | undefined
+  /**
+   * The pack config the `packConfigs.upsert` natural key (supplier, variant) already resolves to, so
+   * the example is a true upsert — the same reason `docsLotId` exists.
+   */
+  docsPackConfigId?: string | undefined
   purchaseOrderId?: string | undefined
   supplierInvoiceId?: string | undefined
   supplierInvoiceLineId?: string | undefined
@@ -246,6 +270,30 @@ export interface ExampleContext {
   cycleCountStatus?: string | undefined
   /** The lot on `cycleCountId`, so `cycleCounts.count` names a line that is on the count. */
   cycleCountLotId?: string | undefined
+  /**
+   * The road (delivery module). Every trip here is one the demo delivery user is crew on, so the
+   * delivery-service document points at trips its own sign-in may open.
+   */
+  activeTripId?: string | undefined
+  plannedTripId?: string | undefined
+  /** The first stop of the planned trip and its sequence (a no-op reorder). */
+  plannedTripStopId?: string | undefined
+  plannedTripStopSequence?: number | undefined
+  /** An open stop of the active trip with a planned bill on it, and that bill's lines. */
+  tripStopId?: string | undefined
+  tripStopRetailerId?: string | undefined
+  plannedDeliveryId?: string | undefined
+  plannedDeliveryInvoiceId?: string | undefined
+  plannedDeliveryLines?: { id: string; qtyPcs: number }[] | undefined
+  /** A delivery that was attempted (`outcome` set): the proof screen and `addPod`. */
+  deliveryId?: string | undefined
+  /** The retailer app's own attempted delivery (its linked shop's). */
+  linkedDeliveryId?: string | undefined
+  vehicleRegNo?: string | undefined
+  crewDriverId?: string | undefined
+  crewHelperId?: string | undefined
+  /** A variant with sellable pieces on the active trip's vehicle: a one-piece van sale. */
+  vanVariantId?: string | undefined
   /** The shop the demo retailer login owns; the retailer app's document is scoped to it. */
   linkedRetailer?: DemoLinkedRetailer | undefined
   /** That shop's own orders, so the shopkeeper's document never points at somebody else's order. */
@@ -396,8 +444,135 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectProcurement(tx, tenant.id, ctx)
   await collectPricing(tx, tenant.id, ctx)
   await collectPlatformGaps(tx, tenant.id, ctx)
+  await collectDelivery(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/**
+ * The road, as the demo delivery user drives it: the active trip and tomorrow's plan (both with that
+ * user as crew, so the delivery-service document never names a trip its sign-in cannot open), an open
+ * stop with its planned bill, an attempted delivery, and one variant with pieces on the van.
+ */
+async function collectDelivery(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  // The delivery sign-in the document shows must be able to OPEN the trips it names: prefer the
+  // delivery member who drives (or helps on) an active or planned trip over whoever came first.
+  const onTheRoad = first(
+    (
+      await tx.execute(
+        sql`select u.id, u.username, u.name
+               from trips t
+               join memberships m on m.tenant_id = t.tenant_id and m.role = 'delivery' and m.status = 'active'
+                and (m.user_id = t.driver_id or m.user_id = t.helper_id)
+               join users u on u.id = m.user_id
+              where t.tenant_id = ${tenantId} and t.state in ('active', 'planned', 'loading')
+                and u.username is not null
+              order by (t.state = 'active') desc, abs(t.trip_date - current_date),
+                       (m.user_id = t.driver_id) desc
+              limit 1`,
+      )
+    ).rows as { id: string; username: string | null; name: string }[],
+  )
+  if (onTheRoad) ctx.users = { ...(ctx.users ?? {}), delivery: onTheRoad }
+  const crew = ctx.users?.delivery?.id
+  const crewFilter = crew ? sql`and (t.driver_id = ${crew} or t.helper_id = ${crew})` : sql``
+  const tripRows = (
+    await tx.execute(
+      sql`select t.id, t.state::text as state, t.driver_id, t.helper_id, v.reg_no
+             from trips t join vehicles v on v.id = t.vehicle_id
+            where t.tenant_id = ${tenantId} and t.state in ('active', 'planned', 'loading') ${crewFilter}
+            order by (t.state = 'active') desc, abs(t.trip_date - current_date), t.id desc limit 10`,
+    )
+  ).rows as {
+    id: string
+    state: string
+    driver_id: string | null
+    helper_id: string | null
+    reg_no: string
+  }[]
+  const active = tripRows.find((r) => r.state === 'active')
+  const planned = tripRows.find((r) => r.state === 'planned' || r.state === 'loading')
+  ctx.activeTripId = active?.id
+  ctx.plannedTripId = planned?.id
+  ctx.crewDriverId = active?.driver_id ?? planned?.driver_id ?? crew
+  ctx.crewHelperId = active?.helper_id ?? planned?.helper_id ?? undefined
+  ctx.vehicleRegNo = first(
+    await tx
+      .select({ regNo: vehicles.regNo })
+      .from(vehicles)
+      .where(and(eq(vehicles.tenantId, tenantId), eq(vehicles.id, ctx.vehicleId ?? '')))
+      .limit(1),
+  )?.regNo
+  if (planned) {
+    const stop = first(
+      await tx
+        .select({ id: tripStops.id, sequence: tripStops.sequence })
+        .from(tripStops)
+        .where(and(eq(tripStops.tenantId, tenantId), eq(tripStops.tripId, planned.id)))
+        .orderBy(asc(tripStops.sequence))
+        .limit(1),
+    )
+    ctx.plannedTripStopId = stop?.id
+    ctx.plannedTripStopSequence = stop?.sequence
+  }
+  if (active) {
+    const stop = first(
+      (
+        await tx.execute(
+          sql`select s.id, s.retailer_id, d.id as delivery_id, d.invoice_id
+                 from trip_stops s
+                 left join deliveries d on d.stop_id = s.id and d.outcome is null
+                where s.tenant_id = ${tenantId} and s.trip_id = ${active.id}
+                  and s.state in ('pending', 'started', 'arrived')
+                order by (d.id is null) asc, s.sequence limit 1`,
+        )
+      ).rows as {
+        id: string
+        retailer_id: string
+        delivery_id: string | null
+        invoice_id: string | null
+      }[],
+    )
+    ctx.tripStopId = stop?.id
+    ctx.tripStopRetailerId = stop?.retailer_id
+    ctx.plannedDeliveryId = stop?.delivery_id ?? undefined
+    ctx.plannedDeliveryInvoiceId = stop?.invoice_id ?? undefined
+    if (stop?.invoice_id) {
+      ctx.plannedDeliveryLines = (
+        (
+          await tx.execute(
+            sql`select id, (qty_pcs + free_qty_pcs)::int as qty_pcs from invoice_lines
+                 where tenant_id = ${tenantId} and invoice_id = ${stop.invoice_id} order by line_no`,
+          )
+        ).rows as { id: string; qty_pcs: number }[]
+      ).map((l) => ({ id: l.id, qtyPcs: Number(l.qty_pcs) }))
+    }
+    ctx.vanVariantId = first(
+      (
+        await tx.execute(
+          sql`select l.variant_id from trips t join vehicles v on v.id = t.vehicle_id
+                 join stock_balances sb on sb.location_id = v.location_id and sb.tenant_id = t.tenant_id
+                 join stock_lots l on l.id = sb.lot_id
+                where t.tenant_id = ${tenantId} and t.id = ${active.id} and (sb.on_hand - sb.reserved) > 0
+                order by (sb.on_hand - sb.reserved) desc, sb.lot_id limit 1`,
+        )
+      ).rows as { variant_id: string }[],
+    )?.variant_id
+  }
+  const attempted = (filter: SQL) =>
+    tx
+      .select({ id: deliveries.id })
+      .from(deliveries)
+      .where(and(eq(deliveries.tenantId, tenantId), sql`${deliveries.outcome} is not null`, filter))
+      .orderBy(desc(deliveries.id))
+      .limit(1)
+  ctx.deliveryId =
+    first(await attempted(active ? eq(deliveries.tripId, active.id) : sql`true`))?.id ??
+    first(await attempted(sql`true`))?.id
+  if (ctx.linkedRetailer)
+    ctx.linkedDeliveryId = first(
+      await attempted(eq(deliveries.retailerId, ctx.linkedRetailer.retailerId)),
+    )?.id
 }
 
 /** The rows behind the platform-gaps procedures (docs/23 §8): receipts, challans, parked packs, sheets, findings, counts. */
@@ -893,6 +1068,27 @@ async function collectProcurement(tx: Db, tenantId: string, ctx: ExampleContext)
         .limit(1),
     )?.id
 
+  // `packConfigs.upsert` matches on (supplier, variant) but the client supplies the row id, so a
+  // fixed id fails the moment the demo variant moves and that id already names ANOTHER pair
+  // (`supplier_pack_configs_pkey`, a 500 at the delivery gate on 2026-09-05). Name the row the natural
+  // key already resolves to; only a pair this tenant has never configured gets a fresh slot.
+  ctx.docsPackConfigId =
+    ctx.supplierId && ctx.variantId
+      ? first(
+          await tx
+            .select({ id: supplierPackConfigs.id })
+            .from(supplierPackConfigs)
+            .where(
+              and(
+                eq(supplierPackConfigs.tenantId, tenantId),
+                eq(supplierPackConfigs.supplierId, ctx.supplierId),
+                eq(supplierPackConfigs.variantId, ctx.variantId),
+              ),
+            )
+            .limit(1),
+        )?.id
+      : undefined
+
   // --- matchLine: any invoice whose lines are still open, and one of its lines ------------------
   const matchable = invoiceRows.filter(
     (row) => row.status !== 'received' && row.status !== 'cancelled',
@@ -1166,6 +1362,15 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(and(eq(invoices.tenantId, tenantId), inArray(invoices.id, [...candidates])))
       ).map((row) => row.id),
     )
+  const tripIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: trips.id })
+          .from(trips)
+          .where(and(eq(trips.tenantId, tenantId), inArray(trips.id, [...candidates])))
+      ).map((row) => row.id),
+    )
   const cycleCountIds: TakenIds = async (candidates) =>
     new Set(
       (
@@ -1175,7 +1380,26 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(and(eq(cycleCounts.tenantId, tenantId), inArray(cycleCounts.id, [...candidates])))
       ).map((row) => row.id),
     )
+  const packConfigIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: supplierPackConfigs.id })
+          .from(supplierPackConfigs)
+          .where(
+            and(
+              eq(supplierPackConfigs.tenantId, tenantId),
+              inArray(supplierPackConfigs.id, [...candidates]),
+            ),
+          )
+      ).map((row) => row.id),
+    )
   ctx.slotLanes = {
+    'tenantCatalog.packConfigs.upsert': await freeSlots(
+      'tenantCatalog.packConfigs.upsert',
+      'id',
+      packConfigIds,
+    ),
     'inventory.cycleCounts.open': await freeSlots(
       'inventory.cycleCounts.open',
       'id',
@@ -1194,6 +1418,7 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       'id',
       writeOffIds,
     ),
+    'delivery.trips.create': await freeSlots('delivery.trips.create', 'id', tripIds),
     'billing.invoices.issueForPack': await freeSlots(
       'billing.invoices.issueForPack',
       'id',
@@ -1419,6 +1644,9 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   if (httpPath.startsWith('/warehouse/load-sheets/'))
     return ctx.approvableLoadSheetId ?? ctx.loadSheetId
   if (httpPath.startsWith('/inventory/cycle-counts/')) return ctx.cycleCountId
+  if (httpPath.startsWith('/delivery/trips/')) return ctx.activeTripId ?? ctx.plannedTripId
+  if (httpPath.startsWith('/delivery/stops/')) return ctx.tripStopId
+  if (httpPath.startsWith('/delivery/deliveries/')) return ctx.deliveryId
   return undefined
 }
 
@@ -1855,7 +2083,22 @@ const OVERRIDES: Record<
     claimChannel: 'dos',
     salesForce: 'distributor',
   }),
+  // Same rule as `inventory.lots.upsert`: an upsert on an EXISTING natural key sends that row's own
+  // id, or the create path trips over `supplier_pack_configs_pkey`.
   'tenantCatalog.packConfigs.upsert': (ctx) => ({
+    id:
+      ctx.docsPackConfigId ??
+      createdId(
+        'tenantCatalog.packConfigs.upsert',
+        'id',
+        slotOf(ctx, 'tenantCatalog.packConfigs.upsert'),
+      ),
+    idempotencyKey: ctx.docsPackConfigId
+      ? 'docs-tenantCatalog.packConfigs.upsert'
+      : docsIdempotencyKey(
+          'tenantCatalog.packConfigs.upsert',
+          slotOf(ctx, 'tenantCatalog.packConfigs.upsert'),
+        ),
     supplierId: ctx.supplierId,
     variantId: ctx.variantId,
     pcsPerCase: 24,
@@ -1930,22 +2173,251 @@ const OVERRIDES: Record<
     deviceId: DROP,
   }),
   'warehouse.challans.pdf': (ctx) => ({ id: ctx.challanId, copy: 'original', format: 'a4' }),
-  // The two delivery inputs with a cross-field rule (a sibling module's; the example only has to
-  // parse): a geo check carries neither a key nor bytes, an expense proof is a key or bytes, not both.
-  'delivery.deliveries.addPod': (ctx) => ({
+  // --- the road (delivery) -------------------------------------------------------------------------
+  // Every trip below is one the demo delivery user is crew on. The active trip is TODAY's real one:
+  // a doorstep write on it is what the crew would do at the shop door, so the examples record the one
+  // open stop's bill, take a rupee, sell a piece off the van and post two breadcrumbs — all replayable.
+  'delivery.vehicles.upsert': (ctx) => ({
+    id: ctx.vehicleId,
+    regNo: ctx.vehicleRegNo,
+    name: DROP,
+    kind: 'tempo',
+    capacityCases: DROP,
+    active: true,
+  }),
+  'delivery.vehicles.positions': () => ({ vehicleId: DROP, staleAfterMinutes: 30 }),
+  'delivery.consents.grant': () => ({
+    id: createdId('delivery.consents.grant', 'id'),
+    granted: true,
+    noticeVersion: 'gps-notice-2026-09',
+    locale: 'en-IN',
+    deviceId: DROP,
+  }),
+  'delivery.consents.get': () => ({ userId: DROP }),
+  'delivery.trips.create': (ctx) => ({
+    id: createdId('delivery.trips.create', 'id', slotOf(ctx, 'delivery.trips.create')),
+    idempotencyKey: docsIdempotencyKey(
+      'delivery.trips.create',
+      slotOf(ctx, 'delivery.trips.create'),
+    ),
+    // a driver is on one trip a day: each fresh slot plans a day further out
+    tripDate: addDaysIso('2026-09-20', slotOf(ctx, 'delivery.trips.create')),
+    vehicleId: ctx.vehicleId,
+    driverId: ctx.crewDriverId,
+    helperId: ctx.crewHelperId ?? DROP,
+    vanSalesEnabled: true,
+    openingCashPaise: 200_000,
+    stops: ctx.retailerId
+      ? [
+          {
+            id: createdId(
+              'delivery.trips.create',
+              'stops[0].id',
+              slotOf(ctx, 'delivery.trips.create'),
+            ),
+            sequence: 1,
+            retailerId: ctx.retailerId,
+            invoiceIds: [],
+          },
+        ]
+      : [],
+    deviceId: DROP,
+  }),
+  'delivery.trips.list': () => ({
+    state: DROP,
+    states: DROP,
+    vehicleId: DROP,
+    driverId: DROP,
+    from: DROP,
+    to: DROP,
+    mine: DROP,
+  }),
+  'delivery.trips.get': (ctx) => ({ id: ctx.activeTripId ?? ctx.plannedTripId }),
+  'delivery.trips.startLoading': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    deviceId: DROP,
+  }),
+  'delivery.trips.depart': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    startOdometerKm: 41_200,
+    openingCashPaise: DROP,
+    occurredAt: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.trips.return': (ctx) => ({
+    id: ctx.activeTripId,
+    endOdometerKm: 41_260,
+    occurredAt: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.trips.cancel': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    reason: 'Vehicle in the workshop today',
+  }),
+  'delivery.trips.settlementPreview': (ctx) => ({ id: ctx.activeTripId }),
+  'delivery.trips.settle': (ctx) => ({
+    id: createdId('delivery.trips.settle', 'id'),
+    tripId: ctx.activeTripId,
+    handedOverCashPaise: 200_000,
+    counted: [],
+    note: 'Counted with the crew at the depot',
+    acceptVariance: false,
+  }),
+  'delivery.stops.list': () => ({ tripId: DROP, retailerId: DROP, state: DROP, date: DROP }),
+  'delivery.stops.next': (ctx) => ({ id: ctx.activeTripId ?? ctx.plannedTripId }),
+  'delivery.stops.add': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    'stop.id': createdId('delivery.stops.add', 'stop.id'),
+    'stop.sequence': DROP,
+    'stop.retailerId': ctx.retailerId,
+    'stop.invoiceIds': [],
+    'stop.plannedCollectionPaise': DROP,
+    'stop.etaAt': DROP,
+    deviceId: DROP,
+  }),
+  'delivery.stops.reorder': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    'order[0].stopId': ctx.plannedTripStopId ?? ctx.tripStopId,
+    'order[0].sequence': ctx.plannedTripStopSequence ?? 1,
+    deviceId: DROP,
+  }),
+  'delivery.stops.start': (ctx) => ({ id: ctx.tripStopId, occurredAt: DROP, deviceId: DROP }),
+  'delivery.stops.arrive': (ctx) => ({
+    id: ctx.tripStopId,
+    lat: 19.2437,
+    lng: 73.1355,
+    accuracyM: 8,
+    occurredAt: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.stops.fail': (ctx) => ({
+    id: ctx.tripStopId,
+    failureReason: 'shop_closed',
+    failureNote: DROP,
+    occurredAt: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.deliveries.record': (ctx) => ({
+    id: ctx.plannedDeliveryId ?? createdId('delivery.deliveries.record', 'id'),
+    tripId: ctx.activeTripId,
+    stopId: ctx.tripStopId,
+    invoiceId: ctx.plannedDeliveryInvoiceId ?? ctx.invoiceId,
+    receiverName: 'Shop owner',
+    note: DROP,
+    deliveredAt: DROP,
+    deviceId: DROP,
+    // with no demo data the shape still has to parse: one made-up line the sampler would refuse
+    lines: (
+      ctx.plannedDeliveryLines ?? [
+        { id: createdId('delivery.deliveries.record', 'lines[0].invoiceLineId'), qtyPcs: 12 },
+      ]
+    ).map((line, i) => ({
+      id: createdId('delivery.deliveries.record', `lines[${String(i)}].id`),
+      invoiceLineId: line.id,
+      deliveredQtyPcs: line.qtyPcs,
+      returnedQtyPcs: 0,
+      returnedSaleable: true,
+    })),
+    pod: [
+      {
+        id: createdId('delivery.deliveries.record', 'pod[0].id'),
+        kind: 'signature',
+        inline: { mimeType: 'image/png', contentBase64: DOCS_PNG },
+      },
+    ],
+  }),
+  'delivery.deliveries.addPod': (ctx, options) => ({
+    id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
+    'evidence.id': createdId('delivery.deliveries.addPod', 'evidence.id'),
     'evidence.kind': 'geo',
     'evidence.objectKey': DROP,
     'evidence.inline': DROP,
     'evidence.payload': { distanceM: 40 },
     'evidence.lat': 19.2437,
     'evidence.lng': 73.1355,
-    ...(ctx.tenantId ? {} : {}),
+    'evidence.capturedAt': DROP,
   }),
-  'delivery.expenses.record': () => ({
+  'delivery.deliveries.list': () => ({
+    tripId: DROP,
+    stopId: DROP,
+    invoiceId: DROP,
+    retailerId: DROP,
+    outcome: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  'delivery.deliveries.get': (ctx, options) => ({
+    id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
+  }),
+  'delivery.collections.record': (ctx) => ({
+    id: createdId('delivery.collections.record', 'id'),
+    receiptId: createdId('delivery.collections.record', 'receiptId'),
+    tripId: ctx.activeTripId,
+    stopId: ctx.tripStopId ?? DROP,
+    retailerId: ctx.tripStopRetailerId ?? ctx.retailerId,
+    mode: 'cash',
+    amountPaise: 100,
+    reference: DROP,
+    upiVpa: DROP,
+    chequeDate: DROP,
+    bankName: DROP,
+    proofObjectKey: DROP,
+    allocations: DROP,
+    clientReceiptNo: DROP,
+    collectedAt: DROP,
+    note: 'One rupee on account, from the API docs',
+    deviceId: DROP,
+  }),
+  'delivery.collections.list': () => ({
+    tripId: DROP,
+    retailerId: DROP,
+    mode: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  'delivery.vanSales.create': (ctx) => ({
+    id: createdId('delivery.vanSales.create', 'id'),
+    tripId: ctx.activeTripId,
+    stopId: DROP,
+    retailerId: ctx.tripStopRetailerId ?? ctx.retailerId,
+    invoiceId: createdId('delivery.vanSales.create', 'invoiceId'),
+    deliveryId: createdId('delivery.vanSales.create', 'deliveryId'),
+    invoiceDate: DROP,
+    'lines[0].id': createdId('delivery.vanSales.create', 'lines[0].id'),
+    'lines[0].variantId': ctx.vanVariantId ?? ctx.variantId,
+    'lines[0].enteredQty': 1,
+    'lines[0].enteredUnit': 'piece',
+    collect: DROP,
+    note: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.expenses.record': (ctx) => ({
+    id: createdId('delivery.expenses.record', 'id'),
+    tripId: ctx.activeTripId,
     kind: 'diesel',
+    amountPaise: 100,
     inline: DROP,
     proofObjectKey: DROP,
     note: 'Diesel at the Kalyan bypass pump',
+    incurredAt: DROP,
+    deviceId: DROP,
+  }),
+  'delivery.expenses.list': () => ({ tripId: DROP, kind: DROP, from: DROP, to: DROP }),
+  'delivery.gps.points': (ctx) => ({
+    tripId: ctx.activeTripId,
+    deviceId: ctx.deviceId,
+    'points[0].recordedAt': '2026-09-04T10:30:00.000Z',
+    'points[0].accuracyM': 8,
+    'points[0].speedMps': 4,
+    'points[0].heading': 90,
+    'points[0].battery': 80,
+  }),
+  'delivery.gps.trace': (ctx) => ({
+    id: ctx.activeTripId,
+    deviceId: DROP,
+    everyNth: 5,
+    limit: 500,
+    cursor: DROP,
   }),
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
@@ -2130,6 +2602,39 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
       : 'Every demo supplier invoice is received or cancelled; book a new one first.',
   'retailers.updateOwn': () =>
     'The shop edits its own contact details; the example points at the shop linked to the demo retailer login.',
+  'delivery.trips.create': (ctx) => createsRowNote(ctx, 'delivery.trips.create', 'a planned trip'),
+  'delivery.trips.startLoading': (ctx) =>
+    ctx.plannedTripId
+      ? "Moves tomorrow's planned trip to loading; the godown then builds its load sheet. Pressing it on a trip already loading or out answers 409."
+      : 'No planned trip in the demo data: plan one with POST /delivery/trips first.',
+  'delivery.trips.depart': () =>
+    'planned → loading → active: press start-loading first. Needs the driver to have answered the location notice (POST /delivery/consents).',
+  'delivery.trips.return': () =>
+    "Takes TODAY'S ACTIVE demo trip off the road: every open stop fails and its bill goes back to packed. Re-seed to restore it.",
+  'delivery.trips.settle': () =>
+    'Only a trip in `closing` settles (press return first). The cash handed over here is the float alone, so the cockpit will report the collected cash as short and answer 409 settlement_needs_owner unless the owner sends acceptVariance.',
+  'delivery.trips.cancel': () =>
+    'Cancels the planned demo trip the delivery app opens on (only planned/loading trips cancel). A cancelled trip is terminal and the seed never recreates one: press this only on a database you can drop.',
+  'delivery.stops.start': (ctx) =>
+    ctx.tripStopId
+      ? "Moves the active trip's next open stop along; an older occurredAt on a stop already past it answers the current row, never 409."
+      : 'Every stop of the active demo trip is done; plan a new trip first.',
+  'delivery.stops.fail': () =>
+    'Fails the open stop: its bill goes back to packed and the pieces stay on the van. Do this INSTEAD of POST /delivery/deliveries for that stop, not after.',
+  'delivery.deliveries.record': (ctx) =>
+    ctx.plannedDeliveryId
+      ? 'Delivers the one open bill of the active trip in full, with a signature inline (the local storage driver). A second Execute replays; the stop is then delivered.'
+      : 'No planned bill is open on the active demo trip; plan a trip with a packed bill first.',
+  'delivery.collections.record': () =>
+    'One rupee in cash at the open stop, allocated oldest bill first (on account when the shop owes nothing). A second Execute replays the same receipt.',
+  'delivery.vanSales.create': (ctx) =>
+    ctx.vanVariantId
+      ? "One piece sold off the active trip's van, billed from the tenant's normal INV series. A second Execute replays."
+      : 'The active demo trip has no stock on its vehicle; load a sheet onto it first.',
+  'delivery.gps.points': () =>
+    'Two breadcrumbs for the active trip; a replay answers duplicates, a point outside the trip window is dropped, never 4xx.',
+  'delivery.gps.trace': () => 'Audited (gps.trace_read): owner and manager only.',
+  'delivery.vehicles.positions': () => 'Audited (gps.live_map_read): owner and manager only.',
   'sync.pull': () =>
     'Omit `since` for the full read set; send back the `cursor` you get for the delta next time.',
 }
@@ -2162,6 +2667,8 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'tenantCatalog.repAuthorisations.list': ['userId'],
   'pricing.bounds.list': ['userId'],
   'retailers.beats.assignments.list': ['userId'],
+  'delivery.gps.trace': ['everyNth', 'limit'],
+  'delivery.vehicles.positions': ['staleAfterMinutes'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */

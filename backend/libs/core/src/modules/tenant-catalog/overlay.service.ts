@@ -33,6 +33,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  isUniqueViolation,
   MANAGEMENT,
   requireDb,
   requireRole,
@@ -310,24 +311,36 @@ export class CatalogOverlayService {
           supplierDescription: input.supplierDescription ?? null,
           marginBasis: input.marginBasis,
         }
-        const [row] = await tx
-          .insert(supplierPackConfigs)
-          .values({
-            id: input.id,
-            tenantId: ctx.tenantId,
-            supplierId: input.supplierId,
-            variantId: input.variantId,
-            ...values,
-          })
-          .onConflictDoUpdate({
-            target: [
-              supplierPackConfigs.tenantId,
-              supplierPackConfigs.supplierId,
-              supplierPackConfigs.variantId,
-            ],
-            set: { ...values, updatedAt: new Date() },
-          })
-          .returning()
+        let row: typeof supplierPackConfigs.$inferSelect | undefined
+        try {
+          ;[row] = await tx
+            .insert(supplierPackConfigs)
+            .values({
+              id: input.id,
+              tenantId: ctx.tenantId,
+              supplierId: input.supplierId,
+              variantId: input.variantId,
+              ...values,
+            })
+            .onConflictDoUpdate({
+              target: [
+                supplierPackConfigs.tenantId,
+                supplierPackConfigs.supplierId,
+                supplierPackConfigs.variantId,
+              ],
+              set: { ...values, updatedAt: new Date() },
+            })
+            .returning()
+        } catch (err) {
+          // The natural key is (supplier, variant) and the upsert above handles it. The only unique
+          // key left is the primary key: the client reused an `id` that already names ANOTHER
+          // supplier/variant row — a client bug, answered as a conflict, never a 500.
+          if (isUniqueViolation(err))
+            throw new ORPCError('CONFLICT', {
+              message: `pack config id ${input.id} already belongs to another supplier/variant pair; send a fresh id`,
+            })
+          throw err
+        }
         if (!row)
           throw new ORPCError('INTERNAL_SERVER_ERROR', {
             message: 'pack config upsert returned nothing',

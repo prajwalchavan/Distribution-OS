@@ -53,6 +53,12 @@ describe('permission matrix', () => {
       'procurement.supplierInvoices.get',
       'procurement.supplierInvoices.list',
       'retailers.setCredit',
+      // A supplier bill's reading carries printed purchase rates and becomes cost at `approve`.
+      'docint.extractions.list',
+      'docint.extractions.get',
+      'docint.queue.list',
+      'docint.review.start',
+      'docint.documents.approve',
     ] as const
     for (const path of costly) {
       const permission = permissionFor(path)
@@ -185,6 +191,12 @@ describe('permission matrix', () => {
       'delivery.deliveries.record',
       'delivery.vanSales.create',
       'delivery.gps.trace',
+      // A bulk file that creates shops and listings, or a saved mapping profile, is the manager's.
+      'integrations.imports.create',
+      'integrations.imports.commit',
+      'integrations.imports.confirm',
+      'integrations.imports.rollback',
+      'integrations.profiles.upsert',
     ] as const
     for (const path of accountantMustNot) {
       expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
@@ -209,6 +221,12 @@ describe('permission matrix', () => {
       'tenantCatalog.packConfigs.list',
       'billing.registers.gstSummary',
       'receivables.journal.list',
+      // ...and takes the exports and keeps the Tally names (docs/22: "reads and exports everything").
+      'integrations.imports.list',
+      'integrations.imports.rows.list',
+      'integrations.exports.request',
+      'integrations.exports.downloadUrl',
+      'integrations.tally.mappings.upsert',
     ] as const) {
       expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
         true,
@@ -582,6 +600,150 @@ describe('permission matrix', () => {
     const gps = allProcedures().find((r) => r.path === 'delivery.gps.points')
     expect(gps?.httpPath).toBe('/gps/points')
     expect(gps?.method).toBe('POST')
+  })
+
+  it('lets the gate capture a supplier bill and never read its rates (docint)', () => {
+    const docintPaths = paths.filter((p) => p.startsWith('docint.'))
+    expect(docintPaths.length).toBeGreaterThan(0)
+    // The field and the shop are in no row at all: a supplier bill is a page full of purchase rates
+    // (docs/17 A12, never-list 1); RLS scopes them to `pod` / `claim_sheet` / `other` by kind.
+    for (const path of docintPaths) {
+      for (const role of ['salesperson', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // CAP (coordination §6 = the existing BACK_OFFICE_OR_WAREHOUSE): capture and status on the phone.
+    const capture = [
+      'docint.documents.create',
+      'docint.documents.pageUploadUrl',
+      'docint.documents.addPage',
+      'docint.documents.verifyQr',
+      'docint.documents.submit',
+      'docint.documents.list',
+      'docint.documents.get',
+      'docint.documents.status',
+      'docint.documents.pageUrl',
+    ]
+    for (const path of capture) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'warehouse'])
+    }
+    // Every other docint procedure is the back office: the reading (printed rates), the SKU
+    // candidates, the review, the queue, the stats, reject and approve. The warehouse role reads zero
+    // rows of those tables in the database (rls.test.ts), so the matrix must agree.
+    for (const path of docintPaths.filter((p) => !capture.includes(p))) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+    }
+    // Approving books a supplier invoice DRAFT, never a GRN: the two are the same three people, and
+    // posting the GRN (where cost is written) stays a separate BACK_OFFICE call.
+    expect(permissionFor('docint.documents.approve')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    expect(permissionFor('docint.documents.approve')).toEqual(
+      permissionFor('procurement.supplierInvoices.create'),
+    )
+    expect(permissionFor('procurement.grns.post')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    // The accountant reviews and approves inbound bills (brief §5: the CA reviews them).
+    for (const path of [
+      'docint.review.start',
+      'docint.review.save',
+      'docint.review.submit',
+      'docint.documents.approve',
+      'docint.queue.list',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+    // Every docint write refuses the shop and the rep; every capture write admits the gate.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('docint.'))) {
+      if (row.method !== 'POST') continue
+      expect(isAllowed(row.permission, 'retailer'), `${row.path} must refuse retailer`).toBe(false)
+      expect(isAllowed(row.permission, 'salesperson'), `${row.path} must refuse salesperson`).toBe(
+        false,
+      )
+    }
+    for (const path of capture.filter(
+      (p) => allProcedures().find((r) => r.path === p)?.method === 'POST',
+    )) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+  })
+
+  it('keeps the file bridge with the desk: the accountant reads and exports, never imports (integrations)', () => {
+    const integrationsPaths = paths.filter((p) => p.startsWith('integrations.'))
+    expect(integrationsPaths.length).toBeGreaterThan(0)
+    // No field role and no shop anywhere: a party master carries phones and GSTINs of every shop, an
+    // outstanding file is money, and the six tables are BACK_OFFICE_ROLES in RLS since 0003.
+    for (const path of integrationsPaths) {
+      for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // The importer's writes are the owner's and the manager's: a bulk file creates retailers and
+    // listings (rows the accountant may not edit one at a time either) and a saved profile is a setting.
+    const importerWrites = [
+      'integrations.imports.create',
+      'integrations.imports.setMapping',
+      'integrations.imports.dryRun',
+      'integrations.imports.rows.review',
+      'integrations.imports.commit',
+      'integrations.imports.confirm',
+      'integrations.imports.rollback',
+      'integrations.imports.cancel',
+      'integrations.profiles.upsert',
+    ]
+    for (const path of importerWrites) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+      expect(permissionFor(path), path).toEqual(permissionFor('tenantCatalog.upsertListing'))
+    }
+    // The accountant reads every import, its rows and the profiles...
+    for (const path of [
+      'integrations.imports.list',
+      'integrations.imports.get',
+      'integrations.imports.preview',
+      'integrations.imports.rows.list',
+      'integrations.profiles.list',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    }
+    // ...takes every export and keeps the Tally names (ROLE_GROUPS.MONEY_DESK: "who takes the exports").
+    for (const path of [
+      'integrations.exports.request',
+      'integrations.tally.mappings.upsert',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.MONEY_DESK)
+    }
+    for (const path of [
+      'integrations.exports.list',
+      'integrations.exports.get',
+      'integrations.exports.downloadUrl',
+      'integrations.tally.mappings.list',
+      'integrations.tally.syncLedger.list',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+    // Every write in the block is a POST that admits the owner and the manager; every GET is a read
+    // the accountant shares. Nothing here is ever a write the accountant alone could take.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('integrations.'))) {
+      for (const role of ['owner', 'manager'] as const) {
+        expect(isAllowed(row.permission, role), `${row.path} must allow ${role}`).toBe(true)
+      }
+      if (row.method === 'GET') {
+        expect(isAllowed(row.permission, 'accountant'), `${row.path} must allow accountant`).toBe(
+          true,
+        )
+      }
+      if (importerWrites.includes(row.path)) {
+        expect(row.method, row.path).toBe('POST')
+        expect(isAllowed(row.permission, 'accountant'), `${row.path} must refuse accountant`).toBe(
+          false,
+        )
+      }
+    }
   })
 
   it('lets only auth and health be reached without a token', () => {

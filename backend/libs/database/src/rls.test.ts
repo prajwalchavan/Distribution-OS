@@ -21,11 +21,15 @@ import {
   documentPages,
   documents,
   engineDisagreements,
+  exportJobs,
   extractionChecks,
   extractions,
   featureFlags,
   fileObjects,
   grns,
+  importJobs,
+  importProfiles,
+  importRows,
   invoiceLines,
   authSessions,
   invoices,
@@ -57,6 +61,8 @@ import {
   supplierInvoices,
   suppliers,
   syncErrors,
+  tallyMappings,
+  tallySyncLedger,
   tenantProductCosts,
   tenantSettings,
   tenants,
@@ -179,6 +185,19 @@ describeDb('row level security and ledger guarantees', () => {
   const correctionA = uuidv7()
   const disagreementA = uuidv7()
   const aliasA = uuidv7()
+  /**
+   * Migration 0018/0019 fixtures (integrations): the generic importer's saved column mapping (a named
+   * profile), a party-master import parsed and paused at `staged` on that profile, one of its rows waiting
+   * for a reviewer, a finished Tally export and the sync-ledger row it pushed, a Tally stock-item mapping;
+   * beside them a profile of tenant B, so the job↔profile guard has a foreign row to refuse.
+   */
+  const profileA = uuidv7()
+  const profileB = uuidv7()
+  const importJobA = uuidv7()
+  const importRowA = uuidv7()
+  const exportJobA = uuidv7()
+  const tallyMappingA = uuidv7()
+  const tallySyncA = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -927,6 +946,86 @@ describeDb('row level security and ledger guarantees', () => {
       alias: `DEPOT ${run}`,
       normalized: `depot${run}`,
       hits: 3,
+    })
+    // Integrations fixtures (0018/0019): the wizard's saved profile, a job paused on it, a row under
+    // review, a Tally export with its sync-ledger row, and a stock-item mapping. Tenant B keeps a
+    // profile of its own so the guard can refuse a cross-tenant pin.
+    await db.insert(importProfiles).values([
+      {
+        id: profileA,
+        tenantId: tenantA,
+        name: `TradeEzee party master ${run}`,
+        kind: 'tradeezee_party',
+        target: 'retailers',
+        mapping: { 'Party Name': 'name', Mobile: 'phone', GSTIN: 'gstin' },
+        transforms: { phone: { digitsOnly: true } },
+        sourceColumns: ['Party Name', 'Mobile', 'GSTIN'],
+        createdBy: manager,
+      },
+      {
+        id: profileB,
+        tenantId: tenantB,
+        name: `Marg party list ${run}`,
+        kind: 'marg',
+        target: 'retailers',
+        mapping: { NAME: 'name', PHONE: 'phone' },
+        createdBy: owner,
+      },
+    ])
+    await db.insert(importJobs).values({
+      id: importJobA,
+      tenantId: tenantA,
+      kind: 'tradeezee_party',
+      target: 'retailers',
+      sourceObjectKey: `tenant/${tenantA}/import/${importJobA}/party-master.csv`,
+      sourceFileName: 'party-master.csv',
+      profileId: profileA,
+      mapping: { 'Party Name': 'name', Mobile: 'phone', GSTIN: 'gstin' },
+      sourceColumns: ['Party Name', 'Mobile', 'GSTIN'],
+      status: 'staged',
+      requestedBy: manager,
+      totalRows: 1,
+      startedAt: new Date(Date.now() - 60_000),
+      finishedAt: new Date(),
+    })
+    await db.insert(importRows).values({
+      id: importRowA,
+      tenantId: tenantA,
+      importJobId: importJobA,
+      rowNo: 1,
+      raw: { 'Party Name': 'Shop A', Mobile: `900${run}3`, GSTIN: '' },
+      normalized: { name: 'Shop A', phone: `+91900${run}3` },
+      status: 'needs_review',
+      error: 'Two shops share this phone; pick one.',
+    })
+    await db.insert(exportJobs).values({
+      id: exportJobA,
+      tenantId: tenantA,
+      kind: 'tally_xml',
+      params: { from: '2026-09-01', to: '2026-09-07', voucherTypes: ['sales'] },
+      status: 'succeeded',
+      requestedBy: owner,
+      objectKey: `tenant/${tenantA}/exports/${exportJobA}/tally.xml`,
+      rowCount: 1,
+      startedAt: new Date(Date.now() - 60_000),
+      finishedAt: new Date(),
+    })
+    await db.insert(tallySyncLedger).values({
+      id: tallySyncA,
+      tenantId: tenantA,
+      docType: 'invoice',
+      docId: invoiceA,
+      tallyGuid: `guid-${run}`,
+      exportJobId: exportJobA,
+      contentHash: `hash-${run}`,
+    })
+    await db.insert(tallyMappings).values({
+      id: tallyMappingA,
+      tenantId: tenantA,
+      entityType: 'stock_item',
+      entityId: variant,
+      tallyName: 'Cola 750ml',
+      tallyParent: 'Beverages',
     })
   })
 
@@ -3237,7 +3336,9 @@ describeDb('row level security and ledger guarantees', () => {
     // the crew and the rep see the field kinds and never the supplier bill, nor its page
     for (const role of ['delivery', 'salesperson'] as const) {
       const ids = (await as(role)((tx) => tx.select().from(documents))).map((d) => d.id)
-      expect(ids, `${role} sees the field kinds`).toEqual(expect.arrayContaining([docPod, docClaim]))
+      expect(ids, `${role} sees the field kinds`).toEqual(
+        expect.arrayContaining([docPod, docClaim]),
+      )
       expect(ids, `${role} must not see a supplier invoice`).not.toContain(docSupplier)
       const pages = (await as(role)((tx) => tx.select().from(documentPages))).map((p) => p.id)
       expect(pages, `${role} sees the pod page`).toContain(pagePod)
@@ -3247,11 +3348,11 @@ describeDb('row level security and ledger guarantees', () => {
     expect(await as('retailer')((tx) => tx.select().from(documents))).toHaveLength(0)
     expect(await as('retailer')((tx) => tx.select().from(documentPages))).toHaveLength(0)
     // the worker (app_rw with the system role, the way `withTenant` runs a job) reads every kind
-    const asSystem = (await withTenant(
-      db,
-      { tenantId: tenantA, actorId: 'worker', actorRole: 'system' },
-      (tx) => tx.select().from(documents),
-    )).map((d) => d.id)
+    const asSystem = (
+      await withTenant(db, { tenantId: tenantA, actorId: 'worker', actorRole: 'system' }, (tx) =>
+        tx.select().from(documents),
+      )
+    ).map((d) => d.id)
     expect(asSystem).toEqual(expect.arrayContaining([docSupplier, docPod, docClaim]))
   })
 
@@ -3363,9 +3464,9 @@ describeDb('row level security and ledger guarantees', () => {
     expect(row?.totalPaise).toBe(100_000)
     expect(row?.invoiceDate).toBe('2026-09-01')
     // and the warehouse role, which captured the bill, reads the document but sees nothing of its rates
-    expect(
-      (await as('warehouse')((tx) => tx.select().from(documents))).map((d) => d.id),
-    ).toContain(docSupplier)
+    expect((await as('warehouse')((tx) => tx.select().from(documents))).map((d) => d.id)).toContain(
+      docSupplier,
+    )
   })
 
   it('keeps one match candidate per line and variant, and lets the cascade upsert it', async () => {
@@ -3408,10 +3509,7 @@ describeDb('row level security and ledger guarantees', () => {
         }),
     )
     const rows = await as('manager')((tx) =>
-      tx
-        .select()
-        .from(skuMatchCandidates)
-        .where(eq(skuMatchCandidates.extractionId, extractionA)),
+      tx.select().from(skuMatchCandidates).where(eq(skuMatchCandidates.extractionId, extractionA)),
     )
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ id: candidateA, chosen: true, matchedBy: 'reviewer', score: 1 })
@@ -3469,5 +3567,295 @@ describeDb('row level security and ledger guarantees', () => {
     ]) {
       expect(await asOtherTenant((tx) => tx.select().from(table))).toHaveLength(0)
     }
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Migrations 0018/0019 (integrations: the generic mapped importer and the Tally desk, docs/17 §D7,
+  // docs/plans/integrations.md §1, §3, §5.16). Six back-office tables — a saved column-mapping profile
+  // decides where real shops and real money land — so every field role and the shopkeeper are refused on
+  // every one of them, and one trigger keeps a job's profile inside the job's tenant and target.
+
+  const integrationsTables = [
+    importProfiles,
+    importJobs,
+    importRows,
+    exportJobs,
+    tallyMappings,
+    tallySyncLedger,
+  ] as const
+
+  it('keeps the import wizard and the Tally desk to the back office: not the rep, the godown, the crew or the shop', async () => {
+    for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+      for (const table of integrationsTables) {
+        expect(
+          await as(role)((tx) => tx.select().from(table)),
+          `${role} must not read an integrations table`,
+        ).toHaveLength(0)
+      }
+      // nor save a profile, start an import, request an export or map a Tally ledger
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(importProfiles).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            name: `Sneaky ${role} ${run}`,
+            kind: 'csv',
+            target: 'retailers',
+            createdBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(importJobs).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            kind: 'csv',
+            target: 'retailers',
+            sourceObjectKey: `tenant/${tenantA}/import/x/${role}.csv`,
+            requestedBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(exportJobs).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            kind: 'outstanding_xlsx',
+            requestedBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(tallyMappings).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            entityType: 'party',
+            entityId: retailerA,
+            tallyName: 'Shop A',
+          }),
+        ),
+        /row-level security/,
+      )
+      // nor resolve a row under review, or re-aim a staged job: the update matches nothing
+      const touchedRow = await as(role)((tx) =>
+        tx
+          .update(importRows)
+          .set({ status: 'matched', reviewedBy: actorFor(role), reviewedAt: new Date() })
+          .where(eq(importRows.id, importRowA))
+          .returning({ id: importRows.id }),
+      )
+      expect(touchedRow, `${role} must not resolve an import row`).toHaveLength(0)
+      const touchedJob = await as(role)((tx) =>
+        tx
+          .update(importJobs)
+          .set({ status: 'cancelled' })
+          .where(eq(importJobs.id, importJobA))
+          .returning({ id: importJobs.id }),
+      )
+      expect(touchedJob, `${role} must not cancel an import`).toHaveLength(0)
+    }
+    const [row] = await db.select().from(importRows).where(eq(importRows.id, importRowA))
+    expect(row?.status).toBe('needs_review')
+    expect(row?.reviewedBy).toBeNull()
+    // the desk — owner, manager and the accountant's "reads and exports" seat — reads all six
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      expect(
+        (await as(role)((tx) => tx.select().from(importProfiles))).map((p) => p.id),
+        `${role} reads the saved profile`,
+      ).toContain(profileA)
+      expect(
+        (await as(role)((tx) => tx.select().from(importJobs))).map((j) => j.id),
+        `${role} reads the import`,
+      ).toContain(importJobA)
+      expect(
+        (await as(role)((tx) => tx.select().from(importRows))).map((r) => r.id),
+        `${role} reads its rows`,
+      ).toContain(importRowA)
+      expect(
+        (await as(role)((tx) => tx.select().from(exportJobs))).map((e) => e.id),
+        `${role} reads the export`,
+      ).toContain(exportJobA)
+      expect(
+        (await as(role)((tx) => tx.select().from(tallySyncLedger))).map((s) => s.id),
+        `${role} reads the sync ledger`,
+      ).toContain(tallySyncA)
+      expect(
+        (await as(role)((tx) => tx.select().from(tallyMappings))).map((m) => m.id),
+        `${role} reads the Tally mapping`,
+      ).toContain(tallyMappingA)
+    }
+    // the worker (app_rw with the system role, the way the stage/commit/render jobs run) reads them too
+    const asSystem = await withTenant(
+      db,
+      { tenantId: tenantA, actorId: 'worker', actorRole: 'system' },
+      (tx) => tx.select({ id: importJobs.id }).from(importJobs),
+    )
+    expect(asSystem.map((j) => j.id)).toContain(importJobA)
+  })
+
+  it('lets the desk save a named profile once per tenant and pin a job only to a profile of its own tenant and target', async () => {
+    // a second profile with the same name is a second copy of the same decision: refused by the unique index
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx.insert(importProfiles).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          name: `TradeEzee party master ${run}`,
+          kind: 'tradeezee_party',
+          target: 'retailers',
+          createdBy: manager,
+        }),
+      ),
+      /import_profiles_name_idx/,
+    )
+    // the accountant reads and exports; it may also save a profile (integrations §8.7: uniform desk)
+    const accountantProfile = uuidv7()
+    await as('accountant')((tx) =>
+      tx.insert(importProfiles).values({
+        id: accountantProfile,
+        tenantId: tenantA,
+        name: `TradeEzee outstanding ${run}`,
+        kind: 'tradeezee_outstanding',
+        target: 'opening_balances',
+        mapping: { Party: 'retailerName', 'Bill No': 'invoiceNo', Balance: 'amountRupees' },
+        transforms: { amountRupees: { rupeesToPaise: true } },
+        createdBy: owner,
+      }),
+    )
+    const startJob = (target: string, profileId: string | null) =>
+      as('manager')((tx) =>
+        tx
+          .insert(importJobs)
+          .values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            kind: 'tradeezee_party',
+            target,
+            sourceObjectKey: `tenant/${tenantA}/import/${uuidv7()}/file.csv`,
+            profileId,
+            requestedBy: manager,
+          })
+          .returning({
+            id: importJobs.id,
+            status: importJobs.status,
+            profileId: importJobs.profileId,
+          }),
+      )
+    // right tenant, right target: the job carries the profile
+    const [pinned] = await startJob('retailers', profileA)
+    expect(pinned).toMatchObject({ status: 'queued', profileId: profileA })
+    // a job mapped by hand carries none
+    const [byHand] = await startJob('retailers', null)
+    expect(byHand?.profileId).toBeNull()
+    // a retailers profile cannot drive an opening-balances import (a wrong mapping misfiles real money)
+    await rejectsWith(
+      startJob('opening_balances', profileA),
+      /cannot drive a opening_balances import/,
+    )
+    // tenant B's profile is invisible to tenant A's desk AND refused by the guard even where visible
+    expect(
+      (await as('manager')((tx) => tx.select().from(importProfiles))).map((p) => p.id),
+    ).not.toContain(profileB)
+    await rejectsWith(startJob('retailers', profileB), /belongs to another tenant/)
+    // a profile that does not exist
+    await rejectsWith(startJob('retailers', uuidv7()), /does not exist/)
+    // and a staged job cannot be re-aimed at a target its profile does not map
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx
+          .update(importJobs)
+          .set({ target: 'products' })
+          .where(eq(importJobs.id, importJobA))
+          .returning({ id: importJobs.id }),
+      ),
+      /cannot drive a products import/,
+    )
+  })
+
+  it('pauses a parsed import at staged and records who resolved a row', async () => {
+    // the stage job left the fixture at `staged`, the value 0018 added to the shared job enum
+    const [job] = await as('manager')((tx) =>
+      tx.select().from(importJobs).where(eq(importJobs.id, importJobA)),
+    )
+    expect(job).toMatchObject({
+      status: 'staged',
+      profileId: profileA,
+      sourceFileName: 'party-master.csv',
+      hasHeaderRow: true,
+      sourceColumns: ['Party Name', 'Mobile', 'GSTIN'],
+      totalRows: 1,
+    })
+    expect(job?.startedAt).toBeInstanceOf(Date)
+    expect(job?.finishedAt).toBeInstanceOf(Date)
+    // the reviewer resolves the ambiguous row: the row remembers who and when
+    const reviewedAt = new Date()
+    const [resolved] = await as('manager')((tx) =>
+      tx
+        .update(importRows)
+        .set({
+          status: 'matched',
+          normalized: { name: 'Shop A', phone: `+91900${run}3`, retailerId: retailerA },
+          error: null,
+          reviewedBy: manager,
+          reviewedAt,
+        })
+        .where(eq(importRows.id, importRowA))
+        .returning(),
+    )
+    expect(resolved).toMatchObject({ status: 'matched', reviewedBy: manager, error: null })
+    expect(resolved?.reviewedAt?.getTime()).toBe(reviewedAt.getTime())
+    // an export never pauses for review, but the enum is shared: the value is there for it too
+    const labels = await db.execute(
+      sql`select enumlabel from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'job_status' order by enumsortorder`,
+    )
+    expect(labels.rows.map((r) => (r as { enumlabel: string }).enumlabel)).toEqual([
+      'queued',
+      'running',
+      'succeeded',
+      'failed',
+      'cancelled',
+      'staged',
+    ])
+    // the export-detail screen's "what did this job push" list has its index (0018), leading with tenant_id
+    const idx = await db.execute(
+      sql`select indexdef from pg_indexes where schemaname = 'public' and indexname in ('tally_sync_ledger_export_idx', 'import_profiles_name_idx', 'import_jobs_profile_idx') order by indexname`,
+    )
+    expect(idx.rows).toHaveLength(3)
+    for (const r of idx.rows) {
+      expect((r as { indexdef: string }).indexdef).toMatch(/\(tenant_id,/)
+    }
+    const pushed = await as('accountant')((tx) =>
+      tx
+        .select({ docId: tallySyncLedger.docId })
+        .from(tallySyncLedger)
+        .where(eq(tallySyncLedger.exportJobId, exportJobA)),
+    )
+    expect(pushed.map((p) => p.docId)).toEqual([invoiceA])
+  })
+
+  it('keeps the import wizard and the Tally desk inside the tenant', async () => {
+    const asOtherTenant = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, fn)
+    for (const table of integrationsTables) {
+      const rows = await asOtherTenant((tx) => tx.select().from(table))
+      // tenant B owns exactly its own profile and nothing of tenant A
+      expect(rows.map((r) => r.id)).not.toContain(profileA)
+      expect(rows.map((r) => r.id)).not.toContain(importJobA)
+      expect(rows.map((r) => r.id)).not.toContain(exportJobA)
+    }
+    expect(
+      (await asOtherTenant((tx) => tx.select().from(importProfiles))).map((p) => p.id),
+    ).toContain(profileB)
+    expect(await asOtherTenant((tx) => tx.select().from(importJobs))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(importRows))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(exportJobs))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(tallyMappings))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(tallySyncLedger))).toHaveLength(0)
   })
 })

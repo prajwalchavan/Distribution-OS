@@ -3,6 +3,7 @@ import { ORPCError } from '@orpc/server'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  ApprovalKind,
   CancelOrderInput,
   CancelOrderOutput,
   ConfirmOrderInput,
@@ -61,7 +62,9 @@ import {
   fulfilmentOrders,
   fulfilmentQueue,
   orderLineOwners,
+  recordDelivered,
   recordPick,
+  type DeliveredLine,
   type FulfilmentEvent,
   type FulfilmentLine,
   type FulfilmentOrder,
@@ -91,11 +94,14 @@ type ListOut = z.infer<typeof OrdersListOutput>
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
 
-/** Where each warehouse move lands, so a retry on an order already there is a no-op, not a 409. */
+/** Where each fulfilment move lands, so a retry on an order already there is a no-op, not a 409. */
 const FULFILMENT_TARGET: Readonly<Record<FulfilmentEvent, OrderState>> = {
   start_picking: 'picking',
   pack: 'packed',
   dispatch: 'dispatched',
+  deliver_all: 'delivered',
+  deliver_partial: 'partially_delivered',
+  return_undelivered: 'packed',
 }
 
 /** The outbox event each move publishes, in the same transaction as the transition row. */
@@ -103,6 +109,9 @@ const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> =
   start_picking: 'OrderPicking',
   pack: 'OrderPacked',
   dispatch: 'OrderDispatched',
+  deliver_all: 'OrderDelivered',
+  deliver_partial: 'OrderPartiallyDelivered',
+  return_undelivered: 'OrderReturnedUndelivered',
 }
 
 /**
@@ -222,52 +231,68 @@ export class OrdersService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockOrder(tx, input.id)
         this.assertRetailerOwns(order)
-        const to = transition(order.state, 'submit')
-        const lines = await tx
-          .select()
-          .from(salesOrderLines)
-          .where(eq(salesOrderLines.orderId, order.id))
-        if (lines.length === 0)
-          throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
-        const now = new Date()
-        const flags = await approvalFlags(tx, order, lines)
-        const [submitted] = await tx
-          .update(salesOrders)
-          .set({
-            state: to,
-            orderNo: order.orderNo ?? (await nextDocumentNumber(tx, 'SO', now)),
-            approvalFlags: flags,
-            submittedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(salesOrders.id, order.id))
-          .returning()
-        const next = submitted ?? order
-        await recordTransition(tx, next, order.state, to, 'submit', input.deviceId ?? null, null)
-        await emitOrderEvent(tx, next, 'OrderSubmitted')
-        if (flags.length === 0) {
-          const confirmed =
-            ctx.actorRole === 'retailer'
-              ? await asSystem(tx, () => this.confirmInTx(tx, next, input.deviceId ?? null))
-              : await this.confirmInTx(tx, next, input.deviceId ?? null)
-          return { item: confirmed.item }
-        }
-        await tx.insert(approvals).values(
-          flags.map((kind) => ({
-            id: uuidv7(),
-            tenantId: ctx.tenantId,
-            kind,
-            orderId: next.id,
-            entityType: 'sales_order',
-            entityId: next.id,
-            requestedBy: ctx.actorId,
-            status: 'pending' as const,
-            payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
-          })),
-        )
-        return { item: await this.detail(tx, next) }
+        const { item } = await this.submitInTx(tx, order, input.deviceId ?? null)
+        return { item }
       }),
     )
+  }
+
+  /**
+   * The transaction-scoped half of `submit`, shared with the delivery module's van sale (coordination
+   * §4: delivery → orders): the number, the approval gates, the transition row and the event, then the
+   * auto-confirm when no gate tripped. `flags` tells the caller which gates are still waiting — a van
+   * sale at the door cannot wait for the owner, so it refuses on a non-empty list.
+   */
+  async submitInTx(
+    tx: Db,
+    order: OrderRow,
+    deviceId: string | null,
+  ): Promise<{ item: OrderDetail; flags: ApprovalKind[] }> {
+    const ctx = currentTenant()
+    const to = transition(order.state, 'submit')
+    const lines = await tx
+      .select()
+      .from(salesOrderLines)
+      .where(eq(salesOrderLines.orderId, order.id))
+    if (lines.length === 0)
+      throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
+    const now = new Date()
+    const flags = await approvalFlags(tx, order, lines)
+    const [submitted] = await tx
+      .update(salesOrders)
+      .set({
+        state: to,
+        orderNo: order.orderNo ?? (await nextDocumentNumber(tx, 'SO', now)),
+        approvalFlags: flags,
+        submittedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(salesOrders.id, order.id))
+      .returning()
+    const next = submitted ?? order
+    await recordTransition(tx, next, order.state, to, 'submit', deviceId, null)
+    await emitOrderEvent(tx, next, 'OrderSubmitted')
+    if (flags.length === 0) {
+      const confirmed =
+        ctx.actorRole === 'retailer'
+          ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId))
+          : await this.confirmInTx(tx, next, deviceId)
+      return { item: confirmed.item, flags }
+    }
+    await tx.insert(approvals).values(
+      flags.map((kind) => ({
+        id: uuidv7(),
+        tenantId: ctx.tenantId,
+        kind,
+        orderId: next.id,
+        entityType: 'sales_order',
+        entityId: next.id,
+        requestedBy: ctx.actorId,
+        status: 'pending' as const,
+        payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
+      })),
+    )
+    return { item: await this.detail(tx, next), flags }
   }
 
   /** Owner and manager confirm (docs/22 2026-09-05): it resolves approvals and reserves stock. */
@@ -418,6 +443,11 @@ export class OrdersService {
   /** Warehouse writes back what came off the rack; see `recordPick` for why free pieces are excluded. */
   recordPick(tx: Db, orderId: string, picked: readonly PickedLine[]): Promise<void> {
     return recordPick(tx, orderId, picked)
+  }
+
+  /** Delivery writes back what the shop accepted at the door (coordination §3.9); see `recordDelivered`. */
+  recordDelivered(tx: Db, orderId: string, delivered: readonly DeliveredLine[]): Promise<void> {
+    return recordDelivered(tx, orderId, delivered)
   }
 
   /** The warehouse app's order queue: quantities and identity, never money (`fulfilment.ts`). */

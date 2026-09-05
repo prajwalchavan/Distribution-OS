@@ -270,7 +270,8 @@ export async function recordTransition(
  * Other modules react to orders through these events, never by reading `sales_orders` (§4.1).
  * `OrderPacked` arrived with the billing slice's `markPacked`; the warehouse slice (coordination §3.9)
  * added `OrderPicking` and `OrderDispatched` with `applyFulfilmentEvent`, which now supersedes it.
- * Delivery consumes `OrderDispatched`; notifications and reporting consume all three.
+ * The delivery slice added the three doorstep outcomes (`applyFulfilmentEvent('deliver_all' |
+ * 'deliver_partial' | 'return_undelivered')`); notifications, reporting and incentives consume them.
  */
 export type OrderEventType =
   | 'OrderSubmitted'
@@ -279,6 +280,9 @@ export type OrderEventType =
   | 'OrderPicking'
   | 'OrderPacked'
   | 'OrderDispatched'
+  | 'OrderDelivered'
+  | 'OrderPartiallyDelivered'
+  | 'OrderReturnedUndelivered'
 
 export async function emitOrderEvent(
   tx: Db,

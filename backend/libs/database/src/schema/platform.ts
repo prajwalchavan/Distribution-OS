@@ -168,6 +168,14 @@ export const numberingSeries = pgTable(
 /**
  * Transactional outbox: domain events are inserted in the same transaction as the state change and
  * relayed by the worker. Modules integrate through these events, never through each other's tables.
+ *
+ * The relay (`backend/worker/src/jobs/outbox-relay.ts`, coordination §3.6) claims unpublished rows
+ * with `FOR UPDATE SKIP LOCKED`, runs every handler registered for the event type and stamps
+ * `published_at` only when all of them resolved. A throwing handler leaves the row unpublished:
+ * `attempts` counts the tries, `next_attempt_at` holds it back with exponential backoff, `last_error`
+ * keeps the newest failure for support, and after the last permitted attempt `dead_lettered_at` parks
+ * the row (still unpublished, never retried, visible to an operator). One `published_at` means "every
+ * handler that exists today saw it" — there is no per-consumer flag and none is being added.
  */
 export const outboxEvents = pgTable(
   'outbox_events',
@@ -179,6 +187,14 @@ export const outboxEvents = pgTable(
     eventType: text('event_type').notNull(),
     payload: jsonb('payload').notNull(),
     publishedAt: timestamp('published_at', { withTimezone: true, mode: 'date' }),
+    /** Relay attempts so far (a handler threw, or the process died mid-batch). */
+    attempts: integer('attempts').notNull().default(0),
+    /** Not before this instant: the relay's exponential backoff after a failed attempt. */
+    nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'date' }),
+    /** The newest handler failure, truncated; cleared when the row finally publishes. */
+    lastError: text('last_error'),
+    /** Parked after the last permitted attempt; an operator resets it (and `attempts`) to replay. */
+    deadLetteredAt: timestamp('dead_lettered_at', { withTimezone: true, mode: 'date' }),
     ...timestamps,
   },
   (t) => [

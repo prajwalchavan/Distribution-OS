@@ -8,6 +8,7 @@ import {
   retailerLinks,
   salesOrders,
   supplierInvoices,
+  supplierPackConfigs,
   withSystem,
   type Db,
 } from '@dos/db'
@@ -374,7 +375,14 @@ describe('every POST, on every service that serves it', () => {
    * Mutations whose body `id` is not the procedure's slot id: the shop editing its own EXISTING row,
    * and the upload intent, whose id is per domain (one per service) and replays like any other.
    */
-  const EXISTING_ROW_ID = new Set(['retailers.updateOwn', 'files.uploadUrl'])
+  // `delivery.vehicles.upsert` echoes the demo vehicle; `delivery.deliveries.record` completes the
+  // planned row the stop created (its id is the stop's, docs/plans/delivery.md), never a new one.
+  const EXISTING_ROW_ID = new Set([
+    'retailers.updateOwn',
+    'files.uploadUrl',
+    'delivery.vehicles.upsert',
+    'delivery.deliveries.record',
+  ])
 
   it('keys every mutation to the id it creates, so a second Execute replays', () => {
     for (const [service, examples] of byService) {
@@ -563,6 +571,24 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
     expect(taken.bargains).toEqual([])
     expect(taken.invoices).toEqual([])
     expect(taken.numbers).toEqual([])
+
+    // An upsert on a natural key: the id it publishes is either the row (supplier, variant) already
+    // resolves to, or one no pack config holds — never an id that names ANOTHER pair, which is the
+    // `supplier_pack_configs_pkey` 500 the delivery gate hit once the demo variant moved.
+    const pack = examples.get('tenantCatalog.packConfigs.upsert')?.body
+    const held = await withSystem(db, (tx: Db) =>
+      tx
+        .select({
+          supplierId: supplierPackConfigs.supplierId,
+          variantId: supplierPackConfigs.variantId,
+        })
+        .from(supplierPackConfigs)
+        .where(eq(supplierPackConfigs.id, String(pack?.id))),
+    )
+    for (const row of held) {
+      expect(row.supplierId).toBe(pack?.supplierId)
+      expect(row.variantId).toBe(pack?.variantId)
+    }
     await pool3.end()
   }, 30_000)
 

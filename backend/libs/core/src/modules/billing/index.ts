@@ -7,6 +7,8 @@
  *                                                          load sheet print beside an order
  *                    `sellerBranding`                   — the white-label block on the Rule 55 challan
  *   delivery (4)     `BillingService.issueFromLocation` — the van sale from vehicle stock
+ *                    `BillingService.invoiceForDelivery` — the bill and its lines as the doorstep
+ *                                                          sees them (quantities, never a rate)
  *                    `CreditNotesService.raiseForDelivery` — the doorstep short delivery, in one tap
  *   integrations (6) `BillingService.importBrandDms`    — a brand DMS's own bill, stored verbatim
  *                    `BillingService.recordOpeningInvoice` — a bill carried over from the old software
@@ -19,6 +21,7 @@ export {
   BillingService,
   EXTERNAL_INVOICE_SERIES,
   INVOICE_SERIES,
+  type InvoiceForDelivery,
   type InvoiceRef,
   type IssueForPackInput,
   type IssueForPackLine,

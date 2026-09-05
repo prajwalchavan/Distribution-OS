@@ -1,6 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  // Turbo's default runs 10 tasks at once. On the founder's 8-core / 8 GB Mac that is ten tsc,
+  // type-aware eslint and vitest processes (each vitest spawning up to eight workers with a Nest app
+  // and a pg pool) beside the seven watching services: the box swaps, every request in a DB-backed
+  // spec runs forty to seventy times slower than alone, and 30 s test budgets time out at random
+  // (delivery gate, 2026-09-05). Four keeps the whole graph inside RAM; CI has fewer cores anyway.
+  "concurrency": "4",
   "globalEnv": ["NODE_ENV"],
   "globalDependencies": ["libs/config/tsconfig/base.json", ".env"],
   "tasks": {

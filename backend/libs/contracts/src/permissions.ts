@@ -526,6 +526,85 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // ADR 0012: the batch bypasses the sync queue; the caller must be the trip's crew (handler).
   'delivery.gps.points': DOORSTEP,
   'delivery.gps.trace': PIN_HOLDERS,
+
+  // Docint — inbound document intake (coordination §6; docs/22 §5, never-list 1 and 6). Two
+  // populations, no new tuple:
+  //  * BACK_OFFICE_OR_WAREHOUSE is the brief's CAP: CAPTURE and STATUS. The gate photographs the
+  //    supplier's bill at the door (`create`, `pageUploadUrl`, `addPage`, `verifyQr`, `submit`), reads
+  //    what it captured (`list`, `get`, `status`, `pageUrl`). None of these shapes carries a rate, and
+  //    `documents` / `document_pages` RLS scopes the field to `pod` / `claim_sheet` / `other` by kind.
+  //  * BACK_OFFICE is everything the engine produced and everything a human decides on it: the
+  //    extraction (printed purchase rates), the SKU candidates, the review session, the queue, the
+  //    stats, `reject` and `approve`. The warehouse reads ZERO rows of those tables (migrations
+  //    0016/0017, rls.test.ts "not even the gate staff"), so the matrix agrees with the database.
+  //    The accountant reviews and approves inbound bills (brief §5: the CA reviews them; approving a
+  //    supplier's bill is bookkeeping — the same three people own `procurement.supplierInvoices.create`).
+  //  `approve` books a supplier invoice DRAFT and nothing else — never a GRN, a lot, a ledger row or a
+  //  cost; `procurement.grns.post` (BACK_OFFICE, above) is where cost is written, by a human, later.
+  //  Letting the gate approve is a founder decision plus a policy migration (docint.ts header), not a
+  //  handler flag: nothing here pre-widens for it.
+  'docint.documents.create': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.pageUploadUrl': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.addPage': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.verifyQr': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.submit': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.list': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.get': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.status': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.pageUrl': BACK_OFFICE_OR_WAREHOUSE,
+  'docint.documents.reject': BACK_OFFICE,
+  'docint.documents.approve': BACK_OFFICE,
+  'docint.extractions.run': BACK_OFFICE,
+  'docint.extractions.list': BACK_OFFICE,
+  'docint.extractions.get': BACK_OFFICE,
+  'docint.matches.list': BACK_OFFICE,
+  'docint.matches.accept': BACK_OFFICE,
+  'docint.matches.reject': BACK_OFFICE,
+  'docint.matches.choose': BACK_OFFICE,
+  'docint.matches.rerun': BACK_OFFICE,
+  'docint.review.start': BACK_OFFICE,
+  'docint.review.heartbeat': BACK_OFFICE,
+  'docint.review.save': BACK_OFFICE,
+  'docint.review.release': BACK_OFFICE,
+  'docint.review.submit': BACK_OFFICE,
+  'docint.queue.list': BACK_OFFICE,
+  'docint.stats.summary': BACK_OFFICE,
+
+  // Integrations — the file bridge (coordination §6 says "every integrations.* = BACK_OFFICE"; the founder's
+  // 2026-09-05 narrowing of the accountant splits that into three populations, no new tuple):
+  //  * BACK_OFFICE reads: every import, its rows, the preview, the profiles, every export job and its
+  //    download, the Tally mapping and the sync ledger. The accountant "reads and exports everything".
+  //  * MANAGEMENT writes the IMPORTER: a bulk file creates and updates retailers and catalog listings —
+  //    the same rows the accountant may not touch one at a time (`retailers.upsert`,
+  //    `tenantCatalog.upsertListing`) — and, for `opening_outstanding`, money with no sale behind it,
+  //    which the handler narrows further to the OWNER on `commit` and `confirm` (integrations.ts header).
+  //    A saved mapping profile is configuration, and the accountant sets no setting.
+  //  * MONEY_DESK takes the EXPORTS and keeps the Tally names — ROLE_GROUPS.MONEY_DESK is literally "who
+  //    takes the exports", and the Tally mapping is the CA's own tool, not one of the founder's forbidden
+  //    settings. `exports.request` never renders inline; `downloadUrl` is a read.
+  // No field role and no shop appears anywhere: the six tables are BACK_OFFICE_ROLES in RLS since 0003, and
+  // only owner-service and manager-service mount the key.
+  'integrations.imports.create': MANAGEMENT,
+  'integrations.imports.list': BACK_OFFICE,
+  'integrations.imports.get': BACK_OFFICE,
+  'integrations.imports.preview': BACK_OFFICE,
+  'integrations.imports.setMapping': MANAGEMENT,
+  'integrations.imports.dryRun': MANAGEMENT,
+  'integrations.imports.rows.list': BACK_OFFICE,
+  'integrations.imports.rows.review': MANAGEMENT,
+  'integrations.imports.commit': MANAGEMENT,
+  'integrations.imports.confirm': MANAGEMENT,
+  'integrations.imports.rollback': MANAGEMENT,
+  'integrations.imports.cancel': MANAGEMENT,
+  'integrations.profiles.list': BACK_OFFICE,
+  'integrations.profiles.upsert': MANAGEMENT,
+  'integrations.exports.request': MONEY_DESK,
+  'integrations.exports.list': BACK_OFFICE,
+  'integrations.exports.get': BACK_OFFICE,
+  'integrations.exports.downloadUrl': BACK_OFFICE,
+  'integrations.tally.mappings.list': BACK_OFFICE,
+  'integrations.tally.mappings.upsert': MONEY_DESK,
+  'integrations.tally.syncLedger.list': BACK_OFFICE,
 }
 
 /**

@@ -169,6 +169,45 @@ export class InventoryService {
     return { entries: written, balances: [...balances.values()] }
   }
 
+  /**
+   * ADR 0013: a vehicle IS a stock location. Delivery (coordination §3.9) creates the `locations` row a
+   * new vehicle sells and delivers out of — `kind = 'vehicle'`, `negative_allowed = false` (a van never
+   * goes negative: a van sale beyond van stock is a 400 with the shortfall), `vehicle_id` pointing back
+   * at delivery's row. Idempotent on the vehicle id: a second call for the same vehicle returns the
+   * location it already has, and never renames it. `locations` is inventory's table, which is why the
+   * write lives here and not in the delivery module.
+   */
+  async ensureVehicleLocation(
+    tx: Db,
+    input: { vehicleId: string; name: string; id?: string | undefined },
+  ): Promise<{ id: string; created: boolean }> {
+    const { tenantId } = currentTenant()
+    const [existing] = await tx
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.vehicleId, input.vehicleId)))
+      .orderBy(asc(locations.id))
+      .limit(1)
+    if (existing) return { id: existing.id, created: false }
+    const [row] = await tx
+      .insert(locations)
+      .values({
+        id: input.id ?? uuidv7(),
+        tenantId,
+        kind: 'vehicle',
+        name: input.name,
+        vehicleId: input.vehicleId,
+        negativeAllowed: false,
+        active: true,
+      })
+      .returning({ id: locations.id })
+    if (!row)
+      throw new ORPCError('INTERNAL_SERVER_ERROR', {
+        message: 'vehicle location insert returned nothing',
+      })
+    return { id: row.id, created: true }
+  }
+
   /** Lot identity is (variant, batch, MRP); expiry/mfg are filled in when first known. */
   async findOrCreateLot(tx: Db, input: LotInput): Promise<{ lot: LotRow; created: boolean }> {
     const { tenantId } = currentTenant()

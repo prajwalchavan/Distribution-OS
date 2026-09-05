@@ -8,6 +8,7 @@ import type { Db } from '../client.js'
 import { seedBilling } from './billing.js'
 import { seedCatalog } from './catalog.js'
 import { seedDelivery } from './delivery.js'
+import { seedDeliveryRoad } from './delivery-road.js'
 import { seedPeople, type PeopleResult } from './people.js'
 import { seedPlatformGaps } from './platform-gaps.js'
 import { seedPricing } from './pricing.js'
@@ -43,7 +44,7 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   const tenantCatalog = await seedTenantCatalog(db, tenantId, variants)
   const stock = await seedStock(db, tenantId, variants, tenantCatalog, people)
   const sales = await seedSales(db, tenantId, variants, retailersRes, pricing, stock, people)
-  await seedDelivery(db, tenantId, retailersRes, sales, people)
+  const delivery = await seedDelivery(db, tenantId, retailersRes, sales, people)
   // After delivery: the van sale below leaves a VEHICLE location, which `seedDelivery` creates.
   await seedBilling(db, tenantId, variants, retailersRes, sales, stock, people)
   // After billing: a pack confirmation carries the invoice id billing has just written, and a load
@@ -54,6 +55,8 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   await seedReporting(db, tenantId, retailersRes, sales, people)
   // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
   await seedPlatformGaps(db, tenantId, stock, people)
+  // Last: the delivery module's road data reads the bills, orders and loads every seed above wrote.
+  await seedDeliveryRoad(db, tenantId, sales, people, delivery)
 
   if (opts.printSignIn ?? true) printSignInTable(tenantId, people)
 }
