@@ -16,7 +16,7 @@ lakhs of users without rewriting the ledgers, the tenancy model or the sync prot
 7. [Offline sync](07-offline-sync.md) — PowerSync streams per role, write path, conflict rules, idempotency, GPS.
 8. [Frontend architecture](08-frontend-architecture.md) · 9. [Backend architecture and API](09-backend-architecture-and-api.md)
 9. [Integrations](10-integrations.md) — Tally XML, brand DMS coexistence (FieldAssist), WhatsApp, maps, OTP, GST e-invoice / e-way bill, imports, ONDC vocabulary.
-10. [Infrastructure and cost](11-infra-and-cost.md) · 12. [Repository layout](12-repository-layout.md) (target tree; the skeleton is a subset)
+10. [Infrastructure and cost](11-infra-and-cost.md) · 12. [Repository layout](19-layout-restructure.md) (target tree; the skeleton is a subset)
 11. [Solo-developer roadmap](13-roadmap-solo-dev.md) — 24-week P50 / 28-week P80, acceptance per slice, definition of production-grade, questions to answer before week 1.
 12. [Risks](14-risks.md) · 15. [Decisions log](15-decisions-log.md)
 
@@ -28,6 +28,6 @@ Six real documents from Tarsun (Aug 2026): a Guru Kripa (MOM makhana) Tally-styl
 
 ## How the skeleton maps to the plan
 
-`shared/domain` (paise, pieces, GST, UUIDv7, state machines, price precedence), `shared/contracts` (Zod + oRPC), `backend/db` (Drizzle schema with RLS as code; tenancy + platform tables from ADRs 0001/0002/0007), `backend/apps/api` (NestJS 12 on Fastify; health + tenancy; one folder per module), `backend/apps/worker` (pg-boss outbox relay), `frontend/apps/team` + `frontend/apps/retailer` (Expo SDK 57), `frontend/apps/console` (Vite + React 19), `frontend/packages/{ui,api-client,offline}`, `infra/`. `CLAUDE.md` at the root holds commands and the rules that keep the codebase honest.
+`backend/libs/domain` (paise, pieces, GST, UUIDv7, state machines, price precedence), `backend/libs/contracts` (Zod + oRPC), `backend/libs/database` (Drizzle schema with RLS as code, migrations, seeds), `backend/libs/core` (NestJS 12 on Fastify; one folder per module; the service framework), `backend/<role>-service` (auth, owner, manager, sales, warehouse, delivery, retailer: one runnable service per app), `backend/worker` (pg-boss outbox relay), `frontend/<role>-app` (one app per role, web + Android + iOS), `frontend/libs/{ui,api-client,offline}`, `backend/infra/`. `CLAUDE.md` at the root holds commands and the rules that keep the codebase honest.
 
 Review outputs: `docs/design/VERDICTS.md` (adversarial verification of the synthesis), `docs/design/COMPLETENESS.md` (gap analysis + first 10 tickets), and `docs/17-corrections-from-review.md` (what was adopted, the migration-0004 schema deltas, and the questions for the founder). `docs/16-module-implementation-pattern.md` is the recipe every backend module follows.

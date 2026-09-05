@@ -1,0 +1,160 @@
+/**
+ * Regenerates the README of every backend service and frontend app from the shared contract.
+ *   pnpm docs:readme          write files
+ *   pnpm docs:readme --check  exit 1 if any README is stale (CI)
+ */
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { renderAppReadme, renderServiceReadme, type ServiceDefinition } from '@dos/core'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const check = process.argv.includes('--check')
+const services = ['auth', 'owner', 'manager', 'sales', 'warehouse', 'delivery', 'retailer'] as const
+
+/** auth-service has no app of its own — every app signs in against it. */
+const APPS: Partial<
+  Record<
+    (typeof services)[number],
+    {
+      dir: string
+      name: string
+      title: string
+      blurb: string
+      run: string
+      env: string
+      screens: string[]
+    }
+  >
+> = {
+  owner: {
+    dir: '../frontend/owner-app',
+    name: '@dos/owner-app',
+    title: 'Owner app',
+    blurb:
+      'The distributor owner, manager and accountant: masters (catalog, costs, retailers, prices, schemes), the approvals queue, orders, and later billing desk, registers and imports. Web today (Vite); re-platformed on Expo (web + Android + iOS) in the frontend phase. Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.',
+    run: 'pnpm --filter @dos/auth-service dev   # :3000, sign-in\npnpm --filter @dos/owner-service dev   # :3001\ncd frontend && pnpm --filter @dos/owner-app dev   # http://localhost:5173 (proxies /api -> :3001)',
+    env: 'VITE_API_URL, default same-origin /api → :3001; VITE_AUTH_URL / EXPO_PUBLIC_AUTH_URL=http://localhost:3000 (auth-service, once re-platformed on Expo)',
+    screens: [
+      'Dashboard: API/DB status, tenant card',
+      'Catalog: list/unlist variants, case size, MOQ, alias',
+      'Purchase costs (owner/manager/accountant only)',
+      'Retailers: list, add, credit terms',
+      'Price lists & schemes, bargain queue',
+      'Orders & approvals: queue, order drawer, confirm/cancel',
+    ],
+  },
+  manager: {
+    dir: '../frontend/manager-app',
+    name: '@dos/manager-app',
+    title: 'Manager app',
+    blurb:
+      'The back office shared by the manager and the accountant: approvals, orders, stock and GRNs, billing desk, receipts and ageing, GST registers, exports. Purchase cost is visible here (back-office role). Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.',
+    run: 'pnpm --filter @dos/manager-service dev   # :3002\ncd frontend && pnpm --filter @dos/manager-app start   # Expo: press w (web), a (Android), i (iOS)',
+    env: 'EXPO_PUBLIC_API_URL=http://localhost:3002',
+    screens: [
+      'Approvals queue',
+      'Orders and dispatch status',
+      'Stock, GRNs and discrepancies',
+      'Billing desk and credit notes',
+      'Receipts, allocations, ageing',
+      'GST registers and Tally export',
+    ],
+  },
+  sales: {
+    dir: '../frontend/sales-app',
+    name: '@dos/sales-app',
+    title: 'Salesperson app',
+    blurb:
+      'The beat day: shops in PJP order, check-in, order editor in cases and pieces priced by the engine, bargain requests, visits, offline-first sync. Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.',
+    run: 'pnpm --filter @dos/sales-service dev   # :3003\npnpm --filter @dos/sales-app start     # Expo: press w (web), a (Android), i (iOS)',
+    env: 'EXPO_PUBLIC_API_URL=http://localhost:3003',
+    screens: [
+      "Today's beat",
+      'Shop card (last order, outstanding, usual basket)',
+      'Order editor',
+      'Bargain request',
+      'Visits and performance',
+    ],
+  },
+  warehouse: {
+    dir: '../frontend/warehouse-app',
+    name: '@dos/warehouse-app',
+    title: 'Warehouse app',
+    blurb:
+      'Inbound: photograph the supplier invoice, review the extraction, blind gate count, post the GRN. Outbound: order queue, picklist, pack, load sheet. Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.',
+    run: 'pnpm --filter @dos/warehouse-service dev   # :3004\npnpm --filter @dos/warehouse-app start     # Expo: press w (web), a (Android), i (iOS)',
+    env: 'EXPO_PUBLIC_API_URL=http://localhost:3004',
+    screens: [
+      'Inbound invoices and GRN gate count',
+      'Stock by lot and location',
+      'Order queue → picklist → pack',
+      'Load sheet and check-out',
+    ],
+  },
+  delivery: {
+    dir: '../frontend/delivery-app',
+    name: '@dos/delivery-app',
+    title: 'Delivery app',
+    blurb:
+      'The trip: stops in order, delivered/partial/failed with proof, collections, van sales from vehicle stock, settlement at check-in. Location shared only while a trip is active. Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.',
+    run: 'pnpm --filter @dos/delivery-service dev   # :3005\npnpm --filter @dos/delivery-app start     # Expo: press w (web), a (Android), i (iOS)',
+    env: 'EXPO_PUBLIC_API_URL=http://localhost:3005',
+    screens: [
+      'Start trip',
+      'Next stop / map hand-off',
+      'Deliver / partial / failed + POD',
+      'Collect payment',
+      'On-spot order',
+      'Settlement',
+    ],
+  },
+  retailer: {
+    dir: '../frontend/retailer-app',
+    name: '@dos/retailer-app',
+    title: 'Retailer app',
+    blurb:
+      "The shop's side: one card per linked distributor, catalog with availability, reorder, order status, bills and dues with UPI QR, request a discount. Online-first; WhatsApp deep links land here. Sign in with username + password (auth-service :3000); the app keeps a refresh token per device.",
+    run: 'pnpm --filter @dos/retailer-service dev   # :3006\npnpm --filter @dos/retailer-app start     # Expo: press w (web), a (Android), i (iOS)',
+    env: 'EXPO_PUBLIC_API_URL=http://localhost:3006',
+    screens: [
+      'My distributors',
+      'Catalog and reorder',
+      'Order status',
+      'Outstanding bills + UPI QR',
+      'Request discount',
+    ],
+  },
+}
+
+let stale = 0
+function emit(path: string, content: string) {
+  const abs = resolve(root, path)
+  const current = existsSync(abs) ? readFileSync(abs, 'utf8') : null
+  if (check) {
+    if (current !== content) {
+      stale += 1
+      console.error(`stale: ${path}`)
+    }
+    return
+  }
+  mkdirSync(dirname(abs), { recursive: true })
+  if (current !== content) {
+    writeFileSync(abs, content)
+    console.warn(`wrote ${path}`)
+  }
+}
+
+for (const name of services) {
+  const mod = (await import(`../${name}-service/src/service.ts`)) as {
+    service: ServiceDefinition
+  }
+  emit(`${name}-service/README.md`, renderServiceReadme(mod.service))
+  const app = APPS[name]
+  if (app && existsSync(resolve(root, app.dir)))
+    emit(`${app.dir}/README.md`, renderAppReadme({ ...app, service: mod.service }))
+}
+if (check && stale > 0) {
+  console.error(`${stale} README(s) out of date — run pnpm docs:readme`)
+  process.exit(1)
+}

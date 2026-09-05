@@ -1,0 +1,21 @@
+{
+  "name": "@dos/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "tsconfig and eslint presets shared by the Distribution OS frontend apps and libraries",
+  "type": "module",
+  "exports": {
+    "./tsconfig/*": "./tsconfig/*",
+    "./eslint/base": "./eslint/base.js"
+  },
+  "files": [
+    "tsconfig",
+    "eslint"
+  ],
+  "dependencies": {
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

@@ -13,3 +13,7 @@ coverage/
 .DS_Store
 # local scratch postgres data
 .pgdata/
+# pnpm smoke output (backend/.smoke)
+.smoke/
+# object storage, local driver (backend/.storage) — uploaded bytes, never source
+.storage/

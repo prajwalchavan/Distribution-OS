@@ -1,0 +1,40 @@
+{
+  "name": "dos-backend",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "pnpm --filter @dos/domain test:watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d db",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:generate": "pnpm --filter @dos/db generate",
+    "db:migrate": "pnpm --filter @dos/db migrate",
+    "db:seed": "pnpm --filter @dos/db seed",
+    "db:studio": "pnpm --filter @dos/db studio",
+    "docs:readme": "tsx tools/generate-readmes.mts",
+    "docs:readme:check": "tsx tools/generate-readmes.mts --check",
+    "auth:keygen": "tsx tools/auth-keygen.mts",
+    "smoke": "tsx tools/smoke-endpoints.mts",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@dos/config": "workspace:*",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "tsx": "catalog:",
+    "@dos/core": "workspace:*",
+    "@dos/contracts": "workspace:*"
+  },
+  "description": "Distribution OS backend: independently runnable services on one core library and one Postgres database."
+}

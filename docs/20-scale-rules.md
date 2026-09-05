@@ -35,4 +35,4 @@ These are build rules, not a later phase. A module is not "stable" until it foll
 
 - Identity module adds per-tenant rate limiting and request ids alongside login.
 - Database gains `DATABASE_REPLICA_URL` support and a partitioning migration plan for the six ledger tables before the first 1,000 tenants.
-- The load model above becomes k6 scripts under `backend-services/infra/k6/` and runs in CI weekly against a staging stack.
+- The load model above becomes k6 scripts under `backend/infra/k6/` and runs in CI weekly against a staging stack.

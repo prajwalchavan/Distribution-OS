@@ -95,7 +95,7 @@ tenant_product_costs(tenant_id, variant_id, lot_id NULL, purchase_rate, landed_c
 
 **ADR 0007 — Sync write protocol.** `POST /sync/upload` with `X-Sync-Protocol: 1`; 2xx + `sync_errors` for business rejections, 5xx only for transient faults; `sync_ops(tenant_id, device_id, op_id)` unique, retained ≥ 180 days (§7).
 
-**ADR 0008 — Pricing engine.** `priceOrder(order, priceLists, overrides, schemes, clock, pricingDate)` is a pure function in `shared/domain` with zero runtime dependencies, identical on device and server. Order fixed by CONTEXT: price list tier → retailer override wins → schemes stack unless `final` → cash discount conditional at receipt.
+**ADR 0008 — Pricing engine.** `priceOrder(order, priceLists, overrides, schemes, clock, pricingDate)` is a pure function in `backend/libs/domain` with zero runtime dependencies, identical on device and server. Order fixed by CONTEXT: price list tier → retailer override wins → schemes stack unless `final` → cash discount conditional at receipt.
 
 ```ts
 type SchemeRule = {

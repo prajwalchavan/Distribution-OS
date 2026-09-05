@@ -1,0 +1,46 @@
+import {
+  defineService,
+  TenancyModule,
+  CatalogModule,
+  TenantCatalogModule,
+  RetailersModule,
+  PricingModule,
+  InventoryModule,
+  OrdersModule,
+  ReceivablesModule,
+  BillingModule,
+  SyncModule,
+} from '@dos/core'
+
+/** The delivery crew app: trips, stops, proof of delivery, collections, van sales from vehicle stock, GPS. Trip endpoints arrive with the delivery module. */
+export const service = defineService({
+  name: 'delivery',
+  title: 'Delivery service',
+  defaultPort: 3005,
+  roles: ['delivery'],
+  modules: [
+    TenancyModule,
+    CatalogModule,
+    TenantCatalogModule,
+    RetailersModule,
+    PricingModule,
+    InventoryModule,
+    OrdersModule,
+    ReceivablesModule,
+    BillingModule,
+    SyncModule,
+  ],
+  contractKeys: [
+    'health',
+    'tenancy',
+    'catalog',
+    'tenantCatalog',
+    'retailers',
+    'pricing',
+    'inventory',
+    'orders',
+    'receivables',
+    'billing',
+    'sync',
+  ],
+})

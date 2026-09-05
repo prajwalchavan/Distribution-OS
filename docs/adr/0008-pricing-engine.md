@@ -4,7 +4,7 @@ Status: accepted (2026-09-04). Irreversible after first real data; changing it m
 
 ## Decision
 
-`priceOrder(order, priceLists, overrides, schemes, clock, pricingDate)` is a pure function in `shared/domain` with zero runtime dependencies, identical on device and server. Order fixed by CONTEXT: price list tier → retailer override wins → schemes stack unless `final` → cash discount conditional at receipt.
+`priceOrder(order, priceLists, overrides, schemes, clock, pricingDate)` is a pure function in `backend/libs/domain` with zero runtime dependencies, identical on device and server. Order fixed by CONTEXT: price list tier → retailer override wins → schemes stack unless `final` → cash discount conditional at receipt.
 
 ```ts
 type SchemeRule = {

@@ -5,4 +5,5 @@ dist
 .turbo
 coverage
 pnpm-lock.yaml
-backend/db/migrations
+backend/libs/database/migrations
+backend/infra/docker

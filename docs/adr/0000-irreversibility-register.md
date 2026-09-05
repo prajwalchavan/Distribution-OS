@@ -15,4 +15,4 @@ Decisions that cannot be changed after the first real tenant data without a migr
 | 0007 | `/sync/upload` protocol v1: never 4xx, `sync_ops` durable ≥180 days, `sync_errors`            | Old app versions in the field speak it                                |
 | 0008 | Pricing engine as a pure function run on device and server; `applied_rules` stamped per line  | Printed invoices and claims depend on the stamp                       |
 
-Reversible (evolve freely): hosting provider, sync-engine vendor behind `frontend/packages/offline`, extraction engine behind `ExtractionEngine`, UI kits, map/OTP/WhatsApp providers, NestJS major version.
+Reversible (evolve freely): hosting provider, sync-engine vendor behind `frontend/libs/offline`, extraction engine behind `ExtractionEngine`, UI kits, map/OTP/WhatsApp providers, NestJS major version.

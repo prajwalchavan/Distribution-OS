@@ -6,7 +6,7 @@ Date: 2026-09-04. Method: official docs and vendor pricing pages fetched today (
 
 ## 0. The one-paragraph recommendation
 
-**TypeScript end-to-end. Backend = a NestJS 12 modular monolith on the Fastify adapter, Node 24 LTS, Postgres 17/18 as the only stateful system at launch (shared schema + `tenant_id` + Row Level Security, with a global product/manufacturer master), Drizzle ORM + drizzle-kit migrations, Zod 4 schemas in `shared/contracts` consumed by mobile/web via oRPC (typed RPC + generated OpenAPI), pg-boss for jobs/outbox relay (no Redis at launch), SSE for live dashboards, S3 ap-south-1 for invoice photos, Better Auth (self-hosted, phone-OTP + organization plugins) for identity, CASL + RLS for authorization, OpenTelemetry → Grafana Cloud free tier + Sentry, hosted on AWS Mumbai (RDS + ECS Fargate ARM) provisioned with SST v3, deployed by GitHub Actions with native ECS blue/green.** Pilot cost is roughly $50–70/month; ~10 distributors ≈ $250–350/month; ~100 distributors ≈ $1.1–1.4k/month (details in §6). The cheaper India-resident fallback is DigitalOcean Bangalore (BLR1) at ≈ $45/month for the pilot with the _same code_ (Docker + Kamal), because the stack has zero AWS-specific runtime dependencies.
+**TypeScript end-to-end. Backend = a NestJS 12 modular monolith on the Fastify adapter, Node 24 LTS, Postgres 17/18 as the only stateful system at launch (shared schema + `tenant_id` + Row Level Security, with a global product/manufacturer master), Drizzle ORM + drizzle-kit migrations, Zod 4 schemas in `backend/libs/contracts` consumed by mobile/web via oRPC (typed RPC + generated OpenAPI), pg-boss for jobs/outbox relay (no Redis at launch), SSE for live dashboards, S3 ap-south-1 for invoice photos, Better Auth (self-hosted, phone-OTP + organization plugins) for identity, CASL + RLS for authorization, OpenTelemetry → Grafana Cloud free tier + Sentry, hosted on AWS Mumbai (RDS + ECS Fargate ARM) provisioned with SST v3, deployed by GitHub Actions with native ECS blue/green.** Pilot cost is roughly $50–70/month; ~10 distributors ≈ $250–350/month; ~100 distributors ≈ $1.1–1.4k/month (details in §6). The cheaper India-resident fallback is DigitalOcean Bangalore (BLR1) at ≈ $45/month for the pilot with the _same code_ (Docker + Kamal), because the stack has zero AWS-specific runtime dependencies.
 
 ---
 
@@ -149,7 +149,7 @@ The transactional outbox pattern: write the domain event into an `outbox` table 
 
 **Pick Drizzle** (schema in TS, SQL-shaped queries, policies in migrations, `drizzle-zod` for validators) and use **Kysely-style raw `sql` tags inside Drizzle** for ledger statements. Pin the 0.45 line until v1 ships final, then upgrade in one PR. Migration workflow: generate SQL files in CI, review them, apply with `drizzle-kit migrate` as a one-shot job _before_ the new app version receives traffic (this is what makes blue/green safe — migrations must be backward compatible with the still-running blue version).
 
-**Zod 4** is the single validation library: 6–14× faster parsing than Zod 3, ~half the bundle, `zod/mini` for the mobile bundle, and `z.toJSONSchema()` for OpenAPI ([zod.dev](https://zod.dev/v4)). NestJS 12 accepts Zod natively; Expo/React Native import the same schemas from `shared/contracts`. Use **oRPC** on top: typed procedures with Zod input/output, TanStack Query bindings for the apps, and the _same router_ served as an OpenAPI/REST surface for Tally/Marg importers or a future brand-DMS integration ([oRPC](https://orpc.dev/docs/getting-started)).
+**Zod 4** is the single validation library: 6–14× faster parsing than Zod 3, ~half the bundle, `zod/mini` for the mobile bundle, and `z.toJSONSchema()` for OpenAPI ([zod.dev](https://zod.dev/v4)). NestJS 12 accepts Zod natively; Expo/React Native import the same schemas from `backend/libs/contracts`. Use **oRPC** on top: typed procedures with Zod input/output, TanStack Query bindings for the apps, and the _same router_ served as an OpenAPI/REST surface for Tally/Marg importers or a future brand-DMS integration ([oRPC](https://orpc.dev/docs/getting-started)).
 
 ---
 
@@ -298,7 +298,7 @@ distribution-os/
 │  │  └─ retailer-mobile/      # Expo: shopping-app experience, WhatsApp-first notifications
 │  └─ packages/
 │     ├─ ui/                   # design system, Hindi/English i18n, number/currency formatting
-│     ├─ api-client/           # oRPC client + TanStack Query hooks (types come from shared/contracts)
+│     ├─ api-client/           # oRPC client + TanStack Query hooks (types come from backend/libs/contracts)
 │     └─ offline/              # SQLite (expo-sqlite) queue + sync engine, idempotency keys, UUIDv7
 ├─ backend/
 │  ├─ apps/
@@ -332,7 +332,7 @@ distribution-os/
    └─ config/                  # tsconfig, eslint (incl. boundaries), prettier, vitest presets
 ```
 
-Rules that keep this honest with one developer: modules talk to each other only through exported application services or outbox events (never import another module's repository); `shared/domain` has zero runtime dependencies so it bundles into Expo; `backend/db` is the only place SQL schema lives; every mutating procedure in `shared/contracts` declares an `idempotencyKey` input.
+Rules that keep this honest with one developer: modules talk to each other only through exported application services or outbox events (never import another module's repository); `backend/libs/domain` has zero runtime dependencies so it bundles into Expo; `backend/db` is the only place SQL schema lives; every mutating procedure in `backend/libs/contracts` declares an `idempotencyKey` input.
 
 ---
 

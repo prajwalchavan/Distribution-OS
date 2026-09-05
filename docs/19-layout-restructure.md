@@ -1,41 +1,75 @@
-# Layout restructure: independent services and apps (founder decision, 2026-09-04)
+# 19 · Repository layout (two independent workspaces)
 
-## Target layout
+Founder decisions, 2026-09-04: the repo root holds only `backend/`, `frontend/`, `docs/` and `CLAUDE.md` (plus dotfiles);
+every service and every app is its own package that runs alone; one database; one app per role, six apps; every
+service has functional endpoints with an API page; every service and app has a README listing every endpoint with a
+sample request, a success response and a failure response.
+
+## Tree
 
 ```
 Distribution OS/
-├─ shared/                       used by BOTH sides (unchanged packages)
-│  ├─ domain/      @dos/domain    money, GST, UUIDv7, IST dates, state machines, pricing engine
-│  ├─ contracts/   @dos/contracts one API contract; each service exposes a subset
-│  └─ config/      @dos/config    tsconfig / eslint / vitest presets
-├─ backend-services/
-│  ├─ database/    @dos/db        schema, migrations, seed, withTenant()  (ONE Postgres database)
-│  ├─ core/        @dos/core      NestJS modules (catalog, retailers, pricing, inventory, procurement,
-│  │                              orders, sync, …) + platform (guards, idempotency) + spec harness.
-│  │                              A library: no main.ts. All module specs live here.
-│  ├─ owner-service/      :3001   roles owner, manager, accountant  — every module + costs/reporting
-│  ├─ sales-service/      :3002   roles salesperson (+owner/manager) — catalog, retailers, pricing, orders, sync
-│  ├─ warehouse-service/  :3003   roles manager (+owner)            — inventory, procurement, orders(pick/pack), billing
-│  ├─ delivery-service/   :3004   roles delivery (+owner/manager)   — delivery, orders(deliver), receivables(receipts), sync, gps
-│  ├─ retailer-service/   :3005   role retailer                     — catalog(sellable), orders(own), invoices/receipts(own)
-│  └─ worker/             —       pg-boss jobs (outbox relay, retention, PDFs)
-└─ frontend-apps/                 five Expo apps (web + Android + iOS), each runs alone
-   ├─ owner-app/     EXPO_PUBLIC_API_URL=http://localhost:3001
-   ├─ sales-app/     …3002
-   ├─ warehouse-app/ …3003
-   ├─ delivery-app/  …3004
-   ├─ retailer-app/  …3005
-   └─ shared-ui/     @dos/ui + @dos/api-client + @dos/offline (components, typed client, PowerSync)
+├─ CLAUDE.md  README.md  docs/            .github/ci.yml  .claude/launch.json  .editorconfig  .prettierrc.json
+├─ backend/                               ← pnpm workspace #1 (package.json, pnpm-workspace.yaml, lockfile, turbo.json, .env)
+│  ├─ libs/domain                          pure TypeScript, zero deps (money, quantities, GST, dates, state machines, pricing)
+│  ├─ libs/contracts                       Zod + oRPC contract, one file per module, permissions.ts (roles per procedure)
+│  ├─ libs/config                          tsconfig / eslint / vitest presets
+│  ├─ libs/database                        Drizzle schema + RLS policies, migrations, seed, seed-demo, withTenant()
+│  ├─ libs/core                            NestJS modules (one per bounded context), platform, service framework, README renderer
+│  ├─ auth-service        :3000            username + password sign-in, refresh, me, switch distributor, public keys
+│  ├─ owner-service       :3001  owner
+│  ├─ manager-service     :3002  manager, accountant
+│  ├─ sales-service       :3003  salesperson
+│  ├─ warehouse-service   :3004  warehouse
+│  ├─ delivery-service    :3005  delivery
+│  ├─ retailer-service    :3006  retailer
+│  ├─ worker                               pg-boss consumers (outbox relay, retention, later docint/imports/rollups)
+│  ├─ tools/                               generate-readmes.mts, auth-keygen.mts
+│  └─ infra/                               Dockerfile (one image per service), docker-compose (CI database), hosting notes
+└─ frontend/                              ← pnpm workspace #2 (hoisted node_modules for Expo)
+   ├─ libs/config                          tsconfig / eslint presets (same versions as backend)
+   ├─ libs/ui  libs/api-client  libs/offline
+   ├─ owner-app        → :3001             Vite web today; Expo (web + Android + iOS) when the frontend phase starts
+   ├─ manager-app      → :3002             Expo
+   ├─ sales-app        → :3003             Expo, offline-first (PowerSync)
+   ├─ warehouse-app    → :3004             Expo
+   ├─ delivery-app     → :3005             Expo, trip-scoped GPS
+   └─ retailer-app     → :3006             Expo, online-first
 ```
 
-Each service: own `package.json`, `src/main.ts`, `src/app.module.ts` (composes modules from `@dos/core`), `SERVICE_ROLES` (which membership roles may call it — enforced by `TenantGuard`), `GET /health`, `GET /docs` (Scalar UI) + `GET /docs/openapi.json` generated from the service's contract subset, and a smoke spec. Ports are defaults; `PORT` overrides.
+## Why two workspaces and a `libs/` folder rather than a copy per service
 
-## Why one database (one schema, module-owned tables) and one core library
+- A service is one process on one port with its own `package.json`, `.env` (optional; `backend/.env` is the shared default),
+  README, tests and Docker image. It runs alone: `cd backend && pnpm --filter @dos/owner-service dev`.
+- The business modules live once, in `backend/libs/core`, and each service composes the subset it serves
+  (`src/service.ts`: roles, modules, contract keys, port). Copying modules into each service would mean fixing every bug
+  six times; linking them means one fix, six deployables.
+- `pnpm install` in `backend/` installs everything the backend needs once (pnpm links, it does not copy); `pnpm install`
+  in `frontend/` does the same for the apps. The two sides do not share a lockfile or a `node_modules`.
+- The frontend needs the contract (routes, request/response shapes) and the domain helpers. It links them from
+  `backend/libs` with `"@dos/contracts": "link:../../backend/libs/contracts"` and reads their `dist/`, so build those two
+  packages in backend before frontend typecheck/build (CI does).
+- Every service is stateless behind a load balancer (docs/20). The auth service issues signed tokens; the others verify
+  the signature with the public key and never call auth per request.
 
-The five apps act on the same order, the same stock and the same bill. A rule such as "an issued invoice is immutable" or "reserve stock only on confirm" must live in exactly one place, so business modules are a library the five services compose; independence is at the process, port, deployment and test level. Scale is designed in now, not later (`docs/20-scale-rules.md`): every table keys on `tenant_id`, ledgers are partition-ready, reads go to replicas, services are stateless replicas. Splitting into one physical database per service stays possible because tables are module-owned and cross-module reads go through services.
+## Ports and roles
 
-## Migration steps (keep every test green at each step)
+| Service           | Port | Roles served                | App           |
+| ----------------- | ---- | --------------------------- | ------------- |
+| auth-service      | 3000 | public + any signed-in user | all apps      |
+| owner-service     | 3001 | owner                       | owner-app     |
+| manager-service   | 3002 | manager, accountant         | manager-app   |
+| sales-service     | 3003 | salesperson                 | sales-app     |
+| warehouse-service | 3004 | warehouse                   | warehouse-app |
+| delivery-service  | 3005 | delivery                    | delivery-app  |
+| retailer-service  | 3006 | retailer                    | retailer-app  |
 
-1. Backend: `git mv` packages into `backend-services/`; rename `@dos/api` → `@dos/core` (library exports `./modules/*`, `./platform`, `./testing`); create the five service packages + worker move; update `pnpm-workspace.yaml`, root scripts, turbo, `.claude/launch.json`, CI, CLAUDE.md, docs/16.
-2. Frontend: create the five Expo apps from the existing `team`/`retailer` shells; port the console pages into `owner-app` (Expo web); move `frontend/packages/*` into `frontend-apps/shared-ui`; delete `frontend/`.
-3. Demo data: extend to three distributors; per-app sign-in ids in the seed output.
+`<NAME>_SERVICE_PORT` overrides a port. A role that a service does not serve receives 403 from `TenantGuard` before any
+business logic; within a service, the permission matrix in `backend/libs/contracts/src/permissions.ts` decides per endpoint.
+
+## Status
+
+- 2026-09-04: split into two workspaces; manager-service added; ports renumbered; legacy Vite console became
+  `frontend/owner-app`; Expo template shells removed (the apps are created fresh in the frontend phase); READMEs
+  regenerated; both workspaces green (backend 44 tasks, frontend 9).
+- Next: auth-service + permission matrix (docs/18 RESUME HERE), then the remaining backend modules, then the apps.

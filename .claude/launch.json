@@ -2,67 +2,130 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "auth-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/auth-service dev"
+      ],
+      "port": 3000
+    },
+    {
       "name": "owner-service",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/owner-service dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/owner-service dev"
       ],
       "port": 3001
+    },
+    {
+      "name": "manager-service",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/manager-service dev"
+      ],
+      "port": 3002
     },
     {
       "name": "sales-service",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/sales-service dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/sales-service dev"
       ],
-      "port": 3002
+      "port": 3003
     },
     {
       "name": "warehouse-service",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/warehouse-service dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/warehouse-service dev"
       ],
-      "port": 3003
+      "port": 3004
     },
     {
       "name": "delivery-service",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/delivery-service dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/delivery-service dev"
       ],
-      "port": 3004
+      "port": 3005
     },
     {
       "name": "retailer-service",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/retailer-service dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/retailer-service dev"
       ],
-      "port": 3005
+      "port": 3006
     },
     {
       "name": "worker",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/worker dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/worker dev"
       ],
       "port": 3999
     },
     {
-      "name": "console",
+      "name": "owner-app",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; pnpm --filter @dos/console dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/owner-app dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "manager-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/manager-app web -- --port 5174"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "sales-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/sales-app web -- --port 5175"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "warehouse-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/warehouse-app web -- --port 5176"
+      ],
+      "port": 5176
+    },
+    {
+      "name": "delivery-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/delivery-app web -- --port 5177"
+      ],
+      "port": 5177
+    },
+    {
+      "name": "retailer-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/retailer-app web -- --port 5178"
+      ],
+      "port": 5178
     }
   ]
 }

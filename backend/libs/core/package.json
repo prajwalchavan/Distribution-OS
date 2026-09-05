@@ -1,0 +1,76 @@
+{
+  "name": "@dos/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "NestJS modules + platform shared by every backend service (library, no main.ts)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@dos/contracts": "workspace:*",
+    "@dos/db": "workspace:*",
+    "@dos/domain": "workspace:*",
+    "@fastify/cors": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-fastify": "catalog:",
+    "@orpc/contract": "catalog:",
+    "@orpc/nest": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
+    "jose": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@dos/config": "workspace:*",
+    "@nestjs/testing": "catalog:",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-boundaries": "catalog:",
+    "typescript": "catalog:",
+    "unplugin-swc": "catalog:",
+    "vitest": "catalog:"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./platform": {
+      "types": "./dist/platform/index.d.ts",
+      "default": "./dist/platform/index.js"
+    },
+    "./platform/*": {
+      "types": "./dist/platform/*.d.ts",
+      "default": "./dist/platform/*.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/app.d.ts",
+      "default": "./dist/testing/app.js"
+    },
+    "./modules/*": {
+      "types": "./dist/modules/*/index.d.ts",
+      "default": "./dist/modules/*/index.js"
+    }
+  }
+}

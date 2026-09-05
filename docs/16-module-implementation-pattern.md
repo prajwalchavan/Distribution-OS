@@ -2,7 +2,7 @@
 
 The reference implementation is `catalog` + `tenant-catalog` (commit "catalog slice"). Every backend module follows it exactly; deviations need a reason in the PR.
 
-## 1. Contract first (`shared/contracts/src/<module>.ts`)
+## 1. Contract first (`backend/libs/contracts/src/<module>.ts`)
 
 - Zod 4 schemas for every input/output. Reuse `common.ts`: `IdSchema`, `PaiseSchema`, `PiecesSchema`, `BpsSchema`, `PhoneSchema`, `GstinSchema`, `StateCodeSchema`, `MutationBase` (adds `idempotencyKey`), `QueryBoolSchema` / `QueryIntSchema` for **GET inputs** (query strings arrive as strings; plain `z.boolean()` / `z.number()` would 400).
 - Money is integer paise, quantities are integer pieces, percentages basis points. Dates are ISO strings.
@@ -11,7 +11,7 @@ The reference implementation is `catalog` + `tenant-catalog` (commit "catalog sl
 - Every mutation input extends `MutationBase` and carries the client-generated `id` (UUIDv7) of the row it creates.
 - Export the file from `index.ts`, then `pnpm --filter @dos/contracts build` (the api consumes `dist/`).
 
-## 2. Service (`backend-services/core/src/modules/<module>/<module>.service.ts`)
+## 2. Service (`backend/libs/core/src/modules/<module>/<module>.service.ts`)
 
 ```ts
 @Injectable()
@@ -33,7 +33,7 @@ export class XService {
 
 - `withTenant` opens the transaction, drops to `app_rw`, sets the tenant settings. Never query outside it.
 - `idempotent` wraps every mutation (same key + same payload → stored response; different payload → 409).
-- State changes go through `shared/domain` machines: `orderMachine.next(state, event)`; never assign a state string by hand. Money math through `@dos/domain` (`multiply`, `percentOf`, `allocate`, `splitGst`, `roundToRupee`).
+- State changes go through `backend/libs/domain` machines: `orderMachine.next(state, event)`; never assign a state string by hand. Money math through `@dos/domain` (`multiply`, `percentOf`, `allocate`, `splitGst`, `roundToRupee`).
 - Cross-module calls use the other module's exported service (import from `../<module>/index.js`), never its tables. If module A needs to react to B, B writes an `outbox_events` row and the worker relays it.
 - Map DB rows to contract shapes with small `toX(row)` functions at the bottom of the file; do not return Drizzle rows directly.
 
@@ -41,7 +41,7 @@ export class XService {
 
 - One `@Controller()` with `@UseGuards(TenantGuard)`; each procedure: `@Implement(contract.x.y) y(@OwnsReply() _reply: unknown) { return implement(contract.x.y).handler(({ input }) => this.svc.y(input)) }`.
 - `<module>.module.ts` imports `TenancyModule` (for the guard) plus the modules whose services it uses; exports its service. `index.ts` exports only the module, the service and deliberately shared helpers.
-- Add the module to the `modules` list (and its contract key to `contractKeys`) of every service in `backend-services/*-service/src/service.ts` that should serve it, and export it from `backend-services/core/src/index.ts`.
+- Add the module to the `modules` list (and its contract key to `contractKeys`) of every service in `backend/*-service/src/service.ts` that should serve it, and export it from `backend/libs/core/src/index.ts`.
 
 ## 4. Spec (`<module>.spec.ts`)
 
