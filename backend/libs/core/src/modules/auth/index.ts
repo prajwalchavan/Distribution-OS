@@ -1,6 +1,8 @@
 export { AuthModule } from './auth.module.js'
 export { AuthService, type ClientInfo } from './auth.service.js'
 export { AccessTokenGuard } from './access-token.guard.js'
+/** Console-only variant for `auth.platformMe` / `auth.supportPass` (module 13). */
+export { PlatformTokenGuard } from './platform-token.guard.js'
 export {
   CurrentAuth,
   readAccessToken,

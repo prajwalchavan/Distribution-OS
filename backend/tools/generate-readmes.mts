@@ -10,7 +10,18 @@ import { renderAppReadme, renderServiceReadme, type ServiceDefinition } from '@d
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const check = process.argv.includes('--check')
-const services = ['auth', 'owner', 'manager', 'sales', 'warehouse', 'delivery', 'retailer'] as const
+const services = [
+  'auth',
+  'owner',
+  'manager',
+  'sales',
+  'warehouse',
+  'delivery',
+  'retailer',
+  // Module 13, the platform console (founder decision 2026-09-05). Last, because it is ours and not a
+  // distributor's: its README is the only one that documents `platform_admin` and `/auth/platform/login`.
+  'admin',
+] as const
 
 /** auth-service has no app of its own — every app signs in against it. */
 const APPS: Partial<
@@ -107,6 +118,24 @@ const APPS: Partial<
       'Collect payment',
       'On-spot order',
       'Settlement',
+    ],
+  },
+  admin: {
+    dir: '../frontend/admin-app',
+    name: '@dos/admin-app',
+    title: 'Admin console',
+    blurb:
+      "Distribution OS's OWN console, not a distributor's app: onboard a distributor (tenant, chart of accounts, first owner login, trial), keep its plan and subscription state, ask a distributor's owner for time-boxed support access and hand it back, look up a global sign-in identity across every distributor it belongs to, and read the platform's counts and audit trail. This is the one surface in the product where \"Distribution OS\" is the brand on screen, because the reader is our own staff — everywhere else the distributor's own name and logo show (docs/22 §9 item 10). Sign in with username + password at auth-service :3000, but at POST /auth/platform/login, not /auth/login: a console account holds no membership, so there is no distributor to pick. Placeholder package for now — the frontend is built after the backend chain.",
+    run: 'pnpm --filter @dos/auth-service dev    # :3000, sign-in\npnpm --filter @dos/admin-service dev   # :3007',
+    env: 'EXPO_PUBLIC_API_URL / VITE_API_URL=http://localhost:3007; VITE_AUTH_URL=http://localhost:3000',
+    screens: [
+      'Distributors: list with plan, subscription state and size',
+      'Onboard a distributor: tenant, first owner login, trial',
+      'One distributor: subscription, support grants, storage',
+      'Plans and subscription state',
+      'Support access: ask, watch, hand back',
+      'Users: one identity across every distributor',
+      'Platform metrics and the audit trail',
     ],
   },
   retailer: {

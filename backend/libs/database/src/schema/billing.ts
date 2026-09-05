@@ -110,6 +110,8 @@ export const invoices = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('invoices_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('invoices_no_idx')
       .on(t.tenantId, t.seriesCode, t.fy, t.invoiceNo)
       .where(sql`invoice_no IS NOT NULL`),
@@ -180,6 +182,8 @@ export const invoiceLines = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('invoice_lines_updated_idx').on(t.tenantId, t.updatedAt),
     index('invoice_lines_invoice_idx').on(t.tenantId, t.invoiceId, t.lineNo),
     pgPolicy('invoice_lines_read', {
       for: 'select',
@@ -245,6 +249,8 @@ export const creditNotes = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('credit_notes_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('credit_notes_no_idx')
       .on(t.tenantId, t.seriesCode, t.fy, t.creditNoteNo)
       .where(sql`credit_note_no IS NOT NULL`),
@@ -278,6 +284,8 @@ export const creditNoteLines = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('credit_note_lines_updated_idx').on(t.tenantId, t.updatedAt),
     index('credit_note_lines_note_idx').on(t.tenantId, t.creditNoteId),
     pgPolicy('credit_note_lines_read', {
       for: 'select',

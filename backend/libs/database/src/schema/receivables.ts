@@ -204,6 +204,8 @@ export const receipts = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('receipts_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('receipts_idempotency_idx').on(t.tenantId, t.idempotencyKey),
     index('receipts_retailer_idx').on(t.tenantId, t.retailerId, t.receivedAt),
     index('receipts_trip_idx').on(t.tenantId, t.tripId),
@@ -387,6 +389,8 @@ export const retailerOutstandingSummary = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.tenantId, t.retailerId] }),
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('retailer_outstanding_updated_idx').on(t.tenantId, t.updatedAt),
     index('retailer_outstanding_overdue_idx').on(t.tenantId, t.overduePaise),
     index('retailer_outstanding_amount_idx').on(t.tenantId, t.outstandingPaise),
     tenantOrOwnRetailerPolicy('retailer_outstanding_read', 'retailer_id'),

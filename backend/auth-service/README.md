@@ -41,6 +41,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/auth/platform/login` | Sign in as Distribution OS platform staff (no distributor) | public |
 | POST | `/auth/platform/refresh` | Exchange a platform refresh token for a new pair (rotates the refresh token) | public |
 | GET | `/auth/platform/me` | The signed-in platform user and this session | platform_admin |
+| POST | `/auth/platform/support-pass` | Turn an owner-approved support grant into a short-lived pass for that distributor | platform_admin |
 | GET | `/auth/sessions` | Devices signed in as this user | any signed-in role |
 | POST | `/auth/sessions/revoke` | Sign one of your devices out | any signed-in role |
 | POST | `/auth/change-password` | Change your password; every other session is revoked | any signed-in role |
@@ -826,6 +827,107 @@ curl "http://localhost:3000/auth/platform/me" \
 }
 ```
 
+### POST `/auth/platform/support-pass`
+
+Turn an owner-approved support grant into a short-lived pass for that distributor · contract `auth.supportPass`
+
+**Roles:** platform_admin
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `grantId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3000/auth/platform/support-pass" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "grantId": "01a06d6e-921b-7afa-86cd-88127157452f"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "pass": "text",
+  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+  "tenantSlug": "text",
+  "scope": "read_only",
+  "expiresAt": "2026-09-04T10:30:00.000Z",
+  "grantExpiresAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the owner role may not call POST /auth/platform/support-pass",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/auth/sessions`
 
 Devices signed in as this user · contract `auth.sessions`
@@ -1263,6 +1365,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `auth.platformLogin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.platformRefresh` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.platformMe` | – | – | – | – | – | – | – |
+| `auth.supportPass` | – | – | – | – | – | – | – |
 | `auth.sessions` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.revokeSession` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.changePassword` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

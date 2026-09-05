@@ -83,6 +83,8 @@ export const picklists = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('picklists_updated_idx').on(t.tenantId, t.updatedAt),
     index('picklists_status_idx').on(t.tenantId, t.status, t.createdAt),
     uniqueIndex('picklists_no_idx')
       .on(t.tenantId, t.picklistNo)
@@ -132,6 +134,8 @@ export const pickLines = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('pick_lines_updated_idx').on(t.tenantId, t.updatedAt),
     index('pick_lines_picklist_idx').on(t.tenantId, t.picklistId),
     index('pick_lines_order_idx').on(t.tenantId, t.orderId),
     index('pick_lines_variant_idx').on(t.tenantId, t.picklistId, t.variantId),
@@ -162,6 +166,8 @@ export const packConfirmations = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('pack_confirmations_updated_idx').on(t.tenantId, t.updatedAt),
     // ONE pack confirmation per order for all time — this is what makes "the invoice is issued once" a
     // database guarantee rather than a code convention. It subsumes the plain `pack_confirmations_order_idx`
     // that 0002 created, which 0010 drops in the same migration (coordination §5.4).
@@ -231,6 +237,8 @@ export const loadSheets = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('load_sheets_updated_idx').on(t.tenantId, t.updatedAt),
     index('load_sheets_trip_idx').on(t.tenantId, t.tripId),
     index('load_sheets_status_idx').on(t.tenantId, t.status, t.sheetDate),
     index('load_sheets_to_location_idx').on(t.tenantId, t.toLocationId),
@@ -276,8 +284,17 @@ export const deliveryChallans = pgTable(
     pdfObjectKey: text('pdf_object_key'),
     issuedBy: text('issued_by').references(() => users.id),
     issuedAt: tz('issued_at').notNull().defaultNow(),
+    /**
+     * The challan is the one piece of load-out paperwork the crew's device holds that had no
+     * timestamps at all; the offline pull is keyed on `updated_at` (docs/22 §8, own sync), so it
+     * gets the pair every other synced table has. Both default to `now()`, which is what the rows
+     * written before this migration get.
+     */
+    ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('delivery_challans_updated_idx').on(t.tenantId, t.updatedAt),
     index('delivery_challans_load_sheet_idx').on(t.tenantId, t.loadSheetId),
     uniqueIndex('delivery_challans_no_idx')
       .on(t.tenantId, t.seriesCode, t.fy, t.challanNo)

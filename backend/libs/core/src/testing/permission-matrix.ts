@@ -9,7 +9,7 @@ import {
   type ProcedureSummary,
 } from '@dos/contracts'
 import { pickContract, type ServiceDefinition } from '../service/define.js'
-import { bearer, type Actor } from './app.js'
+import { bearer, platformBearer, type Actor } from './app.js'
 
 export interface PermissionMatrixOptions {
   /** Tenant/actor ids put in the test tokens. Nothing needs to exist: the gate answers before any row is read. */
@@ -18,6 +18,9 @@ export interface PermissionMatrixOptions {
   /** Substituted for every `{param}` in a route. */
   paramId?: string
 }
+
+/** Module 13's non-membership role, deliberately absent from `ALL_ROLES` (see permissions.ts). */
+const PLATFORM_ROLE = 'platform_admin'
 
 const DEFAULTS: Required<PermissionMatrixOptions> = {
   tenantId: '00000000-0000-7000-8000-00000000f001',
@@ -43,15 +46,17 @@ export function describePermissionMatrix(
     (p) => p.permission !== 'public',
   )
 
-  describe(`${service.name}-service permission matrix (${procedures.length} procedures × ${ALL_ROLES.length} roles + anonymous)`, () => {
+  describe(`${service.name}-service permission matrix (${procedures.length} procedures × ${ALL_ROLES.length + 1} roles + anonymous)`, () => {
     let app: NestFastifyApplication
     const tokens = new Map<MembershipRole, Record<string, string>>()
+    let platformToken: Record<string, string> = {}
 
     beforeAll(async () => {
       app = await boot()
       await app.init()
       await app.getHttpAdapter().getInstance().ready()
       for (const role of ALL_ROLES) tokens.set(role, await bearer(actor(opts, role)))
+      platformToken = await platformBearer(opts.actorId)
     })
 
     afterAll(async () => {
@@ -74,6 +79,20 @@ export function describePermissionMatrix(
           } else {
             expect(isGateRefusal(res), label).toBe(false)
           }
+        }
+        // The console role (module 13) is not a membership, so it is not in ALL_ROLES — but it is a
+        // token every service can be handed, and the founder's isolation rule is symmetric: it must
+        // reach `admin.*` on admin-service and NOTHING on the six tenant services. Without this pass
+        // the matrix would prove only half of that.
+        const platform = await request(app, p.method, url, platformToken)
+        const platformServed = service.roles.includes(PLATFORM_ROLE)
+        const platformAllowed = isAllowed(p.permission, PLATFORM_ROLE)
+        const platformLabel = `platform_admin on ${p.method} ${url} → ${platform.statusCode} ${platform.body.slice(0, 200)}`
+        if (!platformServed || !platformAllowed) {
+          expect(platform.statusCode, platformLabel).toBe(403)
+          expect(isGateRefusal(platform), platformLabel).toBe(true)
+        } else {
+          expect(isGateRefusal(platform), platformLabel).toBe(false)
         }
       })
     }

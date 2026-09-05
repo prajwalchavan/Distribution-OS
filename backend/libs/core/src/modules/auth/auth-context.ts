@@ -1,6 +1,6 @@
 import { createParamDecorator, UnauthorizedException, type ExecutionContext } from '@nestjs/common'
 import type { FastifyRequest } from 'fastify'
-import type { MembershipRole } from '@dos/contracts'
+import type { PermissionRole } from '@dos/contracts'
 
 /** What a verified access token says about the caller. Nothing here is trusted until AccessTokenGuard sets it. */
 export interface AuthClaims {
@@ -8,8 +8,12 @@ export interface AuthClaims {
   userId: string
   /** `tid`: the tenant the session is signed in to; null for a session that has not chosen one. */
   tenantId: string | null
-  /** `role`: the membership role in that tenant at the time the token was issued. */
-  role: MembershipRole | null
+  /**
+   * `role`: the membership role in that tenant at the time the token was issued — or the single
+   * non-membership role `platform_admin` (module 13), which arrives with `tenantId: null` because
+   * Distribution OS's own staff belong to no distributor.
+   */
+  role: PermissionRole | null
   /** `sid`: auth_sessions.id, so a token can be tied back to the device session it came from. */
   sessionId: string
   /** `did`: the device id the session belongs to. */

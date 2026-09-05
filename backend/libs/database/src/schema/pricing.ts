@@ -61,6 +61,8 @@ export const priceLists = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('price_lists_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('price_lists_tenant_name_idx').on(t.tenantId, t.name),
     tenantReadPolicy('price_lists_read'),
     ...roleWritePolicies('price_lists_write', PRICE_SETTER_ROLES),
@@ -240,6 +242,8 @@ export const bargainRequests = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('bargain_requests_updated_idx').on(t.tenantId, t.updatedAt),
     index('bargain_requests_status_idx').on(t.tenantId, t.status, t.createdAt),
     index('bargain_requests_retailer_idx').on(t.tenantId, t.retailerId, t.createdAt),
     // Staff read every request; a shop reads the ones asked for it, so it learns the answer (docs/23 §8.16).

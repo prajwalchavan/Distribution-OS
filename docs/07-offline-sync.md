@@ -1,8 +1,29 @@
 <!-- Derived from the 2026-09-04 architecture synthesis (docs/design/SYNTHESIS.md §7). Edit here; the synthesis is the frozen source. -->
 
-# Offline sync design (Team app only)
+# Offline sync design
 
-> **Superseded 2026-09-05 (founder, docs/22 §8 / docs/26 §5):** offline sync is built in-house — the existing `/sync/upload` path plus a per-table delta pull keyed on `(tenant_id, updated_at)` into SQLite on the device. PowerSync is not used. The rules below (upload never 4xx, `sync_ops`, GPS outside the queue, LWW with backend veto) still apply; the transport paragraphs about PowerSync Cloud, logical replication and residency do not.
+> **Superseded 2026-09-05 (founder, docs/22 §8 / docs/26 §5):** offline sync is built in-house — the existing `/sync/upload` path plus a per-table delta pull keyed on `(tenant_id, updated_at)` into SQLite on the device. PowerSync is not used. The rules below (upload never 4xx, `sync_ops`, GPS outside the queue, LWW with backend veto) still apply; the transport paragraphs about PowerSync Cloud, logical replication and residency do not. **The live design is §0 "Our own sync" immediately below; §7.1–§7.6 are kept for the rules they still carry and for the history of what was rejected.**
+
+## 0. Our own sync (2026-09-05)
+
+No vendor, no logical replication, no second database process: the device keeps SQLite and talks to four procedures of the `sync` contract (`backend/libs/contracts/src/sync.ts`), all over the same access token and the same permission matrix as every other endpoint. `SYNC_PROTOCOL_VERSION` is the wire version; a batch that carries a different one is answered `upgradeRequired` with every op rejected, never 4xx.
+
+**Who syncs.** The five staff apps (owner, manager, sales, warehouse, delivery) hold the read set AND the write queue. The retailer app holds the READ half only — `sync.manifest` and `sync.pull` are `ANY_MEMBER`, so the shop keeps its own bills, orders and dues on the phone and opens them in a dead spot, while `sync.upload` and `sync.errors.list` stay `STAFF`: a shop places an order online through `orders.*` and never carries a device queue. That is a widening of the read path only; RLS narrows every pulled table to the shop's own rows, and no table a shop can hold has a cost column.
+
+**Manifest — `GET /sync/manifest`.** Asked once per app start and after a role or distributor switch. It answers, for the actor's role, every table the device should hold with its `primaryKey`, its `columns` (name + the JSON type the column arrives as + nullability) and `writable` (false for the download-only tables — prices, schemes, catalog). Two fields make it a schema contract rather than documentation:
+
+- `schemaVersion` — a hash of the protocol version and the table list. The device stores it. Send it back as `knownSchemaVersion`; when it differs the local tables are stale: drop them, re-create from `tables`, and re-snapshot with a `pull` that carries no `since`. `changed: false` means keep the rows and pull a delta.
+- `role` — the role the manifest was built for, so a phone that signed in as somebody else notices it holds the wrong read set even when the hash matches.
+
+A column a pull spec strips (a scheme's funding source, anything carrying cost) is absent from the manifest as well, so the device has nowhere to put it.
+
+**Pull cursor — `GET /sync/pull`.** Rows changed since an opaque cursor, across the tables registered for the role in `SyncRegistry` (or the subset the device names in `tables`; the cap is above the longest read set, so a device may always name every table it holds and catch one table up without re-reading the rest). The cursor is base64url `{v:1,t:<iso>}` and is issued at the server clock **minus a 5 s overlap**, so a row committed by a transaction that started before the read is still caught next time — the device upserts by primary key, so seeing a row twice is free. `limit` is shared across the tables in the call; `hasMore` means at least one table filled its share, and the cursor does **not** advance until a complete pass, so the device repeats the call with the SAME `since` until `hasMore` is false and only then stores the new cursor. `asOf` is what the "updated at" line on the screen shows. Ordering inside a table is `updated_at, id`, which is why every synced table carries the `(tenant_id, updated_at)` index (migration 0012).
+
+**Tombstones.** A row that is deleted, or that leaves the actor's read set without being deleted (a beat reassigned to another rep, a trip closed, a shop unlinked), comes back as its id in that table's `deleted` array; the device deletes it locally. The owning module's pull spec is what reports them — RLS makes such a row simply invisible on the next pull, which is silent, so a module whose rows can leave a scope must return the ids rather than rely on absence. A device offline past the tombstone retention re-snapshots instead: that is the second job of `schemaVersion` and of a `pull` with no `since`.
+
+**LWW with a backend veto.** A device op that edits an existing row carries `baseUpdatedAt` — the `updated_at` the device's copy had when the user changed it, exactly as `pull` delivered it. The server applies the write only if the row has not moved on since; if it has, the op is rejected with code `stale` (`SYNC_REJECTION_CODES.stale`), a `sync_errors` row lands in the "Needs attention" tray, and the response is still 2xx — the queue is never wedged, and the device re-reads the row before offering the edit again. Inserts and insert-only tables (a receipt, a visit, a delivery, a trip count) carry no `baseUpdatedAt` and cannot be vetoed this way; protected columns and the per-entity rules in §7.3 are unchanged, and so is the idempotency contract of §7.4 (`sync_ops` by `(tenant_id, device_id, op_id)` for ≥ 180 days, plus `UNIQUE(tenant_id, idempotency_key)` on both ledgers).
+
+**Unchanged from the PowerSync design:** the upload never answers 4xx (§7.3), GPS points bypass the queue (§7.5), and the sync UX is a status dot rather than a "sync now" button (§7.6).
 
 ### 7.1 Engine and residency
 

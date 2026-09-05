@@ -132,6 +132,46 @@ describeDb('demo seed on an empty database', () => {
   }, 60_000)
 
   /**
+   * CLAUDE.md's contract for `pnpm smoke --destructive` is one line: "idempotent, re-run after
+   * `pnpm smoke --destructive`". The destructive pass presses `admin.tenants.suspend` (423 to every
+   * sign-in of the whole distributorship), `admin.users.disable` (one identity out of every
+   * distributor) and `tenancy.staff.setStatus` — and NOT ONE of the seed's `onConflictDoNothing()`
+   * inserts undoes any of them, because every row already exists. On 2026-09-06 that left the pilot
+   * tenant suspended and all seven demo sign-ins answering 423 until the column was set by hand.
+   * `restoreDemoAccess` is the line's implementation; this is the test that keeps it honest.
+   */
+  it('re-activates a distributorship, a membership and an identity that a destructive run locked', async () => {
+    const before = await rowCounts(db)
+    await db.update(tenants).set({ status: 'suspended' }).where(eq(tenants.id, tenantId))
+    await db.update(users).set({ status: 'disabled' }).where(eq(users.id, ownerId))
+    await db
+      .update(memberships)
+      .set({ status: 'disabled' })
+      .where(eq(memberships.tenantId, tenantId))
+
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+
+    const [tenant] = await db
+      .select({ status: tenants.status })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+    expect(tenant?.status).toBe('active')
+    const [owner] = await db
+      .select({ status: users.status })
+      .from(users)
+      .where(eq(users.id, ownerId))
+    expect(owner?.status).toBe('active')
+    const stillDisabled = (
+      await db.execute(sql`
+        SELECT count(*)::int AS n FROM memberships
+         WHERE tenant_id = ${tenantId} AND status <> 'active'`)
+    ).rows as { n: number }[]
+    expect(stillDisabled[0]?.n).toBe(0)
+    // ...and putting the demo back on its feet is still a seed: it adds nothing.
+    expect(await rowCounts(db)).toEqual(before)
+  }, 60_000)
+
+  /**
    * The founder's requirement (docs/22 §8, 2026-09-04): three distributors, staff under each, and
    * shops linked to more than one of them. What makes it a real test rather than three copies of the
    * same data is that the shops are SHARED — one `retailer_identities` row with a `retailers` row and

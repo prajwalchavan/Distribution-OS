@@ -19,12 +19,18 @@ class FakeVisitsSync implements OnModuleInit {
       if (op.op !== 'DELETE' && !op.data?.note)
         throw new SyncRejection('note_required', 'Visit note is required', 'विज़िट नोट ज़रूरी है')
     })
-    // The pull side: the tenant's beats since the cursor, through the generic table reader.
-    this.registry.registerPull('beats', { handler: tablePull(beats) })
+    // The pull side: the tenant's beats since the cursor, through the generic table reader. A rep is
+    // deliberately denied one column here (`area`) so the specs can prove that a column a role does
+    // not RECEIVE is also a column its manifest never PUBLISHES — the phone has nowhere to put it.
+    this.registry.registerPull(
+      'beats',
+      tablePull(beats, { omit: (role) => (role === 'salesperson' ? ['area'] : []) }),
+    )
     // A table only the desk holds on its device.
     this.registry.registerPull('desk_only', {
       roles: ['owner', 'manager'],
       handler: async () => ({ rows: [{ id: 'x' }], deleted: [] }),
+      describe: () => [{ name: 'id', type: 'string', nullable: false }],
     })
   }
 }
@@ -238,5 +244,78 @@ describeDb('sync upload (ADR 0007)', () => {
       'tables[0]': 'nope',
     })
     expect(narrowed.body.changes).toEqual([])
+  })
+
+  it('publishes a device schema that matches what pull actually sends, and a version that moves with the role', async () => {
+    type Manifest = {
+      protocol: number
+      schemaVersion: string
+      changed: boolean
+      role: string
+      tables: {
+        table: string
+        primaryKey: string[]
+        columns: { name: string; type: string; nullable: boolean }[]
+        writable: boolean
+      }[]
+      asOf: string
+    }
+    const repManifest = await call<Manifest>(app, rep, 'GET', '/sync/manifest')
+    expect(repManifest.status).toBe(200)
+    expect(repManifest.body.role).toBe('salesperson')
+    expect(repManifest.body.protocol).toBe(1)
+    // First run: the device stored nothing, so the schema is "changed" and must be created.
+    expect(repManifest.body.changed).toBe(true)
+
+    // The manifest names exactly the tables `pull` serves this role — not one more, or the phone
+    // creates a local table nothing ever fills.
+    const pulled = await call<{ changes: { table: string }[] }>(app, rep, 'GET', '/sync/pull', {
+      deviceId,
+    })
+    expect(repManifest.body.tables.map((t) => t.table).sort()).toEqual(
+      pulled.body.changes.map((c) => c.table).sort(),
+    )
+    expect(repManifest.body.tables.map((t) => t.table)).not.toContain('desk_only')
+
+    // ...and exactly the columns those rows carry. `beats` strips `area` for a rep, so the manifest
+    // strips it too: there is one `omit` behind both halves.
+    const beatsManifest = repManifest.body.tables.find((t) => t.table === 'beats')
+    expect(beatsManifest?.primaryKey).toEqual(['id'])
+    expect(beatsManifest?.writable).toBe(false) // no upload handler for beats: download-only
+    const beatsColumns = (beatsManifest?.columns ?? []).map((c) => c.name).sort()
+    const beatsRow = pulled.body.changes.find((c) => c.table === 'beats') as unknown as {
+      rows: Record<string, unknown>[]
+    }
+    expect(Object.keys(beatsRow.rows[0] ?? {}).sort()).toEqual(beatsColumns)
+    expect(beatsColumns).not.toContain('area')
+    // The types come from the schema: a paise/integer column is `integer`, a timestamp is a string.
+    const byName = new Map((beatsManifest?.columns ?? []).map((c) => [c.name, c]))
+    expect(byName.get('id')?.type).toBe('string')
+    expect(byName.get('active')).toEqual({ name: 'active', type: 'boolean', nullable: false })
+    expect(byName.get('visit_days')?.type).toBe('object')
+    expect(byName.get('updated_at')?.type).toBe('string')
+
+    // A device that sends back the version it holds is told nothing changed — that is the whole point
+    // of the field, and it is what stops an app start from dropping a full local database.
+    const again = await call<Manifest>(app, rep, 'GET', '/sync/manifest', {
+      knownSchemaVersion: repManifest.body.schemaVersion,
+    })
+    expect(again.body.changed).toBe(false)
+    expect(again.body.schemaVersion).toBe(repManifest.body.schemaVersion)
+
+    // The manager holds a table the rep does not AND the column the rep is denied, so the two roles
+    // must not share a schema version — a hash over the tables alone would tell the second phone its
+    // stale schema is still good.
+    const deskManifest = await call<Manifest>(app, manager, 'GET', '/sync/manifest')
+    expect(deskManifest.body.role).toBe('manager')
+    expect(deskManifest.body.tables.map((t) => t.table)).toContain('desk_only')
+    expect(
+      deskManifest.body.tables.find((t) => t.table === 'beats')?.columns.map((c) => c.name),
+    ).toContain('area')
+    expect(deskManifest.body.schemaVersion).not.toBe(repManifest.body.schemaVersion)
+
+    // ...and it is a read like any other: anonymous is 401, never the 404 an unimplemented
+    // contract procedure answers (that is exactly how this gap was found).
+    expect((await call(app, null, 'GET', '/sync/manifest')).status).toBe(401)
   })
 })

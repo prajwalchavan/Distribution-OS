@@ -312,11 +312,27 @@ describe('permission matrix', () => {
       'files.uploadUrl',
       'sync.upload',
       'sync.errors.list',
-      'sync.pull',
     ] as const) {
       expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
     }
     expect(permissionFor('retailers.updateOwn')).toEqual(['retailer'])
+  })
+
+  it('gives every app the offline reads and keeps the write queue with the staff (sync)', () => {
+    // docs/22 2026-09-05: the offline protocol is ours. The manifest and the delta download are the
+    // read half, and the shop's app is offline-capable for its own rows, so both are ANY_MEMBER.
+    for (const path of ['sync.manifest', 'sync.pull'] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.ANY_MEMBER)
+      for (const role of ALL_ROLES) {
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
+    // The write queue and its rejection tray stay with the distributor's own people: a shop places an
+    // order through `orders.*` online, and never holds a device queue of its own.
+    for (const path of ['sync.upload', 'sync.errors.list'] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.STAFF)
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
+    }
   })
 
   it('keeps settings with the owner and beats with the desk', () => {
@@ -1309,6 +1325,9 @@ describe('permission matrix', () => {
       'auth.platformLogin',
       'auth.platformRefresh',
       'auth.platformMe',
+      // The support pass: the console's only route to a distributor's own data, and it opens nothing
+      // by itself — the handler refuses a grant the distributor's owner has not approved.
+      'auth.supportPass',
       // Shared session management: 'authenticated', and a platform session is a session.
       'auth.login',
       'auth.refresh',
@@ -1541,6 +1560,7 @@ describe('listProcedures', () => {
       'auth.platformLogin',
       'auth.platformRefresh',
       'auth.platformMe',
+      'auth.supportPass',
       'auth.sessions',
       'auth.revokeSession',
       'auth.changePassword',

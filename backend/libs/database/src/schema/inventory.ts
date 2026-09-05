@@ -60,6 +60,8 @@ export const locations = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('locations_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('locations_tenant_name_idx').on(t.tenantId, t.name),
     tenantReadPolicy('locations_read'),
     ...staffWritePolicy('locations_write'),
@@ -84,6 +86,8 @@ export const stockLots = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('stock_lots_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('stock_lots_identity_idx').on(t.tenantId, t.variantId, t.batchNo, t.mrpPaise),
     index('stock_lots_expiry_idx').on(t.tenantId, t.expiryDate),
     tenantReadPolicy('stock_lots_read'),
@@ -162,6 +166,8 @@ export const stockBalances = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.tenantId, t.lotId, t.locationId] }),
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('stock_balances_updated_idx').on(t.tenantId, t.updatedAt),
     index('stock_balances_location_idx').on(t.tenantId, t.locationId),
     check('stock_balances_on_hand_nonneg', sql`on_hand >= 0 OR negative_allowed`),
     check('stock_balances_reserved_nonneg', sql`reserved >= 0`),

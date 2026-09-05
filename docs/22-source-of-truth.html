@@ -1,0 +1,265 @@
+<title>Distribution OS Source of Truth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f6f7f5;--surface:#ffffff;--ink:#1b2320;--muted:#5c6764;--rule:#d5dbd7;--accent:#0f6b5b;--accent-soft:#e3f0ec;--code:#eef1ef;--no:#b42318;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111716;--surface:#171e1c;--ink:#e6ebe8;--muted:#9aa6a1;--rule:#2b3532;--accent:#5cc4ac;--accent-soft:#1c2f2a;--code:#1f2825;--no:#ff8a7a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111716;--surface:#171e1c;--ink:#e6ebe8;--muted:#9aa6a1;--rule:#2b3532;--accent:#5cc4ac;--accent-soft:#1c2f2a;--code:#1f2825;--no:#ff8a7a;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;margin:0}
+main{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+header{border-bottom:1px solid var(--rule);padding-bottom:20px;margin-bottom:24px}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:600 34px/1.15 "IBM Plex Serif",Georgia,serif;margin:8px 0 6px;text-wrap:balance}
+h2{font:600 24px/1.2 "IBM Plex Serif",Georgia,serif;margin:44px 0 12px;padding-top:20px;border-top:1px solid var(--rule);text-wrap:balance}
+h3{font:600 17px/1.3 "IBM Plex Sans",system-ui,sans-serif;margin:24px 0 8px}
+p{max-width:78ch;margin:0 0 12px}
+li{max-width:78ch;margin:4px 0}
+a{color:var(--accent)}
+code{font:.92em "IBM Plex Mono",ui-monospace,Menlo,monospace;background:var(--code);padding:1px 5px;border-radius:3px}
+pre code{background:none;padding:0}
+pre{background:var(--code);padding:12px;overflow-x:auto;border-radius:4px}
+hr{border:0;border-top:1px solid var(--rule);margin:28px 0}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;margin-top:14px}
+nav.toc a{text-decoration:none;color:var(--muted)}
+nav.toc a:hover,nav.toc a:focus{color:var(--accent);text-decoration:underline}
+.canon{background:var(--accent-soft);border-left:3px solid var(--accent);padding:10px 14px;font-size:14px;margin:14px 0 0;max-width:none}
+.tablewrap{overflow-x:auto;margin:12px 0 18px;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{font-weight:600;background:var(--code);white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.diagram{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:12px;margin:14px 0 18px}
+.diagram pre.mermaid{background:none;padding:0;margin:0;font:13px/1.4 "IBM Plex Mono",ui-monospace,monospace;color:var(--ink)}
+.diagram svg{max-width:100%;height:auto}
+strong{font-weight:600}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+@media (max-width:640px){main{padding:20px 14px 60px}h1{font-size:28px}h2{font-size:21px}}
+</style>
+<main>
+<header>
+<div class="eyebrow">Distribution OS · reference</div>
+<h1>Single source of truth</h1>
+<p class="canon">This page is a rendered view. The canonical file is <code>docs/22-source-of-truth.md</code> in the repository
+(<a href="https://github.com/prajwalchavan/Distribution-OS/blob/main/docs/22-source-of-truth.md">view on GitHub</a>); it is updated in the same turn
+as any founder decision and this page is republished from it.</p>
+<nav class="toc" aria-label="Sections"><a href="#1-the-product-in-five-lines">The product in five lines</a><a href="#2-people-apps-and-services">People, apps and services</a><a href="#3-system-map">System map</a><a href="#4-the-loop-every-order-travels-order-to-cash">The loop every order travels (order to cash)</a><a href="#5-stock-in-supplier-bill-to-goods-received-zero-typing-except-the-gate-count">Stock in: supplier bill to goods received (zero typing except the gate count)</a><a href="#6-money-who-may-touch-it-and-where-it-goes">Money: who may touch it and where it goes</a><a href="#7-sign-in-and-permissions">Sign-in and permissions</a><a href="#8-founder-decisions-register-dated-newest-last">Founder decisions register (dated; newest last)</a><a href="#9-non-negotiables-never-list">Non-negotiables (never list)</a><a href="#10-open-questions-for-the-founder">Open questions for the founder</a><a href="#11-change-log">Change log</a></nav>
+</header>
+<p><strong>What this file is.</strong> The one document that survives everything: context compression in Claude sessions, laptop sleeps, model switches, a new developer. It holds the product's <em>shape</em> (who uses which app, how work and money flow between the apps, the rules that can never be broken) and the <em>founder's decisions</em>, each dated. It is short on purpose, so it is read in full at the start of every session. Where it points to another document, that document holds the detail; where it states a rule, this file wins.</p>
+<p><strong>How it is kept true.</strong></p>
+<ol><li>Any founder decision, correction or new requirement is written into this file <strong>in the same turn it is given</strong> (the decisions register in §8 and, if a flow changed, the diagram it changed). The build status is <em>not</em> kept here: that lives in <code>docs/18-build-log.md</code> and changes every hour; this file changes only when the product changes.</li><li>Every session reads this file first, before <code>docs/18-build-log.md</code> (<code>CLAUDE.md</code> says so).</li><li>Diagrams are Mermaid text, so they diff in git, render on GitHub (<a href="https://github.com/prajwalchavan/Distribution-OS/blob/main/docs/22-source-of-truth.md">https://github.com/prajwalchavan/Distribution-OS/blob/main/docs/22-source-of-truth.md</a>) and in the Claude desktop app, and can be edited without a drawing tool. <code>docs/design/five-apps-flow-atlas.html</code> was the earlier, five-app illustrated version; it is kept as history and is superseded by this file wherever the two disagree.</li><li>The change log in §11 records every edit with its date and source (founder message, review, build).</li></ol>
+<hr/>
+<h2 id="1-the-product-in-five-lines">1. The product in five lines</h2>
+<p>Distribution OS is a multi-tenant SaaS for Indian FMCG distributors (manufacturer → <strong>distributor</strong> → retailer), sold by subscription to the distributor. One distributor is one <strong>tenant</strong>; every rupee and every piece of stock is recorded in append-only ledgers under that tenant. Six apps, one per role, each talking to its own backend service, all on one Postgres database with row-level security. The pilot customer is <strong>Tarsun Enterprises, Kalyan West</strong> (Too Yumm on FieldAssist DMS, Campa, MOM makhana; ~36 shops in the demo data). Solo founder; built for lakhs of users from day one; local database with dummy data first, deployment later.</p>
+<h2 id="2-people-apps-and-services">2. People, apps and services</h2>
+<p>Founder decision (2026-09-04): <strong>every role gets its own app</strong>; the manager and the accountant share one. Each app has its own backend service so a role can only reach the endpoints its service mounts; the permission matrix then decides per endpoint inside that.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>App (package)</th><th>Who signs in</th><th>Device</th><th>Service : port</th><th>What they do there</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Owner (<code>frontend/owner-app</code>)</td><td><code>owner</code></td><td>Web + phone</td><td><code>owner-service</code> : 3001</td><td>Day numbers <strong>with graphs</strong> (growth, performance), approvals, live map, prices, schemes, credit, settings, <strong>own branding</strong>, imports</td></tr>
+<tr><td>2</td><td>Manager (<code>frontend/manager-app</code>)</td><td><code>manager</code>, <code>accountant</code></td><td>Web + phone</td><td><code>manager-service</code> : 3002</td><td>Order queue, GRN review, billing desk, day-end, registers, Tally export (accountant: read + exports)</td></tr>
+<tr><td>3</td><td>Sales (<code>frontend/sales-app</code>)</td><td><code>salesperson</code></td><td>Phone (offline before pilot)</td><td><code>sales-service</code> : 3003</td><td>Beat, shop check-in, order entry, bargain request, visits, own targets. <strong>Never sees cost, never collects money</strong></td></tr>
+<tr><td>4</td><td>Warehouse (<code>frontend/warehouse-app</code>)</td><td><code>warehouse</code></td><td>Phone + desk</td><td><code>warehouse-service</code> : 3004</td><td>Gate count, scan supplier bills, pick, pack (invoice is issued here), load sheets, challans</td></tr>
+<tr><td>5</td><td>Delivery (<code>frontend/delivery-app</code>)</td><td><code>delivery</code></td><td>Phone (offline before pilot, GPS)</td><td><code>delivery-service</code> : 3005</td><td>Trip, stops, proof of delivery, returns, <strong>collect cash / UPI / cheque</strong>, van sales, settlement</td></tr>
+<tr><td>6</td><td>Retailer (<code>frontend/retailer-app</code>)</td><td><code>retailer</code> (one login, many distributors)</td><td>Phone, online only</td><td><code>retailer-service</code> : 3006</td><td>See bills and outstanding, reorder, <strong>pay online</strong>, track delivery; one card per linked distributor</td></tr>
+<tr><td>7</td><td>Admin (<code>frontend/admin-app</code>)</td><td><code>platform_admin</code> (Distribution OS staff)</td><td>Web</td><td><code>admin-service</code> : 3007</td><td>Onboard distributors, plans and subscription state, support-access grants (time-boxed, owner-approved, audited). v1 per founder 2026-09-05.</td></tr>
+<tr><td>—</td><td>Sign-in for all six</td><td>every role</td><td>—</td><td><code>auth-service</code> : 3000</td><td>Username + password, our own tokens; switch distributor for users with more than one membership</td></tr>
+<tr><td>—</td><td>Worker (<code>backend/worker</code>)</td><td>system</td><td>—</td><td>pg-boss</td><td>Outbox relay, retention, document intake jobs, rollups, notifications</td></tr>
+</tbody></table></div>
+<p>Every service has <code>/health</code>, <code>/swagger</code>, <code>/docs</code> and <code>/docs/openapi.json</code>. All demo passwords are <code>Dos@1234</code>; usernames are in <code>docs/18-build-log.md</code>.</p>
+<h2 id="3-system-map">3. System map</h2>
+<div class="diagram"><pre class="mermaid">flowchart LR
+  subgraph apps [Six apps · web + Android + iOS]
+    OW[Owner]
+    MG[Manager / Accountant]
+    SA[Sales]
+    WH[Warehouse]
+    DL[Delivery]
+    RT[Retailer]
+  end
+  AUTH[auth-service :3000&lt;br/&gt;username + password&lt;br/&gt;EdDSA tokens, refresh per device]
+  subgraph services [One NestJS service per app · same core library]
+    OS[owner-service :3001]
+    MS[manager-service :3002]
+    SS[sales-service :3003]
+    WS[warehouse-service :3004]
+    DS[delivery-service :3005]
+    RS[retailer-service :3006]
+  end
+  WK[worker · pg-boss&lt;br/&gt;outbox relay, doc intake, rollups, WhatsApp]
+  DB[(Postgres 17&lt;br/&gt;one database, tenant_id + forced RLS&lt;br/&gt;append-only stock + money ledgers)]
+  OBJ[(Object storage&lt;br/&gt;invoice photos, POD, PDFs, logos)]
+  EXT[Outside: WhatsApp, GST IRP / e-way bill, maps,&lt;br/&gt;brand DMS exports, Tally XML, CSV/Excel imports]
+
+  OW &amp; MG &amp; SA &amp; WH &amp; DL &amp; RT -- sign in --&gt; AUTH
+  OW --&gt; OS
+  MG --&gt; MS
+  SA --&gt; SS
+  WH --&gt; WS
+  DL --&gt; DS
+  RT --&gt; RS
+  OS &amp; MS &amp; SS &amp; WS &amp; DS &amp; RS --&gt; DB
+  OS &amp; MS &amp; SS &amp; WS &amp; DS &amp; RS --&gt; OBJ
+  WK --&gt; DB
+  WK &lt;--&gt; EXT</pre></div>
+<p>Rules that shape the map: a service serves only its roles (any other role gets 403 before business logic); every endpoint has a row in the permission matrix (<code>backend/libs/contracts/src/permissions.ts</code>) and the guard fails closed on an undeclared route; every service is stateless and can run as many copies as needed; the database is the only shared state.</p>
+<h2 id="4-the-loop-every-order-travels-order-to-cash">4. The loop every order travels (order to cash)</h2>
+<div class="diagram"><pre class="mermaid">flowchart TB
+  subgraph S [Sales app · salesperson]
+    S1[Beat for today] --&gt; S2[Check in at the shop&lt;br/&gt;geo-tag as evidence, never a block]
+    S2 --&gt; S3[Order: reorder last / suggested / grid&lt;br/&gt;cases + pieces, live ATP hint]
+    S3 --&gt; S4{Price engine + credit check&lt;br/&gt;on the device}
+    S4 -- inside limits --&gt; S5[Submit → submitted]
+    S4 -- bargain or over limit --&gt; S6[Approval request]
+  end
+  subgraph R [Retailer app · shop]
+    R1[Reorder / free-text on WhatsApp] --&gt; S5
+  end
+  subgraph O [Owner app]
+    S6 --&gt; O1[Approve / reject&lt;br/&gt;price variance, credit, MOV, bargain]
+  end
+  O1 --&gt; C[Server re-prices at the same version,&lt;br/&gt;reserves stock → confirmed]
+  S5 --&gt; C
+  subgraph W [Warehouse app]
+    C --&gt; W1[Fulfilment queue by beat / trip]
+    W1 --&gt; W2[Picklist consolidated by SKU, FEFO lots] --&gt; W3[Pick actual lots → picking]
+    W3 --&gt; W4[Pack per order → packed&lt;br/&gt;short-packs are pack rows, never order edits]
+    W4 --&gt; W5[GST invoice issued at pack&lt;br/&gt;tenant series, own name and logo, UPI QR]
+    W5 --&gt; W6[Load sheet + delivery challan&lt;br/&gt;crew count confirmed by PIN → dispatched&lt;br/&gt;stock: warehouse → vehicle]
+  end
+  subgraph D [Delivery app · crew]
+    W6 --&gt; D1[Trip: next stop, maps hand-off]
+    D1 --&gt; D2{At the door}
+    D2 -- all --&gt; D3[Delivered + proof of delivery]
+    D2 -- part --&gt; D4[Partial: per-line qty, reason → credit note]
+    D2 -- none --&gt; D5[Failed: reason, stock stays on vehicle]
+    D3 &amp; D4 --&gt; D6[Collect: cash / UPI with UTR / cheque&lt;br/&gt;receipt allocated oldest bill first]
+    D1 --&gt; D7[Van sale from vehicle stock&lt;br/&gt;normal invoice series]
+    D6 --&gt; D8[Check-in: unsold stock counted back,&lt;br/&gt;cash settlement, variance needs owner]
+  end
+  subgraph M [Manager app · desk]
+    D8 --&gt; M1[Day-end: registers, bank deposits,&lt;br/&gt;cheques, brand-DMS bills captured]
+  end
+  D6 --&gt; RX[Retailer gets invoice, POD, receipt on WhatsApp;&lt;br/&gt;can also pay online in the retailer app]</pre></div>
+<p>The three state machines behind this loop are the code in <code>backend/libs/domain/src/state-machines/</code> and the apps never set a state column by hand:</p>
+<ul><li><strong>Order</strong>: draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed; cancel allowed up to</li></ul>
+<p>confirmed; <code>return_undelivered</code> sends dispatched back to packed.</p>
+<ul><li><strong>Trip</strong>: planned → loading → active → closing → settled | settled_with_variance; <strong>stop</strong>: pending → started → arrived → delivered |</li></ul>
+<p>partial | failed.</p>
+<ul><li><strong>Invoice</strong>: draft → issued → partially_paid → paid; issued may be written_off or cancelled (before dispatch and before any money);</li></ul>
+<p>once money lands the only correction is a credit note. "Overdue" is computed, never stored.</p>
+<h2 id="5-stock-in-supplier-bill-to-goods-received-zero-typing-except-the-gate-count">5. Stock in: supplier bill to goods received (zero typing except the gate count)</h2>
+<div class="diagram"><pre class="mermaid">flowchart LR
+  A[Warehouse app: blind gate count,&lt;br/&gt;photograph / share the supplier bill] --&gt; B{QR on the bill?}
+  B -- yes --&gt; C[Verify e-invoice signature&lt;br/&gt;IRN, GSTINs, totals]
+  B -- no --&gt; D
+  C --&gt; D[Worker: vision extraction of every page&lt;br/&gt;pack sizes x90 / _120 / CS1 normalised]
+  D --&gt; E[Validators: GST arithmetic, HSN, page completeness,&lt;br/&gt;lines vs QR, three-way match with PO and lorry receipt]
+  E --&gt; F[SKU match: aliases → external codes → fuzzy → human]
+  F --&gt; G[Review on the phone: line cards with crops,&lt;br/&gt;short / damaged, batch + expiry]
+  G --&gt; H[Commit once, idempotent: supplier invoice, lots,&lt;br/&gt;stock ledger GRN rows, purchase cost, AP journal]
+  H --&gt; I[Stock visible to sales within one sync]
+  J[Too Yumm bills billed in FieldAssist DMS] --&gt; D
+  J -.-&gt; K[Committed as brand_dms_import sales:&lt;br/&gt;receivable in, NO stock movement&lt;br/&gt;the brand moved the goods on its own documents.&lt;br/&gt;NEVER a second legal invoice]</pre></div>
+<p>Purchase cost lands in <code>tenant_product_costs</code>, which only owner, manager, accountant and system can read. That is a database rule with tests, not an app rule.</p>
+<h2 id="6-money-who-may-touch-it-and-where-it-goes">6. Money: who may touch it and where it goes</h2>
+<div class="diagram"><pre class="mermaid">flowchart LR
+  subgraph collect [Who may record a payment]
+    DL[Delivery crew at the door&lt;br/&gt;cash · UPI · cheque]
+    RT[Retailer pays online&lt;br/&gt;UPI QR / link against own bills]
+    DESK[Owner / manager / accountant&lt;br/&gt;payment received at the office]
+    SP[Salesperson]:::no
+  end
+  DL &amp; RT &amp; DESK --&gt; RC[Receipt: append-only, client receipt no,&lt;br/&gt;allocated bill-to-bill oldest first unless tagged]
+  RC --&gt; J[(Double-entry journal&lt;br/&gt;must balance at commit, enforced in the database)]
+  RC --&gt; OUT[Retailer outstanding + ageing buckets&lt;br/&gt;0-7 · 8-15 · 16-30 · 31-60 · 61-90 · 90+]
+  CHQ[Cheque] --&gt; DEP[Deposited] --&gt; BNC{Bounced?}
+  BNC -- yes --&gt; REV[Reversal + bank charges, bill reopens]
+  CD[Cash discount: shown on the bill,&lt;br/&gt;realised as a credit note only when paid on time]
+  WO[Write-off: back office only]
+  classDef no fill:#fdd,stroke:#c00,color:#600</pre></div>
+<p>Founder rule (2026-09-04): <strong>the salesperson never collects money</strong> — the sales service has no receipt endpoint and the matrix never grants one. Cash on a vehicle counts toward expected cash at settlement; variance beyond the owner's tolerance blocks trip close.</p>
+<h2 id="7-sign-in-and-permissions">7. Sign-in and permissions</h2>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+  participant App
+  participant Auth as auth-service :3000
+  participant Svc as role service
+  participant DB as Postgres (RLS)
+  App-&gt;&gt;Auth: POST /auth/login {username, password, deviceId}
+  Auth-&gt;&gt;DB: verify argon2id hash, lockout after 5 failures / 15 min
+  Auth--&gt;&gt;App: access token (15 min) + refresh token (per device, rotating)
+  App-&gt;&gt;Svc: request with Authorization: Bearer
+  Svc-&gt;&gt;Svc: verify token, check PERMISSIONS[method + route] for the role
+  Svc-&gt;&gt;DB: withTenant(): SET LOCAL ROLE app_rw, app.tenant_id, app.actor_id, app.actor_role
+  DB--&gt;&gt;Svc: rows the policy allows for that tenant and role
+  App-&gt;&gt;Auth: POST /auth/refresh (reuse of an old refresh token revokes the session)
+  App-&gt;&gt;Auth: POST /auth/switch-tenant (retailer or staff with several distributors)</pre></div>
+<p>OTP (SMS / WhatsApp) is a <strong>later enhancement layered on top</strong> of username + password, not a replacement. Distribution OS branding appears only on the sign-in screen; inside every app and on every printed document the distributor sees their <strong>own</strong> name and logo.</p>
+<h2 id="8-founder-decisions-register-dated-newest-last">8. Founder decisions register (dated; newest last)</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>Decision</th><th>Where it is enforced / detailed</th></tr></thead>
+<tbody>
+<tr><td>2026-08</td><td>TypeScript everywhere; van sales allowed (vehicle is a stock location); GPS tracking of delivery staff; iOS + Android; revenue = distributor subscription; no fintech</td><td>docs/15 F-series, ADR 0013</td></tr>
+<tr><td>2026-08</td><td>Tarsun bills from TradeEzee (Windows ERP); Too Yumm runs on FieldAssist DMS; coexist by import, never a second legal invoice</td><td>docs/15 F4–F5, ADR 0014, docs/05</td></tr>
+<tr><td>2026-09-04</td><td>Repo root holds only <code>backend/</code>, <code>frontend/</code>, <code>docs/</code>, <code>CLAUDE.md</code>; every service and app an independent package</td><td>docs/19</td></tr>
+<tr><td>2026-09-04</td><td><strong>Six apps, one per role</strong>; manager and accountant share; each app on its own backend service; one Postgres database the founder views in DBeaver</td><td>§2 above, docs/19, docs/21</td></tr>
+<tr><td>2026-09-04</td><td><strong>Username + password</strong>, our own token service, no third party; OTP and resend-OTP are a future enhancement</td><td>auth module, §7</td></tr>
+<tr><td>2026-09-04</td><td><strong>Permission matrix</strong>: which role may call which endpoint, tested for every endpoint × every role</td><td><code>permissions.ts</code>, <code>describePermissionMatrix</code></td></tr>
+<tr><td>2026-09-04</td><td><strong>Backend first, production grade on the local database</strong>; every endpoint of every service built and tested; then the six apps one at a time</td><td>CLAUDE.md, docs/18</td></tr>
+<tr><td>2026-09-04</td><td>Swagger on every service with <strong>sample payloads that actually work</strong> (built from demo rows, not placeholders)</td><td><code>/swagger</code>, <code>pnpm smoke</code></td></tr>
+<tr><td>2026-09-04</td><td>Owner app must have <strong>graphs</strong> wherever possible: growth, how the distributorship is performing</td><td>reporting module serves chart-ready series</td></tr>
+<tr><td>2026-09-04</td><td>UI: Claude proposes the design system, founder reviews; modern look per current standards; <strong>English only</strong> for now; <strong>online-first now, offline for sales + delivery before the pilot</strong>; <strong>Android and iOS</strong>; haptics and "feel good"</td><td>docs/design/UX-00…03</td></tr>
+<tr><td>2026-09-04</td><td><strong>3–4 layout mockups as images before any frontend code</strong>; founder picks one letter for all six apps, <strong>after the backend is complete</strong></td><td>artifact link in docs/18; A Ledger / B Instrument / C Panel / D Signal</td></tr>
+<tr><td>2026-09-04</td><td>Invoice series: per-tenant configuration, never hard-coded (cut-over series undecided)</td><td>docs/17 §D1, <code>numbering_series</code></td></tr>
+<tr><td>2026-09-04</td><td>Cash discount: not important now; realised at receipt only</td><td>docs/17 §D2</td></tr>
+<tr><td>2026-09-04</td><td>Shops <strong>are</strong> GST-registered: B2B tax invoice is the primary document; B2C path kept for shops without GSTIN</td><td>docs/17 §D3</td></tr>
+<tr><td>2026-09-04</td><td><strong>Only delivery collects money, or the shop pays online; the salesperson never does</strong>; desk may record office payments</td><td>docs/17 §D4, §6 above</td></tr>
+<tr><td>2026-09-04</td><td>No van-sale numbering: van sales use the normal invoice series</td><td>docs/17 §D5</td></tr>
+<tr><td>2026-09-04</td><td><strong>No brand exists: create one.</strong> Product is <strong>white-labelled</strong>: each distributor sees their own name and logo in the owner app and on every document</td><td>docs/17 §D6, <code>tenant_settings</code> branding keys</td></tr>
+<tr><td>2026-09-04</td><td>Data migration is a <strong>generic importer</strong> (upload → preview → map columns → save profile → dry run → commit) for any source: TradeEzee, Marg, Busy, Tally, FieldAssist, Excel</td><td>docs/17 §D7, integrations plan</td></tr>
+<tr><td>2026-09-04</td><td>Demo data must cover <strong>three distributors, staff under each, shops linked to more than one distributor</strong></td><td>CLAUDE.md, chain step 11</td></tr>
+<tr><td>2026-09-05</td><td><strong>Keep developing until a hard blocker</strong>; never stop between backend modules; verify, record, launch next in the same turn</td><td>CLAUDE.md session protocol, docs/18</td></tr>
+<tr><td>2026-09-05</td><td>Commit at module boundaries with a message stating what is complete and what is in progress</td><td>git history</td></tr>
+<tr><td>2026-09-05</td><td>This file is the single source of truth; updated in the same turn as any founder decision</td><td>§0 rules, CLAUDE.md</td></tr>
+<tr><td>2026-09-05</td><td><strong>Layout chosen: A Ledger</strong> (of A Ledger / B Instrument / C Panel / D Signal). Applies to all six apps; design system finalised on it.</td><td>docs/design/UX-00-design-system.md, layout artifact</td></tr>
+<tr><td>2026-09-05</td><td><strong>Accountant scope = money desk + reads</strong>: may record office receipts, deposits, cheque bounces, write-offs; reads and exports everything; NO prices, schemes, credit limits, approvals or settings.</td><td><code>permissions.ts</code> (ACCOUNTANT narrowed), docs/23</td></tr>
+<tr><td>2026-09-05</td><td><strong>Manager PIN for load-out is given in the MANAGER app</strong> (manager approves the load sheet from their own phone or desk; the warehouse device waits for it), not typed on the warehouse phone.</td><td>warehouse <code>loadSheets.confirm</code> + manager approval, docs/23</td></tr>
+<tr><td>2026-09-05</td><td>docs/23 screen inventory is binding: the retailer app must be able to PLACE orders (<code>orders.submit</code> for the retailer role); the salesperson may SEE a shop's outstanding and credit check (never collect); owner Settings needs branding/numbering/settings endpoints; owner graphs need <code>reporting.series</code>.</td><td>docs/23, platform-gaps slice in the chain</td></tr>
+<tr><td>2026-09-05</td><td>Design system finalised on A Ledger (<code>docs/design/UX-00-design-system.md</code>, adversarially reviewed: 17 findings fixed). Brand name still to pick: <strong>Vitran</strong> (recommended) / Bahi / Distribution OS.</td><td>UX-00 §3.6, §9, §10</td></tr>
+<tr><td>2026-09-05</td><td><strong>Product name: Distribution OS.</strong> App names: "Distribution OS - Owner", "Distribution OS - Manager", "Distribution OS - Sales", "Distribution OS - Warehouse", "Distribution OS - Delivery", "Distribution OS - Retailer" (store listing, app icon label, sign-in screen). Inside the apps the distributor's own name shows (white-label).</td><td>UX-00 §10 brand, app packages</td></tr>
+<tr><td>2026-09-05</td><td><strong>Branches: one tenant = one distributorship</strong> for pilot and v1. Multi-branch is v2: each branch its own tenant plus an owner group view.</td><td>schema (no branch entity), Confluence Personas</td></tr>
+<tr><td>2026-09-05</td><td><strong>AI features are ALL in v1 (before pilot)</strong>: WhatsApp free-text → draft order (LLM parse against the shop's own SKU history, always human-confirmed), voice order capture (speech → same parser), demand forecasting / reorder suggestions for purchase planning, and route optimisation (stop sequencing by distance and time windows, driver may override). This overrides docs/03 "must not build" for routing and the post-pilot deferral.</td><td>new module 12 <code>ai</code> (intake parsing, voice, forecasting, routing) in the chain</td></tr>
+<tr><td>2026-09-05</td><td><strong>Positioning stays multi-industry</strong> (FMCG first; pharma, electricals, dairy, agri as markets) while the product remains FMCG-shaped until a second-industry customer appears.</td><td>Confluence Vision / Target Market</td></tr>
+<tr><td>2026-09-05</td><td><strong>Platform console in v1</strong>: a seventh app + service "Distribution OS - Admin" for organisation onboarding, plans and subscription state, support-access grants (time-boxed, owner-approved, audited). Revenue stays subscription; no fintech. <strong>Built 2026-09-06 in the shape below</strong> — <code>platform_admin</code> is NOT a membership role and has its own sign-in (<code>/auth/platform/login</code>); the console ASKS for support access and only the distributor's own OWNER opens the window (<code>tenancy.support.approve</code>); an approved window becomes a five-minute signed <code>x-support-grant</code> pass that acts as that owner, GET-only while the scope is read-only, and writes one <code>platform_audit</code> row per call; the console reads COUNTS of a distributor's size and never a rupee of its trade; suspending a distributorship refuses every sign-in with 423.</td><td>module 13 <code>platform-admin</code> (admin-service :3007, admin-app); <code>libs/core/src/modules/platform-admin/**</code>, <code>platform/support-access.ts</code>, migrations 0033/0034/0035–0037/0039/0042</td></tr>
+<tr><td>2026-09-05</td><td>Confluence space is rewritten from this file (PM/TPM voice); docs/22 stays the source of truth, Confluence mirrors it.</td><td>docs/24 audit, Confluence pages</td></tr>
+<tr><td>2026-09-05</td><td>Founder wants to SEE any frontend under development in the browser as it is built (web build of each app via the Browser pane / launch.json).</td><td>frontend workflow: every app slice ends with a browser check and a screenshot to the founder</td></tr>
+<tr><td>2026-09-05</td><td><strong>Deployment, least cost, no funding (docs/26, all six confirmed): dev stays on the founder's Mac (cloud only for test and prod); Postgres self-managed in a container on the VM until ~10 paying tenants, then RDS; an all-in-one process mode (seven services + worker in one container) is built for small deployments, split later; offline sync is OUR OWN delta sync (no PowerSync; docs/07 superseded on that point); Android first for the pilot, iOS after; Lightsail Mumbai as the starting compute, the docs/11 shape (Fargate, ALB, RDS) only with revenue.</strong></td></tr>
+<tr><td>2026-09-05</td><td><strong>Cost stages (docs/26 §4): stage 0 = first run at ₹0 (free credits, sideloaded APK, stub drivers); stage 1 = 1–10 clients at minimum spend (~$40/mo); stage 2 = thousands, spend to scale. The architecture must carry stage 2 from day one (stateless services, RLS multi-tenancy, replica, S3, expand-only migrations); only the infrastructure under it changes.</strong></td></tr>
+<tr><td>2026-09-05</td><td><strong>Typeface: IBM Plex Sans</strong> for all seven apps (tabular digits at every weight, ₹ glyph, Devanagari sibling with the same digit advance for when Hindi arrives). The last open design token is closed.</td></tr>
+<tr><td>2026-09-05</td><td><strong>Languages: English only for the pilot.</strong> Hindi (and Marathi if the market asks) comes before the second customer. The strings module keeps its locale structure from day one so adding a language is a translation job, never a rewrite.</td></tr>
+<tr><td>2026-09-05</td><td><strong>AI keys: stub drivers for now.</strong> docint and the <code>ai</code> module run on the deterministic engine; <code>ANTHROPIC_API_KEY</code> is added to <code>backend/.env</code> whenever the founder wants a real bill photo read. Nothing in the build waits on it.</td></tr>
+</tbody></table></div>
+<h2 id="9-non-negotiables-never-list">9. Non-negotiables (never list)</h2>
+<ol><li>Purchase cost, landed cost and margin are never readable by salesperson, warehouse, delivery or retailer roles — database policy plus tests.</li><li>The salesperson never records a receipt.</li><li>Stock ledger and journal lines are append-only; balances are derived; every mutation carries an idempotency key and a client UUIDv7 id.</li><li>An issued invoice is never edited; corrections are credit or debit notes; a cancelled invoice keeps its number.</li><li>A brand-DMS sale (FieldAssist) is never re-invoiced; it is imported and linked to the brand's invoice number.</li><li>Document intake never commits on its own; a human reviews before GRN.</li><li>State columns change only through the state machines.</li><li>Offline upload never answers 4xx; rejections are recorded and shown, never lost.</li><li>A tenant never sees another tenant's rows; a retailer sees only the rows linked to their own shop.</li><li>Distribution OS branding never appears inside a distributor's documents.</li></ol>
+<h2 id="10-open-questions-for-the-founder">10. Open questions for the founder</h2>
+<p>Deferred requirements and enhancements are kept in <code>docs/25-phase-2-enhancements.md</code> (mirrored on the Confluence page "Phase 2 &amp; Future Enhancements"); the Confluence space mirrors this file page by page from <code>docs/confluence/*.md</code> (see its README).</p>
+<ul><li>Invoice series at cut-over from TradeEzee (continue the old numbers or start fresh)? Configurable either way; answer needed before go-live.</li><li>Sample exports from TradeEzee (party master, item master, outstanding) whenever convenient — the importer does not wait for them.</li><li>Which shops in the pilot are under the GST composition scheme, if any.</li><li>After development (founder, 2026-09-05): install everything needed to run all apps end to end on the Mac and hand over a clear,</li></ul>
+<p>written view of how the pieces run together (what starts, in which order, which port, which sign-in). Tracked in docs/18.</p>
+<h2 id="11-change-log">11. Change log</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>Change</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>2026-09-05</td><td>File created: system map, order-to-cash loop, stock-in, money, sign-in diagrams; decisions register consolidated from docs/15, docs/17 §D and the 2026-09-04/05 build sessions</td><td>Founder: "keep a single source of truth that survives compression"</td></tr>
+<tr><td>2026-09-05</td><td>§8: founder picked layout <strong>A Ledger</strong> for all six apps</td><td>Founder message</td></tr>
+<tr><td>2026-09-05</td><td>§8: accountant scope, manager PIN location, docs/23 gaps made binding</td><td>Founder answers + screen review</td></tr>
+<tr><td>2026-09-05</td><td>§8: product name Distribution OS; per-app names; frontend visible in browser during development</td><td>Founder message</td></tr>
+<tr><td>2026-09-05</td><td>§8: branches later; all AI in v1; multi-industry positioning; platform console in v1; Confluence mirrors this file</td><td>Founder answers to the Confluence audit</td></tr>
+<tr><td>2026-09-05</td><td>§5 CORRECTED: the brand-DMS import posts <strong>a receivable and no stock</strong> — the brand's field force moved the goods on its own documents. The node previously read "stock out + receivable in", which is wrong and had propagated into five Confluence pages (TO-BE, Personas, Apps &amp; Workflows, Pain Points, Open Questions &amp; Risks), all now fixed. §10: typeface added as the one open design token</td><td>Editorial review against <code>docs/plans/billing.md</code> (<code>importBrandDms</code>: "posts <strong>no stock</strong> — the goods moved on the brand's own documents") and <code>docs/plans/integrations.md</code> guarantee 6 ("zero new <code>stock_ledger</code> rows")</td></tr>
+<tr><td>2026-09-05</td><td>§10: deployment constraints (least cost, AWS, no local hosting) recorded with six pending confirmations; post-development task: local end-to-end install + written run-through. New <code>docs/26-environments-and-configuration.md</code> (local config, env reference, accounts, least-cost environments, build-vs-buy)</td><td>Founder messages ("least cost", "no funding", "use AWS", "install what is needed to run E2E locally … after development")</td></tr>
+<tr><td>2026-09-05</td><td>§8: all six deployment items decided (dev local; self-managed Postgres; all-in-one mode; own delta sync replaces PowerSync; Android first; Lightsail first, scale later). §10 entry closed</td><td>Founder: "1. yes stays local 2. yes works 3. yes for now, will scale later 4. yes ok 5. OK Android first then IOS 6. yes light as much in beginning will then scale"</td></tr>
+<tr><td>2026-09-05</td><td>§8: three cost stages (₹0 first run → minimum spend for 1–10 clients → scale at thousands) with the architecture carrying all three</td><td>Founder: "aim is to first run app at 0 cost … architecture must be built to support it"</td></tr>
+<tr><td>2026-09-05</td><td>§8: typeface IBM Plex Sans; English only for the pilot; AI stays on stub drivers. §10 typeface question closed</td><td>Founder answers before the overnight run</td></tr>
+<tr><td>2026-09-06</td><td>§8 platform-console row: the SHAPE the founder's 2026-09-05 decision was built into, recorded so the next session does not re-decide it — a non-membership <code>platform_admin</code> role with its own sign-in, the console asking and the owner approving as two contracts that cannot reach each other, a five-minute signed support pass audited per request, counts-not-trade in the console, and 423 on a suspended distributorship. No new founder decision; this is the enforcement column of an existing one.</td><td>Module 13 build (admin-service :3007), 2026-09-06</td></tr>
+</tbody></table></div>
+</main>

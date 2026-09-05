@@ -6,7 +6,13 @@ import { uuidv7 } from '@dos/domain'
 import { hashPassword } from './auth/password.js'
 import { createDb, createPool } from './client.js'
 import { memberships, tenants, users } from './schema/index.js'
-import { DEMO_PASSWORD, seedDemo, seedExtraTenants } from './seed-demo.js'
+import {
+  DEMO_PASSWORD,
+  DEMO_PLATFORM_ADMIN_USERNAME,
+  seedDemo,
+  seedExtraTenants,
+  seedPlatformConsole,
+} from './seed-demo.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
@@ -76,11 +82,18 @@ try {
       await seedDemo(db, tenant.id, { passwordHash, label: 'Tarsun Enterprises' })
       // The other two distributors share ten of Tarsun's shops, so they seed after it.
       await seedExtraTenants(db, { passwordHash })
+      // Module 13's console (founder decision 2026-09-05): the `dos.admin` super account, one
+      // subscription per distributor and two decided support windows. Last, because it writes a row
+      // for EVERY tenant and needs the pilot's owner to exist to approve a grant as.
+      await seedPlatformConsole(db, passwordHash)
     }
   }
   console.warn(`seeded tenant ${tenant?.slug ?? 'tarsun'} with owner ${user?.name ?? '?'}`)
   console.warn(
     `pilot owner   ${PILOT_OWNER_USERNAME}  ${DEMO_PASSWORD}  tenant ${tenant?.id ?? '?'}  user ${user?.id ?? '?'}`,
+  )
+  console.warn(
+    `platform console  ${DEMO_PLATFORM_ADMIN_USERNAME}  ${DEMO_PASSWORD}  admin-service :3007  (sign in at POST /auth/platform/login — no tenant)`,
   )
 } finally {
   await pool.end()

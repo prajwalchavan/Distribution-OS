@@ -2,10 +2,14 @@ import { Inject, Injectable, Optional } from '@nestjs/common'
 import { and, desc, eq, gte, isNull, lt, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
+import { createHash } from 'node:crypto'
 import {
   SYNC_PROTOCOL_VERSION,
+  type MembershipRole,
   type SyncErrorsListInput,
   type SyncErrorsListOutput,
+  type SyncManifestInput,
+  type SyncManifestOutput,
   type SyncOp,
   type SyncPullInput,
   type SyncPullOutput,
@@ -24,6 +28,8 @@ type ErrorsIn = z.infer<typeof SyncErrorsListInput>
 type ErrorsOut = z.infer<typeof SyncErrorsListOutput>
 type PullIn = z.infer<typeof SyncPullInput>
 type PullOut = z.infer<typeof SyncPullOutput>
+type ManifestIn = z.infer<typeof SyncManifestInput>
+type ManifestOut = z.infer<typeof SyncManifestOutput>
 
 /** The desk reads everyone's rejections for support triage; a field role reads its own. */
 const TRIAGE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'system']
@@ -204,6 +210,44 @@ export class SyncService {
   }
 
   /**
+   * WHAT THE PHONE IS ALLOWED TO KEEP — the first call the app makes after a sign-in, a role switch or
+   * a distributor switch, and the one that decides whether the local database survives an app update.
+   *
+   * The answer is built from the registry, so it is the read set THIS server can really serve rows
+   * for, and from the Drizzle tables behind it, so a column added by a migration appears here and in
+   * `pull` in the same deploy or in neither. It touches no table: a manifest is a description of the
+   * schema, not a read of anybody's data, which is why it is cheap enough to ask on every app start.
+   *
+   * `schemaVersion` is a hash of the protocol number and the published tables. Different from the one
+   * the device stored means the local tables are stale — drop them, re-create from `tables`, and
+   * re-snapshot with a `pull` that carries no `since`; equal means keep the rows and pull a delta.
+   * `role` rides along because a phone that signs in as somebody else holds the wrong read set even
+   * when the hash matches, and the shape of the answer is what tells it so.
+   */
+  manifest(input: ManifestIn): ManifestOut {
+    // The SAME gate `pull` uses, deliberately. `permissions.ts` grants both reads to ANY_MEMBER
+    // because the shop's app is meant to hold its bills and dues offline too, but the shop's read set
+    // is not registered yet (no module calls `registerPull` with `roles: ['retailer']`, and no service
+    // mounts the `sync` key for the retailer role). Answering a shopkeeper a manifest of the STAFF
+    // read set and then refusing its `pull` with 403 would be the worse failure: this way the day a
+    // service serves `sync` to the retailer role, both procedures fail the permission matrix together
+    // and the shop's read set has to be built rather than discovered in the field.
+    requireRole(STAFF)
+    const ctx = currentTenant()
+    const role = deviceRole(ctx.actorRole)
+    const tables = this.registry.manifest(ctx.actorRole)
+    const schemaVersion = schemaHash(role, tables)
+    return {
+      protocol: SYNC_PROTOCOL_VERSION,
+      schemaVersion,
+      changed: input.knownSchemaVersion !== schemaVersion,
+      role,
+      tables,
+      asOf: new Date().toISOString(),
+    }
+  }
+
+  /**
    * The delta download (docs/23 §8.11): every table registered for the actor's role (or the ones the
    * device names), rows changed since the cursor, `limit` rows in total. RLS narrows every table to
    * what the actor may hold — a rep never receives a cost column because no pulled table has one.
@@ -243,6 +287,44 @@ export class SyncService {
 
 function reject(op: SyncOp, code: string, messageEn: string, messageHi: string): Rejection {
   return { opId: op.opId, table: op.table, rowId: op.id, code, messageEn, messageHi }
+}
+
+/** Every value an actor role and a MEMBERSHIP role share; the rest belong to no device. */
+const MEMBERSHIP_ROLES = new Set<string>([
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+  'warehouse',
+  'delivery',
+  'retailer',
+])
+
+/**
+ * `system`, `curator`, `support` and `platform_admin` are actor roles and not MEMBERSHIP roles: they
+ * belong to the worker, the global catalogue desk and Distribution OS's own console, never to a
+ * phone, so they have no device schema to answer. `requireRole(ANY_MEMBER)` lets `system` through
+ * (every other procedure in the codebase wants it to), and this is the one line that says a device
+ * schema belongs to a person who signed in on a device.
+ */
+function deviceRole(role: ActorRole): MembershipRole {
+  if (!MEMBERSHIP_ROLES.has(role))
+    throw new ORPCError('FORBIDDEN', { message: 'A device manifest belongs to a signed-in member' })
+  return role as MembershipRole
+}
+
+/**
+ * The version a device compares against what it stored. It hashes the ROLE as well as the tables:
+ * two roles can be served the same table list today and diverge the moment one of them starts
+ * stripping a column, and a hash that ignored the role would tell the second phone its schema is
+ * still good. Sixteen hex characters is plenty for an equality check that never has to be unique
+ * across tenants — it is compared to one stored string, never looked up.
+ */
+function schemaHash(role: MembershipRole, tables: ManifestOut['tables']): string {
+  return createHash('sha256')
+    .update(JSON.stringify({ p: SYNC_PROTOCOL_VERSION, role, tables }))
+    .digest('hex')
+    .slice(0, 16)
 }
 
 function encodeCursor(at: Date): string {

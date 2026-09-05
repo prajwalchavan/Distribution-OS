@@ -4,6 +4,7 @@ import type { FastifyRequest } from 'fastify'
 import { contract } from '@dos/contracts'
 import { loadAuthKeys, OwnsReply } from '../../platform/index.js'
 import { AccessTokenGuard } from './access-token.guard.js'
+import { PlatformTokenGuard } from './platform-token.guard.js'
 import { CurrentAuth, type AuthClaims } from './auth-context.js'
 import { AuthService, type ClientInfo } from './auth.service.js'
 
@@ -39,6 +40,39 @@ export class AuthController {
     const client = clientInfo(req)
     return implement(contract.auth.switchTenant).handler(({ input }) =>
       this.auth.switchTenant(input, client),
+    )
+  }
+
+  // ------------------------------------------------------------ the platform console (module 13)
+
+  @Implement(contract.auth.platformLogin)
+  platformLogin(@OwnsReply() _reply: unknown, @Req() req: FastifyRequest) {
+    const client = clientInfo(req)
+    return implement(contract.auth.platformLogin).handler(({ input }) =>
+      this.auth.platformLogin(input, client),
+    )
+  }
+
+  @Implement(contract.auth.platformRefresh)
+  platformRefresh(@OwnsReply() _reply: unknown, @Req() req: FastifyRequest) {
+    const client = clientInfo(req)
+    return implement(contract.auth.platformRefresh).handler(({ input }) =>
+      this.auth.platformRefresh(input, client),
+    )
+  }
+
+  @UseGuards(PlatformTokenGuard)
+  @Implement(contract.auth.platformMe)
+  platformMe(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.platformMe).handler(() => this.auth.platformMe(auth))
+  }
+
+  /** The pass a distributor's own service will honour, once that distributor's owner has approved. */
+  @UseGuards(PlatformTokenGuard)
+  @Implement(contract.auth.supportPass)
+  supportPass(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.supportPass).handler(({ input }) =>
+      this.auth.supportPass(auth, input),
     )
   }
 

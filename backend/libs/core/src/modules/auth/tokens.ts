@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { jwtVerify, SignJWT } from 'jose'
-import { MembershipRoleSchema } from '@dos/contracts'
+import { MembershipRoleSchema, PlatformRoleSchema } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import { AUTH_ALG, AUTH_AUDIENCE, AUTH_ISSUER, type AuthKeys } from '../../platform/index.js'
 import type { AuthClaims } from './auth-context.js'
@@ -85,11 +85,15 @@ export async function verifyAccessToken(token: string, keys: AuthKeys): Promise<
   if (typeof payload.sub !== 'string' || typeof sid !== 'string' || typeof did !== 'string') {
     throw new Error('access token is missing sub/sid/did')
   }
-  const role = MembershipRoleSchema.safeParse(payload.role)
+  // A console session (module 13) carries `role: 'platform_admin'` and NO `tid`: Distribution OS's own
+  // staff hold no membership anywhere, so the membership enum alone would read their role as null and
+  // auth-service could not tell a platform session from one that has not picked a distributor yet.
+  const membership = MembershipRoleSchema.safeParse(payload.role)
+  const platform = PlatformRoleSchema.safeParse(payload.role)
   return {
     userId: payload.sub,
     tenantId: typeof payload.tid === 'string' ? payload.tid : null,
-    role: role.success ? role.data : null,
+    role: membership.success ? membership.data : platform.success ? platform.data : null,
     sessionId: sid,
     deviceId: did,
   }

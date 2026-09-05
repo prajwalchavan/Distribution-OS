@@ -19,6 +19,6 @@ export class TenantCatalogModule implements OnModuleInit {
   /** The listed catalogue is on every field device (docs/23 §3.4); `tenant_products` carries no cost. */
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.registerPull('tenant_products', { handler: tablePull(tenantProducts) })
+    this.registry.registerPull('tenant_products', tablePull(tenantProducts))
   }
 }

@@ -42,6 +42,8 @@ export const manufacturers = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('manufacturers_updated_idx').on(t.updatedAt),
     uniqueIndex('manufacturers_name_idx').on(t.name),
     ...globalCuratedPolicies('manufacturers'),
   ],
@@ -58,6 +60,8 @@ export const brands = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('brands_updated_idx').on(t.updatedAt),
     uniqueIndex('brands_manufacturer_name_idx').on(t.manufacturerId, t.name),
     ...globalCuratedPolicies('brands'),
   ],
@@ -84,6 +88,8 @@ export const products = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('products_updated_idx').on(t.updatedAt),
     index('products_manufacturer_idx').on(t.manufacturerId),
     index('products_status_idx').on(t.status),
     ...globalCuratedPolicies('products'),
@@ -120,6 +126,8 @@ export const productVariants = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('product_variants_updated_idx').on(t.updatedAt),
     index('product_variants_product_idx').on(t.productId),
     uniqueIndex('product_variants_ean_idx')
       .on(t.ean)

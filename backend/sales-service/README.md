@@ -149,7 +149,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/billing/sales-register` | Invoice-wise sales register with running totals | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/sync/errors` | Rejected offline writes for the "Needs attention" tray (own rows for field roles) | owner, manager, accountant, salesperson, warehouse, delivery |
-| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/manifest` | Tables, columns and schema version the device of this role should hold | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/notifications/messages` | Message log (staff) and inbox (a shop sees only messages to its own shop) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/notifications/messages/{id}` | One message with its variables and retry state (a push / WhatsApp tap lands here) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/notifications/messages/send` | Send a bill, receipt or statement to one shop now (queued; the worker sends it) | owner, manager, accountant, delivery |
@@ -15705,6 +15706,7 @@ request.json
         "city": "Kalyan West",
         "pincode": "421301"
       },
+      "baseUpdatedAt": "2026-09-04T10:30:00.000Z",
       "clientTime": "text"
     }
   ]
@@ -15894,11 +15896,108 @@ curl "http://localhost:3003/sync/errors?deviceId=01a06d91-0ce4-73b4-8bda-89cbb97
 }
 ```
 
+### GET `/sync/manifest`
+
+Tables, columns and schema version the device of this role should hold · contract `sync.manifest`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `knownSchemaVersion` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/sync/manifest?knownSchemaVersion=text" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "protocol": 1,
+  "schemaVersion": "text",
+  "changed": true,
+  "role": "owner",
+  "tables": [
+    {
+      "table": "sales_orders",
+      "primaryKey": [
+        "text"
+      ],
+      "columns": [
+        {
+          "name": "Sharma Kirana Store",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writable": true
+    }
+  ],
+  "asOf": "2026-09-04"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/sync/pull`
 
 Delta download of the device read set since a cursor (never a cost column) · contract `sync.pull`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
 
 **Query / path parameters**
 
@@ -24513,6 +24612,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `billing.registers.salesRegister` | – | – | – | – | – | – | – |
 | `sync.upload` | – | – | – | ✓ | – | – | – |
 | `sync.errors.list` | – | – | – | ✓ | – | – | – |
+| `sync.manifest` | – | – | – | ✓ | – | – | – |
 | `sync.pull` | – | – | – | ✓ | – | – | – |
 | `notifications.messages.list` | – | – | – | ✓ | – | – | – |
 | `notifications.messages.get` | – | – | – | ✓ | – | – | – |

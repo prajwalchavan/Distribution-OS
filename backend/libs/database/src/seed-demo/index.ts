@@ -9,7 +9,9 @@
  * (`seed-demo/tenants.ts`) seed under their own scope and get the core order-to-cash month. What
  * separates them is `inDemoScope`: the same builders below, the same catalog, different ids.
  */
+import { and, eq, ne, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
+import { memberships, tenants, users } from '../schema/index.js'
 import { seedAi } from './ai.js'
 import { seedPlatformSupport } from './platform-admin.js'
 import { seedBilling, seedPendingVanSaleOrder } from './billing.js'
@@ -74,11 +76,52 @@ export interface SeedDemoResult {
   people: PeopleResult
 }
 
+/**
+ * PUT THE DEMO BACK ON ITS FEET — the half of `pnpm db:seed` that no `insert … onConflictDoNothing()`
+ * can do.
+ *
+ * `pnpm smoke --destructive` presses the sharpest switches in the product on purpose:
+ * `admin.tenants.suspend` refuses every sign-in for a whole distributorship with 423,
+ * `admin.users.disable` locks one global identity out of every distributor it belongs to, and
+ * `tenancy.staff.setStatus` disables a membership. CLAUDE.md's recovery for all of that is one line —
+ * "idempotent, re-run after `pnpm smoke --destructive`" — but every other statement in this file
+ * inserts a row that already exists and therefore restores NOTHING. On 2026-09-06 that gap left the
+ * pilot tenant suspended and every one of the seven sign-ins answering 423 until the column was set
+ * by hand. These three UPDATEs are that line's implementation.
+ *
+ * It only ever moves a row TOWARDS usable and only inside a demo distributor: nothing under
+ * `seed-demo/` writes a `suspended`, `closed`, `disabled` or `invited` status, so `active` IS the
+ * seeded state, and on a healthy database all three statements match zero rows.
+ */
+async function restoreDemoAccess(db: Db, tenantId: string): Promise<void> {
+  const now = new Date()
+  await db
+    .update(tenants)
+    .set({ status: 'active', updatedAt: now })
+    .where(and(eq(tenants.id, tenantId), ne(tenants.status, 'active')))
+  await db
+    .update(memberships)
+    .set({ status: 'active', updatedAt: now })
+    .where(and(eq(memberships.tenantId, tenantId), ne(memberships.status, 'active')))
+  await db
+    .update(users)
+    .set({ status: 'active', updatedAt: now })
+    .where(
+      and(
+        ne(users.status, 'active'),
+        sql`exists (select 1 from ${memberships} m
+                    where m.user_id = ${users.id} and m.tenant_id = ${tenantId})`,
+      ),
+    )
+}
+
 export async function seedDemo(
   db: Db,
   tenantId: string,
   opts: SeedDemoOptions,
 ): Promise<SeedDemoResult> {
+  // Before anything is written: put the distributorship and its people back on their feet.
+  await restoreDemoAccess(db, tenantId)
   // The catalog is global and curated (ADR 0005): one row per manufacturer, brand, product, variant
   // for the whole platform, seeded once at the root scope whichever tenant is being written.
   const allVariants = await seedCatalog(db)

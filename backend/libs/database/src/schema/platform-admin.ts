@@ -95,6 +95,14 @@ export const subscriptionStatus = pgEnum('subscription_status', [
 export const supportGrantScope = pgEnum('support_grant_scope', ['read', 'read_write'])
 
 /**
+ * How often we invoice the distributor. `price_paise_month` stays the MONTHLY figure whatever this
+ * says — one comparable number across every customer — and the interval is what the founder actually
+ * bills on, so a distributor paying a year up front is not recorded as if it paid a month's price.
+ * Values are APPENDED, never reordered.
+ */
+export const billingInterval = pgEnum('billing_interval', ['monthly', 'quarterly', 'yearly'])
+
+/**
  * Distribution OS staff who may open the console. One row per user, so the same person cannot hold two
  * levels; `disabled_at` is how access ends (the row itself stays, or `platform_audit` would name people
  * who no longer exist).
@@ -157,6 +165,18 @@ export const subscriptions = pgTable(
     seats: integer('seats').notNull().default(0),
     /** Integer paise per month (ADR: money is never a float, never rupees). */
     pricePaiseMonth: paise('price_paise_month').notNull().default(0),
+    /**
+     * What we actually raise the invoice on. `price_paise_month` above is always the monthly figure,
+     * so "how much does this distributor pay us a month" is one column across the whole book and this
+     * one says how often that month's worth is collected (module 13, `admin.subscriptions.upsert`).
+     */
+    billingInterval: billingInterval('billing_interval').notNull().default('monthly'),
+    /**
+     * When the relationship ended. Set together with `status = 'cancelled'` and never cleared by the
+     * console — a distributor that comes back gets `active` again and keeps the date it left, because
+     * "did they ever churn" is a question the platform has to be able to answer honestly.
+     */
+    cancelledAt: tz('cancelled_at'),
     notes: text('notes'),
     /** The platform admin who last touched it; checked against `platform_admins` by trigger. */
     updatedBy: text('updated_by').references(() => users.id),

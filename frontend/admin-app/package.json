@@ -1,0 +1,12 @@
+{
+  "name": "@dos/admin-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Distribution OS - Admin: the platform console (module 13). Placeholder package; the app is built after the backend chain.",
+  "scripts": {
+    "lint": "echo \"@dos/admin-app is a placeholder: no sources yet\"",
+    "typecheck": "echo \"@dos/admin-app is a placeholder: no sources yet\"",
+    "build": "echo \"@dos/admin-app is a placeholder: no sources yet\""
+  }
+}

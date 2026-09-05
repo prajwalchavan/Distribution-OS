@@ -1,5 +1,6 @@
 import { Inject, Module, Optional, type OnModuleInit } from '@nestjs/common'
 import { priceListItems, priceLists, retailerPriceOverrides, schemes } from '@dos/db'
+import { BACK_OFFICE } from '../../platform/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
 import { BargainsService } from './bargains.service.js'
@@ -26,18 +27,18 @@ export class PricingModule implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.registerPull('price_lists', { handler: tablePull(priceLists) })
-    this.registry.registerPull('price_list_items', { handler: tablePull(priceListItems) })
-    this.registry.registerPull('schemes', {
-      handler: (tx, request) =>
-        tablePull(schemes, {
-          omit: ['owner', 'manager', 'accountant', 'system'].includes(request.ctx.actorRole)
-            ? []
-            : SCHEME_PRIVATE_COLUMNS,
-        })(tx, request),
-    })
-    this.registry.registerPull('retailer_price_overrides', {
-      handler: tablePull(retailerPriceOverrides),
-    })
+    this.registry.registerPull('price_lists', tablePull(priceLists))
+    this.registry.registerPull('price_list_items', tablePull(priceListItems))
+    // Funding source, claimability and the claim window are the DISTRIBUTOR's commercial terms with
+    // the brand: the rep quotes the scheme, it never sees who pays for it (docs/17 §B security 54).
+    // One `omit` now serves both halves — the rows a device pulls and the columns its manifest
+    // publishes — so the field a rep may not see has nowhere to land on the phone either.
+    this.registry.registerPull(
+      'schemes',
+      tablePull(schemes, {
+        omit: (role) => (BACK_OFFICE.includes(role) ? [] : SCHEME_PRIVATE_COLUMNS),
+      }),
+    )
+    this.registry.registerPull('retailer_price_overrides', tablePull(retailerPriceOverrides))
   }
 }

@@ -41,3 +41,18 @@ export { NotificationsModule } from './modules/notifications/index.js'
 export { ReportingModule } from './modules/reporting/index.js'
 export { IncentivesModule } from './modules/incentives/index.js'
 export { AiModule } from './modules/ai/index.js'
+/**
+ * Module 13, the platform console (founder decision 2026-09-05, docs/22 §2 row 7). Mounted by
+ * `admin-service` :3007 and by no other service — a `platform_admin` token is refused at the gate
+ * everywhere else, and no tenant role appears in any `admin.*` row of the permission matrix.
+ */
+export {
+  PlatformAdminModule,
+  PlatformTenantsService,
+  PlatformSubscriptionsService,
+  PlatformSupportService,
+  PlatformConsoleService,
+  withPlatform,
+  tenantSizes,
+  platformCounts,
+} from './modules/platform-admin/index.js'

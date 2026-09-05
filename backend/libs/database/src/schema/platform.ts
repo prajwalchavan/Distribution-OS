@@ -15,6 +15,8 @@ import {
 import {
   BACK_OFFICE_ROLES,
   id,
+  platformReadPolicy,
+  platformWritePolicies,
   roleReadPolicy,
   roleWritePolicies,
   staffReadPolicy,
@@ -46,9 +48,46 @@ export const idempotencyKeys = pgTable(
     key: text('key').notNull(),
     requestHash: text('request_hash').notNull(),
     response: jsonb('response'),
+    /**
+     * MODULE 13. True when the row was written by the PLATFORM CONSOLE rather than by somebody who
+     * works at this distributorship. It exists because `response` holds the reply that was given, and
+     * a console reply is ours, not theirs — `admin.subscriptions.upsert` answers with what the
+     * distributor pays US, which its own owner is deliberately not shown (`schema/platform-admin.ts`).
+     * Without this flag the tenant policy below, which compares `tenant_id` and nothing else, would
+     * hand that reply straight back through the idempotency table.
+     */
+    platformScoped: boolean('platform_scoped').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.tenantId, t.key] }), tenantPolicy('idempotency_tenant')],
+  (t) => [
+    primaryKey({ columns: [t.tenantId, t.key] }),
+    /**
+     * The distributor's own replays. Console rows are excluded by `platform_scoped` — see the column.
+     * (Replaces the plain `tenantPolicy` this table carried; policy replacement moves no data and is
+     * expressible in the schema, so it lands in the generated migration — coordination §2 rule 3.)
+     */
+    pgPolicy('idempotency_tenant', {
+      for: 'all',
+      to: appRw,
+      using: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND platform_scoped = false`,
+      withCheck: sql`tenant_id = (SELECT current_setting('app.tenant_id', true)) AND platform_scoped = false`,
+    }),
+    /**
+     * MODULE 13. A platform console mutation (`admin.subscriptions.upsert`, `admin.support.request`,
+     * `admin.tenants.suspend`) is a mutation like any other and carries an `idempotencyKey`, so it has
+     * to write a row here — but it runs with `app.actor_role = 'platform_admin'` and NO tenant of its
+     * own, and `idempotency_tenant` above compares `tenant_id` to `app.tenant_id`, which a console
+     * session leaves empty. Without these three the console could only be made idempotent by running
+     * its writes under `withSystem()` (BYPASSRLS), which would take the whole of module 13 out from
+     * under RLS to buy one row.
+     *
+     * `tenant_id` still points at a real distributor (the one the mutation names, foreign-keyed to
+     * `tenants`), so this widens WHO may write a key, never WHAT the key may be. It reaches no
+     * business row: `idempotency_keys` holds a request hash and the reply the console itself produced.
+     */
+    platformReadPolicy('idempotency_platform_read'),
+    ...platformWritePolicies('idempotency_platform'),
+  ],
 ).enableRLS()
 
 /**
@@ -126,6 +165,96 @@ export const syncErrors = pgTable(
     }),
   ],
 ).enableRLS()
+
+/**
+ * The DELETE half of the delta pull (founder decision 2026-09-05, docs/22 §8 and docs/26 §5: offline
+ * sync is ours, no PowerSync). `GET /sync/pull` finds a changed row by `updated_at > cursor`; a row
+ * that is GONE has no `updated_at` to find, so its disappearance is recorded here instead, by the
+ * shared triggers in the 0040 migration (the number the sibling module 13 slice took 0039 from under
+ * this comment; the triggers themselves have always been in `0040_sync_delta_guarantees.sql`, with
+ * the shop-scoped soft hide added by 0041):
+ *
+ *  - `dos_sync_tombstone()` on DELETE of any pull-able table — reason `deleted`;
+ *  - `dos_sync_soft_hide()` on the few UPDATEs that take a row OUT of a field device's read set
+ *    without deleting it: a shop moved off the beat or closed (`beat_changed`, `deactivated`), a beat
+ *    assignment ended (`assignment_ended`).
+ *
+ * A soft hide is per-reader, not per-tenant: the shop that left rep A's beat joined rep B's, so the
+ * tombstone says only "this row may have left your set". `sync.pull` therefore sends the tombstoned
+ * ids that are NOT in the caller's current read set, and the device applies deletes BEFORE rows, so a
+ * row that both moved and is still visible survives.
+ *
+ * `tenant_id` is a plain column, not a reference: the curated global catalog (products, variants,
+ * manufacturers, brands) is on the device too, and a curator deleting one of those rows files the
+ * tombstone under the sentinel `'*'`, which every tenant reads. Nothing writes this table through
+ * `app_rw` — there is a SELECT policy and no other, so the triggers (SECURITY DEFINER) are the only
+ * author; a device can never be told to forget a row by a token that merely holds one.
+ * Retained 180 days (`SYNC_TOMBSTONE_RETENTION_DAYS`) by the worker's retention sweep, the same window
+ * `sync_ops` gets: a device offline longer than that re-pulls from a null cursor anyway.
+ */
+export const syncTombstones = pgTable(
+  'sync_tombstones',
+  {
+    /** The row's tenant, or `'*'` for a row of the global curated catalog. */
+    tenantId: text('tenant_id').notNull(),
+    tableName: text('table_name').notNull(),
+    /** The deleted row's `id`; for the two composite-key tables, its key parts joined by `:`. */
+    rowId: text('row_id').notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    /** `deleted` · `beat_changed` · `deactivated` · `assignment_ended`. */
+    reason: text('reason').notNull().default('deleted'),
+  },
+  (t) => [
+    // Re-deleting the same key updates the row rather than adding a second one (the trigger upserts).
+    primaryKey({ columns: [t.tenantId, t.tableName, t.rowId] }),
+    /** The pull: everything this tenant lost since the cursor, in one range scan. */
+    index('sync_tombstones_pull_idx').on(t.tenantId, t.deletedAt),
+    /** The pull of ONE table, and the retention sweep's per-tenant slice. */
+    index('sync_tombstones_table_idx').on(t.tenantId, t.tableName, t.deletedAt),
+    /**
+     * Read only, and deliberately no write policy of any kind: see the header.
+     *
+     * Staff of the tenant read every tombstone of the tenant, plus the global catalog's (`'*'`). A
+     * SHOPKEEPER reads only the tables a shop's device actually holds, and — for the two tables keyed
+     * by a retailer id — only its OWN shops. Without the second half a shopkeeper's token would be told
+     * the ids of visits, beats, trips, picklists and stock rows the distributorship deleted: not much,
+     * but a shop is a customer of the business, not a member of it (never-list 9, docs/22 §9), and the
+     * shop read set is a closed list, so there is no reason to hand it anything outside it. Deleted
+     * rows cannot be joined to (they are gone), which is exactly why the ownership test is on `row_id`.
+     */
+    pgPolicy('sync_tombstones_read', {
+      for: 'select',
+      to: appRw,
+      using: sql`(tenant_id = (SELECT current_setting('app.tenant_id', true)) OR tenant_id = '*') AND (
+        (SELECT current_setting('app.actor_role', true)) <> 'retailer'
+        OR (
+          table_name IN (
+            'retailers', 'retailer_links', 'sales_orders', 'sales_order_lines', 'price_lists',
+            'price_list_items', 'schemes', 'invoices', 'invoice_lines', 'credit_notes',
+            'credit_note_lines', 'receipts', 'retailer_outstanding_summary', 'tenant_products',
+            'products', 'product_variants', 'manufacturers', 'brands'
+          )
+          AND (
+            table_name NOT IN ('retailers', 'retailer_outstanding_summary')
+            OR row_id IN (
+              SELECT l.retailer_id FROM retailer_links l
+              WHERE l.tenant_id = (SELECT current_setting('app.tenant_id', true))
+                AND l.user_id = (SELECT current_setting('app.actor_id', true))
+                AND l.status = 'active'
+            )
+          )
+        )
+      )`,
+    }),
+  ],
+).enableRLS()
+
+/**
+ * How long a tombstone is kept, in days — the worker's retention sweep drops older rows. It matches
+ * `sync_ops`: a device that has been away longer than this must pull from a null cursor, which
+ * rebuilds its tables from scratch and needs no tombstone at all.
+ */
+export const SYNC_TOMBSTONE_RETENTION_DAYS = 180
 
 /**
  * ADR 0001: human-facing numbers (GL/1686, GRN-0042, TRIP-2026-09-04-01) are server-assigned at commit

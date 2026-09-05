@@ -152,6 +152,8 @@ export const vehicles = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('vehicles_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('vehicles_reg_idx').on(t.tenantId, t.regNo),
     // the fleet is read by everyone who loads, drives or accounts for it; only the owner/manager add to it
     roleReadPolicy('vehicles_read', [...TRIP_READER_ROLES, 'delivery']),
@@ -194,6 +196,8 @@ export const trips = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('trips_updated_idx').on(t.tenantId, t.updatedAt),
     index('trips_date_idx').on(t.tenantId, t.tripDate),
     index('trips_state_idx').on(t.tenantId, t.state),
     index('trips_driver_idx').on(t.tenantId, t.driverId, t.tripDate),
@@ -260,6 +264,8 @@ export const tripStops = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('trip_stops_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('trip_stops_sequence_idx').on(t.tenantId, t.tripId, t.sequence),
     index('trip_stops_retailer_idx').on(t.tenantId, t.retailerId),
     // the desk, the godown and the rep see every stop ("where is my shop's order"); the crew sees the
@@ -319,6 +325,8 @@ export const deliveries = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('deliveries_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('deliveries_idempotency_idx').on(t.tenantId, t.idempotencyKey),
     /** One invoice is delivered at most once per stop; a second attempt is a new stop. */
     uniqueIndex('deliveries_stop_invoice_idx').on(t.tenantId, t.stopId, t.invoiceId),
@@ -359,6 +367,8 @@ export const deliveryLines = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('delivery_lines_updated_idx').on(t.tenantId, t.updatedAt),
     index('delivery_lines_delivery_idx').on(t.tenantId, t.deliveryId),
     // reachable exactly when the delivery is (its policy scopes the crew and the shop)
     readPolicy(

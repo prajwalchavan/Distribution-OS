@@ -92,6 +92,8 @@ export const beats = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('beats_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('beats_tenant_name_idx').on(t.tenantId, t.name),
     // Staff read the beat plan; a shop has no business with it. Only the onboarders draw it
     // (docs/23 §8.14: `beats.upsert`/`assign` move from STAFF to ONBOARDERS — a rep could create a beat
@@ -209,6 +211,8 @@ export const retailerLinks = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('retailer_links_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('retailer_links_idx').on(t.tenantId, t.identityId, t.retailerId),
     index('retailer_links_identity_idx').on(t.identityId),
     index('retailer_links_user_idx').on(t.userId),
@@ -239,6 +243,8 @@ export const beatAssignments = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('beat_assignments_updated_idx').on(t.tenantId, t.updatedAt),
     index('beat_assignments_user_idx').on(t.tenantId, t.userId, t.validFrom),
     index('beat_assignments_beat_idx').on(t.tenantId, t.beatId, t.validFrom),
     staffReadPolicy('beat_assignments_read'),
@@ -262,6 +268,8 @@ export const pjp = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('pjp_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('pjp_beat_retailer_idx').on(t.tenantId, t.beatId, t.retailerId),
     staffReadPolicy('pjp_read'),
     ...roleWritePolicies('pjp_write', ONBOARDER_ROLES),
@@ -299,6 +307,8 @@ export const visits = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('visits_updated_idx').on(t.tenantId, t.updatedAt),
     index('visits_user_day_idx').on(t.tenantId, t.userId, t.startedAt),
     index('visits_retailer_idx').on(t.tenantId, t.retailerId),
     // A visit is the rep's note about a shop ("closed", "owner away", "no order — stocked up"): staff

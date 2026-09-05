@@ -28,23 +28,26 @@ export class RetailersModule implements OnModuleInit {
       select a.beat_id from beat_assignments a
        where a.tenant_id = (select current_setting('app.tenant_id', true)) and a.user_id = ${userId}
          and a.valid_from <= current_date and (a.valid_to is null or a.valid_to >= current_date))`
-    this.registry.registerPull('retailers', {
-      handler: tablePull(retailers, {
+    this.registry.registerPull(
+      'retailers',
+      tablePull(retailers, {
         extra: (r) => (r.ctx.actorRole === 'salesperson' ? ownBeats(r.ctx.actorId) : undefined),
       }),
-    })
-    this.registry.registerPull('beats', { handler: tablePull(beats) })
-    this.registry.registerPull('beat_assignments', {
-      handler: tablePull(beatAssignments, {
+    )
+    this.registry.registerPull('beats', tablePull(beats))
+    this.registry.registerPull(
+      'beat_assignments',
+      tablePull(beatAssignments, {
         extra: (r) =>
           r.ctx.actorRole === 'salesperson' ? sql`user_id = ${r.ctx.actorId}` : undefined,
       }),
-    })
-    this.registry.registerPull('visits', {
-      handler: tablePull(visits, {
+    )
+    this.registry.registerPull(
+      'visits',
+      tablePull(visits, {
         extra: (r) =>
           r.ctx.actorRole === 'salesperson' ? sql`user_id = ${r.ctx.actorId}` : undefined,
       }),
-    })
+    )
   }
 }

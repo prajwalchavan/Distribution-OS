@@ -64,6 +64,8 @@ import {
   supplierInvoices,
   supplierPackConfigs,
   suppliers,
+  platformAdmins,
+  subscriptions,
   supportGrants,
   targets,
   templates,
@@ -112,6 +114,13 @@ import { builtLineId } from '../modules/claims/index.js'
 
 /** Password every seeded demo user has (printed by `pnpm db:seed`). */
 export const DEMO_PASSWORD = 'Dos@1234'
+
+/**
+ * The seeded platform console account (`seed-demo/platform-admin.ts`). Named here, like the password
+ * above, so the console's document points at the account a reader can actually sign in as rather than
+ * at whichever `platform_admins` row a spec happened to write first.
+ */
+export const DEMO_PLATFORM_ADMIN = 'dos.admin'
 
 /**
  * The batch the `inventory.lots.upsert` example writes. It is the lot's NATURAL key together with the
@@ -384,6 +393,22 @@ export interface ClaimsExamples {
  * Rows pulled from the demo tenant. Every field is optional: a missing one falls back to the static
  * sampler, so the document still generates against an empty or unmigrated database.
  */
+/** The console's demo rows (module 13). See `ExampleContext.platform`. */
+export interface PlatformExamples {
+  /** `dos.admin`, the seeded SUPER administrator: the account the console's examples act as. */
+  adminUserId: string
+  adminUsername: string
+  /** The demo tenant's subscription row, so `subscriptions.get` and `upsert` are a true upsert. */
+  subscriptionId?: string | undefined
+  /** A request nobody has answered — the one `admin.support.revoke` may withdraw. */
+  pendingGrantId?: string | undefined
+  /** An APPROVED, live window — the one `auth.supportPass` can actually exchange. */
+  activeGrantId?: string | undefined
+  /** A user who is NOT the console account and not a demo sign-in: safe for `users.disable`. */
+  disposableUserId?: string | undefined
+  disposableUsername?: string | undefined
+}
+
 export interface ExampleContext {
   tenantId?: string | undefined
   tenantSlug?: string | undefined
@@ -543,6 +568,14 @@ export interface ExampleContext {
   /** The drafts, forecast rows and route plan the `ai` examples point at (seed-demo/ai.ts). */
   ai?: AiExamples | undefined
   /**
+   * The platform console's own rows (module 13, `seed-demo/platform-admin.ts`) — the only part of
+   * this context that is NOT a distributor's data: the seeded administrator, the subscription of the
+   * demo tenant, and the two support grants the console's examples point at. Undefined until
+   * `pnpm db:seed` has run the console seed, and then admin-service's document falls back to the
+   * sampler rather than publishing ids that are not there.
+   */
+  platform?: PlatformExamples | undefined
+  /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
    * the same second still hand out seven different ids.
@@ -694,8 +727,79 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectReporting(tx, tenant.id, ctx)
   await collectIncentives(tx, tenant.id, ctx)
   await collectAi(tx, tenant.id, ctx)
+  await collectPlatform(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/**
+ * The platform console's rows (module 13). Everything here is GLOBAL — an administrator holds no
+ * membership and a subscription belongs to the platform, not to the distributor — so nothing in this
+ * function is scoped by `tenant_id` except the subscription and the grants of the demo tenant, which
+ * are exactly the rows admin-service's examples have to point at.
+ */
+async function collectPlatform(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  // The SEEDED console account by name, and only then any other active super administrator that can
+  // actually sign in. A developer database holds dozens of `platform_admins` rows written by specs —
+  // most with no username at all — and "the oldest super" is one of those, which would leave the
+  // console's document with no ids in it at all.
+  const [admin] = await tx
+    .select({ userId: platformAdmins.userId, username: users.username })
+    .from(platformAdmins)
+    .innerJoin(users, eq(users.id, platformAdmins.userId))
+    .where(
+      and(
+        isNull(platformAdmins.disabledAt),
+        eq(platformAdmins.role, 'super'),
+        isNotNull(users.username),
+        isNotNull(users.passwordHash),
+      ),
+    )
+    .orderBy(
+      sql`case when ${users.username} = ${DEMO_PLATFORM_ADMIN} then 0 else 1 end`,
+      asc(platformAdmins.createdAt),
+    )
+    .limit(1)
+  if (!admin?.username) return
+  const [subscription] = await tx
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(eq(subscriptions.tenantId, tenantId))
+    .limit(1)
+  const grants = await tx
+    .select()
+    .from(supportGrants)
+    .where(eq(supportGrants.tenantId, tenantId))
+    .orderBy(desc(supportGrants.requestedAt))
+    .limit(50)
+  // A user this console may safely lock out in a demo: never a seeded sign-in (the six apps and every
+  // other tool depend on those), never the console account itself, and never somebody who is already
+  // disabled. In a freshly seeded database there is usually none, and the example is then left
+  // pointing at the sampler's uuid with a note — `users.disable` is destructive by name, so
+  // `pnpm smoke` skips it unless `--destructive` is asked for.
+  const [disposable] = await tx
+    .select({ id: users.id, username: users.username })
+    .from(users)
+    .where(
+      and(
+        eq(users.status, 'active'),
+        isNull(users.username),
+        sql`${users.id} NOT IN (SELECT user_id FROM platform_admins)`,
+      ),
+    )
+    .orderBy(desc(users.createdAt))
+    .limit(1)
+  ctx.platform = {
+    adminUserId: admin.userId,
+    adminUsername: admin.username,
+    subscriptionId: subscription?.id,
+    pendingGrantId: grants.find((g) => !g.approvedAt && !g.revokedAt)?.id,
+    activeGrantId: grants.find(
+      (g) => g.approvedAt !== null && g.revokedAt === null && g.expiresAt > new Date(),
+    )?.id,
+    disposableUserId: disposable?.id,
+    disposableUsername: disposable?.username ?? undefined,
+  }
 }
 
 /**
@@ -2477,6 +2581,23 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
     'procurement.supplierInvoices.create': await supplierInvoiceSlots(tx, tenantId),
     'inventory.lots.upsert': await freeSlots('inventory.lots.upsert', 'id', lots),
     'tenancy.staff.create': await staffSlots(tx, staff),
+    // Module 13. Onboarding takes FOUR unique things at once — the tenant id, its slug, the first
+    // owner's user id and that owner's username and phone — so they walk one slot together, the same
+    // way `tenancy.staff.create` does, or the second Execute would fail on whichever one it reused.
+    'admin.tenants.create': await onboardingSlots(tx),
+    'admin.support.request': await freeSlots(
+      'admin.support.request',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: supportGrants.id })
+              .from(supportGrants)
+              .where(inArray(supportGrants.id, [...candidates]))
+          ).map((row) => row.id),
+        ),
+    ),
     'procurement.grns.open': await freeSlots('procurement.grns.open', 'id', openGrns),
     'receivables.writeOffs.create': await freeSlots(
       'receivables.writeOffs.create',
@@ -2610,6 +2731,61 @@ async function staffSlots(tx: Db, takenIds: TakenIds): Promise<number[]> {
   })
 }
 
+/**
+ * Module 13's onboarding slot. `admin.tenants.create` writes a tenant (unique id AND unique slug) and
+ * that tenant's first owner (unique user id, username and phone), so a slot is free only when all
+ * five are. Probing them together is what keeps the published example executable after somebody has
+ * pressed it: the next document offers the next distributor, not a 409 on whichever field was taken.
+ */
+async function onboardingSlots(tx: Db): Promise<number[]> {
+  const path = 'admin.tenants.create'
+  return walkFreeSlots(async (base) => {
+    const ids = Array.from({ length: SLOT_TRIES }, (_, i) => createdId(path, 'id', base + i))
+    const slugs = Array.from({ length: SLOT_TRIES }, (_, i) => docsTenantSlug(base + i))
+    const userIds = Array.from({ length: SLOT_TRIES }, (_, i) =>
+      createdId(path, 'owner.userId', base + i),
+    )
+    const usernames = Array.from({ length: SLOT_TRIES }, (_, i) => docsOwnerUsername(base + i))
+    const phones = Array.from({ length: SLOT_TRIES }, (_, i) => docsOwnerPhone(base + i))
+    const tenantRows = await tx
+      .select({ id: tenants.id, slug: tenants.slug })
+      .from(tenants)
+      .where(or(inArray(tenants.id, ids), inArray(tenants.slug, slugs)))
+    const userRows = await tx
+      .select({ id: users.id, username: users.username, phone: users.phone })
+      .from(users)
+      .where(
+        or(
+          inArray(users.id, userIds),
+          inArray(users.username, usernames),
+          inArray(users.phone, phones),
+        ),
+      )
+    const usedTenantIds = new Set(tenantRows.map((r) => r.id))
+    const usedSlugs = new Set(tenantRows.map((r) => r.slug))
+    const usedUserIds = new Set(userRows.map((r) => r.id))
+    const usedNames = new Set(userRows.map((r) => r.username))
+    const usedPhones = new Set(userRows.map((r) => r.phone))
+    const out = new Set<number>()
+    for (let i = 0; i < SLOT_TRIES; i++) {
+      if (
+        usedTenantIds.has(ids[i] ?? '') ||
+        usedSlugs.has(slugs[i] ?? '') ||
+        usedUserIds.has(userIds[i] ?? '') ||
+        usedNames.has(usernames[i] ?? '') ||
+        usedPhones.has(phones[i] ?? '')
+      )
+        out.add(base + i)
+    }
+    return out
+  })
+}
+
+/** The distributor `admin.tenants.create` onboards on `slot`, and the owner login it opens for them. */
+const docsTenantSlug = (slot: number) => `docs-distributor-${String(slot)}`
+const docsOwnerUsername = (slot: number) => `docs.owner${String(slot)}`
+const docsOwnerPhone = (slot: number) => `+9188000${String(101 + slot).padStart(5, '0')}`
+
 /** Username and phone of the docs staff member on `slot`; both unique platform-wide, so both walk. */
 const docsStaffUsername = (slot: number) =>
   slot === 0 ? 'demo.docs.staff' : `demo.docs.staff${String(slot)}`
@@ -2693,6 +2869,13 @@ const ROLE_LANES: readonly string[] = [
   'retailer',
 ]
 
+/**
+ * Module 13's console shares lane 0 with the owner. It is not a collision: the seven ROLE_LANES exist
+ * so two services rendering the SAME creating procedure never publish the same new id, and
+ * `admin.*` is served by admin-service alone — owner-service does not mount the key, so it never asks
+ * for a slot of `admin.tenants.create`. Giving `platform_admin` an eighth lane would take the spare
+ * (`SPARE_LANE`), which the specs rely on being untouched by any running service.
+ */
 function serviceLane(options: BuildExamplesOptions): number {
   if (options.lane !== undefined) return options.lane
   const lanes = (options.roles ?? [])
@@ -3128,6 +3311,94 @@ const OVERRIDES: Record<
     currentPassword: DEMO_PASSWORD,
     newPassword: DEMO_PASSWORD,
   }),
+  // ---- module 13, the platform console ------------------------------------------------------------
+  // A console account signs in HERE and not at /auth/login: it holds no membership, so there is no
+  // distributor to pick, and the tenant sign-in answers "use POST /auth/platform/login" on purpose.
+  'auth.platformLogin': (ctx) => ({
+    username: ctx.platform?.adminUsername,
+    password: DEMO_PASSWORD,
+    deviceId: ctx.deviceId,
+    deviceName: 'Swagger UI',
+  }),
+  // The grant the pilot's owner has already approved (`seed-demo/platform-admin.ts`). Exchanging it
+  // gives a five-minute `x-support-grant` pass for THAT distributor and nothing else.
+  'auth.supportPass': (ctx) => ({ grantId: ctx.platform?.activeGrantId }),
+  'admin.tenants.create': (ctx) => {
+    const slot = slotOf(ctx, 'admin.tenants.create')
+    return {
+      id: createdId('admin.tenants.create', 'id', slot),
+      slug: docsTenantSlug(slot),
+      legalName: `Docs Distributors ${String(slot)}`,
+      gstin: DROP,
+      stateCode: '27',
+      plan: 'starter',
+      'owner.userId': createdId('admin.tenants.create', 'owner.userId', slot),
+      'owner.membershipId': createdId('admin.tenants.create', 'owner.membershipId', slot),
+      'owner.username': docsOwnerUsername(slot),
+      'owner.name': 'Docs Owner',
+      'owner.phone': docsOwnerPhone(slot),
+      'owner.locale': 'en-IN',
+      // Temporary by construction: the owner is forced to change it at first sign-in.
+      'owner.temporaryPassword': DEMO_PASSWORD,
+      'subscription.id': createdId('admin.tenants.create', 'subscription.id', slot),
+      'subscription.trialDays': 30,
+      'subscription.amountPaise': 199_900,
+      'subscription.billingInterval': 'monthly',
+      'subscription.seats': 10,
+    }
+  },
+  'admin.tenants.get': (ctx) => ({ id: ctx.tenantId }),
+  // Suspend and reactivate name the demo distributor, so the example is a real row — but pressing
+  // suspend stops every sign-in for that distributorship until reactivate is pressed. The note says so.
+  'admin.tenants.suspend': (ctx) => ({
+    id: ctx.tenantId,
+    reason: 'Subscription unpaid for 45 days; suspended pending payment.',
+  }),
+  'admin.tenants.reactivate': (ctx) => ({ id: ctx.tenantId, note: 'Payment received.' }),
+  // A true upsert: the id and the tenant are the row that is already there, so pressing Execute
+  // rewrites the demo tenant's own subscription with the same values rather than creating a second.
+  'admin.subscriptions.upsert': (ctx) => ({
+    id: ctx.platform?.subscriptionId,
+    tenantId: ctx.tenantId,
+    plan: 'pro',
+    status: 'active',
+    amountPaise: 499_900,
+    billingInterval: 'monthly',
+    seats: 25,
+    currentPeriodStart: businessDate().date,
+    currentPeriodEnd: businessDate(Date.now() + 30 * 86_400_000).date,
+    trialEndDate: DROP,
+    note: 'Pilot customer, Kalyan West.',
+  }),
+  'admin.subscriptions.get': (ctx) => ({ id: ctx.platform?.subscriptionId }),
+  'admin.subscriptions.list': (ctx) => ({ tenantId: ctx.tenantId }),
+  // Asking grants NOTHING: the row is created `requested` and only the distributor's own OWNER can
+  // open it, from their own app (`tenancy.support.approve`).
+  'admin.support.request': (ctx) => ({
+    id: createdId('admin.support.request', 'id', slotOf(ctx, 'admin.support.request')),
+    tenantId: ctx.tenantId,
+    reason:
+      'Ticket #4310: the owner reports that one shop shows a different outstanding in the app and on the statement. We would like to read that shop\u2019s bills and receipts.',
+    scope: 'read_only',
+    hours: 4,
+  }),
+  'admin.support.list': (ctx) => ({ tenantId: ctx.tenantId }),
+  // Withdraw OUR OWN ask: the one the `request` example just above filed, never the approved window
+  // (which the owner is relying on) and never another administrator's pending ask (the handler
+  // refuses that anyway). Pointing it at THIS document's own row is what makes the pair repeatable:
+  // `pendingGrantId` is whatever happened to be open BEFORE the run, and one `--destructive` pass
+  // closes it — after which the next pass answered 404 for ever, because a closed grant stays closed
+  // (0034) and `pnpm db:seed` cannot re-open it. Press `request` first; on its own this is a 404.
+  'admin.support.revoke': (ctx) => ({
+    id: createdId('admin.support.request', 'id', slotOf(ctx, 'admin.support.request')),
+    reason: 'Resolved on the call; no access needed.',
+  }),
+  'admin.users.list': (ctx) => ({ tenantId: ctx.tenantId }),
+  'admin.users.disable': (ctx) => ({
+    id: ctx.platform?.disposableUserId,
+    reason: 'Account reported compromised by the distributor.',
+  }),
+  'admin.audit.list': (ctx) => ({ tenantId: ctx.tenantId }),
   // A NEW person: reusing a seeded id, username or phone collides on three separate unique indexes,
   // so all three walk the free slot together — otherwise the first Execute takes the only person the
   // document ever offers and every later reader (and every other service) is answered 409.
@@ -4569,6 +4840,35 @@ function createsRowNote(ctx: ExampleContext, procedurePath: string, what: string
 
 /** Caveats that survive into the document as `x-dos-note`. */
 const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
+  // ---- module 13, the platform console ------------------------------------------------------------
+  'auth.platformLogin': (ctx) =>
+    ctx.platform
+      ? `Signs in the seeded console account \`${ctx.platform.adminUsername}\`. The pair it returns has NO tenant and \`role: "platform_admin"\` — send it to admin-service (:3007) only; every one of the six distributor services refuses it at the gate.`
+      : 'Run `pnpm db:seed` to create the demo console account (`dos.admin`).',
+  'auth.supportPass': (ctx) =>
+    ctx.platform?.activeGrantId
+      ? 'Exchanges the support window the pilot distributor’s owner has ALREADY APPROVED for a five-minute pass. Send the `pass` to owner-service (:3001) in the `x-support-grant` header beside your console token; every call made with it is recorded in `platform_audit`. It opens that one distributor, read-only, and expires on its own.'
+      : 'Needs a support grant the distributor’s owner has approved: ask with `POST /admin/support-grants`, then have the owner approve it from their own app (`POST /tenancy/support-grants/{id}/approve`).',
+  'admin.tenants.create': (ctx) =>
+    `Creates a REAL distributorship (\`${docsTenantSlug(slotOf(ctx, 'admin.tenants.create'))}\`) with its chart of accounts, stock locations, numbering series and a first owner login whose password must be changed at sign-in. A second Execute replays the same answer; re-fetch \`/docs/openapi.json?fresh=1\` for the next free slug.`,
+  'admin.tenants.suspend': (ctx) =>
+    `DESTRUCTIVE on demo data: suspending \`${ctx.tenantSlug ?? 'this distributor'}\` refuses every sign-in and every token refresh for its whole team with 423 until the reactivate example below is pressed. Nothing is deleted.`,
+  'admin.tenants.reactivate': () =>
+    'The undo of the suspend example above: sign-in works again from the next attempt.',
+  'admin.subscriptions.upsert': (ctx) =>
+    ctx.platform?.subscriptionId
+      ? 'A true upsert of the demo distributor’s own subscription row (one per distributor), so pressing Execute rewrites it with the same values rather than creating a second. It records what the distributor pays US — never a rupee of their trade.'
+      : 'Run `pnpm db:seed` so the demo distributor has a subscription row to upsert.',
+  'admin.support.request': () =>
+    'Creates a REAL request against the demo distributor and grants NOTHING: only that distributor’s OWNER can open the window, from their own app (`POST /tenancy/support-grants/{id}/approve`). The database refuses an approval written from here.',
+  'admin.support.revoke': () =>
+    'Withdraws the ask the `POST /admin/support-grants` example above files — not the approved window the owner is relying on, and not another administrator’s request. Press that one first; once a request is closed it stays closed, so ask again with a new one.',
+  'admin.users.disable': (ctx) =>
+    ctx.platform?.disposableUserId
+      ? 'DESTRUCTIVE: locks ONE global identity out of every distributor it belongs to and revokes its live sessions. The id here is a demo shopkeeper identity with no login of its own, chosen so no seeded sign-in breaks. Memberships are untouched — removing somebody from a distributorship is the owner’s own `tenancy.staff.setStatus`.'
+      : 'DESTRUCTIVE: locks ONE global identity out of every distributor. No safe demo id was found, so replace the id before pressing Execute — do NOT point it at a seeded sign-in.',
+  'admin.metrics.overview': () =>
+    'Counts and storage bytes for the whole platform. There is deliberately no rupee of any distributor’s turnover, outstanding, cost or margin in this answer.',
   'claims.open': (ctx) =>
     `Opens a REAL draft claim (${createdClaimId(ctx)}, kind \`other\`, a one-day window of its own); the add / adjust / evidence / submit / acknowledge / settle / reject / write-off examples below all point at it, in that order, so the document reads as one story. A second Execute replays; re-fetch \`/docs/openapi.json?fresh=1\` for the next claim.`,
   'claims.build': (ctx) =>
@@ -4822,6 +5122,13 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
  * shows, and stacking optional filters is the quickest way to make a working endpoint return nothing.
  */
 const QUERY_FILL: Record<string, readonly string[]> = {
+  // Module 13: the filters that keep the console's own lists returning rows.
+  'admin.tenants.get': ['id'],
+  'admin.subscriptions.list': ['tenantId'],
+  'admin.subscriptions.get': ['id'],
+  'admin.support.list': ['tenantId'],
+  'admin.users.list': ['tenantId'],
+  'admin.audit.list': ['tenantId'],
   'catalog.search': ['q'],
   'tenantCatalog.list': ['q'],
   'tenantCatalog.costs': ['variantId'],

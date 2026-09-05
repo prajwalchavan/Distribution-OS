@@ -166,13 +166,32 @@ function applyBodyExample(operation: OpenApiOperation, example: ProcedureExample
 }
 
 function describeAuth(service: ServiceDefinition): string {
+  // Module 13: a console account holds no membership, so it signs in at its own endpoint and there is
+  // no distributor to pick. Pointing its readers at /auth/login would send them somewhere that
+  // correctly refuses them.
+  const platform = service.roles.includes('platform_admin')
+  const signIn = platform
+    ? `Sign in at POST http://localhost:${AUTH_PORT}/auth/platform/login with username + password (the demo console account is \`dos.admin\` / \`Dos@1234\`, printed by \`pnpm db:seed\`) and a client-generated deviceId. NOT /auth/login: a Distribution OS console account is a member of no distributor, so the tenant sign-in has nothing to give it. The reply carries an accessToken (EdDSA JWT, 15 minutes, \`role: platform_admin\` and no tenant) and a refreshToken (opaque, rotates on every use).`
+    : `Sign in at POST http://localhost:${AUTH_PORT}/auth/login with username + password (demo credentials are printed by \`pnpm db:seed\`; every demo user's password is Dos@1234) and a client-generated deviceId. The reply carries an accessToken (EdDSA JWT, 15 minutes) and a refreshToken (opaque, rotates on every use).`
+  const refresh = platform
+    ? 'Send `Authorization: Bearer <accessToken>` on every request here. When the access token expires, POST the refreshToken to /auth/platform/refresh on the auth service for a new pair (it re-reads `platform_admins`, so a closed console account is out at the next refresh); POST /auth/logout revokes the session.'
+    : 'Send `Authorization: Bearer <accessToken>` on every request here. When the access token expires, POST the refreshToken to /auth/refresh on the auth service for a new pair; POST /auth/logout revokes the session.'
+  const gate =
+    'Each operation lists who may call it in `x-roles` (the permission matrix in @dos/contracts): a role array, `authenticated` (any valid token) or `public` (no token). The guard answers 401 without a valid token and 403 for a role this service does not serve or the matrix does not allow, before any business logic runs.'
+  const support = platform
+    ? [
+        '',
+        "Reading a distributor's OWN data is not part of this service and never will be. It needs a `support_grants` row that that distributor's owner approved from their own app, exchanged for a five-minute pass at POST /auth/platform/support-pass and sent to owner-service (:3001) in the `x-support-grant` header. Every call made with it is written to `platform_audit`, and the window closes on its own.",
+      ]
+    : []
   return [
     `Roles served by this service: ${service.roles.join(', ')}.`,
     '',
-    `Sign in at POST http://localhost:${AUTH_PORT}/auth/login with username + password (demo credentials are printed by \`pnpm db:seed\`; every demo user's password is Dos@1234) and a client-generated deviceId. The reply carries an accessToken (EdDSA JWT, 15 minutes) and a refreshToken (opaque, rotates on every use).`,
+    signIn,
     '',
-    'Send `Authorization: Bearer <accessToken>` on every request here. When the access token expires, POST the refreshToken to /auth/refresh on the auth service for a new pair; POST /auth/logout revokes the session.',
+    refresh,
     '',
-    'Each operation lists who may call it in `x-roles` (the permission matrix in @dos/contracts): a role array, `authenticated` (any valid token) or `public` (no token). The guard answers 401 without a valid token and 403 for a role this service does not serve or the matrix does not allow, before any business logic runs.',
+    gate,
+    ...support,
   ].join('\n')
 }

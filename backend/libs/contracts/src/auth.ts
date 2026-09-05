@@ -8,6 +8,7 @@ import {
   PlatformRoleSchema,
   UsernameSchema,
 } from './common.js'
+import { SupportScopeSchema } from './tenancy.js'
 
 /**
  * Sign-in and session management, served by auth-service (:3000) alone.
@@ -215,6 +216,39 @@ export const PlatformMeOutput = z.object({
 })
 export type PlatformMe = z.infer<typeof PlatformMeOutput>
 
+/**
+ * THE SUPPORT PASS. The console has asked (`admin.support.request`) and the distributor's OWNER has
+ * approved (`tenancy.support.approve`); this turns that approved row into something a distributor's
+ * own service will actually answer. Send the returned `pass` to owner-service in the
+ * `x-support-grant` header ALONGSIDE the console's own bearer token — it is not a session and carries
+ * no user of its own — and its `TenantGuard` will let the request act as that distributor's owner,
+ * narrowed to GET while the scope is read-only, and record every call in `platform_audit`.
+ *
+ * It is minted here, on auth-service, because auth-service is the only process that holds the signing
+ * key. It lives five minutes (`SUPPORT_PASS_TTL_SECONDS`) or until the grant expires, whichever comes
+ * first, so an owner who revokes at 11:05 has shut the door by 11:10 without any service being told.
+ * Ask for another whenever this one runs out; the grant is what is time-boxed, not the pass.
+ */
+export const SupportPassInput = z.object({
+  /** `support_grants.id` — the row the owner approved, from `admin.support.list`. */
+  grantId: IdSchema,
+})
+export type SupportPassIn = z.infer<typeof SupportPassInput>
+
+export const SupportPassOutput = z.object({
+  /** Opaque; send verbatim as the `x-support-grant` header. */
+  pass: z.string().min(20).max(600),
+  /** The one distributor this pass opens, so a console can never point it at another. */
+  tenantId: IdSchema,
+  tenantSlug: z.string(),
+  scope: SupportScopeSchema,
+  /** When this pass stops working. Never later than the grant's own window. */
+  expiresAt: z.iso.datetime(),
+  /** When the OWNER'S window closes — the date the console should show the person using it. */
+  grantExpiresAt: z.iso.datetime(),
+})
+export type SupportPass = z.infer<typeof SupportPassOutput>
+
 export const SessionsListOutput = z.object({
   items: z.array(AuthSessionSchema.extend({ current: z.boolean() })),
 })
@@ -339,6 +373,19 @@ export const authContract = {
     })
     .output(PlatformMeOutput)
     .errors(TOKEN_ERRORS),
+  supportPass: oc
+    .route({
+      method: 'POST',
+      path: '/auth/platform/support-pass',
+      summary: 'Turn an owner-approved support grant into a short-lived pass for that distributor',
+    })
+    .input(SupportPassInput)
+    .output(SupportPassOutput)
+    .errors({
+      ...TOKEN_ERRORS,
+      FORBIDDEN: { message: 'This support window is not open' },
+      NOT_FOUND: { message: 'No such support request' },
+    }),
   sessions: oc
     .route({ method: 'GET', path: '/auth/sessions', summary: 'Devices signed in as this user' })
     .output(SessionsListOutput)

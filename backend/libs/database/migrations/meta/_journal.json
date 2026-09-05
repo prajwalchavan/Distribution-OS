@@ -267,6 +267,41 @@
       "when": 1788643054514,
       "tag": "0037_support_requester_name",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788645757597,
+      "tag": "0038_sync_delta_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788645859817,
+      "tag": "0039_platform_console_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788645859818,
+      "tag": "0040_sync_delta_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788646034525,
+      "tag": "0041_sync_tombstone_shop_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788648239041,
+      "tag": "0042_platform_idempotency_scope",
+      "breakpoints": true
     }
   ]
 }

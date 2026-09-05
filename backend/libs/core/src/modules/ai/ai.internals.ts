@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import {
   aiOrderDrafts,
   outboxEvents,
@@ -144,6 +144,18 @@ export const DRAFT_TERMINAL: ReadonlySet<string> = new Set(['confirmed', 'reject
 /**
  * The shop a `retailer` caller is allowed to speak for. Forced, never taken from the wire: a
  * shopkeeper's draft is always its own shop's, whatever the request says.
+ *
+ * THE TENANT PREDICATE IS LOAD-BEARING, and this query is the one place in the codebase that was
+ * missing it. `retailer_links_read` is deliberately `tenant_id = app.tenant_id OR user_id =
+ * app.actor_id` — the second branch is how a shopkeeper sees "my distributors" on the switch screen —
+ * so a query filtered by `user_id` alone reads the person's links in EVERY distributor they buy from.
+ * One identity, several distributors is the founder's own demo requirement (docs/22 §8, 2026-09-04:
+ * "shops linked to more than one distributor"), so `ramesh.gupta` really does have three of these
+ * rows, and `limit(1)` with no order returned whichever the planner felt like: sometimes this
+ * distributor's shop, sometimes another's. Both outcomes are wrong — a 403 on the shop's own order,
+ * or, when the request named no shop, ANOTHER TENANT'S retailer id written onto a draft in this one.
+ * Every sibling query (`receivables`, `pricing`, `retailers`) already carries the predicate; this one
+ * now does too, with a stable order so the answer never depends on the plan.
  */
 export async function ownShopId(tx: Db): Promise<string | null> {
   const ctx = currentTenant()
@@ -151,7 +163,14 @@ export async function ownShopId(tx: Db): Promise<string | null> {
   const [row] = await tx
     .select({ retailerId: retailerLinks.retailerId })
     .from(retailerLinks)
-    .where(and(eq(retailerLinks.userId, ctx.actorId), eq(retailerLinks.status, 'active')))
+    .where(
+      and(
+        eq(retailerLinks.tenantId, ctx.tenantId),
+        eq(retailerLinks.userId, ctx.actorId),
+        eq(retailerLinks.status, 'active'),
+      ),
+    )
+    .orderBy(asc(retailerLinks.id))
     .limit(1)
   return row?.retailerId ?? null
 }

@@ -695,6 +695,69 @@ describeDb('ai (DATABASE_URL)', () => {
     expect(stolen.status).toBe(403)
   })
 
+  it('speaks for this distributor’s shop when the same shopkeeper also buys from another one', async () => {
+    // The founder's own demo requirement is one identity linked to shops under SEVERAL distributors
+    // (docs/22 §8, 2026-09-04), and `retailer_links_read` lets a shopkeeper read all of those rows by
+    // design (it is the switch-distributor screen). So the link lookup must be scoped to the tenant
+    // of the request: without the predicate the planner decided which distributor's shop a shopkeeper
+    // was speaking for, which 403'd its own order here and, when no shop was named, wrote ANOTHER
+    // tenant's retailer id onto a draft in this one.
+    const otherTenantId = uuidv7()
+    const otherShopId = uuidv7()
+    await db.insert(tenants).values({
+      id: otherTenantId,
+      slug: `ai-other-${run}`,
+      legalName: 'Another distributor',
+      stateCode: '27',
+    })
+    await db.insert(retailers).values({
+      id: otherShopId,
+      tenantId: otherTenantId,
+      code: `X-${run}`,
+      name: `Shop X ${run}`,
+      phone: `+91932${run}9`,
+      stateCode: '27',
+    })
+    // The SAME global identity: one person, two distributors — which is exactly the shape that broke.
+    const [ownLink] = await db
+      .select({ identityId: retailerLinks.identityId })
+      .from(retailerLinks)
+      .where(eq(retailerLinks.retailerId, shopA))
+      .limit(1)
+    // Its id sorts BEFORE every uuidv7 (which is time-ordered), so this row wins any `order by id`
+    // that is not scoped to the tenant: the test fails on the bug rather than on the row order.
+    await db.insert(retailerLinks).values({
+      id: `00000000-0000-7000-8000-${run.padStart(12, '0')}`,
+      tenantId: otherTenantId,
+      identityId: ownLink?.identityId ?? '',
+      retailerId: otherShopId,
+      userId: shopUserId,
+      linkedBy: 'rep_onboarding',
+      status: 'active',
+    })
+
+    // Naming its own shop is allowed...
+    const named = await call<{ item: Draft }>(app, shop, 'POST', '/ai/intake/text', {
+      idempotencyKey: `ai-parse-multi-named-${run}`,
+      id: uuidv7(),
+      source: 'whatsapp',
+      retailerId: shopA,
+      text: '1 case campa cola 1L',
+    })
+    expect(named.status, JSON.stringify(named.body)).toBe(200)
+    expect(named.body.item.retailerId).toBe(shopA)
+
+    // ...and naming nothing resolves to the shop it holds HERE, never the one it holds elsewhere.
+    const implied = await call<{ item: Draft }>(app, shop, 'POST', '/ai/intake/text', {
+      idempotencyKey: `ai-parse-multi-implied-${run}`,
+      id: uuidv7(),
+      source: 'whatsapp',
+      text: '1 case campa cola 1L',
+    })
+    expect(implied.status, JSON.stringify(implied.body)).toBe(200)
+    expect(implied.body.item.retailerId).toBe(shopA)
+  })
+
   it('refuses the godown and the crew every draft procedure', async () => {
     expect((await call(app, packer, 'GET', '/ai/drafts', { limit: 10 })).status).toBe(403)
     expect((await call(app, driver, 'GET', '/ai/drafts', { limit: 10 })).status).toBe(403)

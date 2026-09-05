@@ -75,6 +75,8 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
+  admin-app: {}
+
   libs/api-client:
     dependencies:
       '@dos/contracts':

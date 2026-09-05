@@ -193,7 +193,8 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/warehouse/reservations/release` | Free the pending holds of an order that will not be picked | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/sync/errors` | Rejected offline writes for the "Needs attention" tray (own rows for field roles) | owner, manager, accountant, salesperson, warehouse, delivery |
-| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/manifest` | Tables, columns and schema version the device of this role should hold | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/delivery/vehicles` | Vehicles of this distributor | owner, manager, accountant, warehouse, delivery |

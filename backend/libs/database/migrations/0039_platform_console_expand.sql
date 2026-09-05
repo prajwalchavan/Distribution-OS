@@ -1,0 +1,6 @@
+CREATE TYPE "public"."billing_interval" AS ENUM('monthly', 'quarterly', 'yearly');--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN "billing_interval" "billing_interval" DEFAULT 'monthly' NOT NULL;--> statement-breakpoint
+ALTER TABLE "subscriptions" ADD COLUMN "cancelled_at" timestamp with time zone;--> statement-breakpoint
+CREATE POLICY "idempotency_platform_read" ON "idempotency_keys" AS PERMISSIVE FOR SELECT TO "app_rw" USING ((SELECT current_setting('app.actor_role', true)) IN ('platform_admin', 'system'));--> statement-breakpoint
+CREATE POLICY "idempotency_platform_insert" ON "idempotency_keys" AS PERMISSIVE FOR INSERT TO "app_rw" WITH CHECK ((SELECT current_setting('app.actor_role', true)) IN ('platform_admin', 'system'));--> statement-breakpoint
+CREATE POLICY "idempotency_platform_update" ON "idempotency_keys" AS PERMISSIVE FOR UPDATE TO "app_rw" USING ((SELECT current_setting('app.actor_role', true)) IN ('platform_admin', 'system')) WITH CHECK ((SELECT current_setting('app.actor_role', true)) IN ('platform_admin', 'system'));

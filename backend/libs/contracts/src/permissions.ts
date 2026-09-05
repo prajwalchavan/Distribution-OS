@@ -358,6 +358,11 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'auth.platformLogin': 'public',
   'auth.platformRefresh': 'public',
   'auth.platformMe': PLATFORM,
+  // The support pass (module 13): the console exchanges an OWNER-APPROVED grant for a five-minute,
+  // single-tenant, signed header. PLATFORM alone, because it opens a distributor's own service to a
+  // stranger — the approval the owner already gave is what makes it legal, and the handler refuses a
+  // grant that is not approved, is revoked, has lapsed, or belongs to another administrator.
+  'auth.supportPass': PLATFORM,
 
   // Tenancy. Staff administration is the owner's desk; the accountant may look but not hire. The
   // branding block and the feature flags are read by EVERY member including the shop (the app chrome and
@@ -437,11 +442,16 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'retailers.visits.record': STAFF,
   'retailers.visits.list': STAFF,
 
-  // Offline queue. Served to staff apps only; the retailer app is online-first. A field role reads its
-  // own rejections and pulls its own read set (the handler forces the actor; RLS narrows the rows).
+  // Offline protocol (docs/22 2026-09-05: our own delta sync, no PowerSync). The WRITE queue and its
+  // rejection tray stay with the staff apps — a shop places its order online, through `orders.*`. The
+  // two READS are ANY_MEMBER, which here is STAFF plus the shopkeeper: the retailer app holds its own
+  // bills, orders and dues offline, so it needs the same manifest and the same delta download. Nothing
+  // widens with it — the handler forces the actor and RLS narrows every pulled table to its own rows,
+  // and no table a shop can hold carries a cost column.
   'sync.upload': STAFF,
   'sync.errors.list': STAFF,
-  'sync.pull': STAFF,
+  'sync.manifest': ANY_MEMBER,
+  'sync.pull': ANY_MEMBER,
 
   // Pricing. Reps read rates, their own bound and ask for bargains; the SHOP reads its deals
   // (`schemes.list` filtered to what applies to it, public shape) and the outcome of its own bargain

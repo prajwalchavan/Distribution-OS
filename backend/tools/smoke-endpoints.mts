@@ -20,7 +20,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import pg from 'pg'
-import { isAllowed, permissionFor, type MembershipRole } from '@dos/contracts'
+import { isAllowed, permissionFor, type MembershipRole, type PermissionRole } from '@dos/contracts'
 import { loadDotenv } from '../libs/database/src/env.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -53,6 +53,21 @@ const RUN_TAG = flagValue('--run-tag') ?? istDate()
 const RUN_NONCE = new Date().toISOString()
 const RUN_SCOPED_OPS = new Set(['orders.create', 'orders.repeatLast'])
 
+/**
+ * TOGGLES, whose undo must really run. `admin.tenants.suspend` and `admin.tenants.reactivate` are one
+ * pair: the suspend locks a whole distributorship out with 423 and the reactivate two lines later is
+ * the only thing that lets it back in. Their request bodies never change, so under the day-stable
+ * digest below the SECOND `--destructive` run of a day REPLAYS each stored reply instead of executing
+ * it — and a reactivate that never ran still answers `"status":"active"` with a green 200 while the
+ * row stays suspended. That is exactly what happened on 2026-09-06: the pilot tenant was left locked
+ * out, every one of the seven demo sign-ins answered 423, and the smoke log said OK.
+ *
+ * Scoping their key to the RUN (not the day) makes the pair honest — the suspend suspends and the
+ * reactivate reactivates, on run one and on run fifty. `pnpm db:seed` re-activates a demo tenant as
+ * well (`restoreDemoAccess` in `seed-demo/index.ts`), which is the belt to this brace.
+ */
+const STATE_TOGGLE_OPS = new Set(['admin.tenants.suspend', 'admin.tenants.reactivate'])
+
 function out(line = ''): void {
   process.stdout.write(`${line}\n`)
 }
@@ -64,7 +79,12 @@ interface ServiceTarget {
   name: string
   port: number
   username: string
-  role: MembershipRole
+  /**
+   * The role this service is exercised as. `platform_admin` (module 13) is NOT a membership role: it
+   * signs in at `/auth/platform/login`, holds no tenant, and is refused by every one of the six
+   * distributor services — which is exactly why admin-service gets its own row here.
+   */
+  role: PermissionRole
 }
 
 const SERVICES: readonly ServiceTarget[] = [
@@ -75,9 +95,14 @@ const SERVICES: readonly ServiceTarget[] = [
   { name: 'warehouse', port: 3004, username: 'dinesh.patil', role: 'warehouse' },
   { name: 'delivery', port: 3005, username: 'ganesh.more', role: 'delivery' },
   { name: 'retailer', port: 3006, username: 'ramesh.gupta', role: 'retailer' },
+  // Module 13, the platform console. `dos.admin` is seeded by `seedPlatformConsole` and is a SUPER
+  // administrator with no membership anywhere; it signs in at the platform endpoint (see `login`).
+  { name: 'admin', port: 3007, username: 'dos.admin', role: 'platform_admin' },
 ]
 
 const DEMO_PASSWORD = 'Dos@1234'
+/** The seeded console account (`seedPlatformConsole`); it holds no membership anywhere. */
+const PLATFORM_ADMIN_USERNAME = 'dos.admin'
 const AUTH_URL = 'http://localhost:3000'
 /** One stable device per role, so re-running the harness reuses the same session row. */
 const deviceIdFor = (username: string) => stableUuid(`smoke-device:${username}`)
@@ -103,6 +128,10 @@ const DESTRUCTIVE_EXTRA: Record<string, string> = {
     'would return a seeded cheque and book a real bank charge against the demo books',
   'receivables.allocations.remove':
     'would delete a seeded allocation and reopen the bill it settled',
+  // Module 13. `suspend` is not caught by the pattern and is the sharpest switch in the product: it
+  // refuses every sign-in for a whole distributorship until somebody presses reactivate.
+  'admin.tenants.suspend':
+    'would refuse every sign-in for the demo distributorship until it is reactivated',
 }
 
 function destructiveReason(operationId: string): string | undefined {
@@ -162,8 +191,9 @@ function sealIdempotency(
   const record = body as Record<string, unknown>
   if (typeof record.idempotencyKey !== 'string') return body
   const { idempotencyKey: _drop, ...rest } = record
+  const scope = STATE_TOGGLE_OPS.has(operationId) ? RUN_NONCE : RUN_TAG
   const digest = createHash('sha256')
-    .update(`${method} ${url} ${RUN_TAG} ${JSON.stringify(rest)}`)
+    .update(`${method} ${url} ${scope} ${JSON.stringify(rest)}`)
     .digest('hex')
     .slice(0, 16)
   return { ...record, idempotencyKey: `smoke:${service}:${operationId}:${digest}` }
@@ -1109,6 +1139,12 @@ interface Plan {
 /** Mutable state that chained procedures pass to each other within one service run. */
 interface RunChain {
   refreshToken: string | null
+  /**
+   * A CONSOLE session's refresh token (module 13). `auth.platformRefresh` will not take a tenant
+   * session's — a console account is a member of nobody and the two sign-ins are separate on purpose
+   * — so `auth.platformLogin` earlier in the run is what fills this.
+   */
+  platformRefreshToken: string | null
   sessionId: string | null
   tenantId: string
   /** The throwaway order this run created, walked draft → submitted → confirmed. */
@@ -1135,6 +1171,8 @@ interface RunChain {
 /** Runs later than its position in the document, because it invalidates what earlier ones need. */
 const ORDER_HINT: Record<string, number> = {
   'auth.login': 1,
+  'auth.platformLogin': 1,
+  'auth.platformRefresh': 2,
   'auth.refresh': 2,
   'auth.switchTenant': 3,
   'auth.me': 4,
@@ -1223,6 +1261,28 @@ async function planFor(
             },
           }
         : { skip: 'no refresh token: auth.login did not succeed earlier in this run' }
+    // --- module 13: the console signs in at its own endpoint, and refreshes with its own token ----
+    case 'auth.platformLogin':
+      return {
+        body: {
+          username: PLATFORM_ADMIN_USERNAME,
+          password: DEMO_PASSWORD,
+          deviceId: stableUuid(`smoke-throwaway-platform:${PLATFORM_ADMIN_USERNAME}`),
+          deviceName: 'pnpm smoke',
+          platform: 'web',
+        },
+      }
+    case 'auth.platformRefresh':
+      return chain.platformRefreshToken
+        ? {
+            body: {
+              refreshToken: chain.platformRefreshToken,
+              deviceId: stableUuid(`smoke-throwaway-platform:${PLATFORM_ADMIN_USERNAME}`),
+            },
+          }
+        : {
+            skip: 'no console refresh token: auth.platformLogin did not succeed earlier in this run',
+          }
     case 'auth.switchTenant':
       return chain.refreshToken
         ? {
@@ -2148,12 +2208,23 @@ async function callJson(url: string, init: RequestInit): Promise<CallResult> {
 interface LoginResult {
   accessToken: string
   refreshToken: string
+  /** The tenant of the session; for a console session, the pilot's, so bodies can name a real one. */
   tenantId: string
-  role: MembershipRole
+  role: PermissionRole
 }
 
-async function login(username: string): Promise<LoginResult> {
-  const res = await callJson(`${AUTH_URL}/auth/login`, {
+/**
+ * `platformTenantId` is the tenant the CONSOLE's examples act on. A console session has no tenant of
+ * its own — that is the whole point of `platform_admin` — but the harness still needs one id to fill
+ * a `{tenantId}` body field with, and it is the pilot's, the same one every published example names.
+ */
+let platformTenantId: string | null = null
+
+async function login(username: string, platform = false): Promise<LoginResult> {
+  // Module 13 signs in at its OWN endpoint: a console account is a member of no distributor, so
+  // `/auth/login` correctly answers "use POST /auth/platform/login" and there is no tenant to return.
+  const path = platform ? '/auth/platform/login' : '/auth/login'
+  const res = await callJson(`${AUTH_URL}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -2172,13 +2243,13 @@ async function login(username: string): Promise<LoginResult> {
   const body = res.body as {
     accessToken: string
     refreshToken: string
-    tenant: { id: string }
-    role: MembershipRole
+    tenant?: { id: string }
+    role: PermissionRole
   }
   return {
     accessToken: body.accessToken,
     refreshToken: body.refreshToken,
-    tenantId: body.tenant.id,
+    tenantId: body.tenant?.id ?? platformTenantId ?? '',
     role: body.role,
   }
 }
@@ -2215,7 +2286,7 @@ function readOperations(doc: {
 
 async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]> {
   const base = `http://localhost:${String(target.port)}`
-  const session = await login(target.username)
+  const session = await login(target.username, target.role === 'platform_admin')
   const authHeaders = {
     authorization: `Bearer ${session.accessToken}`,
     'content-type': 'application/json',
@@ -2241,6 +2312,7 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
     session.role === 'retailer' ? await fx.linkedRetailerFor(target.username) : null
   const chain: RunChain = {
     refreshToken: null,
+    platformRefreshToken: null,
     sessionId: null,
     tenantId: session.tenantId,
     orderId: null,
@@ -2427,6 +2499,10 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       const b = res.body as { refreshToken?: string } | null
       if (b?.refreshToken) chain.refreshToken = b.refreshToken
     }
+    if (op.operationId === 'auth.platformLogin' || op.operationId === 'auth.platformRefresh') {
+      const b = res.body as { refreshToken?: string } | null
+      if (b?.refreshToken) chain.platformRefreshToken = b.refreshToken
+    }
     if (op.operationId === 'orders.create' || op.operationId === 'orders.repeatLast') {
       const b = res.body as { item?: { id?: string } } | null
       if (b?.item?.id && !chain.orderId) chain.orderId = b.item.id
@@ -2577,6 +2653,25 @@ async function sweepSmokeTrips(owner: LoginResult, fx: Fixtures): Promise<void> 
   )
 }
 
+/**
+ * THE LAST THING THE HARNESS DOES: prove the demo distributorship still signs in.
+ *
+ * `--destructive` presses switches that can lock the whole rig — `admin.tenants.suspend` answers 423
+ * to every sign-in of a distributorship until somebody reactivates it — and the undo answering 200 is
+ * NOT proof the undo ran (an idempotency replay answers 200 too, from a reply it stored on an earlier
+ * run). On 2026-09-06 that combination left every demo login refused with a fully green smoke log.
+ * So the run ends by actually signing in again: the one check that cannot be satisfied by a
+ * remembered answer. If it fails the run fails, and `pnpm db:seed` puts the demo back.
+ */
+async function demoSignInStillWorks(): Promise<string | null> {
+  try {
+    await login('sunil.tarsun')
+    return null
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err)
+  }
+}
+
 async function main(): Promise<void> {
   const targets = ONLY_SERVICE ? SERVICES.filter((s) => s.name === ONLY_SERVICE) : SERVICES
   if (targets.length === 0) {
@@ -2587,6 +2682,7 @@ async function main(): Promise<void> {
   }
 
   const owner = await login('sunil.tarsun')
+  platformTenantId = owner.tenantId
   const fx = await Fixtures.open(owner.tenantId)
   mkdirSync(outDir, { recursive: true })
 
@@ -2617,6 +2713,13 @@ async function main(): Promise<void> {
 
   await sweepSmokeTrips(owner, fx)
   await fx.close()
+
+  const demoLocked = await demoSignInStillWorks()
+  if (demoLocked) {
+    failures.push(
+      `the demo distributorship no longer signs in after this run (${demoLocked}) — run \`pnpm db:seed\` to put it back`,
+    )
+  }
 
   const skipped = all.filter((r) => r.classification === 'SKIPPED')
   if (skipped.length > 0) {
@@ -2649,7 +2752,7 @@ async function main(): Promise<void> {
   out(`JSON written to ${outDir}`)
 
   if (failures.length > 0) {
-    for (const f of failures) console.error(`service could not be reached: ${f}`)
+    for (const f of failures) console.error(`FAILED: ${f}`)
   }
   process.exit(counts.BROKEN > 0 || failures.length > 0 ? 1 : 0)
 }

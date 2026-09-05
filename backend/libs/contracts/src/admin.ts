@@ -354,12 +354,27 @@ export const AdminMembershipSchema = z.object({
 })
 export type AdminMembership = z.infer<typeof AdminMembershipSchema>
 
+/**
+ * WHY `username`, `phone` AND `locale` ARE PLAIN STRINGS HERE, and `UsernameSchema` / `PhoneSchema` /
+ * `LocaleSchema` everywhere else.
+ *
+ * Those three schemas are INPUT guards: they decide what may be written, and every procedure that
+ * writes a user still applies them (`tenancy.staff.create`, `admin.tenants.create`, the auth service).
+ * This is the console's read-only DIRECTORY, and its job includes showing the identity that is WRONG —
+ * a row imported from a distributor's old software, one written before a rule existed, or one a bug
+ * produced. A schema that refuses to render such a row would 500 the whole page and hide the very
+ * thing support was opened to look at. Nothing here is ever sent back as input, so nothing is loosened
+ * by saying so.
+ */
 export const AdminUserSchema = z.object({
   id: IdSchema,
-  username: UsernameSchema.nullable(),
+  /** As stored. Written through `UsernameSchema`; shown here even when it predates that rule. */
+  username: z.string().nullable(),
   name: z.string().min(1).max(120),
-  phone: PhoneSchema,
-  locale: LocaleSchema,
+  /** As stored. Written through `PhoneSchema` (Indian mobile, E.164); shown here whatever it holds. */
+  phone: z.string(),
+  /** As stored. Written through `LocaleSchema` (`en-IN` / `hi-IN` / `mr-IN`). */
+  locale: z.string(),
   status: z.enum(['active', 'disabled']),
   /** Set for Distribution OS staff (`platform_admin`); null for everyone who works at a distributor. */
   platformRole: PlatformRoleSchema.nullable(),

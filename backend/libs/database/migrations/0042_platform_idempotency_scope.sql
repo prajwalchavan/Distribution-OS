@@ -1,0 +1,2 @@
+ALTER TABLE "idempotency_keys" ADD COLUMN "platform_scoped" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER POLICY "idempotency_tenant" ON "idempotency_keys" TO app_rw USING (tenant_id = (SELECT current_setting('app.tenant_id', true)) AND platform_scoped = false) WITH CHECK (tenant_id = (SELECT current_setting('app.tenant_id', true)) AND platform_scoped = false);

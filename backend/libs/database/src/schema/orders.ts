@@ -108,6 +108,8 @@ export const salesOrders = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('sales_orders_updated_idx').on(t.tenantId, t.updatedAt),
     index('sales_orders_retailer_idx').on(t.tenantId, t.retailerId, t.createdAt),
     index('sales_orders_state_idx').on(t.tenantId, t.state, t.createdAt),
     index('sales_orders_salesperson_idx').on(t.tenantId, t.salespersonId, t.createdAt),
@@ -175,6 +177,8 @@ export const salesOrderLines = pgTable(
     ...timestamps,
   },
   (t) => [
+    /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
+    index('sales_order_lines_updated_idx').on(t.tenantId, t.updatedAt),
     index('sales_order_lines_order_idx').on(t.tenantId, t.orderId, t.lineNo),
     index('sales_order_lines_variant_idx').on(t.tenantId, t.variantId),
     pgPolicy('sales_order_lines_read', {

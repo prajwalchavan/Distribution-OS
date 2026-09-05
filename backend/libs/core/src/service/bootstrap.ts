@@ -90,7 +90,9 @@ export function corsOptions(env: Env): FastifyCorsOptions {
     origin: (origin, cb) => cb(null, allowed(origin)),
     credentials: false, // tokens travel in the Authorization header, never in cookies
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['authorization', 'content-type', 'x-idempotency-key'],
+    // `x-support-grant` carries the signed support pass (module 13): a browser console calling a
+    // distributor's own service cross-origin cannot send it unless it is listed here.
+    allowedHeaders: ['authorization', 'content-type', 'x-idempotency-key', 'x-support-grant'],
     exposedHeaders: ['x-request-id'],
     maxAge: 86_400,
   }

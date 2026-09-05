@@ -3,7 +3,7 @@ export { TenancyService } from './tenancy.service.js'
 export { TenantConfigService } from './config.service.js'
 /** The owner's half of platform support access (`tenancy.support.*`); the console's half is module 13. */
 export { SupportAccessService } from './support.service.js'
-export { TenantGuard } from './tenant.guard.js'
+export { TenantGuard, PLATFORM_SCOPE, type SupportAwareRequest } from './tenant.guard.js'
 /**
  * THE WHITE-LABEL BLOCK every printed document and every app's chrome carries (docs/17 §D6). One
  * loader for billing (invoice, credit note), warehouse (challan), receivables (receipt), the worker's

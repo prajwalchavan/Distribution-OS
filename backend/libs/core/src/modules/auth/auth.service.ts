@@ -4,6 +4,11 @@ import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-or
 import type {
   AuthMe,
   AuthOk,
+  PlatformLoginIn,
+  PlatformMe,
+  PlatformTokenPair,
+  SupportPass,
+  SupportPassIn,
   AuthSession,
   AuthTenant,
   AuthUser,
@@ -27,6 +32,8 @@ import {
   memberships,
   normalizeUsername,
   otpRateLimits,
+  platformAdmins,
+  supportGrants,
   tenants,
   tenantSettings,
   TENANT_SETTING_KEYS,
@@ -38,7 +45,13 @@ import {
   type Db,
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
-import { DB, loadAuthKeys, requireDb, type AuthKeys } from '../../platform/index.js'
+import {
+  DB,
+  loadAuthKeys,
+  requireDb,
+  signSupportPass,
+  type AuthKeys,
+} from '../../platform/index.js'
 import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
 import { SIGN_IN_REQUIRED, type AuthClaims } from './auth-context.js'
 import {
@@ -63,6 +76,23 @@ const NO_MEMBERSHIP_ANYWHERE =
 const notAMember = (tenantId: string) =>
   `You are not an active member of the distributor ${tenantId}. Omit tenantId to sign in to your own, or send one of the tenantId values from your memberships.`
 const SESSION_EXPIRED = 'Session expired. Sign in again.'
+/** Module 13: a console account has no membership, so the tenant sign-in has nothing to give it. */
+const NOT_A_CONSOLE_USER =
+  'This account is not a Distribution OS console account. Sign in at your distributor app instead.'
+const CONSOLE_ONLY =
+  'This is a Distribution OS console session. It belongs to no distributor, so there is nothing to switch to.'
+const USE_CONSOLE_SIGN_IN =
+  'This is a Distribution OS console account. Sign in at POST /auth/platform/login.'
+/** What a suspended distributor's staff are told, on sign-in and on every refresh (423). */
+const tenantSuspended = (tenant: { legalName: string; status: string }) =>
+  new ORPCError('LOCKED', {
+    status: 423,
+    message:
+      tenant.status === 'closed'
+        ? `${tenant.legalName} is closed on Distribution OS. Contact support@distribution-os.in.`
+        : `${tenant.legalName} is suspended on Distribution OS. Contact support@distribution-os.in to reactivate it.`,
+    data: { code: 'tenant_suspended', status: tenant.status },
+  })
 
 /** Where the request came from, recorded on sessions and events. */
 export interface ClientInfo {
@@ -164,6 +194,12 @@ export class AuthService {
       const chosen = input.tenantId
         ? active.find((r) => r.membership.tenantId === input.tenantId)
         : active[0]
+      // Module 13: Distribution OS's own staff hold no membership anywhere, so without this they
+      // would be told "you are not a member of any distributor", which is true and unhelpful.
+      if (!chosen && (await isPlatformAdmin(tx, user.id))) {
+        await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
+        return fail(noAccess(USE_CONSOLE_SIGN_IN))
+      }
       if (!chosen) {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
         // The password was right: say which of the two things is actually wrong, or an operator
@@ -175,6 +211,19 @@ export class AuthService {
               : NO_MEMBERSHIP_ANYWHERE,
           ),
         )
+      }
+      // The platform console's kill switch (`admin.tenants.suspend`, module 13). The password was
+      // right and the membership is active; the DISTRIBUTORSHIP is not, so nobody who works there gets
+      // in — 423, not 403, because it is a state that will end, and the message says who to call.
+      if (chosen.tenant.status !== 'active') {
+        await logEvent(tx, {
+          userId: user.id,
+          username,
+          tenantId: chosen.membership.tenantId,
+          kind: 'login_failed',
+          client,
+        })
+        return fail(tenantSuspended(chosen.tenant))
       }
       if (user.failedLoginCount > 0 || user.lockedUntil) {
         await tx
@@ -230,10 +279,19 @@ export class AuthService {
       const valid = await validateRefresh(tx, input.refreshToken, input.deviceId, client, now)
       if (!valid.ok) return valid
       const { session, user, rows, presentedHash } = valid.value
+      // A console session has no tenant: it refreshes at /auth/platform/refresh, which re-reads
+      // `platform_admins`. Answering it here would hand back a pair with a null tenant.
+      if (session.tenantId === null) return fail(noAccess(CONSOLE_ONLY))
       const current = rows.find((r) => r.membership.tenantId === session.tenantId)
       if (!current || current.membership.status !== 'active') {
         await revokeSession(tx, session.id, 'membership_disabled', now)
         return fail(noAccess())
+      }
+      // Suspension bites at the next refresh as well as at sign-in, so a distributor that is switched
+      // off stops working within one access-token lifetime rather than at the end of the day.
+      if (current.tenant.status !== 'active') {
+        await revokeSession(tx, session.id, 'tenant_suspended', now)
+        return fail(tenantSuspended(current.tenant))
       }
       const refresh = newRefreshToken()
       const rotated = {
@@ -285,9 +343,13 @@ export class AuthService {
       const valid = await validateRefresh(tx, input.refreshToken, input.deviceId, client, now)
       if (!valid.ok) return valid
       const { session, user, rows } = valid.value
+      // Module 13: a console session is not a membership and has nothing to switch between. Refusing
+      // it here is the mirror of `TenantGuard` refusing a `platform_admin` token on the six services.
+      if (session.tenantId === null) return fail(noAccess(CONSOLE_ONLY))
       const target = rows.find((r) => r.membership.tenantId === input.tenantId)
       if (!target || target.membership.status !== 'active')
         return fail(noAccess(notAMember(input.tenantId)))
+      if (target.tenant.status !== 'active') return fail(tenantSuspended(target.tenant))
       await revokeSession(tx, session.id, 'tenant_switched', now)
       const next = await createSession(tx, {
         user,
@@ -307,6 +369,213 @@ export class AuthService {
       return ok(await issuePair(keys, user, target, rows, next, now))
     })
     return unwrap(outcome)
+  }
+
+  // ---------------------------------------------------------------- the platform console (module 13)
+
+  /**
+   * Sign in as Distribution OS's OWN staff (founder decision 2026-09-05, docs/22 §2 row 7).
+   *
+   * It is a separate procedure, not a flag on `login`, because a console account is a different kind
+   * of thing: it holds no membership, so there is no distributor to pick, no branding to load and no
+   * `memberships` list to answer with. What it shares with `login` — deliberately, because a console
+   * account is the most dangerous account on the platform, not the most privileged shortcut — is
+   * every protection: the same argon2id verification with a constant-time dummy for an unknown
+   * username, the same five-failure fifteen-minute lockout, the same one-live-session-per-device
+   * rule, the same rotating refresh token and the same `auth_events` trail.
+   *
+   * The session row carries `tenant_id = null` and `role = null` (the column is the membership enum,
+   * which has no `platform_admin` value on purpose), so what makes it a console session is the
+   * `platform_admins` row, re-read on every refresh. Disabling an administrator therefore ends their
+   * access at the next refresh without anyone hunting for their sessions.
+   */
+  async platformLogin(input: PlatformLoginIn, client: ClientInfo): Promise<PlatformTokenPair> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    const username = normalizeUsername(input.username)
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<PlatformTokenPair>> => {
+      const now = new Date()
+      const user = await findUserByUsername(tx, username)
+      if (!user?.passwordHash) {
+        await verifyPassword(await this.dummy(), input.password)
+        await logEvent(tx, { userId: user?.id ?? null, username, kind: 'login_failed', client })
+        return fail(invalidCredentials())
+      }
+      if (user.lockedUntil && user.lockedUntil > now) {
+        await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
+        return fail(locked(user.lockedUntil, now))
+      }
+      if (!(await verifyPassword(user.passwordHash, input.password))) {
+        const count = user.lockedUntil ? 1 : user.failedLoginCount + 1
+        const lockedUntil =
+          count >= MAX_FAILED_LOGINS ? new Date(now.getTime() + LOCK_MINUTES * 60_000) : null
+        await tx
+          .update(users)
+          .set({ failedLoginCount: count, lockedUntil, updatedAt: now })
+          .where(eq(users.id, user.id))
+        await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
+        if (lockedUntil) {
+          await logEvent(tx, { userId: user.id, username, kind: 'locked', client })
+          return fail(locked(lockedUntil, now))
+        }
+        return fail(invalidCredentials())
+      }
+      if (user.status !== 'active') {
+        await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
+        return fail(noAccess())
+      }
+      if (!(await isPlatformAdmin(tx, user.id))) {
+        await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
+        return fail(noAccess(NOT_A_CONSOLE_USER))
+      }
+      if (user.failedLoginCount > 0 || user.lockedUntil) {
+        await tx
+          .update(users)
+          .set({ failedLoginCount: 0, lockedUntil: null, updatedAt: now })
+          .where(eq(users.id, user.id))
+      }
+      const platform = input.platform ?? 'web'
+      await tx
+        .insert(devices)
+        .values({ id: input.deviceId, userId: user.id, platform, lastSeenAt: now })
+        .onConflictDoUpdate({
+          target: devices.id,
+          set: { userId: user.id, platform, lastSeenAt: now, updatedAt: now },
+        })
+      await tx
+        .update(authSessions)
+        .set({ revokedAt: now, revokedReason: 'replaced' })
+        .where(
+          and(
+            eq(authSessions.userId, user.id),
+            eq(authSessions.deviceId, input.deviceId),
+            isNull(authSessions.revokedAt),
+          ),
+        )
+      const session = await createPlatformSession(tx, {
+        user,
+        deviceId: input.deviceId,
+        deviceName: input.deviceName ?? null,
+        platform,
+        client,
+        now,
+      })
+      await logEvent(tx, { userId: user.id, username, kind: 'login_ok', client })
+      return ok(await issuePlatformPair(keys, user, session, now))
+    })
+    return unwrap(outcome)
+  }
+
+  /**
+   * Rotate a console session's refresh token. `platform_admins` is re-read here, so an administrator
+   * who was disabled a minute ago is out at the next refresh (at most one access-token lifetime), and
+   * a tenant session presented here is refused rather than quietly upgraded.
+   */
+  async platformRefresh(input: RefreshIn, client: ClientInfo): Promise<PlatformTokenPair> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    const outcome = await withSystem(db, async (tx): Promise<Outcome<PlatformTokenPair>> => {
+      const now = new Date()
+      const valid = await validateRefresh(tx, input.refreshToken, input.deviceId, client, now)
+      if (!valid.ok) return valid
+      const { session, user, presentedHash } = valid.value
+      if (session.tenantId !== null) return fail(noAccess(NOT_A_CONSOLE_USER))
+      if (!(await isPlatformAdmin(tx, user.id))) {
+        await revokeSession(tx, session.id, 'platform_admin_disabled', now)
+        return fail(noAccess(NOT_A_CONSOLE_USER))
+      }
+      const refresh = newRefreshToken()
+      const rotated = { ...session, refreshExpiresAt: refreshExpiry(now), lastUsedAt: now }
+      await tx
+        .update(authSessions)
+        .set({
+          refreshTokenHash: refresh.hash,
+          previousRefreshTokenHash: presentedHash,
+          refreshExpiresAt: rotated.refreshExpiresAt,
+          lastUsedAt: now,
+          ip: client.ip,
+          userAgent: client.userAgent,
+        })
+        .where(eq(authSessions.id, session.id))
+      await logEvent(tx, { userId: user.id, kind: 'refresh', client })
+      return ok(await issuePlatformPair(keys, user, { row: rotated, refresh }, now))
+    })
+    return unwrap(outcome)
+  }
+
+  /** Who this console session is. Refuses a membership token: it is not a question with an answer. */
+  async platformMe(auth: AuthClaims): Promise<PlatformMe> {
+    const db = requireDb(this.db)
+    return withSystem(db, async (tx) => {
+      const now = new Date()
+      const session = await liveSession(tx, auth, now)
+      if (session.tenantId !== null) throw noAccess(NOT_A_CONSOLE_USER)
+      const user = await findUserById(tx, auth.userId)
+      if (!user) throw signInRequired()
+      if (user.status !== 'active') throw noAccess()
+      if (!(await isPlatformAdmin(tx, user.id))) throw noAccess(NOT_A_CONSOLE_USER)
+      return { user: toAuthUser(user), role: 'platform_admin', session: toAuthSession(session) }
+    })
+  }
+
+  /**
+   * Exchange an OWNER-APPROVED support grant for a short-lived signed pass (docs/22 §8, 2026-09-05:
+   * support access is time-boxed, owner-approved, audited). Everything this checks is checked again by
+   * the database's own trigger on the way in — what it adds is a clear sentence per refusal and, most
+   * of all, the fact that the pass cannot be minted anywhere else: auth-service is the only process
+   * that holds the signing key.
+   *
+   * Five refusals, all deliberate: not an administrator, not the administrator who asked, never
+   * approved, revoked, or lapsed. There is no path here that opens a window — only
+   * `tenancy.support.approve`, on owner-service, does that, and the distributor's owner is the only
+   * role that may call it.
+   */
+  async supportPass(auth: AuthClaims, input: SupportPassIn): Promise<SupportPass> {
+    const db = requireDb(this.db)
+    const keys = await loadAuthKeys()
+    return withSystem(db, async (tx) => {
+      const now = new Date()
+      const session = await liveSession(tx, auth, now)
+      if (session.tenantId !== null) throw noAccess(NOT_A_CONSOLE_USER)
+      if (!(await isPlatformAdmin(tx, auth.userId))) throw noAccess(NOT_A_CONSOLE_USER)
+      const [row] = await tx
+        .select({ grant: supportGrants, tenant: tenants })
+        .from(supportGrants)
+        .innerJoin(tenants, eq(tenants.id, supportGrants.tenantId))
+        .where(eq(supportGrants.id, input.grantId))
+        .limit(1)
+      if (!row) throw new ORPCError('NOT_FOUND', { message: 'No such support request' })
+      const { grant, tenant } = row
+      if (grant.adminUserId !== auth.userId)
+        throw noAccess('That support window was granted to another administrator')
+      if (!grant.approvedAt)
+        throw noAccess(
+          `${tenant.legalName} has not approved this request yet. Their owner decides, from their own app.`,
+        )
+      if (grant.revokedAt) throw noAccess('That support window has been closed')
+      if (grant.expiresAt <= now)
+        throw noAccess('That support window has expired. Ask for a new one.')
+      const scope = grant.scope === 'read_write' ? 'read_write' : 'read_only'
+      const signed = await signSupportPass(
+        {
+          grantId: grant.id,
+          tenantId: grant.tenantId,
+          adminUserId: auth.userId,
+          scope,
+          grantExpiresAt: grant.expiresAt,
+        },
+        keys,
+        now,
+      )
+      return {
+        pass: signed.pass,
+        tenantId: grant.tenantId,
+        tenantSlug: tenant.slug,
+        scope,
+        expiresAt: signed.expiresAt.toISOString(),
+        grantExpiresAt: grant.expiresAt.toISOString(),
+      }
+    })
   }
 
   // ---------------------------------------------------------------- behind AccessTokenGuard
@@ -771,6 +1040,88 @@ async function createSession(tx: Db, s: NewSession): Promise<CreatedSession> {
   if (!row)
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'session insert returned nothing' })
   return { row, refresh }
+}
+
+/** Is this global identity one of Distribution OS's own, and still working here? (module 13) */
+async function isPlatformAdmin(tx: Db, userId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: platformAdmins.id })
+    .from(platformAdmins)
+    .where(and(eq(platformAdmins.userId, userId), isNull(platformAdmins.disabledAt)))
+    .limit(1)
+  return row !== undefined
+}
+
+interface NewPlatformSession {
+  user: UserRow
+  deviceId: string
+  deviceName: string | null
+  platform: 'web' | 'android' | 'ios'
+  client: ClientInfo
+  now: Date
+}
+
+/**
+ * A console session row: same table, same rotation, same revocation — with `tenant_id` and `role`
+ * left NULL, because `auth_sessions.role` is the MEMBERSHIP enum and `platform_admin` is deliberately
+ * not one of its values. What makes the session a console session is the `platform_admins` row, which
+ * every refresh re-reads; nothing about the privilege is cached in this row.
+ */
+async function createPlatformSession(tx: Db, s: NewPlatformSession): Promise<CreatedSession> {
+  const refresh = newRefreshToken()
+  const [row] = await tx
+    .insert(authSessions)
+    .values({
+      id: uuidv7(),
+      userId: s.user.id,
+      tenantId: null,
+      role: null,
+      deviceId: s.deviceId,
+      deviceName: s.deviceName,
+      platform: s.platform,
+      refreshTokenHash: refresh.hash,
+      previousRefreshTokenHash: null,
+      refreshExpiresAt: refreshExpiry(s.now),
+      lastUsedAt: s.now,
+      ip: s.client.ip,
+      userAgent: s.client.userAgent,
+      createdAt: s.now,
+    })
+    .returning()
+  if (!row)
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'session insert returned nothing' })
+  return { row, refresh }
+}
+
+/** The console's token pair: `role: 'platform_admin'`, and NO `tid` — the whole point of the shape. */
+async function issuePlatformPair(
+  keys: AuthKeys,
+  user: UserRow,
+  session: CreatedSession,
+  now: Date,
+): Promise<PlatformTokenPair> {
+  const { accessTtlSeconds } = authTtl()
+  const access = await signAccessToken(
+    {
+      userId: user.id,
+      tenantId: null,
+      role: 'platform_admin',
+      sessionId: session.row.id,
+      deviceId: session.row.deviceId,
+    },
+    keys,
+    accessTtlSeconds,
+    now,
+  )
+  return {
+    accessToken: access.token,
+    tokenType: 'Bearer',
+    accessExpiresIn: accessTtlSeconds,
+    refreshToken: session.refresh.token,
+    refreshExpiresAt: session.row.refreshExpiresAt.toISOString(),
+    user: toAuthUser(user),
+    role: 'platform_admin',
+  }
 }
 
 function refreshExpiry(now: Date): Date {

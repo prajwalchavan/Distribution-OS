@@ -36,21 +36,23 @@ export class OrdersModule implements OnModuleInit {
     this.registry.register('sales_order_lines', (tx, op) => applyLineSync(tx, op, this.orders))
     // The device read set (docs/23 §8.11): a rep pulls its own orders (90 days), the desk everything.
     const ninetyDays = sql`created_at > now() - interval '90 days'`
-    this.registry.registerPull('sales_orders', {
-      handler: tablePull(salesOrders, {
+    this.registry.registerPull(
+      'sales_orders',
+      tablePull(salesOrders, {
         extra: (r) =>
           r.ctx.actorRole === 'salesperson'
             ? sql`salesperson_id = ${r.ctx.actorId} and ${ninetyDays}`
             : ninetyDays,
       }),
-    })
-    this.registry.registerPull('sales_order_lines', {
-      handler: tablePull(salesOrderLines, {
+    )
+    this.registry.registerPull(
+      'sales_order_lines',
+      tablePull(salesOrderLines, {
         extra: (r) =>
           r.ctx.actorRole === 'salesperson'
             ? sql`order_id in (select o.id from sales_orders o where o.tenant_id = ${r.ctx.tenantId} and o.salesperson_id = ${r.ctx.actorId} and o.created_at > now() - interval '90 days')`
             : undefined,
       }),
-    })
+    )
   }
 }

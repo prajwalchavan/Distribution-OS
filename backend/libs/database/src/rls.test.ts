@@ -48,6 +48,7 @@ import {
   inboundMessages,
   invoiceLines,
   authSessions,
+  idempotencyKeys,
   invoices,
   journalEntries,
   journalLines,
@@ -106,8 +107,15 @@ import {
   products,
   productVariants,
   locations,
+  syncTombstones,
+  visits,
   writeOffs,
 } from './schema/index.js'
+import {
+  FORBIDDEN_PULL_COLUMN_PATTERNS,
+  SYNC_PULL_TABLES,
+  syncPullTablesFor,
+} from './sync-tables.js'
 import { bootstrapTenant, TENANT_SETTING_KEYS } from './tenant-bootstrap.js'
 
 /**
@@ -6646,6 +6654,67 @@ describeDb('row level security and ledger guarantees', () => {
       ).toEqual([subscriptionA, subscriptionB].sort())
     })
 
+    /**
+     * Migration 0039. The console's mutations carry an `idempotencyKey` like every other mutation in
+     * the product, so they have to write `idempotency_keys` — a TENANT table, whose original policy
+     * compares `tenant_id` to `app.tenant_id`, which a console session leaves empty. The three
+     * platform policies added there are what let module 13 stay under RLS instead of running its
+     * writes as `app_worker` to buy one row.
+     *
+     * What they widen is WHO may write a key, never WHAT the key may be: the row still points at a
+     * real distributor (foreign-keyed to `tenants`) and holds a request hash and the console's own
+     * reply. This case pins both halves — the console can file one, and it still reads nothing of the
+     * distributor's business through the same session.
+     */
+    it('lets the console file an idempotency key against a distributor, and still read none of its rows', async () => {
+      const key = `console-${run}`
+      // THE REAL CONSOLE CONTEXT: `app.tenant_id` is the EMPTY STRING. `withPlatform()` in
+      // `@dos/core` (`modules/platform-admin/internals.ts`, `PLATFORM_SCOPE`) sets it that way on
+      // purpose, and this test uses the same thing rather than the block's default helper — because
+      // the empty string is not cosmetic. Most tenant tables carry `tenantPolicy`, which has no role
+      // predicate at all: it compares `tenant_id` to `app.tenant_id` and nothing else. A console
+      // session that put a real distributor's id there would read that distributor's shops. It never
+      // does, and the assertions below are what stops that from being reintroduced.
+      const asConsole = asPlatform(platformSuper, '')
+      await asConsole((tx) =>
+        tx
+          .insert(idempotencyKeys)
+          // `platform_scoped`, exactly as `platformIdempotent()` writes it (@dos/core): it is what
+          // keeps the STORED REPLY — our price to this distributor, among other things — out of the
+          // distributor's own reach through a table it otherwise reads by tenant alone.
+          .values({ tenantId: tenantA, key, requestHash: 'hash', platformScoped: true })
+          .onConflictDoNothing(),
+      )
+      expect(
+        (await asConsole((tx) => tx.select().from(idempotencyKeys))).some((r) => r.key === key),
+        'the console reads back the key it wrote',
+      ).toBe(true)
+      expect(
+        await asConsole((tx) => tx.select().from(retailers)),
+        'a console session reads no shop',
+      ).toHaveLength(0)
+      expect(
+        await asConsole((tx) => tx.select().from(salesOrders)),
+        'a console session reads no order',
+      ).toHaveLength(0)
+      expect(
+        await asConsole((tx) => tx.select().from(invoices)),
+        'a console session reads no invoice',
+      ).toHaveLength(0)
+      // ...and its OWN four tables still answer, which is what makes the empty tenant workable: they
+      // key on the actor's role and carry no tenant predicate at all.
+      expect(
+        (await asConsole((tx) => tx.select().from(subscriptions))).length,
+        'the console still reads its own tables with no tenant of its own',
+      ).toBeGreaterThan(0)
+      // ...and a distributor's own staff still cannot see the console's keys through the widened
+      // policy: it is keyed on the ACTOR ROLE, and no membership role holds it.
+      expect(
+        (await as('owner')((tx) => tx.select().from(idempotencyKeys))).some((r) => r.key === key),
+        'the owner does not read the console key filed against its own tenant',
+      ).toBe(false)
+    })
+
     it('shows a distributor its own support grants and no other, and lets its owner approve or revoke but never rewrite one', async () => {
       expect(
         (await as('owner')((tx) => tx.select().from(supportGrants))).map((g) => g.id).sort(),
@@ -7098,6 +7167,346 @@ describeDb('row level security and ledger guarantees', () => {
         (await as('owner')((tx) => tx.select({ id: tenants.id }).from(tenants))).map((t) => t.id),
         'and the distributor still sees only itself',
       ).toEqual([tenantA])
+    })
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Migrations 0038/0040/0041 — OUR OWN offline sync (founder decision 2026-09-05, docs/22 §8 and
+  // docs/26 §5: no PowerSync). The device keeps SQLite tables filled by `GET /sync/pull` deltas, which
+  // is one sentence — "every row whose updated_at is after my cursor" — that only holds if the database
+  // makes it hold. These are the executable form of the three guarantees in 0040's header: updated_at
+  // moves and is the DATABASE's clock; a row that is gone leaves a tombstone; and nothing a device pulls
+  // carries a purchase cost.
+
+  describe('the offline delta pull (our own sync, no PowerSync)', () => {
+    const doomedVisit = uuidv7()
+    const doomedBeat = uuidv7()
+    const doomedLot = uuidv7()
+    const doomedBeatB = uuidv7()
+    /** Two shops of tenant A: one linked to `shopUser`, one linked to nobody. */
+    const shopMine = uuidv7()
+    const shopTheirs = uuidv7()
+    /** A third shop of the same shopkeeper, whose LINK is the one cut in the soft-hide test. */
+    const shopUnlinked = uuidv7()
+    const doomedAssignment = uuidv7()
+    const doomedLink = uuidv7()
+
+    const asShop = as('retailer', shopUser)
+    /** A signed-in actor of the OTHER distributorship; tenant B has no bootstrap, only rows. */
+    const asTenantB = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, fn)
+
+    const tombstonesOf = (tx: Db, table: string) =>
+      tx.select().from(syncTombstones).where(eq(syncTombstones.tableName, table))
+
+    beforeAll(async () => {
+      await db.insert(visits).values({
+        id: doomedVisit,
+        tenantId: tenantA,
+        retailerId: retailerA,
+        userId: rep,
+        beatId: beatA,
+        startedAt: new Date(),
+        outcome: 'no_order',
+      })
+      await db.insert(beats).values([
+        { id: doomedBeat, tenantId: tenantA, name: `Doomed beat ${run}` },
+        { id: doomedBeatB, tenantId: tenantB, name: `Doomed beat B ${run}` },
+      ])
+      await db.insert(beatAssignments).values({
+        id: doomedAssignment,
+        tenantId: tenantA,
+        beatId: doomedBeat,
+        userId: rep,
+        validFrom: '2026-09-01',
+      })
+      await db.insert(stockLots).values({
+        id: doomedLot,
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `DOOM-${run}`,
+        mrpPaise: 4_000,
+      })
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: doomedLot, locationId: godownA, onHand: 5 })
+      await db.insert(retailers).values([
+        {
+          id: shopMine,
+          tenantId: tenantA,
+          identityId: identityA,
+          code: `M${run}`,
+          name: 'My second shop',
+          phone: `+91900${run}3`,
+          stateCode: '27',
+          beatId: beatA,
+        },
+        {
+          id: shopTheirs,
+          tenantId: tenantA,
+          code: `X${run}`,
+          name: 'A shop I have nothing to do with',
+          phone: `+91901${run}9`,
+          stateCode: '27',
+        },
+        {
+          id: shopUnlinked,
+          tenantId: tenantA,
+          identityId: identityA,
+          code: `U${run}`,
+          name: 'A shop this shopkeeper is about to lose',
+          phone: `+91900${run}3`,
+          stateCode: '27',
+        },
+      ])
+      await db.insert(retailerLinks).values([
+        {
+          id: uuidv7(),
+          tenantId: tenantA,
+          identityId: identityA,
+          retailerId: shopMine,
+          userId: shopUser,
+          linkedBy: 'rep_onboarding',
+        },
+        {
+          id: doomedLink,
+          tenantId: tenantA,
+          identityId: identityA,
+          retailerId: shopUnlinked,
+          userId: shopUser,
+          linkedBy: 'rep_onboarding',
+        },
+      ])
+    })
+
+    it('stamps updated_at from the database clock on every write, so no delta can step over a row', async () => {
+      // A service that sets `updatedAt` from its own process (several do) must not be able to put a row
+      // BEHIND a cursor this server has already handed out: the trigger overwrites whatever arrives.
+      const stale = new Date('2000-01-01T00:00:00.000Z')
+      const [touched] = await as('manager')((tx) =>
+        tx
+          .update(retailers)
+          .set({ name: 'My second shop, renamed', updatedAt: stale })
+          .where(eq(retailers.id, shopMine))
+          .returning({ updatedAt: retailers.updatedAt }),
+      )
+      expect(touched?.updatedAt.getTime(), 'the caller’s stale stamp is replaced').toBeGreaterThan(
+        Date.now() - 60_000,
+      )
+
+      // …on INSERT too, so a row created by a phone whose clock is slow is still pulled by the next device.
+      const freshVisit = uuidv7()
+      const [inserted] = await as('salesperson')((tx) =>
+        tx
+          .insert(visits)
+          .values({
+            id: freshVisit,
+            tenantId: tenantA,
+            retailerId: retailerA,
+            userId: rep,
+            startedAt: new Date(),
+            updatedAt: stale,
+          })
+          .returning({ updatedAt: visits.updatedAt }),
+      )
+      expect(inserted?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 60_000)
+
+      // …and on the two tables that are keyed by their business key rather than by an id.
+      const [balance] = await as('warehouse')((tx) =>
+        tx
+          .update(stockBalances)
+          .set({ onHand: 4, updatedAt: stale })
+          .where(
+            sql`${stockBalances.tenantId} = ${tenantA} AND ${stockBalances.lotId} = ${doomedLot}`,
+          )
+          .returning({ updatedAt: stockBalances.updatedAt }),
+      )
+      expect(balance?.updatedAt.getTime()).toBeGreaterThan(Date.now() - 60_000)
+    })
+
+    it('files a tombstone when a row a device holds is deleted, and keeps it inside the tenant', async () => {
+      await as('manager')((tx) => tx.delete(visits).where(eq(visits.id, doomedVisit)))
+      const seenByRep = await as('salesperson')((tx) => tombstonesOf(tx, 'visits'))
+      expect(seenByRep.map((t) => t.rowId)).toContain(doomedVisit)
+      expect(seenByRep.find((t) => t.rowId === doomedVisit)?.reason).toBe('deleted')
+      expect(
+        seenByRep.every((t) => t.tenantId === tenantA),
+        'a rep is never told what another distributorship deleted',
+      ).toBe(true)
+
+      // The two composite-key tables: the row id is the business key, joined by ':'.
+      await as('warehouse')((tx) =>
+        tx
+          .delete(stockBalances)
+          .where(
+            sql`${stockBalances.tenantId} = ${tenantA} AND ${stockBalances.lotId} = ${doomedLot}`,
+          ),
+      )
+      expect(
+        (await as('warehouse')((tx) => tombstonesOf(tx, 'stock_balances'))).map((t) => t.rowId),
+      ).toContain(`${doomedLot}:${godownA}`)
+
+      // Tenant isolation, from the other side: B deletes its own beat and A hears nothing of it.
+      await asTenantB((tx) => tx.delete(beats).where(eq(beats.id, doomedBeatB)))
+      expect(
+        (await as('owner')((tx) => tombstonesOf(tx, 'beats'))).map((t) => t.rowId),
+        'tenant A never sees tenant B’s deletions',
+      ).not.toContain(doomedBeatB)
+      expect((await asTenantB((tx) => tombstonesOf(tx, 'beats'))).map((t) => t.rowId)).toContain(
+        doomedBeatB,
+      )
+    })
+
+    it('files a tombstone for the soft hides: a shop off the beat, a shop closed, an assignment ended, a link cut', async () => {
+      // A shop that moves off the beat leaves the rep's read set without being deleted. The tombstone
+      // says "this row MAY have left your set" — the rep who GAINED the shop gets the row as well, and
+      // the device applies deletes before rows.
+      await as('manager')((tx) =>
+        tx.update(retailers).set({ beatId: null }).where(eq(retailers.id, shopMine)),
+      )
+      const afterMove = await as('salesperson')((tx) => tombstonesOf(tx, 'retailers'))
+      expect(afterMove.find((t) => t.rowId === shopMine)?.reason).toBe('beat_changed')
+
+      await as('manager')((tx) =>
+        tx.update(retailers).set({ active: false }).where(eq(retailers.id, shopTheirs)),
+      )
+      expect(
+        (await as('salesperson')((tx) => tombstonesOf(tx, 'retailers'))).find(
+          (t) => t.rowId === shopTheirs,
+        )?.reason,
+      ).toBe('deactivated')
+
+      await as('manager')((tx) =>
+        tx
+          .update(beatAssignments)
+          .set({ validTo: '2026-09-30' })
+          .where(eq(beatAssignments.id, doomedAssignment)),
+      )
+      expect(
+        (await as('salesperson')((tx) => tombstonesOf(tx, 'beat_assignments'))).find(
+          (t) => t.rowId === doomedAssignment,
+        )?.reason,
+      ).toBe('assignment_ended')
+
+      await as('manager')((tx) =>
+        tx.update(retailerLinks).set({ status: 'blocked' }).where(eq(retailerLinks.id, doomedLink)),
+      )
+      expect(
+        (await as('salesperson')((tx) => tombstonesOf(tx, 'retailer_links'))).find(
+          (t) => t.rowId === doomedLink,
+        )?.reason,
+      ).toBe('unlinked')
+    })
+
+    it('tells a shop only about its own rows, and never about the distributorship’s paperwork', async () => {
+      await as('manager')(async (tx) => {
+        await tx.delete(beatAssignments).where(eq(beatAssignments.id, doomedAssignment))
+        await tx.delete(beats).where(eq(beats.id, doomedBeat))
+      })
+
+      // A beat, a visit, a stock balance: the godown's and the road's own paperwork. A shop is a
+      // customer of the business, not a member of it (never-list 9) — it is not even told the ids.
+      for (const table of ['beats', 'visits', 'stock_balances', 'trips', 'picklists']) {
+        expect(
+          await asShop((tx) => tombstonesOf(tx, table)),
+          `a shop reads no ${table} tombstone`,
+        ).toEqual([])
+      }
+
+      // Its OWN shop rows it does read — that is how its app learns the shop was closed or moved.
+      const ownRows = await asShop((tx) => tombstonesOf(tx, 'retailers'))
+      expect(ownRows.map((t) => t.rowId)).toContain(shopMine)
+      expect(
+        ownRows.map((t) => t.rowId),
+        'and never another shop’s',
+      ).not.toContain(shopTheirs)
+      // …while the desk sees both.
+      const deskRows = (await as('manager')((tx) => tombstonesOf(tx, 'retailers'))).map(
+        (t) => t.rowId,
+      )
+      expect(deskRows).toContain(shopMine)
+      expect(deskRows).toContain(shopTheirs)
+    })
+
+    it('lets nobody write a tombstone by hand: the triggers are the only author', async () => {
+      const forged = {
+        tenantId: tenantA,
+        tableName: 'price_list_items',
+        rowId: uuidv7(),
+        reason: 'deleted',
+      }
+      for (const role of ['owner', 'manager', 'salesperson', 'warehouse', 'retailer'] as const) {
+        await rejectsWith(
+          as(role)((tx) => tx.insert(syncTombstones).values(forged)),
+          /row-level security|permission denied/i,
+        )
+      }
+      // No UPDATE and no DELETE policy either: a real row is invisible to every writer, so both are
+      // no-ops rather than errors. A shop could otherwise resurrect a row every device had dropped.
+      expect(
+        await asShop((tx) =>
+          tx
+            .update(syncTombstones)
+            .set({ reason: 'not really' })
+            .where(eq(syncTombstones.rowId, shopMine))
+            .returning({ rowId: syncTombstones.rowId }),
+        ),
+      ).toEqual([])
+      expect(
+        await as('manager')((tx) =>
+          tx
+            .delete(syncTombstones)
+            .where(eq(syncTombstones.rowId, shopMine))
+            .returning({ rowId: syncTombstones.rowId }),
+        ),
+      ).toEqual([])
+    })
+
+    it('makes every table a device holds pull-able: updated_at, the index and both triggers', async () => {
+      for (const spec of SYNC_PULL_TABLES) {
+        const column = await db.execute<{ n: number }>(sql`
+          SELECT count(*)::int AS n FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = ${spec.table} AND column_name = 'updated_at'`)
+        expect(column.rows[0]?.n, `${spec.table} carries updated_at`).toBe(1)
+
+        const pattern = spec.scope === 'tenant' ? '%(tenant_id, updated_at)%' : '%(updated_at)%'
+        const index = await db.execute<{ n: number }>(sql`
+          SELECT count(*)::int AS n FROM pg_indexes
+           WHERE schemaname = 'public' AND tablename = ${spec.table} AND indexdef LIKE ${pattern}`)
+        expect(index.rows[0]?.n, `${spec.table} has the delta index`).toBeGreaterThan(0)
+
+        const triggers = await db.execute<{ n: number }>(sql`
+          SELECT count(*)::int AS n FROM pg_trigger tg JOIN pg_class c ON c.oid = tg.tgrelid
+           WHERE NOT tg.tgisinternal AND c.relname = ${spec.table}
+             AND tg.tgname IN (${spec.table + '_touch_updated_at'}, ${spec.table + '_tombstone'})`)
+        expect(triggers.rows[0]?.n, `${spec.table} has the touch and tombstone triggers`).toBe(2)
+      }
+    })
+
+    it('never hands a field device a purchase cost, a landed cost or a margin', async () => {
+      // The literal shape of a pull: `select *` from each table the role's device holds. RLS decides
+      // the rows; this asserts the COLUMNS — never-list 1 (docs/22 §9) made structural, so a later
+      // migration that puts a cost on stock_lots or invoice_lines fails here instead of shipping.
+      for (const role of ['salesperson', 'delivery', 'warehouse', 'retailer'] as const) {
+        const tables = syncPullTablesFor(role)
+        expect(tables.length, `${role} holds tables`).toBeGreaterThan(0)
+        await as(role)(async (tx) => {
+          for (const spec of tables) {
+            const result = await tx.execute(
+              sql`SELECT * FROM ${sql.identifier(spec.table)} LIMIT 0`,
+            )
+            const columns = result.fields.map((f) => f.name)
+            expect(columns.length, `${spec.table} has columns`).toBeGreaterThan(0)
+            for (const forbidden of FORBIDDEN_PULL_COLUMN_PATTERNS) {
+              const hit = columns.filter((c) => forbidden.test(c))
+              expect(
+                hit,
+                `${role} pulls no ${String(forbidden)} column from ${spec.table}`,
+              ).toEqual([])
+            }
+          }
+        })
+      }
     })
   })
 })
