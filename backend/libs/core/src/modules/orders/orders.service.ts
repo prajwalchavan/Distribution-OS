@@ -71,6 +71,12 @@ import {
   type FulfilmentQueueFilter,
   type PickedLine,
 } from './fulfilment.js'
+import {
+  fillRateByDay,
+  fillRateLines,
+  type FillRateFilter,
+  type FillRateLineRow,
+} from './fill-rate.js'
 import { loadDetail, type OrderRow } from './orders.mappers.js'
 import { priceOrderLines, type EnteredLine } from './pricing-lines.js'
 
@@ -448,6 +454,23 @@ export class OrdersService {
   /** Delivery writes back what the shop accepted at the door (coordination §3.9); see `recordDelivered`. */
   recordDelivered(tx: Db, orderId: string, delivered: readonly DeliveredLine[]): Promise<void> {
     return recordDelivered(tx, orderId, delivered)
+  }
+
+  /**
+   * Pieces ordered against pieces picked, per variant, for the orders the godown worked on inside the
+   * window (coordination §3.9: reporting's `fillRateLines`). Reporting's register and the rollup's
+   * `daily_tenant_stats.ordered_pcs` / `picked_pcs` both come from here — `fill-rate.ts`.
+   */
+  fillRateLines(tx: Db, filter: FillRateFilter): Promise<FillRateLineRow[]> {
+    return fillRateLines(tx, filter)
+  }
+
+  /** The same, one row per IST business date: what the rollup writes (`fill-rate.ts`). */
+  fillRateByDay(
+    tx: Db,
+    filter: { from: string; to: string },
+  ): Promise<{ day: string; orderedPcs: number; pickedPcs: number }[]> {
+    return fillRateByDay(tx, filter)
   }
 
   /** The warehouse app's order queue: quantities and identity, never money (`fulfilment.ts`). */

@@ -29,3 +29,17 @@ export {
  * the worker's outbox handlers and sweeps read them without Nest DI; the service delegates to them.
  */
 export { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'
+/**
+ * Beat reads (coordination §3.9, slice 9): which beat a rep was on across a window, and beat names.
+ * Plain functions so the worker's reporting rollup scopes a rep's numbers without Nest DI.
+ */
+export {
+  beatAssignmentsFor,
+  beatLabels,
+  currentBeatIdsFor,
+  retailerIdsOnBeats,
+  retailerRefs,
+  type BeatAssignmentFilter,
+  type BeatAssignmentRow,
+  type RetailerRef,
+} from './beat-reads.js'

@@ -18,6 +18,7 @@ import {
   IntegrationsModule,
   ClaimsModule,
   NotificationsModule,
+  ReportingModule,
 } from '@dos/core'
 
 /** The back office shared by the manager and the accountant: approvals, orders, stock and GRNs, billing desk, receipts, registers, exports. */
@@ -45,6 +46,7 @@ export const service = defineService({
     IntegrationsModule,
     ClaimsModule,
     NotificationsModule,
+    ReportingModule,
   ],
   contractKeys: [
     'health',
@@ -66,5 +68,6 @@ export const service = defineService({
     'integrations',
     'claims',
     'notifications',
+    'reporting',
   ],
 })

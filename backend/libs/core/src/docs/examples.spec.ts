@@ -345,6 +345,32 @@ describe('doc examples', () => {
     )
   })
 
+  // A payout table carries three refinements the sampler cannot satisfy (exactly one reward per
+  // slab, `[fromPct, toPct)` half-open and never empty, `payoutBps` only on a money metric), so all
+  // three slab-taking procedures share one hand-written table. Asserted here by shape, not only by
+  // "it parses", so a later edit cannot quietly leave a slab paying twice or an empty range.
+  it('gives every incentives payout example a real slab table on a money metric', () => {
+    const examples = buildExamples(PROCEDURES, {})
+    for (const path of [
+      'incentives.targets.upsert',
+      'incentives.targets.bulkAssign',
+      'incentives.targets.whatIf',
+    ]) {
+      const body = examples.get(path)?.body ?? {}
+      expect(body.metric, path).toBe('value')
+      const slabs = body.payoutRule as
+        | { fromPct: number; toPct: number | null; payoutBps?: number; flatPaise?: number }[]
+        | undefined
+      expect(slabs?.length, path).toBeGreaterThan(0)
+      for (const slab of slabs ?? []) {
+        const rewards = [slab.payoutBps, slab.flatPaise].filter((v) => v !== undefined)
+        expect(rewards.length, `${path} slab reward`).toBe(1)
+        if (slab.toPct !== null && slab.toPct !== undefined)
+          expect(slab.toPct, `${path} slab range`).toBeGreaterThan(slab.fromPct)
+      }
+    }
+  })
+
   // The claims story hangs off the claim `claims.open` creates: every child id and key derives from
   // that one slot, so the whole chain replays together and walks forward together.
   it('keeps every claims mutation on the claim the document opens', () => {

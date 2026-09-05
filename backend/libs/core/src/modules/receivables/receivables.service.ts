@@ -109,6 +109,11 @@ import {
   type JournalEntryInput,
 } from './posting.js'
 import { ageingHistory } from './ageing-history.js'
+import {
+  collectionsRegister,
+  type CollectionsRegisterFilter,
+  type CollectionsRegisterRow,
+} from './collections-register.js'
 import { documentRender, type DocumentRenderKind } from '../../platform/documents.js'
 import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
@@ -1051,6 +1056,41 @@ export class ReceivablesService {
         upiQrPayload: newest?.upiQrPayload ?? null,
       }
     })
+  }
+
+  /**
+   * The collections register, grouped and totalled by mode (coordination §3.1: added by reporting (9)).
+   * Transaction-scoped, so reporting composes it inside its own read — `collections-register.ts`.
+   */
+  collectionsRegister(
+    tx: Db,
+    filter: CollectionsRegisterFilter,
+  ): Promise<CollectionsRegisterRow[]> {
+    return collectionsRegister(tx, filter)
+  }
+
+  /**
+   * The tenant's dues register as a transaction-scoped read (coordination §3.1: `outstandingList(tx,
+   * filter)` by reporting (9)). The same function `receivables.outstanding.list` answers with — the
+   * ageing arithmetic exists once — so reporting's CSV export and the owner's `<AgeingBuckets>` tile
+   * can never disagree with the screen.
+   */
+  outstandingList(
+    tx: Db,
+    filter: z.infer<typeof OutstandingListInput>,
+  ): Promise<z.infer<typeof OutstandingListOutput>> {
+    return listOutstanding(tx, filter)
+  }
+
+  /**
+   * The ageing history from `ageing_snapshots` (docs/23 §8.1), transaction-scoped: reporting's
+   * `series.ageing` re-shapes these snapshots and NEVER re-ages a bill.
+   */
+  ageingHistoryFor(
+    tx: Db,
+    input: z.infer<typeof AgeingHistoryInput>,
+  ): Promise<z.infer<typeof AgeingHistoryOutput>> {
+    return ageingHistory(tx, input)
   }
 
   /** The tenant register is the desk's alone: the crew needs one shop at a time (docs/23 §5.3). */

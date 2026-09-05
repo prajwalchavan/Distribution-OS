@@ -30,6 +30,7 @@ import {
   devices,
   documents,
   exportJobs,
+  retailerBehaviour,
   extractions,
   importJobs,
   importRows,
@@ -219,6 +220,18 @@ export interface DocintExamples {
   rerunnable?: string | undefined
   /** The GSTIN of the example supplier, for the QR the capture example carries. */
   supplierGstin?: string | undefined
+}
+
+/**
+ * The rollup as the seed left it (docs/plans/reporting.md §6). Every `{id}` a reporting route takes
+ * must be a row that exists AND that the calling role may open: the shop card is scoped to the
+ * salesperson's own current beats, so the sales-service document must name a shop on one of them.
+ */
+export interface ReportingExamples {
+  /** A shop with a `retailer_behaviour` row, on the example rep's beat: behaviour / series. */
+  behaviourRetailerId?: string | undefined
+  /** A finished `report_*` export job: exports.get. */
+  exportId?: string | undefined
 }
 
 /** The generic importer and the exports as the seed left them (docs/plans/integrations.md §6). */
@@ -450,6 +463,7 @@ export interface ExampleContext {
   claims?: ClaimsExamples | undefined
   /** The message log, the inboxes, the broadcast and the device tokens (notifications). */
   notifications?: NotificationsExamples | undefined
+  reporting?: ReportingExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -599,8 +613,73 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectIntegrations(tx, tenant.id, ctx)
   await collectClaims(tx, tenant.id, ctx)
   await collectNotifications(tx, tenant.id, ctx)
+  await collectReporting(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/**
+ * The rollup rows the reporting document points at (docs/plans/reporting.md §6): a shop the nightly
+ * behaviour pass has actually written AND that the example salesperson serves today — `behaviour` and
+ * `series` answer 404 for a shop off the rep's beats, which is the scoping, not a broken example — and
+ * a `report_*` export job the seed finished, so `exports.get` shows a real download.
+ */
+async function collectReporting(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: ReportingExamples = {}
+  ctx.reporting = out
+  const rep = ctx.users?.salesperson?.id
+  const onBeat = rep
+    ? (
+        await tx
+          .select({ id: retailerBehaviour.retailerId })
+          .from(retailerBehaviour)
+          .innerJoin(
+            retailers,
+            and(
+              eq(retailers.tenantId, retailerBehaviour.tenantId),
+              eq(retailers.id, retailerBehaviour.retailerId),
+            ),
+          )
+          .innerJoin(
+            beatAssignments,
+            and(
+              eq(beatAssignments.tenantId, retailers.tenantId),
+              eq(beatAssignments.beatId, retailers.beatId),
+              eq(beatAssignments.userId, rep),
+            ),
+          )
+          .where(
+            and(
+              eq(retailerBehaviour.tenantId, tenantId),
+              sql`${beatAssignments.validFrom} <= ${businessDate().date}`,
+              sql`(${beatAssignments.validTo} is null or ${beatAssignments.validTo} >= ${businessDate().date})`,
+            ),
+          )
+          .limit(1)
+      )[0]?.id
+    : undefined
+  const anyShop = (
+    await tx
+      .select({ id: retailerBehaviour.retailerId })
+      .from(retailerBehaviour)
+      .where(eq(retailerBehaviour.tenantId, tenantId))
+      .limit(1)
+  )[0]?.id
+  out.behaviourRetailerId = onBeat ?? anyShop
+  out.exportId = (
+    await tx
+      .select({ id: exportJobs.id })
+      .from(exportJobs)
+      .where(
+        and(
+          eq(exportJobs.tenantId, tenantId),
+          sql`${exportJobs.kind} like 'report\\_%'`,
+          eq(exportJobs.status, 'succeeded'),
+        ),
+      )
+      .orderBy(desc(exportJobs.createdAt))
+      .limit(1)
+  )[0]?.id
 }
 
 /**
@@ -2434,6 +2513,8 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   // The claim THIS document opens: every `{id}` under /claims/ defaults to it (overrides pick the
   // seeded settled / draft / submitted claim where a read or a sheet wants a finished one).
   if (httpPath.startsWith('/claims/')) return createdClaimId(ctx)
+  if (httpPath.startsWith('/reporting/retailers/')) return ctx.reporting?.behaviourRetailerId
+  if (httpPath.startsWith('/reporting/exports/')) return ctx.reporting?.exportId
   if (httpPath.startsWith('/notifications/messages/')) return ctx.notifications?.messageId
   if (httpPath.startsWith('/notifications/broadcasts/')) return ctx.notifications?.broadcastId
   if (httpPath.startsWith('/notifications/push-tokens/')) return docsPushTokenId(ctx)
@@ -2614,6 +2695,17 @@ const CREDIT_ONLY_FIELDS = [
   'creditLimitBills',
   'creditDays',
   'creditMode',
+] as const
+
+/**
+ * One readable payout table for the three `incentives.targets.*` examples that take slabs: basis
+ * points of achievement (100% = 10000) against basis points of the target's paise, exactly one
+ * reward per slab, `[fromPct, toPct)` half-open, and the top tier open-ended.
+ */
+const INCENTIVE_PAYOUT_RULE = [
+  { fromPct: 8000, toPct: 10000, payoutBps: 50 },
+  { fromPct: 10000, toPct: 12000, payoutBps: 100 },
+  { fromPct: 12000, toPct: null, payoutBps: 150 },
 ] as const
 
 /** Marks a whole group of optional fields as "leave out of this service's example". */
@@ -3830,6 +3922,52 @@ const OVERRIDES: Record<
     mapping: builtinMapping('tradeezee-party-master'),
     hasHeaderRow: true,
     sheetName: DROP,
+  }),
+  // A rep the desk may name: `dashboard.rep` refuses "everyone's day" (400) on purpose, so the
+  // document has to point at one salesperson. A rep's own token overrides this to itself anyway.
+  'reporting.dashboard.rep': (ctx) => ({ userId: ctx.users?.salesperson?.id }),
+  // `filters` is the TARGET register's own GET input, validated at request time — an empty object is
+  // a 400 by design, so the example carries a real window of the daily sales register.
+  'reporting.exports.request': (ctx) => ({
+    id: docUuid('reporting.exports.request#id'),
+    register: 'dailySales',
+    format: 'csv',
+    filters: {
+      from: ctx.integrations?.exportFrom ?? '2026-08-01',
+      to: ctx.integrations?.exportTo ?? '2026-08-31',
+    },
+    deviceId: ctx.deviceId,
+  }),
+  // A payout table is three refinements no sampler can satisfy on its own: exactly one reward per
+  // slab, `[fromPct, toPct)` half-open and never empty, and `payoutBps` only on a money metric
+  // (`incentives.ts` `payoutBpsIssues`). The example is one readable slab table on `value` — 0.5% at
+  // 80% of target, 1% at par, 1.5% past 120% — with the top tier open-ended (`toPct: null`).
+  'incentives.targets.upsert': (ctx) => ({
+    userId: ctx.users?.salesperson?.id,
+    metric: 'value',
+    periodFrom: '2026-09-01',
+    periodTo: '2026-09-30',
+    targetValue: 5_000_000,
+    name: 'September push',
+    payoutRule: INCENTIVE_PAYOUT_RULE,
+  }),
+  'incentives.targets.bulkAssign': (ctx) => ({
+    'assignments[0].userId': ctx.users?.salesperson?.id,
+    metric: 'value',
+    periodFrom: '2026-09-01',
+    periodTo: '2026-09-30',
+    targetValue: 5_000_000,
+    name: 'September push',
+    payoutRule: INCENTIVE_PAYOUT_RULE,
+  }),
+  // Pure and side-effect free: give the hypothetical achievement, never a target id (the schema
+  // wants exactly one of the two, and a made-up target id would be a dead end in the document).
+  'incentives.targets.whatIf': () => ({
+    metric: 'value',
+    targetValue: 5_000_000,
+    payoutRule: INCENTIVE_PAYOUT_RULE,
+    achievedValue: 5_600_000,
+    targetId: DROP,
   }),
   'integrations.exports.request': (ctx) => ({
     id: docUuid('integrations.exports.request#id'),

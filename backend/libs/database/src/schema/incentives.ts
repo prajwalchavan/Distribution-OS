@@ -10,10 +10,11 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import {
+  backOfficeOrOwnRowPolicy,
   id,
   paise,
   pieces,
-  tenantRolePolicy,
+  roleWritePolicies,
   timestamps,
   tz,
   BACK_OFFICE_ROLES,
@@ -24,12 +25,19 @@ import { users } from './tenancy.js'
 
 /** Compute only, no payroll: targets per rep/brand/period, achievement rollups, and the computed payout. */
 
+/**
+ * What a target counts. `outlets` = distinct shops billed in the window; `visits` = beat calls made —
+ * different numbers, both worth a target (docs/plans/incentives.md §3 item 1: the founder's four slab
+ * dimensions name visits, and the enum had none). Values are APPENDED, never reordered: the order is on
+ * disk, and `ALTER TYPE … ADD VALUE` only ever adds to the end.
+ */
 export const targetMetric = pgEnum('target_metric', [
   'value',
   'pieces',
   'lines',
   'outlets',
   'collections',
+  'visits',
 ])
 
 export const targets = pgTable(
@@ -47,10 +55,19 @@ export const targets = pgTable(
     targetValue: paise('target_value').notNull(),
     /** Slabs: [{fromPct, toPct, payoutBps | flatPaise}] */
     payoutRule: jsonb('payout_rule').notNull(),
+    /** A short label ("Diwali Push — Campa") so a list row reads as something, not a tuple. */
+    name: text('name'),
+    /** Who assigned it (owner only, `targets_write`); shown on the owner's target list. */
+    createdBy: text('created_by').references(() => users.id),
     ...timestamps,
   },
   (t) => [
     index('targets_user_period_idx').on(t.tenantId, t.userId, t.periodFrom),
+    /**
+     * The tenant-wide reads — the owner's target list with no `userId` filter, and the team
+     * leaderboard — cannot use `targets_user_period_idx`, which leads with `user_id`.
+     */
+    index('targets_tenant_period_idx').on(t.tenantId, t.periodFrom, t.periodTo),
     pgPolicy('targets_read', {
       for: 'select',
       to: appRw,
@@ -112,6 +129,15 @@ export const computedPayouts = pgTable(
   },
   (t) => [
     uniqueIndex('computed_payouts_idx').on(t.tenantId, t.userId, t.periodFrom, t.periodTo),
-    tenantRolePolicy('computed_payouts_back_office', BACK_OFFICE_ROLES),
+    /**
+     * A rep reads its OWN statement and no other rep's; only the back office writes one (coordination
+     * §2 row 0024, §5.3). The old `computed_payouts_back_office` was FOR ALL over BACK_OFFICE_ROLES,
+     * so the salesperson and delivery member the statement is ABOUT could not read the one screen the
+     * table exists for (docs/06 "computed incentive" on the rep's Performance tab). Split, never
+     * widened: the own-row branch is SELECT only, and money promised to staff is still written by the
+     * desk alone. Permissive policies OR together, so the read policy grants no write.
+     */
+    backOfficeOrOwnRowPolicy('computed_payouts_read', 'user_id'),
+    ...roleWritePolicies('computed_payouts_write', BACK_OFFICE_ROLES),
   ],
 ).enableRLS()

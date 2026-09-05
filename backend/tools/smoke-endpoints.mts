@@ -1447,6 +1447,16 @@ async function planFor(
       // A one-day window returns almost nothing; the demo data covers the last fortnight.
       return { query: { from: istDate(-14), to: istDate() } }
 
+    // --- reporting: the one read whose optional filter is not optional for the back office ------
+    // `userId` is optional in the schema (a rep's own token supplies it), so the harness — which
+    // sends required parameters only — would ask the owner for "everyone's day" and get the 400 the
+    // brief demands. Naming a rep exercises the answer instead of the refusal; a salesperson's own
+    // token overrides it back to itself, so the same query is right on every service that serves it.
+    case 'reporting.dashboard.rep': {
+      const userId = await fx.staffUserId('salesperson')
+      return userId ? { query: { userId } } : {}
+    }
+
     // --- warehouse: the godown's paperwork, pointed at rows where the answer is honest -----------
     // Every create below pins its OWN client id. The published example carries one derived from the
     // procedure, and `examples.ts` walks a free slot only for the procedures listed in its

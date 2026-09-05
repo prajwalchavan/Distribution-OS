@@ -168,6 +168,10 @@ export async function seedSales(
   }
 
   const rng = makeRng('dos-demo:sales')
+
+  /** A separate stream for the short picks below, so the draws above stay byte-identical. */
+
+  const shortPickRng = makeRng('dos-demo:sales:short-pick')
   const retailersByBeat: RetailerRow[][] = [[], [], [], []]
   for (const r of retailersRes.retailers) {
     const bucket = retailersByBeat[r.beatIndex]
@@ -224,6 +228,11 @@ export async function seedSales(
             },
           ]
         : []
+      // A godown that always picks in full makes the fill-rate chart a flat 1.0 and teaches nobody
+      // anything (docs/plans/reporting.md §6 item 2). Its own RNG stream, so every draw the rest of
+      // this seed makes is unchanged; invoice lines bill `qtyPcs`, so no rupee moves either.
+      const shortPicked = !isSchemeLine && shortPickRng() < 0.06
+      const pickedQtyPcs = shortPicked ? Math.max(1, Math.round(qtyPcs * 0.8)) : qtyPcs
       lines.push({
         id: demoId('order-line', `${orderId}:${i}`),
         tenantId,
@@ -235,8 +244,8 @@ export async function seedSales(
         packSizeAtEntry: v.defaultCaseSize,
         qtyPcs,
         freeQtyPcs,
-        pickedQtyPcs: qtyPcs,
-        deliveredQtyPcs: qtyPcs,
+        pickedQtyPcs,
+        deliveredQtyPcs: pickedQtyPcs,
         listRatePaise: listRate,
         ratePaise,
         gstBps: v.gstBps,

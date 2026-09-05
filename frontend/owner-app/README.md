@@ -309,3 +309,36 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
+| GET | `/reporting/dashboard/owner` | The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines | owner, manager, accountant |
+| GET | `/reporting/dashboard/rep` | A rep's day: visits, orders, strike rate (a salesperson: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/series` | Any rollup metric as a chart-ready series: grain, range, group-by, compare | owner, manager, accountant |
+| GET | `/reporting/series/sales` | Sales trend: invoiced paise per day / week / month, by brand, category or beat | owner, manager, accountant |
+| GET | `/reporting/series/collections` | Collections trend: paise collected per bucket, by payment mode | owner, manager, accountant |
+| GET | `/reporting/series/outstanding` | Outstanding trend: open dues and the overdue part at the end of each bucket | owner, manager, accountant |
+| GET | `/reporting/series/ageing` | Ageing trend: the six buckets over time, from the nightly snapshots | owner, manager, accountant |
+| GET | `/reporting/series/growth` | Growth: month over month or year over year, in basis points | owner, manager, accountant |
+| GET | `/reporting/series/brand-mix` | Brand mix: invoiced paise per brand per bucket, top N and other | owner, manager, accountant |
+| GET | `/reporting/series/category-mix` | Category mix: invoiced paise per product category per bucket | owner, manager, accountant |
+| GET | `/reporting/series/top-shops` | Top shops over a range by invoiced, orders or collected, with share | owner, manager, accountant |
+| GET | `/reporting/series/top-beats` | Top beats over a range by invoiced paise or invoice count, with share | owner, manager, accountant |
+| GET | `/reporting/series/productivity` | Salesperson productivity: visits, orders, order value, strike rate (a rep: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/series/fill-rate` | Fill rate trend: picked over ordered pieces per bucket | owner, manager, accountant, warehouse |
+| GET | `/reporting/series/delivery-performance` | Delivery trend: stops by outcome, on-time rate, POD coverage (the crew: its own) | owner, manager, accountant, delivery |
+| GET | `/reporting/series/stock` | Stock value at cost, near-expiry value and stock turns per bucket (back office) | owner, manager, accountant |
+| GET | `/reporting/series/gross-margin` | Gross margin per bucket, by brand (owner only) | owner |
+| GET | `/reporting/series/scheme-spend` | Scheme spend per bucket, company-funded and distributor-funded apart | owner, manager, accountant |
+| GET | `/reporting/registers/daily-sales` | Daily sales register: one row per business date with its mixes | owner, manager, accountant |
+| GET | `/reporting/registers/rep-daily` | Per-rep day rows (a salesperson: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/{id}/behaviour` | A shop's habits: last order, usual basket, days since visit, lapsed risk | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/{id}/series` | A shop's own weekly or monthly purchases, the row sparkline | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/lapsed` | Shops being lost, by risk (a salesperson: its own beats) | owner, manager, accountant, salesperson |
+| GET | `/reporting/registers/rep-productivity` | Rep productivity per beat over a window: visits, strike rate, orders, value | owner, manager, accountant, salesperson |
+| GET | `/reporting/registers/scheme-spend` | What each scheme cost, company- and distributor-funded apart | owner, manager, accountant |
+| GET | `/reporting/registers/stock-value` | Stock at cost per variant and location, near expiry flagged (back office) | owner, manager, accountant |
+| GET | `/reporting/registers/fill-rate` | Fill rate per variant: ordered, picked, short | owner, manager, accountant, warehouse |
+| GET | `/reporting/registers/delivery-performance` | Per-trip delivery performance: stops, on-time, POD, cash variance (the crew: its own) | owner, manager, accountant, delivery |
+| GET | `/reporting/registers/collections` | Collections by day or collector, split by mode: the banking slip | owner, manager, accountant |
+| GET | `/reporting/registers/gst-sales` | GSTR-1-shaped sales register — billing's own gstSummary, wrapped | owner, manager, accountant |
+| GET | `/reporting/registers/gst-purchase` | GSTR-2-shaped purchase register over received supplier invoices | owner, manager, accountant |
+| POST | `/reporting/exports` | Queue a CSV / JSON export of a register (async, audited) | owner, manager, accountant |
+| GET | `/reporting/exports/{id}` | A report export job and, once rendered, its short-lived download URL | owner, manager, accountant |

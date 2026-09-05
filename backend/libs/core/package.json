@@ -91,6 +91,10 @@
     "./notifications": {
       "types": "./dist/modules/notifications/worker.d.ts",
       "default": "./dist/modules/notifications/worker.js"
+    },
+    "./reporting": {
+      "types": "./dist/modules/reporting/worker.d.ts",
+      "default": "./dist/modules/reporting/worker.js"
     }
   }
 }

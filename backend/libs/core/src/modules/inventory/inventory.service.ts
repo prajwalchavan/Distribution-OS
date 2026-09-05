@@ -15,6 +15,7 @@ import {
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { valuationByLocation, type ValuationFilter, type ValuationRow } from './valuation.js'
 
 /**
  * The stock ledger (ADR 0003). Every module that moves pieces (procurement on GRN, orders on pick, delivery on
@@ -567,6 +568,15 @@ export class InventoryService {
       .orderBy(asc(stockLedger.id))
       .limit(limit)
     return rows
+  }
+
+  /**
+   * Stock on hand per variant and location, with the near-expiry slice (coordination §3.9: reporting's
+   * `valuationByLocation`). Pieces only — the rupee value is reporting's, under BACK_OFFICE, because
+   * cost lives in `tenant_product_costs` (`valuation.ts`).
+   */
+  valuationByLocation(tx: Db, filter: ValuationFilter = {}): Promise<ValuationRow[]> {
+    return valuationByLocation(tx, filter)
   }
 
   async listReservations(tx: Db, filter: ReservationFilter): Promise<ReservationListRow[]> {

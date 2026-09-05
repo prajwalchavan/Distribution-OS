@@ -12,6 +12,7 @@ import {
   sweepIntegrations,
 } from './jobs/integrations.js'
 import { registerNotificationsJobs } from './jobs/notifications.js'
+import { registerReportingJobs } from './jobs/reporting.js'
 import { OUTBOX_RELAY, registerOutboxHandler, relayOutbox } from './jobs/outbox-relay.js'
 import { handlePdfRenderJob, PDF_RENDER, renderPending } from './jobs/pdf-render.js'
 import { RETENTION, runRetention } from './jobs/retention.js'
@@ -39,6 +40,9 @@ registerClaimSheetRenderer()
 // Notifications (coordination §1 slot 8): the outbox translators (order, bill, delivery, payment,
 // welcome, trip departed), the minute dispatch sweep and the two IST daily sweeps (jobs/notifications.ts).
 await registerNotificationsJobs(boss, db)
+// Reporting (coordination §1 slot 9): the 15-minute rollup fan-out, the 00:20 IST finalize, and the
+// `report_*` CSV / JSON renderers on integrations' one `exports.render` registry (jobs/reporting.ts).
+await registerReportingJobs(boss, db)
 await boss.createQueue(INTEGRATIONS_SWEEP)
 await boss.work(INTEGRATIONS_SWEEP, async () => {
   await sweepIntegrations(db, boss)
@@ -66,7 +70,7 @@ await boss.work(PDF_RENDER, async ([job]) => {
   await renderPending(db)
 })
 logger.info(
-  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST',
+  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST',
 )
 
 const shutdown = async (): Promise<void> => {

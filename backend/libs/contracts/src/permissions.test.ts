@@ -1062,6 +1062,95 @@ describe('permission matrix', () => {
     }
   })
 
+  it('keeps assigning a target and signing off a payout with the owner (incentives)', () => {
+    const incentivePaths = paths.filter((p) => p.startsWith('incentives.'))
+    expect(incentivePaths).toHaveLength(14)
+    // Internal staff performance data: the shopkeeper and the godown appear in no row, and the key is
+    // not mounted on retailer- or warehouse-service at all (coordination §6).
+    for (const path of incentivePaths) {
+      for (const role of ['retailer', 'warehouse'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+      // The owner reads and decides everything EXCEPT `progress.mine`, which is the field's own screen
+      // (coordination §6: `ROLE_GROUPS.FIELD`) — an owner holds no target and reads the team instead.
+      expect(isAllowed(permissionFor(path), 'owner'), `${path} for owner`).toBe(
+        path !== 'incentives.progress.mine',
+      )
+    }
+    // Only the owner assigns a target or signs off a statement (coordination §7 q20, brief §4.8) —
+    // narrower than `computed_payouts`' back-office write policy on purpose.
+    const ownerOnly = [
+      'incentives.targets.upsert',
+      'incentives.targets.bulkAssign',
+      'incentives.targets.remove',
+      'incentives.statements.approve',
+      'incentives.statements.reopen',
+    ]
+    for (const path of ownerOnly) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.OWNER_ONLY)
+    }
+    // The manager and the accountant see the whole team and run the numbers, and change nothing.
+    const deskMayRun = [
+      'incentives.targets.whatIf',
+      'incentives.targets.refresh',
+      'incentives.progress.team',
+      'incentives.statements.compute',
+    ]
+    for (const path of deskMayRun) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    }
+    for (const path of ownerOnly) {
+      for (const role of ['manager', 'accountant'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // A rep and a crew member read their own target and their own statement (RLS narrows the row), and
+    // `progress.mine` is theirs alone — the desk has `progress.team` for the same question.
+    const ownReads = [
+      'incentives.targets.get',
+      'incentives.targets.list',
+      'incentives.statements.get',
+      'incentives.statements.list',
+    ]
+    for (const path of ownReads) {
+      expect(permissionFor(path), path).toEqual([
+        'owner',
+        'manager',
+        'accountant',
+        'salesperson',
+        'delivery',
+      ])
+    }
+    expect(permissionFor('incentives.progress.mine')).toEqual(ROLE_GROUPS.FIELD)
+    for (const path of incentivePaths.filter(
+      (p) => !ownReads.includes(p) && p !== 'incentives.progress.mine',
+    )) {
+      for (const role of ['salesperson', 'delivery'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Reads are GETs; everything that computes or changes something is a POST, `whatIf` included (it is
+    // POST because it carries a slab table, not because it writes — it writes nothing).
+    const gets = new Set([...ownReads, 'incentives.progress.mine', 'incentives.progress.team'])
+    for (const row of allProcedures().filter((r) => r.path.startsWith('incentives.'))) {
+      expect(row.method, row.path).toBe(gets.has(row.path) ? 'GET' : 'POST')
+    }
+    for (const [path, httpPath] of [
+      ['incentives.targets.upsert', '/incentives/targets'],
+      ['incentives.targets.bulkAssign', '/incentives/targets/bulk'],
+      ['incentives.targets.whatIf', '/incentives/targets/what-if'],
+      ['incentives.targets.get', '/incentives/targets/{id}'],
+      ['incentives.targets.refresh', '/incentives/targets/{id}/refresh'],
+      ['incentives.progress.mine', '/incentives/progress'],
+      ['incentives.progress.team', '/incentives/progress/team'],
+      ['incentives.statements.compute', '/incentives/statements/compute'],
+      ['incentives.statements.approve', '/incentives/statements/{id}/approve'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+    }
+  })
+
   it('lets only auth and health be reached without a token', () => {
     const open = paths.filter((p) => permissionFor(p) === 'public')
     expect(open.sort()).toEqual(

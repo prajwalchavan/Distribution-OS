@@ -72,6 +72,12 @@ import {
   type RetailerProbe,
   type RetailerSnapshot,
 } from './import.js'
+import {
+  beatAssignmentsFor,
+  beatLabels,
+  type BeatAssignmentFilter,
+  type BeatAssignmentRow,
+} from './beat-reads.js'
 import { contactPreferences, contactPreferencesFor, type ContactPreferences } from './contact.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
 import {
@@ -189,6 +195,19 @@ export class RetailersService {
    * How a shop may be reached — phone of record, WhatsApp opt-in, language, opt-out (coordination
    * §3.9: the one read notifications makes of this module). Never the global identity's phone.
    */
+  /**
+   * Which beat each rep was on across a window (coordination §3.9: reporting's `beatAssignmentsFor`).
+   * A mid-window reassignment yields two rows, never one — `beat-reads.ts`.
+   */
+  beatAssignmentsFor(tx: Db, filter: BeatAssignmentFilter): Promise<BeatAssignmentRow[]> {
+    return beatAssignmentsFor(tx, filter)
+  }
+
+  /** Beat id → name for a report row. */
+  beatLabels(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+    return beatLabels(tx, ids)
+  }
+
   contactPreferences(tx: Db, retailerId: string): Promise<ContactPreferences | null> {
     return contactPreferences(tx, retailerId)
   }

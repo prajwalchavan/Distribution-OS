@@ -161,6 +161,39 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
+| GET | `/reporting/dashboard/owner` | The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines | owner, manager, accountant |
+| GET | `/reporting/dashboard/rep` | A rep's day: visits, orders, strike rate (a salesperson: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/series` | Any rollup metric as a chart-ready series: grain, range, group-by, compare | owner, manager, accountant |
+| GET | `/reporting/series/sales` | Sales trend: invoiced paise per day / week / month, by brand, category or beat | owner, manager, accountant |
+| GET | `/reporting/series/collections` | Collections trend: paise collected per bucket, by payment mode | owner, manager, accountant |
+| GET | `/reporting/series/outstanding` | Outstanding trend: open dues and the overdue part at the end of each bucket | owner, manager, accountant |
+| GET | `/reporting/series/ageing` | Ageing trend: the six buckets over time, from the nightly snapshots | owner, manager, accountant |
+| GET | `/reporting/series/growth` | Growth: month over month or year over year, in basis points | owner, manager, accountant |
+| GET | `/reporting/series/brand-mix` | Brand mix: invoiced paise per brand per bucket, top N and other | owner, manager, accountant |
+| GET | `/reporting/series/category-mix` | Category mix: invoiced paise per product category per bucket | owner, manager, accountant |
+| GET | `/reporting/series/top-shops` | Top shops over a range by invoiced, orders or collected, with share | owner, manager, accountant |
+| GET | `/reporting/series/top-beats` | Top beats over a range by invoiced paise or invoice count, with share | owner, manager, accountant |
+| GET | `/reporting/series/productivity` | Salesperson productivity: visits, orders, order value, strike rate (a rep: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/series/fill-rate` | Fill rate trend: picked over ordered pieces per bucket | owner, manager, accountant, warehouse |
+| GET | `/reporting/series/delivery-performance` | Delivery trend: stops by outcome, on-time rate, POD coverage (the crew: its own) | owner, manager, accountant, delivery |
+| GET | `/reporting/series/stock` | Stock value at cost, near-expiry value and stock turns per bucket (back office) | owner, manager, accountant |
+| GET | `/reporting/series/gross-margin` | Gross margin per bucket, by brand (owner only) | owner |
+| GET | `/reporting/series/scheme-spend` | Scheme spend per bucket, company-funded and distributor-funded apart | owner, manager, accountant |
+| GET | `/reporting/registers/daily-sales` | Daily sales register: one row per business date with its mixes | owner, manager, accountant |
+| GET | `/reporting/registers/rep-daily` | Per-rep day rows (a salesperson: its own) | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/{id}/behaviour` | A shop's habits: last order, usual basket, days since visit, lapsed risk | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/{id}/series` | A shop's own weekly or monthly purchases, the row sparkline | owner, manager, accountant, salesperson |
+| GET | `/reporting/retailers/lapsed` | Shops being lost, by risk (a salesperson: its own beats) | owner, manager, accountant, salesperson |
+| GET | `/reporting/registers/rep-productivity` | Rep productivity per beat over a window: visits, strike rate, orders, value | owner, manager, accountant, salesperson |
+| GET | `/reporting/registers/scheme-spend` | What each scheme cost, company- and distributor-funded apart | owner, manager, accountant |
+| GET | `/reporting/registers/stock-value` | Stock at cost per variant and location, near expiry flagged (back office) | owner, manager, accountant |
+| GET | `/reporting/registers/fill-rate` | Fill rate per variant: ordered, picked, short | owner, manager, accountant, warehouse |
+| GET | `/reporting/registers/delivery-performance` | Per-trip delivery performance: stops, on-time, POD, cash variance (the crew: its own) | owner, manager, accountant, delivery |
+| GET | `/reporting/registers/collections` | Collections by day or collector, split by mode: the banking slip | owner, manager, accountant |
+| GET | `/reporting/registers/gst-sales` | GSTR-1-shaped sales register — billing's own gstSummary, wrapped | owner, manager, accountant |
+| GET | `/reporting/registers/gst-purchase` | GSTR-2-shaped purchase register over received supplier invoices | owner, manager, accountant |
+| POST | `/reporting/exports` | Queue a CSV / JSON export of a register (async, audited) | owner, manager, accountant |
+| GET | `/reporting/exports/{id}` | A report export job and, once rendered, its short-lived download URL | owner, manager, accountant |
 
 ### GET `/health/ping`
 
@@ -17247,6 +17280,3464 @@ request.json
 }
 ```
 
+### GET `/reporting/dashboard/owner`
+
+The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines · contract `reporting.dashboard.owner`
+
+**Roles:** owner, manager, accountant
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/dashboard/owner" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "asOf": "2026-09-04",
+  "todayInvoicedPaise": 4000,
+  "todayCollectedPaise": 4000,
+  "todayOrdersCount": 1,
+  "todayDeliveredStops": 1,
+  "todayFailedStops": 1,
+  "cashInTransitPaise": 4000,
+  "totalOutstandingPaise": 2680000,
+  "overduePaise": 4000,
+  "ageing": {
+    "b0_7": 1,
+    "b8_15": 1,
+    "b16_30": 1,
+    "b31_60": 1,
+    "b61_90": 1,
+    "b90plus": 1
+  },
+  "mtdSalesPaise": 4000,
+  "mtdGrossMarginPaise": 4000,
+  "stockValuePaise": 4000,
+  "nearExpiryValuePaise": 4000,
+  "pendingApprovals": 1,
+  "activeTrips": 1,
+  "last7Days": [
+    {
+      "bucket": "2026-09-04",
+      "invoicedPaise": 4000,
+      "collectedPaise": 4000,
+      "ordersCount": 1
+    }
+  ],
+  "detail": {
+    "line1": "12 Station Road",
+    "city": "Kalyan West",
+    "pincode": "421301"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/dashboard/owner",
+  "error": "Forbidden"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/dashboard/rep`
+
+A rep's day: visits, orders, strike rate (a salesperson: its own) · contract `reporting.dashboard.rep`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/dashboard/rep?userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "userName": "sunil.tarsun",
+  "day": "2026-09-04",
+  "visits": 1,
+  "productiveVisits": 1,
+  "ordersCount": 1,
+  "orderValuePaise": 4000,
+  "linesSold": 1,
+  "collectedPaise": 4000,
+  "strikeRate": 1,
+  "computedAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series`
+
+Any rollup metric as a chart-ready series: grain, range, group-by, compare · contract `reporting.series.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | invoiced | orders | collected | outstanding | overdue | activeRetailers | deliveredStops | partialStops | failedStops | onTimeRate | podCoverageRate | fillRate | orderValue | visits | productiveVisits | linesSold | strikeRate | yes |
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `groupBy` | brand | category | beat | salesperson | paymentMode | no |
+| `topGroups` | integer | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series?metric=invoiced&grain=day&from=2026-09-04&to=2026-09-04&groupBy=brand&topGroups=12&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/sales`
+
+Sales trend: invoiced paise per day / week / month, by brand, category or beat · contract `reporting.series.sales`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `groupBy` | brand | category | beat | no |
+| `topGroups` | integer | no |
+| `compare` | none | previousPeriod | previousYear | no |
+| `brandId` | uuid | no |
+| `beatId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/sales?grain=day&from=2026-09-04&to=2026-09-04&groupBy=brand&topGroups=12&compare=none&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/sales",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/collections`
+
+Collections trend: paise collected per bucket, by payment mode · contract `reporting.series.collections`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `groupBy` | paymentMode | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/collections?grain=day&from=2026-09-04&to=2026-09-04&groupBy=paymentMode&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/collections",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/outstanding`
+
+Outstanding trend: open dues and the overdue part at the end of each bucket · contract `reporting.series.outstanding`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `beatId` | uuid | no |
+| `retailerId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/outstanding?grain=day&from=2026-09-04&to=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/outstanding",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/ageing`
+
+Ageing trend: the six buckets over time, from the nightly snapshots · contract `reporting.series.ageing`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `beatId` | uuid | no |
+| `retailerId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/ageing?grain=week&from=2026-09-04&to=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "asOf": "2026-09-04",
+  "outstanding": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "overdue": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "buckets": [
+    {
+      "bucket": "b0_7",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/ageing",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/growth`
+
+Growth: month over month or year over year, in basis points · contract `reporting.series.growth`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | invoiced | collected | orders | activeRetailers | no |
+| `basis` | mom | yoy | no |
+| `from` | date | yes |
+| `to` | date | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/growth?metric=invoiced&basis=mom&from=2026-09-04&to=2026-09-04" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "basis": "mom",
+  "unit": "paise",
+  "grain": "month",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1,
+      "growthBps": 500
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/growth",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/brand-mix`
+
+Brand mix: invoiced paise per brand per bucket, top N and other · contract `reporting.series.brandMix`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `topGroups` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/brand-mix?grain=month&from=2026-09-04&to=2026-09-04&topGroups=5" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/brand-mix",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/category-mix`
+
+Category mix: invoiced paise per product category per bucket · contract `reporting.series.categoryMix`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `topGroups` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/category-mix?grain=month&from=2026-09-04&to=2026-09-04&topGroups=5" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/category-mix",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/top-shops`
+
+Top shops over a range by invoiced, orders or collected, with share · contract `reporting.series.topShops`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | invoiced | orders | collected | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `top` | integer | no |
+| `compare` | none | previousPeriod | previousYear | no |
+| `beatId` | uuid | no |
+| `salespersonId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/top-shops?metric=invoiced&from=2026-09-04&to=2026-09-04&top=10&compare=none&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&salespersonId=01a06d29-a152-76c4-87b4-301e496c0602" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "totalValue": 1,
+  "items": [
+    {
+      "rank": 1,
+      "key": "01a06d6d-58bd-77bd-8b08-588d18b653d9",
+      "name": "Sharma Kirana Store",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "value": 1,
+      "previous": 1,
+      "shareBps": 500
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/top-shops",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/top-beats`
+
+Top beats over a range by invoiced paise or invoice count, with share · contract `reporting.series.topBeats`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | invoiced | invoices | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `top` | integer | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/top-beats?metric=invoiced&from=2026-09-04&to=2026-09-04&top=10&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "totalValue": 1,
+  "items": [
+    {
+      "rank": 1,
+      "key": "01a06d6d-58bd-77bd-8b08-588d18b653d9",
+      "name": "Sharma Kirana Store",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "value": 1,
+      "previous": 1,
+      "shareBps": 500
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/top-beats",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/productivity`
+
+Salesperson productivity: visits, orders, order value, strike rate (a rep: its own) · contract `reporting.series.productivity`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `userId` | uuid | no |
+| `beatId` | uuid | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/productivity?grain=day&from=2026-09-04&to=2026-09-04&userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/fill-rate`
+
+Fill rate trend: picked over ordered pieces per bucket · contract `reporting.series.fillRate`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/fill-rate?grain=day&from=2026-09-04&to=2026-09-04&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/fill-rate",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/delivery-performance`
+
+Delivery trend: stops by outcome, on-time rate, POD coverage (the crew: its own) · contract `reporting.series.deliveryPerformance`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `driverId` | uuid | no |
+| `vehicleId` | uuid | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/delivery-performance?grain=day&from=2026-09-04&to=2026-09-04&driverId=01a06d0f-6f2a-7a8b-8ee0-f77be48eb068&vehicleId=01a06d9c-98d8-7445-8ff2-d0ee7a6163da&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/delivery-performance",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/stock`
+
+Stock value at cost, near-expiry value and stock turns per bucket (back office) · contract `reporting.series.stock`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/stock?grain=month&from=2026-09-04&to=2026-09-04&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/stock",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/gross-margin`
+
+Gross margin per bucket, by brand (owner only) · contract `reporting.series.grossMargin`
+
+**Roles:** owner
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `groupBy` | brand | no |
+| `topGroups` | integer | no |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/gross-margin?grain=month&from=2026-09-04&to=2026-09-04&groupBy=brand&topGroups=12&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "metric": "invoiced",
+  "grain": "day",
+  "unit": "paise",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "groupBy": "brand",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "value": 1,
+      "previous": 1
+    }
+  ],
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/gross-margin",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/series/scheme-spend`
+
+Scheme spend per bucket, company-funded and distributor-funded apart · contract `reporting.series.schemeSpend`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `grain` | day | week | month | no |
+| `from` | date | yes |
+| `to` | date | yes |
+| `compare` | none | previousPeriod | previousYear | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/series/scheme-spend?grain=month&from=2026-09-04&to=2026-09-04&compare=none" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "grain": "day",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "compare": "none",
+  "asOf": "2026-09-04",
+  "series": [
+    {
+      "metric": "invoiced",
+      "unit": "paise",
+      "points": [
+        {
+          "bucket": "2026-09-04",
+          "value": 1,
+          "previous": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/series/scheme-spend",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/daily-sales`
+
+Daily sales register: one row per business date with its mixes · contract `reporting.dailyStats.tenant`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/daily-sales?from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "day": "2026-09-04",
+      "ordersCount": 1,
+      "invoicedPaise": 4000,
+      "collectedPaise": 4000,
+      "outstandingPaise": 2680000,
+      "overduePaise": 4000,
+      "deliveredStops": 1,
+      "partialStops": 1,
+      "failedStops": 1,
+      "onTimeStops": 1,
+      "podStops": 1,
+      "orderedPcs": 24,
+      "pickedPcs": 24,
+      "activeRetailers": 1,
+      "byBrand": [
+        {
+          "key": "text",
+          "name": "Sharma Kirana Store",
+          "invoicedPaise": 4000,
+          "invoiceCount": 1
+        }
+      ],
+      "byCategory": [
+        {
+          "key": "text",
+          "name": "Sharma Kirana Store",
+          "invoicedPaise": 4000,
+          "invoiceCount": 1
+        }
+      ],
+      "byBeat": [
+        {
+          "key": "text",
+          "name": "Sharma Kirana Store",
+          "invoicedPaise": 4000,
+          "invoiceCount": 1
+        }
+      ],
+      "byPaymentMode": [
+        {
+          "mode": "cash",
+          "collectedPaise": 4000
+        }
+      ],
+      "computedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "ordersCount": 1,
+    "invoicedPaise": 4000,
+    "collectedPaise": 4000,
+    "deliveredStops": 1,
+    "partialStops": 1,
+    "failedStops": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/daily-sales",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/rep-daily`
+
+Per-rep day rows (a salesperson: its own) · contract `reporting.dailyStats.rep`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `userId` | uuid | no |
+| `beatId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/rep-daily?from=2026-09-04&to=2026-09-04&userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "day": "2026-09-04",
+      "visits": 1,
+      "productiveVisits": 1,
+      "ordersCount": 1,
+      "orderValuePaise": 4000,
+      "linesSold": 1,
+      "collectedPaise": 4000,
+      "strikeRate": 1
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "visits": 1,
+    "productiveVisits": 1,
+    "strikeRate": 1,
+    "ordersCount": 1,
+    "orderValuePaise": 4000,
+    "linesSold": 1,
+    "collectedPaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/retailers/{id}/behaviour`
+
+A shop's habits: last order, usual basket, days since visit, lapsed risk · contract `reporting.retailers.behaviour`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b/behaviour" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "lastOrderAt": "2026-09-04T10:30:00.000Z",
+    "lastVisitAt": "2026-09-04T10:30:00.000Z",
+    "lastPaymentAt": "2026-09-04T10:30:00.000Z",
+    "ordersLast30": 1,
+    "valueLast30Paise": 4000,
+    "unitsLast30": 1,
+    "avgDaysToPay": 1,
+    "usualBasket": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "avgPcs": 24
+      }
+    ],
+    "lapsedRisk": 1,
+    "computedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/retailers/{id}/series`
+
+A shop's own weekly or monthly purchases, the row sparkline · contract `reporting.retailers.series`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `grain` | week | month | no |
+| `buckets` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/retailers/01a06d17-0be7-794a-8dab-9b14cf78673b/series?grain=week&buckets=12" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "grain": "week",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "asOf": "2026-09-04",
+  "points": [
+    {
+      "bucket": "2026-09-04",
+      "invoicedPaise": 4000,
+      "collectedPaise": 4000,
+      "ordersCount": 1
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/retailers/lapsed`
+
+Shops being lost, by risk (a salesperson: its own beats) · contract `reporting.retailers.lapsed`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `beatId` | uuid | no |
+| `minRisk` | integer | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/retailers/lapsed?beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&minRisk=30&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml",
+      "lastOrderAt": "2026-09-04T10:30:00.000Z",
+      "lastVisitAt": "2026-09-04T10:30:00.000Z",
+      "ordersLast30": 1,
+      "lapsedRisk": 1
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/rep-productivity`
+
+Rep productivity per beat over a window: visits, strike rate, orders, value · contract `reporting.registers.repProductivity`
+
+**Roles:** owner, manager, accountant, salesperson
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `beatId` | uuid | no |
+| `userId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/rep-productivity?from=2026-09-04&to=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml",
+      "visits": 1,
+      "productiveVisits": 1,
+      "strikeRate": 1,
+      "ordersCount": 1,
+      "orderValuePaise": 4000,
+      "linesSold": 1,
+      "collectedPaise": 4000
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "visits": 1,
+    "productiveVisits": 1,
+    "strikeRate": 1,
+    "ordersCount": 1,
+    "orderValuePaise": 4000,
+    "linesSold": 1,
+    "collectedPaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "sales-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/scheme-spend`
+
+What each scheme cost, company- and distributor-funded apart · contract `reporting.registers.schemeSpend`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `brandId` | uuid | no |
+| `schemeId` | uuid | no |
+| `fundingSource` | company | distributor | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/scheme-spend?from=2026-09-04&to=2026-09-04&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&schemeId=01a06daf-72be-7837-8605-139be7237dfd&fundingSource=company&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+      "schemeName": "text",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "fundingSource": "company",
+      "rewardKind": "free_qty",
+      "qtyPcs": 24,
+      "amountPaise": 4000,
+      "invoiceCount": 1
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "amountPaise": 4000,
+    "qtyPcs": 24,
+    "companyFundedPaise": 4000,
+    "distributorFundedPaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/scheme-spend",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/stock-value`
+
+Stock at cost per variant and location, near expiry flagged (back office) · contract `reporting.registers.stockValue`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `locationId` | uuid | no |
+| `brandId` | uuid | no |
+| `nearExpiryDays` | integer | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/stock-value?locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&nearExpiryDays=90&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "locationName": "text",
+      "onHandPcs": 24,
+      "avgCostPaise": 4000,
+      "valuePaise": 4000,
+      "nearestExpiryDate": "2026-09-04",
+      "nearExpiryValuePaise": 4000
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "onHandPcs": 24,
+    "valuePaise": 4000,
+    "nearExpiryValuePaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/stock-value",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/fill-rate`
+
+Fill rate per variant: ordered, picked, short · contract `reporting.registers.fillRate`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `locationId` | uuid | no |
+| `salespersonId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/fill-rate?from=2026-09-04&to=2026-09-04&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&salespersonId=01a06d29-a152-76c4-87b4-301e496c0602&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "orderedPcs": 24,
+      "pickedPcs": 24,
+      "shortPcs": 24,
+      "fillRate": 1
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "orderedPcs": 24,
+    "pickedPcs": 24,
+    "shortPcs": 24,
+    "fillRate": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/fill-rate",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/delivery-performance`
+
+Per-trip delivery performance: stops, on-time, POD, cash variance (the crew: its own) · contract `reporting.registers.deliveryPerformance`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `vehicleId` | uuid | no |
+| `driverId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/delivery-performance?from=2026-09-04&to=2026-09-04&vehicleId=01a06d9c-98d8-7445-8ff2-d0ee7a6163da&driverId=01a06d0f-6f2a-7a8b-8ee0-f77be48eb068&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "tripNo": "SO-0042",
+      "tripDate": "2026-09-04",
+      "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+      "vehicleRegNo": "SO-0042",
+      "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+      "driverName": "text",
+      "stopsPlanned": 1,
+      "stopsDelivered": 1,
+      "stopsPartial": 1,
+      "stopsFailed": 1,
+      "onTimeRate": 1,
+      "podCoverageRate": 1,
+      "cashVariancePaise": 4000
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "stopsPlanned": 1,
+    "stopsDelivered": 1,
+    "stopsPartial": 1,
+    "stopsFailed": 1,
+    "onTimeRate": 1,
+    "podCoverageRate": 1,
+    "cashVariancePaise": 4000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/delivery-performance",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/collections`
+
+Collections by day or collector, split by mode: the banking slip · contract `reporting.registers.collections`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `mode` | cash | upi | bank_transfer | cheque | adjustment | no |
+| `groupBy` | day | collector | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/collections?from=2026-09-04&to=2026-09-04&mode=cash&groupBy=day&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "bucket": "text",
+      "bucketName": "text",
+      "cashPaise": 4000,
+      "upiPaise": 4000,
+      "bankTransferPaise": 4000,
+      "chequePaise": 4000,
+      "adjustmentPaise": 4000,
+      "totalPaise": 2680000,
+      "receiptCount": 1
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "cashPaise": 4000,
+    "upiPaise": 4000,
+    "bankTransferPaise": 4000,
+    "chequePaise": 4000,
+    "adjustmentPaise": 4000,
+    "totalPaise": 2680000,
+    "receiptCount": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/collections",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/gst-sales`
+
+GSTR-1-shaped sales register — billing's own gstSummary, wrapped · contract `reporting.registers.gstSalesRegister`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `supplyType` | B2B | B2C | no |
+| `groupBy` | hsn | rate | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/gst-sales?from=2026-09-04&to=2026-09-04&supplyType=B2B&groupBy=hsn" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "supplyType": "B2B",
+  "groupBy": "hsn",
+  "rows": [
+    {
+      "hsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "qtyPcs": 24,
+      "freeQtyPcs": 24,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000,
+      "documentCount": 1
+    }
+  ],
+  "totals": {
+    "qtyPcs": 24,
+    "freeQtyPcs": 24,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "documentCount": 1
+  },
+  "creditNoteRows": [
+    {
+      "hsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "qtyPcs": 24,
+      "freeQtyPcs": 24,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000,
+      "documentCount": 1
+    }
+  ],
+  "creditNoteTotals": {
+    "qtyPcs": 24,
+    "freeQtyPcs": 24,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "documentCount": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/gst-sales",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/registers/gst-purchase`
+
+GSTR-2-shaped purchase register over received supplier invoices · contract `reporting.registers.gstPurchaseRegister`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `supplierId` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/registers/gst-purchase?from=2026-09-04&to=2026-09-04&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "rows": [
+    {
+      "hsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "qtyPcs": 24,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000,
+      "invoiceCount": 1
+    }
+  ],
+  "totals": {
+    "qtyPcs": 24,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "invoiceCount": 1
+  },
+  "supplierRows": [
+    {
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "supplierGstin": "27AAPFU0939F1ZV",
+      "invoiceCount": 1,
+      "taxablePaise": 4000,
+      "totalPaise": 2680000
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/registers/gst-purchase",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/reporting/exports`
+
+Queue a CSV / JSON export of a register (async, audited) · contract `reporting.exports.request`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `register` | dailySales | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
+| `format` | csv | json | no |
+| `filters` | record | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3003/reporting/exports" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "register": "dailySales",
+  "format": "csv",
+  "filters": {},
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "register": "dailySales",
+    "format": "csv",
+    "kind": "credit_limit",
+    "status": "queued",
+    "filters": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "fileName": "text",
+    "mimeType": "text",
+    "rowCount": 1,
+    "url": "docs/2026/09/invoice-0042.jpg",
+    "expiresAt": "2026-09-04T10:30:00.000Z",
+    "error": "text",
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "requestedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call POST /reporting/exports",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/reporting/exports/{id}`
+
+A report export job and, once rendered, its short-lived download URL · contract `reporting.exports.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3003/reporting/exports/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "register": "dailySales",
+    "format": "csv",
+    "kind": "credit_limit",
+    "status": "queued",
+    "filters": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "fileName": "text",
+    "mimeType": "text",
+    "rowCount": 1,
+    "url": "docs/2026/09/invoice-0042.jpg",
+    "expiresAt": "2026-09-04T10:30:00.000Z",
+    "error": "text",
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "requestedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call GET /reporting/exports/{id}",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -17388,3 +20879,36 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `notifications.pushTokens.unregister` | – | – | – | ✓ | – | – | – |
 | `notifications.inbound.list` | – | – | – | ✓ | – | – | – |
 | `notifications.inbound.markHandled` | – | – | – | ✓ | – | – | – |
+| `reporting.dashboard.owner` | – | – | – | – | – | – | – |
+| `reporting.dashboard.rep` | – | – | – | ✓ | – | – | – |
+| `reporting.series.get` | – | – | – | – | – | – | – |
+| `reporting.series.sales` | – | – | – | – | – | – | – |
+| `reporting.series.collections` | – | – | – | – | – | – | – |
+| `reporting.series.outstanding` | – | – | – | – | – | – | – |
+| `reporting.series.ageing` | – | – | – | – | – | – | – |
+| `reporting.series.growth` | – | – | – | – | – | – | – |
+| `reporting.series.brandMix` | – | – | – | – | – | – | – |
+| `reporting.series.categoryMix` | – | – | – | – | – | – | – |
+| `reporting.series.topShops` | – | – | – | – | – | – | – |
+| `reporting.series.topBeats` | – | – | – | – | – | – | – |
+| `reporting.series.productivity` | – | – | – | ✓ | – | – | – |
+| `reporting.series.fillRate` | – | – | – | – | – | – | – |
+| `reporting.series.deliveryPerformance` | – | – | – | – | – | – | – |
+| `reporting.series.stock` | – | – | – | – | – | – | – |
+| `reporting.series.grossMargin` | – | – | – | – | – | – | – |
+| `reporting.series.schemeSpend` | – | – | – | – | – | – | – |
+| `reporting.dailyStats.tenant` | – | – | – | – | – | – | – |
+| `reporting.dailyStats.rep` | – | – | – | ✓ | – | – | – |
+| `reporting.retailers.behaviour` | – | – | – | ✓ | – | – | – |
+| `reporting.retailers.series` | – | – | – | ✓ | – | – | – |
+| `reporting.retailers.lapsed` | – | – | – | ✓ | – | – | – |
+| `reporting.registers.repProductivity` | – | – | – | ✓ | – | – | – |
+| `reporting.registers.schemeSpend` | – | – | – | – | – | – | – |
+| `reporting.registers.stockValue` | – | – | – | – | – | – | – |
+| `reporting.registers.fillRate` | – | – | – | – | – | – | – |
+| `reporting.registers.deliveryPerformance` | – | – | – | – | – | – | – |
+| `reporting.registers.collections` | – | – | – | – | – | – | – |
+| `reporting.registers.gstSalesRegister` | – | – | – | – | – | – | – |
+| `reporting.registers.gstPurchaseRegister` | – | – | – | – | – | – | – |
+| `reporting.exports.request` | – | – | – | – | – | – | – |
+| `reporting.exports.get` | – | – | – | – | – | – | – |

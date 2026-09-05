@@ -14,6 +14,7 @@ import {
   FilesModule,
   DeliveryModule,
   NotificationsModule,
+  ReportingModule,
 } from '@dos/core'
 
 /** The delivery crew app: trips, stops, proof of delivery, collections, van sales from vehicle stock, GPS breadcrumbs, the check-in cockpit. */
@@ -37,6 +38,7 @@ export const service = defineService({
     FilesModule,
     DeliveryModule,
     NotificationsModule,
+    ReportingModule,
   ],
   contractKeys: [
     'health',
@@ -54,5 +56,6 @@ export const service = defineService({
     'files',
     'delivery',
     'notifications',
+    'reporting',
   ],
 })

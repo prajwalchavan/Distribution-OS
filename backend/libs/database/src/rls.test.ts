@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, withTenant, type Db } from './client.js'
 import {
   accounts,
+  achievements,
   allocations,
   approvals,
   auditLog,
@@ -19,6 +20,7 @@ import {
   claimSettlements,
   claimStatements,
   collections,
+  computedPayouts,
   correctionsLog,
   creditNoteLines,
   creditNotes,
@@ -80,6 +82,7 @@ import {
   syncErrors,
   tallyMappings,
   tallySyncLedger,
+  targets,
   tenantProductCosts,
   tenantSettings,
   tenants,
@@ -256,6 +259,28 @@ describeDb('row level security and ledger guarantees', () => {
    */
   const statsDay = '2026-09-01'
   const retailerOfB = uuidv7()
+
+  /**
+   * Migration 0029/0030 fixtures (incentives): the rep holds two simultaneous targets on different
+   * metrics (one of them the newly added `visits`) and the two delivery members hold one each, so
+   * "its own and never another rep's" has a second rep to be wrong about; an achievement row for one
+   * target of each; last month's statements, one of them already approved. `outsider` is a real user
+   * of ANOTHER distributorship, so the member guard has a stranger to refuse.
+   */
+  const incentiveFrom = '2026-09-01'
+  const incentiveTo = '2026-09-30'
+  const closedFrom = '2026-08-01'
+  const closedTo = '2026-08-31'
+  const targetRepValue = uuidv7()
+  const targetRepVisits = uuidv7()
+  const targetDriver = uuidv7()
+  const targetOtherDriver = uuidv7()
+  const achievementRep = uuidv7()
+  const achievementDriver = uuidv7()
+  const payoutRep = uuidv7()
+  const payoutDriver = uuidv7()
+  const payoutOtherDriver = uuidv7()
+  const outsider = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -1379,6 +1404,114 @@ describeDb('row level security and ledger guarantees', () => {
       phone: `+91900${run}9`,
       stateCode: '27',
     })
+
+    // incentives (0029/0030)
+    await db.insert(users).values({ id: outsider, phone: `+91901${run}1`, name: 'Rep of tenant B' })
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: tenantB, userId: outsider, role: 'salesperson' })
+    await db.insert(targets).values([
+      {
+        id: targetRepValue,
+        tenantId: tenantA,
+        userId: rep,
+        metric: 'value',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 50_000_000,
+        payoutRule: [
+          { fromPct: 9_000, toPct: 10_000, payoutBps: 200 },
+          { fromPct: 10_000, payoutBps: 400 },
+        ],
+        name: 'This Month — Value (All Brands)',
+        createdBy: owner,
+      },
+      {
+        id: targetRepVisits,
+        tenantId: tenantA,
+        userId: rep,
+        metric: 'visits',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 240,
+        payoutRule: [{ fromPct: 10_000, flatPaise: 100_000 }],
+        name: 'This Month — Beat Calls',
+        createdBy: owner,
+      },
+      {
+        id: targetDriver,
+        tenantId: tenantA,
+        userId: driver,
+        metric: 'collections',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 2_500_000,
+        payoutRule: [{ fromPct: 10_000, flatPaise: 150_000 }],
+        name: 'This Month — Collections',
+        createdBy: owner,
+      },
+      {
+        id: targetOtherDriver,
+        tenantId: tenantA,
+        userId: otherDriver,
+        metric: 'collections',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 1_500_000,
+        payoutRule: [{ fromPct: 10_000, flatPaise: 90_000 }],
+        name: 'This Month — Collections (second van)',
+        createdBy: owner,
+      },
+    ])
+    await db.insert(achievements).values([
+      {
+        id: achievementRep,
+        tenantId: tenantA,
+        targetId: targetRepValue,
+        achievedValue: 32_000_000,
+        achievedPieces: 3_120,
+        achievedPct: 6_400,
+      },
+      {
+        id: achievementDriver,
+        tenantId: tenantA,
+        targetId: targetDriver,
+        achievedValue: 1_180_000,
+        achievedPieces: 0,
+        achievedPct: 4_720,
+      },
+    ])
+    await db.insert(computedPayouts).values([
+      {
+        id: payoutRep,
+        tenantId: tenantA,
+        userId: rep,
+        periodFrom: closedFrom,
+        periodTo: closedTo,
+        amountPaise: 1_000_000,
+        breakdown: [{ targetId: targetRepValue, metric: 'value', payoutPaise: 1_000_000 }],
+      },
+      {
+        id: payoutDriver,
+        tenantId: tenantA,
+        userId: driver,
+        periodFrom: closedFrom,
+        periodTo: closedTo,
+        amountPaise: 400_000,
+        breakdown: [{ targetId: targetDriver, metric: 'collections', payoutPaise: 400_000 }],
+        approvedBy: owner,
+        approvedAt: new Date(),
+      },
+      {
+        id: payoutOtherDriver,
+        tenantId: tenantA,
+        userId: otherDriver,
+        periodFrom: closedFrom,
+        periodTo: closedTo,
+        amountPaise: 250_000,
+        breakdown: [{ targetId: targetOtherDriver, metric: 'collections', payoutPaise: 250_000 }],
+      },
+    ])
   })
 
   afterAll(async () => {
@@ -5402,5 +5535,330 @@ describeDb('row level security and ledger guarantees', () => {
         .where(eq(retailerBehaviour.retailerId, retailerB)),
       /belongs to another tenant/,
     )
+  })
+  // ---------------------------------------------------------------------------------------------
+  // Incentives (0029/0030): what a rep earns is the most personal number in the product. A rep sees
+  // its OWN target, achievement and statement and never another rep's; the desk sees the team; the
+  // godown and the shop see none of it. `computed_payouts` was FOR ALL over the back office alone, so
+  // the rep the statement is ABOUT could not read the one screen it exists for (docs/23 S9, D12) —
+  // 0029 splits that into an own-row SELECT and a back-office write set.
+
+  it('shows a rep its own target, achievement and statement, and never another rep’s', async () => {
+    const asRep = as('salesperson')
+    expect(
+      (await asRep((tx) => tx.select().from(targets))).map((t) => t.id).sort(),
+      'the rep reads both of its own targets',
+    ).toEqual([targetRepValue, targetRepVisits].sort())
+    expect(
+      (await asRep((tx) => tx.select().from(targets))).find((t) => t.id === targetRepVisits)
+        ?.metric,
+      'a beat-call target is storable: 0029 added the metric the founder asked for',
+    ).toBe('visits')
+    expect((await asRep((tx) => tx.select().from(achievements))).map((a) => a.id)).toEqual([
+      achievementRep,
+    ])
+    expect(
+      (await asRep((tx) => tx.select().from(computedPayouts))).map((p) => p.id),
+      'the rep reads its own statement — the whole point of the 0029 split',
+    ).toEqual([payoutRep])
+
+    // the crew: its own van's numbers, never the second van's
+    const asCrew = as('delivery')
+    expect((await asCrew((tx) => tx.select().from(targets))).map((t) => t.id)).toEqual([
+      targetDriver,
+    ])
+    expect((await asCrew((tx) => tx.select().from(achievements))).map((a) => a.id)).toEqual([
+      achievementDriver,
+    ])
+    expect((await asCrew((tx) => tx.select().from(computedPayouts))).map((p) => p.id)).toEqual([
+      payoutDriver,
+    ])
+    const asOtherCrew = as('delivery', otherDriver)
+    expect((await asOtherCrew((tx) => tx.select().from(targets))).map((t) => t.id)).toEqual([
+      targetOtherDriver,
+    ])
+    expect((await asOtherCrew((tx) => tx.select().from(computedPayouts))).map((p) => p.id)).toEqual(
+      [payoutOtherDriver],
+    )
+    expect(
+      await asOtherCrew((tx) => tx.select().from(achievements)),
+      'the second van has no achievement row yet, and reads none of the first van’s',
+    ).toHaveLength(0)
+
+    // the desk sees the team
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      expect(
+        (await as(role)((tx) => tx.select().from(targets))).length,
+        `${role} reads every target`,
+      ).toBe(4)
+      expect(
+        (await as(role)((tx) => tx.select().from(achievements))).length,
+        `${role} reads every achievement`,
+      ).toBe(2)
+      expect(
+        (await as(role)((tx) => tx.select().from(computedPayouts))).map((p) => p.id).sort(),
+        `${role} reads the payout register`,
+      ).toEqual([payoutRep, payoutDriver, payoutOtherDriver].sort())
+    }
+
+    // the godown does not run a beat and the shop is a customer: neither reaches this module at all
+    for (const role of ['warehouse', 'retailer'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(targets)),
+        `${role} reads no target`,
+      ).toHaveLength(0)
+      expect(
+        await as(role)((tx) => tx.select().from(achievements)),
+        `${role} reads no achievement`,
+      ).toHaveLength(0)
+      expect(
+        await as(role)((tx) => tx.select().from(computedPayouts)),
+        `${role} reads no statement`,
+      ).toHaveLength(0)
+    }
+  })
+
+  it('lets nobody but the desk write a statement, and nobody but the worker write the achievement cache', async () => {
+    const payoutRow = (userId: string) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      userId,
+      periodFrom: '2026-07-01',
+      periodTo: '2026-07-31',
+      amountPaise: 9_999_900,
+      breakdown: [],
+    })
+    // nobody raises their own payout: the read policy is SELECT only, so the own-row branch grants no write
+    for (const [role, actor] of [
+      ['salesperson', rep],
+      ['delivery', driver],
+      ['warehouse', storeKeeper],
+      ['retailer', shopUser],
+    ] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(computedPayouts).values(payoutRow(actor))),
+        /row-level security/,
+      )
+    }
+    expect(
+      await as('salesperson')((tx) =>
+        tx
+          .update(computedPayouts)
+          .set({ amountPaise: 9_999_900, approvedBy: rep, approvedAt: new Date() })
+          .where(eq(computedPayouts.id, payoutRep))
+          .returning({ id: computedPayouts.id }),
+      ),
+      'a rep may not approve, revalue or sign off its own statement',
+    ).toHaveLength(0)
+    expect(
+      await as('delivery')((tx) =>
+        tx
+          .delete(computedPayouts)
+          .where(eq(computedPayouts.id, payoutDriver))
+          .returning({ id: computedPayouts.id }),
+      ),
+    ).toHaveLength(0)
+    // the desk signs it off
+    expect(
+      await as('owner')((tx) =>
+        tx
+          .update(computedPayouts)
+          .set({ approvedBy: owner, approvedAt: new Date() })
+          .where(eq(computedPayouts.id, payoutRep))
+          .returning({ id: computedPayouts.id }),
+      ),
+    ).toEqual([{ id: payoutRep }])
+
+    // the achievement cache is the worker's: `targets.refresh` enqueues a job, it never writes here
+    const achievementRow = () => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      targetId: targetRepVisits,
+      achievedValue: 240,
+      achievedPct: 10_000,
+    })
+    for (const role of [
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+      'delivery',
+      'warehouse',
+      'retailer',
+    ] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(achievements).values(achievementRow())),
+        /row-level security/,
+      )
+    }
+    expect(
+      await as('owner')((tx) =>
+        tx
+          .update(achievements)
+          .set({ achievedPct: 10_000 })
+          .where(eq(achievements.id, achievementRep))
+          .returning({ id: achievements.id }),
+      ),
+      'not even the owner nudges an achievement: it is a computed cache, not a decision',
+    ).toHaveLength(0)
+    const swept = await withTenant(
+      db,
+      { tenantId: tenantA, actorId: owner, actorRole: 'system' },
+      (tx) =>
+        tx
+          .insert(achievements)
+          .values(achievementRow())
+          .onConflictDoUpdate({
+            target: [achievements.tenantId, achievements.targetId],
+            set: { achievedPct: 10_000 },
+          })
+          .returning({ targetId: achievements.targetId }),
+    )
+    expect(swept, 'the hourly sweep is the one writer').toEqual([{ targetId: targetRepVisits }])
+  })
+
+  it('lets only the owner assign a target: the manager and the accountant read the team and set nothing', async () => {
+    const targetRow = () => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      userId: rep,
+      metric: 'value' as const,
+      periodFrom: '2026-07-01',
+      periodTo: '2026-07-31',
+      targetValue: 10_000_000,
+      payoutRule: [{ fromPct: 10_000, flatPaise: 100_000 }],
+      createdBy: owner,
+    })
+    for (const role of [
+      'manager',
+      'accountant',
+      'salesperson',
+      'delivery',
+      'warehouse',
+      'retailer',
+    ] as const) {
+      await rejectsWith(
+        as(role)((tx) => tx.insert(targets).values(targetRow())),
+        /row-level security/,
+      )
+    }
+    expect(
+      await as('manager')((tx) =>
+        tx
+          .update(targets)
+          .set({ targetValue: 1 })
+          .where(eq(targets.id, targetRepValue))
+          .returning({ id: targets.id }),
+      ),
+      'a manager sees the whole team and changes nobody’s target (docs/17 §7 question 20)',
+    ).toHaveLength(0)
+    expect(
+      await as('salesperson')((tx) =>
+        tx
+          .update(targets)
+          .set({ targetValue: 1 })
+          .where(eq(targets.id, targetRepValue))
+          .returning({ id: targets.id }),
+      ),
+      'nor does the rep lower its own',
+    ).toHaveLength(0)
+    const mine = targetRow()
+    expect(
+      await as('owner')((tx) => tx.insert(targets).values(mine).returning({ id: targets.id })),
+    ).toEqual([{ id: mine.id }])
+    await as('owner')((tx) => tx.delete(targets).where(eq(targets.id, mine.id)))
+  })
+
+  it('keeps an incentive row on a person of this distributorship, and an achievement on a target of its own tenant', async () => {
+    // `users` is global (one identity across every distributor, ADR 0006), so the foreign key says
+    // nothing about tenancy and a foreign-key check bypasses row security: the guard is the rule, and
+    // it binds the owner connection the cross-tenant sweep and the seeds run on.
+    await rejectsWith(
+      db.insert(targets).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        userId: outsider,
+        metric: 'value',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 1_000_000,
+        payoutRule: [],
+      }),
+      /is not a member of this distributorship/,
+    )
+    await rejectsWith(
+      db.insert(targets).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        userId: rep,
+        metric: 'value',
+        periodFrom: incentiveFrom,
+        periodTo: incentiveTo,
+        targetValue: 1_000_000,
+        payoutRule: [],
+        createdBy: outsider,
+      }),
+      /targets\.created_by/,
+    )
+    await rejectsWith(
+      db.insert(computedPayouts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        userId: outsider,
+        periodFrom: closedFrom,
+        periodTo: closedTo,
+        amountPaise: 100,
+        breakdown: [],
+      }),
+      /is not a member of this distributorship/,
+    )
+    await rejectsWith(
+      db
+        .update(computedPayouts)
+        .set({ approvedBy: outsider })
+        .where(eq(computedPayouts.id, payoutRep)),
+      /computed_payouts\.approved_by/,
+    )
+    await rejectsWith(
+      db.insert(achievements).values({
+        id: uuidv7(),
+        tenantId: tenantB,
+        targetId: targetRepValue,
+        achievedValue: 1,
+        achievedPct: 1,
+      }),
+      /belongs to another tenant/,
+    )
+
+    // tenant isolation: tenant B's owner reads none of it, and cannot file a row under tenant A
+    const asOtherTenant = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: outsider, actorRole: 'owner' }, fn)
+    for (const table of [targets, achievements, computedPayouts]) {
+      expect(await asOtherTenant((tx) => tx.select().from(table))).toHaveLength(0)
+    }
+    await rejectsWith(
+      asOtherTenant((tx) =>
+        tx.insert(targets).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          userId: rep,
+          metric: 'value',
+          periodFrom: incentiveFrom,
+          periodTo: incentiveTo,
+          targetValue: 1,
+          payoutRule: [],
+        }),
+      ),
+      /row-level security/,
+    )
+
+    // the tenant-wide reads (the owner's target list, the team leaderboard) have an index that leads
+    // with the tenant; `targets_user_period_idx` leads with the user and cannot serve them
+    const [idx] = (
+      await db.execute(
+        sql`SELECT indexdef FROM pg_indexes WHERE indexname = 'targets_tenant_period_idx'`,
+      )
+    ).rows as { indexdef: string }[]
+    expect(idx?.indexdef).toContain('(tenant_id, period_from, period_to)')
   })
 })

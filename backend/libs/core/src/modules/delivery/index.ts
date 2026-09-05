@@ -15,6 +15,7 @@ export { CollectionsService } from './collections.service.js'
 export { SettlementService } from './settlement.service.js'
 export {
   deliveryPerformanceRows,
+  deliveryStopsByDay,
   type DeliveryPerformanceFilter,
   type DeliveryPerformanceRow,
 } from './performance.js'

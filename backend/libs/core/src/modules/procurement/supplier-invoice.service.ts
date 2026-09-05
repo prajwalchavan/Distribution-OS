@@ -43,6 +43,11 @@ import {
 } from '../../platform/index.js'
 import { pgConstraint } from '../inventory/index.js'
 import {
+  purchaseRegister,
+  type PurchaseRegisterFilter,
+  type PurchaseRegisterResult,
+} from './purchase-register.js'
+import {
   toInvoice,
   toInvoiceWithLines,
   toPurchaseOrder,
@@ -571,6 +576,14 @@ export class SupplierInvoiceService {
   }
 
   /** Header + lines, or 404. Used by the GRN service too (same module). */
+  /**
+   * The GSTR-2-shaped purchase register (coordination §3.9: reporting's `purchaseRegister`). The
+   * inward-supply arithmetic lives here, once — `purchase-register.ts`.
+   */
+  purchaseRegister(tx: Db, filter: PurchaseRegisterFilter): Promise<PurchaseRegisterResult> {
+    return purchaseRegister(tx, filter)
+  }
+
   async load(tx: Db, id: string) {
     const [row] = await tx.select().from(supplierInvoices).where(eq(supplierInvoices.id, id))
     if (!row) throw new ORPCError('NOT_FOUND', { message: `supplier invoice ${id} not found` })

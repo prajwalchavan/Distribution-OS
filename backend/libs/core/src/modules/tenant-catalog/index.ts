@@ -19,6 +19,7 @@ export {
   sellSidePackSizes,
   supplierLabels,
   tallyExportSourceByVariant,
+  variantBrands,
   variantLabels,
   type ListingImportResult,
   type ListingImportValues,

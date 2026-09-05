@@ -39,6 +39,7 @@ import { integrationsContract } from './integrations.js'
 import { claimsContract } from './claims.js'
 import { notificationsContract } from './notifications.js'
 import { reportingContract } from './reporting.js'
+import { incentivesContract } from './incentives.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -154,6 +155,8 @@ export const contract = {
   notifications: notificationsContract,
   // Dashboards, the chart-ready series family (the owner's graphs), the registers, CSV exports (reporting.ts).
   reporting: reportingContract,
+  // Staff targets, live achievement and the COMPUTED (never paid) payout statement (incentives.ts).
+  incentives: incentivesContract,
 }
 
 export type AppContract = typeof contract

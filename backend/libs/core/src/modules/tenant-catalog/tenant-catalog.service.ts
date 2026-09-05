@@ -49,6 +49,7 @@ import {
   tallyExportSourceByVariant,
   unlistListing,
   upsertListingFromImport,
+  variantBrands,
   variantLabels,
   type ListingImportResult,
   type ListingImportValues,
@@ -187,6 +188,11 @@ export class TenantCatalogService {
 
   supplierLabels(tx: Db, ids: readonly string[]): ReturnType<typeof supplierLabels> {
     return supplierLabels(tx, ids)
+  }
+
+  /** variant → brand id, for reporting's stock and margin registers (`import.ts`). */
+  variantBrands(tx: Db, ids: readonly string[]): Promise<Map<string, string | null>> {
+    return variantBrands(tx, ids)
   }
 
   brandLabels(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {

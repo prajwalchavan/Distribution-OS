@@ -14,6 +14,7 @@ import {
   DeliveryModule,
   DocintModule,
   NotificationsModule,
+  ReportingModule,
 } from '@dos/core'
 
 /**
@@ -44,6 +45,7 @@ export const service = defineService({
     DeliveryModule,
     DocintModule,
     NotificationsModule,
+    ReportingModule,
   ],
   contractKeys: [
     'health',
@@ -61,5 +63,6 @@ export const service = defineService({
     'delivery',
     'docint',
     'notifications',
+    'reporting',
   ],
 })

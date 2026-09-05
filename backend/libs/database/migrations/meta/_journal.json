@@ -204,6 +204,20 @@
       "when": 1788618717560,
       "tag": "0028_reporting_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788623807820,
+      "tag": "0029_incentives_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788623807821,
+      "tag": "0030_incentives_guards",
+      "breakpoints": true
     }
   ]
 }

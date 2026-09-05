@@ -38,3 +38,4 @@ export {
 } from './modules/integrations/index.js'
 export { ClaimsModule, ClaimsService, ClaimReportsService } from './modules/claims/index.js'
 export { NotificationsModule } from './modules/notifications/index.js'
+export { ReportingModule } from './modules/reporting/index.js'

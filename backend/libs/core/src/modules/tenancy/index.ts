@@ -9,3 +9,5 @@ export { TenantGuard } from './tenant.guard.js'
  * one document to the next. Plain functions: the worker calls them without Nest DI.
  */
 export { sellerBranding, loadSettings, signedObjectUrl, LOGO_URL_TTL_SECONDS } from './branding.js'
+/** User id → name, scoped to the current tenant's roster (reporting, coordination §4). Plain function. */
+export { userLabels } from './user-labels.js'

@@ -7,12 +7,14 @@ import {
   dailyRepStats,
   dailyRetailerStats,
   dailyTenantStats,
+  exportJobs,
   ownerSummary,
   retailerBehaviour,
   syncErrors,
   visits,
   type DailyMarginMix,
   type DailyMix,
+  type DailyPaymentModeMix,
 } from '../schema/index.js'
 import type { Db } from '../client.js'
 import { brandId, type VariantRow } from './catalog.js'
@@ -25,6 +27,7 @@ import {
   atIstTime,
   daysAgo,
   isoDate,
+  isWorkingDay,
   jitter,
   makeRng,
   nth,
@@ -553,5 +556,354 @@ export async function seedReporting(
   }))
   await insertMany(db, syncErrors, syncErrorRows)
 
+  // --- the backdated history the owner's graphs are drawn on. ---
+  await seedRollupHistory(db, tenantId, tenantStatRows, ownerStatRows, repStatRows, retailersRes)
+
+  // --- report exports: two ready files, one still rendering, one that found nothing. ---
+  await seedReportExports(db, tenantId, people)
+
   // WhatsApp notifications and templates moved to seed-demo/notifications.ts (module 8).
+}
+
+/**
+ * THE OWNER'S CURVE (task: "extend the seed so the rollups cover at least 90 days of realistic daily
+ * sales and collections, backdated from the existing invoices and receipts, so the owner graphs have a
+ * real curve").
+ *
+ * The live seed writes 14 working days of real orders, bills and receipts — enough for a register, far
+ * too short for a TREND, a month-over-month comparison or a year-over-year one (docs/23 §1.2 wants
+ * month grain over 24 months and YoY). So the rollup tables are backdated `HISTORY_DAYS` days with
+ * DERIVED rows: the LEVEL comes from the real window's own averages and mixes, and the shape from three
+ * honest effects — a gentle growth trend, the weekday pattern of an FMCG depot (Monday and Saturday are
+ * the big days, Sunday is closed) and the Diwali quarter.
+ *
+ * These are rollup rows only. No invoice, receipt or order is invented behind them: a register (which
+ * reads the live tables) shows the real 14 days, a series (which reads the rollup) shows the year. That
+ * is exactly the split the rollup exists for, and it is what a distributor's first year on the product
+ * looks like after a data migration too.
+ *
+ * Deterministic and idempotent: its own RNG stream, and every write is an upsert on the primary key, so
+ * `pnpm db:seed` twice produces byte-identical rows and adds nothing.
+ */
+const HISTORY_DAYS = 400
+/** Where the backdated history stops: the live 14-day window takes over here. */
+const LIVE_WINDOW_DAYS = 14
+/** How much smaller the business was a year ago — the growth the owner's trend chart shows. */
+const GROWTH_FLOOR = 0.55
+/** Monday … Saturday: an FMCG depot bills hardest at the start and the end of the week. */
+const WEEKDAY_WEIGHT = [0, 1.18, 1.02, 0.94, 0.99, 1.06, 1.21]
+/** Shops with a rollup row on a backdated day; a bound, not a target. */
+const SHOPS_PER_HISTORY_DAY = 8
+
+async function seedRollupHistory(
+  db: Db,
+  tenantId: string,
+  liveTenantRows: (typeof dailyTenantStats.$inferInsert)[],
+  liveOwnerRows: (typeof dailyOwnerStats.$inferInsert)[],
+  liveRepRows: (typeof dailyRepStats.$inferInsert)[],
+  retailersRes: RetailersResult,
+): Promise<void> {
+  const rng = makeRng('dos-demo:reporting:history')
+  const mean = (values: number[]): number =>
+    values.length === 0 ? 0 : Math.round(values.reduce((s, v) => s + v, 0) / values.length)
+  const billed = liveTenantRows.map((r) => r.invoicedPaise ?? 0).filter((v) => v > 0)
+  const baseInvoiced = mean(billed)
+  if (baseInvoiced === 0) return
+  const baseOrders = Math.max(1, mean(liveTenantRows.map((r) => r.ordersCount ?? 0)))
+  const baseActive = Math.max(1, mean(liveTenantRows.map((r) => r.activeRetailers ?? 0)))
+  const baseStops = Math.max(1, mean(liveTenantRows.map((r) => r.deliveredStops ?? 0)))
+  const baseOrderedPcs = Math.max(1, mean(liveTenantRows.map((r) => r.orderedPcs ?? 0)))
+  const baseStockValue = Math.max(0, mean(liveOwnerRows.map((r) => r.stockValuePaise ?? 0)))
+  const liveNet = liveOwnerRows.reduce((s, r) => s + (r.netSalesPaise ?? 0), 0)
+  const liveCogs = liveOwnerRows.reduce((s, r) => s + (r.cogsPaise ?? 0), 0)
+  /** The real margin ratio of the live window, so the backdated margin trend is the business's own. */
+  const costRatio = liveNet > 0 ? Math.min(0.98, liveCogs / liveNet) : 0.86
+  const taxRatio = 1.16
+
+  /** The aggregate share of each key over the live window: the backdated mixes keep the same shape. */
+  const shareOf = (
+    pickMix: (row: typeof dailyTenantStats.$inferInsert) => DailyMix | undefined,
+  ) => {
+    const totals = new Map<string, number>()
+    let all = 0
+    for (const row of liveTenantRows) {
+      for (const [key, entry] of Object.entries(pickMix(row) ?? {})) {
+        totals.set(key, (totals.get(key) ?? 0) + entry.invoicedPaise)
+        all += entry.invoicedPaise
+      }
+    }
+    if (all === 0) return [] as { key: string; share: number }[]
+    return [...totals.entries()]
+      .map(([key, value]) => ({ key, share: value / all }))
+      .sort((a, b) => b.share - a.share)
+  }
+  const brandShares = shareOf((r) => r.byBrand ?? undefined)
+  const categoryShares = shareOf((r) => r.byCategory ?? undefined)
+  const beatShares = shareOf((r) => r.byBeat ?? undefined)
+  const marginBrandShares = brandShares.length > 0 ? brandShares : [{ key: 'unknown', share: 1 }]
+
+  const repIds = [...new Set(liveRepRows.map((r) => r.userId))]
+  const repWeights = repIds.map((_, i) => 0.42 - i * 0.08)
+  const shops = retailersRes.retailers
+
+  const tenantRows: (typeof dailyTenantStats.$inferInsert)[] = []
+  const ownerRows: (typeof dailyOwnerStats.$inferInsert)[] = []
+  const repRows: (typeof dailyRepStats.$inferInsert)[] = []
+  const retailerRows: (typeof dailyRetailerStats.$inferInsert)[] = []
+
+  for (let back = HISTORY_DAYS; back >= LIVE_WINDOW_DAYS; back--) {
+    const day = daysAgo(back)
+    if (!isWorkingDay(day)) continue
+    const key = isoDate(day)
+    const weekday = WEEKDAY_WEIGHT[day.getUTCDay()] ?? 1
+    // Linear growth from `GROWTH_FLOOR` a year and a bit ago to 1.0 at the live window.
+    const trend = GROWTH_FLOOR + (1 - GROWTH_FLOOR) * (1 - back / HISTORY_DAYS)
+    // The Diwali quarter: October and November move more stock than any other month.
+    const month = day.getUTCMonth()
+    const festive = month === 9 || month === 10 ? 1.22 : month === 2 ? 1.07 : 1
+    const noise = 0.86 + rng() * 0.28
+    const factor = weekday * trend * festive * noise
+
+    const invoicedPaise = Math.round(baseInvoiced * factor)
+    const ordersCount = Math.max(1, Math.round(baseOrders * factor))
+    const activeRetailers = Math.max(1, Math.round(baseActive * factor))
+    const collectedPaise = Math.round(invoicedPaise * (0.58 + rng() * 0.3))
+    const outstandingPaise = Math.round(invoicedPaise * (2.4 + rng() * 1.1))
+    const overduePaise = Math.round(outstandingPaise * (0.18 + rng() * 0.2))
+    const deliveredStops = Math.max(1, Math.round(baseStops * factor))
+    const partialStops = rng() < 0.35 ? 1 : 0
+    const failedStops = rng() < 0.22 ? 1 : 0
+    const attempted = deliveredStops + partialStops
+    const onTimeStops = Math.round(attempted * (0.78 + rng() * 0.2))
+    const podStops = Math.round(attempted * (0.82 + rng() * 0.18))
+    const orderedPcs = Math.max(1, Math.round(baseOrderedPcs * factor))
+    // Fill rate wanders between 0.90 and 1.00 — a real godown short-picks now and then.
+    const pickedPcs = Math.round(orderedPcs * (0.9 + rng() * 0.1))
+
+    const spread = (shares: { key: string; share: number }[], total: number): DailyMix => {
+      const mix: DailyMix = {}
+      let left = total
+      shares.forEach((entry, i) => {
+        const paise = i === shares.length - 1 ? left : Math.round(total * entry.share)
+        left -= paise
+        if (paise > 0)
+          mix[entry.key] = {
+            invoicedPaise: paise,
+            invoiceCount: Math.max(1, Math.round(ordersCount * entry.share)),
+          }
+      })
+      return mix
+    }
+    const cash = Math.round(collectedPaise * 0.55)
+    const upi = Math.round(collectedPaise * 0.35)
+    const byPaymentMode: DailyPaymentModeMix =
+      collectedPaise > 0 ? { cash, upi, cheque: collectedPaise - cash - upi } : {}
+
+    tenantRows.push({
+      tenantId,
+      day: key,
+      ordersCount,
+      invoicedPaise,
+      collectedPaise,
+      outstandingPaise,
+      overduePaise,
+      deliveredStops,
+      partialStops,
+      failedStops,
+      onTimeStops,
+      podStops,
+      orderedPcs,
+      pickedPcs,
+      activeRetailers,
+      byBrand: spread(brandShares, invoicedPaise),
+      byCategory: spread(categoryShares, invoicedPaise),
+      byBeat: spread(beatShares, invoicedPaise),
+      byPaymentMode,
+    })
+
+    const netSalesPaise = Math.round(invoicedPaise / taxRatio)
+    const cogsPaise = Math.round(netSalesPaise * costRatio)
+    const stockValuePaise = Math.round(baseStockValue * (0.85 + rng() * 0.3) * trend)
+    const byBrandMargin: DailyMarginMix = {}
+    for (const entry of marginBrandShares) {
+      const brandNet = Math.round(netSalesPaise * entry.share)
+      const brandCogs = Math.round(brandNet * costRatio)
+      byBrandMargin[entry.key] = { cogsPaise: brandCogs, grossMarginPaise: brandNet - brandCogs }
+    }
+    ownerRows.push({
+      tenantId,
+      day: key,
+      netSalesPaise,
+      cogsPaise,
+      grossMarginPaise: netSalesPaise - cogsPaise,
+      stockValuePaise,
+      nearExpiryValuePaise: Math.round(stockValuePaise * (0.02 + rng() * 0.03)),
+      // Company-funded free goods run all year; the distributor's own 2% order scheme fires on the
+      // bigger days only — the split the owner's <StackedMix> exists to show (never collapsed).
+      schemeSpendCompanyPaise: Math.round(netSalesPaise * (0.008 + rng() * 0.006)),
+      schemeSpendDistributorPaise: factor > 1.05 ? Math.round(netSalesPaise * 0.02) : 0,
+      byBrand: byBrandMargin,
+    })
+
+    repIds.forEach((userId, i) => {
+      const weight = repWeights[i] ?? 0.2
+      const orders = Math.max(0, Math.round(ordersCount * weight))
+      const visitsCount = orders + randInt(rng, 1, 4)
+      repRows.push({
+        tenantId,
+        userId,
+        day: key,
+        visits: visitsCount,
+        productiveVisits: orders,
+        ordersCount: orders,
+        orderValuePaise: Math.round(invoicedPaise * weight),
+        linesSold: orders * randInt(rng, 2, 5),
+        collectedPaise: 0,
+      })
+    })
+
+    for (let i = 0; i < SHOPS_PER_HISTORY_DAY && shops.length > 0; i++) {
+      const shop = pick(rng, shops)
+      const shopInvoiced = Math.round((invoicedPaise / SHOPS_PER_HISTORY_DAY) * (0.6 + rng() * 0.8))
+      retailerRows.push({
+        tenantId,
+        retailerId: shop.id,
+        day: key,
+        ordersCount: 1,
+        invoicedPaise: shopInvoiced,
+        collectedPaise: rng() < 0.6 ? Math.round(shopInvoiced * (0.5 + rng() * 0.5)) : 0,
+        linesSold: randInt(rng, 2, 6),
+      })
+    }
+  }
+
+  // A shop may be drawn twice on the same day; the primary key allows one row, so fold them.
+  const foldedRetailer = new Map<string, typeof dailyRetailerStats.$inferInsert>()
+  for (const row of retailerRows) {
+    const k = `${String(row.retailerId)}:${String(row.day)}`
+    const existing = foldedRetailer.get(k)
+    if (!existing) foldedRetailer.set(k, row)
+    else {
+      existing.ordersCount = (existing.ordersCount ?? 0) + (row.ordersCount ?? 0)
+      existing.invoicedPaise = (existing.invoicedPaise ?? 0) + (row.invoicedPaise ?? 0)
+      existing.collectedPaise = (existing.collectedPaise ?? 0) + (row.collectedPaise ?? 0)
+      existing.linesSold = (existing.linesSold ?? 0) + (row.linesSold ?? 0)
+    }
+  }
+
+  await upsertMany(
+    db,
+    dailyTenantStats,
+    tenantRows,
+    [dailyTenantStats.tenantId, dailyTenantStats.day],
+    [
+      'ordersCount',
+      'invoicedPaise',
+      'collectedPaise',
+      'outstandingPaise',
+      'overduePaise',
+      'deliveredStops',
+      'partialStops',
+      'failedStops',
+      'onTimeStops',
+      'podStops',
+      'orderedPcs',
+      'pickedPcs',
+      'activeRetailers',
+      'byBrand',
+      'byCategory',
+      'byBeat',
+      'byPaymentMode',
+    ],
+  )
+  await upsertMany(
+    db,
+    dailyOwnerStats,
+    ownerRows,
+    [dailyOwnerStats.tenantId, dailyOwnerStats.day],
+    [
+      'netSalesPaise',
+      'cogsPaise',
+      'grossMarginPaise',
+      'stockValuePaise',
+      'nearExpiryValuePaise',
+      'schemeSpendCompanyPaise',
+      'schemeSpendDistributorPaise',
+      'byBrand',
+    ],
+  )
+  await upsertMany(
+    db,
+    dailyRepStats,
+    repRows,
+    [dailyRepStats.tenantId, dailyRepStats.userId, dailyRepStats.day],
+    ['visits', 'productiveVisits', 'ordersCount', 'orderValuePaise', 'linesSold', 'collectedPaise'],
+  )
+  await upsertMany(
+    db,
+    dailyRetailerStats,
+    [...foldedRetailer.values()],
+    [dailyRetailerStats.tenantId, dailyRetailerStats.retailerId, dailyRetailerStats.day],
+    ['ordersCount', 'invoicedPaise', 'collectedPaise', 'linesSold'],
+  )
+}
+
+/**
+ * `export_jobs` rows with reporting's own `report_<register>_<format>` kinds, so `reporting.exports.get`
+ * answers a real job on first load and the owner's Exports screen has a history: two files already
+ * rendered, one still queued, and one that failed for a reason a human can read.
+ */
+async function seedReportExports(db: Db, tenantId: string, people: PeopleResult): Promise<void> {
+  const monthStart = `${isoDate(TODAY).slice(0, 7)}-01`
+  const today = isoDate(TODAY)
+  const rows: (typeof exportJobs.$inferInsert)[] = [
+    {
+      id: demoId('export-job', 'report-gst-sales-csv'),
+      tenantId,
+      kind: 'report_gstSalesRegister_csv',
+      params: { from: monthStart, to: today, groupBy: 'hsn' },
+      status: 'succeeded' as const,
+      requestedBy: people.accountant.id,
+      objectKey: `tenant/${tenantId}/exports/${demoId('export-job', 'report-gst-sales-csv')}/gst-sales-${monthStart}-to-${today}.csv`,
+      rowCount: 12,
+      startedAt: atIstTime(daysAgo(1), 11, 5),
+      finishedAt: atIstTime(daysAgo(1), 11, 6),
+      createdAt: atIstTime(daysAgo(1), 11, 4),
+    },
+    {
+      id: demoId('export-job', 'report-daily-sales-csv'),
+      tenantId,
+      kind: 'report_dailySales_csv',
+      params: { from: isoDate(daysAgo(13)), to: today, limit: 50 },
+      status: 'succeeded' as const,
+      requestedBy: people.owner.id,
+      objectKey: `tenant/${tenantId}/exports/${demoId('export-job', 'report-daily-sales-csv')}/daily-sales-${isoDate(daysAgo(13))}-to-${today}.csv`,
+      rowCount: 12,
+      startedAt: atIstTime(daysAgo(2), 19, 30),
+      finishedAt: atIstTime(daysAgo(2), 19, 31),
+      createdAt: atIstTime(daysAgo(2), 19, 29),
+    },
+    {
+      id: demoId('export-job', 'report-stock-value-csv'),
+      tenantId,
+      kind: 'report_stockValue_csv',
+      params: { nearExpiryDays: 90, limit: 50 },
+      status: 'queued' as const,
+      requestedBy: people.owner.id,
+      createdAt: atIstTime(TODAY, 9, 15),
+    },
+    {
+      id: demoId('export-job', 'report-gst-purchase-csv'),
+      tenantId,
+      kind: 'report_gstPurchaseRegister_csv',
+      params: { from: monthStart, to: today },
+      status: 'failed' as const,
+      requestedBy: people.accountant.id,
+      error: 'no supplier invoices were received in this window',
+      startedAt: atIstTime(daysAgo(3), 16, 2),
+      finishedAt: atIstTime(daysAgo(3), 16, 2),
+      createdAt: atIstTime(daysAgo(3), 16, 1),
+    },
+  ]
+  await insertMany(db, exportJobs, rows)
 }

@@ -11,6 +11,16 @@ export { checkCredit, outstandingPaise, type CreditVerdict } from '../receivable
  * `fulfilmentQueue`, `fulfilmentLines`, `applyFulfilmentEvent` and `recordPick` return and accept these.
  * Types only — the queries themselves stay behind the service, so nothing outside this module can run one.
  */
+/**
+ * Fill rate (coordination §3.9, slice 9): pieces ordered against pieces picked. Plain functions, so the
+ * worker's reporting rollup imports them without Nest DI; `OrdersService` delegates to the same code.
+ */
+export {
+  fillRateByDay,
+  fillRateLines,
+  type FillRateFilter,
+  type FillRateLineRow,
+} from './fill-rate.js'
 export type {
   DeliveredLine,
   FulfilmentEvent,

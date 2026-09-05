@@ -244,6 +244,23 @@ const CREW_PERFORMANCE_READERS = [
   'delivery',
 ] as const satisfies readonly MembershipRole[]
 
+/**
+ * Rep-facing performance surfaces (coordination §6 names this tuple for `incentives.targets.get/list`
+ * and `incentives.statements.get/list`): the desk, and the rep or crew member whose target it is —
+ * narrowed to their OWN row by RLS (`targets_read`, `achievements_read`, the 0024 `computed_payouts_read`
+ * split), never by a filter the client sends. The same five people as CREDIT_CHECKERS and one more than
+ * REP_PERFORMANCE_READERS, declared apart: a target is money PROMISED to a named staff member, which is
+ * neither a credit decision nor a strike rate. Never the godown or the shop — incentives is not mounted
+ * on warehouse- or retailer-service at all (incentives.ts header, coordination §6).
+ */
+const INCENTIVE_READERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
+
 const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
@@ -799,6 +816,41 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'reporting.registers.gstPurchaseRegister': BACK_OFFICE,
   'reporting.exports.request': MONEY_DESK,
   'reporting.exports.get': BACK_OFFICE,
+
+  // Incentives — staff targets, live achievement and the COMPUTED (never paid) payout statement
+  // (coordination §6; the founder's answers to §7 q19, q20 and q32). Four populations, one new tuple:
+  //  * OWNER_ONLY assigns and signs off: `targets.upsert/bulkAssign/remove` and
+  //    `statements.approve/reopen`. Money promised to staff is the owner's decision (coordination §7
+  //    q20) — `targets_write` RLS is already owner + system, and `computed_payouts`' write policy would
+  //    let the whole desk through, so the matrix is what narrows approval to the owner, exactly the way
+  //    `billing.invoices.cancel` narrows beyond RLS.
+  //  * BACK_OFFICE runs the numbers without changing them: `statements.compute` (an arithmetic pass over
+  //    the cached achievement), `targets.refresh` (which ENQUEUES a worker job and writes nothing —
+  //    `achievements` is `system`-only), `targets.whatIf` (pure, no side effect) and `progress.team`.
+  //    The manager and the accountant see the whole team and may compute a period; neither may create a
+  //    target or approve a payout.
+  //  * INCENTIVE_READERS (new) reads a target and a statement: the desk plus the rep or crew member whose
+  //    row it is, narrowed by RLS to their own. A rep sees a COMPUTED-but-unapproved statement with
+  //    `approvedBy: null` (coordination §7 q19) — a live figure on the Performance tab, not a payslip.
+  //  * ROLE_GROUPS.FIELD reads its own progress: `progress.mine` has no `userId` input to get wrong.
+  // The warehouse role and the shopkeeper appear in NO row — this is internal staff performance data and
+  // the module's scope is salesperson and delivery (brief §1); incentives is not mounted on warehouse- or
+  // retailer-service at all. Nothing in this block carries a purchase cost, a margin or a GST field: a
+  // target's `targetValue` and a statement's `amountPaise` are the distributor's own promise to its staff.
+  'incentives.targets.upsert': OWNER_ONLY,
+  'incentives.targets.bulkAssign': OWNER_ONLY,
+  'incentives.targets.whatIf': BACK_OFFICE,
+  'incentives.targets.get': INCENTIVE_READERS,
+  'incentives.targets.list': INCENTIVE_READERS,
+  'incentives.targets.remove': OWNER_ONLY,
+  'incentives.targets.refresh': BACK_OFFICE,
+  'incentives.progress.mine': ROLE_GROUPS.FIELD,
+  'incentives.progress.team': BACK_OFFICE,
+  'incentives.statements.compute': BACK_OFFICE,
+  'incentives.statements.approve': OWNER_ONLY,
+  'incentives.statements.reopen': OWNER_ONLY,
+  'incentives.statements.get': INCENTIVE_READERS,
+  'incentives.statements.list': INCENTIVE_READERS,
 }
 
 /**
