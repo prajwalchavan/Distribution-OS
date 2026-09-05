@@ -16,12 +16,13 @@ import {
   id,
   INBOUND_ROLES,
   ONBOARDER_ROLES,
+  OWNER_ROLES,
   paise,
   PRICE_SETTER_ROLES,
+  roleReadPolicy,
   roleWritePolicies,
   staffReadPolicy,
   staffWritePolicy,
-  tenantPolicy,
   tenantReadPolicy,
   tenantRolePolicy,
   timestamps,
@@ -50,6 +51,28 @@ export const cashDiscountMode = pgEnum('cash_discount_mode', [
   'at_receipt_financial_cn',
 ])
 export const claimChannel = pgEnum('claim_channel', ['dos', 'brand_dms'])
+/**
+ * What a claim line is valued at (docs/plans/claims.md §3, §4.11, §4.14). Declared here, not in
+ * claims.ts, because `return_policies` (this module, upstream) carries the per-brand default and
+ * claims is downstream of tenant-catalog; declaring it in claims.ts would invert the dependency.
+ * `ptd` / `landed_cost` read `tenant_product_costs` (back office only); `mrp` only when a brand is
+ * explicitly configured to reimburse at MRP; `invoice_rate` for a rate-difference letter;
+ * `scheme_amount` for a percentage / flat / slab reward claimed at exactly the paise given away.
+ */
+export const claimValueBasis = pgEnum('claim_value_basis', [
+  'ptd',
+  'landed_cost',
+  'mrp',
+  'invoice_rate',
+  'scheme_amount',
+])
+/** How often a brand is claimed (coordination §7 q18: monthly assumed; super-stockists fortnightly). */
+export const claimPeriodKind = pgEnum('claim_period_kind', [
+  'monthly',
+  'fortnightly',
+  'quarterly',
+  'adhoc',
+])
 
 /**
  * Per-brand operating mode for this distributor (docs/17 A1). Too Yumm is billed in FieldAssist: our reps must
@@ -108,7 +131,20 @@ export const suppliers = pgTable(
   ],
 ).enableRLS()
 
-/** Return/damage policy per manufacturer brand for this tenant (founder: policy differs per manufacturer). */
+/**
+ * Return/damage policy per manufacturer brand for this tenant (founder: policy differs per manufacturer),
+ * and since migration 0021 the brand's CLAIM policy too: how often we claim, the cut-off, how many days
+ * the brand takes to settle, what a damaged or expired piece is valued at, and which supplier the claim
+ * is raised on (docs/plans/claims.md §3; `claims.policies.*`).
+ *
+ * RLS (0021/0022): this row says what money the business believes it can recover from a brand and at
+ * what cost basis — the same class of secret as `tenant_product_costs` and the `funding_source` of a
+ * scheme, which the field never sees (docs/22 §9 never-list 1, claims §4.21). Nothing in the six apps
+ * reads it outside `claims.policies.list` (owner-service, manager-service), so the wide any-member
+ * FOR ALL policy of 0002 — under which a shopkeeper's token could INSERT a claim policy — is replaced:
+ * the back office reads (owner, manager, accountant, system), the OWNER alone writes, mirroring
+ * `claims.policies.upsert = OWNER_ONLY` (the accountant sets no settings, docs/22 §8 2026-09-05).
+ */
 export const returnPolicies = pgTable(
   'return_policies',
   {
@@ -122,12 +158,22 @@ export const returnPolicies = pgTable(
     expiryClaimable: boolean('expiry_claimable').notNull().default(false),
     claimWindowDays: integer('claim_window_days'),
     claimSheetFormat: text('claim_sheet_format'),
+    /** Claim cadence for the brand; `claim_cutoff_day` (1..28) is the day the period rolls over. */
+    claimPeriodKind: claimPeriodKind('claim_period_kind').notNull().default('monthly'),
+    claimCutoffDay: integer('claim_cutoff_day'),
+    /** Days the brand takes to settle after submission → `claims.due_date` (default 30 in the service). */
+    settlementDays: integer('settlement_days'),
+    damageValueBasis: claimValueBasis('damage_value_basis').notNull().default('ptd'),
+    expiryValueBasis: claimValueBasis('expiry_value_basis').notNull().default('ptd'),
+    /** The supplier (depot / CFA / super-stockist) a claim on this brand is raised on. */
+    claimSupplierId: text('claim_supplier_id').references(() => suppliers.id),
     notes: text('notes'),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('return_policies_tenant_brand_idx').on(t.tenantId, t.brandId),
-    tenantPolicy('return_policies_tenant'),
+    roleReadPolicy('return_policies_read', BACK_OFFICE_ROLES),
+    ...roleWritePolicies('return_policies_write', OWNER_ROLES),
   ],
 ).enableRLS()
 

@@ -225,3 +225,29 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
 | GET | `/delivery/trips/{id}/trace` | Replay a trip's track (audited read) | owner, manager |
+| POST | `/docint/documents` | Start capturing a document (supplier bill, lorry receipt, brand-DMS bill) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/pages/upload-urls` | Mint pre-signed upload slots for one or more pages (object storage putUrl) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/pages` | Register an uploaded page; a duplicate document is refused with its id | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/qr` | Decode and verify the e-invoice QR (IRN); reports a duplicate, never blocks | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/submit` | Close capture and start the pipeline (page completeness checked first) | owner, manager, accountant, warehouse |
+| GET | `/docint/documents` | Captured documents, newest first (no money field) | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}` | One document with its pages (signed read URLs), QR result and pipeline status | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}/status` | Pipeline status only: the cheap poll after submit | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}/page-url` | A fresh signed read URL for one page image (object storage getUrl) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager, accountant |
+| GET | `/docint/documents/{id}/extractions` | Every engine reading of a document with its checks (back office: carries rates) | owner, manager, accountant |
+| GET | `/docint/extractions/{id}` | One reading in full: header, lines with evidence, confidence per field | owner, manager, accountant |
+| GET | `/docint/extractions/{extractionId}/candidates` | SKU match candidates per printed line, best first | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
+| GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
+| GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |

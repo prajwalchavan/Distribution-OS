@@ -2,8 +2,10 @@ import { PgBoss } from 'pg-boss'
 import { createDb, createPool, loadDotenv } from '@dos/db'
 
 loadDotenv()
+import { DOCUMENT_RENDER_EVENT } from '@dos/core/documents'
 import { logger } from './logger.js'
-import { OUTBOX_RELAY, relayOutbox } from './jobs/outbox-relay.js'
+import { registerDocintJobs } from './jobs/docint.js'
+import { OUTBOX_RELAY, registerOutboxHandler, relayOutbox } from './jobs/outbox-relay.js'
 import { handlePdfRenderJob, PDF_RENDER, renderPending } from './jobs/pdf-render.js'
 import { RETENTION, runRetention } from './jobs/retention.js'
 
@@ -17,6 +19,11 @@ const boss = new PgBoss({ connectionString: url, schema: 'pgboss' })
 boss.on('error', (error: Error) => logger.error({ err: error }, 'pg-boss error'))
 
 await boss.start()
+// The outbox relay (coordination §3.6): handlers per event type, registered before the first tick.
+// `DocumentRenderRequested` renders through the registry now that one exists (pdf-render.ts);
+// docint's `docint.document.submitted` starts the four-step pipeline (jobs/docint.ts).
+registerOutboxHandler(DOCUMENT_RENDER_EVENT, (e) => handlePdfRenderJob(db, e.payload))
+await registerDocintJobs(boss, db)
 await boss.createQueue(OUTBOX_RELAY)
 await boss.work(OUTBOX_RELAY, async () => {
   await relayOutbox(db)
@@ -27,20 +34,19 @@ await boss.work(RETENTION, async () => {
   await runRetention(db)
 })
 await boss.schedule(RETENTION, '17 * * * *')
-// PDF renderer: drains the outbox's render requests every minute (and after every drain that found
-// work, immediately again), and renders a direct `DocumentRenderRequest` job when one is sent.
+// PDF renderer: the outbox relay above renders every `DocumentRenderRequested` row through the
+// registry; this queue renders a direct `DocumentRenderRequest` job when one is sent, and a bare
+// `{}` job drains whatever the relay has not reached yet (the old poll, kept for `pnpm smoke`).
 await boss.createQueue(PDF_RENDER)
 await boss.work(PDF_RENDER, async ([job]) => {
   if (job?.data && typeof job.data === 'object' && 'kind' in job.data) {
     await handlePdfRenderJob(db, job.data)
     return
   }
-  const done = await renderPending(db)
-  if (done > 0) await boss.send(PDF_RENDER, {}, { singletonKey: 'drain', singletonSeconds: 5 })
+  await renderPending(db)
 })
-await boss.schedule(PDF_RENDER, '* * * * *', {}, { singletonKey: 'drain-cron' })
 logger.info(
-  'worker started: outbox relay every minute, retention sweep hourly, PDF renderer every minute',
+  'worker started: outbox relay every minute (PDF render + docint handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match',
 )
 
 const shutdown = async (): Promise<void> => {

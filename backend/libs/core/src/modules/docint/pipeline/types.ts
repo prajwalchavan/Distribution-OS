@@ -87,11 +87,8 @@ export interface ExtractionEngineAdapter {
  * queue retries with backoff. Anything else is permanent and counts against `attempt_count`.
  */
 export class EngineTransientError extends Error {
-  constructor(
-    message: string,
-    readonly cause?: unknown,
-  ) {
-    super(message)
+  constructor(message: string, cause?: unknown) {
+    super(message, cause === undefined ? undefined : { cause })
     this.name = 'EngineTransientError'
   }
 }

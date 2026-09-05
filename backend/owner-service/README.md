@@ -218,6 +218,32 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
 | GET | `/delivery/trips/{id}/trace` | Replay a trip's track (audited read) | owner, manager |
+| POST | `/docint/documents` | Start capturing a document (supplier bill, lorry receipt, brand-DMS bill) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/pages/upload-urls` | Mint pre-signed upload slots for one or more pages (object storage putUrl) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/pages` | Register an uploaded page; a duplicate document is refused with its id | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/qr` | Decode and verify the e-invoice QR (IRN); reports a duplicate, never blocks | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/submit` | Close capture and start the pipeline (page completeness checked first) | owner, manager, accountant, warehouse |
+| GET | `/docint/documents` | Captured documents, newest first (no money field) | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}` | One document with its pages (signed read URLs), QR result and pipeline status | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}/status` | Pipeline status only: the cheap poll after submit | owner, manager, accountant, warehouse |
+| GET | `/docint/documents/{id}/page-url` | A fresh signed read URL for one page image (object storage getUrl) | owner, manager, accountant, warehouse |
+| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager, accountant |
+| GET | `/docint/documents/{id}/extractions` | Every engine reading of a document with its checks (back office: carries rates) | owner, manager, accountant |
+| GET | `/docint/extractions/{id}` | One reading in full: header, lines with evidence, confidence per field | owner, manager, accountant |
+| GET | `/docint/extractions/{extractionId}/candidates` | SKU match candidates per printed line, best first | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager, accountant |
+| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager, accountant |
+| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
+| GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
+| GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |
 
 ### GET `/health/ping`
 
@@ -26521,6 +26547,4211 @@ curl "http://localhost:3001/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/
 }
 ```
 
+### POST `/docint/documents`
+
+Start capturing a document (supplier bill, lorry receipt, brand-DMS bill) · contract `docint.documents.create`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `kind` | supplier_invoice | lorry_receipt | brand_dms_invoice | claim_sheet | pod | other | yes |
+| `supplierId` | uuid | no |
+| `expectedPages` | integer | no |
+| `capturedAt` | datetime | no |
+| `note` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "kind": "supplier_invoice",
+  "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+  "expectedPages": 1,
+  "capturedAt": "2026-09-04T10:30:00.000Z",
+  "note": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/pages/upload-urls`
+
+Mint pre-signed upload slots for one or more pages (object storage putUrl) · contract `docint.documents.pageUploadUrl`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `pages` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/pages/upload-urls" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "pages": [
+    {
+      "pageNo": 1,
+      "mimeType": "image/jpeg",
+      "bytes": 1
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "slots": [
+    {
+      "objectKey": "docs/2026/09/invoice-0042.jpg",
+      "url": "docs/2026/09/invoice-0042.jpg",
+      "method": "PUT",
+      "headers": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "inline": true,
+      "expiresAt": "2026-09-04T10:30:00.000Z",
+      "pageNo": 1
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/pages`
+
+Register an uploaded page; a duplicate document is refused with its id · contract `docint.documents.addPage`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `pageId` | uuid | yes |
+| `pageNo` | integer | yes |
+| `mimeType` | image/jpeg | image/png | application/pdf | yes |
+| `bytes` | integer | no |
+| `width` | integer | no |
+| `height` | integer | no |
+| `objectKey` | string | yes |
+| `contentBase64` | base64 | no |
+| `printedPageLabel` | string | no |
+| `qrDetected` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/pages" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "pageId": "01a06d4a-11a4-75ba-8340-9161afcfa4fd",
+  "pageNo": 1,
+  "mimeType": "image/jpeg",
+  "bytes": 1,
+  "width": 1,
+  "height": 1,
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "contentBase64": "text",
+  "printedPageLabel": "text",
+  "qrDetected": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/qr`
+
+Decode and verify the e-invoice QR (IRN); reports a duplicate, never blocks · contract `docint.documents.verifyQr`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `qrText` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/qr" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "qrText": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  },
+  "qr": {
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "docNo": "SO-0042",
+    "docTyp": "INV",
+    "docDt": "2026-09-04",
+    "totInvValPaise": 4000,
+    "itemCnt": 1,
+    "mainHsnCode": "22021010",
+    "irn": "text",
+    "irnDt": "2026-09-04T10:30:00.000Z"
+  },
+  "duplicate": {
+    "supplierInvoiceId": "01a06d82-1775-71ad-8088-b75bd47cfb24",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/submit`
+
+Close capture and start the pipeline (page completeness checked first) · contract `docint.documents.submit`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/submit" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  },
+  "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/documents`
+
+Captured documents, newest first (no money field) · contract `docint.documents.list`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `kind` | supplier_invoice | lorry_receipt | brand_dms_invoice | claim_sheet | pod | other | no |
+| `status` | uploaded | verifying | extracting | extracted | needs_review | reviewed | committed | rejected | failed | no |
+| `statuses` | uploaded | verifying | extracting | extracted | needs_review | reviewed | committed | rejected | failed[] | no |
+| `supplierId` | uuid | no |
+| `uploadedBy` | uuid | no |
+| `mine` | boolean | string | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/documents?kind=supplier_invoice&status=uploaded&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&uploadedBy=01a06db0-2f89-716c-8fee-411b6df534d6&mine=true&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "kind": "supplier_invoice",
+      "status": "uploaded",
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "irn": "text",
+      "irnVerified": true,
+      "qrStatus": "absent",
+      "pageCount": 1,
+      "expectedPages": 1,
+      "attemptCount": 1,
+      "failureCode": "R-0001",
+      "rejectedReason": null,
+      "promptProfile": "text",
+      "committedEntityType": "text",
+      "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+      "committedAt": "2026-09-04T10:30:00.000Z",
+      "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+      "uploadedByName": "text",
+      "capturedAt": "2026-09-04T10:30:00.000Z",
+      "note": null,
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/documents/{id}`
+
+One document with its pages (signed read URLs), QR result and pipeline status · contract `docint.documents.get`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/documents/{id}/status`
+
+Pipeline status only: the cheap poll after submit · contract `docint.documents.status`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/status" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "status": "uploaded",
+  "qrStatus": "absent",
+  "attemptCount": 1,
+  "failureCode": "R-0001",
+  "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e",
+  "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+  "checkSummary": {
+    "errors": 1,
+    "warnings": 1
+  },
+  "lock": {
+    "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+    "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+    "reviewerName": "text",
+    "lockedUntil": "text"
+  },
+  "updatedAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/documents/{id}/page-url`
+
+A fresh signed read URL for one page image (object storage getUrl) · contract `docint.documents.pageUrl`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `pageNo` | integer | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/page-url?pageNo=1" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "expiresAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/reject`
+
+Reject a document with a reason (never a committed one) · contract `docint.documents.reject`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | duplicate | unreadable | not_ours | wrong_buyer_gstin | other | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/reject" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "duplicate",
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/approve`
+
+Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) · contract `docint.documents.approve`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `supplierInvoiceId` | uuid | yes |
+| `supplierId` | uuid | no |
+| `purchaseOrderId` | uuid | no |
+| `lineIds` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/approve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "supplierInvoiceId": "01a06d82-1775-71ad-8088-b75bd47cfb24",
+  "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+  "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+  "lineIds": [
+    {
+      "lineNo": 1,
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  },
+  "supplierInvoice": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "source": "docint",
+    "status": "extracted",
+    "invoiceNo": "SO-0042",
+    "invoiceDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ewayBillNo": "291012345678",
+    "supplierGstin": "27AAPFU0939F1ZV",
+    "placeOfSupplyState": "text",
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "freightPaise": 4000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "dueDate": "2026-09-04",
+    "approvedBy": "text",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "disputedAt": "2026-09-04T10:30:00.000Z",
+    "disputeReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "description": "Confirmed on phone with the shopkeeper",
+        "supplierCode": "R-0001",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "mfgDate": "2026-09-04",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "printedQty": 24,
+        "printedUnit": "text",
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "cessBps": 500,
+        "taxablePaise": 4000,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/extract`
+
+Retry or escalate the extraction by hand · contract `docint.extractions.run`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `engine` | llm_vision | llm_vision_secondary | template | no |
+| `force` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/extract" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "engine": "llm_vision",
+  "force": false
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "supplier_invoice",
+    "status": "uploaded",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "irn": "text",
+    "irnVerified": true,
+    "qrStatus": "absent",
+    "pageCount": 1,
+    "expectedPages": 1,
+    "attemptCount": 1,
+    "failureCode": "R-0001",
+    "rejectedReason": null,
+    "promptProfile": "text",
+    "committedEntityType": "text",
+    "committedEntityId": "01a06d5b-b0fa-7627-819e-e8c52a77b749",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "uploadedByName": "text",
+    "capturedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "pages": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "pageNo": 1,
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "mimeType": "image/jpeg",
+        "width": 1,
+        "height": 1,
+        "bytes": 1,
+        "sha256": "text",
+        "printedPageLabel": "text",
+        "qrDetected": true,
+        "readUrl": "docs/2026/09/invoice-0042.jpg",
+        "readUrlExpiresAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "qrPayload": {
+      "sellerGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "docNo": "SO-0042",
+      "docTyp": "INV",
+      "docDt": "2026-09-04",
+      "totInvValPaise": 4000,
+      "itemCnt": 1,
+      "mainHsnCode": "22021010",
+      "irn": "text",
+      "irnDt": "2026-09-04T10:30:00.000Z"
+    },
+    "checkSummary": {
+      "errors": 1,
+      "warnings": 1
+    },
+    "lock": {
+      "reviewSessionId": "01a06d6c-113d-7570-8f50-654266d44cf3",
+      "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+      "reviewerName": "text",
+      "lockedUntil": "text"
+    },
+    "latestExtractionId": "01a06dbe-4ce8-7da8-842c-65c8b881dbc7",
+    "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+  },
+  "jobId": "01a06d50-71e7-7a63-8e60-4b502049f78e"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/documents/{id}/extractions`
+
+Every engine reading of a document with its checks (back office: carries rates) · contract `docint.extractions.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `includeResult` | boolean | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/extractions?includeResult=false" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+      "engine": "irn_pull",
+      "model": "text",
+      "promptVersion": "text",
+      "engineVersion": "text",
+      "confidence": 1,
+      "costPaise": 4000,
+      "latencyMs": 1,
+      "invoiceNo": "SO-0042",
+      "invoiceDate": "2026-09-04",
+      "supplierGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "totalPaise": 2680000,
+      "lineCount": 1,
+      "escalatedFromExtractionId": "01a06d87-c4f7-73f2-814f-682d8e446d87",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "checks": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "check": "text",
+          "passed": true,
+          "severity": "error",
+          "lineNo": 1,
+          "detail": {
+            "line1": "12 Station Road",
+            "city": "Kalyan West",
+            "pincode": "421301"
+          }
+        }
+      ],
+      "result": {
+        "header": {
+          "supplierName": "Campa Cola 750 ml",
+          "supplierGstin": "27AAPFU0939F1ZV",
+          "buyerName": "text",
+          "buyerGstin": "27AAPFU0939F1ZV",
+          "invoiceNo": "SO-0042",
+          "invoiceDate": "2026-09-04",
+          "irn": "text",
+          "ewayBillNo": "291012345678",
+          "placeOfSupplyState": "27",
+          "subtotalPaise": 2680000,
+          "discountPaise": 12000,
+          "cgstPaise": 12000,
+          "sgstPaise": 12000,
+          "igstPaise": 12000,
+          "cessPaise": 12000,
+          "freightPaise": 4000,
+          "roundOffPaise": 12000,
+          "totalPaise": 2680000
+        },
+        "lines": [
+          {
+            "lineNo": 1,
+            "description": "Confirmed on phone with the shopkeeper",
+            "supplierCode": "R-0001",
+            "hsnCode": "22021010",
+            "batchNo": "SO-0042",
+            "mfgDate": "2026-09-04",
+            "expiryDate": "2026-09-04",
+            "mrpPaise": 4000,
+            "printedQty": 24,
+            "printedUnit": "text",
+            "caseSize": 24,
+            "qtyPcs": 24,
+            "freeQtyPcs": 24,
+            "ratePaise": 4000,
+            "rateBasis": "piece",
+            "basisQty": 24,
+            "discountBps": 500,
+            "discountPaise": 12000,
+            "gstBps": 500,
+            "cessBps": 500,
+            "taxablePaise": 4000,
+            "taxPaise": 12000,
+            "lineTotalPaise": 2680000,
+            "evidence": {
+              "pageNo": 1,
+              "rowText": "text",
+              "bbox": null
+            }
+          }
+        ],
+        "fieldConfidence": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "handwrittenAnnotations": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "pageNo": 1,
+            "text": "text",
+            "nearPath": "text",
+            "suggestedValue": {
+              "example": true
+            },
+            "bbox": null
+          }
+        ],
+        "pageCount": 1
+      }
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/extractions/{id}`
+
+One reading in full: header, lines with evidence, confidence per field · contract `docint.extractions.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/extractions/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "engine": "irn_pull",
+    "model": "text",
+    "promptVersion": "text",
+    "engineVersion": "text",
+    "confidence": 1,
+    "costPaise": 4000,
+    "latencyMs": 1,
+    "invoiceNo": "SO-0042",
+    "invoiceDate": "2026-09-04",
+    "supplierGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "totalPaise": 2680000,
+    "lineCount": 1,
+    "escalatedFromExtractionId": "01a06d87-c4f7-73f2-814f-682d8e446d87",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "checks": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "check": "text",
+        "passed": true,
+        "severity": "error",
+        "lineNo": 1,
+        "detail": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ],
+    "result": {
+      "header": {
+        "supplierName": "Campa Cola 750 ml",
+        "supplierGstin": "27AAPFU0939F1ZV",
+        "buyerName": "text",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "irn": "text",
+        "ewayBillNo": "291012345678",
+        "placeOfSupplyState": "27",
+        "subtotalPaise": 2680000,
+        "discountPaise": 12000,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessPaise": 12000,
+        "freightPaise": 4000,
+        "roundOffPaise": 12000,
+        "totalPaise": 2680000
+      },
+      "lines": [
+        {
+          "lineNo": 1,
+          "description": "Confirmed on phone with the shopkeeper",
+          "supplierCode": "R-0001",
+          "hsnCode": "22021010",
+          "batchNo": "SO-0042",
+          "mfgDate": "2026-09-04",
+          "expiryDate": "2026-09-04",
+          "mrpPaise": 4000,
+          "printedQty": 24,
+          "printedUnit": "text",
+          "caseSize": 24,
+          "qtyPcs": 24,
+          "freeQtyPcs": 24,
+          "ratePaise": 4000,
+          "rateBasis": "piece",
+          "basisQty": 24,
+          "discountBps": 500,
+          "discountPaise": 12000,
+          "gstBps": 500,
+          "cessBps": 500,
+          "taxablePaise": 4000,
+          "taxPaise": 12000,
+          "lineTotalPaise": 2680000,
+          "evidence": {
+            "pageNo": 1,
+            "rowText": "text",
+            "bbox": null
+          }
+        }
+      ],
+      "fieldConfidence": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "handwrittenAnnotations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "pageNo": 1,
+          "text": "text",
+          "nearPath": "text",
+          "suggestedValue": {
+            "example": true
+          },
+          "bbox": null
+        }
+      ],
+      "pageCount": 1
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/extractions/{extractionId}/candidates`
+
+SKU match candidates per printed line, best first · contract `docint.matches.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `extractionId` | uuid | yes |
+| `lineNo` | integer | no |
+| `unmatchedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/extractions/01a06d61-15b4-76ba-8090-83e7be1dbc48/candidates?lineNo=1&unmatchedOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "extractionId": "01a06d61-15b4-76ba-8090-83e7be1dbc48",
+      "lineNo": 1,
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "productName": "Campa Cola 750 ml",
+      "brandName": "Campa Cola 750 ml",
+      "netQty": 24,
+      "netUnit": "g",
+      "defaultCaseSize": 24,
+      "mrpPaise": 4000,
+      "packPcsPerCase": 24,
+      "score": 1,
+      "reason": "supplier_alias",
+      "chosen": true,
+      "matchedBy": "auto",
+      "features": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      }
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/extractions/{id}/matches/accept`
+
+Accept a listed candidate for a line (remembers the alias and the pack) · contract `docint.matches.accept`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineNo` | integer | yes |
+| `candidateId` | uuid | yes |
+| `pcsPerCase` | integer | no |
+| `rememberAlias` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/extractions/01a06d17-0be7-794a-8dab-9b14cf78673b/matches/accept" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineNo": 1,
+  "candidateId": "01a06ddb-bb60-716a-83fd-1b61f1fffc14",
+  "pcsPerCase": 24,
+  "rememberAlias": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "line": {
+    "lineNo": 1,
+    "band": "green",
+    "items": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "extractionId": "01a06d61-15b4-76ba-8090-83e7be1dbc48",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "brandName": "Campa Cola 750 ml",
+        "netQty": 24,
+        "netUnit": "g",
+        "defaultCaseSize": 24,
+        "mrpPaise": 4000,
+        "packPcsPerCase": 24,
+        "score": 1,
+        "reason": "supplier_alias",
+        "chosen": true,
+        "matchedBy": "auto",
+        "features": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/extractions/{id}/matches/reject`
+
+Reject a candidate, or the line's match as a whole, with a reason · contract `docint.matches.reject`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineNo` | integer | yes |
+| `candidateId` | uuid | no |
+| `reason` | wrong_product | wrong_pack | not_in_catalog | duplicate_line | other | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/extractions/01a06d17-0be7-794a-8dab-9b14cf78673b/matches/reject" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineNo": 1,
+  "candidateId": "01a06ddb-bb60-716a-83fd-1b61f1fffc14",
+  "reason": "wrong_product",
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "line": {
+    "lineNo": 1,
+    "band": "green",
+    "items": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "extractionId": "01a06d61-15b4-76ba-8090-83e7be1dbc48",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "brandName": "Campa Cola 750 ml",
+        "netQty": 24,
+        "netUnit": "g",
+        "defaultCaseSize": 24,
+        "mrpPaise": 4000,
+        "packPcsPerCase": 24,
+        "score": 1,
+        "reason": "supplier_alias",
+        "chosen": true,
+        "matchedBy": "auto",
+        "features": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/extractions/{id}/matches/choose`
+
+Pick another variant from the catalog for a line · contract `docint.matches.choose`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineNo` | integer | yes |
+| `variantId` | uuid | yes |
+| `pcsPerCase` | integer | no |
+| `rememberAlias` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/extractions/01a06d17-0be7-794a-8dab-9b14cf78673b/matches/choose" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineNo": 1,
+  "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+  "pcsPerCase": 24,
+  "rememberAlias": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "line": {
+    "lineNo": 1,
+    "band": "green",
+    "items": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "extractionId": "01a06d61-15b4-76ba-8090-83e7be1dbc48",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "brandName": "Campa Cola 750 ml",
+        "netQty": 24,
+        "netUnit": "g",
+        "defaultCaseSize": 24,
+        "mrpPaise": 4000,
+        "packPcsPerCase": 24,
+        "score": 1,
+        "reason": "supplier_alias",
+        "chosen": true,
+        "matchedBy": "auto",
+        "features": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/extractions/{id}/rematch`
+
+Re-run the SKU cascade for every unmatched line (after catalog.propose) · contract `docint.matches.rerun`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/extractions/01a06d17-0be7-794a-8dab-9b14cf78673b/rematch" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "green": 1,
+  "amber": 1,
+  "red": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/documents/{id}/review`
+
+Open a review session and take the single-writer lock · contract `docint.review.start`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `sessionId` | uuid | yes |
+| `baseExtractionId` | uuid | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673b/review" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "sessionId": "01a06d43-8639-7a42-85ff-d9a0de5a7319",
+  "baseExtractionId": "01a06d72-ceb1-7487-8585-71d779ee65df"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "session": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+    "reviewerName": "text",
+    "baseExtractionId": "01a06d72-ceb1-7487-8585-71d779ee65df",
+    "status": "open",
+    "lockedUntil": "text",
+    "heartbeatAt": "2026-09-04T10:30:00.000Z",
+    "editsCount": 1,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "reviewed": {
+      "header": {
+        "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+        "supplierName": "Campa Cola 750 ml",
+        "supplierGstin": "27AAPFU0939F1ZV",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "irn": "text",
+        "ewayBillNo": "291012345678",
+        "placeOfSupplyState": "27",
+        "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+        "dueDate": "2026-09-04",
+        "subtotalPaise": 2680000,
+        "discountPaise": 12000,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessPaise": 12000,
+        "freightPaise": 4000,
+        "roundOffPaise": 12000,
+        "totalPaise": 2680000
+      },
+      "lines": [
+        {
+          "lineNo": 1,
+          "description": "Confirmed on phone with the shopkeeper",
+          "supplierCode": "R-0001",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "hsnCode": "22021010",
+          "batchNo": "SO-0042",
+          "mfgDate": "2026-09-04",
+          "expiryDate": "2026-09-04",
+          "mrpPaise": 4000,
+          "printedQty": 24,
+          "printedUnit": "text",
+          "caseSize": 24,
+          "qtyPcs": 24,
+          "freeQtyPcs": 24,
+          "ratePaise": 4000,
+          "rateBasis": "piece",
+          "basisQty": 24,
+          "discountBps": 500,
+          "discountPaise": 12000,
+          "gstBps": 500,
+          "cessBps": 500,
+          "taxablePaise": 4000,
+          "taxPaise": 12000,
+          "lineTotalPaise": 2680000
+        }
+      ],
+      "annotations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "applied": true
+        }
+      ]
+    },
+    "checks": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "check": "text",
+        "passed": true,
+        "severity": "error",
+        "lineNo": 1,
+        "detail": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ],
+    "blocking": 1,
+    "disagreements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "path": "text",
+        "values": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "resolvedValue": null
+      }
+    ],
+    "threeWayMatch": {
+      "poCases": 1,
+      "lrPackages": 1,
+      "gateCount": 1
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/review-sessions/{id}/heartbeat`
+
+Keep the review lock alive · contract `docint.review.heartbeat`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/review-sessions/01a06d17-0be7-794a-8dab-9b14cf78673b/heartbeat" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "lockedUntil": "text"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/review-sessions/{id}`
+
+Save corrections; every changed path is logged and the validators re-run · contract `docint.review.save`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `patch` | object | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/review-sessions/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "patch": {
+    "header": {
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "supplierGstin": "27AAPFU0939F1ZV",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "invoiceNo": "SO-0042",
+      "invoiceDate": "2026-09-04",
+      "irn": "text",
+      "ewayBillNo": "291012345678",
+      "placeOfSupplyState": "27",
+      "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+      "dueDate": "2026-09-04",
+      "subtotalPaise": 2680000,
+      "discountPaise": 12000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "freightPaise": 4000,
+      "roundOffPaise": 12000,
+      "totalPaise": 2680000
+    },
+    "lines": [
+      {
+        "lineNo": 1,
+        "description": "Confirmed on phone with the shopkeeper",
+        "supplierCode": "R-0001",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "mfgDate": "2026-09-04",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "printedQty": 24,
+        "printedUnit": "text",
+        "caseSize": 24,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "ratePaise": 4000,
+        "rateBasis": "piece",
+        "basisQty": 24,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "cessBps": 500,
+        "taxablePaise": 4000,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ],
+    "annotations": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "applied": true
+      }
+    ]
+  }
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "session": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+    "reviewerName": "text",
+    "baseExtractionId": "01a06d72-ceb1-7487-8585-71d779ee65df",
+    "status": "open",
+    "lockedUntil": "text",
+    "heartbeatAt": "2026-09-04T10:30:00.000Z",
+    "editsCount": 1,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "reviewed": {
+      "header": {
+        "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+        "supplierName": "Campa Cola 750 ml",
+        "supplierGstin": "27AAPFU0939F1ZV",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "irn": "text",
+        "ewayBillNo": "291012345678",
+        "placeOfSupplyState": "27",
+        "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+        "dueDate": "2026-09-04",
+        "subtotalPaise": 2680000,
+        "discountPaise": 12000,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessPaise": 12000,
+        "freightPaise": 4000,
+        "roundOffPaise": 12000,
+        "totalPaise": 2680000
+      },
+      "lines": [
+        {
+          "lineNo": 1,
+          "description": "Confirmed on phone with the shopkeeper",
+          "supplierCode": "R-0001",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "hsnCode": "22021010",
+          "batchNo": "SO-0042",
+          "mfgDate": "2026-09-04",
+          "expiryDate": "2026-09-04",
+          "mrpPaise": 4000,
+          "printedQty": 24,
+          "printedUnit": "text",
+          "caseSize": 24,
+          "qtyPcs": 24,
+          "freeQtyPcs": 24,
+          "ratePaise": 4000,
+          "rateBasis": "piece",
+          "basisQty": 24,
+          "discountBps": 500,
+          "discountPaise": 12000,
+          "gstBps": 500,
+          "cessBps": 500,
+          "taxablePaise": 4000,
+          "taxPaise": 12000,
+          "lineTotalPaise": 2680000
+        }
+      ],
+      "annotations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "applied": true
+        }
+      ]
+    },
+    "checks": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "check": "text",
+        "passed": true,
+        "severity": "error",
+        "lineNo": 1,
+        "detail": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ],
+    "blocking": 1,
+    "disagreements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "path": "text",
+        "values": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "resolvedValue": null
+      }
+    ],
+    "threeWayMatch": {
+      "poCases": 1,
+      "lrPackages": 1,
+      "gateCount": 1
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "checks": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "check": "text",
+      "passed": true,
+      "severity": "error",
+      "lineNo": 1,
+      "detail": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      }
+    }
+  ],
+  "blocking": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/review-sessions/{id}/release`
+
+Give the document up so another reviewer may take it · contract `docint.review.release`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/review-sessions/01a06d17-0be7-794a-8dab-9b14cf78673b/release" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "session": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+    "reviewerName": "text",
+    "baseExtractionId": "01a06d72-ceb1-7487-8585-71d779ee65df",
+    "status": "open",
+    "lockedUntil": "text",
+    "heartbeatAt": "2026-09-04T10:30:00.000Z",
+    "editsCount": 1,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "reviewed": {
+      "header": {
+        "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+        "supplierName": "Campa Cola 750 ml",
+        "supplierGstin": "27AAPFU0939F1ZV",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "irn": "text",
+        "ewayBillNo": "291012345678",
+        "placeOfSupplyState": "27",
+        "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+        "dueDate": "2026-09-04",
+        "subtotalPaise": 2680000,
+        "discountPaise": 12000,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessPaise": 12000,
+        "freightPaise": 4000,
+        "roundOffPaise": 12000,
+        "totalPaise": 2680000
+      },
+      "lines": [
+        {
+          "lineNo": 1,
+          "description": "Confirmed on phone with the shopkeeper",
+          "supplierCode": "R-0001",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "hsnCode": "22021010",
+          "batchNo": "SO-0042",
+          "mfgDate": "2026-09-04",
+          "expiryDate": "2026-09-04",
+          "mrpPaise": 4000,
+          "printedQty": 24,
+          "printedUnit": "text",
+          "caseSize": 24,
+          "qtyPcs": 24,
+          "freeQtyPcs": 24,
+          "ratePaise": 4000,
+          "rateBasis": "piece",
+          "basisQty": 24,
+          "discountBps": 500,
+          "discountPaise": 12000,
+          "gstBps": 500,
+          "cessBps": 500,
+          "taxablePaise": 4000,
+          "taxPaise": 12000,
+          "lineTotalPaise": 2680000
+        }
+      ],
+      "annotations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "applied": true
+        }
+      ]
+    },
+    "checks": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "check": "text",
+        "passed": true,
+        "severity": "error",
+        "lineNo": 1,
+        "detail": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ],
+    "blocking": 1,
+    "disagreements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "path": "text",
+        "values": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "resolvedValue": null
+      }
+    ],
+    "threeWayMatch": {
+      "poCases": 1,
+      "lrPackages": 1,
+      "gateCount": 1
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/docint/review-sessions/{id}/submit`
+
+Assert the reading is right (refused while any red check stands) · contract `docint.review.submit`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/docint/review-sessions/01a06d17-0be7-794a-8dab-9b14cf78673b/submit" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "session": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "reviewerId": "01a06d7f-8892-79a8-8da2-34ce3f425d1b",
+    "reviewerName": "text",
+    "baseExtractionId": "01a06d72-ceb1-7487-8585-71d779ee65df",
+    "status": "open",
+    "lockedUntil": "text",
+    "heartbeatAt": "2026-09-04T10:30:00.000Z",
+    "editsCount": 1,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "reviewed": {
+      "header": {
+        "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+        "supplierName": "Campa Cola 750 ml",
+        "supplierGstin": "27AAPFU0939F1ZV",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "irn": "text",
+        "ewayBillNo": "291012345678",
+        "placeOfSupplyState": "27",
+        "purchaseOrderId": "01a06d9f-1a34-70d3-85a7-2446ed80b692",
+        "dueDate": "2026-09-04",
+        "subtotalPaise": 2680000,
+        "discountPaise": 12000,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessPaise": 12000,
+        "freightPaise": 4000,
+        "roundOffPaise": 12000,
+        "totalPaise": 2680000
+      },
+      "lines": [
+        {
+          "lineNo": 1,
+          "description": "Confirmed on phone with the shopkeeper",
+          "supplierCode": "R-0001",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "hsnCode": "22021010",
+          "batchNo": "SO-0042",
+          "mfgDate": "2026-09-04",
+          "expiryDate": "2026-09-04",
+          "mrpPaise": 4000,
+          "printedQty": 24,
+          "printedUnit": "text",
+          "caseSize": 24,
+          "qtyPcs": 24,
+          "freeQtyPcs": 24,
+          "ratePaise": 4000,
+          "rateBasis": "piece",
+          "basisQty": 24,
+          "discountBps": 500,
+          "discountPaise": 12000,
+          "gstBps": 500,
+          "cessBps": 500,
+          "taxablePaise": 4000,
+          "taxPaise": 12000,
+          "lineTotalPaise": 2680000
+        }
+      ],
+      "annotations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "applied": true
+        }
+      ]
+    },
+    "checks": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "check": "text",
+        "passed": true,
+        "severity": "error",
+        "lineNo": 1,
+        "detail": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      }
+    ],
+    "blocking": 1,
+    "disagreements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "path": "text",
+        "values": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "resolvedValue": null
+      }
+    ],
+    "threeWayMatch": {
+      "poCases": 1,
+      "lrPackages": 1,
+      "gateCount": 1
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "checks": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "check": "text",
+      "passed": true,
+      "severity": "error",
+      "lineNo": 1,
+      "detail": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      }
+    }
+  ],
+  "blocking": 1
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/queue`
+
+The inbound review worklist, oldest first (back office) · contract `docint.queue.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | extracted | needs_review | reviewed | failed | no |
+| `kind` | supplier_invoice | lorry_receipt | brand_dms_invoice | claim_sheet | pod | other | no |
+| `supplierId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/queue?status=extracted&kind=supplier_invoice&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+      "kind": "supplier_invoice",
+      "status": "extracted",
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "invoiceNo": "SO-0042",
+      "invoiceDate": "2026-09-04",
+      "totalPaise": 2680000,
+      "lineCount": 1,
+      "redCount": 1,
+      "amberCount": 1,
+      "unmatchedLines": 1,
+      "irnVerified": true,
+      "qrStatus": "absent",
+      "ageMinutes": 1,
+      "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+      "uploadedByName": "text",
+      "lockedByUserId": "01a06d0c-52f5-73ca-815f-31705888efa9",
+      "lockedByName": "text",
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/docint/stats`
+
+Extraction quality, latency, cost and edits per invoice for a date range · contract `docint.stats.summary`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `supplierId` | uuid | no |
+| `kind` | supplier_invoice | lorry_receipt | brand_dms_invoice | claim_sheet | pod | other | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/docint/stats?from=2026-09-04&to=2026-09-04&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&kind=supplier_invoice" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "documents": 1,
+  "committed": 1,
+  "rejected": 1,
+  "failed": 1,
+  "escalated": 1,
+  "avgLatencyMs": 1,
+  "p95LatencyMs": 1,
+  "costPaise": 4000,
+  "editsPerDocument": 1,
+  "editsPerTenLines": 1,
+  "bySupplier": [
+    {
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "documents": 1,
+      "committed": 1,
+      "editsPerTenLines": 1,
+      "failureRate": 1
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -26719,3 +30950,29 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.expenses.list` | ✓ | – | – | – | – | – | – |
 | `delivery.gps.points` | ✓ | – | – | – | – | – | – |
 | `delivery.gps.trace` | ✓ | – | – | – | – | – | – |
+| `docint.documents.create` | ✓ | – | – | – | – | – | – |
+| `docint.documents.pageUploadUrl` | ✓ | – | – | – | – | – | – |
+| `docint.documents.addPage` | ✓ | – | – | – | – | – | – |
+| `docint.documents.verifyQr` | ✓ | – | – | – | – | – | – |
+| `docint.documents.submit` | ✓ | – | – | – | – | – | – |
+| `docint.documents.list` | ✓ | – | – | – | – | – | – |
+| `docint.documents.get` | ✓ | – | – | – | – | – | – |
+| `docint.documents.status` | ✓ | – | – | – | – | – | – |
+| `docint.documents.pageUrl` | ✓ | – | – | – | – | – | – |
+| `docint.documents.reject` | ✓ | – | – | – | – | – | – |
+| `docint.documents.approve` | ✓ | – | – | – | – | – | – |
+| `docint.extractions.run` | ✓ | – | – | – | – | – | – |
+| `docint.extractions.list` | ✓ | – | – | – | – | – | – |
+| `docint.extractions.get` | ✓ | – | – | – | – | – | – |
+| `docint.matches.list` | ✓ | – | – | – | – | – | – |
+| `docint.matches.accept` | ✓ | – | – | – | – | – | – |
+| `docint.matches.reject` | ✓ | – | – | – | – | – | – |
+| `docint.matches.choose` | ✓ | – | – | – | – | – | – |
+| `docint.matches.rerun` | ✓ | – | – | – | – | – | – |
+| `docint.review.start` | ✓ | – | – | – | – | – | – |
+| `docint.review.heartbeat` | ✓ | – | – | – | – | – | – |
+| `docint.review.save` | ✓ | – | – | – | – | – | – |
+| `docint.review.release` | ✓ | – | – | – | – | – | – |
+| `docint.review.submit` | ✓ | – | – | – | – | – | – |
+| `docint.queue.list` | ✓ | – | – | – | – | – | – |
+| `docint.stats.summary` | ✓ | – | – | – | – | – | – |

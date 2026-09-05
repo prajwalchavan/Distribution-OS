@@ -48,7 +48,8 @@ export function docintConfig(env: NodeJS.ProcessEnv = process.env): DocintConfig
     lockTtlSeconds: positiveInt(env.DOCINT_LOCK_TTL_SECONDS, 300),
     maxAttempts: positiveInt(env.DOCINT_MAX_ATTEMPTS, 3),
     anthropicApiKey: apiKey,
-    anthropicBaseUrl: env.ANTHROPIC_BASE_URL?.trim().replace(/\/$/, '') || 'https://api.anthropic.com',
+    anthropicBaseUrl:
+      env.ANTHROPIC_BASE_URL?.trim().replace(/\/$/, '') || 'https://api.anthropic.com',
     irpKeys: env.DOCINT_IRP_KEYS?.trim() || null,
     autoEscalate: env.DOCINT_AUTO_ESCALATE === undefined ? true : truthy(env.DOCINT_AUTO_ESCALATE),
   }

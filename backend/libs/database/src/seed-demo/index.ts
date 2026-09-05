@@ -9,6 +9,7 @@ import { seedBilling } from './billing.js'
 import { seedCatalog } from './catalog.js'
 import { seedDelivery } from './delivery.js'
 import { seedDeliveryRoad } from './delivery-road.js'
+import { seedDocint } from './docint.js'
 import { seedPeople, type PeopleResult } from './people.js'
 import { seedPlatformGaps } from './platform-gaps.js'
 import { seedPricing } from './pricing.js'
@@ -55,6 +56,8 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   await seedReporting(db, tenantId, retailersRes, sales, people)
   // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
   await seedPlatformGaps(db, tenantId, stock, people)
+  // After stock: the document readings equal the supplier invoices it booked (docs/plans/docint.md §6).
+  await seedDocint(db, tenantId, variants, tenantCatalog, people)
   // Last: the delivery module's road data reads the bills, orders and loads every seed above wrote.
   await seedDeliveryRoad(db, tenantId, sales, people, delivery)
 

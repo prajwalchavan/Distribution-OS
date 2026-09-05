@@ -67,6 +67,14 @@ type PoOut = z.infer<typeof UpsertPurchaseOrderOutput>
 type PoListIn = z.infer<typeof PurchaseOrdersListInput>
 type PoListOut = z.infer<typeof PurchaseOrdersListOutput>
 
+/** `CreateSupplierInvoiceInput` plus the printed rate basis per line (docs/17 A4), for in-transaction callers. */
+export type CreateInTxInput = Omit<CreateIn, 'lines'> & {
+  lines: (CreateIn['lines'][number] & {
+    rateBasis?: 'piece' | 'case' | undefined
+    basisQty?: number | undefined
+  })[]
+}
+
 const CASE_UNITS = /^(cs|case|cases|ctn|carton|cartons|box|boxes|bx)$/i
 
 /** Everything here carries rates, so every procedure is back office; RLS on the tables says the same. */
@@ -81,6 +89,22 @@ export class SupplierInvoiceService {
    */
   async create(input: CreateIn): Promise<CreateOut> {
     requireRole(BACK_OFFICE)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, () => this.createInTx(tx, input)),
+    )
+  }
+
+  /**
+   * The same booking inside a caller's transaction — docint's `documents.approve` (coordination §4:
+   * "the header-total check and the IRN/(supplier, no, date) duplicate refusal are procurement's, and
+   * must apply unchanged"). A line may carry the printed `rateBasis` / `basisQty` (docs/17 A4); the
+   * HTTP procedure's lines default to per piece. Creates the DRAFT only — never a GRN, lot or cost.
+   */
+  async createInTx(tx: Db, input: CreateInTxInput): Promise<CreateOut> {
+    requireRole(BACK_OFFICE)
+    const ctx = currentTenant()
     const expected = sum([
       ...input.lines.map((l) => paise(l.lineTotalPaise)),
       paise(input.freightPaise),
@@ -92,116 +116,112 @@ export class SupplierInvoiceService {
         data: { totalPaise: input.totalPaise, expectedPaise: expected },
       })
     }
-    const db = requireDb(this.db)
-    const ctx = currentTenant()
-    return withTenant(db, ctx, (tx) =>
-      idempotent(tx, input.idempotencyKey, input, async () => {
-        if (input.irn) {
-          const [dup] = await tx
-            .select({ id: supplierInvoices.id, invoiceNo: supplierInvoices.invoiceNo })
-            .from(supplierInvoices)
-            .where(eq(supplierInvoices.irn, input.irn))
-          if (dup)
-            throw new ORPCError('CONFLICT', {
-              message: `IRN already recorded as supplier invoice ${dup.invoiceNo}`,
-              data: { supplierInvoiceId: dup.id },
-            })
-        }
-        const [same] = await tx
-          .select({ id: supplierInvoices.id })
-          .from(supplierInvoices)
-          .where(
-            and(
-              eq(supplierInvoices.supplierId, input.supplierId),
-              eq(supplierInvoices.invoiceNo, input.invoiceNo),
-              eq(supplierInvoices.invoiceDate, input.invoiceDate),
-            ),
-          )
-        if (same)
-          throw new ORPCError('CONFLICT', {
-            message: `invoice ${input.invoiceNo} dated ${input.invoiceDate} from this supplier is already recorded`,
-            data: { supplierInvoiceId: same.id },
-          })
-        const approved = input.lines.every((l) => !!l.variantId)
-        const now = new Date()
-        let row: InvoiceRow | undefined
-        try {
-          ;[row] = await tx
-            .insert(supplierInvoices)
-            .values({
-              id: input.id,
-              tenantId: ctx.tenantId,
-              supplierId: input.supplierId,
-              purchaseOrderId: input.purchaseOrderId ?? null,
-              documentId: input.documentId ?? null,
-              source: input.source,
-              status: approved ? 'approved' : 'in_review',
-              invoiceNo: input.invoiceNo,
-              invoiceDate: input.invoiceDate,
-              irn: input.irn ?? null,
-              ackNo: input.ackNo ?? null,
-              ewayBillNo: input.ewayBillNo ?? null,
-              supplierGstin: input.supplierGstin ?? null,
-              placeOfSupplyState: input.placeOfSupplyState ?? null,
-              subtotalPaise: input.subtotalPaise,
-              discountPaise: input.discountPaise,
-              cgstPaise: input.cgstPaise,
-              sgstPaise: input.sgstPaise,
-              igstPaise: input.igstPaise,
-              cessPaise: input.cessPaise,
-              freightPaise: input.freightPaise,
-              roundOffPaise: input.roundOffPaise,
-              totalPaise: input.totalPaise,
-              dueDate: input.dueDate ?? null,
-              approvedBy: approved ? ctx.actorId : null,
-              approvedAt: approved ? now : null,
-            })
-            .returning()
-        } catch (err) {
-          if (pgConstraint(err) === 'supplier_invoices_pkey')
-            throw new ORPCError('CONFLICT', {
-              message: `supplier invoice ${input.id} already exists`,
-            })
-          throw err
-        }
-        if (!row)
-          throw new ORPCError('INTERNAL_SERVER_ERROR', {
-            message: 'invoice insert returned nothing',
-          })
-        const lines = await tx
-          .insert(supplierInvoiceLines)
-          .values(
-            input.lines.map((l) => ({
-              id: l.id,
-              tenantId: ctx.tenantId,
-              supplierInvoiceId: input.id,
-              lineNo: l.lineNo,
-              description: l.description,
-              supplierCode: l.supplierCode ?? null,
-              variantId: l.variantId ?? null,
-              hsnCode: l.hsnCode ?? null,
-              batchNo: l.batchNo ?? null,
-              mfgDate: l.mfgDate ?? null,
-              expiryDate: l.expiryDate ?? null,
-              mrpPaise: l.mrpPaise ?? null,
-              printedQty: l.printedQty,
-              printedUnit: l.printedUnit,
-              qtyPcs: l.qtyPcs,
-              freeQtyPcs: l.freeQtyPcs,
-              ratePaise: l.ratePaise,
-              discountBps: l.discountBps,
-              discountPaise: l.discountPaise,
-              gstBps: l.gstBps,
-              cessBps: l.cessBps,
-              taxablePaise: l.taxablePaise,
-              taxPaise: l.taxPaise,
-              lineTotalPaise: l.lineTotalPaise,
-            })),
-          )
-          .returning()
-        return { item: toInvoiceWithLines(row, sortLines(lines)) }
-      }),
-    )
+    if (input.irn) {
+      const [dup] = await tx
+        .select({ id: supplierInvoices.id, invoiceNo: supplierInvoices.invoiceNo })
+        .from(supplierInvoices)
+        .where(eq(supplierInvoices.irn, input.irn))
+      if (dup)
+        throw new ORPCError('CONFLICT', {
+          message: `IRN already recorded as supplier invoice ${dup.invoiceNo}`,
+          data: { supplierInvoiceId: dup.id },
+        })
+    }
+    const [same] = await tx
+      .select({ id: supplierInvoices.id })
+      .from(supplierInvoices)
+      .where(
+        and(
+          eq(supplierInvoices.supplierId, input.supplierId),
+          eq(supplierInvoices.invoiceNo, input.invoiceNo),
+          eq(supplierInvoices.invoiceDate, input.invoiceDate),
+        ),
+      )
+    if (same)
+      throw new ORPCError('CONFLICT', {
+        message: `invoice ${input.invoiceNo} dated ${input.invoiceDate} from this supplier is already recorded`,
+        data: { supplierInvoiceId: same.id },
+      })
+    const approved = input.lines.every((l) => !!l.variantId)
+    const now = new Date()
+    let row: InvoiceRow | undefined
+    try {
+      ;[row] = await tx
+        .insert(supplierInvoices)
+        .values({
+          id: input.id,
+          tenantId: ctx.tenantId,
+          supplierId: input.supplierId,
+          purchaseOrderId: input.purchaseOrderId ?? null,
+          documentId: input.documentId ?? null,
+          source: input.source,
+          status: approved ? 'approved' : 'in_review',
+          invoiceNo: input.invoiceNo,
+          invoiceDate: input.invoiceDate,
+          irn: input.irn ?? null,
+          ackNo: input.ackNo ?? null,
+          ewayBillNo: input.ewayBillNo ?? null,
+          supplierGstin: input.supplierGstin ?? null,
+          placeOfSupplyState: input.placeOfSupplyState ?? null,
+          subtotalPaise: input.subtotalPaise,
+          discountPaise: input.discountPaise,
+          cgstPaise: input.cgstPaise,
+          sgstPaise: input.sgstPaise,
+          igstPaise: input.igstPaise,
+          cessPaise: input.cessPaise,
+          freightPaise: input.freightPaise,
+          roundOffPaise: input.roundOffPaise,
+          totalPaise: input.totalPaise,
+          dueDate: input.dueDate ?? null,
+          approvedBy: approved ? ctx.actorId : null,
+          approvedAt: approved ? now : null,
+        })
+        .returning()
+    } catch (err) {
+      if (pgConstraint(err) === 'supplier_invoices_pkey')
+        throw new ORPCError('CONFLICT', {
+          message: `supplier invoice ${input.id} already exists`,
+        })
+      throw err
+    }
+    if (!row)
+      throw new ORPCError('INTERNAL_SERVER_ERROR', {
+        message: 'invoice insert returned nothing',
+      })
+    const lines = await tx
+      .insert(supplierInvoiceLines)
+      .values(
+        input.lines.map((l) => ({
+          id: l.id,
+          tenantId: ctx.tenantId,
+          supplierInvoiceId: input.id,
+          lineNo: l.lineNo,
+          description: l.description,
+          supplierCode: l.supplierCode ?? null,
+          variantId: l.variantId ?? null,
+          hsnCode: l.hsnCode ?? null,
+          batchNo: l.batchNo ?? null,
+          mfgDate: l.mfgDate ?? null,
+          expiryDate: l.expiryDate ?? null,
+          mrpPaise: l.mrpPaise ?? null,
+          printedQty: l.printedQty,
+          printedUnit: l.printedUnit,
+          qtyPcs: l.qtyPcs,
+          freeQtyPcs: l.freeQtyPcs,
+          ratePaise: l.ratePaise,
+          rateBasis: l.rateBasis ?? 'piece',
+          basisQty: l.basisQty ?? 1,
+          discountBps: l.discountBps,
+          discountPaise: l.discountPaise,
+          gstBps: l.gstBps,
+          cessBps: l.cessBps,
+          taxablePaise: l.taxablePaise,
+          taxPaise: l.taxPaise,
+          lineTotalPaise: l.lineTotalPaise,
+        })),
+      )
+      .returning()
+    return { item: toInvoiceWithLines(row, sortLines(lines)) }
   }
 
   /** Newest first; cursor is the last id seen. */

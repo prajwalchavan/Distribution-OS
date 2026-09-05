@@ -59,6 +59,10 @@ describe('permission matrix', () => {
       'docint.queue.list',
       'docint.review.start',
       'docint.documents.approve',
+      // A damage / expiry claim line is valued at PTD: `ratePaise` on it IS purchase cost.
+      'claims.lines.list',
+      'claims.get',
+      'claims.build',
     ] as const
     for (const path of costly) {
       const permission = permissionFor(path)
@@ -743,6 +747,74 @@ describe('permission matrix', () => {
           false,
         )
       }
+    }
+  })
+
+  it('keeps claims to the desk: policy with the owner, the loss with the owner and the accountant (claims)', () => {
+    const claimsPaths = paths.filter((p) => p.startsWith('claims.'))
+    expect(claimsPaths.length).toBeGreaterThan(0)
+    // No field role and no shop anywhere: a damage line is valued at purchase cost and a scheme line
+    // says which schemes the brand funds (brief §4.21); the five tables are BACK_OFFICE_ROLES in RLS
+    // and only owner- and manager-service mount the key.
+    for (const path of claimsPaths) {
+      for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+      // The owner may do everything in the module.
+      expect(isAllowed(permissionFor(path), 'owner'), `${path} must allow owner`).toBe(true)
+    }
+    // A brand's claim policy is a setting about what money the business believes it can recover.
+    expect(permissionFor('claims.policies.upsert')).toEqual(ROLE_GROUPS.OWNER_ONLY)
+    // Accepting a loss is the owner's or the accountant's, never the manager's (brief §2).
+    expect(permissionFor('claims.writeOff')).toEqual(['owner', 'accountant'])
+    expect(isAllowed(permissionFor('claims.writeOff'), 'manager')).toBe(false)
+    // Everything else is the three desk roles, the accountant included: a claim is an entry in the
+    // books (coordination §6 "every claims.* = BACK_OFFICE").
+    for (const path of claimsPaths.filter(
+      (p) => p !== 'claims.policies.upsert' && p !== 'claims.writeOff',
+    )) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    }
+    // The money-moving writes the accountant shares with the desk, and the one it shares with the owner alone.
+    for (const path of [
+      'claims.open',
+      'claims.build',
+      'claims.submit',
+      'claims.settlements.record',
+      'claims.reject',
+      'claims.writeOff',
+      'claims.statements.generate',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+    // The manager builds and submits but neither sets the policy nor writes off.
+    expect(isAllowed(permissionFor('claims.submit'), 'manager')).toBe(true)
+    expect(isAllowed(permissionFor('claims.policies.upsert'), 'manager')).toBe(false)
+    // Every claims write is a POST that refuses the field and the shop; every read is a GET the
+    // accountant shares. The static reads keep their own paths beside `GET /claims/{id}`.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('claims.'))) {
+      if (row.method === 'GET') {
+        expect(isAllowed(row.permission, 'accountant'), `${row.path} must allow accountant`).toBe(
+          true,
+        )
+      }
+      for (const role of ['salesperson', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(row.permission, role), `${row.path} must refuse ${role}`).toBe(false)
+      }
+    }
+    for (const [path, httpPath] of [
+      ['claims.policies.list', '/claims/policies'],
+      ['claims.periods.list', '/claims/periods'],
+      ['claims.ageing', '/claims/ageing'],
+      ['claims.register', '/claims/register'],
+      ['claims.reconcile.suggest', '/claims/reconcile'],
+      ['claims.get', '/claims/{id}'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+      expect(row?.method, path).toBe('GET')
     }
   })
 

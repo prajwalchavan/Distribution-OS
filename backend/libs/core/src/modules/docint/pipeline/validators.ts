@@ -196,13 +196,13 @@ export function validateInvoice(
       ),
     )
   }
-  out.push(
-    check('invoice_no_present', !!h.invoiceNo && h.invoiceNo.trim().length > 0, 'error'),
-  )
+  out.push(check('invoice_no_present', !!h.invoiceNo && h.invoiceNo.trim().length > 0, 'error'))
   out.push(check('invoice_date_present', isIsoDate(h.invoiceDate), 'error'))
   if (isIsoDate(h.invoiceDate)) {
     const age = daysBetween(h.invoiceDate, ctx.today)
-    out.push(check('invoice_date_not_future', age >= -1, 'error', null, { invoiceDate: h.invoiceDate }))
+    out.push(
+      check('invoice_date_not_future', age >= -1, 'error', null, { invoiceDate: h.invoiceDate }),
+    )
     out.push(
       check('invoice_date_stale', age <= STALE_INVOICE_DAYS, 'warn', null, {
         invoiceDate: h.invoiceDate,
@@ -263,7 +263,10 @@ export function validateInvoice(
       const wellFormed = /^\d{4}$|^\d{6}$|^\d{8}$/.test(hsn)
       out.push(check('hsn_format', wellFormed, 'error', n, { hsnCode: hsn }))
       if (wellFormed && line.gstBps !== null) {
-        const rate = ctx.hsnRates.get(hsn) ?? ctx.hsnRates.get(hsn.slice(0, 6)) ?? ctx.hsnRates.get(hsn.slice(0, 4))
+        const rate =
+          ctx.hsnRates.get(hsn) ??
+          ctx.hsnRates.get(hsn.slice(0, 6)) ??
+          ctx.hsnRates.get(hsn.slice(0, 4))
         out.push(
           check('hsn_dated_rate', rate === undefined || rate.gstBps === line.gstBps, 'warn', n, {
             hsnCode: hsn,
@@ -303,7 +306,9 @@ export function validateInvoice(
     }
     if (line.mrpPaise !== null && line.ratePaise !== null && line.qtyPcs) {
       const perPiece =
-        line.rateBasis === 'case' ? line.ratePaise / Math.max(1, line.basisQty ?? 1) : line.ratePaise
+        line.rateBasis === 'case'
+          ? line.ratePaise / Math.max(1, line.basisQty ?? 1)
+          : line.ratePaise
       out.push(
         check('rate_above_mrp', perPiece <= line.mrpPaise, 'warn', n, {
           perPiecePaise: Math.round(perPiece),
@@ -410,27 +415,51 @@ export function validateInvoice(
     )
     if (h.totalPaise !== null)
       out.push(
-        check('qr_total', near(ctx.qr.totInvValPaise, h.totalPaise, QR_TOTAL_TOLERANCE_PAISE), 'error', null, {
-          qrTotalPaise: ctx.qr.totInvValPaise,
-          totalPaise: h.totalPaise,
-        }),
+        check(
+          'qr_total',
+          near(ctx.qr.totInvValPaise, h.totalPaise, QR_TOTAL_TOLERANCE_PAISE),
+          'error',
+          null,
+          {
+            qrTotalPaise: ctx.qr.totInvValPaise,
+            totalPaise: h.totalPaise,
+          },
+        ),
       )
     if (h.invoiceNo)
       out.push(
-        check('qr_invoice_no', ctx.qr.docNo.trim().toUpperCase() === h.invoiceNo.trim().toUpperCase(), 'warn', null, {
-          qrDocNo: ctx.qr.docNo,
-          invoiceNo: h.invoiceNo,
-        }),
+        check(
+          'qr_invoice_no',
+          ctx.qr.docNo.trim().toUpperCase() === h.invoiceNo.trim().toUpperCase(),
+          'warn',
+          null,
+          {
+            qrDocNo: ctx.qr.docNo,
+            invoiceNo: h.invoiceNo,
+          },
+        ),
       )
     if (h.supplierGstin)
       out.push(
-        check('qr_seller_gstin', ctx.qr.sellerGstin === h.supplierGstin.trim().toUpperCase(), 'error', null, {
-          qrSellerGstin: ctx.qr.sellerGstin,
-          supplierGstin: h.supplierGstin,
-        }),
+        check(
+          'qr_seller_gstin',
+          ctx.qr.sellerGstin === h.supplierGstin.trim().toUpperCase(),
+          'error',
+          null,
+          {
+            qrSellerGstin: ctx.qr.sellerGstin,
+            supplierGstin: h.supplierGstin,
+          },
+        ),
       )
   }
-  if (h.irn && h.supplierGstin && h.invoiceNo && ctx.financialYear && isValidGstin(h.supplierGstin)) {
+  if (
+    h.irn &&
+    h.supplierGstin &&
+    h.invoiceNo &&
+    ctx.financialYear &&
+    isValidGstin(h.supplierGstin)
+  ) {
     const expected = irnHash(h.supplierGstin, ctx.financialYear, 'INV', h.invoiceNo)
     out.push(
       check('irn_hash', expected === h.irn.toLowerCase(), 'warn', null, {

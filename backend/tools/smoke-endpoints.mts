@@ -1142,6 +1142,26 @@ const ORDER_HINT: Record<string, number> = {
   'delivery.deliveries.list': 44,
   'delivery.trips.get': 44,
   'delivery.stops.next': 44,
+  // The inbound bill, in the order it happens: capture (create → slots → page → QR → submit), then the
+  // desk's SKU picks, a re-read, a review taken and released, a save and a submit on the held
+  // session, the approval, and last the reads and the reject of the duplicate.
+  'docint.documents.create': 20,
+  'docint.documents.pageUploadUrl': 21,
+  'docint.documents.addPage': 22,
+  'docint.documents.verifyQr': 23,
+  'docint.documents.submit': 24,
+  'docint.matches.reject': 30,
+  'docint.matches.accept': 31,
+  'docint.matches.choose': 32,
+  'docint.matches.rerun': 33,
+  'docint.extractions.run': 34,
+  'docint.review.start': 35,
+  'docint.review.heartbeat': 36,
+  'docint.review.save': 37,
+  'docint.review.submit': 38,
+  'docint.review.release': 39,
+  'docint.documents.approve': 40,
+  'docint.documents.reject': 60,
 }
 
 async function planFor(

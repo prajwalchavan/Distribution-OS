@@ -11,6 +11,12 @@ import {
   bargainRequests,
   beatAssignments,
   beats,
+  brands,
+  claimEvidence,
+  claimLines,
+  claims,
+  claimSettlements,
+  claimStatements,
   collections,
   correctionsLog,
   creditNoteLines,
@@ -50,6 +56,7 @@ import {
   retailerOutstandingSummary,
   retailerPriceOverrides,
   retailers,
+  returnPolicies,
   reviewSessions,
   salesOrderLines,
   salesOrders,
@@ -198,6 +205,21 @@ describeDb('row level security and ledger guarantees', () => {
   const exportJobA = uuidv7()
   const tallyMappingA = uuidv7()
   const tallySyncA = uuidv7()
+  /**
+   * Migration 0021/0022 fixtures (claims): the brand's claim policy (owner-set, back-office read), a
+   * scheme claim on the depot that the brand has part-paid — its line carries a PURCHASE COST rate, the
+   * reason the whole module is back office — with a photo, a generated sheet and the settlement; beside
+   * it tenant B's own claim on its own supplier, so isolation has a foreign row to hide.
+   */
+  const brandA = uuidv7()
+  const policyA = uuidv7()
+  const claimA = uuidv7()
+  const claimLineA = uuidv7()
+  const claimEvidenceA = uuidv7()
+  const claimStatementA = uuidv7()
+  const claimSettlementA = uuidv7()
+  const supplierB = uuidv7()
+  const claimB = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -1026,6 +1048,99 @@ describeDb('row level security and ledger guarantees', () => {
       entityId: variant,
       tallyName: 'Cola 750ml',
       tallyParent: 'Beverages',
+    })
+    // Claims fixtures (0021/0022): the brand's claim policy, a scheme claim the brand has part-paid,
+    // its priced line, a damage photo, a rendered sheet, the settlement; and tenant B's own claim.
+    await db.insert(brands).values({ id: brandA, manufacturerId, name: `Cola brand ${run}` })
+    await db.insert(returnPolicies).values({
+      id: policyA,
+      tenantId: tenantA,
+      brandId: brandA,
+      damageClaimable: true,
+      claimWindowDays: 45,
+      claimSheetFormat: 'generic_xlsx',
+      claimPeriodKind: 'monthly',
+      claimCutoffDay: 1,
+      settlementDays: 30,
+      damageValueBasis: 'ptd',
+      expiryValueBasis: 'landed_cost',
+      claimSupplierId: supplierA,
+    })
+    await db.insert(claims).values({
+      id: claimA,
+      tenantId: tenantA,
+      claimNo: `CLM-${run}`,
+      supplierId: supplierA,
+      brandId: brandA,
+      kind: 'scheme',
+      status: 'partially_settled',
+      claimChannel: 'dos',
+      periodFrom: '2026-08-01',
+      periodTo: '2026-08-31',
+      claimedPaise: 100_000,
+      settledPaise: 40_000,
+      submittedAt: new Date('2026-09-02T04:30:00Z'),
+      submittedBy: manager,
+      dueDate: '2026-10-02',
+      accruedAt: new Date('2026-09-02T04:30:00Z'),
+      createdBy: manager,
+    })
+    await db.insert(claimLines).values({
+      id: claimLineA,
+      tenantId: tenantA,
+      claimId: claimA,
+      lineNo: 1,
+      status: 'claimed',
+      sourceType: 'invoice',
+      sourceId: invoiceLineA,
+      retailerId: retailerA,
+      variantId: variant,
+      caseSize: 24,
+      qtyPcs: 24,
+      mrpPaise: 4_000,
+      ratePaise: 3_000, // purchase cost: the leak vector
+      basis: 'ptd',
+      amountPaise: 100_000,
+      settledPaise: 40_000,
+      detail: { invoiceNo: `T${run}/1`, rewardKind: 'free_qty' },
+    })
+    await db.insert(claimEvidence).values({
+      id: claimEvidenceA,
+      tenantId: tenantA,
+      claimId: claimA,
+      kind: 'damage_photo',
+      objectKey: `tenant/${tenantA}/claims/${claimA}/damage-1.jpg`,
+      uploadedBy: manager,
+    })
+    await db.insert(claimStatements).values({
+      id: claimStatementA,
+      tenantId: tenantA,
+      claimId: claimA,
+      format: 'generic_xlsx',
+      objectKey: null,
+      exportJobId: exportJobA,
+      generatedAt: null,
+      payload: { claimNo: `CLM-${run}`, rows: [] },
+    })
+    await db.insert(claimSettlements).values({
+      id: claimSettlementA,
+      tenantId: tenantA,
+      claimId: claimA,
+      settledOn: '2026-09-04',
+      amountPaise: 40_000,
+      mode: 'credit_note',
+      externalRef: `CN/${run}`,
+      recordedBy: owner,
+    })
+    await db.insert(suppliers).values({ id: supplierB, tenantId: tenantB, name: `Depot B ${run}` })
+    await db.insert(claims).values({
+      id: claimB,
+      tenantId: tenantB,
+      supplierId: supplierB,
+      kind: 'shortage',
+      periodFrom: '2026-08-01',
+      periodTo: '2026-08-31',
+      claimedPaise: 5_000,
     })
   })
 
@@ -3857,5 +3972,532 @@ describeDb('row level security and ledger guarantees', () => {
     expect(await asOtherTenant((tx) => tx.select().from(exportJobs))).toHaveLength(0)
     expect(await asOtherTenant((tx) => tx.select().from(tallyMappings))).toHaveLength(0)
     expect(await asOtherTenant((tx) => tx.select().from(tallySyncLedger))).toHaveLength(0)
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Migrations 0021/0022 (claims: money the brand owes the distributor, docs/plans/claims.md §3, §4.21,
+  // §5.16–19, §5.23; coordination §5.3). Five back-office tables plus the brand's claim policy. A claim
+  // line on a damage claim carries PURCHASE COST (`rate_paise`) and a scheme line says which schemes
+  // the brand funds — the two secrets the field must never learn (docs/22 §9 never-list 1) — so every
+  // field role and the shopkeeper are refused on all six, in both directions; the owner alone sets a
+  // policy; and the arithmetic (settled within claimed, one live claim per period, one claim per
+  // source) is a constraint, not service code.
+
+  const claimsTables = [
+    claims,
+    claimLines,
+    claimEvidence,
+    claimStatements,
+    claimSettlements,
+    returnPolicies,
+  ] as const
+
+  it('keeps every claims table from the rep, the godown, the crew and the shop: not a row, not a write', async () => {
+    for (const role of ['salesperson', 'warehouse', 'delivery', 'retailer'] as const) {
+      for (const table of claimsTables) {
+        expect(
+          await as(role)((tx) => tx.select().from(table)),
+          `${role} must not read a claims table`,
+        ).toHaveLength(0)
+      }
+      // the purchase-cost leak vector, named: the priced line
+      expect(
+        await as(role)((tx) =>
+          tx
+            .select({ ratePaise: claimLines.ratePaise })
+            .from(claimLines)
+            .where(eq(claimLines.id, claimLineA)),
+        ),
+        `${role} must not read claim_lines.rate_paise`,
+      ).toHaveLength(0)
+      // nor open a claim, add a line, attach a photo, ask for a sheet, record the brand's money, or set a policy
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(claims).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            supplierId: supplierA,
+            kind: 'other',
+            periodFrom: '2026-09-01',
+            periodTo: '2026-09-30',
+            createdBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(claimLines).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            claimId: claimA,
+            sourceType: 'manual',
+            sourceId: `sneaky-${role}-${run}`,
+            amountPaise: 1,
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(claimEvidence).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            claimId: claimA,
+            objectKey: `tenant/${tenantA}/claims/${claimA}/${role}.jpg`,
+            uploadedBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(claimStatements).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            claimId: claimA,
+            format: 'generic_xlsx',
+            generatedAt: null,
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(claimSettlements).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            claimId: claimA,
+            settledOn: '2026-09-05',
+            amountPaise: 1,
+            mode: 'adjustment',
+            recordedBy: actorFor(role),
+          }),
+        ),
+        /row-level security/,
+      )
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(returnPolicies).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            brandId: brandA,
+            damageClaimable: true,
+          }),
+        ),
+        /row-level security|return_policies_tenant_brand_idx/,
+      )
+      // nor settle, reject or renumber a claim, or touch a line's money: the update matches nothing
+      const touchedClaim = await as(role)((tx) =>
+        tx
+          .update(claims)
+          .set({ settledPaise: 100_000, status: 'settled' })
+          .where(eq(claims.id, claimA))
+          .returning({ id: claims.id }),
+      )
+      expect(touchedClaim, `${role} must not settle a claim`).toHaveLength(0)
+      const touchedLine = await as(role)((tx) =>
+        tx
+          .update(claimLines)
+          .set({ settledPaise: 100_000 })
+          .where(eq(claimLines.id, claimLineA))
+          .returning({ id: claimLines.id }),
+      )
+      expect(touchedLine, `${role} must not touch a claim line`).toHaveLength(0)
+      const touchedPolicy = await as(role)((tx) =>
+        tx
+          .update(returnPolicies)
+          .set({ damageClaimable: false })
+          .where(eq(returnPolicies.id, policyA))
+          .returning({ id: returnPolicies.id }),
+      )
+      expect(touchedPolicy, `${role} must not change a claim policy`).toHaveLength(0)
+      const deleted = await as(role)((tx) =>
+        tx.delete(claimLines).where(eq(claimLines.id, claimLineA)).returning({ id: claimLines.id }),
+      )
+      expect(deleted, `${role} must not remove a claim line`).toHaveLength(0)
+    }
+    const [claim] = await db.select().from(claims).where(eq(claims.id, claimA))
+    expect(claim?.status).toBe('partially_settled')
+    expect(claim?.settledPaise).toBe(40_000)
+    const [line] = await db.select().from(claimLines).where(eq(claimLines.id, claimLineA))
+    expect(line?.settledPaise).toBe(40_000)
+    // the desk — owner, manager and the accountant's money seat — reads all six
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      expect(
+        (await as(role)((tx) => tx.select().from(claims))).map((c) => c.id),
+        `${role} reads the claim`,
+      ).toContain(claimA)
+      const lines = await as(role)((tx) =>
+        tx.select().from(claimLines).where(eq(claimLines.id, claimLineA)),
+      )
+      expect(lines[0]?.ratePaise, `${role} reads the line at cost`).toBe(3_000)
+      expect(
+        (await as(role)((tx) => tx.select().from(claimEvidence))).map((e) => e.id),
+        `${role} reads the evidence`,
+      ).toContain(claimEvidenceA)
+      expect(
+        (await as(role)((tx) => tx.select().from(claimStatements))).map((s) => s.id),
+        `${role} reads the sheet`,
+      ).toContain(claimStatementA)
+      expect(
+        (await as(role)((tx) => tx.select().from(claimSettlements))).map((s) => s.id),
+        `${role} reads the settlement`,
+      ).toContain(claimSettlementA)
+      expect(
+        (await as(role)((tx) => tx.select().from(returnPolicies))).map((p) => p.id),
+        `${role} reads the claim policy`,
+      ).toContain(policyA)
+    }
+    // the worker (app_rw with the system role: the period rollover, the sheet renderer) reads them too
+    const asSystem = await withTenant(
+      db,
+      { tenantId: tenantA, actorId: 'worker', actorRole: 'system' },
+      (tx) => tx.select({ id: claims.id }).from(claims),
+    )
+    expect(asSystem.map((c) => c.id)).toContain(claimA)
+  })
+
+  it('lets the owner alone set a brand’s claim policy; the manager and the accountant read it and record the money', async () => {
+    // a policy is what money the business believes it can recover: owner only, like claims.policies.upsert
+    for (const role of ['manager', 'accountant'] as const) {
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(returnPolicies).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            brandId: uuidv7(),
+            expiryClaimable: true,
+          }),
+        ),
+        /row-level security/,
+      )
+      const touched = await as(role)((tx) =>
+        tx
+          .update(returnPolicies)
+          .set({ settlementDays: 7 })
+          .where(eq(returnPolicies.id, policyA))
+          .returning({ id: returnPolicies.id }),
+      )
+      expect(touched, `${role} must not change a claim policy`).toHaveLength(0)
+      const removed = await as(role)((tx) =>
+        tx
+          .delete(returnPolicies)
+          .where(eq(returnPolicies.id, policyA))
+          .returning({ id: returnPolicies.id }),
+      )
+      expect(removed, `${role} must not remove a claim policy`).toHaveLength(0)
+    }
+    const changed = await as('owner')((tx) =>
+      tx
+        .update(returnPolicies)
+        .set({ settlementDays: 21, claimPeriodKind: 'fortnightly' })
+        .where(eq(returnPolicies.id, policyA))
+        .returning({ settlementDays: returnPolicies.settlementDays }),
+    )
+    expect(changed).toEqual([{ settlementDays: 21 }])
+    // the money desk records a brand's credit note (claims.settlements.record is BACK_OFFICE) …
+    const settlementByAccountant = uuidv7()
+    const recorded = await as('accountant')((tx) =>
+      tx
+        .insert(claimSettlements)
+        .values({
+          id: settlementByAccountant,
+          tenantId: tenantA,
+          claimId: claimA,
+          settledOn: '2026-09-05',
+          amountPaise: 10_000,
+          mode: 'adjustment',
+          note: 'rounding agreed on the phone',
+          recordedBy: owner,
+        })
+        .returning({ id: claimSettlements.id }),
+    )
+    expect(recorded).toEqual([{ id: settlementByAccountant }])
+    // … and the same brand reference never twice on one claim
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx.insert(claimSettlements).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          claimId: claimA,
+          settledOn: '2026-09-05',
+          amountPaise: 1_000,
+          mode: 'credit_note',
+          externalRef: `CN/${run}`,
+        }),
+      ),
+      /claim_settlements_ref_idx/,
+    )
+    await db.delete(claimSettlements).where(eq(claimSettlements.id, settlementByAccountant))
+  })
+
+  it('keeps a claim’s arithmetic honest: settled within claimed, a period in order, an amount above zero, evidence that points somewhere', async () => {
+    // the brand cannot pay more than was claimed (settled + written off ≤ claimed), on the claim …
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(claims).set({ settledPaise: 100_001 }).where(eq(claims.id, claimA)),
+      ),
+      /claims_settled_within_claimed/,
+    )
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx
+          .update(claims)
+          .set({ settledPaise: 60_000, writtenOffPaise: 40_001 })
+          .where(eq(claims.id, claimA)),
+      ),
+      /claims_settled_within_claimed/,
+    )
+    // … and on the line
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(claimLines).set({ settledPaise: 100_001 }).where(eq(claimLines.id, claimLineA)),
+      ),
+      /claim_lines_settled_within_amount/,
+    )
+    // a period runs forwards
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.insert(claims).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          supplierId: supplierA,
+          kind: 'other',
+          periodFrom: '2026-09-30',
+          periodTo: '2026-09-01',
+        }),
+      ),
+      /claims_period_order/,
+    )
+    // a settlement is money that arrived
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.insert(claimSettlements).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          claimId: claimA,
+          settledOn: '2026-09-05',
+          amountPaise: 0,
+          mode: 'bank_receipt',
+        }),
+      ),
+      /claim_settlements_amount_positive/,
+    )
+    // evidence is a document or an object key, never neither
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.insert(claimEvidence).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          claimId: claimA,
+          kind: 'email',
+          caption: 'the brand said yes',
+        }),
+      ),
+      /claim_evidence_has_target/,
+    )
+    // the sheet row exists before the sheet does (the worker fills it), and the closing state exists
+    const [statement] = await db
+      .select()
+      .from(claimStatements)
+      .where(eq(claimStatements.id, claimStatementA))
+    expect(statement?.objectKey).toBeNull()
+    expect(statement?.generatedAt).toBeNull()
+    expect(statement?.exportJobId).toBe(exportJobA)
+    const closing = await db.execute(
+      sql`select enumlabel from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'claim_status' and e.enumlabel = 'written_off'`,
+    )
+    expect(closing.rows).toHaveLength(1)
+    const [claim] = await db.select().from(claims).where(eq(claims.id, claimA))
+    expect(claim?.settledPaise).toBe(40_000)
+    expect(claim?.writtenOffPaise).toBe(0)
+  })
+
+  it('claims a source once, and again only after the claim that held it is rejected', async () => {
+    const source = `stock-ledger-${run}`
+    const first = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(claimLines).values({
+        id: first,
+        tenantId: tenantA,
+        claimId: claimA,
+        lineNo: 2,
+        sourceType: 'stock_ledger',
+        sourceId: source,
+        variantId: variant,
+        qtyPcs: 12,
+        ratePaise: 3_000,
+        basis: 'ptd',
+        amountPaise: 36_000,
+      }),
+    )
+    // the same damage row on a second line: refused, whichever claim it is on (the build counts it as skipped)
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx.insert(claimLines).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          claimId: claimA,
+          lineNo: 3,
+          sourceType: 'stock_ledger',
+          sourceId: source,
+          amountPaise: 36_000,
+        }),
+      ),
+      /claim_lines_source_unique_idx/,
+    )
+    // an out-of-window copy is recorded as rejected, so the loss is visible, and does not collide
+    const outOfWindow = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(claimLines).values({
+        id: outOfWindow,
+        tenantId: tenantA,
+        claimId: claimA,
+        lineNo: 3,
+        status: 'rejected',
+        sourceType: 'stock_ledger',
+        sourceId: source,
+        amountPaise: 36_000,
+        detail: { reason: 'out_of_window' },
+      }),
+    )
+    // once the line that holds the source is rejected, the source is claimable again
+    await as('manager')((tx) =>
+      tx.update(claimLines).set({ status: 'rejected' }).where(eq(claimLines.id, first)),
+    )
+    const again = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(claimLines).values({
+        id: again,
+        tenantId: tenantA,
+        claimId: claimA,
+        lineNo: 4,
+        sourceType: 'stock_ledger',
+        sourceId: source,
+        amountPaise: 36_000,
+      }),
+    )
+    // one live claim per supplier × brand × kind × period — with NO brand, which is where a plain
+    // unique index would let two shortage claims cover the same month (NULLs never collide)
+    const shortage = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(claims).values({
+        id: shortage,
+        tenantId: tenantA,
+        supplierId: supplierA,
+        kind: 'shortage',
+        periodFrom: '2026-08-01',
+        periodTo: '2026-08-31',
+        createdBy: manager,
+      }),
+    )
+    await rejectsWith(
+      as('manager')((tx) =>
+        tx.insert(claims).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          supplierId: supplierA,
+          kind: 'shortage',
+          periodFrom: '2026-08-01',
+          periodTo: '2026-08-31',
+          createdBy: manager,
+        }),
+      ),
+      /claims_open_period_idx/,
+    )
+    await as('manager')((tx) =>
+      tx
+        .update(claims)
+        .set({
+          status: 'rejected',
+          rejectedAt: new Date(),
+          rejectionReason: 'raised on the wrong month',
+        })
+        .where(eq(claims.id, shortage)),
+    )
+    const reraised = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(claims).values({
+        id: reraised,
+        tenantId: tenantA,
+        supplierId: supplierA,
+        kind: 'shortage',
+        periodFrom: '2026-08-01',
+        periodTo: '2026-08-31',
+        createdBy: manager,
+      }),
+    )
+    await db.delete(claimLines).where(eq(claimLines.id, first))
+    await db.delete(claimLines).where(eq(claimLines.id, outOfWindow))
+    await db.delete(claimLines).where(eq(claimLines.id, again))
+    await db.delete(claims).where(eq(claims.id, shortage))
+    await db.delete(claims).where(eq(claims.id, reraised))
+  })
+
+  it('keeps a claim inside the tenant', async () => {
+    const asOtherTenant = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, fn)
+    const seen = await asOtherTenant((tx) => tx.select().from(claims))
+    expect(seen.map((c) => c.id)).toContain(claimB)
+    expect(seen.map((c) => c.id)).not.toContain(claimA)
+    expect(await asOtherTenant((tx) => tx.select().from(claimLines))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(claimEvidence))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(claimStatements))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(claimSettlements))).toHaveLength(0)
+    expect(await asOtherTenant((tx) => tx.select().from(returnPolicies))).toHaveLength(0)
+    // and nothing of tenant B's can be pinned onto tenant A's claim: RLS hides the claim from app_rw,
+    // but a foreign-key check bypasses row security, so the guard trigger is the rule — for the owner
+    // connection (no RLS at all) as much as for a tenant B actor
+    await rejectsWith(
+      asOtherTenant((tx) =>
+        tx.insert(claimSettlements).values({
+          id: uuidv7(),
+          tenantId: tenantB,
+          claimId: claimA,
+          settledOn: '2026-09-05',
+          amountPaise: 1,
+          mode: 'adjustment',
+        }),
+      ),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.insert(claimLines).values({
+        id: uuidv7(),
+        tenantId: tenantB,
+        claimId: claimA,
+        sourceType: 'manual',
+        sourceId: `pin-${run}`,
+        amountPaise: 1,
+      }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.insert(claimEvidence).values({
+        id: uuidv7(),
+        tenantId: tenantB,
+        claimId: claimA,
+        objectKey: `tenant/${tenantB}/claims/x.jpg`,
+      }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.insert(claimStatements).values({
+        id: uuidv7(),
+        tenantId: tenantB,
+        claimId: claimA,
+        format: 'generic_xlsx',
+        generatedAt: null,
+      }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db
+        .update(claimSettlements)
+        .set({ claimId: claimB })
+        .where(eq(claimSettlements.id, claimSettlementA)),
+      /belongs to another tenant/,
+    )
   })
 })

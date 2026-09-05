@@ -148,6 +148,20 @@
       "when": 1788595586925,
       "tag": "0020_outbox_relay",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788600861145,
+      "tag": "0021_claims_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788600861146,
+      "tag": "0022_claims_guarantees",
+      "breakpoints": true
     }
   ]
 }

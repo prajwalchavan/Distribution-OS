@@ -13,7 +13,8 @@ export interface Correction {
   after: unknown
 }
 
-const same = (a: unknown, b: unknown): boolean => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+const same = (a: unknown, b: unknown): boolean =>
+  JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
 
 export const headerPath = (field: string): string => `header.${field}`
 export const linePath = (index: number, field: string): string => `lines[${String(index)}].${field}`
@@ -40,7 +41,7 @@ export function applyReviewPatch(
     corrections.push({ path: headerPath(field), before: header[field] ?? null, after: value })
     header[field] = value
   }
-  const lines = reviewed.lines.map((line) => ({ ...line }) as Record<string, unknown>)
+  const lines: Record<string, unknown>[] = reviewed.lines.map((line) => ({ ...line }))
   for (const linePatch of patch.lines ?? []) {
     const index = lines.findIndex((l) => l.lineNo === linePatch.lineNo)
     if (index < 0) continue
@@ -49,7 +50,11 @@ export function applyReviewPatch(
     for (const [field, value] of Object.entries(linePatch)) {
       if (field === 'lineNo' || value === undefined) continue
       if (same(target[field], value)) continue
-      corrections.push({ path: linePath(index, field), before: target[field] ?? null, after: value })
+      corrections.push({
+        path: linePath(index, field),
+        before: target[field] ?? null,
+        after: value,
+      })
       target[field] = value
     }
   }
@@ -67,7 +72,11 @@ export function applyReviewPatch(
       }
     } else {
       annotations.push({ id: a.id, applied: a.applied })
-      corrections.push({ path: `header.annotation`, before: null, after: { id: a.id, applied: a.applied } })
+      corrections.push({
+        path: `header.annotation`,
+        before: null,
+        after: { id: a.id, applied: a.applied },
+      })
     }
   }
   return {
@@ -98,7 +107,8 @@ export function diffReadings(
     const keys = new Set([...Object.keys(la), ...Object.keys(lb)])
     for (const key of [...keys].sort()) {
       if (key === 'evidence') continue
-      if (!same(la[key], lb[key])) out.push({ path: linePath(i, key), a: la[key] ?? null, b: lb[key] ?? null })
+      if (!same(la[key], lb[key]))
+        out.push({ path: linePath(i, key), a: la[key] ?? null, b: lb[key] ?? null })
     }
   }
   return out

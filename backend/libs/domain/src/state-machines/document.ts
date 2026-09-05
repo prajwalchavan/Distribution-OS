@@ -48,7 +48,12 @@ export const documentMachine = defineMachine<DocumentState, DocumentEvent>({
   transitions: {
     uploaded: { submit: 'verifying', reject: 'rejected', fail: 'failed' },
     verifying: { verified: 'extracting', reject: 'rejected', fail: 'failed' },
-    extracting: { extracted: 'extracted', flag: 'needs_review', reject: 'rejected', fail: 'failed' },
+    extracting: {
+      extracted: 'extracted',
+      flag: 'needs_review',
+      reject: 'rejected',
+      fail: 'failed',
+    },
     extracted: {
       start_review: 'needs_review',
       flag: 'needs_review',

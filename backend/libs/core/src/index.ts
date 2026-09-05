@@ -28,3 +28,4 @@ export { WarehouseModule, LoadSheetsService } from './modules/warehouse/index.js
 export { DeliveryModule, deliveryPerformanceRows } from './modules/delivery/index.js'
 export { SyncModule, SyncRegistry, SyncRejection } from './modules/sync/index.js'
 export { FilesModule, FilesService } from './modules/files/index.js'
+export { DocintModule } from './modules/docint/index.js'

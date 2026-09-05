@@ -11,6 +11,8 @@ export const RETENTION = 'retention'
  *  - trip_points: 90 days (DPDP; stop coordinates and POD evidence are business records and stay with the invoice)
  *  - sync_errors resolved > 90 days ago
  *  - outbox_events published > 30 days ago
+ *  - docint derived rows (extraction_checks, sku_match_candidates) of documents rejected/failed > 180
+ *    days ago; the page objects and the extraction itself are KEPT (they are the record behind a GRN)
  * Each statement is bounded so a backlog never holds locks for long; the job re-runs hourly.
  */
 export async function runRetention(db: Db): Promise<Record<string, number>> {
@@ -20,6 +22,8 @@ export async function runRetention(db: Db): Promise<Record<string, number>> {
     trip_points: sql`DELETE FROM trip_points WHERE ctid IN (SELECT ctid FROM trip_points WHERE recorded_at < now() - interval '90 days' LIMIT 20000)`,
     sync_errors: sql`DELETE FROM sync_errors WHERE ctid IN (SELECT ctid FROM sync_errors WHERE resolved_at IS NOT NULL AND resolved_at < now() - interval '90 days' LIMIT 5000)`,
     outbox_events: sql`DELETE FROM outbox_events WHERE ctid IN (SELECT ctid FROM outbox_events WHERE published_at IS NOT NULL AND published_at < now() - interval '30 days' LIMIT 5000)`,
+    extraction_checks: sql`DELETE FROM extraction_checks WHERE ctid IN (SELECT c.ctid FROM extraction_checks c JOIN extractions e ON e.id = c.extraction_id JOIN documents d ON d.id = e.document_id WHERE d.status IN ('rejected', 'failed') AND d.updated_at < now() - interval '180 days' LIMIT 5000)`,
+    sku_match_candidates: sql`DELETE FROM sku_match_candidates WHERE ctid IN (SELECT c.ctid FROM sku_match_candidates c JOIN extractions e ON e.id = c.extraction_id JOIN documents d ON d.id = e.document_id WHERE d.status IN ('rejected', 'failed') AND d.updated_at < now() - interval '180 days' LIMIT 5000)`,
   }
   const deleted: Record<string, number> = {}
   for (const [table, statement] of Object.entries(sweeps)) {

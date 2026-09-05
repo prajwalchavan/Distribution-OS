@@ -22,10 +22,10 @@ import { logger } from '../logger.js'
  *    file is written, so a crash mid-run re-renders at most the row in flight (idempotent: same key).
  *  - a direct pg-boss send of a `DocumentRenderRequest` payload runs `handlePdfRenderJob` once.
  *
- * The outbox relay (`outbox-relay.ts`) is still the no-op stub coordination §3.6 describes until docint
- * builds the handler registry. WHEN IT DOES, register `handlePdfRenderJob` there for
- * `DocumentRenderRequested` and drop the poll below — the relay must not mark these rows published
- * with no handler attached, or a print request is silently lost.
+ * The outbox relay (`outbox-relay.ts`) dispatches `DocumentRenderRequested` to `handlePdfRenderJob`
+ * through its registry (docint's slice built it, coordination §3.6). `renderPending` stays as the
+ * minute-by-minute drain of the same rows: both paths stamp `published_at` on the row they rendered
+ * and the render is idempotent (same key), so the two never fight.
  *
  * Renders as the system role for the row's tenant, from the same loaders the API answers with, so the
  * printed document and the screen can never differ (`@dos/core/documents`).
@@ -61,11 +61,20 @@ export async function handlePdfRenderJob(db: Db, payload: unknown): Promise<void
     logger.warn({ payload }, 'documents.pdf.render: payload is not a DocumentRenderRequest')
     return
   }
-  const rendered = await renderDocument(db, request)
-  logger.info(
-    { ...request, objectKey: rendered.objectKey, bytes: rendered.bytes },
-    'document rendered',
-  )
+  try {
+    const rendered = await renderDocument(db, request)
+    logger.info(
+      { ...request, objectKey: rendered.objectKey, bytes: rendered.bytes },
+      'document rendered',
+    )
+  } catch (error) {
+    // A document that vanished before it was rendered is dropped, not retried: nothing to print.
+    if (error instanceof DocumentNotFound) {
+      logger.warn({ ...request, err: error }, 'document vanished before it was rendered; dropped')
+      return
+    }
+    throw error
+  }
 }
 
 /**

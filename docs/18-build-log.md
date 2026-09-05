@@ -1,8 +1,29 @@
 # Build log — where we are, what is next
 
-## RESUME HERE (updated 2026-09-05 13:45 IST, session 3)
+## RESUME HERE (updated 2026-09-05 15:00 IST, session 3)
 
-**MODULE 4 DONE — delivery (2026-09-05 13:45 IST), verified by the independent gate; NEXT: docint (step 5 of 10) is starting.**
+**MODULE 5 DONE — docint (2026-09-05 15:00 IST), verified by the independent gate; NEXT: integrations (step 6 of 10) is starting.**
+The gate ran the full chain on the founder's database: `pnpm install` ("already up to date", lockfile unchanged), `turbo run build typecheck lint
+test --force` (48/48 tasks, **1550 tests**) and a second `turbo run test --force` (1550 again, 16/16), `docs:readme:check` + `format:check` clean
+(both workspaces), `pnpm smoke` **1082 calls · 0 BROKEN**, `pnpm smoke --destructive` (1082 · 0 BROKEN), `pnpm db:seed`, `pnpm smoke` again
+(1082 · 0 BROKEN), every service `/health` + `/docs/openapi.json` checked against coordination §6 (docint's 26 procedures on owner, manager and
+warehouse; none on auth, sales, delivery or retailer; the warehouse role gets 403 on every priced/review procedure), `pnpm db:seed` twice with
+identical row counts across all 127 tables, and `pnpm db:migrate` a no-op at 21 migrations (0020 `outbox_relay` was committed with the delivery
+snapshot). No defects found; nothing changed by the gate. Beyond the mechanical checks the gate read the Anthropic adapter against the current
+Messages API reference (`output_config.format` json_schema, `thinking: adaptive`, effort inside `output_config`, cached system block, base64
+image/document blocks, `refusal`/`max_tokens` stop reasons, Sonnet 5 / Opus 5 prices — all current), confirmed every handler is
+`requireRole → requireDb → withTenant → idempotent` (reads through `asCaller` = `withTenant`), that `documents.status` is written only through
+`documentMachine.next()`, and **booted the built worker against the live queues for 150 s**: it relayed the 1145 pending `DocumentRenderRequested`
+rows (PDFs rendered into `backend/.storage`) and 104 `docint.document.submitted` rows, 0 failed, 0 dead-lettered; the qr-read jobs it queued are
+no-ops because those documents were already processed inline (`DOCINT_INLINE_JOBS=1` in `.env`). Follow-ups, none blocking: (a) the Anthropic
+adapter is raw `fetch`, untested against the live API (no key in `.env`) — swapping to `@anthropic-ai/sdk` means adding it to the catalog +
+`libs/core/package.json` and `pnpm install`; (b) `failed` is terminal, so a document that exhausts `DOCINT_MAX_ATTEMPTS` must be re-photographed
+or typed through `procurement.supplierInvoices.create`; (c) `documents.approve` refuses `kind = brand_dms_invoice` (billing's `importBrandDms` is
+that path); (d) a client-supplied `sha256` on `addPage` would save the read-back on S3; (e) the HTTP `procurement.supplierInvoices.create` still has
+no `rateBasis`/`basisQty` on its wire (docint passes them through `createInTx`). Docint's slice (26 procedures, `modules/docint/**`, worker relay +
+queues, seed `docint.ts`) is in the working tree — **commit the snapshot before starting integrations.**
+
+**Earlier (MODULE 4 DONE — delivery, 2026-09-05 13:45 IST, verified by the independent gate).**
 The gate ran the full chain on the founder's database: `pnpm install` (lockfile unchanged), `turbo run build typecheck lint test --force`
 (48/48 tasks, **1442 tests**) and a second `turbo run test --force` (1442 again), `docs:readme:check` + `format:check` clean, `pnpm smoke`
 **1004 calls · 0 BROKEN**, `pnpm smoke --destructive` (1004 · 0 BROKEN, 2 throwaway trips swept by the owner), `pnpm db:seed`, `pnpm smoke` again
@@ -14,8 +35,8 @@ graph runs in 58 s instead of 2m30 s), the delivery spec built five bills inside
 answered 500 when a client id already named another supplier/variant pair (now 409, and the Swagger example names the row the natural key
 resolves to), and `pnpm smoke --destructive` cancelled the demo's planned trip TRIP-NEXT for good (a cancelled trip is terminal and the seed
 never recreates one; the harness now cancels a plan of its own on the smoke vehicle, and the founder's TRIP-NEXT was restored by hand).
-The docint contract (`docint.ts`, mounted in `contract.ts`, 26 permission rows, migrations 0016/0017) is in the working tree from the
-database slice; `modules/docint` is NOT built yet — that is the next module. **Commit the snapshot before starting it.**
+The docint contract (`docint.ts`, mounted in `contract.ts`, 26 permission rows, migrations 0016/0017) was in the working tree from the
+database slice; `modules/docint` was built next (see above).
 
 **Earlier (MODULE 3b DONE — platform-gaps, 2026-09-05 10:40 IST, verified by the independent gate).**
 The gate ran the full chain on the founder's database: `pnpm install` (lockfile unchanged), `turbo run build typecheck lint test --force`
@@ -272,7 +293,8 @@ Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `d
 | 3 warehouse                                                                                             | ✅ verified (2026-09-05, 962 tests, smoke 610/0 broken)  | after backend    |
 | 3b platform gaps (docs/23 in built modules, files + PDF, accountant scope, manager load-sheet approval) | ✅ verified (2026-09-05, 1254 tests, smoke 844/0 broken) | after backend    |
 | 4 delivery (vehicles + consents, trips, stops, doorstep deliveries + POD, collections, van sales, expenses, settlement, GPS; migrations 0014/0015; 32 procedures on owner/manager/warehouse/delivery/retailer; sync handlers for trip_stops, deliveries, pod_evidence, collections, trip_expenses; seed-demo `delivery-road.ts`; gate fixes: turbo `concurrency: 4`, delivery spec fixtures in a hook, `packConfigs.upsert` id clash → 409 + self-healing example, smoke `trips.cancel` on its own throwaway plan) | ✅ verified (2026-09-05, 1442 tests, smoke 1004/0 broken ×3, seed idempotent over 126 tables) | after backend    |
-| 5 docint · 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives                     | ⏳ chained, one at a time                                | after backend    |
+| 5 docint (inbound-bill pipeline: capture → QR decode/verify → engine → validators → SKU cascade → single-writer review → approve into a supplier-invoice DRAFT via procurement's new `SupplierInvoiceService.createInTx`, never stock/lot/cost/journal; `documentMachine` + `reviewSessionMachine` in @dos/domain; 26 procedures on owner/manager/warehouse; `@dos/core/docint` DI-free pipeline subpath with a deterministic stub engine and a raw-HTTP Anthropic vision adapter (`DOCINT_ENGINE`, `DOCINT_INLINE_JOBS`); sync handlers for documents + document_pages; worker: real outbox relay (`registerOutboxHandler`, `FOR UPDATE SKIP LOCKED`, backoff, dead-letter — migration 0020) + pg-boss queues docint.qr-read/extract/validate/match; seed-demo `docint.ts` 11 documents in every state) | ✅ verified (2026-09-05, 1550 tests ×2, smoke 1082/0 broken ×3 incl. --destructive, seed idempotent over 127 tables, worker booted live: 1145 renders + 104 docint events relayed, 0 dead-lettered) | after backend    |
+| 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives                                | ⏳ chained, one at a time                                | after backend    |
 | 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                          | —                |
 | six apps (layout A Ledger, design system being finalised)                                               | —                                                        | ⏳ after backend |
 

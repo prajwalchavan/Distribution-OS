@@ -9,6 +9,10 @@ import {
   deliveries,
   deliveryChallans,
   devices,
+  documents,
+  extractions,
+  reviewSessions,
+  skuMatchCandidates,
   grnLines,
   grns,
   inboundDiscrepancies,
@@ -159,6 +163,36 @@ export interface DemoOrderSet {
 }
 
 /**
+ * The docint rows (docs/plans/docint.md §6). A document every capture role may read, the priced
+ * reading behind it, an extraction with an amber line to accept and a red line to pick for, one
+ * reviewable document per desk lane, the open review session each desk user holds, the reviewed
+ * document waiting to be approved, and a duplicate to reject.
+ */
+export interface DocintExamples {
+  /** A committed supplier bill with pages: get / status / pageUrl / extractions.list. */
+  documentId?: string | undefined
+  /** Its engine reading: extractions.get. */
+  extractionId?: string | undefined
+  /** A reading with candidates in every band: matches.*. */
+  matchExtractionId?: string | undefined
+  amberLineNo?: number | undefined
+  amberCandidateId?: string | undefined
+  redLineNo?: number | undefined
+  /** Documents with a clean reading and no live lock, one per desk lane: review.start. */
+  reviewable: string[]
+  /** The open session each desk user holds, by user id: heartbeat / save / submit. */
+  openSessions: Record<string, { sessionId: string; documentId: string }>
+  /** The reviewed document with a submitted session (else a committed one, which replays): approve. */
+  approvable?: { documentId: string; lineNos: number[] } | undefined
+  /** A duplicate capture the desk may reject (a rejected one answers 200 again). */
+  rejectable?: string | undefined
+  /** A read document nobody is reviewing: extractions.run with force. */
+  rerunnable?: string | undefined
+  /** The GSTIN of the example supplier, for the QR the capture example carries. */
+  supplierGstin?: string | undefined
+}
+
+/**
  * Rows pulled from the demo tenant. Every field is optional: a missing one falls back to the static
  * sampler, so the document still generates against an empty or unmigrated database.
  */
@@ -300,6 +334,8 @@ export interface ExampleContext {
   linkedOrders?: DemoOrderSet | undefined
   /** That shop's own latest receipt, for the same reason. */
   linkedReceiptId?: string | undefined
+  /** The inbound inbox (docint): the rows every docint example points at. */
+  docint?: DocintExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -445,8 +481,170 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectPricing(tx, tenant.id, ctx)
   await collectPlatformGaps(tx, tenant.id, ctx)
   await collectDelivery(tx, tenant.id, ctx)
+  await collectDocint(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/** The inbound inbox as the seed left it (docs/plans/docint.md §6). */
+async function collectDocint(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const docint: DocintExamples = { reviewable: [], openSessions: {} }
+  ctx.docint = docint
+  const committed = first(
+    (
+      await tx.execute(
+        sql`select d.id from documents d
+             where d.tenant_id = ${tenantId} and d.kind = 'supplier_invoice' and d.status = 'committed'
+               and exists (select 1 from document_pages p where p.document_id = d.id)
+             order by d.created_at desc limit 1`,
+      )
+    ).rows as { id: string }[],
+  )
+  docint.documentId =
+    committed?.id ??
+    first(
+      (
+        await tx.execute(
+          sql`select d.id from documents d
+               where d.tenant_id = ${tenantId} and d.kind = 'supplier_invoice'
+                 and exists (select 1 from document_pages p where p.document_id = d.id)
+               order by d.created_at desc limit 1`,
+        )
+      ).rows as { id: string }[],
+    )?.id
+  if (docint.documentId)
+    docint.extractionId = first(
+      await tx
+        .select({ id: extractions.id })
+        .from(extractions)
+        .where(
+          and(eq(extractions.documentId, docint.documentId), eq(extractions.engine, 'llm_vision')),
+        )
+        .orderBy(desc(extractions.createdAt))
+        .limit(1),
+    )?.id
+  // The reading with an amber line (candidates, none chosen) on a document still open for matching
+  // (not committed / rejected); once every line has been accepted, any line that has candidates —
+  // accept re-accepts, reject un-chooses, choose picks — so the three writes keep a real target.
+  const amber = first(
+    (
+      await tx.execute(
+        sql`select c.extraction_id, c.line_no, c.id as candidate_id, e.line_count,
+                   exists (select 1 from sku_match_candidates x
+                            where x.extraction_id = c.extraction_id and x.line_no = c.line_no and x.chosen) as chosen
+               from sku_match_candidates c
+               join extractions e on e.id = c.extraction_id
+               join documents d on d.id = e.document_id
+              where c.tenant_id = ${tenantId} and d.status in ('extracted', 'needs_review')
+              order by chosen asc, e.created_at desc, c.line_no, c.score desc limit 1`,
+      )
+    ).rows as {
+      extraction_id: string
+      line_no: number
+      candidate_id: string
+      line_count: number | null
+    }[],
+  )
+  if (amber) {
+    docint.matchExtractionId = amber.extraction_id
+    docint.amberLineNo = Number(amber.line_no)
+    docint.amberCandidateId = amber.candidate_id
+    const withCandidates = new Set(
+      (
+        await tx
+          .selectDistinct({ lineNo: skuMatchCandidates.lineNo })
+          .from(skuMatchCandidates)
+          .where(eq(skuMatchCandidates.extractionId, amber.extraction_id))
+      ).map((r) => r.lineNo),
+    )
+    for (let n = 1; n <= Number(amber.line_count ?? 0); n++)
+      if (!withCandidates.has(n)) {
+        docint.redLineNo = n
+        break
+      }
+  } else if (docint.extractionId) docint.matchExtractionId = docint.extractionId
+  // Clean readings first (`extracted`), then the flagged ones nobody holds: a captured bill the
+  // capture examples submitted earlier lands here too, so the desk chain keeps a target across runs.
+  docint.reviewable = (
+    (
+      await tx.execute(
+        sql`select d.id from documents d
+             where d.tenant_id = ${tenantId} and d.kind = 'supplier_invoice'
+               and d.status in ('extracted', 'needs_review')
+               and not exists (select 1 from review_sessions s
+                                where s.document_id = d.id and s.status = 'open' and s.locked_until > now())
+             order by (d.status = 'extracted') desc, d.created_at limit 8`,
+      )
+    ).rows as { id: string }[]
+  ).map((r) => r.id)
+  const open = await tx
+    .select({
+      id: reviewSessions.id,
+      documentId: reviewSessions.documentId,
+      reviewerId: reviewSessions.reviewerId,
+    })
+    .from(reviewSessions)
+    .where(
+      and(
+        eq(reviewSessions.tenantId, tenantId),
+        eq(reviewSessions.status, 'open'),
+        sql`${reviewSessions.lockedUntil} > now()`,
+      ),
+    )
+    .orderBy(desc(reviewSessions.lockedUntil))
+    .limit(20)
+  for (const row of open)
+    docint.openSessions[row.reviewerId] ??= { sessionId: row.id, documentId: row.documentId }
+  const reviewed = first(
+    (
+      await tx.execute(
+        sql`select d.id, coalesce(jsonb_array_length(s.reviewed -> 'lines'), 0)::int as lines
+               from documents d join review_sessions s on s.document_id = d.id and s.status = 'submitted'
+              where d.tenant_id = ${tenantId} and d.status = 'reviewed' and d.kind = 'supplier_invoice'
+              order by s.submitted_at desc nulls last limit 1`,
+      )
+    ).rows as { id: string; lines: number }[],
+  )
+  if (reviewed) {
+    docint.approvable = {
+      documentId: reviewed.id,
+      lineNos: Array.from({ length: Math.max(1, Number(reviewed.lines)) }, (_, i) => i + 1),
+    }
+  } else if (committed) {
+    // Approving an already committed document replays its draft, so the example never dead-ends.
+    docint.approvable = { documentId: committed.id, lineNos: [1] }
+  }
+  docint.rejectable = first(
+    (
+      await tx.execute(
+        sql`select d.id from documents d
+             where d.tenant_id = ${tenantId} and d.kind = 'supplier_invoice'
+               and (d.note ilike '%second copy%' or d.status = 'rejected')
+             order by (d.status = 'rejected') asc, d.created_at limit 1`,
+      )
+    ).rows as { id: string }[],
+  )?.id
+  docint.rerunnable = first(
+    (
+      await tx.execute(
+        sql`select d.id from documents d
+             where d.tenant_id = ${tenantId} and d.kind = 'brand_dms_invoice'
+               and d.status in ('extracted', 'needs_review')
+               and not exists (select 1 from review_sessions s
+                                where s.document_id = d.id and s.status = 'open' and s.locked_until > now())
+             order by d.created_at limit 1`,
+      )
+    ).rows as { id: string }[],
+  )?.id
+  docint.supplierGstin = ctx.supplierId
+    ? (first(
+        await tx
+          .select({ gstin: suppliers.gstin })
+          .from(suppliers)
+          .where(eq(suppliers.id, ctx.supplierId))
+          .limit(1),
+      )?.gstin ?? undefined)
+    : undefined
 }
 
 /**
@@ -627,11 +825,15 @@ async function collectPlatformGaps(tx: Db, tenantId: string, ctx: ExampleContext
     .limit(50)
   ctx.approvableLoadSheetId = sheets.find((r) => r.status === 'draft' && r.approvedBy === null)?.id
   ctx.loadSheetId = first(sheets)?.id
+  // A finding on a POSTED GRN first: a recount (`grns.count`, which another service's document may
+  // press on the same open GRN moments later) deletes and re-creates the open findings of the lines it
+  // counts, and the example would 404 on the id it published. Posted counts are frozen.
   const findings = await tx
     .select({ id: inboundDiscrepancies.id, status: inboundDiscrepancies.status })
     .from(inboundDiscrepancies)
+    .innerJoin(grns, eq(grns.id, inboundDiscrepancies.grnId))
     .where(eq(inboundDiscrepancies.tenantId, tenantId))
-    .orderBy(desc(inboundDiscrepancies.id))
+    .orderBy(sql`(${grns.status} = 'posted') desc`, desc(inboundDiscrepancies.id))
     .limit(50)
   const finding = findings.find((r) => r.status === 'open') ?? first(findings)
   ctx.discrepancyId = finding?.id
@@ -1394,6 +1596,40 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           )
       ).map((row) => row.id),
     )
+  const documentIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: documents.id })
+          .from(documents)
+          .where(and(eq(documents.tenantId, tenantId), inArray(documents.id, [...candidates])))
+      ).map((row) => row.id),
+    )
+  const sessionIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: reviewSessions.id })
+          .from(reviewSessions)
+          .where(
+            and(eq(reviewSessions.tenantId, tenantId), inArray(reviewSessions.id, [...candidates])),
+          )
+      ).map((row) => row.id),
+    )
+  const supplierInvoiceIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: supplierInvoices.id })
+          .from(supplierInvoices)
+          .where(
+            and(
+              eq(supplierInvoices.tenantId, tenantId),
+              inArray(supplierInvoices.id, [...candidates]),
+            ),
+          )
+      ).map((row) => row.id),
+    )
   ctx.slotLanes = {
     'tenantCatalog.packConfigs.upsert': await freeSlots(
       'tenantCatalog.packConfigs.upsert',
@@ -1423,6 +1659,13 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       'billing.invoices.issueForPack',
       'id',
       invoiceIds,
+    ),
+    'docint.documents.create': await freeSlots('docint.documents.create', 'id', documentIds),
+    'docint.review.start': await freeSlots('docint.review.start', 'sessionId', sessionIds),
+    'docint.documents.approve': await freeSlots(
+      'docint.documents.approve',
+      'supplierInvoiceId',
+      supplierInvoiceIds,
     ),
   }
 }
@@ -1622,6 +1865,10 @@ function byFieldName(key: string, ctx: ExampleContext): unknown {
       return ctx.approvalId
     case 'packId':
       return ctx.parkedPackId
+    case 'extractionId':
+      return ctx.docint?.matchExtractionId ?? ctx.docint?.extractionId
+    case 'candidateId':
+      return ctx.docint?.amberCandidateId
     default:
       return undefined
   }
@@ -1647,7 +1894,82 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   if (httpPath.startsWith('/delivery/trips/')) return ctx.activeTripId ?? ctx.plannedTripId
   if (httpPath.startsWith('/delivery/stops/')) return ctx.tripStopId
   if (httpPath.startsWith('/delivery/deliveries/')) return ctx.deliveryId
+  if (httpPath.startsWith('/docint/documents/')) return ctx.docint?.documentId
+  if (httpPath.startsWith('/docint/extractions/'))
+    return ctx.docint?.matchExtractionId ?? ctx.docint?.extractionId
+  if (httpPath.startsWith('/docint/review-sessions/'))
+    return Object.values(ctx.docint?.openSessions ?? {})[0]?.sessionId
   return undefined
+}
+
+/**
+ * The review session the service's own sign-in holds: the seeded one (one per desk user), else the
+ * session `review.start` opens on this lane a moment earlier in the same document. Never another
+ * reviewer's — the lock is single-writer and a foreign session answers 403.
+ */
+function heldSessionFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  const user = signInUser(ctx, options)
+  const held = user ? ctx.docint?.openSessions[user.id] : undefined
+  return (
+    held?.sessionId ??
+    createdId('docint.review.start', 'sessionId', slotOf(ctx, 'docint.review.start'))
+  )
+}
+
+/** One reviewable document per desk lane, so the owner's and the manager's `review.start` never race. */
+function reviewableFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  const list = ctx.docint?.reviewable ?? []
+  return list[serviceLane(options)] ?? list[0]
+}
+
+/** The document the capture examples create, on this service's lane. */
+function capturedDocumentId(ctx: ExampleContext): string {
+  return createdId('docint.documents.create', 'id', slotOf(ctx, 'docint.documents.create'))
+}
+
+const GSTIN_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+/** A GSTIN with a correct mod-36 check digit: the QR example must pass the checksum validators. */
+function docsGstin(stateCode: string, panLike: string, entityCode = '1'): string {
+  const base = `${stateCode}${panLike.toUpperCase()}${entityCode}Z`
+  let total = 0
+  for (let i = 0; i < 14; i++) {
+    const value = GSTIN_ALPHABET.indexOf(base[i] ?? '0')
+    const factor = i % 2 === 0 ? 1 : 2
+    const product = value * factor
+    total += Math.floor(product / 36) + (product % 36)
+  }
+  return `${base}${GSTIN_ALPHABET[(36 - (total % 36)) % 36] ?? '0'}`
+}
+
+/**
+ * The page the capture example uploads: the 1×1 PNG with the document id appended after IEND (a
+ * viewer ignores trailing bytes), so two captured documents never hash the same — the same bill
+ * photographed twice is refused by design, and the example must not look like one.
+ */
+function docsPagePng(documentId: string): string {
+  return Buffer.concat([Buffer.from(DOCS_PNG, 'base64'), Buffer.from(documentId, 'utf8')]).toString(
+    'base64',
+  )
+}
+
+/** The e-invoice QR the capture example carries: a bare JSON of the ten fields, valid GSTINs on both sides. */
+function docsQrText(ctx: ExampleContext): string {
+  const slot = slotOf(ctx, 'docint.documents.create')
+  return JSON.stringify({
+    SellerGstin: ctx.docint?.supplierGstin ?? docsGstin('27', 'AAPFU0939F'),
+    BuyerGstin: docsGstin('27', 'AAETT9021Q'),
+    DocNo: `DOCS/QR/${String(slot + 1).padStart(4, '0')}`,
+    DocTyp: 'INV',
+    DocDt: '01/09/2026',
+    TotInvVal: 1344.0,
+    ItemCnt: 1,
+    MainHsnCode: '2106',
+    Irn: createHash('sha256')
+      .update(`docs-qr-${String(slot)}`)
+      .digest('hex'),
+    IrnDt: '2026-09-01 10:15:22',
+  })
 }
 
 /** The demo user whose sign-in the auth examples show, chosen from the roles the service serves. */
@@ -2419,6 +2741,152 @@ const OVERRIDES: Record<
     limit: 500,
     cursor: DROP,
   }),
+  // docint: the capture chain creates ONE document per service lane and walks it — slots, a page
+  // (inline bytes), the QR, submit — under keys that move with the create slot, so the five calls
+  // stay one consistent story and replay together.
+  'docint.documents.create': (ctx) => ({
+    id: capturedDocumentId(ctx),
+    kind: 'supplier_invoice',
+    supplierId: ctx.supplierId,
+    expectedPages: 1,
+    capturedAt: DROP,
+    note: 'Captured from the API docs',
+    deviceId: DROP,
+  }),
+  'docint.documents.pageUploadUrl': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'docint.documents.pageUploadUrl',
+      slotOf(ctx, 'docint.documents.create'),
+    ),
+    id: capturedDocumentId(ctx),
+    'pages[0].pageNo': 1,
+    'pages[0].mimeType': 'image/png',
+    'pages[0].bytes': 70,
+  }),
+  'docint.documents.addPage': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'docint.documents.addPage',
+      slotOf(ctx, 'docint.documents.create'),
+    ),
+    id: capturedDocumentId(ctx),
+    pageId: createdId('docint.documents.addPage', 'pageId', slotOf(ctx, 'docint.documents.create')),
+    pageNo: 1,
+    mimeType: 'image/png',
+    bytes: DROP,
+    width: DROP,
+    height: DROP,
+    objectKey: `tenant/${ctx.tenantId ?? 'tenant'}/docs/${capturedDocumentId(ctx)}/page-1.png`,
+    contentBase64: docsPagePng(capturedDocumentId(ctx)),
+    printedPageLabel: '1 of 1',
+    qrDetected: true,
+  }),
+  'docint.documents.verifyQr': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'docint.documents.verifyQr',
+      slotOf(ctx, 'docint.documents.create'),
+    ),
+    id: capturedDocumentId(ctx),
+    qrText: docsQrText(ctx),
+  }),
+  'docint.documents.submit': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'docint.documents.submit',
+      slotOf(ctx, 'docint.documents.create'),
+    ),
+    id: capturedDocumentId(ctx),
+    deviceId: DROP,
+  }),
+  'docint.documents.list': () => ({
+    kind: DROP,
+    status: DROP,
+    statuses: DROP,
+    supplierId: DROP,
+    uploadedBy: DROP,
+    mine: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  'docint.documents.pageUrl': (ctx) => ({ id: ctx.docint?.documentId, pageNo: 1 }),
+  'docint.documents.reject': (ctx) => ({
+    id: ctx.docint?.rejectable ?? ctx.docint?.documentId,
+    reason: 'duplicate',
+    note: 'the same bill was photographed twice',
+  }),
+  'docint.documents.approve': (ctx) => {
+    const slot = slotOf(ctx, 'docint.documents.approve')
+    const lineNos = ctx.docint?.approvable?.lineNos ?? [1]
+    return {
+      idempotencyKey: docsIdempotencyKey('docint.documents.approve', slot),
+      id: ctx.docint?.approvable?.documentId ?? ctx.docint?.documentId,
+      supplierInvoiceId: createdId('docint.documents.approve', 'supplierInvoiceId', slot),
+      supplierId: DROP,
+      purchaseOrderId: DROP,
+      lineIds: lineNos.map((lineNo) => ({
+        lineNo,
+        id: createdId('docint.documents.approve', `lineIds[${String(lineNo - 1)}].id`, slot),
+      })),
+    }
+  },
+  'docint.extractions.run': (ctx) => ({
+    id: ctx.docint?.rerunnable ?? ctx.docint?.documentId,
+    engine: 'llm_vision',
+    force: true,
+  }),
+  'docint.extractions.list': (ctx) => ({ id: ctx.docint?.documentId, includeResult: false }),
+  'docint.extractions.get': (ctx) => ({ id: ctx.docint?.extractionId }),
+  'docint.matches.list': (ctx) => ({
+    extractionId: ctx.docint?.matchExtractionId,
+    lineNo: DROP,
+    unmatchedOnly: DROP,
+  }),
+  'docint.matches.accept': (ctx) => ({
+    id: ctx.docint?.matchExtractionId,
+    lineNo: ctx.docint?.amberLineNo ?? 1,
+    candidateId: ctx.docint?.amberCandidateId,
+    pcsPerCase: DROP,
+    rememberAlias: true,
+  }),
+  'docint.matches.reject': (ctx) => ({
+    id: ctx.docint?.matchExtractionId,
+    lineNo: ctx.docint?.amberLineNo ?? 1,
+    candidateId: ctx.docint?.amberCandidateId,
+    reason: 'wrong_pack',
+    note: DROP,
+  }),
+  'docint.matches.choose': (ctx) => ({
+    id: ctx.docint?.matchExtractionId,
+    lineNo: ctx.docint?.redLineNo ?? ctx.docint?.amberLineNo ?? 1,
+    variantId: ctx.variantId,
+    pcsPerCase: DROP,
+    rememberAlias: true,
+  }),
+  'docint.matches.rerun': (ctx) => ({ id: ctx.docint?.matchExtractionId }),
+  'docint.review.start': (ctx, options) => ({
+    id: reviewableFor(ctx, options) ?? ctx.docint?.documentId,
+    sessionId: createdId('docint.review.start', 'sessionId', slotOf(ctx, 'docint.review.start')),
+    baseExtractionId: DROP,
+  }),
+  'docint.review.heartbeat': (ctx, options) => ({ id: heldSessionFor(ctx, options) }),
+  'docint.review.save': (ctx, options) => ({
+    id: heldSessionFor(ctx, options),
+    'patch.header': DROP,
+    'patch.lines': [{ lineNo: 1, batchNo: 'DOCS-B1' }],
+    'patch.annotations': DROP,
+  }),
+  // Releases the session `review.start` opened on this lane (same slot, same id), so the desk can take
+  // the document again; the seeded sessions the save/submit examples use are left alone.
+  'docint.review.release': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey('docint.review.release', slotOf(ctx, 'docint.review.start')),
+    id: createdId('docint.review.start', 'sessionId', slotOf(ctx, 'docint.review.start')),
+  }),
+  'docint.review.submit': (ctx, options) => ({ id: heldSessionFor(ctx, options) }),
+  'docint.queue.list': () => ({ status: DROP, kind: DROP, supplierId: DROP }),
+  'docint.stats.summary': () => ({
+    from: '2026-08-01',
+    to: '2026-12-31',
+    supplierId: DROP,
+    kind: DROP,
+  }),
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
     allocations: DROP,
@@ -2637,6 +3105,42 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'delivery.vehicles.positions': () => 'Audited (gps.live_map_read): owner and manager only.',
   'sync.pull': () =>
     'Omit `since` for the full read set; send back the `cursor` you get for the delta next time.',
+  'docint.documents.create': (ctx) =>
+    createsRowNote(
+      ctx,
+      'docint.documents.create',
+      'a supplier-bill document in `uploaded`; the next four examples (upload slot, page, QR, submit) walk this same document',
+    ),
+  'docint.documents.addPage': () =>
+    'Registers page 1 of the document `create` made, sending the bytes inline (the local driver); the objectKey is the slot `pageUploadUrl` minted.',
+  'docint.documents.verifyQr': () =>
+    'A bare-JSON e-invoice QR with valid GSTINs: decoded (`qrStatus = decoded`), never verified without DOCINT_IRP_KEYS. A repeat of an IRN already captured answers 200 with `duplicate` set.',
+  'docint.documents.submit': () =>
+    'Closes capture on the document `create` made. With DOCINT_INLINE_JOBS the stub engine reads it inside the request; otherwise the outbox row waits for the worker (`pnpm --filter @dos/worker dev`).',
+  'docint.documents.reject': () =>
+    'Rejects the seeded duplicate capture; pressing it again on the rejected document answers 200 unchanged.',
+  'docint.documents.approve': (ctx) =>
+    ctx.docint?.approvable
+      ? 'Books the reviewed document as a supplier invoice DRAFT (never a GRN). A committed document answers its existing draft, so a second press replays.'
+      : 'No reviewed document in the demo data: submit a review first (review.start → review.submit).',
+  'docint.extractions.run': () =>
+    'Re-reads the seeded brand-DMS bill with force: inline on the stub engine, else queued for the worker. Refused while a review session is open.',
+  'docint.matches.accept': () =>
+    'Accepts the top candidate of the amber line on the seeded Too Yumm bill and remembers the pack; reject (next) puts the line back to amber.',
+  'docint.matches.choose': () =>
+    'Picks the demo variant for the red line (no candidate at all); the pack size defaults to the variant.',
+  'docint.review.start': (ctx) =>
+    createsRowNote(
+      ctx,
+      'docint.review.start',
+      'a review session on a reading nobody holds (the single-writer lock; a second reviewer is answered 409 with the holder)',
+    ),
+  'docint.review.save': () =>
+    'Patches a batch number on the session this sign-in holds and re-runs the validators; only an owner may patch `header.buyerGstin`.',
+  'docint.review.submit': () =>
+    "Asserts the reading is right: 400 checks_blocking while a red check stands (the manager's seeded session has one), else the document becomes `reviewed`.",
+  'docint.review.release': () =>
+    'Gives up the session `review.start` opened on this lane; a session already submitted or released answers 409.',
 }
 
 /**
@@ -2669,6 +3173,9 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'retailers.beats.assignments.list': ['userId'],
   'delivery.gps.trace': ['everyNth', 'limit'],
   'delivery.vehicles.positions': ['staleAfterMinutes'],
+  'docint.documents.pageUrl': ['pageNo'],
+  'docint.extractions.list': ['includeResult'],
+  'docint.stats.summary': ['from', 'to'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */

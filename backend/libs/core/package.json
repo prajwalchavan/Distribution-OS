@@ -75,6 +75,10 @@
     "./documents": {
       "types": "./dist/documents/index.d.ts",
       "default": "./dist/documents/index.js"
+    },
+    "./docint": {
+      "types": "./dist/modules/docint/pipeline/index.d.ts",
+      "default": "./dist/modules/docint/pipeline/index.js"
     }
   }
 }

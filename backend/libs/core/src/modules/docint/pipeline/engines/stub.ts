@@ -72,7 +72,9 @@ export function fixturesDir(env: NodeJS.ProcessEnv = process.env): string {
   return join(workspaceRoot(), '..', 'docs', 'fixtures', 'docint')
 }
 
-function fixtureFor(contentHash: string | null): { result: ExtractedInvoice; confidence: number } | null {
+function fixtureFor(
+  contentHash: string | null,
+): { result: ExtractedInvoice; confidence: number } | null {
   if (!contentHash) return null
   const dir = fixturesDir()
   for (const name of [contentHash, createHash('sha1').update(contentHash).digest('hex')]) {
@@ -149,7 +151,10 @@ function fuzz(description: string): string {
     .trim()
 }
 
-function synthesise(hints: EngineHints, pageCount: number): { result: ExtractedInvoice; confidence: number } {
+function synthesise(
+  hints: EngineHints,
+  pageCount: number,
+): { result: ExtractedInvoice; confidence: number } {
   const seed = hints.contentHash ?? hints.documentId
   const random = rng(seed)
   const catalog = hints.catalog.length > 0 ? hints.catalog.slice(0, 6) : GENERIC_LINES
@@ -171,7 +176,9 @@ function synthesise(hints: EngineHints, pageCount: number): { result: ExtractedI
     const cases = 2 + Math.floor(random() * 5)
     const qtyPcs = cases * pcsPerCase
     // Buy rate ≈ 72 % of MRP per piece, printed per case (docs/17 A4: the rate is stored as printed).
-    const perPiece = hint.mrpPaise ? Math.round(hint.mrpPaise * 0.72) : 1000 + Math.floor(random() * 4000)
+    const perPiece = hint.mrpPaise
+      ? Math.round(hint.mrpPaise * 0.72)
+      : 1000 + Math.floor(random() * 4000)
     const ratePaise = perPiece * pcsPerCase
     const taxable = paise(ratePaise * cases)
     const gstBps = hint.gstBps ?? 1200
@@ -218,24 +225,49 @@ function synthesise(hints: EngineHints, pageCount: number): { result: ExtractedI
     sgst += gst.sgst
     igst += gst.igst
     cess += cessAmt
-    for (const field of ['description', 'qtyPcs', 'ratePaise', 'lineTotalPaise', 'hsnCode', 'batchNo'])
-      fieldConfidence[linePath(i, field)] = round2(0.86 + random() * 0.13 - (last && field === 'description' ? 0.2 : 0))
+    for (const field of [
+      'description',
+      'qtyPcs',
+      'ratePaise',
+      'lineTotalPaise',
+      'hsnCode',
+      'batchNo',
+    ])
+      fieldConfidence[linePath(i, field)] = round2(
+        0.86 + random() * 0.13 - (last && field === 'description' ? 0.2 : 0),
+      )
   }
-  const freightBase = 0
-  const beforeRounding = paise(subtotal + cgst + sgst + igst + cess + freightBase)
+  const beforeRounding = paise(subtotal + cgst + sgst + igst + cess)
   const { rounded, roundOff } = roundToRupee(beforeRounding)
-  let freight = freightBase
+  let freight = paise(0)
   let total = rounded
   // A QR total within ₹500 of the reading is honoured by declaring the difference as freight, the
   // way a supplier prints transport below the tax lines; a bigger gap stays a red `qr_total`.
-  if (hints.qr && hints.qr.totInvValPaise > rounded && hints.qr.totInvValPaise - rounded <= 50_000) {
-    freight = hints.qr.totInvValPaise - rounded
-    total = hints.qr.totInvValPaise
+  if (
+    hints.qr &&
+    hints.qr.totInvValPaise > rounded &&
+    hints.qr.totInvValPaise - rounded <= 50_000
+  ) {
+    freight = paise(hints.qr.totInvValPaise - rounded)
+    total = paise(hints.qr.totInvValPaise)
   }
   const supplierName = hints.supplier?.name ?? 'Unknown supplier (printed name unreadable)'
   const invoiceNo =
-    hints.qr?.docNo ?? `${supplierName.replace(/[^A-Z]/gi, '').slice(0, 3).toUpperCase() || 'INV'}/${today.year}-${String((today.year + 1) % 100).padStart(2, '0')}/${String(1000 + Math.floor(random() * 8999))}`
-  for (const field of ['invoiceNo', 'invoiceDate', 'supplierGstin', 'buyerGstin', 'totalPaise', 'subtotalPaise'])
+    hints.qr?.docNo ??
+    `${
+      supplierName
+        .replace(/[^A-Z]/gi, '')
+        .slice(0, 3)
+        .toUpperCase() || 'INV'
+    }/${today.year}-${String((today.year + 1) % 100).padStart(2, '0')}/${String(1000 + Math.floor(random() * 8999))}`
+  for (const field of [
+    'invoiceNo',
+    'invoiceDate',
+    'supplierGstin',
+    'buyerGstin',
+    'totalPaise',
+    'subtotalPaise',
+  ])
     fieldConfidence[headerPath(field)] = round2(0.9 + random() * 0.09)
   const result: ExtractedInvoice = {
     header: {

@@ -32,7 +32,8 @@ interface RawQrData {
   IrnDt?: unknown
 }
 
-const b64url = (part: string): Buffer => Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+const b64url = (part: string): Buffer =>
+  Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
 
 function parseJson(text: string): unknown {
   try {
@@ -49,7 +50,7 @@ export function qrDateToIso(value: unknown): string | null {
   const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v)
   if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`
   const iso = /^(\d{4}-\d{2}-\d{2})/.exec(v)
-  return iso ? iso[1] : null
+  return iso?.[1] ?? null
 }
 
 /** "2020-12-07 15:31:22" (IST, as the IRP prints it) → an ISO datetime with the +05:30 offset. */
@@ -141,7 +142,7 @@ export function parseIrpKeys(json: string | null): { kid: string | null; key: Ke
   const parsed = parseJson(json) as { keys?: unknown } | unknown[] | null
   const list = Array.isArray(parsed)
     ? parsed
-    : parsed && Array.isArray((parsed as { keys?: unknown }).keys)
+    : parsed && Array.isArray(parsed.keys)
       ? ((parsed as { keys: unknown[] }).keys ?? [])
       : []
   const out: { kid: string | null; key: KeyObject }[] = []
@@ -149,8 +150,9 @@ export function parseIrpKeys(json: string | null): { kid: string | null; key: Ke
     if (!jwk || typeof jwk !== 'object') continue
     try {
       out.push({
-        kid: typeof (jwk as { kid?: unknown }).kid === 'string' ? (jwk as { kid: string }).kid : null,
-        key: createPublicKey({ key: jwk as JsonWebKey, format: 'jwk' }),
+        kid:
+          typeof (jwk as { kid?: unknown }).kid === 'string' ? (jwk as { kid: string }).kid : null,
+        key: createPublicKey({ key: jwk as Record<string, unknown>, format: 'jwk' }),
       })
     } catch {
       // a malformed key is skipped; the others may still verify

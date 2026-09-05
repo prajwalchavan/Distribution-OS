@@ -182,6 +182,13 @@ const CREDIT_NOTE_RAISERS = [
   'delivery',
 ] as const satisfies readonly MembershipRole[]
 
+/**
+ * Who may accept a LOSS on a claim to a brand (`claims.writeOff`): the owner and the accountant. The
+ * manager builds and submits claims but does not decide that money is unrecoverable (claims brief §2,
+ * coordination §6). Narrower than MONEY_DESK on purpose — the one money-desk write the manager lacks.
+ */
+const LOSS_ACCEPTORS = ['owner', 'accountant'] as const satisfies readonly MembershipRole[]
+
 const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
@@ -605,6 +612,44 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'integrations.tally.mappings.list': BACK_OFFICE,
   'integrations.tally.mappings.upsert': MONEY_DESK,
   'integrations.tally.syncLedger.list': BACK_OFFICE,
+
+  // Claims — money the brand owes us (coordination §6: "every claims.* = BACK_OFFICE, except
+  // policies.upsert = OWNER_ONLY and writeOff = owner + accountant"). One population and two exceptions,
+  // one new tuple:
+  //  * BACK_OFFICE is everything: a claim is an entry in the books — submit accrues a receivable from
+  //    the brand, a settlement books its credit note / cheque / bank receipt, a rejection reverses the
+  //    accrual — so the accountant (the money desk, docs/22 2026-09-05) opens, builds, reviews, submits,
+  //    settles and rejects alongside the owner and the manager. None of it is a price, a scheme, a
+  //    credit limit, an approval or a setting. A damage line carries PURCHASE COST (`ratePaise` at PTD)
+  //    and a scheme line says which schemes the brand funds, so no field role and no shop appears in any
+  //    row; the five tables are BACK_OFFICE_ROLES in RLS and only owner- and manager-service mount the key.
+  //  * OWNER_ONLY sets a brand's policy: what is claimable, at what value, how often — a SETTING about
+  //    what money the business believes it can recover.
+  //  * LOSS_ACCEPTORS (owner, accountant) write off the unrecovered remainder: accepting a loss is not
+  //    the manager's call.
+  'claims.policies.list': BACK_OFFICE,
+  'claims.policies.upsert': OWNER_ONLY,
+  'claims.periods.list': BACK_OFFICE,
+  'claims.ageing': BACK_OFFICE,
+  'claims.register': BACK_OFFICE,
+  'claims.reconcile.suggest': BACK_OFFICE,
+  'claims.open': BACK_OFFICE,
+  'claims.list': BACK_OFFICE,
+  'claims.get': BACK_OFFICE,
+  'claims.build': BACK_OFFICE,
+  'claims.lines.list': BACK_OFFICE,
+  'claims.lines.add': BACK_OFFICE,
+  'claims.lines.adjust': BACK_OFFICE,
+  'claims.lines.remove': BACK_OFFICE,
+  'claims.evidence.attach': BACK_OFFICE,
+  'claims.submit': BACK_OFFICE,
+  'claims.acknowledge': BACK_OFFICE,
+  'claims.settlements.record': BACK_OFFICE,
+  'claims.reject': BACK_OFFICE,
+  'claims.writeOff': LOSS_ACCEPTORS,
+  'claims.cancel': BACK_OFFICE,
+  'claims.statements.generate': BACK_OFFICE,
+  'claims.statements.list': BACK_OFFICE,
 }
 
 /**
