@@ -455,7 +455,9 @@ export async function seedNotifications(
     .where(
       and(eq(deliveries.tenantId, tenantId), inArray(deliveries.outcome, ['delivered', 'partial'])),
     )
-    .orderBy(asc(deliveries.deliveredAt))
+    // `deliveredAt` alone ties (two stops share a slot), and a LIMIT over a tie is not a stable
+    // order in Postgres: without `id` the second seed picks a different 40 and adds message rows.
+    .orderBy(asc(deliveries.deliveredAt), asc(deliveries.id))
     .limit(40)
   for (const d of delivered) {
     const retailer = retailerById.get(d.retailerId)
@@ -489,7 +491,8 @@ export async function seedNotifications(
     })
     .from(receipts)
     .where(eq(receipts.tenantId, tenantId))
-    .orderBy(asc(receipts.receivedAt))
+    // Same tie as the deliveries above: several receipts share `receivedAt`, so `id` decides.
+    .orderBy(asc(receipts.receivedAt), asc(receipts.id))
     .limit(30)
   for (const r of paid) {
     const retailer = retailerById.get(r.retailerId)

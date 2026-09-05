@@ -27,8 +27,8 @@ import {
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { RetailersModule } from '../retailers/index.js'
-import { stubProviders } from './adapters/index.js'
-import { dispatchDueMessages } from './dispatch.js'
+import { stubProviders, type ProviderSet } from './adapters/index.js'
+import { dispatchDueMessages, type DispatchOptions } from './dispatch.js'
 import { handleNotificationEvent, queueDuesReminders } from './events.js'
 import { NotificationsModule } from './index.js'
 import { MAX_ATTEMPTS, RETRY_BACKOFF_MS } from './notifications.internals.js'
@@ -113,6 +113,19 @@ describeDb('notifications (DATABASE_URL)', () => {
       .select()
       .from(messages)
       .where(and(eq(messages.tenantId, tenantId), eq(messages.idempotencyKey, key)))
+  /**
+   * One tick of the worker's sweep, named to the two tenants this run created. The sweep is
+   * cross-tenant in production and bounded at 200 rows, so on a shared development database (the
+   * founder's, which carries thousands of other runs' due rows sorted ahead of ours) an unscoped tick
+   * would never reach this spec's messages. `tenantIds` is the same claim query with a
+   * `tenant_id in (…)` predicate — the isolation test below proves it excludes what it is not given.
+   */
+  const sweep = (providers: ProviderSet, options: DispatchOptions = {}) =>
+    dispatchDueMessages(db, providers, {
+      batchSize: 50,
+      tenantIds: [tenantId, otherTenantId],
+      ...options,
+    })
 
   const platformTemplate = (
     key: string,
@@ -428,7 +441,7 @@ describeDb('notifications (DATABASE_URL)', () => {
   it('sends a queued message through the stub adapter, recording the provider id and the cost', async () => {
     const [row] = await messagesByKey(`InvoiceIssued:${invoiceId}`)
     expect(row?.status).toBe('queued')
-    const result = await dispatchDueMessages(db, stubProviders(), { batchSize: 50 })
+    const result = await sweep(stubProviders())
     expect(result.claimed).toBeGreaterThanOrEqual(1)
     const sent = await messageRow(row?.id ?? '')
     expect(sent?.status).toBe('sent')
@@ -438,9 +451,29 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect(sent?.sentAt).not.toBeNull()
     expect(sent?.nextAttemptAt).toBeNull()
     // a second tick finds nothing due for this row
-    const idle = await dispatchDueMessages(db, stubProviders(), { batchSize: 50 })
+    const idle = await sweep(stubProviders())
     expect(await messageRow(row?.id ?? '')).toMatchObject({ status: 'sent', attempts: 1 })
     expect(idle.claimed).toBe(0)
+  })
+
+  it('claims only the tenants the tick is given, and leaves every other distributor alone', async () => {
+    const foreign = uuidv7()
+    await db.insert(messages).values({
+      id: foreign,
+      tenantId: otherTenantId,
+      channel: 'in_app',
+      to: otherOwnerId,
+      recipientUserId: otherOwnerId,
+      locale: 'en-IN',
+      payload: { body: 'A notice for the other distributor' },
+      idempotencyKey: `scope-${run}`,
+    })
+    // named to this run's first tenant only: the other distributor's due row is not claimed…
+    await dispatchDueMessages(db, stubProviders(), { batchSize: 50, tenantIds: [tenantId] })
+    expect((await messageRow(foreign))?.status).toBe('queued')
+    // …and goes out on the very next tick that names its own tenant.
+    await sweep(stubProviders())
+    expect((await messageRow(foreign))?.status).toBe('delivered')
   })
 
   it('backs off a failing send on 1m/5m/30m/2h/12h and dead-letters after five attempts', async () => {
@@ -464,7 +497,7 @@ describeDb('notifications (DATABASE_URL)', () => {
     let clock = Date.now()
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const at = new Date(clock)
-      const result = await dispatchDueMessages(db, failing, { batchSize: 50, now: () => at })
+      const result = await sweep(failing, { now: () => at })
       expect(result.claimed).toBeGreaterThanOrEqual(1)
       const after = await messageRow(id)
       expect(after?.status).toBe('failed')
@@ -474,10 +507,7 @@ describeDb('notifications (DATABASE_URL)', () => {
         const expected = RETRY_BACKOFF_MS[attempt - 1] ?? 0
         expect(after?.nextAttemptAt?.getTime()).toBe(at.getTime() + expected)
         // not due yet: a tick a second later leaves it alone
-        const early = await dispatchDueMessages(db, failing, {
-          batchSize: 50,
-          now: () => new Date(clock + 1000),
-        })
+        const early = await sweep(failing, { now: () => new Date(clock + 1000) })
         expect((await messageRow(id))?.attempts).toBe(attempt)
         expect(early.claimed).toBe(0)
         clock += expected + 1
@@ -487,10 +517,7 @@ describeDb('notifications (DATABASE_URL)', () => {
       }
     }
     // dead: a sixth tick, a year later, touches nothing
-    const sixth = await dispatchDueMessages(db, failing, {
-      batchSize: 50,
-      now: () => new Date(clock + 365 * 86_400_000),
-    })
+    const sixth = await sweep(failing, { now: () => new Date(clock + 365 * 86_400_000) })
     expect(sixth.claimed).toBe(0)
     expect((await messageRow(id))?.attempts).toBe(MAX_ATTEMPTS)
 
@@ -507,7 +534,7 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect(resend.status).toBe(200)
     expect(resend.body.item.status).toBe('queued')
     expect(resend.body.item.attempts).toBe(MAX_ATTEMPTS)
-    const ok = await dispatchDueMessages(db, stubProviders(), { batchSize: 50 })
+    const ok = await sweep(stubProviders())
     expect(ok.sent).toBeGreaterThanOrEqual(1)
     expect(await messageRow(id)).toMatchObject({ status: 'sent', attempts: MAX_ATTEMPTS + 1 })
     // and a delivered row is never resent
@@ -582,7 +609,7 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect(await db.select().from(broadcasts).where(eq(broadcasts.id, broadcastId))).toHaveLength(1)
 
     // the sweep sends them and refreshes the counters
-    await dispatchDueMessages(db, stubProviders(), { batchSize: 50 })
+    await sweep(stubProviders())
     const got = await call<{
       item: { sentCount: number; queuedCount: number }
       recipients: { status: string }[]

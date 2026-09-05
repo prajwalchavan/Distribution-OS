@@ -5,8 +5,16 @@
   // type-aware eslint and vitest processes (each vitest spawning up to eight workers with a Nest app
   // and a pg pool) beside the seven watching services: the box swaps, every request in a DB-backed
   // spec runs forty to seventy times slower than alone, and 30 s test budgets time out at random
-  // (delivery gate, 2026-09-05). Four keeps the whole graph inside RAM; CI has fewer cores anyway.
-  "concurrency": "4",
+  // (delivery gate, 2026-09-05). CI has fewer cores anyway.
+  //
+  // Four was enough until the notifications slice: `@dos/core`'s typecheck, its type-aware lint and
+  // its 27-file vitest pool all depend only on `^build`, so turbo starts them together — roughly
+  // 1 GB + 1.5 GB + 2 GB beside the seven services and the editor. At the notifications gate
+  // (2026-09-05) that made macOS kill tsc, eslint and vitest mid-run with no output at all: three
+  // tasks reported `ELIFECYCLE Command failed` while every one of them passed when run alone. Two
+  // is the value with evidence behind it: 48/48 tasks and 1826 tests green, whole graph in 1m22s
+  // (with `--concurrency=4` on the same tree, twice in a row, three tasks were killed).
+  "concurrency": "2",
   "globalEnv": ["NODE_ENV"],
   "globalDependencies": ["libs/config/tsconfig/base.json", ".env"],
   "tasks": {

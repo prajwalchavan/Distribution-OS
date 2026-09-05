@@ -247,6 +247,9 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | 2026-09-05 | Founder wants to SEE any frontend under development in the browser as it is built (web build of each app via the Browser pane / launch.json).                                                                                                                                                                                                                                                                                                   | frontend workflow: every app slice ends with a browser check and a screenshot to the founder |
 | 2026-09-05 | **Deployment, least cost, no funding (docs/26, all six confirmed): dev stays on the founder's Mac (cloud only for test and prod); Postgres self-managed in a container on the VM until ~10 paying tenants, then RDS; an all-in-one process mode (seven services + worker in one container) is built for small deployments, split later; offline sync is OUR OWN delta sync (no PowerSync; docs/07 superseded on that point); Android first for the pilot, iOS after; Lightsail Mumbai as the starting compute, the docs/11 shape (Fargate, ALB, RDS) only with revenue.** |
 | 2026-09-05 | **Cost stages (docs/26 §4): stage 0 = first run at ₹0 (free credits, sideloaded APK, stub drivers); stage 1 = 1–10 clients at minimum spend (~$40/mo); stage 2 = thousands, spend to scale. The architecture must carry stage 2 from day one (stateless services, RLS multi-tenancy, replica, S3, expand-only migrations); only the infrastructure under it changes.** |
+| 2026-09-05 | **Typeface: IBM Plex Sans** for all seven apps (tabular digits at every weight, ₹ glyph, Devanagari sibling with the same digit advance for when Hindi arrives). The last open design token is closed. |
+| 2026-09-05 | **Languages: English only for the pilot.** Hindi (and Marathi if the market asks) comes before the second customer. The strings module keeps its locale structure from day one so adding a language is a translation job, never a rewrite. |
+| 2026-09-05 | **AI keys: stub drivers for now.** docint and the `ai` module run on the deterministic engine; `ANTHROPIC_API_KEY` is added to `backend/.env` whenever the founder wants a real bill photo read. Nothing in the build waits on it. |
 
 ## 9. Non-negotiables (never list)
 
@@ -269,8 +272,6 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 - Invoice series at cut-over from TradeEzee (continue the old numbers or start fresh)? Configurable either way; answer needed before go-live.
 - Sample exports from TradeEzee (party master, item master, outstanding) whenever convenient — the importer does not wait for them.
 - Which shops in the pilot are under the GST composition scheme, if any.
-- Typeface: IBM Plex Sans (recommended: tabular digits at every weight, rupee glyph, Devanagari sibling with the identical digit
-  advance) or Inter as drawn in the mockup. The rest of the design system is finalised on A Ledger; this is the one token still open.
 - After development (founder, 2026-09-05): install everything needed to run all apps end to end on the Mac and hand over a clear,
   written view of how the pieces run together (what starts, in which order, which port, which sign-in). Tracked in docs/18.
 
@@ -287,3 +288,4 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 | 2026-09-05 | §10: deployment constraints (least cost, AWS, no local hosting) recorded with six pending confirmations; post-development task: local end-to-end install + written run-through. New `docs/26-environments-and-configuration.md` (local config, env reference, accounts, least-cost environments, build-vs-buy) | Founder messages ("least cost", "no funding", "use AWS", "install what is needed to run E2E locally … after development") |
 | 2026-09-05 | §8: all six deployment items decided (dev local; self-managed Postgres; all-in-one mode; own delta sync replaces PowerSync; Android first; Lightsail first, scale later). §10 entry closed | Founder: "1. yes stays local 2. yes works 3. yes for now, will scale later 4. yes ok 5. OK Android first then IOS 6. yes light as much in beginning will then scale" |
 | 2026-09-05 | §8: three cost stages (₹0 first run → minimum spend for 1–10 clients → scale at thousands) with the architecture carrying all three | Founder: "aim is to first run app at 0 cost … architecture must be built to support it" |
+| 2026-09-05 | §8: typeface IBM Plex Sans; English only for the pilot; AI stays on stub drivers. §10 typeface question closed | Founder answers before the overnight run |

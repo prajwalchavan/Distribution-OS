@@ -973,7 +973,8 @@ export async function seedIntegrations(
     .select({ id: receipts.id, receiptNo: receipts.receiptNo })
     .from(receipts)
     .where(and(eq(receipts.tenantId, tenantId), eq(receipts.status, 'deposited')))
-    .orderBy(asc(receipts.receivedAt))
+    // `receivedAt` ties across receipts; `id` makes the five the export names the same every run.
+    .orderBy(asc(receipts.receivedAt), asc(receipts.id))
     .limit(5)
   const exportKey = `tenant/${tenantId}/exports/${exportId}/tally-${from}-to-${to}.xml`
   const guid = (docType: string, docId: string): string => {

@@ -26,8 +26,11 @@ import {
  *   in_app    → `delivered` at once: the row IS the delivery, the app reads it.
  *
  * Due = `status = 'queued'` (fresh, or requeued by a human), or `status = 'failed' AND attempts < 5`,
- * with `next_attempt_at` null or past — the `messages_dispatch_idx` partial index. Bounded: ≤ 200 rows
- * per tick in batches of 25, oldest due first, so one tenant's burst never starves another (docs/20).
+ * with `next_attempt_at` null or past — the `messages_dispatch_idx` partial index. Bounded (docs/20
+ * rule 3): ≤ 200 rows per tick in batches of 25, oldest due first across every tenant. Note that the
+ * ordering is global, so a single tenant with a very large backlog does hold the sweep for as many
+ * ticks as it takes to drain — per-tenant fairness (docs/20 rule 5) is an open question in
+ * coordination §7, and `tenantIds` below is the operational lever until it is answered.
  * The parent `broadcasts` counters are refreshed for every broadcast touched in the batch.
  */
 export interface DispatchOptions {
@@ -36,6 +39,13 @@ export interface DispatchOptions {
   maxAttempts?: number | undefined
   now?: (() => Date) | undefined
   backoffMs?: ((attempt: number) => number) | undefined
+  /**
+   * Sweep only these tenants. Empty or absent (the worker's default) means every tenant, which is the
+   * production behaviour. A named list re-drives one distributor's queue on its own — after its
+   * WhatsApp credentials are fixed, say — and is how the spec stays hermetic on a shared development
+   * database that already holds thousands of other tenants' due rows.
+   */
+  tenantIds?: readonly string[] | undefined
 }
 
 export interface DispatchResult {
@@ -59,6 +69,14 @@ export async function dispatchDueMessages(
   const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS
   const now = options.now ?? (() => new Date())
   const backoff = options.backoffMs ?? retryBackoffMs
+  const tenantIds = options.tenantIds ?? []
+  const scope =
+    tenantIds.length === 0
+      ? sql`true`
+      : sql`tenant_id in (${sql.join(
+          tenantIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`
   while (result.claimed < maxRows) {
     const limit = Math.min(batchSize, maxRows - result.claimed)
     const done = await withSystem(db, async (tx) => {
@@ -68,7 +86,8 @@ export async function dispatchDueMessages(
           select id, tenant_id, channel, template_key, "to", recipient_user_id, recipient_retailer_id,
                  locale, payload, status, attempts, ref_type, ref_id
             from messages
-           where (status = 'queued' or (status = 'failed' and attempts < ${maxAttempts}))
+           where ${scope}
+             and (status = 'queued' or (status = 'failed' and attempts < ${maxAttempts}))
              and (next_attempt_at is null or next_attempt_at <= ${at})
            order by next_attempt_at asc nulls first, created_at asc, id asc
            limit ${limit}

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { uuidv7 } from '@dos/domain'
-import type { PriceList, Scheme } from '@dos/contracts'
+import type { PriceList, SchemeView } from '@dos/contracts'
 import { api, newIdempotencyKey } from '../lib/api.js'
 import { Money, RupeeInput } from '../components/Money.js'
 
@@ -276,10 +276,14 @@ function Schemes() {
                 {s.validFrom} → {s.validTo}
               </td>
               <td>
-                <span className="badge">
-                  {s.fundingSource}
-                  {s.claimable ? ' · claimable' : ''}
-                </span>
+                {fundedBy(s) ? (
+                  <span className="badge">
+                    {s.fundingSource}
+                    {s.claimable ? ' · claimable' : ''}
+                  </span>
+                ) : (
+                  <span className="muted">—</span>
+                )}
               </td>
               <td>
                 {!s.stackable && <span className="badge warn">exclusive</span>}{' '}
@@ -294,7 +298,18 @@ function Schemes() {
   )
 }
 
-function describeReward(s: Scheme, variantName: (id: string | null) => string): string {
+/**
+ * `schemes.list` answers a UNION (contracts `SchemeViewSchema`): the back office gets who funds the
+ * scheme and whether it can be claimed from the brand, the field and the shop get the same row with
+ * those four keys removed (docs/17 §B [54-57] — a rep device must never learn the brand's funding).
+ * The owner app always signs in as the owner, so in practice it is always the wide row, but the type
+ * is honest and this guard is how the wide fields are reached.
+ */
+function fundedBy(s: SchemeView): s is Extract<SchemeView, { fundingSource: string }> {
+  return 'fundingSource' in s
+}
+
+function describeReward(s: SchemeView, variantName: (id: string | null) => string): string {
   switch (s.rewardKind) {
     case 'free_qty':
       return `${s.rewardValue} free ${s.freeVariantId ? variantName(s.freeVariantId) : '(same item)'}`
