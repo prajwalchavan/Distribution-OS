@@ -16,6 +16,7 @@ import { seedRetailers } from './retailers.js'
 import { seedSales } from './sales.js'
 import { seedStock } from './stock.js'
 import { seedTenantCatalog } from './tenant-catalog.js'
+import { seedWarehouse } from './warehouse.js'
 
 /**
  * The password of every seeded account, demo and pilot owner alike. Local dummy data only: the seed is
@@ -44,6 +45,10 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   await seedDelivery(db, tenantId, retailersRes, sales, people)
   // After delivery: the van sale below leaves a VEHICLE location, which `seedDelivery` creates.
   await seedBilling(db, tenantId, variants, retailersRes, sales, stock, people)
+  // After billing: a pack confirmation carries the invoice id billing has just written, and a load
+  // sheet's value is the sum of those invoices. After delivery: a sheet loads a VEHICLE location, and
+  // `seedDelivery` is what creates them.
+  await seedWarehouse(db, tenantId, sales, stock, people)
   await seedReceivables(db, tenantId, retailersRes, people)
   await seedReporting(db, tenantId, retailersRes, sales, people)
 
@@ -62,6 +67,7 @@ function printSignInTable(tenantId: string, people: PeopleResult): void {
     row('manager', people.manager),
     row('accountant', people.accountant),
     row('warehouse', people.warehouse),
+    row('warehouse', people.warehouse2),
     row('salesperson', people.salespeople.rahul),
     row('salesperson', people.salespeople.amit),
     row('salesperson', people.salespeople.pooja),

@@ -1,44 +1,57 @@
-# UX-00 — The Distribution OS design system
+# UX-00 — The Distribution OS design system (direction A, "Ledger")
 
-**Status:** proposal for the founder to approve. Once approved this is the contract every screen in all six apps is built against, and a screen is not "stable" until it passes it.
-**Date:** 2026-09-04. **Supersedes** the styling and i18n rows of `docs/08-frontend-architecture.md`, and the placeholder palette in `frontend/libs/ui/src/tokens.ts`.
-**Built on:** `docs/design/UX-01-field-reality.md` (what the body and the environment permit), `UX-02-current-standards.md` (what 2026 looks like), `UX-03-technical-constraints.md` (what the stack allows). Where this document and those disagree, this one wins — they are inputs, this is the decision.
+**Status:** final. The founder chose layout **A Ledger** on 2026-09-05 (`docs/22-source-of-truth.md` §8) for all six apps. This document
+is the contract every screen is built against; a screen is not "stable" until it passes §16.
+**Supersedes** the 2026-09-04 proposal (same file), the styling rows of `docs/08-frontend-architecture.md`, and the placeholder palette in
+`frontend/libs/ui/src/tokens.ts` (`#1d4ed8`, `minTarget: 48`) and `frontend/owner-app/src/styles.css` (navy sidebar) — both are deleted when
+the first screen lands.
+**Built on:** `UX-01-field-reality.md` (what the body and the environment permit), `UX-02-current-standards.md` (what 2026 looks like),
+`UX-03-technical-constraints.md` (what the stack allows) and `docs/design/layout-options.html` (the four directions; A is the pick). Where this
+document and those disagree, this one wins. Evidence is cited inline as `[UX-01 U6]`, `[UX-02 R21]`, `[UX-03 D5]`.
 
-Nothing here is optional and nothing here is a menu. Every number is a number, every colour is a hex, every rule is checkable in review. Where a rule comes from evidence, the source is cited inline as `[UX-01 U6]`, `[UX-02 R21]`, `[UX-03 D5]` or a live URL.
+Nothing here is optional. Every number is a number, every colour is a hex, every rule is checkable in review. Every contrast ratio below was
+computed (WCAG 2.x relative luminance), not estimated. `docs/23-app-screens-and-api-gaps.md` does not exist yet; §9 is the screen reference
+until it does.
 
 ---
 
-## 1. The idea in one paragraph
+## 1. Direction A in one paragraph
 
-**These apps should feel like a well-kept ledger that answers instantly.** Money, stock and trust move through these screens: a salesman promises a scheme and the invoice has to print it; a rider types a cash figure that becomes the owner's expected deposit; a warehouse hand posts a GRN that becomes purchase cost forever. A wrong tap here is not a bad user experience, it is a real distributor losing real rupees and an argument at a counter tomorrow morning. So the product's whole personality is **certainty**: one number per screen, at a size you cannot misread, in ink-on-paper contrast that survives Kalyan sunlight; the state of everything stated in a word, not implied by a colour; nothing important hidden behind a gesture; and every commit acknowledged in under 100 ms with a visible change and a haptic you can feel through a pocket. It should be quiet, dense, fast, and slightly boring in the way a good instrument is boring. **It must never feel like** enterprise software from 2014 (navy sidebar, breadcrumb, grey-on-grey tables), never like a consumer fintech app (pastel gradients, celebratory confetti, a bouncing invoice), never like a web page wrapped in a phone, and above all never like the incumbents it replaces — which is to say it must never make a person wait on a sync, block them behind a modal, lose their half-typed order to a phone call, or tell them they are 7 km away when they are standing inside the shop.
+**A well-kept accounts book that answers instantly.** A warm off-white page, near-black ink, thin rules instead of boxes, and one deep teal for
+anything you can act on. Dense and quiet; nothing decorative anywhere; colour appears only when it means something (green paid, amber due, red
+overdue). It feels like the ledger it replaces, so staff trust it on sight, it shows the most numbers per screen of the four directions, and it
+ages slowly. The cost, accepted by the founder: it is deliberately plain and will never make anyone say "wow" in a demo. Everything below is A
+tightened into tokens, plus the evidence-based rules that A does not contradict. Where A's sketch and an evidence rule conflict, §3.6 says
+which wins and why.
+
+**The five properties a reviewer checks first:** (1) ground is `paper.100`, surfaces are white, and no surface carries a shadow; (2) groups are
+separated by hairlines, never by boxes-inside-boxes; (3) the only saturated colour that is not a status is petrol; (4) KPIs are columns of a
+register strip, not tiles; (5) charts are 2 px lines on hairline gridlines with no fills.
 
 ---
 
-## 2. Two surfaces, one system
+## 2. Six apps, two densities, one system
 
-There are **two densities, not two design systems**. Every token in §3–§5 is identical on both. What changes is the density of the grid, the navigation model, and the primary input device.
+Six apps, one per role; the manager and the accountant share one (`docs/22` §2). Each app talks only to its own service.
+`docs/02-five-apps-and-surfaces.md` still carries the old "two store binaries plus one web console" verdict; that verdict is
+superseded by `docs/22` §2 and this document. There are **two densities, not two design systems**: every token in §3–§5 is identical on both; what changes is grid density,
+navigation model and primary input.
 
-| | **Desk surfaces** — owner (:3001), manager + accountant (:3002) | **Field surfaces** — sales (:3003), warehouse (:3004), delivery (:3005), retailer (:3006) |
-| --- | --- | --- |
-| Primary device | PC, 1366×768 is the resolution actually on a distributor's office desk `[UX-01 O8]` | 4 GB / 720p / 4G Android, 5.5–6.6" `[UX-01 §1.4]` |
-| Primary input | **Keyboard.** No action requires a pointer `[UX-01 O3]` | **One right thumb.** No action requires two hands `[UX-01 S2]` |
-| Density | `desk` scale: 32 px table rows, 14 px cells, 12 px gutters | `field` scale: 56–76 dp rows, 16 sp body, 16 px gutters |
-| Theme | Light default, **dark mode available** | **Light only.** Dark never auto-selected from system appearance `[UX-01 U1]` |
-| Touch floor | 24×24 CSS px (WCAG 2.2 SC 2.5.8) — it is a mouse | **69 dp (11 mm)**, 76 dp (12 mm) in the godown `[UX-01 U6]` |
-| Primary action | Top-right of the page header, plus `Enter` | **Bottom third of the screen**, above the safe-area inset `[UX-01 U9]` |
-| Tables | Real `<table>` — selection, right-click, `Cmd+P`, sticky header, frozen first column | Cards or priority lists. **Never a table** `[UX-02 R20]` |
+|                | **Desk** — owner (:3001), manager + accountant (:3002)      | **Field** — sales (:3003), warehouse (:3004), delivery (:3005), retailer (:3006) |
+| -------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Primary device | PC at 1366×768 `[UX-01 O8]`; phone secondary                | 4 GB / 720p / 4G Android, 5.5–6.6", and its iPhone equivalent `[UX-01 §1.4]`     |
+| Primary input  | Keyboard; no action needs a pointer `[UX-01 O3]`            | One right thumb; no action needs two hands `[UX-01 S2]`                          |
+| Density        | 30 px register rows, 13 px cells, 20 px gutters (A)         | 72–96 dp rows, 16 sp body, 16 dp gutters                                         |
+| Theme          | Light default; dark tokens defined, shipped in v2           | **Light only**; never reads system appearance `[UX-01 U1]`                       |
+| Touch floor    | 24×24 CSS px (WCAG 2.2 SC 2.5.8) — it is a mouse            | **69 dp (11 mm)**; 76 dp (12 mm) in warehouse and delivery `[UX-01 U6, W1]`      |
+| Primary action | Page-header right, plus `Enter`                             | Bottom third, above `insets.bottom` `[UX-01 U9]`                                 |
+| Tables         | Real `<table>`: sticky head, frozen first column, `⌘P`      | Grouped list cards. **Never a table** `[UX-02 R20]`                              |
 
-### 2.1 The platform decision, stated plainly
-
-**Owner and manager are Expo Router apps whose primary target is web. They are not a separate web-first React app.** All six apps are one Expo Router codebase each, one SDK, one router, one styling system, one data layer. The two desk apps declare `web` as their primary target and **fork only their dense leaves to real DOM** through Metro platform extensions — `Register.web.tsx` returns a real `<table>` driven by TanStack Table; `Register.native.tsx` returns a `FlashList` of cards. Route tree, tokens, money logic, auth session and query layer are shared and never forked. This is `[UX-03 D1]` and the reasoning is not repeated here.
-
-The design consequence, which is the part that belongs in this document: **every desk screen is designed twice, on purpose, at two densities, in the same pass.** A register is a keyboard-driven grid on web and the same data as a scrollable card list on phone. Do not design one layout and hope it reflows — the code forks at exactly that seam, so the mockups must too.
-
-**The fork budget is 18 `.web.tsx` files across owner + manager, counted in CI** `[UX-03 §1 tripwire]`. If a design calls for a 19th, that screen is redesigned as a card list. If a *field* app ever needs a `.web.tsx` for layout, that is a design failure, not a platform gap.
-
-### 2.2 Six apps, and a stale doc to fix
-
-The build log confirms seven services running on **:3000 auth, :3001 owner, :3002 manager+accountant, :3003 sales, :3004 warehouse, :3005 delivery, :3006 retailer** (`docs/18-build-log.md`, session 3). `docs/02-five-apps-and-surfaces.md` and `CLAUDE.md` still describe five services and "two store binaries plus one web console"; those are stale and should be amended to the six-app matrix. This document assumes six.
+**Platform** `[UX-03 D1]`: all six are Expo Router apps; owner and manager declare `web` primary and fork only dense leaves to DOM
+(`Register.web.tsx` = TanStack Table, `Register.native.tsx` = FlashList of rows). Route tree, tokens, money logic, session and query layer are
+never forked. Fork budget: **18 `.web.tsx` files across owner + manager**, counted in CI. Every desk screen is designed twice, on purpose, at
+both densities in the same pass. **Parity:** Android and iOS render the same layout from the same tokens; only navigation transitions, back
+behaviour, keyboards, pickers and share/print sheets are the platform's own `[UX-02 R9]`.
 
 ---
 
@@ -46,752 +59,737 @@ The build log confirms seven services running on **:3000 auth, :3001 owner, :300
 
 ### 3.0 How colour works here
 
-- Colours exist **only as semantic tokens** generated from private primitive ramps. No screen writes a hex. Lint: no hex literal outside `tokens.ts` `[UX-02 R1]`.
-- **One accent.** Petrol is the primary action and the selected state, and nothing else. Status colours are a separate family and never compete with it `[UX-02 R2]`.
-- **Colour is never the only channel.** Every state is colour **+** icon **+** word, always all three — for colour-blind users, for a ₹9,000 LCD, for direct godown sun, and because the word is what a screen reader speaks `[UX-01 U3]`, `[UX-03 §14c]`.
-- **Every text-on-surface pair below is ≥ 7:1** (WCAG AAA), not 4.5:1, because a 450–600 nit panel under 80,000 lux has no contrast headroom to spend `[UX-01 U2]`. Ratios below were computed, not estimated.
-- **Dark mode is a desk feature.** Dark UI is *worse* outdoors — ambient reflection adds the same absolute luminance to every pixel, and a light UI swamps it by putting most of the screen at peak white `[UX-01 §1.1]`. Field apps do not read `useColorScheme()` at all.
+- Colours exist **only as semantic tokens** generated from private primitive ramps. No screen writes a hex (lint) `[UX-02 R1]`.
+- **One accent.** Petrol is the action and the selected state, nothing else. Status hues are a separate family `[UX-02 R2]`.
+- **Colour is never the only channel.** Every state is colour + icon + word `[UX-01 U3]`.
+- **Every text pair in a field app is ≥ 7:1.** A 450–600 nit panel under 80,000 lux has no headroom to spend `[UX-01 U2]`.
+- **Dark mode is a desk feature** (v2); field apps never call `useColorScheme()` `[UX-01 U1, O9]`.
 
 ### 3.1 Primitive ramps (private — never referenced by a screen)
 
-**`paper`** — a warm neutral. Deliberately not the cool `#F8FAFC` slate every dashboard uses, and deliberately not cream.
+**`paper`** — the warm neutral of direction A. Ink is A's `#1B1E1A` (warm-black), not a cool slate.
 
-| token | hex | | token | hex |
-| --- | --- | --- | --- | --- |
-| `paper.0` | `#FFFFFF` | | `paper.500` | `#8E9188` |
-| `paper.50` | `#F8F8F6` | | `paper.600` | `#6A6E66` |
-| `paper.100` | `#F2F2EF` | | `paper.700` | `#4B4F49` |
-| `paper.200` | `#EAEAE5` | | `paper.800` | `#3F433D` |
-| `paper.300` | `#D5D6CF` | | `paper.900` | `#2A2D28` |
-| `paper.400` | `#B3B5AC` | | `paper.950` | `#15181B` |
+| token       | hex       | token       | hex       | token       | hex                |
+| ----------- | --------- | ----------- | --------- | ----------- | ------------------ |
+| `paper.0`   | `#FFFFFF` | `paper.300` | `#D5D6CF` | `paper.700` | `#4B4F49`          |
+| `paper.50`  | `#F8F8F6` | `paper.400` | `#B3B5AC` | `paper.800` | `#3F433D`          |
+| `paper.100` | `#F2F2EF` | `paper.500` | `#8E9188` | `paper.900` | `#2A2D28`          |
+| `paper.200` | `#EAEAE5` | `paper.600` | `#6A6E66` | `paper.950` | `#1B1E1A` **(ink)** |
 
-**`petrol`** — the accent. A deep blue-green. Chosen because it is dark enough to carry white text at AAA (7.90:1), because it is nowhere near red, amber or green so it never reads as a status, and because Indian distribution software is uniformly saffron, red or Bootstrap blue — petrol is unclaimed, and it sits calmly next to an arbitrary distributor logo.
+**`petrol`** — the accent A was drawn in. Dark enough for white text at AAA, nowhere near red/amber/green, unclaimed in Indian distribution
+software (saffron, red, Bootstrap blue), and calm beside any distributor's logo.
 
-| token | hex | | token | hex |
-| --- | --- | --- | --- | --- |
-| `petrol.50` | `#EBF3F4` | | `petrol.500` | `#3E8E97` |
-| `petrol.100` | `#D6E7E9` | | `petrol.600` | `#0E6E78` |
-| `petrol.200` | `#B7CFD1` | | `petrol.700` | `#0B5A63` |
-| `petrol.300` | `#7FB3B8` | | `petrol.800` | `#07454C` |
-| `petrol.450` | `#5F969B` | | `petrol.900` | `#05353B` |
-| `petrol.onDark` | `#5FC7D2` | *(not a step in the light ladder — the accent as it appears on dark surfaces only)* | | |
+| token        | hex       | token        | hex       | token           | hex                                     |
+| ------------ | --------- | ------------ | --------- | --------------- | --------------------------------------- |
+| `petrol.50`  | `#EBF3F4` | `petrol.300` | `#7FB3B8` | `petrol.700`    | `#0B5A63`                               |
+| `petrol.100` | `#D6E7E9` | `petrol.500` | `#3E8E97` | `petrol.800`    | `#07454C`                               |
+| `petrol.200` | `#B7CFD1` | `petrol.600` | `#0E6E78` | `petrol.onDark` | `#5FC7D2` (dark surfaces only, 9.13:1) |
 
-**Status hues.** Four families, each with a text tone (≥7:1 on white), a tint, an edge (≥3:1 on white, so a chip has a visible border in sunlight), and an on-dark tone.
+**Status hues** — each has a tint (fills), an edge (bar fills, ≥ 3:1 on white), a fg (text ≥ 7:1 on its tint), and an on-dark tone.
 
-| family | `.tint` | `.edge` | `.fg` (text / solid fill) | `.onDark` |
-| --- | --- | --- | --- | --- |
-| `moss` — positive | `#E8F4EA` | `#4E9270` | `#0F5B2E` | `#6FD08F` |
-| `ochre` — caution | `#FDF4E3` | `#A8832F` | `#6E4200` | `#E8B44F` |
-| `clay` — the 61–90 ageing step only | `#FBEDE0` | `#A05C1F` | `#8A4008` | `#E09A5C` |
-| `brick` — critical | `#FDEFED` | `#BE6A63` | `#9E1C1C` | `#F08A82` |
+| family                     | `.tint`   | `.edge`   | `.fg`     | fg on tint | `.onDark` |
+| -------------------------- | --------- | --------- | --------- | ---------- | --------- |
+| `moss` — positive          | `#E8F4EA` | `#4E9270` | `#0F5B2E` | 7.26:1     | `#6FD08F` |
+| `ochre` — caution          | `#FDF4E3` | `#A8832F` | `#6E4200` | 7.87:1     | `#E8B44F` |
+| `clay` — the 31–60 rung    | `#FBEDE0` | `#A05C1F` | `#7C3A08` | 7.42:1     | `#E09A5C` |
+| `brick` — critical         | `#FDEFED` | `#BE6A63` | `#9E1C1C` | 7.11:1     | `#F08A82` |
+| `neutral` — no judgement   | `#EAEAE5` | `#8E9188` | `#3F433D` | 8.36:1     | `#B9BEB9` |
 
-**`slate`** — dark-theme surfaces (desk only): `slate.950 #101315` · `slate.900 #181B1E` · `slate.800 #20252A` · `slate.700 #2B3035` · `slate.500 #6E767F`.
+(A's sketch drew clay text as `#8A4008` = 6.49:1 on its tint; the 7:1 rule pulls it to `#7C3A08`. The bar fill stays `#A05C1F` as drawn.)
+
+**`slate`** — dark desk surfaces (v2): `slate.950 #14161A` · `slate.900 #1B1E22` · `slate.800 #20252A` · `slate.700 #2B2F33` · `slate.500 #6E767F`.
 
 ### 3.2 Semantic tokens (this is what screens use)
 
-| token | light | dark (desk only) | ratio, light |
-| --- | --- | --- | --- |
-| `bg.ground` — the canvas | `paper.100` `#F2F2EF` | `slate.950` `#101315` | — |
-| `bg.surface` — cards, rows, sheets | `paper.0` `#FFFFFF` | `slate.900` `#181B1E` | — |
-| `bg.raised` — menus, hover, popovers | `paper.50` `#F8F8F6` | `slate.800` `#20252A` | — |
-| `bg.sunken` — wells, disabled fields, chart plot area | `paper.200` `#EAEAE5` | `slate.950` `#101315` | — |
-| `text.primary` | `paper.950` `#15181B` | `#F2F3F1` | **17.82:1** on surface, 15.89:1 on ground |
-| `text.secondary` | `paper.700` `#4B4F49` | `#B9BEB9` | **8.35:1** on surface, 7.45:1 on ground |
-| `text.tertiary` — **desk only, never in a field app** | `paper.600` `#6A6E66` | `#8E958E` | 5.20:1 |
-| `text.onAccent` / `text.onSolid` | `#FFFFFF` | `slate.950` `#101315` | see below |
-| `border.hairline` — decorative separators only | `paper.300` `#D5D6CF` | `slate.700` `#2B3035` | 1.46:1 *(decorative; carries no information)* |
-| `border.strong` — input outlines, chip edges, anything that conveys state | `paper.500` `#8E9188` | `slate.500` `#6E767F` | **3.20:1** / 3.76:1 |
-| `accent.fg` — links, active tab label, selected icon | `petrol.700` `#0B5A63` | `petrol.onDark` `#5FC7D2` | **7.90:1** on surface, 7.05:1 on ground |
-| `accent.solid` — primary button fill | `petrol.700` `#0B5A63` | `petrol.onDark` `#5FC7D2` | white on it = **7.90:1**; dark ink on onDark = 9.40:1 |
-| `accent.pressed` | `petrol.800` `#07454C` | `#7FD6DF` | white on it = 10.69:1 |
-| `accent.tint` — selected row, active filter chip | `petrol.50` `#EBF3F4` | `#123037` | accent text on it = **7.02:1**; ink on it = 15.50:1 |
-| `accent.edge` | `petrol.450` `#5F969B` | `petrol.500` | 3.32:1 |
-| `focus.ring` | `petrol.700` `#0B5A63` | `petrol.onDark` | 2 px ring + 1 px `bg.surface` inner halo |
+| token                                                          | light                 | dark (desk, v2)       | ratio (light)                                  |
+| -------------------------------------------------------------- | --------------------- | --------------------- | ---------------------------------------------- |
+| `bg.ground` — the page                                         | `paper.100` `#F2F2EF` | `slate.950`           | —                                              |
+| `bg.surface` — rail, header, cards, rows, sheets, bottom bar   | `paper.0` `#FFFFFF`   | `slate.900`           | —                                              |
+| `bg.raised` — hover, menus, popovers                           | `paper.50` `#F8F8F6`  | `slate.800`           | —                                              |
+| `bg.sunken` — wells, disabled fields, chart plot area          | `paper.200` `#EAEAE5` | `slate.950`           | —                                              |
+| `text.primary`                                                 | `paper.950` `#1B1E1A` | `#ECEDE8`             | **16.84:1** surface · 15.01:1 ground           |
+| `text.secondary`                                               | `paper.700` `#4B4F49` | `#B9BEB9`             | **8.35:1** surface · 7.45:1 ground             |
+| `text.tertiary` — **desk only**; sublines, eyebrows, axis text | `paper.600` `#6A6E66` | `#9AA096`             | 5.20:1 surface · 4.64:1 ground (AA, not AAA)   |
+| `text.onAccent` / `text.onSolid`                               | `#FFFFFF`             | `slate.950`           | see accent rows                                |
+| `border.hairline` — section rules, header/rail edges, baseline | `paper.300` `#D5D6CF` | `slate.700`           | 1.46:1 (decorative)                            |
+| `border.faint` — row dividers, KPI column dividers, gridlines  | `paper.200` `#EAEAE5` | `slate.800`           | 1.21:1 (decorative)                            |
+| `border.strong` — inputs, unchecked boxes, frozen-column edge  | `paper.500` `#8E9188` | `slate.500`           | **3.20:1**                                     |
+| `accent.fg` — links, active nav/tab label, scheme text         | `petrol.700` `#0B5A63`| `petrol.onDark`       | **7.90:1** surface · 7.05 ground · 7.02 tint   |
+| `accent.solid` — any fill carrying text or a glyph             | `petrol.700` `#0B5A63`| `petrol.onDark`       | white on it **7.90:1**                         |
+| `accent.pressed`                                               | `petrol.800` `#07454C`| `#7FD6DF`             | white on it 10.69:1                            |
+| `accent.line` — chart series, 3 px indicators, end dot         | `petrol.600` `#0E6E78`| `petrol.onDark`       | 5.32:1 on ground (graphic, needs 3:1)          |
+| `accent.tint` — active nav item, selected row, scheme row      | `petrol.50` `#EBF3F4` | `#123037`             | secondary text on it 7.42:1                    |
+| `focus.ring`                                                   | `petrol.700`          | `petrol.onDark`       | 2 px ring, 2 px offset, 1 px `bg.surface` halo |
+
+`text.secondary` on `bg.sunken` is 6.92:1: never place secondary text in a well or disabled field in a field app (disabled text is
+`paper.500` and carries a reason line in `text.secondary` on the surface instead).
 
 ### 3.3 Domain semantics — the colours that mean something here
 
-Every one of these is rendered as a `StatusPill`: **tint background + `.edge` 1 px border + `.fg` text + a 16 dp icon + the word.** The `solid` variant (white text on `.fg`) is reserved for the three states that must be seen across a godown: **Out of stock, Overdue, Failed.**
+Rendered as a `StatusChip` (§6.9): **tint fill, `.fg` text, 16 dp icon, the word; `radius.xs`; no border** (as drawn in A). The `solid`
+variant (white on `.fg`, 7.96:1 for brick) is reserved for the three states that must read across a godown: **Out of stock, Overdue, Failed.**
 
-**Stock** — `sellable_stock`, shown to sales, warehouse, retailer:
+| domain               | state → family · word on screen                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stock (`sellable_stock`) | In stock → `moss` "In stock" · Low → `ochre` "Low · 4 cs" · Out → `brick` **solid** "Out of stock" · Not carried → `neutral` "Not stocked"                      |
+| Invoice money state  | Paid → `moss` · Part paid → `ochre` "Part paid · ₹4,200 left" · Due → `neutral` "Due 12 Sep" · Overdue → `brick` **solid** "Overdue · 14 days" · Cancelled / written off → `neutral`, struck |
+| Delivery outcome (set only at the stop, with proof `[UX-01 R6]`) | Delivered → `moss` · Partial → `ochre` "Partial · 2 of 6 short" · Failed → `brick` **solid** "Failed · shop shut" · Not yet → `neutral` "Stop 4 of 11" |
+| Approval             | Approved → `moss` "Approved by Sunil · 10:42" · Pending → `ochre` "Waiting for owner" · Rejected → `brick` "Rejected — over credit limit" (reason always shown `[UX-02 R29]`) |
+| Connection (§6.11)   | Synced → no fill, `text.secondary` "Updated 2 min ago" · Waiting → `ochre` "3 orders waiting" · Offline → `neutral` + struck cloud "Offline since 10:42" · Stale > 4 h → `ochre` "Stock as of 9:40 am" · Needs attention → `brick`, the business reason |
 
-| state | family | word on screen | icon |
-| --- | --- | --- | --- |
-| In stock | `moss` | "In stock" | filled circle |
-| Low — below the reorder point | `ochre` | "Low · 4 cs" | half circle |
-| Out of stock | `brick` **solid** | "Out of stock" | hollow circle with a slash |
-| Not carried by this distributor | `neutral` (`paper.200` / `paper.500` / `paper.800`) | "Not stocked" | dash |
+**Ageing** is the six-bucket ladder of `docs/22` §6 (which wins over the four buckets in the 2026-09-04 draft and over the four rows A
+sketched). It is one ordered ladder, always the same colours in the same order — in chips, in the `BarLadder`, and as register column heads:
 
-**Money state** — an invoice's payment state (`billing.invoices.state`):
+| bucket     | tint      | bar / edge | text      | reads as                              |
+| ---------- | --------- | ---------- | --------- | ------------------------------------- |
+| 0–7 days   | `#E8F4EA` | `#4E9270`  | `#0F5B2E` | fresh (moss)                          |
+| 8–15 days  | `#EAEAE5` | `#8E9188`  | `#3F433D` | within terms (neutral)                |
+| 16–30 days | `#FDF4E3` | `#A8832F`  | `#6E4200` | past terms (ochre)                    |
+| 31–60 days | `#FBEDE0` | `#A05C1F`  | `#7C3A08` | chase (clay)                          |
+| 61–90 days | `#FDEFED` | `#BE6A63`  | `#9E1C1C` | escalate (brick)                      |
+| 90+ days   | `#9E1C1C` solid, white text | — | `#FFFFFF` | stop credit (brick solid)         |
 
-| state | family | word |
-| --- | --- | --- |
-| Paid | `moss` | "Paid" |
-| Partly paid | `ochre` | "Part paid · ₹4,200 left" |
-| Due (open, not yet past due date) | `neutral` | "Due 12 Sep" |
-| Overdue | `brick` **solid** | "Overdue · 14 days" |
-| Cancelled / written off | `neutral`, text struck through | "Cancelled" / "Written off" |
+### 3.4 Chart colour (as drawn in A)
 
-**Delivery outcome** — set only by the person at the stop, with proof `[UX-01 R6]`:
-
-| state | family | word |
-| --- | --- | --- |
-| Delivered | `moss` | "Delivered" |
-| Partial | `ochre` | "Partial · 2 of 6 lines short" |
-| Failed | `brick` **solid** | "Failed · shop shut" |
-| Not yet attempted | `neutral` | "Stop 4 of 11" |
-
-**Approval** — bargain, credit override, MOV, price variance, red settlement:
-
-| state | family | word |
-| --- | --- | --- |
-| Approved | `moss` | "Approved by Sunil · 10:42" |
-| Pending | `ochre` | "Waiting for owner" |
-| Rejected | `brick` | "Rejected — over credit limit" *(reason always shown to the requester)* `[UX-02 R29]` |
-
-**Ageing** — an ordered four-step ladder, not four unrelated colours. It appears as pills, as the ageing-bucket chart, and as the ageing register's column headers, and it is always the same four colours in the same order:
-
-| bucket | tint | edge | fg | ratio (fg on tint) |
-| --- | --- | --- | --- | --- |
-| 0–30 days | `paper.200` `#EAEAE5` | `paper.500` `#8E9188` | `paper.800` `#3F433D` | **8.36:1** |
-| 31–60 days | `ochre.tint` `#FDF4E3` | `#A8832F` | `#6E4200` | **7.87:1** |
-| 61–90 days | `clay.tint` `#FBEDE0` | `#A05C1F` | `#8A4008` | 6.49:1 on tint, **7.45:1** on white |
-| 90+ days | `brick.tint` `#FDEFED` | `#BE6A63` | `#9E1C1C` | **7.11:1** |
-
-**Connection / data provenance** — one chip, never a modal, never a button `[UX-01 U16]`, `[UX-02 R25]`:
-
-| state | family | text |
-| --- | --- | --- |
-| Synced | `neutral` (no fill, `text.secondary`) | "Updated 2 min ago" |
-| Changes waiting | `ochre` | "3 orders waiting" |
-| Offline | `neutral` with a struck cloud icon | "Offline since 10:42" |
-| Data stale > 4 h | `ochre` | "Stock as of 9:40 am" |
-| Needs attention (a `sync_errors` row) | `brick` | the business reason in plain English, as a work item `[UX-02 R30]` |
-
-### 3.4 Chart colour
-
-Charts do **not** get their own rainbow. `[UX-02 R23]`
-
-- **Trend and comparison:** current series `petrol.700`, comparison/previous series `paper.400`, target/benchmark a 1 px dashed `paper.500`. Two colours, and the current one is the accent.
-- **Categorical mix (brand mix, category mix, payment-mode mix):** a single-hue ordered ramp — `petrol.700` → `petrol.500` → `petrol.300` → `petrol.200` → `paper.700` for "Other". Maximum five slices; a sixth becomes "Other". Adjacent steps are 1.42–2.08:1 apart, which separates on a cheap LCD, and the ramp is colour-blind-safe by construction because it is one hue.
-- **Charts whose subject *is* a status** (ageing buckets, delivery outcomes, approval queue age) use the domain semantics above and nothing else.
-- No 3D, no shadows, no gradients, no donut past five slices `[UX-02 §3 item 19]`.
+- **Primary series:** `accent.line` 2 px, round joins, a 3 px dot on the last point only. **Second measure on the same chart** (collections
+  beside sales): `ochre.edge` `#A8832F` 2 px, dashed `3 3`. **Previous period:** `paper.400` 2 px solid. **Target:** `paper.500` 1 px dashed.
+- **Categorical mix** (brand, category, payment mode): single-hue ramp `petrol.700 → 500 → 300 → 200`, then `paper.700` for "Other". Max five
+  slices; adjacent steps 1.42–2.08:1 apart, colour-blind-safe by construction.
+- **Charts whose subject is a status** (ageing, delivery outcomes, approval age) use §3.3 and nothing else.
+- Gridlines `border.faint` 1 px horizontal; baseline `border.hairline`; no area fill, no gradient, no 3D, no shadow, no plot border.
 
 ### 3.5 Colour rules a reviewer can check
 
-1. If you can point at a colour and it is not in §3.2/§3.3/§3.4, the screen fails.
-2. If a state is legible only because of its hue, the screen fails.
-3. If any text in a field app sits below 7:1, the screen fails. Desk `text.tertiary` at 5.20:1 is the only exception and is banned from sales, warehouse, delivery and retailer.
-4. `border.hairline` may never be the only thing indicating an interactive boundary — inputs, chips and toggles use `border.strong`.
-5. A surface has **either** a hairline **or** a shadow, never both, and cards never nest inside cards.
+1. A colour not in §3.2–§3.4 fails the screen. 2. A state legible only by hue fails. 3. Field-app text below 7:1 fails; `text.tertiary` is
+banned from sales, warehouse, delivery and retailer. 4. `border.hairline`/`border.faint` never mark an interactive boundary —
+inputs and checkboxes use `border.strong`. 5. No surface carries a shadow except the four in §5.4; cards never nest in cards.
 
-### 3.6 The product mark, and the white-label rule
+### 3.6 Where A and the evidence disagreed, and which won
 
-The founder asked for a brand and confirmed the product is white-labelled (`docs/17` §D row 6). Two separate things, and conflating them is the mistake to avoid.
-
-**The distributor's brand** — their business name and logo, from `tenant_settings.display_name` / `logo_asset_id` — appears in exactly four places: the app's top-left chrome on every screen of every app, the sign-in landing after a tenant is identified, every generated document (invoice, statement, delivery challan, credit note), and every WhatsApp message body. **The distributor supplies a name and a logo; they do not supply a colour.** A distributor's logo can be any colour including neon yellow, and every contrast guarantee in §3 would collapse if the accent were tenant-controlled. The logo is rendered inside a fixed 32 dp (phone) / 28 px (desk) box on `bg.surface`, with a `paper.300` hairline if the logo has no natural edge, and never tinted. If no logo is uploaded, the fallback is the distributor's initials in `text.primary` on `paper.200`.
-
-**Distribution OS's own brand** appears in exactly two places: the sign-in screen, and the app-store listing. Nowhere else, ever, on any surface a retailer or a rider sees.
-
-**Proposed mark** (needs the founder's yes — §12): a wordmark set in IBM Plex Sans SemiBold, `text.primary`, with the two words on one line and no tagline, preceded by a 24 dp glyph: a **filled `petrol.700` rounded square containing two white horizontal bars of unequal length**, read as a stock line and a shorter shipped line — a ledger entry, not a truck, not a box, not a globe. It works at 16 dp in a tab bar, in one colour on a thermal print, and as a monochrome favicon. Three name options are in §12; the mark works with any of them.
+| A's sketch showed                                          | Evidence rule                                | Winner and why                                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Button and `+` fills in `#0E6E78` (white on it 5.97:1)     | 7:1 for field text `[UX-01 U2]`              | **Evidence.** Text-bearing fills use `petrol.700` (7.90:1); `#0E6E78` survives as `accent.line`.     |
+| Phone sublines in `#6A6E66` (5.20:1)                       | 7:1 in the field                             | **Evidence.** Field sublines use `text.secondary` `#4B4F49`; the warm-grey character is unchanged.   |
+| Ink `#1B1E1A` (draft had `#15181B`)                        | none                                         | **A.** Warmer ink, 16.84:1.                                                                          |
+| Rail group label "SETUP" in `#8E9188` (3.20:1)             | WCAG AA text floor 4.5:1 (desk)              | **Evidence.** It is set in `text.tertiary` `#6A6E66` (5.20:1); `paper.500` stays a border colour.   |
+| Uppercase tracked eyebrows ("SALES", "USUAL ORDER", "SETUP") | Draft banned all-caps tracked labels `[UX-02 §3 item 11]` | **A, narrowly.** Eyebrows only (§4.4): ≤ 14 characters, tracking 0.06 em, never a column head, nav item or button. |
+| Status chips: 4 px radius, tint only, no border            | Draft: pill + 1 px edge "visible in sunlight" | **A.** The 7:1 word carries the state, so nothing evidence-based is lost; the edge colour still fills bars. |
+| 38 px steppers, 50 px button (sketch drawn at ~0.83×)      | 69 dp / 76 dp targets `[UX-01 U6, W1]`       | **Evidence.** Composition and hierarchy as drawn; sizes from §4.2 and §6.                            |
+| Set in Inter for the browser sketch                        | Tabular digits by default, Devanagari sibling `[UX-02 R4]` | **Evidence: IBM Plex Sans** (§4.1) at A's sizes and weights; character preserved, digits align structurally. |
+| Four ageing rows                                           | `docs/22` §6: six buckets                    | **`docs/22`** — it is the source of truth.                                                           |
+| Legend row under a two-series chart                        | Draft: "no legend where direct labels work"  | **A** on desk (one line, 14×2 px swatches). Single-series charts carry no legend; phone labels the line end. |
 
 ---
 
 ## 4. Typography
 
-### 4.1 The typeface: IBM Plex Sans
+### 4.1 One family: IBM Plex Sans
 
-**One family across all six apps and all three platforms: IBM Plex Sans** (SIL Open Font License, on Google Fonts and GitHub). Not Inter. The reasons are measured, not aesthetic — I inspected both font binaries:
+Reasons are measured (font binaries inspected with fontTools 4.60.2): Plex digits advance 600/1000 at every weight — **tabular by default, no
+`tnum` flag that can silently fail on a 4 GB Android**; `₹` present; IBM Plex Sans Devanagari is a sibling with the identical digit advance, so
+the later Marathi pass is a font swap, not a redesign `[UX-01 U15]`. A's sketch was set in Inter only because it was a browser artifact; at the
+same sizes and weights the character is the same. **Native:** four static weights — 400, 500, 600, 700 — embedded via the `expo-font` plugin
+(≈ 240 KB); no italics anywhere. **Web:** self-hosted variable `IBMPlexSans[wdth,wght].ttf`, `font-display: swap`. **Stack:** `'IBM Plex Sans',
+system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`. No second family, no monospace.
 
-| | IBM Plex Sans | Inter |
-| --- | --- | --- |
-| Digit advance widths, Regular | `600, 600, 600, 600, 600, 600, 600, 600, 600, 600` — **tabular by default** | `1292, 833, 1249, 1265, 1323, 1215, 1270, 1159, 1267, 1270` — **proportional by default** |
-| Digit widths at SemiBold 600 / Bold 700 | 600 at every weight — a money column stays aligned when a row goes bold | requires `tnum` at every weight |
-| Tabular figures require an OpenType feature? | **No.** Plex has no `tnum` because it does not need one | **Yes.** Depends on `fontVariant: ['tabular-nums']` firing on the device |
-| `₹` U+20B9 | present | present |
-| Devanagari sibling | **IBM Plex Sans Devanagari** — same family, same 1000 upem, **same 600-unit digit advance**, drawn by the same team (Erin McLaughlin) | none; would need Noto Sans Devanagari — a foreign family |
+### 4.2 Type scale — field (sp; 1 sp = 1 dp). Body floor 16, money floor 20, nothing below 14 `[UX-01 U8]`
 
-That second-to-last row is the decisive one. Tabular figures are the single cheapest credibility signal in a money product `[UX-02 R4]`, and with Plex we get them **structurally**, with no feature flag that can silently fail to apply on a 4 GB Android. With Inter, every money view in six apps depends on `fontVariant` working — which it does, on Android since RN 0.62, but it is one more thing that can be forgotten on one component and produce a jittering column. The last row is the second reason: when Marathi/Hindi arrives, it is a **sibling in the same family with an identical digit metric**, so a translated invoice keeps the exact same column alignment. That turns the later i18n pass from a redesign into a font swap `[UX-01 U15]`.
+| token              | size / line / weight   | tracking | use                                                                                |
+| ------------------ | ---------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `field.keypad`     | 44 / 52 / 600          | −0.02 em | Gate-count and cash-collected digits; nothing else on that screen `[UX-01 W2, D6]` |
+| `field.hero`       | 32 / 38 / 700          | −0.02 em | The one number the screen exists for: "You owe", "To collect", trip variance       |
+| `field.moneyL`     | 24 / 30 / 700          | −0.02 em | Order/invoice total, per-bill outstanding, disputed-quantity screen `[UX-01 D5]`   |
+| `field.moneyM`     | 20 / 26 / 600          | 0        | Line totals, MRP, rate, quantities, every money value in a row                     |
+| `field.title`      | 20 / 26 / 700          | −0.015 em| Screen title, shop name, section heading (A's 19 px title, scaled)                 |
+| `field.body`       | 16 / 22 / 400          | 0        | Everything readable                                                                |
+| `field.bodyStrong` | 16 / 22 / 600          | 0        | Item name in a row, chip word, button label                                        |
+| `field.label`      | 14 / 18 / 500          | 0        | Labels, context line ("Station Road · stop 7 of 18"), timestamps. Never a decision number |
+| `field.eyebrow`    | 14 / 18 / 600          | +0.06 em | UPPERCASE group heading ("USUAL ORDER"), `text.secondary`, ≤ 14 characters         |
 
-Third reason, worth saying out loud: Inter is what every AI-designed and template-designed product in 2026 is set in. Plex is a specific choice.
+### 4.3 Type scale — desk (px), tightened to A's density
 
-**Loading:**
+| token            | size / line / weight | tracking | use                                                                          |
+| ---------------- | -------------------- | -------- | ---------------------------------------------------------------------------- |
+| `desk.kpi`       | 24 / 28 / 700        | −0.02 em | Register-strip value                                                         |
+| `desk.pageTitle` | 20 / 26 / 700        | −0.015 em| Page header ("Today", "Orders")                                              |
+| `desk.section`   | 13 / 18 / 600        | 0        | Panel heading ("Sales & collections · 14 days", "Needs you")                 |
+| `desk.body`      | 14 / 20 / 400        | 0        | Prose, form values, side-panel text                                          |
+| `desk.nav`       | 13 / 18 / 400 (600 active) | 0  | Rail items                                                                   |
+| `desk.cell`      | 13 / 18 / 400        | 0        | Register cell text; rows 30 px (`[UX-01 O8]` allows up to 32 px / 14 px)     |
+| `desk.cellMoney` | 13 / 18 / 500        | 0        | Register money cell — right-aligned, two decimals                            |
+| `desk.label`     | 12 / 16 / 500        | 0        | Column heads (sentence case), field labels, `text.secondary`                 |
+| `desk.meta`      | 12 / 16 / 400        | 0        | Sublines, deltas, axis ticks, timestamps, `text.tertiary`                    |
+| `desk.eyebrow`   | 11 / 14 / 600        | +0.06 em | UPPERCASE strip labels ("SALES") and the rail group label, `text.tertiary`    |
 
-- **Native: static instances only.** Expo's own docs: *"Variable fonts, including variable font implementations in OTF and TTF, do not have support across all platforms… For full platform support, use static fonts"* ([Expo — Fonts](https://docs.expo.dev/develop/user-interface/fonts/)). Ship exactly **four static weights — Regular 400, Medium 500, SemiBold 600, Bold 700** — embedded at build time via the `expo-font` config plugin, so they are present at first frame with no async load and no flash. No italics anywhere in the product. Four files ≈ 240 KB, inside the 40 MB download budget `[UX-01 U12]`.
-- **Web:** the variable `IBMPlexSans[wdth,wght].ttf` self-hosted (never a Google Fonts CDN link — the CSP and the offline story both want it local), `font-display: swap`, with a `system-ui` fallback stack that has the same metric intent.
-- **Fallback stack everywhere:** `'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`.
-- **No second family.** No monospace. If something needs to align, it is a number, and numbers already align.
+### 4.4 Eyebrows — the one uppercase allowed
 
-### 4.2 Type scale — field (sp; 1 sp = 1 dp)
+A's character comes partly from small tracked capitals over each figure. They are allowed **only** as: register-strip labels, phone group
+headings, and the rail's group label ("SETUP"). ≤ 14 characters, tracking 0.06 em, never wider. Column heads stay **sentence case, medium,
+`text.secondary`**; nav items, buttons, chips and titles are never uppercase.
 
-Body floor 16 sp, money floor 20 sp, never below 14 sp `[UX-01 U8]`.
+### 4.5 The number rules
 
-| token | size / line-height / weight | use |
-| --- | --- | --- |
-| `field.hero` | 32 / 38 / 600 | The one number the screen exists to show: owner tile, "Collect ₹4,820", trip variance, outstanding on the retailer's first screen |
-| `field.keypad` | 44 / 52 / 600 | The gate-count digits and the cash-collected digits. Nothing else on that screen `[UX-01 W2]` |
-| `field.moneyL` | 24 / 30 / 600 | Invoice total, order total, per-bill outstanding, the disputed-quantity screen `[UX-01 D5]` |
-| `field.moneyM` | 20 / 26 / 600 | Line totals, MRP, rate, quantity figures, every money value in a list row |
-| `field.title` | 20 / 26 / 600 | Screen title, shop name, section heading |
-| `field.body` | 16 / 22 / 400 | Everything readable |
-| `field.bodyStrong` | 16 / 22 / 600 | Product name in a list row, the word inside a status pill |
-| `field.label` | 14 / 18 / 500 | Field labels, metadata, timestamps. **Never a number a decision is made on** |
-
-Nothing below 14 sp exists in a field app. There is no caption size.
-
-### 4.3 Type scale — desk (px)
-
-| token | size / line-height / weight | use |
-| --- | --- | --- |
-| `desk.kpi` | 28 / 34 / 600 | Dashboard tile value |
-| `desk.pageTitle` | 24 / 30 / 600 | Page header |
-| `desk.section` | 18 / 24 / 600 | Panel and card headings |
-| `desk.body` | 15 / 22 / 400 | Prose, form values |
-| `desk.cell` | 14 / 20 / 400 | Table cell text |
-| `desk.cellMoney` | 14 / 20 / 500 | Table money cell — right-aligned, tabular |
-| `desk.label` | 13 / 18 / 500, `text.secondary` | Field labels, column headers, metadata |
-
-Column headers are **sentence case, medium weight, `text.secondary`**. Never ALL CAPS with wide tracking — that is a Material 2 tell `[UX-02 §3 item 11]`.
-
-### 4.4 The number rules
-
-These are the rules that make this look like a financial product instead of a template.
-
-1. **Every number in the product is tabular.** Guaranteed by the typeface (§4.1); belt and braces, the `<Money>` and `<Qty>` primitives also set `fontVariant: ['tabular-nums']` so a future typeface change cannot silently break alignment.
-2. **Money is integer paise in and integer paise out, always.** No float ever enters a component. `<Money value={paise} />`, `<RupeeInput value={paise} onChange={paise => …} />` `[CLAUDE.md]`.
-3. **Indian digit grouping, always:** `₹1,24,500.00`, via `Intl.NumberFormat('en-IN')` with the lakh/crore fallback in `@dos/domain`. Never `₹124,500.00` `[UX-02 R24]`.
-4. **Hero money is composed, column money is not.** In a *hero* figure (tile, invoice total, collect amount) the `₹` and the paise are set at **0.72 em, one weight lighter, `text.secondary`**, and the integer part carries full size, weight and `text.primary`. In a *column* — any table, any list of money — every character is the same size and weight, right-aligned, fixed to two decimals. Mixing sizes inside a column breaks the alignment the typeface just bought us.
-5. **Fixed precision down a column.** Two decimals, always, even for `.00`. A column where some rows show paise and some do not is the single loudest amateur tell.
-6. **Quantity is always dual-unit and never toggled:** `2 cs + 6 pc = 186 pcs`. Case size comes from `tenant_products.case_size_override` else `product_variants.default_case_size` `[UX-01 W5, S3]`, `[CLAUDE.md]`.
-7. **Dynamic type:** labels and body scale freely with the OS font setting; **numeric text carries `maxFontSizeMultiplier={1.3}`**, and every row must wrap to two lines without clipping at 200% `[UX-03 §14b]`. `allowFontScaling={false}` is banned.
-8. **Screen readers get words, not glyphs.** Every `<Money>` sets `accessibilityLabel={speakMoney(paise)}` → "one lakh twenty four thousand five hundred rupees" `[UX-03 §14c]`.
-9. **Label budget: 20 characters.** Every string lives in one catalogue per app so the later Marathi pass is a swap, not a rewrite `[UX-01 U15]`, `[UX-02 R8]`.
+1. **Every number is tabular** (the typeface guarantees it; `<Money>` and `<Qty>` also set `fontVariant: ['tabular-nums']`).
+2. **Integer paise in, integer paise out**: `<Money value={paise} />`, `<RupeeInput onChange={paise => …} />`. No float enters a component.
+3. **Indian grouping, always:** `₹1,24,500.00` via `Intl.NumberFormat('en-IN')` with the `@dos/domain` lakh/crore fallback `[UX-02 R24]`.
+4. **Hero money is composed, column money is not.** In a hero (strip value, invoice total, "To collect") `₹` and paise sit at 0.72 em, one
+   weight lighter, `text.secondary`; the integer carries full size. In any column every glyph is the same size and weight, right-aligned.
+5. **₹ once per column.** A register or ladder states `₹` in its head; rows carry digits only (as A drew "5,12,300"). Rows in a list, chips
+   and heroes always carry `₹`.
+6. **Fixed precision down a column** — two decimals, even `.00`; a column mixing precisions is the loudest amateur tell.
+7. **Quantity is dual-unit and never toggled:** `2 cs + 6 pc = 186 pc`; case size from `tenant_products.case_size_override` else
+   `product_variants.default_case_size` `[UX-01 W5, S3]`.
+8. **Dynamic type:** text scales freely; numeric text carries `maxFontSizeMultiplier={1.3}`; every row wraps to two lines at 200% without
+   clipping; `allowFontScaling={false}` is banned `[UX-03 §14b]`.
+9. **Screen readers get words:** every `<Money>` sets `accessibilityLabel={speakMoney(paise)}` `[UX-03 §14c]`.
+10. **Label budget 20 characters**, one string catalogue per app `[UX-02 R8]`.
 
 ---
 
 ## 5. Space, shape, elevation
 
-### 5.1 Spacing
+**Spacing** — one 4 px scale: `space.1 = 4 · 2 = 8 · 3 = 12 · 4 = 16 · 5 = 20 · 6 = 24 · 8 = 32 · 10 = 40 · 12 = 48`. Field gutter
+`space.4`; desk main padding `space.5` (20 px) all round (A drew 18/20; 20 is the nearest scale step); desk content max 1200 px. Inside a group:
+`space.3` label→value, `space.4` between rows' content, `space.6` between sections. **Gaps between tap targets ≥ 19 dp (3 mm); between a
+confirming and a destructive action ≥ 50 dp (8 mm)** `[UX-01 U6]`.
 
-One 4 px base scale, used by both densities:
+**Touch floors:** 69 dp field · 76 dp warehouse and delivery primary actions · 63 dp anywhere else on a phone · 24 px desk. Material's
+48 dp (7.6 mm) and Apple's 44 pt are below the floor and are not our minimum `[UX-01 U6]`.
 
-`space.0 = 0` · `1 = 4` · `2 = 8` · `3 = 12` · `4 = 16` · `5 = 20` · `6 = 24` · `8 = 32` · `10 = 40` · `12 = 48` · `16 = 64`
+**Radii (A is tighter than the draft):** `radius.xs = 4` (status chips, tags) · `radius.sm = 6` (inputs, steppers, rail items, filter chips)
+· `radius.md = 8` (buttons, group cards, register outline) · `radius.lg = 12` (dialogs, side panels) · `radius.xl = 20` (bottom-sheet top
+corners) · `radius.full` (avatars only). A primary button is `radius.md`, never a pill.
 
-- **Field screen gutter:** `space.4` (16). **Desk page gutter:** `space.6` (24), content column max 1200 px.
-- **Vertical rhythm inside a card:** `space.3` between label and value, `space.4` between groups, `space.6` between sections.
-- **Minimum gap between adjacent tap targets: 19 dp (3 mm). Minimum gap between a confirming action and a destructive one: 50 dp (8 mm)** `[UX-01 U6]`. In practice that means Deliver / Partial / Failed are 3 buttons with 50 dp between the safe pair and the failing one, not a 3-up segmented control.
-- **Touch target floors:** 69 dp field · 76 dp warehouse and delivery primary actions · 63 dp anywhere else on a phone. Material's 48 dp is 7.6 mm and Apple's 44 pt is ~7 mm — **both are below the floor for handheld use and neither is our minimum** `[UX-01 U6]`. The existing `touch.minTarget = 48` in `frontend/libs/ui/src/tokens.ts` must be replaced.
+**Borders:** `border.hairline` for rules that structure a page (rail edge, header bottom, page-header rule, chart baseline, totals rule);
+`border.faint` for rules inside a group (row dividers, strip column dividers, gridlines, the group-card outline); `border.strong` for anything
+interactive or state-bearing. A group is one box with faint hairlines inside; a row is never its own box. **Focus ring** (desk and web): 2 px
+`focus.ring` outline, 2 px offset, 1 px `bg.surface` halo; restore `:focus-visible` in the generated `tokens.css` because RN Web strips it.
 
-### 5.2 Radii
-
-`radius.sm = 8` (inputs, chips, small controls) · `radius.md = 12` (cards, buttons, list rows) · `radius.lg = 18` (dialogs, panels) · `radius.xl = 28` (bottom-sheet top corners only) · `radius.full = 999` (**status pills and avatars only**).
-
-A primary button is `radius.md`, not a pill. Pill buttons read consumer; this is an instrument.
-
-### 5.3 Borders
-
-- `border.hairline` 1 px, decorative separation only. A list uses hairlines *between* rows, never a box around every row.
-- `border.strong` 1 px for anything that conveys state or interactivity: input outlines, chip edges, the unchecked checkbox, the table's frozen-column edge.
-- **Focus ring** (desk, and any web build): 2 px `focus.ring` outline offset 2 px, plus a 1 px `bg.surface` halo so it reads on both light fills and accent fills. React Native Web's `Pressable` strips outlines by default — **restore `:focus-visible` in the generated `tokens.css`** `[UX-03 §14c]`. A desk app that cannot be driven from the keyboard will be rejected by the accountant who lives in it.
-
-### 5.4 Elevation — and when it is allowed
-
-Elevation is allowed on **exactly four things**, and nowhere else:
-
-1. Bottom sheet — `0 -2px 16px rgba(21,24,27,0.12)`
-2. Dialog / modal — `0 8px 32px rgba(21,24,27,0.16)`
-3. A sticky bottom action bar, **only while content is scrolled under it** — `0 -1px 8px rgba(21,24,27,0.08)`, animated in over 150 ms
-4. Menus, dropdowns, autocomplete popovers — `0 4px 16px rgba(21,24,27,0.12)`
-
-Cards, list rows, tiles, tables, chips and inputs are **flat**: `bg.surface` on `bg.ground`, separated by the ground colour itself or a hairline. Border **and** shadow **and** radius on the same element is the 2014 admin-template tell `[UX-02 §3 item 3]`.
-
-**On dark surfaces, elevation is lightness, not shadow:** ground `slate.950` → surface `slate.900` → raised `slate.800`. Shadows are invisible on dark and only cost GPU.
-
-**Liquid Glass / translucency: no.** `expo-glass-effect` is iOS 26+ and silently degrades to an opaque `View` everywhere else, and translucency behind text is a contrast risk `[UX-02 §1.2]`. One visual language on both platforms; we take the *idea* — content leads, chrome is a thin functional layer that shrinks as you scroll — and implement it with opacity and elevation we control.
+**Elevation — exactly four things, nothing else:** bottom sheet `0 -2px 16px rgba(27,30,26,.12)` · dialog `0 8px 32px rgba(27,30,26,.16)` ·
+sticky bottom bar **only while content scrolls under it** `0 -1px 8px rgba(27,30,26,.08)`, 150 ms · menus/popovers `0 4px 16px
+rgba(27,30,26,.12)`. Cards, rows, strips, tables, chips and inputs are flat. On dark, elevation is lightness (`950 → 900 → 800`), never shadow.
+No translucency/"glass" behind text `[UX-02 §1.2]`.
 
 ---
 
-## 6. Components
+## 6. Components (contracts)
 
-The shared library lives in `frontend-apps/shared-ui`. **A screen may import from `shared-ui`, `@dos/domain` and `@dos/contracts` only** — never `react-native` primitives except `View`, never `expo-haptics`, never a chart library. If a screen needs something the platform gives it directly, that is a missing `shared-ui` component. Enforced with an ESLint `no-restricted-imports` rule `[UX-03 §15]`.
+The shared library is `frontend/libs/ui` (`shared-ui`). A screen imports from `shared-ui`, `@dos/domain` and `@dos/contracts` only — never
+`react-native` primitives except `View`, never `expo-haptics`, never a chart library (ESLint `no-restricted-imports`) `[UX-03 §15]`.
+**Universal press rule: every tap changes something visible within one frame (≤ 100 ms)** `[UX-02 R19]`.
 
-Every component below states its states. **The universal press rule: a tap produces a visible change within one frame (≤100 ms), always, even when the work behind it takes seconds** `[UX-02 R19]`.
+### 6.1 `<Button>`
 
-### 6.1 Buttons
+| variant       | fill                              | text           | use                                                                                   |
+| ------------- | --------------------------------- | -------------- | ------------------------------------------------------------------------------------- |
+| `primary`     | `accent.solid`                    | white          | The one commit on the screen. One per screen.                                         |
+| `secondary`   | `bg.surface` + `border.strong`    | `text.primary` | Alternatives: "Add item", "Type code", "Short"                                         |
+| `ghost`       | none                              | `accent.fg`    | Row and header actions: "Open", "Export"                                              |
+| `destructive` | `bg.surface` + `brick.edge` border| `brick.fg`     | Fail delivery, cancel invoice, void receipt. **Never a solid red button.**             |
 
-| variant | fill | text | use |
-| --- | --- | --- | --- |
-| `primary` | `accent.solid` | white | The one commit on the screen. **One per screen.** |
-| `secondary` | `bg.surface` + `border.strong` | `text.primary` | Alternatives ("Add another line", "Type code") |
-| `ghost` | none | `accent.fg` | Tertiary, in headers and rows |
-| `destructive` | `bg.surface` + `brick.edge` border | `brick.fg` | Cancel invoice, void receipt, fail delivery. **Never a solid red button** — a solid red primary invites the accidental tap this product cannot afford |
+Props: `label` (verb + object, ≤ 20 chars), `size: 'field' | 'fieldPrimary' | 'floor' | 'desk'` → heights **56 / 64 / 72 dp / 32 px**;
+`icon?`, `shortcut?` (printed on the button on desk), `disabledReason?` (required whenever `disabled`). States: `default` · `pressed`
+(`accent.pressed`, scale 0.98, 80 ms) · `disabled` (`bg.sunken`, `paper.500` label, reason line beneath) · `loading` (label stays, 16 dp
+determinate spinner in the icon slot, width unchanged, re-taps swallowed by `idempotencyKey`) · `success` (200 ms: label → outcome word + check).
+Full-width on phone, auto-width on desk. Never "Submit", "OK", "Done" or "Save" for a ledger write (§13).
 
-**States:** `default` · `pressed` (fill → `accent.pressed`, scale 0.98, 80 ms) · `disabled` (`bg.sunken` fill, `paper.500` text, **and a one-line reason underneath — a disabled button with no reason is a dead end**) · `loading` (label stays, a 16 dp determinate spinner replaces the icon slot, button width does not change, further taps are swallowed by the `idempotencyKey`) · `success` (200 ms: label → the outcome word + check, then the screen advances).
+### 6.2 `<TextInput>`
 
-Heights: field 56 dp minimum, 64 dp for a screen's primary commit, 72 dp in warehouse/delivery. Desk 36 px. Full-width on phone; auto-width on desk. Label = verb + object, ≤20 characters, in the user's words: "Place order", "Post GRN", "Issue invoice", "Confirm delivery", "Record payment", "Close trip". **Never "Submit", "OK", "Done" or "Save" for anything that writes a ledger** (§9).
+Label above in `field.label`/`desk.label` (never a floating placeholder); input ≥ 16 sp (iOS Safari zooms below 16 px); `border.strong` 1 px,
+`radius.sm`, 56 dp / 32 px tall; helper line with reserved height. States: `default` · `focused` (focus ring) · `filled` · `disabled`
+(`bg.sunken`, no outline) · `readonly` (no outline, selectable) · `error` (`brick.edge` outline + `brick.fg` message: the business problem and
+the next action) · `validating` (14 dp spinner in the trailing slot, never a blocked field). Never `<input type="number">` `[UX-02 R21]`.
 
-### 6.2 Text input
+### 6.3 `<Money>` and `<RupeeInput>`
 
-Field label above (never a floating placeholder-label — it disappears exactly when you need it), 14 sp `text.secondary`; input 16 sp minimum (below 16 px iOS Safari zooms on focus); `border.strong` outline, `radius.sm`; helper text below, reserved height so the layout does not jump when an error appears.
+`<Money value size="hero|moneyL|moneyM|cell" tone?="positive|critical|secondary" />`. `<RupeeInput value onChange bound?>`: **field apps open a
+full-screen `<NumberPad>`** (`field.keypad` digits, 76 dp keys, formatted preview on top, Clear, Done); desk is a text field with
+`inputMode="decimal"`. `₹` is a fixed visible prefix; format on blur; accepts `1234`, `1,234`, `1234.5` → emits paise. **No silent
+clamping:** over a bound, the value is accepted and the screen says what happens — "₹12,400 over limit. Needs Sunil's approval." Cash
+collection shows the expected amount **above** the pad and never pre-fills it `[UX-01 D6]`.
 
-**States:** `default` · `focused` (2 px `focus.ring`) · `filled` · `disabled` (`bg.sunken`, no outline) · `readonly` (no outline, `text.primary`, selectable) · `error` (`brick.edge` outline + `brick.fg` message stating the business problem and the next action) · `loading` (async validation: a 14 dp spinner inside the trailing slot, never a blocked field).
+### 6.4 `<QtyStepper>` — the most-used control
 
-Never `<input type="number">` — browser spinners, locale comma rejection, inconsistent decimals `[UX-02 R21]`.
+`−` and `+` at **69 dp (76 dp warehouse)**, `radius.sm`; `−` is `bg.surface` + `border.strong`; `+` is `accent.solid` with a white glyph (as A
+drew it); value between them in `field.moneyM`, `space.3` gaps; beneath, `1 case = 24 pc · = 48 pc` in `field.label`. Steps by case;
+**long-press opens the pieces pad, and a visible "Pieces" button does the same** `[UX-01 U7]`. Defaults to the shop's last quantity. States:
+`default` · `stepping` (selection haptic per tick, 80 ms value bump) · `atZero` (`−` disabled, row reads "Not ordered") · `overAvailable`
+(`ochre` "Only 14 cs available — rest short-supplied", accepted) · `blocked` (`brick`, reason + approval path) · `disabled`. An "Available
+40 cs" figure from `sellable_stock` sits on every row `[UX-01 R4]`; the applied scheme prints in rupees at ≥ 16 sp `[UX-01 S8]`.
 
-### 6.3 `<Money>` and `<RupeeInput>` — paise in, paise out
+### 6.5 `<Search>`
 
-`<Money value={paise} size="moneyM" />` renders read-only money per §4.4. `<RupeeInput value={paise} onChange={paise => …} />` is the input.
+Local-first, debounced 200 ms against the on-device catalogue; results under the field, never an overlay; first result reachable by thumb.
+States: `idle` (recent + last-ordered for this shop, never blank) · `typing` (no spinner under 300 ms) · `noResults` (query echoed + "Add as
+new item" where allowed) · `error` (cached results shown with their age). Desk: `/` focuses search anywhere; `⌘K` opens the command palette.
 
-- **Field apps: the input is a keypad, not a text field.** Tapping the value opens `<NumberPad>` full-screen (`field.keypad` 44 sp digits, 76 dp keys, a running formatted preview at the top, Clear and Done). Desk: a real text field with `inputMode="decimal"` — there is a keyboard there `[UX-02 §4.2]`.
-- `₹` is always visible as a fixed prefix, never as placeholder text.
-- **Format on blur, never on every keystroke.** Accepts `1234`, `1,234`, `1234.5`; emits `123450` paise.
-- **No silent clamping.** If the amount exceeds a bound (over credit limit, above the rep's discount authority, more than the bill's balance), the field *accepts it* and the screen states what will happen — "₹12,400 over limit. Needs Sunil's approval." Snapping a number back under the user's finger is the classic web-app failure against Tally `[UX-01 O5]`, `[UX-02 §4.2]`.
-- Cash collection specifically: **the expected amount is displayed above the input and never pre-filled into it.** Pre-filling is what produces false settlements `[UX-01 D6]`.
+### 6.6 `<ListRow>` and `<Group>`
 
-### 6.4 `<QtyStepper>` — cases and pieces
+A `<Group>` is A's line card: `bg.surface`, 1 px `border.faint` outline, `radius.md`, an optional footer strip (`accent.tint`, `accent.fg` text
+— the scheme row). Rows inside are separated by `border.faint`; a row is 72–96 dp, `space.4` padding: **leading slot** (icon / avatar /
+checkbox, 40 dp) · **primary** (`field.bodyStrong`) · **secondary** (`field.label`, `text.secondary`, one line) · **trailing stack,
+right-aligned** (`field.moneyM` over a `StatusChip`). **A row does zero derivation** — ageing, totals and formatting arrive pre-computed from
+the service `[UX-03 D6]`. States: `default` · `pressed` (`bg.raised`, 80 ms) · `selected` (`accent.tint` + 3 px `accent.line` leading bar) ·
+`waiting` (`ochre` clock glyph) · `needsAttention` (`brick` leading bar + reason). Swipe actions are accelerators only, never destructive,
+always with a tap equivalent; **the delivery app has none** `[UX-01 D9]`.
 
-The most-used control in the product. `−` and `+` at 69 dp (76 dp in warehouse), separated from the value by `space.3`, value in `field.moneyM`.
+### 6.7 `<Register>` — the ledger, on desk and on phone
 
-- **Both units always visible, never a toggle:** the control reads `2 cs + 6 pc` with `= 186 pcs` beneath it in `field.label`, and the case size is printed on the control: `1 case = 90 pcs` `[UX-01 W5]`.
-- `+`/`−` **step by case.** **Long-press opens the pieces keypad** — and a visible "Pieces" button does the same thing, because no gesture is the only way to do anything `[UX-01 U7]`, `[UX-02 R22]`.
-- Defaults to the last ordered quantity for that shop `[docs/08]`.
-- **States:** `default` · `stepping` (selection haptic per tick, value animates 80 ms) · `at zero` (`−` disabled, row shows "Not ordered") · `over ATP` (`ochre` — "Only 14 cs available. Rest will be short-supplied.", still accepted) · `blocked` (`brick`, with the reason and the approval path) · `disabled`.
-- An `ATP` badge sits on the row, sourced from `sellable_stock`. **Availability shown is availability reserved** `[UX-01 R4]`.
-- Every line shows its applied scheme in rupees at ≥16 sp, because the scheme shown at order time is the scheme the invoice prints `[UX-01 S8]`.
+One props contract (`columns`, `rows`, `frozen`, `totals`, `onSelect`, `export`), two renderings `[UX-03 D6]`.
 
-### 6.5 Search
+**Web:** real `<table>` on TanStack Table. Head row: `desk.label` sentence case, `border.hairline` beneath. Body rows **30 px**, `desk.cell`,
+`border.faint` between rows, **no zebra**, no vertical rules except the frozen first column's `border.strong` edge. Money columns right-aligned
+`desk.cellMoney`; `₹` in the head. Totals row: `border.hairline` above, weight 600. Hover `bg.raised`; selected `accent.tint`; keyboard `↑ ↓
+Enter`. TanStack Virtual past 200 rows. Sticky head, `⌘P` print stylesheet, text selection, right-click. **Every register fits a typical month
+at 1366×768 without horizontal scroll, and Export + Print sit in the page header without scrolling** `[UX-01 O6, O8]`.
+**Native:** a `FlashList` of `<Group>`ed `<ListRow>`s in column-priority order — identity, the one number, a chip; the rest one tap away.
+States: `loading` (skeleton) · `empty` · `error` · `partial` ("as of" chip) · `filtered` (chip row naming the filters, one-tap clear).
 
-- Opens the keyboard on mount only when search *is* the screen; otherwise it is a 69 dp row that pushes to a search screen.
-- **Local-first and debounced 200 ms against the on-device catalog.** A network round trip per keystroke on 4G is what makes competitors feel slow `[UX-02 §6.2]`.
-- Results appear under the field, not in a dropdown overlay; the first result is always reachable by thumb.
-- **States:** `idle` (recent + last-ordered for this shop, never blank) · `typing` (results update in place; no spinner under 300 ms) · `no results` (the query echoed + "Add as new item" where the role permits) · `error` (cached results shown, labelled with their age).
-- Desk: `/` focuses search from anywhere; `⌘K` opens the global command palette.
+### 6.8 `<KpiStrip>` and `<BarLadder>` — A's two signature panels
 
-### 6.6 `<ListRow>`
+**`<KpiStrip items={[{label, value, delta?, tone?}]} />`** — 2–4 columns in one row, **no cards**: columns divided by `border.faint`, the strip
+closed by `border.hairline` above and below. Each column: `desk.eyebrow` label, `desk.kpi` value (`field.hero` on phone, stacked 2×2), a
+`desk.meta` delta in `moss.fg` / `brick.fg` / `text.tertiary`. On phone, `field.eyebrow` + `field.hero` + `field.label`.
+**`<BarLadder rows={[{label, value, tone}]} />`** — one row per rung: label 40 px `text.tertiary` (`text.secondary` in the field), a 16 px
+track in the rung's tint, fill in the rung's bar colour, width ∝ value, value right-aligned 600 tabular; `₹` in the panel title. Used for the
+ageing ladder and any "by bucket" figure. Every rung carries its number even at 0.
 
-The workhorse. Phone: 76–96 dp tall, `bg.surface`, hairline between rows, `space.4` horizontal padding.
+### 6.9 `<StatusChip>`
 
-Structure is fixed so six apps look like one product: **leading slot** (avatar / icon / checkbox, 40 dp) · **primary line** (`field.bodyStrong`) · **secondary line** (`field.label`, `text.secondary`, one line, ellipsised) · **trailing stack, right-aligned** (money in `field.moneyM` on top, a `StatusPill` beneath).
+`radius.xs`, 24 dp tall (28 dp warehouse), `space.2` horizontal padding, tint fill, `.fg` text in `field.bodyStrong`/`desk.label`, 16 dp icon,
+the word. `solid` variant for the three loud states only. Never a bare dot; never colour without the word.
 
-**The rule that keeps lists fast: a row does zero derivation.** No ageing bucket computed on device, no five money values formatted per row, no per-row chart. The backend already pre-aggregates (`owner_summary`, `retailer_behaviour`, `daily_rep_stats`); a row that recomputes silently undoes that and will drop frames on the reference device `[UX-03 D6]`.
+### 6.10 Tabs, chips, segments
 
-**States:** `default` · `pressed` (`bg.raised`, 80 ms) · `selected` (`accent.tint` fill + 3 px `accent.solid` leading bar) · `disabled` · `waiting to send` (a small `ochre` clock glyph in the trailing stack) · `needs attention` (`brick` leading bar + the reason on the secondary line).
-
-Swipe actions are **accelerators only**, never destructive, always with a visible tap equivalent on the same screen. **In the delivery app there are no swipe actions at all** — wet fingers `[UX-01 D9]`.
-
-### 6.7 `<DataSurface>` — the register that degrades to cards
-
-One props contract, two renderings `[UX-03 D6]`.
-
-**Web (`.web.tsx`):** a real `<table>` with TanStack Table — sticky `<thead>`, **frozen first column** (the retailer/item/invoice identity), right-aligned tabular money columns, column-visibility control, text selection, right-click, `Cmd+P` print stylesheet, and TanStack Virtual past ~200 rows. Row height 32 px, cell text 14 px `[UX-01 O8]`. **Every register must fit a typical month without horizontal scroll at 1366×768** — that is the resolution actually on the desk.
-
-**Native (`.native.tsx`):** a `FlashList` of `<ListRow>`s using the column-priority order — identity + the one number that matters + a status pill; the rest one tap away.
-
-**States:** `loading` (content-shaped skeleton, §6.16) · `empty` (§6.14) · `error` (§6.15) · `partial` (rows shown, a labelled "as of" chip) · `filtered` (an explicit chip row showing what is filtered, with a one-tap clear).
-
-Non-negotiable on both: **export and A4 print controls visible without scrolling on every register** `[UX-01 O6]`. "Distributors cannot get their own data out" is a documented top complaint about the incumbents and is a selling point here.
-
-### 6.8 `<Sheet>` and `<Dialog>`
-
-**Bottom sheet is a phone pattern only.** Native: `@gorhom/bottom-sheet` v5, `radius.xl` top corners, a 32×4 dp `paper.400` grab handle, `insets.bottom` respected, backdrop `rgba(21,24,27,0.32)`, dismissible by tap-outside and by a visible Close button. **Desk: a focus-trapped `<dialog>` or a right-hand side panel** — a bottom sheet on a 24-inch monitor is wrong UI, not a compatibility gap `[UX-03 D8]`.
-
-**Dialogs are reserved for the four irreversible commits and nothing else:** issue invoice, post GRN, close trip, approve a credit override `[UX-02 R26]`. Every reversible action gets **undo** instead. A dialog states exactly what will be written ("Invoice GL/1688 · ₹18,420 · stock leaves Kalyan godown"), and its confirm button carries the real verb.
-
-### 6.9 Tabs, chips and filters
-
-- **Tabs:** maximum 4 on phone, no truncated labels, no icons-only. Underline indicator 3 px `accent.solid`, animated 150 ms. Label + count ("Pending 4"). Never a scrolling tab strip in a field app.
-- **Filter chips:** `radius.sm`, 44 dp tall, `border.strong` when unselected, `accent.tint` fill + `accent.edge` when selected, with a check glyph. Selected count always visible. A filter row never scrolls off-screen without a visible "3 filters" summary.
-- **Segmented control** (2–3 mutually exclusive options only): full-width, 56 dp, `bg.sunken` track, `bg.surface` thumb with a hairline. Use `@expo/ui`'s native segmented control where a native control is genuinely better `[UX-03 D9]`.
-- **No bottom tab bar with more than 4 tabs; no truncated tab labels** `[UX-02 §3 item 6]`.
-
-### 6.10 `<StatusPill>`
-
-`radius.full`, 28 dp tall (32 dp in warehouse), `space.2` horizontal padding, **16 dp icon + word**, tint fill + 1 px `.edge` border. Solid variant (white on `.fg`) for the three loud states only (§3.3). Never a bare coloured dot. Never colour without the word.
+Tabs: ≤ 4, label + count ("Pending 4"), 3 px `accent.line` underline, 150 ms, never a scrolling strip in a field app. Filter chips: `radius.sm`,
+44 dp, `border.strong` unselected → `accent.tint` + check when selected; a filter row never leaves the screen without a "3 filters" summary.
+Segmented control (2–3 options): 56 dp, `bg.sunken` track, `bg.surface` thumb with a faint hairline; native `@expo/ui` control where better
+`[UX-03 D9]`.
 
 ### 6.11 `<ConnectionStrip>` — the honesty contract
 
-One persistent, **non-blocking** strip under the app header on every screen of every app. Three states, one line, from `useConnection() → { online, lastSyncedAt, pendingWrites }`:
+One persistent, **non-blocking** 28 dp strip under the header on every screen of every app, from `useConnection() → { online, lastSyncedAt,
+pendingWrites }`: "Updated 2 min ago" · "3 orders waiting" (`ochre`; tap opens the list, never a send button) · "Offline since 10:42". **No
+"Sync now", no "Refresh" as the path to current data, never a modal for sync, GPS, permission or connectivity** `[UX-01 U16]`, `[UX-02 R25,
+R27]`. Over 4 h stale → `ochre` with the time ("Stock as of 9:40 am"); cached prices on the order screen are labelled. Online-first now; when
+offline lands for sales and delivery before the pilot, only the source of `pendingWrites` changes — no screen changes.
 
-- `Updated 2 min ago` — `text.secondary`, no fill
-- `3 orders waiting` — `ochre` tint; tapping opens the list of what is waiting, never a send action
-- `Offline since 10:42` — neutral tint, struck-cloud icon
+### 6.12 `<Sheet>`, `<Dialog>`, `<Toast>`
 
-**There is no "Sync now" button and no "Refresh" as the primary path to current data. There is never a modal for sync, GPS, permission or connectivity** `[UX-01 U16]`, `[UX-02 R25, R27]`. This is the single most-cited failure of Bizom, FieldAssist and Botree, over six years of Play reviews, and not repeating it is a feature we sell. When PowerSync lands for sales and delivery, only the source of `pendingWrites` changes — **no screen changes**.
+Bottom sheet is phone-only: `@gorhom/bottom-sheet` v5, `radius.xl`, 32×4 dp `paper.400` handle, backdrop `rgba(27,30,26,.32)`, a visible Close.
+Desk uses a focus-trapped dialog or a right-hand side panel (360 px, `bg.surface`, `border.hairline` left) `[UX-03 D8]`. **Dialogs exist for
+four irreversible commits only** — issue invoice, post GRN, close trip, approve a credit override — stating exactly what will be written
+("Invoice GL/1688 · ₹18,420 · stock leaves Kalyan godown") with the real verb on the confirm `[UX-02 R26]`. Everything reversible gets
+**undo**: a 4 s toast, one at a time, above the action bar, `bg.raised`, ≤ 6 words + Undo ≥ 44 dp, no haptic, never the record of an event.
 
-Data-age escalation: fresh is unmarked; minutes are relative; over 4 hours the strip turns `ochre` and names the time ("Stock as of 9:40 am"); on the order screen, prices quoted from a cached price list are explicitly labelled, because that is exactly the doorstep dispute `[operational-pain-points #27]`.
+### 6.13 `<Avatar>`, `<TenantLogo>`, `<EmptyState>`, `<ErrorState>`, `<Skeleton>`
 
-### 6.12 `<Toast>`
+Avatar: initials in `field.bodyStrong` on `paper.200`, `radius.full`, 40 dp rows / 32 dp headers; no photographs, no identity rings.
+`<TenantLogo>` is specified in §11. EmptyState: 32 dp `paper.500` icon, one line ≤ 8 words, a `secondary` button naming the next thing ("No
+stops left — close the trip") `[UX-01 U15]`. ErrorState: business language + next action; a `sync_errors` row becomes a **"Needs attention"
+work item in the list**, never an error screen `[UX-02 R30]`; codes live behind "Details". Loading: < 300 ms nothing · 300 ms–1 s an inline
+indicator · > 1 s a content-shaped skeleton in `paper.200` at real row heights, 1.2 s pulse, static under reduce-motion; never a full-screen
+spinner on a known-shape screen; every visited screen repaints from the persisted query cache first `[UX-02 R16, R17]`.
 
-**Toasts exist for one purpose: undo.** They are never the record that something happened — the screen itself shows that `[UX-02 §3 item 24]`. 4 seconds, one at a time, bottom of the screen above the action bar and above `insets.bottom`, `bg.raised` with `radius.md` and the dialog shadow, containing the outcome in ≤6 words and an Undo action at ≥44 dp. No haptic on a toast. No success toast after a routine action.
+### 6.14 The chart set (`shared-ui/charts`)
 
-### 6.13 `<Avatar>`
+One props contract; `.native.tsx` on `react-native-svg` + `d3-scale`/`d3-shape`, `.web.tsx` on Recharts; scales, tick formatters, the IST
+business-date axis and the ramp live in `@dos/domain` `[UX-03 D5]`.
 
-Initials in `field.bodyStrong` `text.primary` on `paper.200`, `radius.full`, 40 dp in rows / 32 dp in headers. **No photographs** (bandwidth, and a rider's face is not our data to hold), and **no colour-coded identity rings** — colour is spoken for. A shop's avatar is the first letter of the shop name; a person's is two initials.
+| component         | shape (A)                                                                                                  | where                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `<TrendChart>`    | 1–2 lines, 14–90 points, 2 px, hairline gridlines, end dot, first/last/month-start ticks, legend if 2 series | Owner growth and performance; retailer statement          |
+| `<CompareBars>`   | Grouped bars, current `accent.line` vs previous `paper.400`, ≤ 12 groups, 2 px gap, square corners        | Month by month, brand-wise, beat-wise                      |
+| `<StackedMix>`    | One horizontal 100% bar, ≤ 5 segments, labels on the segments                                              | Brand / category / payment-mode mix                       |
+| `<Sparkline>`     | 40×16 dp, one `accent.line` stroke, no axes                                                                | Inside a strip column or a retailer row                   |
+| `<BarLadder>`     | §6.8                                                                                                       | Ageing everywhere; delivery outcomes                      |
 
-### 6.14 `<EmptyState>`
-
-Three parts, maximum: a 32 dp `paper.500` icon, **one line of ≤8 words**, and the primary action as a `secondary` button. **No illustrations. No paragraphs.** The flow must be completable by someone who cannot read the sentence, so the icon and the button label carry it `[UX-01 U15]`.
-
-Every empty state names the *next* thing, not the absence: "No stops left — trip can be closed" with a Close trip button; not "There are no items to display."
-
-### 6.15 `<ErrorState>`
-
-**Business language and the next action, never a code and never a red toast that disappears** `[UX-02 R30]`. A `sync_errors` row from `/sync/upload` — which is a 2xx business outcome by design (ADR 0007) — becomes a **"Needs attention" work item in the list**, not an error screen: *"Kirana Mart order — credit limit reached, ₹12,400 over. Ask Sunil to approve?"* with the approve-request button attached.
-
-A technical code, if one exists, lives behind a "Details" disclosure for support. `brick.tint` background, `brick.fg` text, `brick.edge` border, a 24 dp icon, and never a full-screen takeover if any usable cached content exists.
-
-### 6.16 `<Skeleton>` and loading
-
-Threshold-based, baked into the kit so no screen decides for itself `[UX-02 R16]`:
-
-- **< 300 ms: show nothing.** Never flash a spinner.
-- **300 ms – 1 s:** a subtle inline indicator in the affected region only.
-- **> 1 s:** a **skeleton shaped like the content that is coming** — `paper.200` blocks at the real row heights, a 1.2 s cross-fade pulse, **static under reduce-motion**.
-- **Never a full-screen spinner on a screen whose shape we already know**: beat list, stop list, order queue, GRN queue, catalog, ageing, billing desk.
-- **Every screen visited before repaints instantly from the persisted query cache and revalidates behind the connection strip.** On patchy 4G this is the difference between "fast app" and "broken app" `[UX-03 §13]`.
-
-### 6.17 Pull-to-refresh
-
-Allowed on list screens as the platform gesture people already expect — and that is all it is. It is never the documented way to get current data, it never appears as a button, and it fires **no haptic**. Data refreshes on focus and on interval regardless.
-
-### 6.18 The chart set
-
-Five components in `shared-ui/charts`, one props contract, two implementations: `.native.tsx` on `react-native-svg` + `d3-scale`/`d3-shape`, `.web.tsx` on Recharts. Scales, tick formatters, IST business-date axis and the colour ramp live in `@dos/domain` so the two renderers cannot drift `[UX-03 D5]`. **A screen never imports a chart library.**
-
-| component | shape | where |
-| --- | --- | --- |
-| `<TrendChart>` | Single line, 30–90 points, 2 px `petrol.700`, optional `paper.400` comparison line, no area fill, no dots except the last point | Owner: sales trend, collections trend, outstanding trend |
-| `<CompareBars>` | Grouped vertical bars, current `petrol.700` vs previous `paper.400`, max 12 categories | Owner: this month vs last, brand-wise, beat-wise |
-| `<StackedMix>` | One horizontal 100% stacked bar, max 5 segments from the single-hue ramp, labels **on** the segments | Brand mix, category mix, payment-mode mix |
-| `<Sparkline>` | 40×16 dp, no axes, no labels, one `petrol.700` stroke | Inside a KPI tile and inside a retailer row |
-| `<AgeingBuckets>` | Horizontal stacked bar in the four ageing colours, each segment carrying its ₹ figure at ≥20 sp | Owner phone, retailer ledger, accountant register |
-
-**Axis, label and legend rules:**
-
-- **No legend where direct labelling is possible** — and it almost always is. Label the line at its end, label the segments on the bar. A legend is a lookup task.
-- **Money y-axes start at zero**, always. Ticks in lakh/crore via `Intl.NumberFormat('en-IN')` (`₹4.2L`, `₹1.8Cr`), maximum 5 ticks, tabular.
-- **X axis is the IST business date** (`businessDate()`), never a timestamp; labelled "4 Sep", with the month shown only on the first tick of a month.
-- **Every chart states its range and its "as of" time on the chart itself**, in `field.label` / `desk.label` — not in a tooltip. A chart the owner screenshots for a brand meeting must carry its own provenance.
-- **Gridlines:** horizontal only, 1 px `border.hairline`. No vertical gridlines, no plot border, no background fill.
-- **Hover degrades to tap-to-reveal on phone.** Tapping a point pins a value label; tapping elsewhere dismisses it. Nothing is hover-only `[UX-02 §3 item 27]`.
-- **Empty and sparse are designed states:** fewer than 3 points renders as a labelled value list, not a lonely line. A chart never renders as an empty box.
-- No 3D, no shadows, no gradients, no rainbow palettes, no donut past 5 slices, no animated draw-in over 300 ms.
+Rules: money axes start at zero; ≤ 5 ticks in lakh/crore (`₹4.2L`); x axis is the IST business date ("4 Sep"); every chart prints its range and
+"as of" time on itself in `desk.meta`; hover degrades to tap-to-pin on phone; fewer than 3 points renders as a labelled value list; no draw-in
+over 300 ms.
 
 ---
 
 ## 7. Motion and haptics
 
-### 7.1 Motion budget
+| class            | duration   | easing (M3 tokens)                                            | examples                                   |
+| ---------------- | ---------- | ------------------------------------------------------------- | ------------------------------------------ |
+| Micro-feedback   | 50–100 ms  | `cubic-bezier(0.2, 0, 0, 1)`                                  | Press, checkbox, chip, stepper bump        |
+| Enter / exit     | 150–200 ms | in `(0, 0, 0, 1)` · out `(0.3, 0, 1, 1)`                       | Row insert, chip, strip, sticky-bar shadow |
+| Surface          | 250–300 ms | in `(0.05, 0.7, 0.1, 1)` · out `(0.3, 0, 0.8, 0.15)`           | Sheet, dialog, side panel                  |
+| Screen           | ≤ 300 ms   | the navigator's own                                           | Route push/pop — never re-implemented      |
 
-Durations and easings are Material 3's published tokens, which remain the safe cross-platform floor `[UX-02 §1.1, §6.1]`.
+Animate `transform` and `opacity` only `[UX-02 R14]`; springs only on sheets, high damping, no M3-Expressive bounce; every animation declares
+`ReduceMotion.System` — reduced motion means cross-fade or instant `[UX-02 R15]`; nothing routine exceeds 300 ms; no splash animation.
 
-| class | duration | easing | examples |
-| --- | --- | --- | --- |
-| Micro-feedback | 50–100 ms | `standard` `cubic-bezier(0.2, 0, 0, 1)` | Press state, checkbox, chip select, stepper bump |
-| Element enter / exit | 150–200 ms | in `cubic-bezier(0, 0, 0, 1)`, out `cubic-bezier(0.3, 0, 1, 1)` | Row insert, chip appear, banner, sticky bar shadow |
-| Surface / sheet | 250–300 ms | in `cubic-bezier(0.05, 0.7, 0.1, 1)`, out `cubic-bezier(0.3, 0, 0.8, 0.15)` | Bottom sheet, dialog, side panel |
-| Screen transition | ≤ 300 ms | the navigator's own | Route push/pop — never re-implemented |
+**Haptics** — one façade `haptics.select() · toggle() · gestureStart() · success() · warning() · error() · destructive()`; screens never import
+`expo-haptics` `[UX-02 R32]`; strength scales inversely with frequency; Android uses `performAndroidHapticsAsync` constants `[UX-02 R33, R34]`.
+Setting **Full / Important only / Off**, default Full, per device. Web has none. Sound is never a channel `[UX-01 U5]`. On a ₹9,000
+actuator Success and Error feel alike, so **the haptic always confirms a visible state change and is never the signal** `[UX-03 D11]`.
 
-**Rules:**
+| action class                                                                                     | haptic                      | visual success (the record)                                              |
+| ------------------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------ |
+| Order placed (sales, retailer) · payment collected (delivery, retailer) · delivery confirmed · GRN posted · invoice issued · trip settled · approval granted | `success` (Android `Confirm`) | Button → outcome word; the number from the series appears; screen advances |
+| Partial delivery · bargain rejected · settlement variance · over-available quantity                | `warning`                   | Inline `ochre` statement with the figure and the next action               |
+| Order blocked (credit stop, minimum order) · scan rejected · delivery failed                      | `error` (Android `Reject`)  | Inline `brick` block on the offending line; nothing is lost                |
+| Stepper tick · tab / segment change · barcode decoded · pick line confirmed                      | `select`                    | Value / indicator moves; chip animates into the scanned stack              |
+| Toggle                                                                                           | `toggle`                    | Switch moves                                                               |
+| Long-press opens the pieces pad                                                                  | `gestureStart`              | Pad rises                                                                  |
+| Destructive confirm (cancel invoice, void receipt)                                               | `destructive`               | Record stays visible in its cancelled state                                |
+| Navigation, scroll, keypad digits, screen load, toast, pull-to-refresh                          | **none**                    | `[UX-02 R35]`                                                              |
 
-- **Nothing routine exceeds 300 ms.** No decorative loops, no page-level flourishes, no splash animation.
-- **Animate `transform` and `opacity` only.** Never `width`, `height`, `top`, `left`, or anything that triggers layout — that is what drops frames on a 4 GB Android `[UX-02 R14]`.
-- **Springs where they earn it** (sheets, the swipe-action snap) using Reanimated with M3's *standard* scheme feel — high damping, minimal overshoot. **We do not use M3 Expressive's low-damping bounce.** A bouncy invoice reads as unserious.
-- **Every animation in the kit declares `ReduceMotion.System`.** Reduced motion means **cross-fade or instant, never the same animation slowed down** `[UX-02 R15]`. Web uses `prefers-reduced-motion`. Skeletons go static, the sheet cross-fades, the stepper value swaps without a bump.
-
-### 7.2 Haptics
-
-One façade in `shared-ui/feedback` — `haptics.select()`, `.toggle()`, `.gestureStart()`, `.success()`, `.warning()`, `.error()`, `.destructive()`. **Screens never import `expo-haptics`** `[UX-02 R32]`. Strength scales inversely with frequency `[UX-02 R33]`. On Android, prefer `performAndroidHapticsAsync` with the matching `AndroidHaptics` constant over a generic impact `[UX-02 R34]`.
-
-**The commit map — every commit in this product, its haptic, and its visual success:**
-
-| Commit | App | Haptic | Visual success (the haptic is never the signal) |
-| --- | --- | --- | --- |
-| Order placed | sales, retailer | `Success` (Android `Confirm`) | Button → "Order placed", order number appears, screen advances to the beat list with the shop marked done |
-| Order rejected — credit stop / MOV / over limit | sales | `Error` (Android `Reject`) | Inline `brick` block on the offending line with the amount over and the approval path; nothing is lost |
-| Bargain / credit override approved | owner, manager | `Success` | Card animates out of the queue, `moss` "Approved" toast with Undo (4 s) |
-| Bargain rejected | owner, manager | `Warning` | Card requires a reason code before it clears; the requester sees the reason `[UX-02 R29]` |
-| Gate count committed | warehouse | `Success` | Keypad collapses, the count is echoed at `field.moneyL` beside the invoice's expected count with the variance |
-| Barcode / QR decoded | warehouse | `select()` | Chip animates into the scanned stack, running count increments |
-| Scan rejected / unknown code | warehouse | `Error` | `brick` banner + the "Type code" button already focused |
-| **GRN posted** | warehouse | `Success` | Determinate button progress → GRN number, lot lines listed, "Stock is live for reps" |
-| Pick confirmed / pack confirmed | warehouse | `select()` per line, `Success` on the last | Line strikes through; short-packs shown as their own rows beside the original ask, never as edits |
-| **Invoice issued** | manager (phone) | `Success` | Determinate progress → invoice number from the series, then the PDF preview |
-| Delivery confirmed | delivery | `Success` | Stop card flips to `moss` "Delivered", next stop slides up |
-| Partial delivery recorded | delivery | `Warning` | Per-line shortfall summary at `field.moneyL`, credit-note note, then next stop |
-| Delivery failed | delivery | `Error` | Reason recorded, `brick` "Failed", the shop's phone number stays one tap away |
-| **Payment collected** (cash / UPI / cheque) | delivery, retailer | `Success` | Client receipt number immediately, server number when it lands; running "collected today" increments visibly |
-| Settlement variance outside tolerance | delivery, manager | `Warning` | Red variance figure at `field.hero`, reason-code picker, "Needs Sunil's approval to close" |
-| **Trip settled / closed** | delivery, manager | `Success` | Trip card moves to Closed with expected vs declared side by side |
-| Stepper tick, tab change, segment change | all | `select()` | Value/indicator moves |
-| Toggle | all | `toggle()` | Switch moves |
-| Long-press opens the pieces keypad | sales, warehouse | `gestureStart()` | Keypad rises |
-| Destructive confirm (cancel invoice, void receipt) | all | `destructive()` (`impactAsync(Medium)`) | Dialog's confirm; the record stays visible in a cancelled state |
-| **Nothing else.** No haptic on navigation, scroll, keyboard digits, screen load, toast, or pull-to-refresh. | | | Prefer no haptic over a buzzy one `[UX-02 R35]` |
-
-Plus:
-
-- **Setting: Haptics — Full / Important only / Off**, default Full, stored per device `[UX-02 R36]`.
-- **On a ₹9,000 Android's rotary actuator, Success and Error feel nearly identical.** The haptic therefore always *confirms a visible state change* and is never the signal itself `[UX-03 D11]`.
-- **Web gets no haptics.** The Vibration API on Android Chrome is a buzz, not a haptic.
-- **Sound is never required.** Ambient noise on a Kalyan beat is 70–100 dB; audio is off by default and is never a channel `[UX-01 U5]`.
-
-### 7.3 Optimistic UI — where it stops
-
-Optimistic by default for anything the client can validate locally: order lines, check-in, visits, draft edits, delivery outcomes, receipts (with a client receipt number shown immediately).
-
-**Never optimistic — these take a number from a series, write ledgers, and are irreversible:** **issue invoice · post GRN · close trip · approve a credit override.** They get a determinate in-progress button state, double-submit protection via `idempotencyKey` (generated **once per user intent**, never per attempt), the confirmation dialog, and only then the number `[UX-02 §4.8]`, `[UX-03 D3]`.
+**Optimistic UI** for what the client can validate locally (order lines, check-in, visits, drafts, delivery outcomes, receipts with a client
+receipt number). **Never optimistic:** issue invoice · post GRN · close trip · approve a credit override — determinate progress, one
+`idempotencyKey` per user intent, the dialog, then the number `[UX-03 D3]`.
 
 ---
 
 ## 8. Layout
 
-### 8.1 Desk shell (owner, manager + accountant)
+### 8.1 Desk shell (owner; manager + accountant) — A's composition
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│ [logo] Tarsun Enterprises        [ / search ]      Updated 2 min ago  │  56px, bg.surface, hairline bottom
-├────────────┬─────────────────────────────────────────────────────────┤
-│ Today      │  Outstanding                              [Export] [⌘P] │  page header: title 24px + actions right
-│ Orders     │  ─────────────────────────────────────────────────────  │
-│ Billing    │  [ 0–30 ][ 31–60 ][ 61–90 ][ 90+ ]   filters, count      │
-│ Money      │  ┌───────────────────────────────────────────────────┐  │
-│ Stock      │  │ Retailer ▏ Bills ▏ 0–30 ▏ 31–60 ▏ 61–90 ▏ 90+ ▏…│  │  sticky thead, frozen col 1
-│ Reports    │  │ …                                                 │  │  32px rows, 14px cells
-│ Settings   │  └───────────────────────────────────────────────────┘  │
-└────────────┴─────────────────────────────────────────────────────────┘
+┌ rail 172 px, bg.surface, hairline right ┬─ main: bg.ground, padding 20, max 1200 px ─────────────────────────────────┐
+│ [logo 28] Tarsun Enterprises   14/700   │ Today                                     Thu 3 Sep 2026   [Export] [Print ⌘P] │ page header: title 20/700,
+│           Kalyan · FY 2026-27  12 meta  │ ───────────────────────────────────────────────────────────────────── hairline │ actions right, hairline under
+│ ─────────────────── faint ───────────── │ SALES        │ COLLECTED    │ OUTSTANDING   │ FILL RATE                          │ KpiStrip (§6.8)
+│ Dashboard        ← active: accent.tint  │ ₹1,84,200    │ ₹1,41,500    │ ₹8,62,400     │ 96.2%                              │
+│ Orders             + accent.fg, 600     │ ▲ 12% vs Thu │ 9 of 14 stops│ ₹94,100 overdue│ 4 short lines                     │
+│ Billing            radius.sm, 13 px     │ ─────────────────────────────────────────────────────────────────── hairline   │
+│ Outstanding        7 px 10 px padding   │ panels: 1.55fr 1fr, gap 20; headings desk.section; content on the ground,       │
+│ Stock                                   │ no card — a panel is a heading, a hairline and its content                     │
+│ Shops                                   │                                                                                 │
+│ Prices                                  │                                                                                 │
+│ SETUP            ← desk.eyebrow, tertiary│                                                                                 │
+│ Staff · Settings                        │                                                                                 │
+│ ● Updated 2 min ago   (rail foot)       │                                                                                 │
+└─────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **A collapsible 200 px rail on `bg.surface`, not a fixed dark-navy sidebar.** The navy sidebar in `frontend/owner-app/src/styles.css` (`grid-template-columns: 220px 1fr`, `#0f172a`) is the 2014 admin-template silhouette and is the first thing to delete `[UX-02 §3 item 1]`.
-- **Maximum two navigation levels.** Six top-level destinations, each opening on its most likely screen. No three-level trees, no breadcrumb bar, no hamburger on a desktop viewport.
-- **Page header carries the title on the left and the actions on the right**, including Export and Print, always visible without scrolling `[UX-01 O6]`.
-- Content column max 1200 px, gutter `space.6`. **Every register must fit at 1366×768 without horizontal scroll.**
-- **The distributor's name and logo sit top-left, on every screen.** Distribution OS's own mark appears only on sign-in (§3.6).
+- Rail collapses to 56 px icons below 1100 px; never a dark rail, never a hamburger on a desktop viewport, **two navigation levels maximum**.
+- Owner rail: Dashboard · Orders · Billing · Outstanding · Stock · Shops · Prices · SETUP: Staff · Settings. Manager rail: Orders · Billing ·
+  GRN · Day-end · Registers · SETUP: Exports. The accountant sees the same rail with writes disabled and the reason shown.
+- The distributor's logo and display name sit top-left on every screen (§11). Distribution OS's own mark appears nowhere here.
 
-**Keyboard map — the Tally-habit contract** `[UX-01 O3, O4]`, `[UX-02 R31]`. A distributor's accountant judges this within ten minutes.
-
-| key | action |
-| --- | --- |
-| `/` | Global go-to — the `Alt+G` analogue. Jumps to any register, retailer, invoice or setting |
-| `⌘K` / `Ctrl+K` | Command palette (actions, not navigation) |
-| `Tab` / `Shift+Tab` | Walk fields in document order |
-| `Enter` | Commit the primary action |
-| `Esc` | Cancel / close, one level at a time |
-| `↑` `↓` | Move in a list; `Enter` opens |
-| `j` / `k` | Move in an approval queue |
-| `1` / `2` / `3` | Approve / Reject / Ask, in a queue |
-| `⌘P` | Print the current register to A4 |
-| `?` | Shortcut overlay |
-
-Every shortcut is **printed on its own button** as well as listed in `?` — Tally users learn shortcuts by seeing them `[UX-01 O4]`.
-**Numeric entry never re-sorts or re-filters under the cursor and never jumps focus** — that is the classic web-app failure against Tally `[UX-01 O5]`.
+**Keyboard map — the Tally contract** `[UX-01 O3, O4]`, `[UX-02 R31]`: `/` global go-to · `⌘K` command palette · `Tab`/`Shift+Tab` fields
+· `Enter` commit · `Esc` close one level · `↑ ↓` move, `Enter` open · `j`/`k` queues · `1`/`2`/`3` Approve / Reject / Ask · `⌘P` print · `?`
+overlay. Every shortcut is printed on its button. **Numeric entry never re-sorts, re-filters or moves focus under the cursor** `[UX-01 O5]`.
 
 ### 8.2 Phone shell (sales, warehouse, delivery, retailer; and the desk apps' phone surfaces)
 
 ```
-┌────────────────────────────┐  ← insets.top; edge-to-edge is mandatory on Android 16
-│ [logo] Tarsun    ●●●       │  header 56dp — INFORMATION ONLY, no primary action
-│ Updated 2 min ago          │  connection strip, 28dp, non-blocking
-├────────────────────────────┤
-│                            │
-│   content — opens on the   │  the top third is read, not touched
-│   most likely next action  │
-│                            │
-│   … scrolls …              │
-│                            │
-├────────────────────────────┤
-│  [   Place order  ₹18,420 ]│  primary action, 64dp, bottom third
-└────────────────────────────┘  ← + insets.bottom, always
+┌──────────────────────────────┐ insets.top — edge-to-edge is mandatory on Android 16 / targetSdk 36
+│ Station Road · stop 7 of 18  │ header, bg.surface, hairline under: context line (field.label, secondary)
+│ Shree Ganesh Kirana          │ title field.title; root screens show [logo 32] + display name instead
+│ [Owes ₹18,400] [Limit ₹26,800]│ StatusChips, radius.xs — information only, no action up here
+│ Updated 2 min ago            │ ConnectionStrip 28 dp
+├──────────────────────────────┤
+│ USUAL ORDER      field.eyebrow│ content on bg.ground; opens on the most likely next action
+│ ┌ Group ──────────────────┐  │
+│ │ row · row · row         │  │ scrolls; the top third is read, not touched
+│ │ scheme footer (tint)    │  │
+│ └─────────────────────────┘  │
+├──────────────────────────────┤
+│ 3 items · 4 cases    ₹1,564  │ bottom bar: bg.surface, hairline above, summary + field.moneyL total
+│ [        Place order       ] │ primary 64 dp (72 dp warehouse/delivery)
+└──────────────────────────────┘ + insets.bottom, always
 ```
 
-- **Every screen composes from `react-native-safe-area-context` insets from the first frame.** Android 16 / targetSdk 36 is required by Google Play from 31 August 2026 and **cannot opt out of edge-to-edge**; predictive back is on by default. A hard-coded `paddingTop: 24` is a bug that surfaces on someone's phone in Kalyan `[UX-03 §14a]`.
-- **Sticky bottom action bars add `insets.bottom`** or the primary action sits under the gesture pill.
-- **The one-handed rule:** every primary flow completes with one right thumb without a grip change. 49% of users are one-handed, 75% of interactions are thumb-driven, 67% right thumb `[UX-01 U9]`. The bottom third is the action zone; **the top of the screen carries information only**.
-- **Nothing destructive lives in the bottom bar or under the resting thumb** `[UX-01 U10]`. Fail delivery, cancel, void: a deliberate second action, 50 dp away from the safe one.
-- **Tab bar, not a drawer** — maximum 4 tabs, real labels, no truncation. A drawer hides the app from a user who was trained in ten minutes. `sales` and `warehouse` get 4 tabs; `delivery` and `retailer` get **no tab bar at all** — those apps are a single stack that opens on the next stop / the last bill.
-- **Every screen opens on its most likely next action**, never on a menu or a filter form: today's beat, the next stop, the GRN queue, "Order again" `[UX-02 R28]`, `[docs/08]`.
-- **Two screens are designed to be physically turned around and shown to the shopkeeper** — the order confirmation and the disputed-quantity screen. Single column, no horizontal scroll, every figure ≥20 sp, legible at arm's length across a counter. These end the two most common daily arguments `[UX-01 S8, D5]`.
-
-### 8.3 Performance is a layout constraint
-
-Budgets, on the reference device (a bought ~₹9,000 4 GB Android) over throttled 4G, checked in CI `[UX-01 U11–U13]`, `[UX-03 §13]`:
-
-cold launch ≤ 1.5 s · time to first render ≤ 2.0 s · time to interactive ≤ 3.0 s · every tap acknowledged ≤ 100 ms · list scroll ≥ 55 fps median · web initial route ≤ 600 KB gz (field) / 900 KB gz (desk) · Android download ≤ 30 MB · a full working day ≤ 10 MB of data · user-perceived ANR ≤ 0.2% DAU.
-
-Two design consequences that belong here rather than in a technical doc: **a list cell does zero derivation** (§6.6), and **ePOD/invoice photos are compressed client-side to ≤1600 px / ~200 KB before upload**, with compression and queued upload shown as a normal state rather than an error — uploading a 12 MP photo over rural 4G is the most likely cause of "the delivery app is stuck" `[UX-03 §13]`.
+- Every screen composes from `react-native-safe-area-context` insets from the first frame; a hard-coded `paddingTop` is a bug `[UX-03 §14a]`.
+- **Tab bar** (`bg.surface`, hairline above, 56 dp + inset, `field.label` labels, active `accent.fg` with a filled icon, no pill): sales
+  (Beat · Shops · Orders · Me) and warehouse (Receive · Pick · Load · Me) have one, **shown on root screens only** — a pushed screen replaces
+  it with the action bar. Delivery and retailer have no tab bar: single stacks opening on the next stop / the last bill.
+- One-handed: every primary flow completes with one right thumb `[UX-01 U9]`; nothing destructive under the resting thumb `[UX-01 U10]`.
+- Two screens are designed to be turned around and shown across a counter — order confirmation and disputed quantity: single column, every
+  figure ≥ 20 sp `[UX-01 S8, D5]`.
+- **Performance is a layout constraint** `[UX-01 U11–U13]`, `[UX-03 §13]`: cold launch ≤ 1.5 s · first render ≤ 2.0 s · interactive ≤ 3.0 s
+  · tap acknowledged ≤ 100 ms · scroll ≥ 55 fps · web route ≤ 600 KB gz field / 900 KB desk · download ≤ 30 MB · a working day ≤ 10 MB;
+  photos compressed client-side to ≤ 1600 px / ~200 KB and queued as a normal state.
 
 ---
 
-## 9. Writing
+## 9. One worked screen per app
 
-English only for now, and the flow must survive a user who reads no English sentence `[UX-01 U15]`.
+### 9.1 Owner · Dashboard (desk) — with the growth and performance graphs the founder asked for
 
-**The five rules:**
+```
+Today                                                       Thu 3 Sep 2026   [Export ▾] [Print ⌘P]
+──────────────────────────────────────────────────────────────────────────────────────────────────
+SALES              │ COLLECTED          │ OUTSTANDING            │ FILL RATE           ← KpiStrip
+₹1,84,200          │ ₹1,41,500          │ ₹8,62,400              │ 96.2%
+▲ 12% vs last Thu  │ 9 of 14 stops      │ ₹94,100 overdue        │ 4 short lines
+──────────────────────────────────────────────────────────────────────────────────────────────────
+Growth                                   [30 d] [90 d] [FY]   Performance
+Sales · this 30 days vs previous 30                           Collections vs sales · 14 days
+┌ TrendChart 160 px: accent.line 2 px, paper.400 previous ┐   ┌ TrendChart 116 px: sales accent.line, collections ochre dashed ┐
+│                                                  ●      │   │ ── Sales  ─ ─ Collections          21 Aug ……… 3 Sep            │
+└ 4 Aug ······················· 3 Sep · as of 6:10 pm ────┘   └────────────────────────────────────────────────────────────────┘
+Month by month · FY 2026-27 vs 2025-26                        Money owed, by age                       ₹
+▐▌ ▐▌ ▐▌ ▐▌ ▐▌ ▐▌  CompareBars, Apr → Mar                      0–7    ▓▓▓▓▓▓▓▓▓▓▓░░░░   5,12,300   ← BarLadder, six rungs
+Shops that ordered  31 of 36   Avg days to pay  14             8–15   ▓▓▓▓▓░░░░░░░░░░   2,56,000
+Brand mix ▓▓▓▓▓▓▓ Too Yumm ▓▓▓▓ Campa ▓▓ MOM ▓ Other           16–30  ▓▓░░░░░░░░░░░░░     94,100 … 90+ 0
+──────────────────────────────────────────────────────────────────────────────────────────────────
+Needs you (2)
+Rate below floor · Sharma Kirana · ₹1.50/pc under floor                                    Open      ← rows on faint rules,
+Over credit limit · R-0008 · ₹3,200 over                                                   Open        ghost link accent.fg
+```
 
-1. **Use the trade's own word, not the software's word.** These people have had a vocabulary for forty years.
-2. **A label is ≤20 characters.** A button is verb + object. A sentence never carries a flow.
-3. **Never abbreviate money or a count.** "₹1,24,500", not "₹1.2L", except on a chart axis.
-4. **State the next action, not the problem.** "Ask Sunil to approve?" beats "Credit limit exceeded."
-5. **No exclamation marks, no "Oops", no "Great job", no emoji anywhere in the product.**
+- Series come chart-ready from the reporting module (`owner_summary`, daily rollups); the screen formats nothing. "Growth" = sales trend with
+  its previous-period line and the month-by-month FY comparison; "Performance" = collections vs sales, fill rate, shops that ordered, average
+  days to pay, brand mix, and the ageing ladder. Every chart prints its range and "as of".
+- Phone surface: the strip stacks 2×2 at `field.hero`, then the ageing ladder, then "Needs you" as approval cards decidable in place
+  (amount, who, why, Approve / Reject / Ask) `[UX-01 O1, O2]`; charts sit one tab away. The profit view is an owner-only route `[UX-01 O10]`.
 
-**The word list** — left column banned, right column shipped:
+### 9.2 Manager · Order queue (desk)
 
-| Never say | Say |
-| --- | --- |
-| COGS, cost of goods sold | **Purchase cost** |
-| Accounts receivable, AR | **Outstanding** |
-| Aging | **Ageing** — and the buckets read "0–30 days", not "Bucket 1" |
-| SKU | **Item** (the product name the retailer uses) |
-| ATP, available-to-promise | **Available** |
-| MOV | **Minimum order** |
-| FOC, free-of-cost | **Free** |
-| PTR / PTD / landing price | **Retailer rate** / **Your rate** / **Landed cost** |
-| POD, ePOD | **Delivery proof** |
-| PJP | **Beat plan** |
-| PCR, strike rate | **Shops that ordered** (and "6 of 11 ordered") |
-| DSO | **Average days to pay** |
-| FEFO | **Oldest expiry first** |
-| SLOB | **Slow moving** |
-| Sync, queue, idempotency | **Waiting to send** |
-| Tenant, organisation | the distributor's own business name |
-| Submit, OK, Done, Save (for a commit) | **Place order · Post GRN · Issue invoice · Confirm delivery · Record payment · Close trip** |
-| Error 4xx, "Something went wrong" | the business reason and the next action |
+```
+Orders   Submitted 12 · Confirmed 24 · Picking 6 · Packed 11                 [Export ▾] [Print ⌘P]
+[Beat: Station Road ×] [Rep: all] [Today]  3 filters · clear
+──────────────────────────────────────────────────────────────────────────────────────────────────
+□  Order      Shop                    Beat           Lines  Amount ₹     Credit              State           ← desk.label heads
+□  SO-1042    Shree Ganesh Kirana     Station Road   6      18,420.00    Owes 18,400 · 16–30 d  Submitted
+■  SO-1043    Om Sai Provision        Station Road   9      42,800.00    Over limit ₹3,200      Needs approval  ← selected: accent.tint
+□  SO-1044    Mahalaxmi General       Station Road   4      9,120.00     Clear                  Submitted
+   …30 px rows, frozen Order column, no zebra, money right-aligned…
+──────────────────────────────────────────────────────────────────────────────────────────────────
+12 selected · ₹2,14,600.00                                   [Ask owner  3]  [Confirm 12  Enter]
+```
 
-**Keep** the words the trade actually uses and would be insulted to see explained: **beat, scheme, case, pieces, MRP, GRN, LR, credit note, invoice, godown, claim, batch, expiry**. Write "Goods receipt (GRN)" the first time it appears in a screen title, then "GRN" everywhere else.
+Side panel (360 px) on `Enter`: the order's lines, applied schemes, and **the credit statement in one line at the point of confirming**
+("Owes ₹18,400 · oldest 22 days · limit ₹26,800 — this order takes it ₹3,200 over") `[UX-01 M4]`. `j`/`k` move, `1` Confirm, `2` Reject with a
+reason code, `3` Ask owner. Confirm is optimistic with undo; issuing the invoice happens at pack in warehouse and is never optimistic. The
+manager's phone surface is confirm-and-photograph only `[UX-01 M2]`.
 
-**Dates and numbers:** IST always; the business date (`businessDate()`), never a timestamp, for anything a ledger uses. "Today", "Yesterday", then "4 Sep" — never a relative date beyond 7 days, never "3 weeks ago" on a bill. Times as "9:40 am". Indian digit grouping everywhere.
+### 9.3 Sales · Shop screen (phone) — A's phone sketch, at field size
 
-**Person and tone:** address the user directly ("Your beat today"), refer to money in the third person ("₹18,420 outstanding"), and never make the app the subject ("We couldn't…" → "Not sent yet — waiting for signal").
+Header as §8.2 (context line, shop name, "Owes ₹18,400" `brick` chip, "Limit ₹26,800" `neutral` chip) — outstanding, ageing and last order are
+above the fold with zero taps `[UX-01 S10]`. Content: eyebrow "USUAL ORDER"; a `<Group>` of line rows, each: item name `field.bodyStrong`,
+"₹34.00/pc · 24 pc case · Available 40 cs" `field.label`, line total `field.moneyM` right; beneath, the `<QtyStepper>` at 69 dp; the group's
+footer strip "Scheme applied · 1 free per 10  −₹68" in `accent.tint`/`accent.fg`. Then `[Add item]` secondary and a "Suggested" group.
+Bottom bar: "3 items · 4 cases" + `₹1,564` at `field.moneyL`, `[Place order]` 64 dp. Repeat order in **3 taps from cold open**, modified in ≤
+15 taps, measured in Maestro `[UX-01 S1]`; the draft persists within 500 ms of every keystroke and restores to the cursor `[UX-01 S4]`; geo-tag
+is an `ochre` chip with a distance, never a gate `[UX-01 S5]`; the bundle contains no cost string `[UX-01 S9]`.
 
----
+### 9.4 Warehouse · Picklist (phone, 76 dp)
 
-## 10. What we will NOT do
+```
+Picklist · Trip KL-2                    6 of 14 picked   ← header + progress; strip beneath
+Campa Cola 750 ml                                        field.bodyStrong
+Batch B2207 · Exp 12/26 · MRP ₹20.00     Bin A-12        lot line; MRP at field.moneyM (≥ 20 sp) [UX-01 W8]
+3 cs + 4 pc = 76 pc                                      field.moneyM
+[Older lot first · B2201 ]                               ochre chip, colour + icon + word
+[      Picked      ]   [ Short ]                         76 dp primary-per-row · secondary, 19 dp gap
+──────────────────────────────── faint ──────────────────
+… next line …
+[ Confirm 14 lines ]  "8 lines not yet picked"           72 dp, disabled with reason until every row is picked or short
+```
 
-The named list. A screen is walked against this before its module is called stable, and the starred items are **already in the repo and must be deleted** `[UX-02 §3]`.
+Every tap persists on the instant — there is no Save step `[UX-01 W4]`; short lines become their own pack rows, never order edits; scan
+screens carry an equal-size "Type code" button and a torch toggle that survives the session `[UX-01 W3, W10]`; the gate count is a
+full-screen `<NumberPad>` with nothing else on screen `[UX-01 W2]`.
 
-**Structure and chrome**
+### 9.5 Delivery · Stop (phone, no swipes)
 
-1. ★ A dark-navy fixed sidebar with a white content pane (`frontend/owner-app/src/styles.css`).
-2. ★ Bootstrap blue `#1d4ed8` with a flat nine-hex palette and no tonal ramp (`frontend/libs/ui/src/tokens.ts`).
-3. Border **and** shadow **and** radius on the same element; cards inside cards; panels inside panels.
-4. A breadcrumb bar, a centred page title, or a row of outlined buttons at top-right.
-5. Three-level nav trees; a hamburger on a desktop viewport.
-6. A bottom tab bar with 5+ tabs, or truncated tab labels.
-7. A splash screen with a big logo.
-8. A dashboard that opens blank until you pick a date range and a filter.
+```
+Stop 4 of 11 · Station Road                              context line; strip beneath
+Shree Ganesh Kirana                                      field.title
+12, Station Road, Kalyan W          [ Call ]             69 dp call button, one tap until the stop closes [UX-01 D10]
+┌ Group: bills on this stop ─────────────────────────┐
+│ GL/1688 · 3 Sep · 6 lines                ₹18,420.00 │   field.moneyM
+│ GL/1642 · 27 Aug · Overdue · 7 days       ₹4,200.00 │   brick solid chip
+└─────────────────────────────────────────────────────┘
+To collect                                 ₹22,620      field.hero (expected; never pre-filled into the pad)
+[            Delivered            ]                      76 dp primary
+[             Partial             ]                      secondary
+                                                         ≥ 50 dp gap
+[             Failed              ]                      destructive outline — the reason picker follows
+```
 
-**Visual language**
+Delivered → photo (queued, never blocking) → Collect (Cash / UPI with UTR / Cheque) → receipt number immediately. ≤ 3 taps clean, ≤ 5 with
+collection `[UX-01 D3]`. Nothing requires interaction while the vehicle moves `[UX-01 D1]`; everything survives a dead battery `[UX-01 D7]`;
+the GPS foreground notification names the distributor ("Trip in progress — location shared with Tarsun Enterprises") `[UX-01 D8]`.
 
-9. Neumorphism, multi-stop gradients, glassmorphism sprayed across surfaces.
-10. Emoji as iconography; mixed icon sets; inconsistent stroke weights. One icon set, 1.75 px stroke, 24 dp grid.
-11. ALL-CAPS wide-tracked section labels.
-12. A FAB on every screen whether or not there is one primary action.
-13. Skeuomorphic paper-invoice textures, rupee-note motifs, photographic headers.
-14. Illustrations in empty states.
-15. A pill-shaped primary button.
-16. Dark mode auto-selected from system appearance on any field app.
+### 9.6 Retailer · Bills (phone, online only, one card per distributor)
 
-**Data and numbers**
+```
+Shree Ganesh Kirana                                      the shop's own name; no sign-up, no permission prompt [UX-01 R1, R8]
+[ (T) Tarsun Enterprises · ₹18,400 ]  [ (K) Kalyan Agencies · ₹0 ]   one card per linked distributor, never merged [UX-01 R11]
+Updated just now
+You owe Tarsun Enterprises                    ₹18,400    field.hero
+┌ Group: bills, oldest first ────────────────────────┐
+│ GL/1642 · 27 Aug        [31–60 days]     ₹4,200.00 │   ageing chip = colour + icon + word; ₹ at field.moneyL [UX-01 R7]
+│ GL/1688 · 3 Sep         [0–7 days]      ₹14,200.00 │
+└────────────────────────────────────────────────────┘
+[ Pay ₹18,400 ]   64 dp → the distributor's UPI QR (from upi_vpa) one tap away on every bill
+[ Order again ]   secondary — 2 taps from the WhatsApp link [UX-01 R3]
+```
 
-17. Proportional numerals in a money column; `₹` at the same weight as the amount; inconsistent decimal precision down a column.
-18. A desktop table shrunk onto a phone — horizontal scroll, no frozen column, no card view.
-19. `<input type="number">` for money.
-20. Status shown by colour alone; a bare coloured dot with no word.
-21. 3D bars, drop-shadowed charts, rainbow palettes, a nine-slice donut, a chart with no stated date range.
-22. A list cell that computes anything.
-
-**Interaction**
-
-23. A "Sync now" button, or "Refresh" as the primary path to current data.
-24. A full-screen blocking modal for sync, GPS, connectivity or permission; `alert()`; `window.confirm()`.
-25. A centred spinner as the loading state for a list whose shape we know.
-26. A success toast after every action; toasts as the record of what happened.
-27. A confirmation dialog in front of every destructive action instead of undo for the reversible ones.
-28. Routine transitions at 400–600 ms; decorative page-level animation.
-29. Hover-only affordances with no touch equivalent.
-30. Swipe-to-complete, slide-to-confirm, drag-to-reorder — anywhere, and *especially* nowhere in the delivery app.
-31. A geo-fence that blocks work. A permission prompt on app open. A registration form in front of a retailer.
-32. Losing a half-typed order to a phone call.
-
-Items 31 and 32 are the two that decide whether this product is adopted at all.
-
----
-
-## 11. Per-app character
-
-**Owner (:3001) — the instrument panel.** Desk-primary, phone-secondary, and the only app that may run dark. On the phone it answers four questions with zero taps — collected today, cash in transit, outstanding by ageing bucket, what needs approval — with rupee outcomes at `field.hero` and percentages secondary `[UX-01 O1]`. At the desk it is graphs and registers: this is where the founder's growth charts live, and where the profit view lives as an owner-only route that is never bundled into another role's app `[UX-01 O10]`. Character: calm, dense, numerate, no chrome. The owner is the only user who is ever *browsing*; everyone else is executing.
-
-**Manager + accountant (:3002) — the keyboard loop.** The highest-repetition surface in the product: 60–120 invoices a day, select → review → issue → next, with the hand never leaving the keyboard and a visible count of what remains `[UX-01 M1]`. Ageing, credit block and the reason are stated in one line *at the point of billing*, never discovered after the invoice is issued `[UX-01 M4]`. GST screens show days-to-deadline against **the 11th** (GSTR-1) as the primary date, because liability has been hard-locked in GSTR-3B since July 2025 and corrections must land in GSTR-1A first — the accountant's real deadline is nine days earlier than the roadmap assumes `[UX-01 §6.3]`. The phone surface is confirm-and-photograph only: any flow needing more than one typed number belongs on the desk `[UX-01 M2]`. Character: fast, terse, printable.
-
-**Sales (:3003) — ninety seconds in a doorway.** He is standing in the 60 cm between the counter and the sacks, one hand holding a sample, the shopkeeper serving a customer, six to twelve minutes of which the app may claim ninety seconds `[UX-01 §2.1]`. So: repeat order in **3 taps** from a cold open, a modified order in ≤15 taps and ≤60 seconds, measured in a Maestro flow and failing CI if it regresses `[UX-01 S1]`. The shop card opens with outstanding, ageing and last order above the fold. Geo-tag is an amber chip with a distance, never a gate. **The bundle contains no cost UI at all** — a routing guarantee, verified by the CI role-leak dump `[UX-01 S9]`. The draft persists within 500 ms of every keystroke and restores to the exact cursor with no "resume?" prompt, because losing an order to a phone call is *the* signature failure of this category `[UX-01 S4]`. Character: big, fast, forgiving, one-thumbed.
-
-**Warehouse (:3004) — put it down, pick it up.** 76 dp targets, because the hand is dusty, damp and hurried. The phone lives on a carton and is used for eight seconds at a time, so **every count, line confirmation and photo persists the instant it is made — there is no Save step that can be lost** `[UX-01 W4]`. The gate count is a full-screen keypad at 44 sp with nothing else on screen, and it stays **typed**: the camera must never quietly become the counter, or the "zero manual entry except the gate count" promise breaks in the wrong direction `[UX-03 D10]`. Every scan screen carries an equally prominent "Type code" button at the same size in the same thumb zone, and a torch toggle whose state survives the session `[UX-01 W3, W10]`. Case and pieces always together. Character: loud, literal, indestructible.
-
-**Delivery (:3005) — one hand, and the other one has cash in it.** Three buttons in the bottom third — Deliver, Partial, Failed — with 50 dp between the safe pair and the failing one. A clean delivery in ≤3 taps, ≤5 with collection `[UX-01 D3]`. **No swipes, no slide-to-confirm, no drag anywhere**, because for four months a year the screen and the finger are wet `[UX-01 D9]`. Nothing requires interaction while the vehicle moves — phone use while driving is prosecuted under MV Act §184 `[UX-01 D1]`. The photo never blocks; the stop closes and the upload queues. The expected cash is shown above the input and never pre-filled into it. Everything survives a dead battery mid-trip. Character: three big buttons and a number.
-
-**Retailer (:3006) — the detail view for a WhatsApp message.** He is behind a counter, serving a customer every 40 seconds. He **never fills a registration form**: he arrives from a WhatsApp deep link already identified, and the first screen is his outstanding or his last order — no signup, no tour, no permission prompt, no push/location/contacts permission ever `[UX-01 R1, R8]`. Reorder in 2 taps, first meaningful paint ≤2.5 s. The outstanding screen is shaped like his physical pending-bills file: one row per bill, oldest first, ageing as colour + icon + word, ₹ at ≥24 sp, the distributor's own UPI QR one tap away on every bill `[UX-01 R7]`. One card per linked distributor, never a merged catalogue or a blended balance. Every important outcome also arrives on WhatsApp, because the app is not a destination he remembers to open `[UX-01 R9]`. Character: two screens, no words, his own shop's name at the top and the distributor's name — never ours.
-
----
-
-## 12. Open questions for the founder
-
-Ten minutes of decisions that unblock the token file and the first screens. Each has my recommendation; say yes or say otherwise.
-
-1. **The product name.** You asked me to create one. The mark in §3.6 works with any of these — pick one and I will draw it: **(a) keep "Distribution OS"** (accurate, a little technical, hard to say in Marathi); **(b) "Vitran"** — वितरण, *distribution*, one word, unmistakably Indian, owns the category word in the language of the market; **(c) "Ledger"** — what it actually is to the owner, but crowded internationally. **My recommendation: (b).** It is the only one a distributor's brother-in-law can repeat after hearing it once, and this product spreads by word of mouth between distributors.
-2. **The accent colour.** §3 is built on petrol `#0B5A63` — verified at 7.90:1 for white text, unclaimed in Indian distribution software, and it sits calmly next to any distributor's logo. Approve it or name a colour and I will re-derive the whole system around it (it is a two-hour job, not a redesign, because everything is token-driven).
-3. **White-label scope.** I have decided that the distributor supplies **name and logo only, never a colour** (§3.6) — because a tenant-controlled accent destroys every contrast guarantee in §3. Confirm. If you want per-tenant colour, we ship a fixed set of five pre-verified accents to choose from, never a colour picker.
-4. **Print and PDF branding.** Every generated document (invoice, statement, delivery challan, credit note) carries the distributor's name, logo, GSTIN, FSSAI and UPI QR, and **no Distribution OS mark anywhere on it**. Confirm — it is the difference between a tool the distributor is proud to hand a retailer and one he is embarrassed by.
-5. **WhatsApp sender identity.** When a bill reaches a retailer, does it come from *Tarsun Enterprises* (recommended — matches the white-label rule and is what the retailer will recognise) or from a shared Distribution OS number? This decides the WABA setup and cannot be changed cheaply later.
-6. **Dark mode: ship it in v1 or v2?** Field apps never get it (§3). For owner and accountant it is real work — a second set of chart colours, a second set of screenshots, a second review pass. **My recommendation: define the tokens now (done, §3.2), ship the toggle in v2**, so nothing is redesigned later.
-7. **App icons.** Six apps means six icons in one launcher, and a rider must find his in one glance. **Recommendation: one shared silhouette in `petrol.700`, differentiated by a single white glyph** — shop, box, van, cart, chart, ledger. Confirm, or say you want six distinct marks.
-8. **Haptics default.** Full / Important only / Off, defaulting to **Full**. A rider on a bike and an accountant at a desk want different answers, so it is a per-device setting either way. Confirm the default.
-9. **The reference device.** Nothing in §8.3 is real until it is measured on one bought handset. **Buy one ~₹9,000 4 GB Android and, separately, measure the actual screen brightness of Tarsun's staff handsets** — the 450–600 nit figure behind the whole contrast argument is inferred from the segment, not measured `[UX-01 §9]`.
-10. **Two numbers to confirm on the ground before they are frozen:** time one of Tarsun's reps on a real beat (the 90-second budget behind the 3-tap rule is derived, not observed), and spend an hour in the godown confirming that loaders work bare-handed `[UX-01 §9]`.
+Nothing here needs an English sentence: bill number, date, ₹, a chip, a QR `[UX-01 R10]`. Every outcome also arrives on WhatsApp `[UX-01 R9]`.
+Distribution OS is never named on this screen.
 
 ---
 
-## 13. How this is enforced
+## 10. Product brand — three options
 
-A design system that is only a document is a document. These are machine-checked.
+The founder has no brand and asked for one (`docs/17` §D6). Constraints: the product mark appears **only on the sign-in screen and in the
+store listing** (`docs/22` §9 item 10); every colour comes from the A palette; the mark must work at 16 dp, in one colour on thermal paper, and
+beside any distributor's logo without competing.
 
-| Check | Where |
-| --- | --- |
-| No hex literal outside `shared-ui/tokens.ts` | ESLint |
-| No `expo-haptics` import outside `shared-ui/feedback` | ESLint `no-restricted-imports` |
-| No chart-library import outside `shared-ui/charts` | ESLint |
-| No `react-native` primitive import in a screen except `View` | ESLint |
-| No animation without a `ReduceMotion` argument | ESLint |
-| No `type="number"` | ESLint |
-| `.web.tsx` count in owner + manager ≤ 18 | CI script |
-| No cost string in the sales, delivery or retailer bundle | existing role-leak dump, extended to the app bundles |
-| Cold start, TTI, bundle size, web gzip | CI on the reference device + Expo Atlas |
-| Tap-count budgets: 3-tap reorder, ≤3-tap delivery, 2-tap retailer reorder | Maestro flows, fail on regression |
-| Screenshots on the ₹9,000 4 GB Android **and** an iPhone, light (and dark for desk), at 100% and 200% system font | required before a module is called stable |
-| The §10 list, walked screen by screen | design review, per module |
+**Option A — Vitran** (वितरण, "distribution").
+- *Why:* owns the category word in the market's own language; one word a distributor's brother-in-law repeats after hearing it once, and
+  this product spreads by word of mouth between distributors.
+- *Wordmark:* IBM Plex Sans SemiBold 600, lowercase `vitran`, ink `#1B1E1A`, tracking −0.01 em, no tagline. *Mark*, left of the word at
+  cap height: a `petrol.700` square with 22% corner radius containing two white horizontal rules of unequal length — a stock line over a
+  shorter shipped line, a ledger entry; not a truck, box or globe. Works at 16 dp, in one colour, and as a favicon.
+- *Primary colour:* `petrol.700` `#0B5A63`. *App icon:* the square mark; the six apps share the silhouette and differ by one white role
+  glyph inside it (chart · list · shop · box · van · receipt), so a rider finds his in one glance.
+
+**Option B — Bahi** (बही, the account book).
+- *Why:* names what direction A *feels* like and what the owner already calls his ledger; short, warm, ownable.
+- *Wordmark:* IBM Plex Sans Bold 700, Title case `Bahi`, ink. *Mark:* two stacked pages drawn as `petrol.700` 1.5 px rectangles offset
+  2 px, no fill — hairlines, like the product.
+- *Primary colour:* ink `#1B1E1A` for the word, `petrol.700` for the mark. *App icon:* ink square, white double-page glyph, the role glyph in
+  `petrol.onDark` at the lower-right corner.
+
+**Option C — Distribution OS** (keep the working name).
+- *Why:* accurate, already on every document and in the repo; reads well to a bank, a brand manager or an investor. Harder to say in
+  Marathi, and "OS" means nothing to a shopkeeper.
+- *Wordmark:* IBM Plex Sans Regular 400 `Distribution` followed by SemiBold 600 `OS` in `petrol.700`, one line, no mark.
+- *Primary colour:* `petrol.700`. *App icon:* `petrol.700` square, white `OS` in Plex Bold, the role glyph beneath the letters.
+
+**Recommendation: A, Vitran.** It is the only name that says what the product is in the language of the people who buy it, and the ledger
+mark carries the A character without the name having to. B is the strongest fit for the look but "bahi-khata" apps crowd the store listing;
+C stays as the legal/company name either way. A trademark search on "Vitran" (there was a Canadian carrier of that name) is an open item.
+
+---
+
+## 11. White-label — where the distributor's own name and logo appear
+
+**Rule (`docs/22` §9 item 10):** inside every app and on every document the distributor sees and shows *their* business, never ours. The
+distributor supplies **a name and a logo, never a colour** — a tenant-controlled accent would void every ratio in §3.
+
+**Keys** (`tenant_settings`, defaults in `backend/libs/database/src/tenant-bootstrap.ts`; served to apps and renderers as `SellerBranding`
+in `@dos/contracts` billing):
+
+| key                        | type   | absent means                                | read by                                                   |
+| -------------------------- | ------ | ------------------------------------------- | --------------------------------------------------------- |
+| `branding.display_name`    | string | falls back to `tenants.legal_name`          | every surface below                                       |
+| `branding.logo_object_key` | string | **no logo**: initials avatar in apps, name-only on paper | app chrome, PDF headers, sign-in landing, retailer cards |
+| `branding.invoice_footer`  | string | footer line omitted                          | invoice, credit/debit note, statement PDFs                |
+| `branding.address`         | object | address block omitted                        | tax invoice, challan, statement                           |
+| `upi_vpa`                  | string | no QR printed, `upiQr` answers `null`        | invoice QR, retailer Pay button, receipt                  |
+
+(`backend/libs/contracts/src/billing.ts` comments still name `logo_asset_id`; the key is `branding.logo_object_key`. Fix the comment.)
+
+| surface                       | owner (desk + phone)                            | manager                          | sales                                 | warehouse                               | delivery                                            | retailer                                                      |
+| ----------------------------- | ----------------------------------------------- | -------------------------------- | ------------------------------------- | --------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| App bar / rail                | Logo 28 px + display name, rail head, every screen | same                           | Root-tab headers: logo 32 dp + name; pushed screens: context only | same as sales               | Trip screen header: logo + name; stop screens: context only | The **shop's** name in the header; each distributor card and each bills screen carries that distributor's logo + name |
+| Sign-in                       | Product brand on the form; after the username resolves, the distributor's logo + name appear above the password field |  |                               |                                         |                                                     | Deep link lands already identified; distributor chosen by card |
+| Documents (PDF, server-rendered) | Tax invoice, credit/debit note, statement, delivery challan, load sheet, picklist print: header = logo (18 mm box) + display name + legal name if different + address + GSTIN + FSSAI; footer = `branding.invoice_footer`; UPI QR from `upi_vpa`. No product mark anywhere on paper. | | | | | |
+| Receipts (58/80 mm thermal, and PDF) | display name + receipt number + amount + bill allocation; no logo on thermal (name set at 1.5×) | | | Not applicable | Issued at the door                 | Shown in-app and on WhatsApp                                  |
+| WhatsApp messages             | Sender identity is the distributor's WABA; the body opens with the display name: "Tarsun Enterprises · Invoice GL/1688 · ₹18,420 · due 12 Sep" | | | | POD and receipt messages | invoice, POD, receipt, statement                      |
+| Push / OS notifications       | Title = display name                             | same                             | same                                  | same                                    | GPS foreground notice names the distributor         | Title = the distributor the message concerns                  |
+
+**Logo constraints** (`<TenantLogo size="rail|header|card|print">`): PNG or SVG, ≤ 512 KB, short side ≥ 256 px; aspect between 1:1 and
+3:1, fitted (never cropped, never stretched) into a **28 px** (rail) / **32 dp** (phone header) / **40 dp** (retailer card) / **18 mm**
+(print) box on `bg.surface`; never tinted, never placed on the accent; a `border.faint` hairline is drawn only if the logo has no natural edge.
+**Fallback:** up to two initials from the display name in `field.bodyStrong` `text.primary` on `paper.200`, `radius.sm` (not round — it is a
+mark, not a person). On paper with no logo the name is simply set larger; no initials box is printed. The owner uploads and previews all
+four sizes and the invoice header in Settings → Branding, and the upload is the only place the logo is ever written.
+
+**Worked example — Tarsun Enterprises.** Rail head: `[T]` initials box (no logo uploaded yet) · "Tarsun Enterprises" 14/700 · "Kalyan · FY
+2026-27" `desk.meta`. Sales phone root header: `[T]` 32 dp · "Tarsun Enterprises" `field.title`. Invoice header, left: logo box 18 mm (or
+nothing), **Tarsun Enterprises** 14 pt bold, legal name if it differs, "Shop 4, Station Road, Kalyan West 421301 · GSTIN 27AAXXX1234A1ZP ·
+FSSAI 1151…"; right: "Tax invoice · GL/1688 · 3 Sep 2026 · Due 12 Sep"; totals block; UPI QR bottom-left with "Pay Tarsun Enterprises ₹18,420
+· UPI tarsun@upi"; footer = `branding.invoice_footer` ("Goods once sold will not be taken back. Subject to Kalyan jurisdiction."). The words
+"Distribution OS", "Vitran" or any product mark: absent.
+
+---
+
+## 12. Writing
+
+English only for now, and the flow must survive a user who reads no English sentence `[UX-01 U15]`. Five rules: (1) the trade's own word,
+not the software's; (2) labels ≤ 20 characters, buttons verb + object, a sentence never carries a flow; (3) never abbreviate money except on an
+axis; (4) state the next action, not the problem; (5) no exclamation marks, "Oops", "Great job" or emoji anywhere.
+
+| Never say                                  | Say                                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| COGS · AR · Aging · SKU · ATP · MOV · FOC  | **Purchase cost · Outstanding · Ageing · Item · Available · Minimum order · Free**     |
+| PTR / PTD / landing · POD · PJP · PCR · DSO · FEFO · SLOB | **Retailer rate / Your rate / Landed cost · Delivery proof · Beat plan · Shops that ordered · Average days to pay · Oldest expiry first · Slow moving** |
+| Sync, queue, idempotency · Tenant          | **Waiting to send** · the distributor's own name                                       |
+| Submit, OK, Done, Save (for a commit)      | **Place order · Post GRN · Issue invoice · Confirm delivery · Record payment · Close trip** |
+| Error 4xx, "Something went wrong"          | the business reason and the next action                                                |
+
+Keep the trade's words unexplained: beat, scheme, case, pieces, MRP, GRN, LR, credit note, invoice, godown, claim, batch, expiry. Dates:
+IST, business date, "Today" / "Yesterday" / "4 Sep", times "9:40 am", never a relative date beyond 7 days on a bill. Address the user
+("Your beat today"); money in the third person; the app is never the subject ("Not sent yet — waiting for signal").
+
+---
+
+## 13. What we will not do (walked per screen before "stable")
+
+**Chrome:** a dark rail (★ delete `frontend/owner-app/src/styles.css`); Bootstrap blue (★ delete `frontend/libs/ui/src/tokens.ts`); border +
+shadow + radius on one element; cards in cards; breadcrumbs; centred titles; three-level nav; a hamburger on desktop; 5+ tabs or truncated
+labels; a big-logo splash; a dashboard that opens blank until filtered. **Visual:** gradients, glass, neumorphism; emoji icons or mixed icon
+sets (one set, 1.75 px stroke, 24 dp grid); uppercase anywhere but eyebrows; a FAB by default; paper textures or rupee motifs; illustrated
+empty states; pill primary buttons; dark mode on a field app. **Numbers:** proportional numerals in a column; `₹` at the amount's weight in a
+hero; mixed precision; a desktop table shrunk onto a phone; `type="number"`; status by colour alone; 3D or shadowed charts, rainbow palettes,
+a chart without its range. **Interaction:** a Sync-now button; a blocking modal for sync/GPS/permission; `alert()`; a centred spinner for a
+known shape; success toasts as the record; a dialog before every destructive action instead of undo; 400–600 ms transitions; hover-only
+affordances; swipe-to-complete or slide-to-confirm anywhere (and nothing gestural at all in delivery); a geo-fence that blocks work; a
+permission prompt on open; a registration form before a retailer; losing a half-typed order to a phone call. The last two decide adoption.
+
+---
+
+## 14. Open questions for the founder
+
+1. **Product name** — A Vitran (recommended), B Bahi, or C Distribution OS (§10). One letter unblocks the sign-in screen and store listing.
+2. **Typeface** — IBM Plex Sans (this document) or Inter as seen in the A sketch. Plex is recommended for the reasons in §4.1; switching is a
+   font swap plus `tnum` everywhere, nothing else.
+3. **WhatsApp sender** — the distributor's own WABA (recommended, matches white-label) or one shared number. Decides the WABA setup.
+4. **Dark mode** for owner/manager: tokens are defined; ship the toggle in v2 (recommended).
+5. **Six app icons** — one shared mark with a role glyph (recommended) or six distinct marks.
+6. **Haptics default** Full (recommended); it is a per-device setting either way.
+7. **Buy the reference handset** (~₹9,000, 4 GB) and measure Tarsun's staff phones' brightness; time one rep on a real beat; confirm loaders
+   work bare-handed `[UX-01 §9]`. Nothing in §8.2's budgets is real until measured.
+
+---
+
+## 15. Per-app character, in one line each
+
+Owner — the instrument panel: calm, dense, numerate, the only user who browses. Manager + accountant — the keyboard loop: 60–120 invoices a
+day, hand never leaving the keys, the count of what remains always visible `[UX-01 M1]`; GST screens count down to the 11th `[UX-01 O7]`.
+Sales — ninety seconds in a doorway: big, fast, forgiving, one-thumbed. Warehouse — put it down, pick it up: loud, literal, indestructible.
+Delivery — three big buttons and a number, and the other hand has cash in it. Retailer — the detail view for a WhatsApp message: two screens,
+no words, his own shop's name at the top and the distributor's name, never ours.
+
+---
+
+## 16. How this is enforced
+
+| check                                                                                              | where                          |
+| -------------------------------------------------------------------------------------------------- | ------------------------------ |
+| No hex literal outside `shared-ui/tokens.ts`; no `expo-haptics`, chart-library or RN-primitive import in a screen; no animation without `ReduceMotion`; no `type="number"` | ESLint |
+| `.web.tsx` count in owner + manager ≤ 18                                                           | CI script                      |
+| No cost string in the sales, warehouse, delivery or retailer bundle                                | role-leak dump, extended to bundles |
+| Cold start, TTI, bundle size, web gzip, day data budget                                            | CI on the reference device + Expo Atlas |
+| 3-tap reorder · ≤ 3-tap delivery · 2-tap retailer reorder                                          | Maestro flows, fail on regression |
+| Screenshots on the 4 GB Android **and** an iPhone, light (dark for desk, v2), at 100% and 200% font | before a module is called stable |
+| §13 walked screen by screen; §11 surfaces show the distributor's name, never the product's          | design review, per module      |
 
 ---
 
 ## Sources
 
-**Repo (the three research documents this one decides on top of)**
-`docs/design/UX-01-field-reality.md` · `docs/design/UX-02-current-standards.md` · `docs/design/UX-03-technical-constraints.md` · `docs/01-positioning-and-standout-features.md` · `docs/02-five-apps-and-surfaces.md` · `docs/06-order-to-cash-flows.md` · `docs/08-frontend-architecture.md` · `docs/17-corrections-from-review.md` §D · `docs/18-build-log.md` · `docs/domain/operational-pain-points.md` · `docs/domain/glossary.md` · `docs/plans/reporting.md` · `frontend/owner-app/src/styles.css` · `frontend/libs/ui/src/tokens.ts`
-
-**Verified first-hand for this document (font binaries inspected with fontTools 4.60.2 on 2026-09-04)**
-- IBM Plex Sans (Google Fonts variable `IBMPlexSans[wdth,wght].ttf`): digit advance 600/1000 upem at Regular, SemiBold and Bold — tabular by default, no `tnum` feature present or required; `₹` U+20B9 present. https://github.com/IBM/plex · https://fonts.google.com/specimen/IBM+Plex+Sans
-- IBM Plex Sans Devanagari: same 1000 upem, same 600-unit digit advance, `₹` and Devanagari present. https://fonts.google.com/specimen/IBM+Plex+Sans+Devanagari
-- Inter (Google Fonts variable `Inter[opsz,wght].ttf`): digit advances 833–1323/2048 upem — proportional by default; `tnum` feature present. https://fonts.google.com/specimen/Inter
-- All contrast ratios in §3 computed to WCAG 2.x relative luminance.
-
-**External**
-- Expo — Fonts (variable fonts unsupported on native; use static): https://docs.expo.dev/develop/user-interface/fonts/
-- React Native — `fontVariant` Android support since 0.62: https://github.com/facebook/react-native/pull/27006
-- W3C WCAG 2.2 — 1.4.6 Contrast (Enhanced), 2.5.8 Target Size: https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html
-- ISO/TS 9241-411:2012 — touch target sizing: https://cdn.standards.iteh.ai/samples/54106/cf35f99b4eb94bfe871f4b71b524c2c0/ISO-TS-9241-411-2012.pdf
-- Material 3 — motion easing and duration tokens: https://m3.material.io/styles/motion/easing-and-duration/tokens-specs
-- Android — haptics design principles: https://developer.android.com/develop/ui/views/haptics/haptics-principles
-- Apple HIG — Playing haptics: https://developer.apple.com/design/human-interface-guidelines/playing-haptics
-- Reanimated — `useReducedMotion` / `ReduceMotion.System`: https://docs.swmansion.com/react-native-reanimated/docs/device/useReducedMotion/
-- Expo — edge-to-edge on Android (targetSdk 36 from 31 Aug 2026): https://expo.dev/blog/edge-to-edge-display-now-streamlined-for-android
-- EAS Observe — launch/TTR/TTI metric budgets: https://docs.expo.dev/eas/observe/reference/metrics/
-- Android Developers — OkCredit case study (60% ANR reduction → +22% D1 retention on low-end devices): https://developer.android.com/stories/apps/okcredit
-- Smashing Magazine / Hoober — thumb zone and 11–12 mm target sizes: https://www.smashingmagazine.com/2023/04/accessible-tap-target-sizes-rage-taps-clicks/
-- Shopify Polaris tokens — semantic-alias-over-primitive model: https://github.com/Shopify/polaris-tokens/blob/main/CHANGELOG.md
+Repo: `docs/22-source-of-truth.md` · `docs/design/layout-options.html` (direction A) · `UX-01-field-reality.md` · `UX-02-current-standards.md`
+· `UX-03-technical-constraints.md` · `docs/17-corrections-from-review.md` §D6 · `backend/libs/database/src/tenant-bootstrap.ts` ·
+`backend/libs/contracts/src/billing.ts` (`SellerBrandingSchema`) · `docs/domain/operational-pain-points.md` · `docs/domain/glossary.md`.
+Fonts inspected with fontTools 4.60.2 on 2026-09-04 (Plex digit advance 600/1000 at every weight; Inter proportional by default). Contrast
+ratios computed to WCAG 2.x relative luminance on 2026-09-05.
+External: Expo — Fonts (static fonts on native) https://docs.expo.dev/develop/user-interface/fonts/ · WCAG 2.2 1.4.6 and 2.5.8
+https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html · ISO/TS 9241-411 target sizing · Material 3 motion tokens
+https://m3.material.io/styles/motion/easing-and-duration/tokens-specs · Android haptics principles
+https://developer.android.com/develop/ui/views/haptics/haptics-principles · Apple HIG — Playing haptics · Reanimated `ReduceMotion.System` ·
+Expo edge-to-edge (targetSdk 36 from 31 Aug 2026) https://expo.dev/blog/edge-to-edge-display-now-streamlined-for-android · Hoober / Smashing —
+thumb zones and 11–12 mm targets https://www.smashingmagazine.com/2023/04/accessible-tap-target-sizes-rage-taps-clicks/ · Shopify Polaris tokens
+(semantic-over-primitive) https://github.com/Shopify/polaris-tokens

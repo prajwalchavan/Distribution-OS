@@ -7,7 +7,7 @@
 
 Founder constraints treated as fixed here: English only for now (strings isolated, no i18n layer yet); online-first now with offline for sales+delivery before the pilot, and connection state shown honestly either way; Android and iOS equally; performance floor is a budget Android on patchy 4G; "spend good time designing UI as per professional industry standards, have haptics etc, make it feel good."
 
-> Note for the parent session: this brief describes **six** apps and ports 3001–3006, while `docs/02-five-apps-and-surfaces.md` and `CLAUDE.md` still describe five services (3001–3005) with owner+manager+accountant sharing :3001. This document is written against the six-app split given in the brief; the discrepancy needs resolving in `docs/02` / `docs/19` before the UI kit's app shells are generated.
+> Note (updated 2026-09-05): the product is **six apps, one per role, manager + accountant sharing one**, each on its own service (:3001–:3006) — fixed in `docs/22-source-of-truth.md` §2 and `CLAUDE.md`. `docs/02-five-apps-and-surfaces.md` still carries the earlier "two store binaries plus one web console" verdict; that verdict is superseded by `docs/22`. This document is written against the six-app split.
 
 ---
 

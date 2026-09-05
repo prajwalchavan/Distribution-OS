@@ -28,6 +28,7 @@ import { pricingContract } from './pricing.js'
 import { ordersContract } from './orders.js'
 import { receivablesContract } from './receivables.js'
 import { billingContract } from './billing.js'
+import { warehouseContract } from './warehouse.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -129,6 +130,7 @@ export const contract = {
   orders: ordersContract,
   receivables: receivablesContract,
   billing: billingContract,
+  warehouse: warehouseContract,
 }
 
 export type AppContract = typeof contract

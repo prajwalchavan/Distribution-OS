@@ -252,7 +252,16 @@ export interface ProcedureExample {
 export interface BuildExamplesOptions {
   /** The calling service's roles; picks which demo user the sign-in example shows. */
   roles?: readonly string[]
+  /**
+   * Which free-slot lane to take for the ids an example creates. Defaults to the lane of the most
+   * senior role (`serviceLane`). A spec that asserts "this id is not held yet" must pass the spare
+   * lane (`SPARE_LANE`): the service specs run in parallel under turbo and press the real lanes.
+   */
+  lane?: number
 }
+
+/** The lane no service uses (`SLOT_LANES` = the seven role lanes plus this spare). */
+export const SPARE_LANE = 7
 
 /** `GET /orders/{id}` — how the OpenAPI document identifies an operation. */
 export function routeKey(method: string, httpPath: string): string {
@@ -1109,6 +1118,7 @@ const ROLE_LANES: readonly string[] = [
 ]
 
 function serviceLane(options: BuildExamplesOptions): number {
+  if (options.lane !== undefined) return options.lane
   const lanes = (options.roles ?? [])
     .map((role) => ROLE_LANES.indexOf(role))
     .filter((lane) => lane >= 0)

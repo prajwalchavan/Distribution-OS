@@ -8,17 +8,23 @@ import {
   authEvents,
   creditNoteLines,
   creditNotes,
+  deliveryChallans,
   invoiceLines,
   authSessions,
   invoices,
   journalEntries,
   journalLines,
+  loadSheets,
   memberships,
+  packConfirmations,
+  pickLines,
+  picklists,
   receipts,
   retailerIdentities,
   retailerLinks,
   retailerOutstandingSummary,
   retailers,
+  salesOrderLines,
   salesOrders,
   stockBalances,
   stockLedger,
@@ -75,6 +81,13 @@ describeDb('row level security and ledger guarantees', () => {
   const invoiceLineA = uuidv7()
   const invoiceLineB = uuidv7()
   const creditNoteA = uuidv7()
+  const orderA = uuidv7()
+  const orderLineA = uuidv7()
+  const picklistA = uuidv7()
+  const pickLineA = uuidv7()
+  const packA = uuidv7()
+  const loadSheetA = uuidv7()
+  const challanA = uuidv7()
   let godownA = ''
 
   beforeAll(async () => {
@@ -347,12 +360,25 @@ describeDb('row level security and ledger guarantees', () => {
       landedCostPaise: 3100,
     })
     await db.insert(salesOrders).values({
-      id: uuidv7(),
+      id: orderA,
       tenantId: tenantA,
       retailerId: retailerA,
+      state: 'confirmed',
       source: 'salesperson',
       createdBy: rep,
       paymentTerms: 'POST_FULFILLMENT',
+    })
+    await db.insert(salesOrderLines).values({
+      id: orderLineA,
+      tenantId: tenantA,
+      orderId: orderA,
+      lineNo: 1,
+      variantId: variant,
+      enteredQty: 24,
+      qtyPcs: 24,
+      listRatePaise: 4_000,
+      ratePaise: 4_000,
+      gstBps: 1_200,
     })
     const [g] = await db
       .select()
@@ -369,6 +395,72 @@ describeDb('row level security and ledger guarantees', () => {
     await db
       .insert(stockBalances)
       .values({ tenantId: tenantA, lotId: balanceLot, locationId: godownA, onHand: 120 })
+    // Warehouse paperwork (migration 0010): one of each of the five tables the godown owns, so the
+    // read/write split between a store keeper, the desk, the crew on the road and the shopkeeper has
+    // something real to hide and to show.
+    await db.insert(picklists).values({
+      id: picklistA,
+      tenantId: tenantA,
+      picklistNo: `PICK-${run}`,
+      locationId: godownA,
+      status: 'picking',
+      orderIds: [orderA],
+      assignedTo: storeKeeper,
+    })
+    await db.insert(pickLines).values({
+      id: pickLineA,
+      tenantId: tenantA,
+      picklistId: picklistA,
+      orderId: orderA,
+      orderLineId: orderLineA,
+      variantId: variant,
+      lineNo: 1,
+      lotId: balanceLot,
+      suggestedLotId: balanceLot,
+      requestedQtyPcs: 24,
+      caseSize: 24,
+    })
+    await db.insert(packConfirmations).values({
+      id: packA,
+      tenantId: tenantA,
+      orderId: orderA,
+      picklistId: picklistA,
+      packages: 2,
+      packedBy: storeKeeper,
+    })
+    await db.insert(loadSheets).values({
+      id: loadSheetA,
+      tenantId: tenantA,
+      fromLocationId: godownA,
+      toLocationId: godownA,
+      status: 'confirmed',
+      orderIds: [orderA],
+      expectedPackages: 2,
+      countedPackages: 2,
+      loadValuePaise: 118_000,
+    })
+    await db.insert(deliveryChallans).values({
+      id: challanA,
+      tenantId: tenantA,
+      seriesCode: 'DC',
+      challanNo: `DC-${run}`,
+      fy: '2026-27',
+      challanDate: '2026-09-04',
+      loadSheetId: loadSheetA,
+      fromLocationId: godownA,
+      toLocationId: godownA,
+      vehicleNo: 'MH-05-AB-1234',
+      lines: [
+        {
+          variantId: variant,
+          lotId: balanceLot,
+          qtyPcs: 24,
+          taxableValuePaise: 96_000,
+          gstBps: 1_200,
+        },
+      ],
+      valuePaise: 118_000,
+    })
   })
 
   afterAll(async () => {
@@ -909,6 +1001,167 @@ describeDb('row level security and ledger guarantees', () => {
       .from(invoices)
       .where(sql`${invoices.id} = ${invoiceA}`)
     expect(unchanged?.totalPaise).toBe(118_000)
+  })
+
+  // ---------------------------------------------------------------------------------------------------
+  // Warehouse fulfilment paperwork (migration 0010, coordination §5.3). Five tables that used to carry the
+  // wide `*_tenant` policy — one predicate, FOR ALL, satisfied by ANY member of the tenant including a
+  // shopkeeper. They now carry `staffReadPolicy` (everyone but the retailer reads) plus
+  // `roleWritePolicies(STOCK_KEEPER_ROLES)` (owner, manager, warehouse, system write).
+
+  const asRole =
+    (actorId: string, role: 'owner' | 'salesperson' | 'delivery' | 'retailer' | 'warehouse') =>
+    <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantA, actorId, actorRole: role }, fn)
+
+  it('lets a warehouse actor read and write all five fulfilment tables', async () => {
+    const asStoreKeeper = asRole(storeKeeper, 'warehouse')
+    expect((await asStoreKeeper((tx) => tx.select().from(picklists))).map((p) => p.id)).toEqual([
+      picklistA,
+    ])
+    expect(await asStoreKeeper((tx) => tx.select().from(pickLines))).toHaveLength(1)
+    expect(await asStoreKeeper((tx) => tx.select().from(packConfirmations))).toHaveLength(1)
+    expect(await asStoreKeeper((tx) => tx.select().from(loadSheets))).toHaveLength(1)
+    expect(await asStoreKeeper((tx) => tx.select().from(deliveryChallans))).toHaveLength(1)
+
+    // …and writes: the picker records what came off the rack, and raises the next wave.
+    await asStoreKeeper((tx) =>
+      tx
+        .update(pickLines)
+        .set({ pickedQtyPcs: 24, pickedBy: storeKeeper, pickedAt: new Date() })
+        .where(sql`${pickLines.id} = ${pickLineA}`),
+    )
+    const [picked] = await db
+      .select()
+      .from(pickLines)
+      .where(sql`${pickLines.id} = ${pickLineA}`)
+    expect(picked?.pickedQtyPcs).toBe(24)
+    const second = uuidv7()
+    await asStoreKeeper((tx) =>
+      tx.insert(picklists).values({
+        id: second,
+        tenantId: tenantA,
+        picklistNo: `PICK-${run}-2`,
+        locationId: godownA,
+      }),
+    )
+    expect(await asStoreKeeper((tx) => tx.select().from(picklists))).toHaveLength(2)
+  })
+
+  it('lets a salesperson read a picklist but never write one', async () => {
+    // The rep answers "where is my shop's order" from the picklist status, so the read is deliberate…
+    const asRep = asRole(rep, 'salesperson')
+    const sheets = await asRep((tx) => tx.select().from(picklists))
+    expect(sheets.some((p) => p.id === picklistA)).toBe(true)
+    expect(sheets.find((p) => p.id === picklistA)?.status).toBe('picking')
+
+    // …and every write on all five is refused: the godown's paperwork is the godown's.
+    await expect(
+      asRep((tx) =>
+        tx.insert(picklists).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          picklistNo: `PICK-rep-${run}`,
+          locationId: godownA,
+        }),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asRep((tx) =>
+        tx.insert(pickLines).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          picklistId: picklistA,
+          orderId: orderA,
+          orderLineId: orderLineA,
+          variantId: variant,
+          requestedQtyPcs: 1,
+        }),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asRep((tx) =>
+        tx
+          .insert(packConfirmations)
+          .values({ id: uuidv7(), tenantId: tenantA, orderId: orderA, packages: 1 }),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asRep((tx) =>
+        tx.insert(loadSheets).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          fromLocationId: godownA,
+          toLocationId: godownA,
+        }),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asRep((tx) =>
+        tx.insert(deliveryChallans).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          fy: '2026-27',
+          challanDate: '2026-09-04',
+          fromLocationId: godownA,
+          toLocationId: godownA,
+          lines: [],
+          valuePaise: 1,
+        }),
+      ),
+    ).rejects.toThrow()
+    // An UPDATE is not an error, it simply matches no row — so the picked quantity is unchanged.
+    await asRep((tx) =>
+      tx
+        .update(pickLines)
+        .set({ pickedQtyPcs: 0 })
+        .where(sql`${pickLines.id} = ${pickLineA}`),
+    )
+    const [untouched] = await db
+      .select()
+      .from(pickLines)
+      .where(sql`${pickLines.id} = ${pickLineA}`)
+    expect(untouched?.pickedQtyPcs).toBe(24)
+  })
+
+  it('shows a shopkeeper none of the godown paperwork', async () => {
+    // A picklist names every other shop in the same wave, and a load sheet names every drop on the van.
+    const asShop = asRole(shopUser, 'retailer')
+    expect(await asShop((tx) => tx.select().from(picklists))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(pickLines))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(packConfirmations))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(loadSheets))).toHaveLength(0)
+    expect(await asShop((tx) => tx.select().from(deliveryChallans))).toHaveLength(0)
+  })
+
+  it('lets the delivery crew read the load sheet and challan it drives with, and write neither', async () => {
+    const asCrew = asRole(driver, 'delivery')
+    expect((await asCrew((tx) => tx.select().from(loadSheets))).map((s) => s.id)).toEqual([
+      loadSheetA,
+    ])
+    const challans = await asCrew((tx) => tx.select().from(deliveryChallans))
+    expect(challans.map((c) => c.id)).toEqual([challanA])
+    expect(challans[0]?.vehicleNo).toBe('MH-05-AB-1234')
+    await expect(
+      asCrew((tx) =>
+        tx.insert(picklists).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          picklistNo: `PICK-crew-${run}`,
+          locationId: godownA,
+        }),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      asCrew((tx) =>
+        tx.insert(loadSheets).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          fromLocationId: godownA,
+          toLocationId: godownA,
+        }),
+      ),
+    ).rejects.toThrow()
   })
 
   it('lets staff read tenant settings, hides secrets, and shows a retailer nothing', async () => {

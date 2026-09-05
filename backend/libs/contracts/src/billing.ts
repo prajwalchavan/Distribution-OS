@@ -31,8 +31,10 @@ import { AddressSchema } from './retailers.js'
  *                    (ANY_MEMBER). Every write and every register refuses the salesperson in
  *                    PERMISSIONS, so mounting the key exposes no money surface: a rep may see THAT a
  *                    bill exists for a shop it serves and never the registers, never a cost
- *   warehouse :3004  YES — the warehouse desk issues at pack (`invoices.queue`, `invoices.issue`,
- *                    `invoices.setEwayBill`), reads bills and challan data, and may never cancel one
+ *   warehouse :3004  YES — the warehouse desk bills at pack and reads what it billed: `invoices.queue`,
+ *                    `invoices.setEwayBill`, `invoices.get/list/pdf`. The document itself is issued by
+ *                    `warehouse.packs.confirm` calling `BillingService.issueForPack` (coordination §4
+ *                    step 3), NOT by an HTTP procedure here; the warehouse may never cancel a bill
  *   delivery :3005   YES — the doorstep set: `invoices.issueVanSale`, the short-delivery credit note,
  *                    the bill and its UPI QR at the shop door
  *   retailer :3006   YES — its own bills only. RLS (`invoices_read` / `credit_notes_read` through the
@@ -409,38 +411,15 @@ export const BillingQueueOutput = z.object({
 
 // ---------------------------------------------------------------------------------------------------------------
 // invoices — issuing
-
-/** Packed pieces for one order line. Omit the whole array to bill what was picked. */
-export const IssueInvoiceLineInput = z.object({
-  orderLineId: IdSchema,
-  qtyPcs: PiecesSchema,
-})
-
-/**
- * TEMPORARY — REMOVE AT COORDINATION §4 STEP 3.
- *
- * `warehouse.packs.confirm` (slice 3) takes over the stock-and-state half of issuing and calls
- * `BillingService.issueForPack()` itself. When it lands, THIS PROCEDURE AND ITS `PERMISSIONS` ROW ARE
- * DELETED and `warehouse.packs.confirm` becomes the only way a pack invoice is issued; the READMEs are
- * regenerated. Nothing external consumes the contract yet, so the removal is free. Until then this is
- * the only caller that does the reserve → `postReservationAsSale` → `markPacked` half before calling
- * `issueForPack`, so the demo can bill an order with no warehouse module in the tree.
- *
- * Do not build an app screen or a second caller on this path.
- */
-export const IssueInvoiceInput = MutationBase.extend({
-  /** Client-generated id of the invoice. */
-  id: IdSchema,
-  orderId: IdSchema,
-  /** Defaults to today in IST; a pack at 23:40 on 31 March belongs to the old financial year. */
-  invoiceDate: IsoDateSchema.optional(),
-  /** Omit to bill each line's picked pieces, falling back to the ordered pieces when nothing was picked. */
-  lines: z.array(IssueInvoiceLineInput).max(200).optional(),
-  deviceId: DeviceIdSchema.optional(),
-  transportMode: z.string().trim().max(20).optional(),
-  vehicleNo: z.string().trim().max(16).optional(),
-})
-export const IssueInvoiceOutput = InvoiceItemOutput
+//
+// THERE IS NO `invoices.issue` PROCEDURE, AND ADDING ONE BACK WOULD BE A BUG.
+//
+// It existed as a temporary caller while the warehouse module did not, and was removed at coordination
+// §4 step 3 together with `IssueInvoiceInput` / `IssueInvoiceOutput` / `IssueInvoiceLineInput` and its
+// `PERMISSIONS` row. `warehouse.packs.confirm` now does the stock-and-state half — `postPick`,
+// `recordPick`, `applyFulfilmentEvent('pack')` — and calls `BillingService.issueForPack()` in the same
+// transaction. Two HTTP callers would post `sale` rows twice for one order; one caller is the guarantee.
+// `issueForPack` stays an exported service method with no procedure of its own.
 
 /**
  * A sale made off the van. Same tenant series as any other bill and no device-allocated number
@@ -807,15 +786,7 @@ export const billingContract = {
       })
       .input(BillingQueueInput)
       .output(BillingQueueOutput),
-    // TEMPORARY (coordination §4 step 3): removed when `warehouse.packs.confirm` takes over issuing.
-    issue: oc
-      .route({
-        method: 'POST',
-        path: '/invoices',
-        summary: 'Issue the tax invoice for a packed order (temporary: warehouse takes this over)',
-      })
-      .input(IssueInvoiceInput)
-      .output(IssueInvoiceOutput),
+    // No `issue` here: `warehouse.packs.confirm` is the only caller (coordination §4 step 3).
     issueVanSale: oc
       .route({
         method: 'POST',

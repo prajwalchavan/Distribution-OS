@@ -26,6 +26,8 @@ export interface PeopleResult {
   manager: PersonRef
   accountant: PersonRef
   warehouse: PersonRef
+  /** The second godown hand: waves alternate between the two so the picking sheets look real. */
+  warehouse2: PersonRef
   salespeople: { rahul: PersonRef; amit: PersonRef; pooja: PersonRef }
   delivery: { ganesh: PersonRef; raju: PersonRef; santosh: PersonRef; iqbal: PersonRef }
   retailerUsers: [PersonRef, PersonRef]
@@ -54,6 +56,7 @@ export async function seedPeople(
   const santosh = person('delivery-santosh', 'Santosh Kamble', '+919810000023', 'santosh.kamble')
   const iqbal = person('delivery-iqbal', 'Iqbal Shaikh', '+919810000024', 'iqbal.shaikh')
   const warehouse = person('warehouse-dinesh', 'Dinesh Patil', '+919810000031', 'dinesh.patil')
+  const warehouse2 = person('warehouse-kavita', 'Kavita Sawant', '+919810000032', 'kavita.sawant')
   const retailerUser1 = person('retailer-user-1', 'Ramesh Gupta', '+919810000101', 'ramesh.gupta')
   const retailerUser2 = person('retailer-user-2', 'Fatima Shaikh', '+919810000102', 'fatima.shaikh')
 
@@ -69,6 +72,7 @@ export async function seedPeople(
     santosh,
     iqbal,
     warehouse,
+    warehouse2,
   ]
   const retailerUsers = [retailerUser1, retailerUser2]
 
@@ -109,6 +113,7 @@ export async function seedPeople(
     [santosh.id]: 'delivery',
     [iqbal.id]: 'delivery',
     [warehouse.id]: 'warehouse',
+    [warehouse2.id]: 'warehouse',
   }
 
   await insertMany(db, memberships, [
@@ -195,6 +200,7 @@ export async function seedPeople(
     manager,
     accountant,
     warehouse,
+    warehouse2,
     salespeople: { rahul, amit, pooja },
     delivery: { ganesh, raju, santosh, iqbal },
     retailerUsers: [retailerUser1, retailerUser2],

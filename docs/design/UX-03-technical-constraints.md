@@ -1,6 +1,6 @@
 # UX-03 — Technical constraints of six universal apps
 
-**Status:** proposed for founder review, 2026-09-04. Supersedes the frontend rows of `docs/08-frontend-architecture.md` where they disagree (that table was written for two binaries + one Vite console; the product is now six apps).
+**Status:** proposed for founder review, 2026-09-04. Supersedes the frontend rows of `docs/08-frontend-architecture.md` where they disagree (that table was written for two binaries + one Vite console; the product is **six apps, one per role, manager + accountant sharing one**, per `docs/22-source-of-truth.md` §2).
 **Scope:** how the six apps are built — not what they look like (UX-01/02) and not what they do (`docs/02`, `docs/06`, `docs/plans/*`).
 **Audience:** the founder, and every future session that writes a screen.
 
@@ -367,7 +367,7 @@ Six apps × three targets is 18 artefacts. They do not all ship at once.
 
 ## 18. Changes this document makes to `docs/08-frontend-architecture.md`
 
-`docs/08` was written for **two Expo binaries + one Vite console**. The product is now **six universal apps**. Amend it as follows (or mark it superseded by this file for the frontend stack):
+`docs/08` was written for **two Expo binaries + one Vite console**. The product is now **six universal apps, one per role, with the manager and the accountant sharing one** (`docs/22-source-of-truth.md` §2; `docs/02-five-apps-and-surfaces.md`'s "two store binaries" verdict is superseded too). Amend `docs/08` as follows (or mark it superseded by this file for the frontend stack):
 
 - **Team app / Console rows** → replaced by the six-app matrix in §1.
 - **Styling row** → keep "no Tamagui, no NativeWind", keep tokens + `StyleSheet`; **replace the Tailwind preset with a generated CSS-variables emitter**; add Unistyles 3 as the named fallback with its tripwire.

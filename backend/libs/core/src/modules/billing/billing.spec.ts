@@ -32,6 +32,7 @@ import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
+import { WarehouseModule } from '../warehouse/index.js'
 import { BillingModule } from './index.js'
 
 const url = process.env.DATABASE_URL
@@ -179,14 +180,38 @@ describeDb('billing (DATABASE_URL)', () => {
     return id
   }
 
-  async function issueFor(orderId: string, tag: string, actor: Actor = manager) {
-    const invoiceId = uuidv7()
-    const res = await call<{ item: Detail }>(app, actor, 'POST', '/invoices', {
+  interface PackBody {
+    item: { id: string; shortPacked: boolean }
+    invoice: { id: string; invoiceNo: string | null; totalPaise: number } | null
+    message?: string
+  }
+
+  /**
+   * Bills an order THE WAY THE GODOWN DOES (coordination §4 step 3): `warehouse.packs.confirm` posts
+   * the stock, moves the order and calls `BillingService.issueForPack` in one transaction. There is no
+   * `POST /invoices` any more; a second caller would post `sale` rows twice for the same order.
+   */
+  async function issueFor(
+    orderId: string,
+    tag: string,
+    actor: Actor = manager,
+    packId: string = uuidv7(),
+  ) {
+    const packed = await call<PackBody>(app, actor, 'POST', `/warehouse/orders/${orderId}/pack`, {
       idempotencyKey: `issue-${tag}-${run}`,
-      id: invoiceId,
-      orderId,
+      id: packId,
+      packages: 1,
     })
-    return { invoiceId, res }
+    if (packed.status !== 200)
+      return {
+        invoiceId: '',
+        packId,
+        packed,
+        res: { status: packed.status, body: packed.body as unknown as { item: Detail } },
+      }
+    const invoiceId = packed.body.invoice?.id ?? ''
+    const res = await call<{ item: Detail }>(app, actor, 'GET', `/invoices/${invoiceId}`)
+    return { invoiceId, packId, packed, res }
   }
 
   const ledgerFor = async (refId: string): Promise<LedgerRow[]> =>
@@ -379,7 +404,16 @@ describeDb('billing (DATABASE_URL)', () => {
       .values({ id: vanId, tenantId, kind: 'vehicle', name: `Tempo ${run}`, vehicleId: uuidv7() })
     van = vanId
 
-    app = await bootTestApp([BillingModule, OrdersModule, InventoryModule, ReceivablesModule])
+    // WarehouseModule is booted because `warehouse.packs.confirm` is now the ONLY way a pack invoice
+    // is issued (coordination §4 step 3): billing's temporary `invoices.issue` is gone, so every case
+    // below bills the way the godown really does — pick, pack, then the document.
+    app = await bootTestApp([
+      BillingModule,
+      WarehouseModule,
+      OrdersModule,
+      InventoryModule,
+      ReceivablesModule,
+    ])
 
     const inventory = app.get(InventoryService)
     await asOwner(async (tx) => {
@@ -429,11 +463,13 @@ describeDb('billing (DATABASE_URL)', () => {
 
   let firstInvoiceId = ''
   let firstOrderId = ''
+  let firstPackId = ''
 
   it('issues a bill from the tenant-configured series and posts a balanced receivable', async () => {
     firstOrderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 2 }], 'first')
-    const { invoiceId, res } = await issueFor(firstOrderId, 'first')
+    const { invoiceId, packId, res } = await issueFor(firstOrderId, 'first')
     firstInvoiceId = invoiceId
+    firstPackId = packId
     expect(res.status).toBe(200)
     const bill = res.body.item
 
@@ -493,7 +529,9 @@ describeDb('billing (DATABASE_URL)', () => {
       `/orders/${firstOrderId}`,
     )
     expect(order.body.item.state).toBe('packed')
-    const ledger = await ledgerFor(invoiceId)
+    // the pack posts the sale rows against the ORDER (`ref_type = 'pack'`), because the pieces leave
+    // when the cartons are taped shut — before the document exists (coordination §4 step 3)
+    const ledger = await ledgerFor(firstOrderId)
     expect(ledger).toHaveLength(1)
     expect(ledger[0]).toMatchObject({ reason: 'sale', qty_delta: -24, location_id: godown })
 
@@ -503,14 +541,16 @@ describeDb('billing (DATABASE_URL)', () => {
   })
 
   it('replays the same idempotency key instead of issuing a second bill', async () => {
-    const replay = await call<{ item: Detail }>(app, manager, 'POST', '/invoices', {
-      idempotencyKey: `issue-first-${run}`,
-      id: firstInvoiceId,
-      orderId: firstOrderId,
-    })
+    const replay = await call<PackBody>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/orders/${firstOrderId}/pack`,
+      { idempotencyKey: `issue-first-${run}`, id: firstPackId, packages: 1 },
+    )
     expect(replay.status).toBe(200)
-    expect(replay.body.item.id).toBe(firstInvoiceId)
-    expect(replay.body.item.invoiceNo).toBe('TST/0501')
+    expect(replay.body.invoice?.id).toBe(firstInvoiceId)
+    expect(replay.body.invoice?.invoiceNo).toBe('TST/0501')
     const rows = (
       await db.execute(
         sql`select count(*)::int as n from invoices where tenant_id = ${tenantId} and order_id = ${firstOrderId}`,
@@ -521,13 +561,17 @@ describeDb('billing (DATABASE_URL)', () => {
   })
 
   it('refuses a second bill for an order that already has one', async () => {
-    const second = await call<{ message: string }>(app, manager, 'POST', '/invoices', {
-      idempotencyKey: `issue-first-again-${run}`,
-      id: uuidv7(),
-      orderId: firstOrderId,
-    })
+    // The guarantee is `pack_confirmations` UNIQUE(tenant_id, order_id): one pack, one invoice, for
+    // ever (warehouse §4.7). The order never reaches `issueForPack` a second time.
+    const second = await call<{ message: string }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/orders/${firstOrderId}/pack`,
+      { idempotencyKey: `issue-first-again-${run}`, id: uuidv7(), packages: 1 },
+    )
     expect(second.status).toBe(409)
-    expect(second.body.message).toMatch(/already billed/)
+    expect(second.body.message).toMatch(/already packed/)
   })
 
   it('takes one number per bill under concurrency, with no gap and no duplicate', async () => {
@@ -576,15 +620,50 @@ describeDb('billing (DATABASE_URL)', () => {
       `/orders/${orderId}`,
     )
     const orderLineId = detail.body.item.lines[0]?.id ?? ''
-    const before = await reservedFor(orderLineId)
-    expect(before).toBe(24)
+    expect(await reservedFor(orderLineId)).toBe(24)
 
-    const res = await call<{ item: Detail }>(app, manager, 'POST', '/invoices', {
-      idempotencyKey: `issue-short-${run}`,
-      id: uuidv7(),
-      orderId,
-      lines: [{ orderLineId, qtyPcs: 18 }],
+    // A SHORT PICK IS A SMALLER BILL, never a credit note and never an edit to the order line
+    // (warehouse §4.6): the godown records 18 of the 24 pieces and says why.
+    const picklistId = uuidv7()
+    const wave = await call<{
+      item: { lines: { id: string; orderLineId: string; lotId: string | null }[] }
+    }>(app, manager, 'POST', '/warehouse/picklists', {
+      idempotencyKey: `wave-short-${run}`,
+      id: picklistId,
+      orderIds: [orderId],
     })
+    expect(wave.status).toBe(200)
+    const pickRow = wave.body.item.lines[0]
+    expect(pickRow?.lotId).not.toBeNull()
+    expect(
+      (
+        await call(app, manager, 'POST', `/warehouse/picklists/${picklistId}/start`, {
+          idempotencyKey: `start-short-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const picked = await call<{ warnings: { code: string }[] }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/picklists/${picklistId}/pick`,
+      {
+        idempotencyKey: `pick-short-${run}`,
+        lines: [
+          {
+            id: pickRow?.id ?? '',
+            orderLineId: pickRow?.orderLineId ?? '',
+            lotId: pickRow?.lotId ?? '',
+            pickedQtyPcs: 18,
+            shortReason: 'damaged carton',
+          },
+        ],
+      },
+    )
+    expect(picked.status).toBe(200)
+    expect(picked.body.warnings.map((w) => w.code)).toContain('short_pick')
+
+    const { res } = await issueFor(orderId, 'short')
     expect(res.status).toBe(200)
     expect(res.body.item.lines[0]?.qtyPcs).toBe(18)
     // 18 pcs no longer divide into the 12-piece case, so the bill prints honest pieces (docs/17 A3)
@@ -643,12 +722,16 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(cancelled.body.item.cancelReason).toBe('Retailer refused the load before dispatch.')
     expect(cancelled.body.item.amountDuePaise).toBe(0)
 
-    const rows = await ledgerFor(invoiceId)
-    expect(rows.map((r) => r.reason).sort()).toEqual(['adjustment', 'sale'])
-    expect(rows.reduce((s, r) => s + r.qty_delta, 0)).toBe(0)
+    // the pieces went out with the pack (against the order) and came back with the cancellation
+    // (against the invoice), and the two net to zero
+    const out = await ledgerFor(orderId)
+    const back = await ledgerFor(invoiceId)
+    expect(out.map((r) => r.reason)).toEqual(['sale'])
+    expect(back.map((r) => r.reason)).toEqual(['adjustment'])
+    expect([...out, ...back].reduce((s, r) => s + r.qty_delta, 0)).toBe(0)
     expect(await journalSum('invoice_cancel', invoiceId)).toBe(0)
 
-    // the order is back in the billing queue and can be billed again with the NEXT number
+    // The order is back in the billing queue…
     const queue = await call<{ items: { orderId: string }[] }>(
       app,
       manager,
@@ -659,9 +742,11 @@ describeDb('billing (DATABASE_URL)', () => {
       },
     )
     expect(queue.body.items.map((i) => i.orderId)).toContain(orderId)
+    // …but the cartons were taped shut once and for all: `pack_confirmations` is UNIQUE per order, so
+    // re-billing is NOT a second pack. Raising the shop a fresh order is the pilot's correction, and a
+    // dedicated warehouse re-pack path is an open item (see the slice report).
     const again = await issueFor(orderId, 'cancel-again')
-    expect(again.res.status).toBe(200)
-    expect(again.res.body.item.invoiceNo).not.toBe(number)
+    expect(again.res.status).toBe(409)
   })
 
   it('refuses cancellation once money has been allocated to the bill', async () => {
@@ -1026,10 +1111,10 @@ describeDb('billing (DATABASE_URL)', () => {
     ).toBe(403)
     expect(
       (
-        await call(app, rep, 'POST', '/invoices', {
+        await call(app, rep, 'POST', `/warehouse/orders/${firstOrderId}/pack`, {
           idempotencyKey: `rep-${run}`,
           id: uuidv7(),
-          orderId: firstOrderId,
+          packages: 1,
         })
       ).status,
     ).toBe(403)
@@ -1052,13 +1137,13 @@ describeDb('billing (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(403)
-    // a delivery actor may not issue a PACK invoice, though the van sale is its own
+    // a delivery actor may not pack (and so may not issue a PACK invoice), though the van sale is its own
     expect(
       (
-        await call(app, driver, 'POST', '/invoices', {
+        await call(app, driver, 'POST', `/warehouse/orders/${orderId}/pack`, {
           idempotencyKey: `driver-${run}`,
           id: uuidv7(),
-          orderId,
+          packages: 1,
         })
       ).status,
     ).toBe(403)

@@ -251,13 +251,22 @@ export async function recordTransition(
 
 /**
  * Other modules react to orders through these events, never by reading `sales_orders` (§4.1).
- * `OrderPacked` arrived with the billing slice's `markPacked`; warehouse (coordination §3.9) adds
- * `OrderPicking` and `OrderDispatched` when `applyFulfilmentEvent` supersedes it.
+ * `OrderPacked` arrived with the billing slice's `markPacked`; the warehouse slice (coordination §3.9)
+ * added `OrderPicking` and `OrderDispatched` with `applyFulfilmentEvent`, which now supersedes it.
+ * Delivery consumes `OrderDispatched`; notifications and reporting consume all three.
  */
+export type OrderEventType =
+  | 'OrderSubmitted'
+  | 'OrderConfirmed'
+  | 'OrderCancelled'
+  | 'OrderPicking'
+  | 'OrderPacked'
+  | 'OrderDispatched'
+
 export async function emitOrderEvent(
   tx: Db,
   order: OrderRow,
-  eventType: 'OrderSubmitted' | 'OrderConfirmed' | 'OrderCancelled' | 'OrderPacked',
+  eventType: OrderEventType,
 ): Promise<void> {
   await tx.insert(outboxEvents).values({
     id: uuidv7(),

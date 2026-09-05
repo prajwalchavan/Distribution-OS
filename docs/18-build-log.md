@@ -111,6 +111,24 @@ contract + permissions, the module implementation, demo data, and `pnpm smoke` s
 **Remaining questions** — see `docs/plans/00-coordination.md` §7 once that agent's file exists, and the short list posted
 in chat on 2026-09-04 23:20. Nothing is blocked on them: assumptions are recorded per brief and are cheap to change if the answer differs.
 
+**MODULE 3 OF 10 DONE — warehouse (2026-09-05 07:50 IST), verified independently by the main session:**
+
+- Migrations 0010 (generated: columns, indexes, and the five policy replacements — drizzle can express policies, so they live in the
+  generated file; 0011 hand-written carries FORCE RLS, grants and a DO block that fails the migration if any of the five tables lacks
+  FORCE RLS or still has a FOR ALL policy). Fresh-database migrate 0000→0011 proven.
+- 20 procedures under `warehouse.*`: fulfilment queue, picklists (create / start / pick with FEFO warnings / cancel), packs (confirm =
+  stock out once + order state + invoice issued through billing `issueForPack`), load sheets (create / confirm with PIN and count →
+  transfer godown→vehicle, DC challan from the tenant `DC-` series, e-way bill gate above the intra-state threshold), challans,
+  reservations. `billing.invoices.issue` is gone; a pack is the only way a sale invoice is issued. Orders gained the fulfilment surface
+  (`applyFulfilmentEvent`, `recordPick`, `fulfilmentQueue`, `fulfilmentLines`).
+- Mounted on owner :3001, manager :3002, warehouse :3004 (with billing), delivery :3005 (reads only). Not sales, not retailer.
+- Whole workspace green: 48/48 turbo tasks forced, **962 tests** (core 223 incl. 30 warehouse cases), `docs:readme:check`, `format:check`;
+  `pnpm smoke` **610 calls · 362 OK · 186 correct refusals · 0 BROKEN · 62 skipped** (up from 517).
+- One test race fixed by the main session: `examples.spec` probed free ids in the owner lane while the owner-service spec, running in
+  parallel under turbo, created rows in that lane. The spec now takes the spare lane (`SPARE_LANE`). Not a product defect.
+- Open item carried to the platform-gaps slice: a cancelled pack invoice cannot be re-billed (`pack_confirmations` is unique per order);
+  `billing.invoices.issueForPack` for a parked pack is in docs/23 §8.2.
+
 ## Earlier resume notes (session 3, 22:10 IST)
 
 1. `brew services list | grep postgresql@17` must say `started`. Node 24: `export PATH=/opt/homebrew/bin:$PATH; eval "$(fnm env)"; fnm use 24`.
@@ -179,20 +197,18 @@ Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `d
 
 ## Status by module
 
-| Module                                                   | Backend                                 | Console                          | Team app | Retailer app | Notes                                                       |
-| -------------------------------------------------------- | --------------------------------------- | -------------------------------- | -------- | ------------ | ----------------------------------------------------------- |
-| platform (tenancy, idempotency, sync, outbox, retention) | ✅ verified                             | dashboard                        | —        | —            | sync upload never 4xx (4 tests); worker retention hourly    |
-| catalog + tenant-catalog                                 | ✅ verified (4 tests)                   | ✅ catalog, costs                | —        | —            | reference pattern (docs/16)                                 |
-| retailers (beats, visits, links)                         | ✅ verified (7 tests)                   | ✅ list, add, credit             | —        | —            | identity linking back-office only (docs/17 item 27)         |
-| pricing (lists, overrides, schemes, quote, bargains)     | ✅ verified (10 tests; engine 22 tests) | ✅ lists, schemes, bargain queue | —        | —            | engine compounds per step, priority order (review item 14)  |
-| inventory + procurement                                  | 🔄 in progress (agent)                  | —                                | —        | —            | GRN → lots → ledger, costs from GRN                         |
-| orders                                                   | ⏳                                      |                                  |          |              | needs pricing quote + inventory reserve                     |
-| warehouse (pick/pack) + billing (invoice at pack)        | ⏳                                      |                                  |          |              | numbering at issue only                                     |
-| receivables (receipts, allocations, journal)             | ⏳                                      |                                  |          |              |                                                             |
-| delivery (trips, stops, POD, collections, GPS)           | ⏳                                      |                                  |          |              |                                                             |
-| docint (invoice scanning)                                | ⏳                                      |                                  |          |              | eval set needed from Tarsun                                 |
-| identity (Better Auth phone OTP)                         | ⏳                                      |                                  |          |              | replaces header placeholder                                 |
-| demo seed (dummy data for all of the above)              | ⏳                                      |                                  |          |              | `pnpm db:seed` must produce a browsable Tarsun-like dataset |
+| Module                                                                                                  | Backend                                                 | App screens      |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------- |
+| platform (tenancy, idempotency, sync, outbox, retention, storage)                                       | ✅ verified                                             | after backend    |
+| auth (username + password, tokens, permission matrix)                                                   | ✅ verified (2026-09-04)                                | after backend    |
+| catalog + tenant-catalog · retailers · pricing · inventory · procurement · orders                       | ✅ verified                                             | after backend    |
+| 1 receivables                                                                                           | ✅ verified (2026-09-05)                                | after backend    |
+| 2 billing                                                                                               | ✅ verified (2026-09-05)                                | after backend    |
+| 3 warehouse                                                                                             | ✅ verified (2026-09-05, 962 tests, smoke 610/0 broken) | after backend    |
+| 3b platform gaps (docs/23 in built modules, files + PDF, accountant scope, manager load-sheet approval) | 🔄 chain                                                | after backend    |
+| 4 delivery · 5 docint · 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives       | ⏳ chained, one at a time                               | after backend    |
+| 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                         | —                |
+| six apps (layout A Ledger, design system being finalised)                                               | —                                                       | ⏳ after backend |
 
 ## Known gaps to fix in the next schema regeneration (0002 is still local-only)
 

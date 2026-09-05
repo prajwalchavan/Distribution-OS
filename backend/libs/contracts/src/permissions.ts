@@ -51,7 +51,12 @@ const BACK_OFFICE_OR_WAREHOUSE = [
   'warehouse',
 ] as const satisfies readonly MembershipRole[]
 
-/** Per-lot balances and the ledger: everyone who holds stock somewhere (a van counts). Never a rep or a shop. */
+/**
+ * Per-lot balances and the ledger: everyone who holds stock somewhere (a van counts). Never a rep or a
+ * shop. It is also warehouse's FULFILMENT_READERS (coordination §6): the reads a crew needs on the road
+ * — its load sheet and its challan — plus the accountant who reconciles the paperwork. One tuple, not
+ * two: holding stock somewhere and being handed the paperwork for it are the same population.
+ */
 const STOCK_VIEWERS = [
   'owner',
   'manager',
@@ -278,9 +283,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // cancelling a numbered document is the owner and the manager alone, and the registers are the
   // books, so the field and the shop never see them.
   'billing.invoices.queue': BILLING_ISSUERS,
-  // TEMPORARY with the procedure itself: deleted when `warehouse.packs.confirm` takes over issuing
-  // (docs/plans/00-coordination.md §4 step 3).
-  'billing.invoices.issue': BILLING_ISSUERS,
+  // `billing.invoices.issue` USED TO BE HERE and was removed with the procedure at coordination §4
+  // step 3: `warehouse.packs.confirm` now does the stock-and-state half and calls
+  // `BillingService.issueForPack`, so a pack invoice has exactly one caller and stock leaves once.
   // A van sale is billed at the door from the tenant's normal series (docs/17 §D5).
   'billing.invoices.issueVanSale': DOORSTEP,
   'billing.invoices.importBrandDms': BACK_OFFICE,
@@ -300,6 +305,39 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // GSTR-1 and the sales register are filing documents: back office only.
   'billing.registers.gstSummary': BACK_OFFICE,
   'billing.registers.salesRegister': BACK_OFFICE,
+
+  // Warehouse — the godown floor. Three populations, no new tuples (coordination §6):
+  //  * ROLE_GROUPS.STOCK_KEEPERS (owner, manager, warehouse) is the brief's WAREHOUSE_DESK: whoever
+  //    touches the goods. A rep and a shopkeeper are never here — a shop learns that its order is
+  //    being packed or has been dispatched from `orders.get`, never from a warehouse endpoint.
+  //  * STOCK_VIEWERS is the brief's FULFILMENT_READERS: the same list plus the accountant and the
+  //    crew, who read the load sheet and the challan on the road but write nothing.
+  //  * PIN_HOLDERS guards the three steps that ARE the manager's PIN — cancelling a wave, checking a
+  //    load out, and cancelling a sheet — because holding an owner/manager token is the PIN (§7 q15).
+  // `reservations.release` and `challans.recordEwb` are BACK_OFFICE: freeing a hold on a live order
+  // and typing a government e-way bill number are desk decisions, not floor work.
+  'warehouse.queue.list': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.create': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.list': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.get': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.start': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.pick': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.picklists.cancel': PIN_HOLDERS,
+  // The only way a pack invoice is issued (coordination §4 step 3).
+  'warehouse.packs.confirm': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.packs.list': STOCK_VIEWERS,
+  'warehouse.packs.get': STOCK_VIEWERS,
+  'warehouse.loadSheets.create': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.loadSheets.list': STOCK_VIEWERS,
+  'warehouse.loadSheets.get': STOCK_VIEWERS,
+  // Check-out moves stock, issues a numbered challan and dispatches the orders: the manager's PIN.
+  'warehouse.loadSheets.confirm': PIN_HOLDERS,
+  'warehouse.loadSheets.cancel': PIN_HOLDERS,
+  'warehouse.challans.list': STOCK_VIEWERS,
+  'warehouse.challans.get': STOCK_VIEWERS,
+  'warehouse.challans.recordEwb': BACK_OFFICE,
+  'warehouse.reservations.list': ROLE_GROUPS.STOCK_KEEPERS,
+  'warehouse.reservations.release': BACK_OFFICE,
 }
 
 /**

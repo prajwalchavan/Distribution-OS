@@ -9,6 +9,7 @@ import {
   OrdersModule,
   ReceivablesModule,
   BillingModule,
+  WarehouseModule,
   SyncModule,
 } from '@dos/core'
 
@@ -28,6 +29,7 @@ export const service = defineService({
     OrdersModule,
     ReceivablesModule,
     BillingModule,
+    WarehouseModule,
     SyncModule,
   ],
   contractKeys: [
@@ -41,6 +43,7 @@ export const service = defineService({
     'orders',
     'receivables',
     'billing',
+    'warehouse',
     'sync',
   ],
 })

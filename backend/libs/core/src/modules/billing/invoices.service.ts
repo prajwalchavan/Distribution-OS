@@ -33,8 +33,6 @@ import type {
   InvoicesListOutput,
   InvoiceUpiQrInput,
   InvoiceUpiQrOutput,
-  IssueInvoiceInput,
-  IssueInvoiceOutput,
   IssueVanSaleInvoiceInput,
   IssueVanSaleInvoiceOutput,
   RequestIrnInput,
@@ -133,8 +131,6 @@ import {
 
 type QueueIn = z.infer<typeof BillingQueueInput>
 type QueueOut = z.infer<typeof BillingQueueOutput>
-type IssueIn = z.infer<typeof IssueInvoiceInput>
-type IssueOut = z.infer<typeof IssueInvoiceOutput>
 type VanSaleIn = z.infer<typeof IssueVanSaleInvoiceInput>
 type VanSaleOut = z.infer<typeof IssueVanSaleInvoiceOutput>
 type BrandDmsIn = z.infer<typeof ImportBrandDmsInvoiceInput>
@@ -191,8 +187,6 @@ export const ANY_MEMBER: readonly ActorRole[] = [
   'system',
 ]
 
-/** Order states a bill may be raised from. After dispatch the only correction is a credit note. */
-const BILLABLE_ORDER_STATES = new Set(['confirmed', 'picking', 'packed'])
 /** Once the goods have left, cancelling the bill is no longer lawful (docs/17 item 26). */
 const DISPATCHED_ORDER_STATES = new Set([
   'dispatched',
@@ -245,6 +239,14 @@ export interface RecordOpeningInvoiceInput {
   seriesCode?: string | undefined
 }
 
+/** What a non-billing document may know about a bill: its number and its sale total. Never a cost. */
+export interface InvoiceRef {
+  id: string
+  invoiceNo: string | null
+  totalPaise: number
+  state: InvoiceRow['state']
+}
+
 interface PricedLine {
   row: typeof invoiceLines.$inferInsert
   grossPaise: number
@@ -271,7 +273,8 @@ export class BillingService {
    * offer), and emits `InvoiceIssued`.
    *
    * It moves NO stock and NO order state: the caller has already done that. Warehouse's `packs.confirm`
-   * is that caller from coordination §4 step 3; until then it is the temporary `invoices.issue` below.
+   * is that caller (coordination §4 step 3) and, for the doorstep, `issueFromLocation` below. The
+   * temporary `invoices.issue` procedure that used to do the stock half here is gone.
    */
   async issueForPack(tx: Db, input: IssueForPackInput): Promise<InvoiceRow> {
     const order = await this.orders.lockOrder(tx, input.orderId)
@@ -607,47 +610,12 @@ export class BillingService {
     })
   }
 
-  /**
-   * TEMPORARY — REMOVED AT COORDINATION §4 STEP 3.
-   *
-   * The pack half of issuing, done by billing because the warehouse module does not exist yet: reserve
-   * (or re-reserve when less is packed than was held), post the held pieces out as `sale` rows, advance
-   * the order to `packed` through `OrdersService.markPacked`, THEN call `issueForPack` for the document.
-   * When `warehouse.packs.confirm` lands it does the first three itself and calls `issueForPack`; this
-   * procedure, its `PERMISSIONS` row and its contract entry are deleted, and the READMEs regenerated.
-   * Do not build an app screen or a second caller on this path.
-   */
-  async issue(input: IssueIn): Promise<IssueOut> {
-    requireRole(BILLING_ISSUERS)
-    const db = requireDb(this.db)
-    const ctx = currentTenant()
-    return withTenant(db, ctx, (tx) =>
-      idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.orders.lockOrder(tx, input.orderId)
-        if (!BILLABLE_ORDER_STATES.has(order.state))
-          throw new ORPCError('CONFLICT', {
-            message: `order ${order.id} is ${order.state}; a bill is raised from confirmed, picking or packed`,
-          })
-        await this.assertNoLiveInvoice(tx, order.id)
-        const locationId = order.fulfilFromLocationId ?? (await this.warehouseLocation(tx))
-        const packed = new Map(input.lines?.map((l) => [l.orderLineId, l.qtyPcs]) ?? [])
-        const lines = await this.moveStock(tx, order.id, input.id, locationId, packed)
-        await this.orders.markPacked(tx, order, input.deviceId ?? null)
-        const row = await this.issueForPack(tx, {
-          orderId: order.id,
-          lines,
-          issuedBy: ctx.actorId,
-          invoiceId: input.id,
-          source: 'pack',
-          ...(input.invoiceDate === undefined ? {} : { invoiceDate: input.invoiceDate }),
-          ...(input.deviceId === undefined ? {} : { deviceId: input.deviceId }),
-          ...(input.transportMode === undefined ? {} : { transportMode: input.transportMode }),
-          ...(input.vehicleNo === undefined ? {} : { vehicleNo: input.vehicleNo }),
-        })
-        return { item: await this.detail(tx, row) }
-      }),
-    )
-  }
+  // THE TEMPORARY `issue` PROCEDURE IS GONE (coordination §4 step 3). Billing did the reserve →
+  // `postReservationAsSale` → `markPacked` half itself while the warehouse module did not exist; that
+  // half now belongs to `warehouse.packs.confirm`, which posts the picked pieces through
+  // `InventoryService.postPick`, advances the order through `OrdersService.applyFulfilmentEvent('pack')`
+  // and then calls `issueForPack` above for the document. Two HTTP callers would post `sale` rows for
+  // one order and stock would leave the godown twice, so this is deliberately not replaced.
 
   async issueVanSale(input: VanSaleIn): Promise<VanSaleOut> {
     requireRole(DOORSTEP)
@@ -989,6 +957,28 @@ export class BillingService {
       .limit(1)
     if (!row) throw new ORPCError('NOT_FOUND', { message: `invoice ${id} not found` })
     return row
+  }
+
+  /**
+   * The number and the total of a handful of bills, for a document that names them without being
+   * billing (coordination §4: WAREHOUSE's pack list and load sheet). Sale values only — no cost, no
+   * margin, nothing a picker may not see — and bounded by the caller's own page size, which is why the
+   * warehouse never selects from `invoices` itself.
+   */
+  async invoiceRefs(tx: Db, invoiceIds: readonly string[]): Promise<Map<string, InvoiceRef>> {
+    const ids = [...new Set(invoiceIds)]
+    if (ids.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({
+        id: invoices.id,
+        invoiceNo: invoices.invoiceNo,
+        totalPaise: invoices.totalPaise,
+        state: invoices.state,
+      })
+      .from(invoices)
+      .where(and(eq(invoices.tenantId, tenantId), inArray(invoices.id, ids)))
+    return new Map(rows.map((r) => [r.id, r]))
   }
 
   private async lockInvoice(tx: Db, id: string): Promise<InvoiceRow> {

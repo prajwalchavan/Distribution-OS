@@ -120,7 +120,6 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/receivables/journal` | The day book: journal entries with their lines (back office) | owner, manager, accountant |
 | POST | `/receivables/ageing/rebuild` | Recompute the outstanding summary and the ageing snapshot (owner only) | owner |
 | GET | `/billing/queue` | Orders waiting to be billed, oldest first | owner, manager, accountant, warehouse |
-| POST | `/invoices` | Issue the tax invoice for a packed order (temporary: warehouse takes this over) | owner, manager, accountant, warehouse |
 | POST | `/invoices/van-sale` | Bill a sale off the van, from vehicle stock and the tenant series | owner, manager, delivery |
 | POST | `/invoices/brand-dms` | Store a brand DMS's own invoice verbatim; never a second legal document | owner, manager, accountant |
 | POST | `/invoices/{id}/cancel` | Cancel before dispatch, keeping the number; stock and money come back | owner, manager |
@@ -137,4 +136,24 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/credit-notes` | Credit notes (a shop sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/billing/gst-summary` | GSTR-1-shaped HSN or rate summary, credit notes reported separately | owner, manager, accountant |
 | GET | `/billing/sales-register` | Invoice-wise sales register with running totals | owner, manager, accountant |
+| GET | `/warehouse/queue` | Confirmed orders waiting to be picked, quantities only | owner, manager, warehouse |
+| POST | `/warehouse/picklists` | Wave selected orders into a picklist with FEFO-suggested lots | owner, manager, warehouse |
+| GET | `/warehouse/picklists` | Picklists, newest first | owner, manager, warehouse |
+| GET | `/warehouse/picklists/{id}` | The picking sheet: lines, and the wave consolidated by SKU | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/start` | Assign the sheet and move every order on it to picking | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/pick` | Record picked pieces per lot; FEFO and short picks warn, never block | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/cancel` | Cancel a wave that has not started, freeing its orders | owner, manager |
+| POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
+| GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
+| GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/load-sheets/{id}/confirm` | Check out: count, move godown → vehicle, issue the challan, dispatch the orders | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/challans/{id}/ewb` | Record the e-way bill number typed from the government portal | owner, manager, accountant |
+| GET | `/warehouse/reservations` | What the godown is holding, and for which order | owner, manager, warehouse |
+| POST | `/warehouse/reservations/release` | Free the pending holds of an order that will not be picked | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |

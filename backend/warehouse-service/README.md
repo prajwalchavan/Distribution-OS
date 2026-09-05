@@ -81,6 +81,43 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/orders` | Orders (a retailer sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
 | POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager, accountant |
+| GET | `/billing/queue` | Orders waiting to be billed, oldest first | owner, manager, accountant, warehouse |
+| POST | `/invoices/van-sale` | Bill a sale off the van, from vehicle stock and the tenant series | owner, manager, delivery |
+| POST | `/invoices/brand-dms` | Store a brand DMS's own invoice verbatim; never a second legal document | owner, manager, accountant |
+| POST | `/invoices/{id}/cancel` | Cancel before dispatch, keeping the number; stock and money come back | owner, manager |
+| GET | `/invoices/{id}` | One bill with its lines, its credit notes and what is still due | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/invoices` | The sales register (a shop sees only its own bills) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/invoices/{id}/upi-qr` | UPI intent for the amount still due on this bill | owner, manager, accountant, delivery, retailer |
+| GET | `/invoices/{id}/pdf` | Pre-signed URL for the printed bill, or queue the render | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/invoices/{id}/eway-bill` | Record the e-way bill number typed from the government portal | owner, manager, accountant, warehouse |
+| POST | `/invoices/{id}/irn` | Local e-invoice stub behind the e_invoicing flag; never an external call | owner, manager, accountant |
+| POST | `/credit-notes` | Draft a credit note against an issued bill, at the original rate | owner, manager, accountant, delivery |
+| POST | `/credit-notes/{id}/issue` | Number the note, restock the pieces and credit the shop | owner, manager, accountant, delivery |
+| POST | `/credit-notes/{id}/cancel` | Cancel a draft note (an issued one is reversed, not cancelled) | owner, manager, accountant |
+| GET | `/credit-notes/{id}` | One credit note with its lines | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/credit-notes` | Credit notes (a shop sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/billing/gst-summary` | GSTR-1-shaped HSN or rate summary, credit notes reported separately | owner, manager, accountant |
+| GET | `/billing/sales-register` | Invoice-wise sales register with running totals | owner, manager, accountant |
+| GET | `/warehouse/queue` | Confirmed orders waiting to be picked, quantities only | owner, manager, warehouse |
+| POST | `/warehouse/picklists` | Wave selected orders into a picklist with FEFO-suggested lots | owner, manager, warehouse |
+| GET | `/warehouse/picklists` | Picklists, newest first | owner, manager, warehouse |
+| GET | `/warehouse/picklists/{id}` | The picking sheet: lines, and the wave consolidated by SKU | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/start` | Assign the sheet and move every order on it to picking | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/pick` | Record picked pieces per lot; FEFO and short picks warn, never block | owner, manager, warehouse |
+| POST | `/warehouse/picklists/{id}/cancel` | Cancel a wave that has not started, freeing its orders | owner, manager |
+| POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
+| GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
+| GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/load-sheets/{id}/confirm` | Check out: count, move godown → vehicle, issue the challan, dispatch the orders | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
+| GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/challans/{id}/ewb` | Record the e-way bill number typed from the government portal | owner, manager, accountant |
+| GET | `/warehouse/reservations` | What the godown is holding, and for which order | owner, manager, warehouse |
+| POST | `/warehouse/reservations/release` | Free the pending holds of an order that will not be picked | owner, manager, accountant |
 | POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
 
 ### GET `/health/ping`
@@ -7074,6 +7111,5802 @@ request.json
 }
 ```
 
+### GET `/billing/queue`
+
+Orders waiting to be billed, oldest first · contract `billing.invoices.queue`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `locationId` | uuid | no |
+| `retailerId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/billing/queue?locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "state": "draft",
+      "lineCount": 1,
+      "orderTotalPaise": 2680000,
+      "expectedDeliveryDate": "2026-09-04",
+      "hasDraftInvoice": true
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/invoices/van-sale`
+
+Bill a sale off the van, from vehicle stock and the tenant series · contract `billing.invoices.issueVanSale`
+
+**Roles:** owner, manager, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `orderId` | uuid | yes |
+| `vehicleLocationId` | uuid | yes |
+| `invoiceDate` | date | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/invoices/van-sale" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+  "invoiceDate": "2026-09-04",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /invoices/van-sale",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/invoices/brand-dms`
+
+Store a brand DMS's own invoice verbatim; never a second legal document · contract `billing.invoices.importBrandDms`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `orderId` | uuid | no |
+| `retailerId` | uuid | yes |
+| `externalInvoiceNo` | string | yes |
+| `seriesCode` | string | no |
+| `invoiceDate` | date | yes |
+| `buyerGstin` | string | no |
+| `placeOfSupplyState` | string | yes |
+| `roundOffPaise` | integer | no |
+| `lines` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/invoices/brand-dms" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "externalInvoiceNo": "SO-0042",
+  "seriesCode": "R-0001",
+  "invoiceDate": "2026-09-04",
+  "buyerGstin": "27AAPFU0939F1ZV",
+  "placeOfSupplyState": "27",
+  "roundOffPaise": 0,
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "description": "Confirmed on phone with the shopkeeper",
+      "hsnCode": "22021010",
+      "qtyPcs": 24,
+      "freeQtyPcs": 0,
+      "ratePaise": 4000,
+      "discountPaise": 0,
+      "gstBps": 500,
+      "cessBps": 0,
+      "batchNo": "SO-0042",
+      "expiryDate": "2026-09-04",
+      "mrpPaise": 4000,
+      "enteredQty": 24,
+      "enteredUnit": "piece",
+      "packSizeAtEntry": 24
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /invoices/brand-dms",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/invoices/{id}/cancel`
+
+Cancel before dispatch, keeping the number; stock and money come back · contract `billing.invoices.cancel`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+| `restockLocationId` | uuid | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper",
+  "restockLocationId": "01a06df3-a79e-7905-8496-469b75b29aff",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /invoices/{id}/cancel",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/invoices/{id}`
+
+One bill with its lines, its credit notes and what is still due · contract `billing.invoices.get`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/invoices`
+
+The sales register (a shop sees only its own bills) · contract `billing.invoices.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `retailerId` | uuid | no |
+| `orderId` | uuid | no |
+| `state` | draft | issued | partially_paid | paid | written_off | cancelled | no |
+| `source` | pack | van_sale | brand_dms_import | import | no |
+| `from` | date | no |
+| `to` | date | no |
+| `openOnly` | boolean | string | no |
+| `overdueOnly` | boolean | string | no |
+| `q` | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/invoices?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&state=draft&source=pack&from=2026-09-04&to=2026-09-04&openOnly=true&overdueOnly=true&q=campa&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "externalInvoiceNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "invoiceDate": "2026-09-04",
+      "source": "pack",
+      "state": "draft",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "buyerName": "text",
+      "supplyType": "B2B",
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "roundOffPaise": 12000,
+      "totalPaise": 2680000,
+      "dueDate": "2026-09-04",
+      "amountDuePaise": 4000,
+      "hasIrn": true,
+      "hasPdf": true
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/invoices/{id}/upi-qr`
+
+UPI intent for the amount still due on this bill · contract `billing.invoices.upiQr`
+
+**Roles:** owner, manager, accountant, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/upi-qr" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "payload": "text",
+  "amountPaise": 4000,
+  "vpa": "text",
+  "payeeName": "text",
+  "invoiceNo": "SO-0042"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /invoices/{id}/upi-qr",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/invoices/{id}/pdf`
+
+Pre-signed URL for the printed bill, or queue the render · contract `billing.invoices.pdf`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `copy` | original | duplicate | triplicate | no |
+| `format` | a4 | thermal80 | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/pdf?copy=original&format=a4" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "status": "ready",
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "expiresAt": "2026-09-04T10:30:00.000Z"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/invoices/{id}/eway-bill`
+
+Record the e-way bill number typed from the government portal · contract `billing.invoices.setEwayBill`
+
+**Roles:** owner, manager, accountant, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `ewayBillNo` | string | yes |
+| `validUntil` | datetime | yes |
+| `transportMode` | string | no |
+| `vehicleNo` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/eway-bill" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "ewayBillNo": "291012345678",
+  "validUntil": "2026-09-04T10:30:00.000Z",
+  "transportMode": "text",
+  "vehicleNo": "SO-0042"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "invoiceDate": "2026-09-04",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "source": "pack",
+    "externalInvoiceNo": "SO-0042",
+    "state": "draft",
+    "supplyType": "B2B",
+    "sellerGstin": "27AAPFU0939F1ZV",
+    "buyerGstin": "27AAPFU0939F1ZV",
+    "buyerName": "text",
+    "buyerAddress": {
+      "line1": "text",
+      "line2": "text",
+      "landmark": "text",
+      "area": "text",
+      "city": "text",
+      "pincode": "421301"
+    },
+    "placeOfSupplyState": "27",
+    "buyerFssai": "text",
+    "sellerFssai": "text",
+    "isInterState": true,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "cashDiscountBps": 500,
+    "cashDiscountUntil": "text",
+    "dueDate": "2026-09-04",
+    "irn": "text",
+    "ackNo": "SO-0042",
+    "ackDate": "2026-09-04",
+    "signedQr": "text",
+    "ewayBillNo": "291012345678",
+    "ewayBillValidUntil": "text",
+    "transportMode": "text",
+    "vehicleNo": "SO-0042",
+    "upiQrPayload": "text",
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "cgstPaise": 12000,
+        "sgstPaise": 12000,
+        "igstPaise": 12000,
+        "cessBps": 500,
+        "cessPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ]
+      }
+    ],
+    "creditNotes": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "noteDate": "2026-09-04",
+        "reason": "short_delivery",
+        "state": "draft",
+        "totalPaise": 2680000
+      }
+    ],
+    "amountDuePaise": 4000,
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/invoices/{id}/irn`
+
+Local e-invoice stub behind the e_invoicing flag; never an external call · contract `billing.invoices.requestIrn`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b/irn" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "status": "skipped",
+  "irn": "text",
+  "ackNo": "SO-0042",
+  "ackDate": "2026-09-04",
+  "signedQr": "text",
+  "reason": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /invoices/{id}/irn",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/credit-notes`
+
+Draft a credit note against an issued bill, at the original rate · contract `billing.creditNotes.create`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `invoiceId` | uuid | yes |
+| `reason` | short_delivery | return_saleable | return_damaged | rate_difference | scheme_settlement | cancellation | other | yes |
+| `noteDate` | date | no |
+| `deliveryId` | uuid | no |
+| `restockLocationId` | uuid | no |
+| `note` | string | no |
+| `autoIssue` | boolean | no |
+| `lines` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/credit-notes" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+  "reason": "short_delivery",
+  "noteDate": "2026-09-04",
+  "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+  "restockLocationId": "01a06df3-a79e-7905-8496-469b75b29aff",
+  "note": "Confirmed on phone with the shopkeeper",
+  "autoIssue": false,
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+      "qtyPcs": 24,
+      "saleable": true,
+      "ratePaise": 4000
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "creditNoteNo": "Confirmed on phone with the shopkeeper",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "noteDate": "2026-09-04",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "reason": "short_delivery",
+    "state": "draft",
+    "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+    "isInterState": true,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "irn": "text",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "qtyPcs": 24,
+        "saleable": true,
+        "ratePaise": 4000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ],
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /credit-notes",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/credit-notes/{id}/issue`
+
+Number the note, restock the pieces and credit the shop · contract `billing.creditNotes.issue`
+
+**Roles:** owner, manager, accountant, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/credit-notes/01a06d17-0be7-794a-8dab-9b14cf78673b/issue" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "creditNoteNo": "Confirmed on phone with the shopkeeper",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "noteDate": "2026-09-04",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "reason": "short_delivery",
+    "state": "draft",
+    "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+    "isInterState": true,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "irn": "text",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "qtyPcs": 24,
+        "saleable": true,
+        "ratePaise": 4000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ],
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /credit-notes/{id}/issue",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/credit-notes/{id}/cancel`
+
+Cancel a draft note (an issued one is reversed, not cancelled) · contract `billing.creditNotes.cancel`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/credit-notes/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "creditNoteNo": "Confirmed on phone with the shopkeeper",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "noteDate": "2026-09-04",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "reason": "short_delivery",
+    "state": "draft",
+    "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+    "isInterState": true,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "irn": "text",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "qtyPcs": 24,
+        "saleable": true,
+        "ratePaise": 4000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ],
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /credit-notes/{id}/cancel",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/credit-notes/{id}`
+
+One credit note with its lines · contract `billing.creditNotes.get`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/credit-notes/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "creditNoteNo": "Confirmed on phone with the shopkeeper",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "noteDate": "2026-09-04",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "reason": "short_delivery",
+    "state": "draft",
+    "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+    "isInterState": true,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "irn": "text",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "description": "Confirmed on phone with the shopkeeper",
+        "hsnCode": "22021010",
+        "qtyPcs": 24,
+        "saleable": true,
+        "ratePaise": 4000,
+        "taxablePaise": 4000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000
+      }
+    ],
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/credit-notes`
+
+Credit notes (a shop sees only its own) · contract `billing.creditNotes.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `invoiceId` | uuid | no |
+| `retailerId` | uuid | no |
+| `reason` | short_delivery | return_saleable | return_damaged | rate_difference | scheme_settlement | cancellation | other | no |
+| `state` | draft | issued | applied | cancelled | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/credit-notes?invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&reason=short_delivery&state=draft&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "creditNoteNo": "Confirmed on phone with the shopkeeper",
+      "noteDate": "2026-09-04",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "reason": "short_delivery",
+      "state": "draft",
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/billing/gst-summary`
+
+GSTR-1-shaped HSN or rate summary, credit notes reported separately · contract `billing.registers.gstSummary`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `supplyType` | B2B | B2C | no |
+| `groupBy` | hsn | rate | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/billing/gst-summary?from=2026-09-04&to=2026-09-04&supplyType=B2B&groupBy=hsn" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "supplyType": "B2B",
+  "groupBy": "hsn",
+  "rows": [
+    {
+      "hsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "qtyPcs": 24,
+      "freeQtyPcs": 24,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000,
+      "documentCount": 1
+    }
+  ],
+  "totals": {
+    "qtyPcs": 24,
+    "freeQtyPcs": 24,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "documentCount": 1
+  },
+  "creditNoteRows": [
+    {
+      "hsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "qtyPcs": 24,
+      "freeQtyPcs": 24,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "totalPaise": 2680000,
+      "documentCount": 1
+    }
+  ],
+  "creditNoteTotals": {
+    "qtyPcs": 24,
+    "freeQtyPcs": 24,
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "documentCount": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /billing/gst-summary",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/billing/sales-register`
+
+Invoice-wise sales register with running totals · contract `billing.registers.salesRegister`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `retailerId` | uuid | no |
+| `source` | pack | van_sale | brand_dms_import | import | no |
+| `issuedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/billing/sales-register?from=2026-09-04&to=2026-09-04&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&source=pack&issuedOnly=true&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "externalInvoiceNo": "SO-0042",
+      "invoiceDate": "2026-09-04",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "buyerName": "text",
+      "buyerGstin": "27AAPFU0939F1ZV",
+      "supplyType": "B2B",
+      "placeOfSupplyState": "27",
+      "isInterState": true,
+      "taxablePaise": 4000,
+      "cgstPaise": 12000,
+      "sgstPaise": 12000,
+      "igstPaise": 12000,
+      "cessPaise": 12000,
+      "roundOffPaise": 12000,
+      "totalPaise": 2680000,
+      "state": "draft",
+      "source": "pack",
+      "tallyLedgerName": "text"
+    }
+  ],
+  "nextCursor": null,
+  "totals": {
+    "taxablePaise": 4000,
+    "cgstPaise": 12000,
+    "sgstPaise": 12000,
+    "igstPaise": 12000,
+    "cessPaise": 12000,
+    "totalPaise": 2680000,
+    "invoiceCount": 1
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /billing/sales-register",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/queue`
+
+Confirmed orders waiting to be picked, quantities only · contract `warehouse.queue.list`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `locationId` | uuid | no |
+| `beatId` | uuid | no |
+| `state` | confirmed | picking | packed | no |
+| `expectedDeliveryDate` | date | no |
+| `unpicklistedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/queue?locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&state=confirmed&expectedDeliveryDate=2026-09-04&unpicklistedOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "retailerCode": "R-0001",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml",
+      "state": "confirmed",
+      "fulfilFromLocationId": "01a06dc8-c767-7943-8fdd-07b3dd890c64",
+      "expectedDeliveryDate": "2026-09-04",
+      "confirmedAt": "2026-09-04T10:30:00.000Z",
+      "lineCount": 1,
+      "totalQtyPcs": 24,
+      "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/picklists`
+
+Wave selected orders into a picklist with FEFO-suggested lots · contract `warehouse.picklists.create`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `orderIds` | uuid[] | yes |
+| `locationId` | uuid | no |
+| `tripId` | uuid | no |
+| `beatId` | uuid | no |
+| `pickDate` | date | no |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/picklists" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "orderIds": [
+    "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca"
+  ],
+  "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+  "pickDate": "2026-09-04",
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "picklistNo": "SO-0042",
+    "status": "open",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "pickDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "note": null,
+    "orderCount": 1,
+    "lineCount": 1,
+    "requestedQtyPcs": 24,
+    "pickedQtyPcs": 24,
+    "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "draft",
+        "lineCount": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "suggestedLotId": "01a06d5e-4f20-776b-80d4-aafd8cb8d393",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "caseSize": 24,
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "freeQtyPcs": 24,
+        "shortReason": null,
+        "fefoOverride": true,
+        "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
+        "pickedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "consolidated": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "lots": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "qtyPcs": 24,
+            "caseSize": 24,
+            "cases": 1,
+            "loosePcs": 24,
+            "fefoWarning": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/picklists`
+
+Picklists, newest first · contract `warehouse.picklists.list`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | open | picking | picked | packed | cancelled | no |
+| `locationId` | uuid | no |
+| `assignedTo` | uuid | no |
+| `tripId` | uuid | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/picklists?status=open&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&assignedTo=01a06d27-0d82-76d4-8fca-a7b50cfc5309&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "picklistNo": "SO-0042",
+      "status": "open",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "pickDate": "2026-09-04",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "note": null,
+      "orderCount": 1,
+      "lineCount": 1,
+      "requestedQtyPcs": 24,
+      "pickedQtyPcs": 24,
+      "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "completedAt": "2026-09-04T10:30:00.000Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/picklists/{id}`
+
+The picking sheet: lines, and the wave consolidated by SKU · contract `warehouse.picklists.get`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "picklistNo": "SO-0042",
+    "status": "open",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "pickDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "note": null,
+    "orderCount": 1,
+    "lineCount": 1,
+    "requestedQtyPcs": 24,
+    "pickedQtyPcs": 24,
+    "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "draft",
+        "lineCount": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "suggestedLotId": "01a06d5e-4f20-776b-80d4-aafd8cb8d393",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "caseSize": 24,
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "freeQtyPcs": 24,
+        "shortReason": null,
+        "fefoOverride": true,
+        "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
+        "pickedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "consolidated": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "lots": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "qtyPcs": 24,
+            "caseSize": 24,
+            "cases": 1,
+            "loosePcs": 24,
+            "fefoWarning": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/picklists/{id}/start`
+
+Assign the sheet and move every order on it to picking · contract `warehouse.picklists.start`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `assignedTo` | uuid | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78673b/start" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "picklistNo": "SO-0042",
+    "status": "open",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "pickDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "note": null,
+    "orderCount": 1,
+    "lineCount": 1,
+    "requestedQtyPcs": 24,
+    "pickedQtyPcs": 24,
+    "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "draft",
+        "lineCount": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "suggestedLotId": "01a06d5e-4f20-776b-80d4-aafd8cb8d393",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "caseSize": 24,
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "freeQtyPcs": 24,
+        "shortReason": null,
+        "fefoOverride": true,
+        "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
+        "pickedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "consolidated": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "lots": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "qtyPcs": 24,
+            "caseSize": 24,
+            "cases": 1,
+            "loosePcs": 24,
+            "fefoWarning": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/picklists/{id}/pick`
+
+Record picked pieces per lot; FEFO and short picks warn, never block · contract `warehouse.picklists.pick`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `deviceId` | string | no |
+| `lines` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78673b/pick" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "lines": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "pickedQtyPcs": 24,
+      "shortReason": "Confirmed on phone with the shopkeeper"
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "picklistNo": "SO-0042",
+    "status": "open",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "pickDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "note": null,
+    "orderCount": 1,
+    "lineCount": 1,
+    "requestedQtyPcs": 24,
+    "pickedQtyPcs": 24,
+    "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "draft",
+        "lineCount": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "suggestedLotId": "01a06d5e-4f20-776b-80d4-aafd8cb8d393",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "caseSize": 24,
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "freeQtyPcs": 24,
+        "shortReason": null,
+        "fefoOverride": true,
+        "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
+        "pickedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "consolidated": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "lots": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "qtyPcs": 24,
+            "caseSize": 24,
+            "cases": 1,
+            "loosePcs": 24,
+            "fefoWarning": true
+          }
+        ]
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "pickLineId": "01a06d8a-f7dc-7fcf-821c-7c355b187af7",
+      "code": "fefo_override",
+      "message": "Confirmed on phone with the shopkeeper"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/picklists/{id}/cancel`
+
+Cancel a wave that has not started, freeing its orders · contract `warehouse.picklists.cancel`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "picklistNo": "SO-0042",
+    "status": "open",
+    "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+    "pickDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+    "note": null,
+    "orderCount": 1,
+    "lineCount": 1,
+    "requestedQtyPcs": 24,
+    "pickedQtyPcs": 24,
+    "assignedTo": "01a06d27-0d82-76d4-8fca-a7b50cfc5309",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "completedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "draft",
+        "lineCount": 1
+      }
+    ],
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "suggestedLotId": "01a06d5e-4f20-776b-80d4-aafd8cb8d393",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "caseSize": 24,
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "freeQtyPcs": 24,
+        "shortReason": null,
+        "fefoOverride": true,
+        "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
+        "pickedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "consolidated": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "productName": "Campa Cola 750 ml",
+        "requestedQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "lots": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "qtyPcs": 24,
+            "caseSize": 24,
+            "cases": 1,
+            "loosePcs": 24,
+            "fefoWarning": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/picklists/{id}/cancel",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/orders/{orderId}/pack`
+
+Pack the order: stock leaves, the order moves to packed, the bill is issued · contract `warehouse.packs.confirm`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `orderId` | uuid | yes |
+| `id` | uuid | yes |
+| `packages` | integer | yes |
+| `weightGrams` | integer | no |
+| `deviceId` | string | no |
+| `issueInvoice` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/orders/01a06d67-52a6-70c4-8d0b-06d5bc6a56ca/pack" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "packages": 1,
+  "weightGrams": 1,
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "issueInvoice": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4",
+    "packages": 1,
+    "weightGrams": 1,
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "shortPacked": true,
+    "packedBy": "01a06d83-bed0-7346-8836-dfd81e4e12e7",
+    "packedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "lines": [
+    {
+      "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "orderedQtyPcs": 24,
+      "packedQtyPcs": 24,
+      "shortQtyPcs": 24,
+      "lots": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24
+        }
+      ]
+    }
+  ],
+  "invoice": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "invoiceNo": "SO-0042",
+    "totalPaise": 2680000
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/packs`
+
+What was packed, and what still has no bill · contract `warehouse.packs.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | no |
+| `to` | date | no |
+| `picklistId` | uuid | no |
+| `orderId` | uuid | no |
+| `invoiced` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/packs?from=2026-09-04&to=2026-09-04&picklistId=01a06dc3-1560-766a-8975-e547c8c480a4&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&invoiced=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4",
+      "packages": 1,
+      "weightGrams": 1,
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "shortPacked": true,
+      "packedBy": "01a06d83-bed0-7346-8836-dfd81e4e12e7",
+      "packedAt": "2026-09-04T10:30:00.000Z",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "invoiceNo": "SO-0042"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/packs/{id}`
+
+One pack confirmation with its packed lines and lots · contract `warehouse.packs.get`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/packs/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4",
+    "packages": 1,
+    "weightGrams": 1,
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "shortPacked": true,
+    "packedBy": "01a06d83-bed0-7346-8836-dfd81e4e12e7",
+    "packedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "lines": [
+    {
+      "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "orderedQtyPcs": 24,
+      "packedQtyPcs": 24,
+      "shortQtyPcs": 24,
+      "lots": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/load-sheets`
+
+Build the load-out sheet for a vehicle without moving stock · contract `warehouse.loadSheets.create`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `toLocationId` | uuid | yes |
+| `fromLocationId` | uuid | no |
+| `tripId` | uuid | no |
+| `sheetDate` | date | no |
+| `orderIds` | uuid[] | no |
+| `vanStock` | object[] | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/load-sheets" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+  "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "sheetDate": "2026-09-04",
+  "orderIds": [],
+  "vanStock": []
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "draft",
+    "sheetDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleRegNo": "SO-0042",
+    "orderCount": 1,
+    "expectedPackages": 1,
+    "countedPackages": 1,
+    "varianceNote": "Confirmed on phone with the shopkeeper",
+    "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+    "loadValuePaise": 4000,
+    "ewbRequired": true,
+    "ewbNo": "291012345678",
+    "challanNo": "SO-0042",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "packages": 1,
+        "stopSequence": 1
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "source": "order"
+      }
+    ],
+    "challan": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z",
+      "seller": {
+        "displayName": "text",
+        "legalName": "Campa Cola 750 ml",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "fssai": "text",
+        "address": {
+          "line1": "text",
+          "line2": "text",
+          "landmark": "text",
+          "area": "text",
+          "city": "text",
+          "pincode": "421301"
+        },
+        "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "logoUrl": "docs/2026/09/invoice-0042.jpg",
+        "invoiceFooter": "text",
+        "upiVpa": "text"
+      },
+      "lines": [
+        {
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
+          "hsnCode": "22021010",
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24,
+          "caseSize": 24,
+          "cases": 1,
+          "loosePcs": 24,
+          "taxableValuePaise": 4000,
+          "gstBps": 500
+        }
+      ],
+      "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/load-sheets`
+
+Load sheets: what is loaded on which vehicle, and when it left · contract `warehouse.loadSheets.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | draft | confirmed | cancelled | no |
+| `tripId` | uuid | no |
+| `toLocationId` | uuid | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/load-sheets?status=draft&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&toLocationId=01a06ddc-ab2d-7b02-8439-c878602510b2&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "status": "draft",
+      "sheetDate": "2026-09-04",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleRegNo": "SO-0042",
+      "orderCount": 1,
+      "expectedPackages": 1,
+      "countedPackages": 1,
+      "varianceNote": "Confirmed on phone with the shopkeeper",
+      "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+      "loadValuePaise": 4000,
+      "ewbRequired": true,
+      "ewbNo": "291012345678",
+      "challanNo": "SO-0042",
+      "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+      "confirmedAt": "2026-09-04T10:30:00.000Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/load-sheets/{id}`
+
+One load sheet with its orders, its lots and its challan · contract `warehouse.loadSheets.get`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "draft",
+    "sheetDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleRegNo": "SO-0042",
+    "orderCount": 1,
+    "expectedPackages": 1,
+    "countedPackages": 1,
+    "varianceNote": "Confirmed on phone with the shopkeeper",
+    "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+    "loadValuePaise": 4000,
+    "ewbRequired": true,
+    "ewbNo": "291012345678",
+    "challanNo": "SO-0042",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "packages": 1,
+        "stopSequence": 1
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "source": "order"
+      }
+    ],
+    "challan": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z",
+      "seller": {
+        "displayName": "text",
+        "legalName": "Campa Cola 750 ml",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "fssai": "text",
+        "address": {
+          "line1": "text",
+          "line2": "text",
+          "landmark": "text",
+          "area": "text",
+          "city": "text",
+          "pincode": "421301"
+        },
+        "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "logoUrl": "docs/2026/09/invoice-0042.jpg",
+        "invoiceFooter": "text",
+        "upiVpa": "text"
+      },
+      "lines": [
+        {
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
+          "hsnCode": "22021010",
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24,
+          "caseSize": 24,
+          "cases": 1,
+          "loosePcs": 24,
+          "taxableValuePaise": 4000,
+          "gstBps": 500
+        }
+      ],
+      "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/load-sheets/{id}/confirm`
+
+Check out: count, move godown → vehicle, issue the challan, dispatch the orders · contract `warehouse.loadSheets.confirm`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `countedPackages` | integer | yes |
+| `countedVanStock` | object[] | no |
+| `challanId` | uuid | yes |
+| `ewbNo` | string | no |
+| `varianceNote` | string | no |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf78673b/confirm" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "countedPackages": 1,
+  "countedVanStock": [],
+  "challanId": "01a06da9-7a00-7764-8cf3-e6f69c55a807",
+  "ewbNo": "291012345678",
+  "varianceNote": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "draft",
+    "sheetDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleRegNo": "SO-0042",
+    "orderCount": 1,
+    "expectedPackages": 1,
+    "countedPackages": 1,
+    "varianceNote": "Confirmed on phone with the shopkeeper",
+    "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+    "loadValuePaise": 4000,
+    "ewbRequired": true,
+    "ewbNo": "291012345678",
+    "challanNo": "SO-0042",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "packages": 1,
+        "stopSequence": 1
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "source": "order"
+      }
+    ],
+    "challan": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z",
+      "seller": {
+        "displayName": "text",
+        "legalName": "Campa Cola 750 ml",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "fssai": "text",
+        "address": {
+          "line1": "text",
+          "line2": "text",
+          "landmark": "text",
+          "area": "text",
+          "city": "text",
+          "pincode": "421301"
+        },
+        "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "logoUrl": "docs/2026/09/invoice-0042.jpg",
+        "invoiceFooter": "text",
+        "upiVpa": "text"
+      },
+      "lines": [
+        {
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
+          "hsnCode": "22021010",
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24,
+          "caseSize": 24,
+          "cases": 1,
+          "loosePcs": 24,
+          "taxableValuePaise": 4000,
+          "gstBps": 500
+        }
+      ],
+      "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+    }
+  },
+  "challan": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "challanNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "challanDate": "2026-09-04",
+    "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleNo": "SO-0042",
+    "valuePaise": 4000,
+    "gstPaise": 4000,
+    "ewbNo": "291012345678",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    },
+    "lines": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "hsnCode": "22021010",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "taxableValuePaise": 4000,
+        "gstBps": 500
+      }
+    ],
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+  },
+  "dispatched": [
+    "01a06de2-344f-7fb8-8b2b-30fe434c94a5"
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/load-sheets/{id}/confirm",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/load-sheets/{id}/cancel`
+
+Cancel a draft sheet (a confirmed one has already moved stock) · contract `warehouse.loadSheets.cancel`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/load-sheets/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "status": "draft",
+    "sheetDate": "2026-09-04",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleRegNo": "SO-0042",
+    "orderCount": 1,
+    "expectedPackages": 1,
+    "countedPackages": 1,
+    "varianceNote": "Confirmed on phone with the shopkeeper",
+    "pinVerifiedBy": "01a06d37-9c04-704b-86ff-b027855b4460",
+    "loadValuePaise": 4000,
+    "ewbRequired": true,
+    "ewbNo": "291012345678",
+    "challanNo": "SO-0042",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "orders": [
+      {
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "orderNo": "SO-0042",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+        "invoiceNo": "SO-0042",
+        "packages": 1,
+        "stopSequence": 1
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "source": "order"
+      }
+    ],
+    "challan": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z",
+      "seller": {
+        "displayName": "text",
+        "legalName": "Campa Cola 750 ml",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "fssai": "text",
+        "address": {
+          "line1": "text",
+          "line2": "text",
+          "landmark": "text",
+          "area": "text",
+          "city": "text",
+          "pincode": "421301"
+        },
+        "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "logoUrl": "docs/2026/09/invoice-0042.jpg",
+        "invoiceFooter": "text",
+        "upiVpa": "text"
+      },
+      "lines": [
+        {
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
+          "hsnCode": "22021010",
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "batchNo": "SO-0042",
+          "qtyPcs": 24,
+          "caseSize": 24,
+          "cases": 1,
+          "loosePcs": 24,
+          "taxableValuePaise": 4000,
+          "gstBps": 500
+        }
+      ],
+      "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/load-sheets/{id}/cancel",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/challans`
+
+The delivery challan register · contract `warehouse.challans.list`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | no |
+| `to` | date | no |
+| `loadSheetId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/challans?from=2026-09-04&to=2026-09-04&loadSheetId=01a06d98-960f-708a-8418-7a826a22f050&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "challanNo": "SO-0042",
+      "seriesCode": "R-0001",
+      "fy": "2026-27",
+      "challanDate": "2026-09-04",
+      "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+      "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+      "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+      "vehicleNo": "SO-0042",
+      "valuePaise": 4000,
+      "gstPaise": 4000,
+      "ewbNo": "291012345678",
+      "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+      "issuedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/challans/{id}`
+
+One challan with everything Rule 55 prints · contract `warehouse.challans.get`
+
+**Roles:** owner, manager, accountant, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/challans/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "challanNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "challanDate": "2026-09-04",
+    "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleNo": "SO-0042",
+    "valuePaise": 4000,
+    "gstPaise": 4000,
+    "ewbNo": "291012345678",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    },
+    "lines": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "hsnCode": "22021010",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "taxableValuePaise": 4000,
+        "gstBps": 500
+      }
+    ],
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/challans/{id}/ewb`
+
+Record the e-way bill number typed from the government portal · contract `warehouse.challans.recordEwb`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `ewbNo` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/challans/01a06d17-0be7-794a-8dab-9b14cf78673b/ewb" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "ewbNo": "291012345678"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "challanNo": "SO-0042",
+    "seriesCode": "R-0001",
+    "fy": "2026-27",
+    "challanDate": "2026-09-04",
+    "loadSheetId": "01a06d98-960f-708a-8418-7a826a22f050",
+    "fromLocationId": "01a06d54-8962-79d7-8a1e-b81195580544",
+    "toLocationId": "01a06ddc-ab2d-7b02-8439-c878602510b2",
+    "vehicleNo": "SO-0042",
+    "valuePaise": 4000,
+    "gstPaise": 4000,
+    "ewbNo": "291012345678",
+    "issuedBy": "01a06db5-717e-7157-8e07-f33096e2603f",
+    "issuedAt": "2026-09-04T10:30:00.000Z",
+    "seller": {
+      "displayName": "text",
+      "legalName": "Campa Cola 750 ml",
+      "gstin": "27AAPFU0939F1ZV",
+      "stateCode": "27",
+      "fssai": "text",
+      "address": {
+        "line1": "text",
+        "line2": "text",
+        "landmark": "text",
+        "area": "text",
+        "city": "text",
+        "pincode": "421301"
+      },
+      "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "invoiceFooter": "text",
+      "upiVpa": "text"
+    },
+    "lines": [
+      {
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "hsnCode": "22021010",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "cases": 1,
+        "loosePcs": 24,
+        "taxableValuePaise": 4000,
+        "gstBps": 500
+      }
+    ],
+    "pdfObjectKey": "docs/2026/09/invoice-0042.jpg"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/challans/{id}/ewb",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/warehouse/reservations`
+
+What the godown is holding, and for which order · contract `warehouse.reservations.list`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `orderId` | uuid | no |
+| `locationId` | uuid | no |
+| `variantId` | uuid | no |
+| `state` | pending | posted | voided | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/warehouse/reservations?orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&variantId=01a06df0-2faf-79a2-8456-92042e49f147&state=pending&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "batchNo": "SO-0042",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "qtyPcs": 24,
+      "state": "pending",
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/warehouse/reservations/release`
+
+Free the pending holds of an order that will not be picked · contract `warehouse.reservations.release`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `orderId` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/warehouse/reservations/release" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "released": 1,
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "freedQtyPcs": 24
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /warehouse/reservations/release",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/sync/upload`
 
 Offline write batch (never 4xx; rejections are 2xx + sync_errors) · contract `sync.upload`
@@ -7267,4 +13100,41 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `orders.list` | – | – | – | – | ✓ | – | – |
 | `orders.approvals.list` | – | – | – | – | – | – | – |
 | `orders.approvals.decide` | – | – | – | – | – | – | – |
+| `billing.invoices.queue` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.issueVanSale` | – | – | – | – | – | – | – |
+| `billing.invoices.importBrandDms` | – | – | – | – | – | – | – |
+| `billing.invoices.cancel` | – | – | – | – | – | – | – |
+| `billing.invoices.get` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.list` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.upiQr` | – | – | – | – | – | – | – |
+| `billing.invoices.pdf` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.setEwayBill` | – | – | – | – | ✓ | – | – |
+| `billing.invoices.requestIrn` | – | – | – | – | – | – | – |
+| `billing.creditNotes.create` | – | – | – | – | – | – | – |
+| `billing.creditNotes.issue` | – | – | – | – | – | – | – |
+| `billing.creditNotes.cancel` | – | – | – | – | – | – | – |
+| `billing.creditNotes.get` | – | – | – | – | ✓ | – | – |
+| `billing.creditNotes.list` | – | – | – | – | ✓ | – | – |
+| `billing.registers.gstSummary` | – | – | – | – | – | – | – |
+| `billing.registers.salesRegister` | – | – | – | – | – | – | – |
+| `warehouse.queue.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.create` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.get` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.start` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.pick` | – | – | – | – | ✓ | – | – |
+| `warehouse.picklists.cancel` | – | – | – | – | – | – | – |
+| `warehouse.packs.confirm` | – | – | – | – | ✓ | – | – |
+| `warehouse.packs.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.packs.get` | – | – | – | – | ✓ | – | – |
+| `warehouse.loadSheets.create` | – | – | – | – | ✓ | – | – |
+| `warehouse.loadSheets.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.loadSheets.get` | – | – | – | – | ✓ | – | – |
+| `warehouse.loadSheets.confirm` | – | – | – | – | – | – | – |
+| `warehouse.loadSheets.cancel` | – | – | – | – | – | – | – |
+| `warehouse.challans.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.challans.get` | – | – | – | – | ✓ | – | – |
+| `warehouse.challans.recordEwb` | – | – | – | – | – | – | – |
+| `warehouse.reservations.list` | – | – | – | – | ✓ | – | – |
+| `warehouse.reservations.release` | – | – | – | – | – | – | – |
 | `sync.upload` | – | – | – | – | ✓ | – | – |

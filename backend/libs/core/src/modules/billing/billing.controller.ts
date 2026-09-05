@@ -27,13 +27,11 @@ export class BillingController {
     )
   }
 
-  /** TEMPORARY: removed when `warehouse.packs.confirm` takes issuing over (coordination §4 step 3). */
-  @Implement(contract.billing.invoices.issue)
-  issue(@OwnsReply() _reply: unknown) {
-    return implement(contract.billing.invoices.issue).handler(({ input }) =>
-      this.invoices.issue(input),
-    )
-  }
+  // THERE IS NO `invoices.issue` HERE ANY MORE (coordination §4 step 3). The pack invoice is issued by
+  // `warehouse.packs.confirm`, in the same transaction as the pick, the stock and the order state.
+  // Re-adding an HTTP `issue` would give one order two callers that each post `sale` rows: stock would
+  // leave the godown twice. `BillingService.issueForPack` stays — it is the DOCUMENT half, and warehouse
+  // is its only caller.
 
   @Implement(contract.billing.invoices.issueVanSale)
   issueVanSale(@OwnsReply() _reply: unknown) {

@@ -28,7 +28,7 @@ import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { SyncModule } from '../sync/index.js'
-import { OrdersModule } from './index.js'
+import { OrdersModule, OrdersService } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -629,4 +629,149 @@ describeDb('orders (DATABASE_URL)', () => {
     ).rows as { reserved: number }[]
     expect(balances[0]?.reserved).toBe(100)
   })
+
+  // -----------------------------------------------------------------------------------------------------
+  // The fulfilment surface warehouse works through (coordination §3.9 and §4). These four functions are the
+  // ONLY way confirmed -> picking -> packed -> dispatched happens; nothing outside this module writes
+  // `sales_orders.state` or `sales_order_lines.picked_qty_pcs`.
+
+  const fulfilOrder = uuidv7()
+  const fulfilLine = uuidv7()
+
+  it('moves an order through picking, packed and dispatched, writing the transition and the event together', async () => {
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-fulfil-${run}`,
+      id: fulfilOrder,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: fulfilLine, variantId: variantA, enteredQty: 2, enteredUnit: 'piece' }],
+    })
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${fulfilOrder}/submit`,
+      {
+        idempotencyKey: `submit-fulfil-${run}`,
+      },
+    )
+    expect(submitted.body.item.state).toBe('confirmed')
+
+    const orders = app.get(OrdersService)
+    const apply = (event: 'start_picking' | 'pack' | 'dispatch', deviceId: string | null) =>
+      asOwner((tx) => orders.applyFulfilmentEvent(tx, fulfilOrder, event, deviceId, null))
+
+    expect((await apply('start_picking', `pick-${run}`)).state).toBe('picking')
+    // A load sheet retries as a whole, so an order already at the target state is a no-op, not a 409.
+    expect((await apply('start_picking', `pick-${run}`)).state).toBe('picking')
+    expect((await apply('pack', `pack-${run}`)).state).toBe('packed')
+
+    // packed -> picking has no edge on `orderMachine`: the machine's own error, surfaced as a 409.
+    const before = await countRows(fulfilOrder)
+    await expect(apply('start_picking', null)).rejects.toThrow(/cannot apply "start_picking"/)
+    expect(await countRows(fulfilOrder)).toEqual(before)
+
+    expect((await apply('dispatch', `load-${run}`)).state).toBe('dispatched')
+
+    const transitions = (
+      await db.execute(
+        sql`select event, from_state, to_state, device_id from order_state_transitions
+            where tenant_id = ${tenantId} and order_id = ${fulfilOrder} order by id`,
+      )
+    ).rows as { event: string; from_state: string; to_state: string; device_id: string | null }[]
+    expect(transitions.map((t) => t.event)).toEqual([
+      'submit',
+      'confirm',
+      'start_picking',
+      'pack',
+      'dispatch',
+    ])
+    expect(transitions.at(-1)).toMatchObject({
+      from_state: 'packed',
+      to_state: 'dispatched',
+      device_id: `load-${run}`,
+    })
+    // One outbox row per accepted move, written in the same transaction as its transition row: the
+    // no-op replay added neither, and the refused move added neither.
+    const events = (
+      await db.execute(
+        sql`select event_type from outbox_events where tenant_id = ${tenantId} and aggregate_id = ${fulfilOrder} order by id`,
+      )
+    ).rows as { event_type: string }[]
+    expect(events.map((e) => e.event_type)).toEqual([
+      'OrderSubmitted',
+      'OrderConfirmed',
+      'OrderPicking',
+      'OrderPacked',
+      'OrderDispatched',
+    ])
+  })
+
+  it('records the picked quantity on the order line and refuses a quantity the order never had', async () => {
+    const orders = app.get(OrdersService)
+    await asOwner((tx) =>
+      orders.recordPick(tx, fulfilOrder, [{ orderLineId: fulfilLine, pickedQtyPcs: 1 }]),
+    )
+    const picked = (
+      await db.execute(
+        sql`select picked_qty_pcs, qty_pcs from sales_order_lines where id = ${fulfilLine}`,
+      )
+    ).rows as { picked_qty_pcs: number; qty_pcs: number }[]
+    // A short pick is a smaller invoice: `qty_pcs` is never edited to match what came off the rack.
+    expect(picked[0]).toEqual({ picked_qty_pcs: 1, qty_pcs: 2 })
+
+    await expect(
+      asOwner((tx) =>
+        orders.recordPick(tx, fulfilOrder, [{ orderLineId: fulfilLine, pickedQtyPcs: 9 }]),
+      ),
+    ).rejects.toThrow(/which ordered 2/)
+    await expect(
+      asOwner((tx) =>
+        orders.recordPick(tx, fulfilOrder, [{ orderLineId: uuidv7(), pickedQtyPcs: 1 }]),
+      ),
+    ).rejects.toThrow(/does not belong to order/)
+  })
+
+  it('shows the warehouse queue and the pick lines with quantities and no money at all', async () => {
+    const orders = app.get(OrdersService)
+    const queue = await asOwner((tx) => orders.fulfilmentQueue(tx, { limit: 50 }))
+    const packedOrder = queue.find((o) => o.orderId === fulfilOrder)
+    // `dispatched` is out of the godown's hands, so the default filter does not carry it…
+    expect(packedOrder).toBeUndefined()
+    const confirmed = await asOwner((tx) =>
+      orders.fulfilmentQueue(tx, { limit: 50, state: 'confirmed' }),
+    )
+    expect(confirmed.every((o) => o.state === 'confirmed')).toBe(true)
+    const first = confirmed[0]
+    expect(typeof first?.retailerName).toBe('string')
+    expect(typeof first?.lineCount).toBe('number')
+    // The picking screen must never let a rate — let alone a purchase cost — be read off it.
+    expect(JSON.stringify(confirmed)).not.toMatch(/[Pp]aise|[Rr]ate|cost/)
+
+    const lines = await asOwner((tx) => orders.fulfilmentLines(tx, [fulfilOrder]))
+    expect(lines).toEqual([
+      {
+        orderId: fulfilOrder,
+        orderLineId: fulfilLine,
+        lineNo: 1,
+        variantId: variantA,
+        qtyPcs: 2,
+        freeQtyPcs: 0,
+        pickedQtyPcs: 1,
+        sellCaseSize: 12,
+      },
+    ])
+    expect(await asOwner((tx) => orders.fulfilmentLines(tx, []))).toEqual([])
+  })
+
+  const countRows = async (orderId: string) => {
+    const rows = (
+      await db.execute(
+        sql`select
+              (select count(*) from order_state_transitions where order_id = ${orderId})::int as transitions,
+              (select count(*) from outbox_events where aggregate_id = ${orderId})::int as events`,
+      )
+    ).rows as { transitions: number; events: number }[]
+    return rows[0]
+  }
 })

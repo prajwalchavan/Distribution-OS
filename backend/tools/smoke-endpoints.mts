@@ -125,6 +125,14 @@ function stableUuid(seed: string): string {
 }
 
 /**
+ * A fresh client id for a row THIS run creates, stable within the run so a replay addresses the same
+ * row. Used where the published example's own id would be spent after the first Execute.
+ */
+function runScopedId(ctx: { service: string; operationId: string }): string {
+  return stableUuid(`${RUN_TAG}:${ctx.service}:${ctx.operationId}:client-id`)
+}
+
+/**
  * Stable per (service, procedure, request): pressing the same call twice replays the stored result
  * instead of writing a second row. The request is folded in because `idempotent()` refuses a key
  * that comes back with a different input — and the row a step targets legitimately moves between
@@ -507,6 +515,99 @@ class Fixtures {
     this.liveScalar(
       `select id from invoice_lines where tenant_id=$1 and invoice_id=$2 order by line_no limit 1`,
       [this.tenantId, invoiceId],
+    )
+  /**
+   * WAREHOUSE. The godown's five tables are all rows the seed writes, so every `{id}` route can be
+   * pointed at a real one; the mutations are pointed at rows where the answer is honest — a wave that
+   * is genuinely open to picking, an order that genuinely has no pack confirmation yet.
+   */
+  picklistId = () =>
+    this.liveScalar(
+      `select id from picklists where tenant_id=$1 order by pick_date desc, id desc limit 1`,
+      this.t(),
+    )
+  picklistInStatus = (status: string) =>
+    this.liveScalar(
+      `select id from picklists where tenant_id=$1 and status::text=$2 order by id desc limit 1`,
+      [this.tenantId, status],
+    )
+  pickLineOf = async (picklistId: string) => {
+    const rows = await this.rows(
+      `select id, order_line_id, lot_id, requested_qty_pcs from pick_lines
+        where tenant_id=$1 and picklist_id=$2 and lot_id is not null
+        order by line_no, id limit 1`,
+      [this.tenantId, picklistId],
+    )
+    const row = rows[0]
+    return row
+      ? {
+          id: row.id as string,
+          orderLineId: row.order_line_id as string,
+          lotId: row.lot_id as string,
+          requestedQtyPcs: Number(row.requested_qty_pcs),
+        }
+      : null
+  }
+  packConfirmationId = () =>
+    this.liveScalar(
+      `select id from pack_confirmations where tenant_id=$1 order by packed_at desc, id desc limit 1`,
+      this.t(),
+    )
+  loadSheetId = () =>
+    this.liveScalar(
+      `select id from load_sheets where tenant_id=$1 order by sheet_date desc, id desc limit 1`,
+      this.t(),
+    )
+  draftLoadSheet = async () => {
+    const rows = await this.rows(
+      `select id, expected_packages from load_sheets
+        where tenant_id=$1 and status::text='draft' order by sheet_date desc, id desc limit 1`,
+      this.t(),
+    )
+    const row = rows[0]
+    return row ? { id: row.id as string, expectedPackages: Number(row.expected_packages) } : null
+  }
+  challanId = () =>
+    this.liveScalar(
+      `select id from delivery_challans where tenant_id=$1 order by challan_date desc, id desc limit 1`,
+      this.t(),
+    )
+  /** A confirmed order no live wave has claimed yet. */
+  waveableOrder = () =>
+    this.liveScalar(
+      `select o.id from sales_orders o
+        where o.tenant_id=$1 and o.state::text='confirmed'
+          and exists (select 1 from sales_order_lines l where l.order_id = o.id)
+          and not exists (select 1 from pick_lines pl join picklists p on p.id = pl.picklist_id
+                           where pl.order_id = o.id and p.status::text in ('open','picking','picked'))
+        order by o.created_at limit 1`,
+      this.t(),
+    )
+  /** An order the godown could still tape shut: nothing has been packed for it yet. */
+  packableOrder = () =>
+    this.liveScalar(
+      `select o.id from sales_orders o
+        where o.tenant_id=$1 and o.state::text in ('confirmed','picking')
+          and o.source::text = 'salesperson'
+          and exists (select 1 from sales_order_lines l where l.order_id = o.id)
+          and not exists (select 1 from pack_confirmations pc where pc.order_id = o.id)
+          and not exists (select 1 from invoices i
+                           where i.tenant_id = o.tenant_id and i.order_id = o.id
+                             and i.state::text not in ('cancelled','draft'))
+        order by o.created_at limit 1`,
+      this.t(),
+    )
+  /** A packed order with its confirmation, not already on a live load sheet. */
+  loadableOrder = () =>
+    this.liveScalar(
+      `select o.id from sales_orders o
+        join pack_confirmations pc on pc.order_id = o.id
+        where o.tenant_id=$1 and o.state::text='packed'
+          and not exists (select 1 from load_sheets ls, jsonb_array_elements_text(ls.order_ids) x
+                           where ls.tenant_id = o.tenant_id and ls.status::text <> 'cancelled'
+                             and x.value = o.id)
+        order by o.created_at limit 1`,
+      this.t(),
     )
   approvalInStatus = (statuses: string[]) =>
     this.liveScalar(
@@ -939,7 +1040,17 @@ async function planFor(
     // --- orders: each step needs a row in the right state ---------------------------------------
     case 'orders.create':
       // A shopkeeper's own order must say it came from the retailer app (docs/17); staff may not.
-      return ctx.role === 'retailer' ? { pinned: { source: 'retailer_app' } } : {}
+      //
+      // The `id` is pinned to this run's own slot for the same reason the warehouse creates below are:
+      // the published example walks `examples.ts`'s free-slot table, and on this database that table
+      // keeps offering an id the demo tenant already holds — so every run after the first is a 409 the
+      // harness reports as BROKEN. Reported to the main session; the harness must not depend on it.
+      return {
+        pinned: {
+          id: runScopedId(ctx),
+          ...(ctx.role === 'retailer' ? { source: 'retailer_app' } : {}),
+        },
+      }
     case 'orders.setLines':
       // Lines are only editable while the order is a draft, so walk the one this run just created.
       return {
@@ -964,6 +1075,7 @@ async function planFor(
     case 'orders.repeatLast':
       return {
         pinned: {
+          id: runScopedId(ctx),
           retailerId:
             ctx.scopeRetailerId ?? (await fx.retailerWithHistory()) ?? (await fx.retailerId()),
           ...(ctx.role === 'retailer' ? { source: 'retailer_app' } : {}),
@@ -1139,15 +1251,8 @@ async function planFor(
         },
       }
     }
-    // TEMPORARY with the procedure itself (coordination §4 step 3): the warehouse takes issuing over.
-    case 'billing.invoices.issue': {
-      const orderId = await fx.billableOrder('salesperson')
-      return orderId
-        ? { pinned: { orderId } }
-        : isAllowed(permissionFor(op.operationId), ctx.role)
-          ? { skip: 'every confirmed order in the demo data is already billed' }
-          : {}
-    }
+    // `billing.invoices.issue` is GONE (coordination §4 step 3). The pack invoice is issued by
+    // `warehouse.packs.confirm` below, which is where the fixture for it now lives.
     case 'billing.invoices.issueVanSale': {
       const orderId = await fx.billableOrder('van_sale')
       const vehicleLocationId = await fx.vehicleLocationId()
@@ -1161,6 +1266,102 @@ async function planFor(
     case 'billing.registers.salesRegister':
       // A one-day window returns almost nothing; the demo data covers the last fortnight.
       return { query: { from: istDate(-14), to: istDate() } }
+
+    // --- warehouse: the godown's paperwork, pointed at rows where the answer is honest -----------
+    // Every create below pins its OWN client id. The published example carries one derived from the
+    // procedure, and `examples.ts` walks a free slot only for the procedures listed in its
+    // `freeSlots` map — the warehouse creates are not in it yet, so the example's id is spent the
+    // first time anything presses Execute and is a permanent 409 afterwards. Reported to the main
+    // session; here the run tag gives a fresh id per run and the same one on a replay.
+    case 'warehouse.picklists.get':
+    case 'warehouse.picklists.cancel': {
+      const id = await fx.picklistId()
+      return id ? { pathParams: { id }, pinned: { id } } : { skip: 'no picklist in the demo data' }
+    }
+    case 'warehouse.picklists.start': {
+      const id = (await fx.picklistInStatus('open')) ?? (await fx.picklistId())
+      if (!id) return { skip: 'no picklist in the demo data' }
+      // The published example invents an `assignedTo`; a wave is handed to someone who works here.
+      const assignedTo = (await fx.staffUserId('warehouse')) ?? (await fx.staffUserId('manager'))
+      return { pathParams: { id }, pinned: assignedTo ? { id, assignedTo } : { id } }
+    }
+    case 'warehouse.picklists.pick': {
+      const id = await fx.picklistInStatus('picking')
+      if (!id) return { skip: 'no wave is being picked right now' }
+      const line = await fx.pickLineOf(id)
+      if (!line) return { skip: 'the live wave has no pick lines' }
+      return {
+        pathParams: { id },
+        pinned: {
+          id,
+          lines: [
+            {
+              id: line.id,
+              orderLineId: line.orderLineId,
+              lotId: line.lotId,
+              pickedQtyPcs: line.requestedQtyPcs,
+            },
+          ],
+        },
+      }
+    }
+    case 'warehouse.picklists.create': {
+      const orderId = await fx.waveableOrder()
+      return orderId
+        ? { pinned: { id: runScopedId(ctx), orderIds: [orderId] } }
+        : { skip: 'every confirmed order in the demo data is already on a wave' }
+    }
+    case 'warehouse.packs.confirm': {
+      // This is the ONLY way a pack invoice is issued now, so the harness exercises the real thing:
+      // it packs one order that has never been packed, exactly as the godown would.
+      const orderId = await fx.packableOrder()
+      return orderId
+        ? { pathParams: { orderId }, pinned: { id: runScopedId(ctx), packages: 1 } }
+        : { skip: 'every order in the demo data has already been packed' }
+    }
+    case 'warehouse.packs.get': {
+      const id = await fx.packConfirmationId()
+      return id ? { pathParams: { id } } : { skip: 'no pack confirmation in the demo data' }
+    }
+    case 'warehouse.loadSheets.create': {
+      const toLocationId = await fx.vehicleLocationId()
+      if (!toLocationId) return { skip: 'no vehicle location in the demo data' }
+      const orderId = await fx.loadableOrder()
+      return orderId
+        ? { pinned: { id: runScopedId(ctx), toLocationId, orderIds: [orderId] } }
+        : { skip: 'every packed order in the demo data is already on a load sheet' }
+    }
+    case 'warehouse.loadSheets.get':
+    case 'warehouse.loadSheets.cancel': {
+      const id = await fx.loadSheetId()
+      return id
+        ? { pathParams: { id }, pinned: { id } }
+        : { skip: 'no load sheet in the demo data' }
+    }
+    case 'warehouse.loadSheets.confirm': {
+      const sheet = await fx.draftLoadSheet()
+      return sheet
+        ? {
+            pathParams: { id: sheet.id },
+            pinned: {
+              id: sheet.id,
+              challanId: runScopedId(ctx),
+              countedPackages: sheet.expectedPackages,
+            },
+          }
+        : { skip: 'no draft load sheet is waiting at the gate' }
+    }
+    case 'warehouse.challans.get':
+    case 'warehouse.challans.recordEwb': {
+      const id = await fx.challanId()
+      return id ? { pathParams: { id }, pinned: { id } } : { skip: 'no challan in the demo data' }
+    }
+    case 'warehouse.reservations.release': {
+      // Freeing a live hold would change shared demo state, so this is pointed at an order past
+      // picking, where the refusal IS the correct answer and the endpoint is still proven.
+      const orderId = await fx.orderInState('packed')
+      return orderId ? { pinned: { orderId } } : {}
+    }
 
     // --- staff: never point a status/password change at the account this run is signed in as -----
     case 'tenancy.staff.setStatus':

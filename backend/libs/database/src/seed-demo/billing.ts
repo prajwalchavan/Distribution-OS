@@ -1087,9 +1087,14 @@ export async function seedBilling(
              LIMIT 2) big
      WHERE invoices.id = big.id AND invoices.eway_bill_no IS NULL`)
 
-  // 9. The counters end past everything this seed booked, exactly as `seedSales` does for INV/CN/SO.
+  // 9. The counters end past everything this seed booked, exactly as `seedSales` does for INV/CN/SO,
+  // and then past everything the DATABASE holds — the app and `pnpm smoke` issue real bills between
+  // reseeds, and a counter that stops at the seed's own last number hands the next caller a number
+  // the table already has, which is a 409 nobody can get past without a fresh database.
   await bumpSeries(db, tenantId, 'INV', 9004)
   await bumpSeries(db, tenantId, 'CN', 9003)
+  await reconcileSeries(db, tenantId, 'INV')
+  await reconcileSeries(db, tenantId, 'CN')
   await db
     .insert(numberingSeries)
     .values({
@@ -1101,6 +1106,24 @@ export async function seedBilling(
       allocationMode: 'external',
     })
     .onConflictDoNothing()
+}
+
+/**
+ * Push a counter past the highest number ACTUALLY BOOKED in its own series and financial year. The
+ * trailing digits of the document number are the counter's value (`INV/9004` → 9004); a series with a
+ * different shape simply contributes nothing.
+ */
+async function reconcileSeries(db: Db, tenantId: string, seriesCode: string): Promise<void> {
+  const table = seriesCode === 'CN' ? 'credit_notes' : 'invoices'
+  const column = seriesCode === 'CN' ? 'credit_note_no' : 'invoice_no'
+  await db.execute(sql`
+    UPDATE numbering_series ns
+       SET next_no = GREATEST(ns.next_no, coalesce((
+             SELECT max((regexp_replace(d.${sql.raw(column)}, '^.*[^0-9]', ''))::bigint)
+               FROM ${sql.raw(table)} d
+              WHERE d.tenant_id = ns.tenant_id AND d.series_code = ns.series_code
+                AND d.fy = ns.fy AND d.${sql.raw(column)} ~ '[0-9]+$'), 0) + 1)
+     WHERE ns.tenant_id = ${tenantId} AND ns.series_code = ${seriesCode} AND ns.fy = ${FY}`)
 }
 
 /** `next_no` never goes BACKWARDS: another seed module may already have booked past this point. */

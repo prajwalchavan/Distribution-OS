@@ -48,6 +48,13 @@ export const STAFF_ROLES = [
 export const BACK_OFFICE_ROLES = ['owner', 'manager', 'accountant', 'system'] as const
 export const OWNER_ROLES = ['owner', 'system'] as const
 export const CURATOR_ROLES = ['curator', 'system'] as const
+/**
+ * Who may write the godown's own paperwork — the picklist, the pick line, the pack confirmation, the load
+ * sheet and the delivery challan (coordination §3.9, §5.3). A salesperson, an accountant and a delivery
+ * crew member READ these (`staffReadPolicy`) because they answer "where is my order"; only the floor and
+ * the desk above it write them. `system` is the worker.
+ */
+export const STOCK_KEEPER_ROLES = ['owner', 'manager', 'warehouse', 'system'] as const
 
 /** Plain tenant isolation: any role that is a member of the tenant. */
 export const tenantPolicy = (name: string) =>
@@ -139,6 +146,23 @@ export const invoiceScopedReadPolicy = (name: string, invoiceColumn: string, tab
         (SELECT current_setting('app.actor_role', true)) <> 'retailer'
         OR EXISTS (SELECT 1 FROM invoices i WHERE i.id = ${table}.${invoiceColumn})
       )`,
+    ),
+  })
+
+/**
+ * Internal paperwork every staff role may read and a shopkeeper may not see at all: the retailer is not
+ * a member of the distributor's business, it is a customer of it. `tenantPolicy` (FOR ALL, any member of
+ * the tenant) is too wide for a picklist or a load sheet — a retailer-role token would read the whole
+ * godown's day, including which other shops are on the same van. Pair it with `roleWritePolicies` for
+ * the narrower set that may actually write (coordination §5.3); permissive policies OR together, so the
+ * read policy alone never grants a write.
+ */
+export const staffReadPolicy = (name: string) =>
+  pgPolicy(name, {
+    for: 'select',
+    to: appRw,
+    using: sql.raw(
+      `tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'`,
     ),
   })
 

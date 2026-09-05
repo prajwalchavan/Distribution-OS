@@ -140,13 +140,13 @@ describe('permission matrix', () => {
       )
     }
     // The warehouse packs and bills, but may not cancel a numbered document (coordination §7 q13).
-    expect(isAllowed(permissionFor('billing.invoices.issue'), 'warehouse')).toBe(true)
+    expect(isAllowed(permissionFor('warehouse.packs.confirm'), 'warehouse')).toBe(true)
     expect(isAllowed(permissionFor('billing.invoices.setEwayBill'), 'warehouse')).toBe(true)
     expect(permissionFor('billing.invoices.cancel')).toEqual(['owner', 'manager'])
     expect(isAllowed(permissionFor('billing.invoices.cancel'), 'accountant')).toBe(false)
-    // A van sale is billed at the door; a pack invoice is not.
+    // A van sale is billed at the door; a pack invoice is issued by packing, not by an HTTP procedure.
     expect(isAllowed(permissionFor('billing.invoices.issueVanSale'), 'delivery')).toBe(true)
-    expect(isAllowed(permissionFor('billing.invoices.issue'), 'delivery')).toBe(false)
+    expect(isAllowed(permissionFor('warehouse.packs.confirm'), 'delivery')).toBe(false)
     // The crew raises the doorstep short-delivery note.
     expect(isAllowed(permissionFor('billing.creditNotes.create'), 'delivery')).toBe(true)
     expect(isAllowed(permissionFor('billing.creditNotes.issue'), 'delivery')).toBe(true)
@@ -157,6 +157,86 @@ describe('permission matrix', () => {
     }
     expect(permissionFor('billing.invoices.importBrandDms')).toEqual(ROLE_GROUPS.BACK_OFFICE)
     expect(permissionFor('billing.invoices.requestIrn')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+  })
+
+  it('has exactly one way to issue a pack invoice', () => {
+    // `billing.invoices.issue` was removed with the warehouse slice (coordination §4 step 3): the
+    // stock-and-state half now lives in `warehouse.packs.confirm`, which calls `issueForPack`. Two
+    // HTTP callers would post `sale` rows twice for one order, so re-adding the procedure is a bug.
+    expect(paths).not.toContain('billing.invoices.issue')
+    expect(permissionFor('billing.invoices.issue')).toBeUndefined()
+    expect(paths).toContain('warehouse.packs.confirm')
+  })
+
+  it('keeps the godown floor away from the rep and the shopkeeper', () => {
+    const warehousePaths = paths.filter((p) => p.startsWith('warehouse.'))
+    expect(warehousePaths.length).toBeGreaterThan(0)
+    // A shop is not in the room at all, and a rep never sees the godown floor: the shop learns its
+    // order is being packed from `orders.get`, and `staffReadPolicy` on the five tables is the
+    // database half of the same rule (coordination §5.3).
+    for (const path of warehousePaths) {
+      for (const role of ['retailer', 'salesperson'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+  })
+
+  it('lets the crew read its load and write nothing in the warehouse', () => {
+    // delivery-service mounts the key for exactly these six reads (the STOCK_VIEWERS rows of
+    // coordination §6): what was packed for it, its load sheet and the challan it carries.
+    const crewReads = [
+      'warehouse.packs.list',
+      'warehouse.packs.get',
+      'warehouse.loadSheets.list',
+      'warehouse.loadSheets.get',
+      'warehouse.challans.list',
+      'warehouse.challans.get',
+    ]
+    for (const path of crewReads) {
+      expect(isAllowed(permissionFor(path), 'delivery'), `${path} must allow delivery`).toBe(true)
+    }
+    for (const path of paths.filter((p) => p.startsWith('warehouse.') && !crewReads.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'delivery'), `${path} must refuse delivery`).toBe(false)
+    }
+  })
+
+  it('keeps the manager PIN steps away from the picker', () => {
+    // Holding an owner/manager token IS the manager's PIN (coordination §7 q15): cancelling a wave,
+    // checking a load out and cancelling a sheet all refuse the warehouse role.
+    for (const path of [
+      'warehouse.picklists.cancel',
+      'warehouse.loadSheets.confirm',
+      'warehouse.loadSheets.cancel',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+    }
+    // Freeing a live order's holds and typing a government e-way bill number are desk decisions.
+    for (const path of [
+      'warehouse.reservations.release',
+      'warehouse.challans.recordEwb',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    }
+    // The floor itself is the stock keepers, and the accountant reads the paperwork without touching it.
+    for (const path of [
+      'warehouse.queue.list',
+      'warehouse.picklists.create',
+      'warehouse.picklists.start',
+      'warehouse.picklists.pick',
+      'warehouse.packs.confirm',
+      'warehouse.loadSheets.create',
+      'warehouse.reservations.list',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
+        false,
+      )
+    }
+    for (const path of ['warehouse.packs.list', 'warehouse.loadSheets.get'] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
   })
 
   it('lets only auth and health be reached without a token', () => {

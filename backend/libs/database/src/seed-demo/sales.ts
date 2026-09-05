@@ -1,7 +1,7 @@
 /** Orders -> invoices -> receipts -> journal (ADR 0001/0004/0008), for the last 14 days. */
 import { insertMany } from './db-helpers.js'
 import { paise, percentOf, roundToRupee } from '@dos/domain'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import {
   accounts,
   ageingSnapshots,
@@ -122,6 +122,23 @@ function rateForRetailer(
   if (tier === 'A') return r.aPaise
   if (tier === 'B') return r.bPaise
   return r.defaultPaise
+}
+
+/** `next_no` only ever moves forward: another seed module, the app or the smoke harness may be ahead. */
+async function bumpSeries(
+  db: Db,
+  tenantId: string,
+  seriesCode: string,
+  prefix: string,
+  nextNo: number,
+): Promise<void> {
+  await db
+    .insert(numberingSeries)
+    .values({ tenantId, seriesCode, fy: FY, prefix, nextNo })
+    .onConflictDoUpdate({
+      target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
+      set: { nextNo: sql`greatest(${numberingSeries.nextNo}, ${nextNo})` },
+    })
 }
 
 export async function seedSales(
@@ -897,27 +914,13 @@ export async function seedSales(
   await insertMany(db, creditNotes, cnRows)
   await insertMany(db, creditNoteLines, cnLineRows)
 
-  await db
-    .insert(numberingSeries)
-    .values({ tenantId, seriesCode: 'SO', fy: FY, prefix: 'SO-', nextNo: soSeq + 1 })
-    .onConflictDoUpdate({
-      target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
-      set: { nextNo: soSeq + 1 },
-    })
-  await db
-    .insert(numberingSeries)
-    .values({ tenantId, seriesCode: 'INV', fy: FY, prefix: 'INV/', nextNo: invSeq + 1 })
-    .onConflictDoUpdate({
-      target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
-      set: { nextNo: invSeq + 1 },
-    })
-  await db
-    .insert(numberingSeries)
-    .values({ tenantId, seriesCode: 'CN', fy: FY, prefix: 'CN/', nextNo: cnRows.length + 1 })
-    .onConflictDoUpdate({
-      target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
-      set: { nextNo: cnRows.length + 1 },
-    })
+  // A COUNTER NEVER GOES BACKWARDS. These used to `set: { nextNo }` outright, which quietly rewound a
+  // series the app (or `pnpm smoke`) had already allocated past — and the very next real invoice then
+  // asked for a number the table already held, so nothing could be billed at all until the next
+  // reseed. `seedBilling`'s own `bumpSeries` had this right; these three did not.
+  await bumpSeries(db, tenantId, 'SO', 'SO-', soSeq + 1)
+  await bumpSeries(db, tenantId, 'INV', 'INV/', invSeq + 1)
+  await bumpSeries(db, tenantId, 'CN', 'CN/', cnRows.length + 1)
 
   // Ageing snapshot as of yesterday: bucket each retailer's still-open invoices by days overdue.
   const asOf = isoDate(daysAgo(1))

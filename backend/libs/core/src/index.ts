@@ -24,4 +24,5 @@ export {
   CreditNotesService,
   RegistersService,
 } from './modules/billing/index.js'
+export { WarehouseModule, LoadSheetsService } from './modules/warehouse/index.js'
 export { SyncModule, SyncRegistry, SyncRejection } from './modules/sync/index.js'

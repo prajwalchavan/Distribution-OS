@@ -65,6 +65,8 @@ export const NUMBERING_SERIES = [
   { seriesCode: 'RCPT', prefix: 'RCPT-' },
   { seriesCode: 'TRIP', prefix: 'TRIP-' },
   { seriesCode: 'PICK', prefix: 'PICK-' },
+  /** Rule 55 delivery challan, allocated at `warehouse.loadSheets.confirm` — never at draft. */
+  { seriesCode: 'DC', prefix: 'DC-' },
   { seriesCode: 'CLAIM', prefix: 'CLM-' },
 ] as const
 
@@ -83,6 +85,7 @@ export const NUMBERING_SERIES = [
  * | `branding.address`         | object   | the seller's own address block (AddressSchema shape).        |
  * | `seller_fssai`             | string   | FSSAI licence printed on a food invoice. ABSENT = omit it.  |
  * | `upi_vpa`                  | string   | the UPI id the invoice QR pays into. ABSENT = print no QR.  |
+ * | `ewb_intra_state_threshold`| number   | paise; a vehicle load at or above it needs an e-way bill.   |
  *
  * `branding.address` and `seller_fssai` were added by the billing slice: both are printed on the tax
  * invoice and the credit note, and neither has a sensible default — a made-up address on a GST document
@@ -101,7 +104,17 @@ export const TENANT_SETTING_KEYS = {
   brandingAddress: 'branding.address',
   sellerFssai: 'seller_fssai',
   upiVpa: 'upi_vpa',
+  ewbIntraStateThreshold: 'ewb_intra_state_threshold',
 } as const
+
+/**
+ * ₹1,00,000 in paise. A vehicle load worth this or more may not leave the godown without an e-way bill
+ * number recorded on the load sheet (docs/17 A8, COMPLETENESS 24). The check is on the SHEET, not per
+ * invoice: a mixed load crosses ₹1 lakh long before any single bill does. Seeded so a manager reading the
+ * setting never gets "absent" and silently loads a lakh of goods with no EWB; the founder confirms the
+ * Maharashtra figure with the CA and changes the row, not the code (coordination §7 question 16).
+ */
+export const DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE = 10_000_000
 
 export const DEFAULT_FLAGS = [
   { flag: 'van_sales', enabled: false },
@@ -163,6 +176,11 @@ export async function bootstrapTenant(
     .values([
       { tenantId, key: TENANT_SETTING_KEYS.brandingDisplayName, value: tenant?.legalName ?? '' },
       { tenantId, key: TENANT_SETTING_KEYS.brandingInvoiceFooter, value: '' },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.ewbIntraStateThreshold,
+        value: DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE,
+      },
     ])
     .onConflictDoNothing()
 }

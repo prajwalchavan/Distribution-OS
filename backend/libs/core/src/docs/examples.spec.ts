@@ -23,6 +23,7 @@ import {
   routeKey,
   type ExampleContext,
   type ProcedureExample,
+  SPARE_LANE,
 } from './examples.js'
 
 const url = process.env.DATABASE_URL
@@ -507,7 +508,8 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
     const pool3 = createPool(url ?? '')
     const db = createDb(pool3)
     const ctx = await new DocExamplesService(db).load()
-    const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'] })
+    // The spare lane: the service specs run alongside this one under turbo and spend the role lanes.
+    const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'], lane: SPARE_LANE })
 
     const created = new Map(
       CREATES_A_ROW.map((path) => [path, String(examples.get(path)?.body?.id)]),

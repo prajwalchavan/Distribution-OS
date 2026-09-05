@@ -21,7 +21,7 @@ import type {
   SubmitOrderInput,
   SubmitOrderOutput,
 } from '@dos/contracts'
-import { uuidv7, type OrderEvent, type OrderState } from '@dos/domain'
+import { uuidv7, type OrderState } from '@dos/domain'
 import {
   approvals,
   salesOrderLines,
@@ -53,7 +53,20 @@ import {
   transition,
   warehouseLocation,
   type DraftInput,
+  type OrderEventType,
 } from './orders.internals.js'
+import {
+  fulfilmentLines,
+  fulfilmentOrders,
+  fulfilmentQueue,
+  orderLineOwners,
+  recordPick,
+  type FulfilmentEvent,
+  type FulfilmentLine,
+  type FulfilmentOrder,
+  type FulfilmentQueueFilter,
+  type PickedLine,
+} from './fulfilment.js'
 import { loadDetail, type OrderRow } from './orders.mappers.js'
 import { priceOrderLines, type EnteredLine } from './pricing-lines.js'
 
@@ -76,6 +89,20 @@ type ListOut = z.infer<typeof OrdersListOutput>
 
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
+
+/** Where each warehouse move lands, so a retry on an order already there is a no-op, not a 409. */
+const FULFILMENT_TARGET: Readonly<Record<FulfilmentEvent, OrderState>> = {
+  start_picking: 'picking',
+  pack: 'packed',
+  dispatch: 'dispatched',
+}
+
+/** The outbox event each move publishes, in the same transaction as the transition row. */
+const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> = {
+  start_picking: 'OrderPicking',
+  pack: 'OrderPacked',
+  dispatch: 'OrderDispatched',
+}
 
 /**
  * The Sales Order aggregate (§4.3). Everything a device or the console does to an order goes through here:
@@ -341,31 +368,83 @@ export class OrdersService {
   }
 
   /**
-   * Walk a `confirmed` or `picking` order to `packed`, recording every hop and emitting `OrderPacked`.
+   * THE ONLY WAY AN ORDER MOVES confirmed → picking → packed → dispatched (coordination §3.9, §4).
    *
-   * Added by the BILLING slice (docs/plans/00-coordination.md §3.9 and §4 cycle 2) so the temporary
-   * `billing.invoices.issue` can bill an order while the warehouse module does not exist yet. When
-   * warehouse lands, `applyFulfilmentEvent('pack')` takes the physical half over and this becomes a
-   * thin alias — it is already a no-op for an order that is packed, so calling it twice is safe.
-   * An order in any other state raises the machine's own 409: billing must not invent a state.
+   * Warehouse owns those three moves — `picklists.start`, `packs.confirm`, `loadSheets.confirm` — and
+   * calls this for each. It exists because the three things that must happen together are easy to get
+   * apart: `orderMachine` decides whether the move is legal, `order_state_transitions` records who and
+   * which device did it, and the `outbox_events` row tells delivery, notifications and reporting. All
+   * three are written inside the caller's transaction, so either every one of them lands or none does.
+   * Writing `sales_orders.state` by hand is what this method exists to prevent.
+   *
+   * Idempotent by state, not by key: a load sheet confirming twenty orders is retried as a whole, and an
+   * order already at the target state is left alone rather than raising a 409 the crew cannot act on.
+   * An order anywhere else raises the machine's own `TransitionError` as a 409 (`transition()`), which is
+   * the correct answer to "pack something that was never picked".
+   */
+  async applyFulfilmentEvent(
+    tx: Db,
+    orderId: string,
+    event: FulfilmentEvent,
+    deviceId: string | null,
+    reason: string | null,
+  ): Promise<OrderRow> {
+    const order = await this.lockOrder(tx, orderId)
+    if (order.state === FULFILMENT_TARGET[event]) return order
+    const to = transition(order.state, event)
+    const [moved] = await tx
+      .update(salesOrders)
+      .set({ state: to, updatedAt: new Date() })
+      .where(eq(salesOrders.id, order.id))
+      .returning()
+    const next = moved ?? order
+    await recordTransition(tx, next, order.state, to, event, deviceId, reason)
+    await emitOrderEvent(tx, next, FULFILMENT_EVENT_TYPE[event])
+    return next
+  }
+
+  /** Warehouse writes back what came off the rack; see `recordPick` for why free pieces are excluded. */
+  recordPick(tx: Db, orderId: string, picked: readonly PickedLine[]): Promise<void> {
+    return recordPick(tx, orderId, picked)
+  }
+
+  /** The warehouse app's order queue: quantities and identity, never money (`fulfilment.ts`). */
+  fulfilmentQueue(tx: Db, filter: FulfilmentQueueFilter): Promise<FulfilmentOrder[]> {
+    return fulfilmentQueue(tx, filter)
+  }
+
+  /** The lines a picklist is snapshotted from, `(orderId, lineNo)` ordered and rate-free. */
+  fulfilmentLines(tx: Db, orderIds: readonly string[]): Promise<FulfilmentLine[]> {
+    return fulfilmentLines(tx, orderIds)
+  }
+
+  /** The same queue row by id, for orders a warehouse screen still names after they left the godown. */
+  fulfilmentOrders(tx: Db, orderIds: readonly string[]): Promise<FulfilmentOrder[]> {
+    return fulfilmentOrders(tx, orderIds)
+  }
+
+  /** Which order each line belongs to — the holds screen has a line id and needs the order. */
+  orderLineOwners(
+    tx: Db,
+    orderLineIds: readonly string[],
+  ): Promise<Map<string, { orderId: string; orderNo: string | null }>> {
+    return orderLineOwners(tx, orderLineIds)
+  }
+
+  /**
+   * TEMPORARY ALIAS — dies with `billing.invoices.issue`.
+   *
+   * Added by the BILLING slice (coordination §3.9 and §4 cycle 2) so billing could bill an order while
+   * the warehouse module did not exist. Warehouse's `packs.confirm` now owns the stock-and-state half
+   * through `applyFulfilmentEvent`, so this is a thin walk over it: a `confirmed` order still has to pass
+   * through `picking`, because `orderMachine` has no `confirmed → packed` edge. Remove it together with
+   * billing's temporary `invoices.issue` procedure.
    */
   async markPacked(tx: Db, order: OrderRow, deviceId: string | null): Promise<OrderRow> {
     if (order.state === 'packed') return order
-    const events: OrderEvent[] = order.state === 'confirmed' ? ['start_picking', 'pack'] : ['pack']
-    let current = order
-    for (const event of events) {
-      const to = transition(current.state, event)
-      const [moved] = await tx
-        .update(salesOrders)
-        .set({ state: to, updatedAt: new Date() })
-        .where(eq(salesOrders.id, current.id))
-        .returning()
-      const next = moved ?? current
-      await recordTransition(tx, next, current.state, to, event, deviceId, null)
-      current = next
-    }
-    await emitOrderEvent(tx, current, 'OrderPacked')
-    return current
+    if (order.state === 'confirmed')
+      await this.applyFulfilmentEvent(tx, order.id, 'start_picking', deviceId, null)
+    return this.applyFulfilmentEvent(tx, order.id, 'pack', deviceId, null)
   }
 
   // -------------------------------------------------------------------------------------------------------------

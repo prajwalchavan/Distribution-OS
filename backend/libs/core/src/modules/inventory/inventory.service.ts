@@ -1,9 +1,18 @@
 import { Injectable } from '@nestjs/common'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { StockReason } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
-import { locations, reservations, stockBalances, stockLedger, stockLots, type Db } from '@dos/db'
+import {
+  locations,
+  productVariants,
+  reservationState,
+  reservations,
+  stockBalances,
+  stockLedger,
+  stockLots,
+  type Db,
+} from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 
 /**
@@ -55,6 +64,43 @@ export interface ReserveInput {
   variantId: string
   locationId: string
   qtyPcs: number
+}
+
+/** What actually came off the rack for one order line, lot by lot (`postPick`). */
+export interface PostPickInput {
+  orderLineId: string
+  locationId: string
+  picks: readonly { lotId: string; qtyPcs: number }[]
+  refType: string
+  refId: string
+  /** One key per (line, pack); each lot row is keyed `${idempotencyKey}:${lotId}` underneath. */
+  idempotencyKey: string
+}
+
+export type ReservationState = (typeof reservationState.enumValues)[number]
+
+export interface ReservationFilter {
+  orderLineIds?: readonly string[] | undefined
+  locationId?: string | undefined
+  variantId?: string | undefined
+  state?: ReservationState | undefined
+  /** docs/20 rule 3: bounded work. At most `limit` rows come back; ask for `limit + 1` to page. */
+  limit: number
+  cursor?: string | undefined
+}
+
+/** A hold with the batch and the product name already resolved; no money, no cost. */
+export interface ReservationListRow {
+  id: string
+  orderLineId: string
+  variantId: string
+  variantName: string
+  lotId: string | null
+  batchNo: string | null
+  locationId: string
+  qtyPcs: number
+  state: ReservationState
+  createdAt: string
 }
 
 const balanceKey = (lotId: string, locationId: string) => `${lotId}:${locationId}`
@@ -276,6 +322,114 @@ export class InventoryService {
         )
     }
     return pending.length
+  }
+
+  /**
+   * PICK CONFIRMED, PARTIAL-PICK SAFE — the sibling of `postReservationAsSale` that the warehouse's
+   * `packs.confirm` uses (coordination §3.9, slice 3).
+   *
+   * `postReservationAsSale` posts exactly what was HELD. A godown does not always take what was held:
+   * the picker splits a line across two lots, substitutes a later-expiry batch (FEFO warns, it never
+   * blocks — warehouse §4.3), or comes up short. So this takes the pieces that ACTUALLY LEFT THE RACK
+   * and does two things in the caller's transaction:
+   *
+   *  1. closes every pending hold of the line — `state = 'posted'`, `reserved` given back — whatever
+   *     lot it was against, so a substituted or short pick never leaves a stale hold behind; and
+   *  2. posts ONE negative `sale` row per pick, keyed `${idempotencyKey}:${lotId}`, so a retried pack
+   *     is a no-op on `UNIQUE(tenant_id, idempotency_key)` and stock leaves exactly once.
+   *
+   * The two together are why `on_hand` falls by what was packed and `reserved` returns to zero even
+   * when the picked lots and the reserved lots are different rows.
+   */
+  async postPick(tx: Db, input: PostPickInput): Promise<PostResult> {
+    const picks = input.picks.filter((p) => p.qtyPcs > 0)
+    const pending = await this.pendingReservations(tx, input.orderLineId)
+    const result = await this.post(
+      tx,
+      picks.map((p) => ({
+        lotId: p.lotId,
+        locationId: input.locationId,
+        qtyDelta: -p.qtyPcs,
+        reason: 'sale' as const,
+        refType: input.refType,
+        refId: input.refId,
+        idempotencyKey: `${input.idempotencyKey}:${p.lotId}`,
+      })),
+    )
+    for (const r of pending) {
+      if (!r.lotId) continue
+      await this.applyBalance(tx, {
+        lotId: r.lotId,
+        locationId: r.locationId,
+        onHandDelta: 0,
+        reservedDelta: -r.qty,
+        negativeAllowed: false,
+      })
+    }
+    if (pending.length > 0) {
+      await tx
+        .update(reservations)
+        .set({ state: 'posted', updatedAt: new Date() })
+        .where(
+          inArray(
+            reservations.id,
+            pending.map((r) => r.id),
+          ),
+        )
+    }
+    return result
+  }
+
+  /**
+   * The holds this tenant is carrying, and for what. The ONLY read surface anything outside inventory
+   * has on `reservations` (warehouse's "why can I not sell this" screen, coordination §3.9): the batch
+   * and the product name are joined here so no caller has to reach into `stock_lots` itself.
+   *
+   * `order_line_id` is deliberately a plain id on the table (orders is downstream of inventory), so the
+   * order it belongs to is the caller's to resolve through `OrdersService` — never a join from here.
+   */
+  async listReservations(tx: Db, filter: ReservationFilter): Promise<ReservationListRow[]> {
+    const { tenantId } = currentTenant()
+    if (filter.orderLineIds?.length === 0) return []
+    const where = [
+      eq(reservations.tenantId, tenantId),
+      filter.state ? eq(reservations.state, filter.state) : undefined,
+      filter.orderLineIds ? inArray(reservations.orderLineId, [...filter.orderLineIds]) : undefined,
+      filter.locationId ? eq(reservations.locationId, filter.locationId) : undefined,
+      filter.variantId ? eq(reservations.variantId, filter.variantId) : undefined,
+      filter.cursor ? lt(reservations.id, filter.cursor) : undefined,
+    ].filter((f): f is SQL => f !== undefined)
+    const rows = await tx
+      .select({
+        id: reservations.id,
+        orderLineId: reservations.orderLineId,
+        variantId: reservations.variantId,
+        variantName: productVariants.name,
+        lotId: reservations.lotId,
+        batchNo: stockLots.batchNo,
+        locationId: reservations.locationId,
+        qty: reservations.qty,
+        state: reservations.state,
+        createdAt: reservations.createdAt,
+      })
+      .from(reservations)
+      .innerJoin(productVariants, eq(productVariants.id, reservations.variantId))
+      .leftJoin(stockLots, eq(stockLots.id, reservations.lotId))
+      .where(and(...where))
+      .orderBy(desc(reservations.id))
+      .limit(filter.limit)
+    return rows.map((r) => ({
+      id: r.id,
+      orderLineId: r.orderLineId,
+      variantId: r.variantId,
+      variantName: r.variantName,
+      lotId: r.lotId,
+      batchNo: r.batchNo,
+      locationId: r.locationId,
+      qtyPcs: r.qty,
+      state: r.state,
+      createdAt: r.createdAt.toISOString(),
+    }))
   }
 
   /** Pick confirmed: the held pieces leave stock as `sale` rows and the reservations are closed. */

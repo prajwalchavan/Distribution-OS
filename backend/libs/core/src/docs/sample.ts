@@ -61,7 +61,9 @@ const NAME_HINTS: [RegExp, unknown][] = [
   [/Date$|^date$|^on$|^from$|^to$|validFrom|validTo|^day$|payBy|asOf/i, '2026-09-04'],
   [/At$/, '2026-09-04T10:30:00.000Z'],
   // A 12-digit e-way bill number, keyed in from the government portal. Before the generic `No$` rule.
-  [/ewayBillNo$/i, '291012345678'],
+  // Two spellings are in the contracts: billing's `ewayBillNo` and warehouse's `ewbNo`, which is named
+  // for the `ewb_no` column the load sheet and the challan both carry.
+  [/ewayBillNo$|ewbNo$/i, '291012345678'],
   [/username$/i, 'sunil.tarsun'],
   [/password$/i, 'Dos@1234'],
   [/^accessToken$/, SAMPLE_ACCESS_TOKEN],
