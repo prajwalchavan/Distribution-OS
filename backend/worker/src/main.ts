@@ -12,6 +12,7 @@ import {
   sweepIntegrations,
 } from './jobs/integrations.js'
 import { registerNotificationsJobs } from './jobs/notifications.js'
+import { registerIncentivesJobs } from './jobs/incentives.js'
 import { registerReportingJobs } from './jobs/reporting.js'
 import { OUTBOX_RELAY, registerOutboxHandler, relayOutbox } from './jobs/outbox-relay.js'
 import { handlePdfRenderJob, PDF_RENDER, renderPending } from './jobs/pdf-render.js'
@@ -43,6 +44,9 @@ await registerNotificationsJobs(boss, db)
 // Reporting (coordination §1 slot 9): the 15-minute rollup fan-out, the 00:20 IST finalize, and the
 // `report_*` CSV / JSON renderers on integrations' one `exports.render` registry (jobs/reporting.ts).
 await registerReportingJobs(boss, db)
+// Incentives (coordination §1 slot 10): the hourly achievement sweep and the single-target recompute
+// the relay runs for `targets.refresh` — `achievements` is a worker-only table (jobs/incentives.ts).
+await registerIncentivesJobs(boss, db)
 await boss.createQueue(INTEGRATIONS_SWEEP)
 await boss.work(INTEGRATIONS_SWEEP, async () => {
   await sweepIntegrations(db, boss)
@@ -70,7 +74,7 @@ await boss.work(PDF_RENDER, async ([job]) => {
   await renderPending(db)
 })
 logger.info(
-  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST',
+  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST, incentives achievement sweep hourly',
 )
 
 const shutdown = async (): Promise<void> => {

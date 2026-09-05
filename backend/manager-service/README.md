@@ -335,6 +335,20 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/reporting/registers/gst-purchase` | GSTR-2-shaped purchase register over received supplier invoices | owner, manager, accountant |
 | POST | `/reporting/exports` | Queue a CSV / JSON export of a register (async, audited) | owner, manager, accountant |
 | GET | `/reporting/exports/{id}` | A report export job and, once rendered, its short-lived download URL | owner, manager, accountant |
+| POST | `/incentives/targets` | Assign or replace one rep's target with its payout slabs (owner) | owner |
+| POST | `/incentives/targets/bulk` | Assign the same target to a whole team in one transaction (owner) | owner |
+| POST | `/incentives/targets/what-if` | What a slab table would pay at a given achievement (pure, writes nothing) | owner, manager, accountant |
+| GET | `/incentives/targets/{id}` | One target with its cached achievement (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| GET | `/incentives/targets` | Targets running on a date, with achievement (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| POST | `/incentives/targets/{id}/remove` | Delete a target that has not been paid out against (owner) | owner |
+| POST | `/incentives/targets/{id}/refresh` | Queue a recompute of this target's achievement cache | owner, manager, accountant |
+| GET | `/incentives/progress` | My own targets and how far along I am (salesperson, delivery) | salesperson, delivery |
+| GET | `/incentives/progress/team` | The team leaderboard for one metric, ranked by achievement | owner, manager, accountant |
+| POST | `/incentives/statements/compute` | Compute one rep's payout for a period (compute only, never payroll) | owner, manager, accountant |
+| POST | `/incentives/statements/{id}/approve` | Approve a computed statement (owner) | owner |
+| POST | `/incentives/statements/{id}/reopen` | Clear an approval so the statement can be computed again (owner) | owner |
+| GET | `/incentives/statements/{id}` | One statement with its per-target breakdown (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| GET | `/incentives/statements` | The payout register and a rep's own statement history (a rep: its own) | owner, manager, accountant, salesperson, delivery |
 
 ### GET `/health/ping`
 
@@ -43183,6 +43197,1655 @@ curl "http://localhost:3002/reporting/exports/01a06d17-0be7-794a-8dab-9b14cf7867
 }
 ```
 
+### POST `/incentives/targets`
+
+Assign or replace one rep's target with its payout slabs (owner) · contract `incentives.targets.upsert`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `userId` | uuid | yes |
+| `brandId` | uuid | no |
+| `metric` | value | pieces | lines | outlets | visits | collections | yes |
+| `periodFrom` | date | yes |
+| `periodTo` | date | yes |
+| `targetValue` | integer | yes |
+| `name` | string | no |
+| `payoutRule` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/targets" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+  "metric": "value",
+  "periodFrom": "2026-09-04",
+  "periodTo": "2026-09-04",
+  "targetValue": 1,
+  "name": "Sharma Kirana Store",
+  "payoutRule": [
+    {
+      "fromPct": 1,
+      "toPct": 1,
+      "payoutBps": 500,
+      "flatPaise": 4000
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "metric": "value",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "targetValue": 1,
+    "name": "Sharma Kirana Store",
+    "payoutRule": [
+      {
+        "fromPct": 1,
+        "toPct": 1,
+        "payoutBps": 500,
+        "flatPaise": 4000
+      }
+    ],
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "achievement": {
+      "achievedValue": 1,
+      "achievedPieces": 24,
+      "achievedPct": 1,
+      "computedAt": "2026-09-04T10:30:00.000Z"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call POST /incentives/targets",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/targets/bulk`
+
+Assign the same target to a whole team in one transaction (owner) · contract `incentives.targets.bulkAssign`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `assignments` | object[] | yes |
+| `brandId` | uuid | no |
+| `metric` | value | pieces | lines | outlets | visits | collections | yes |
+| `periodFrom` | date | yes |
+| `periodTo` | date | yes |
+| `targetValue` | integer | yes |
+| `name` | string | no |
+| `payoutRule` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/targets/bulk" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "assignments": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340"
+    }
+  ],
+  "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+  "metric": "value",
+  "periodFrom": "2026-09-04",
+  "periodTo": "2026-09-04",
+  "targetValue": 1,
+  "name": "Sharma Kirana Store",
+  "payoutRule": [
+    {
+      "fromPct": 1,
+      "toPct": 1,
+      "payoutBps": 500,
+      "flatPaise": 4000
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "metric": "value",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "targetValue": 1,
+      "name": "Sharma Kirana Store",
+      "payoutRule": [
+        {
+          "fromPct": 1,
+          "toPct": 1,
+          "payoutBps": 500,
+          "flatPaise": 4000
+        }
+      ],
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "achievement": {
+        "achievedValue": 1,
+        "achievedPieces": 24,
+        "achievedPct": 1,
+        "computedAt": "2026-09-04T10:30:00.000Z"
+      }
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call POST /incentives/targets/bulk",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/targets/what-if`
+
+What a slab table would pay at a given achievement (pure, writes nothing) · contract `incentives.targets.whatIf`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | value | pieces | lines | outlets | visits | collections | yes |
+| `targetValue` | integer | yes |
+| `payoutRule` | object[] | yes |
+| `achievedValue` | integer | no |
+| `targetId` | uuid | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/targets/what-if" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "metric": "value",
+  "targetValue": 1,
+  "payoutRule": [
+    {
+      "fromPct": 1,
+      "toPct": 1,
+      "payoutBps": 500,
+      "flatPaise": 4000
+    }
+  ],
+  "achievedValue": 1,
+  "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "achievedValue": 1,
+  "achievedPct": 1,
+  "matchedSlab": {
+    "fromPct": 1,
+    "toPct": 1,
+    "payoutBps": 500,
+    "flatPaise": 4000
+  },
+  "payoutPaise": 4000
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/targets/{id}`
+
+One target with its cached achievement (a rep: its own) · contract `incentives.targets.get`
+
+**Roles:** owner, manager, accountant, salesperson, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/targets/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "metric": "value",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "targetValue": 1,
+    "name": "Sharma Kirana Store",
+    "payoutRule": [
+      {
+        "fromPct": 1,
+        "toPct": 1,
+        "payoutBps": 500,
+        "flatPaise": 4000
+      }
+    ],
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "achievement": {
+      "achievedValue": 1,
+      "achievedPieces": 24,
+      "achievedPct": 1,
+      "computedAt": "2026-09-04T10:30:00.000Z"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/targets`
+
+Targets running on a date, with achievement (a rep: its own) · contract `incentives.targets.list`
+
+**Roles:** owner, manager, accountant, salesperson, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | uuid | no |
+| `brandId` | uuid | no |
+| `metric` | value | pieces | lines | outlets | visits | collections | no |
+| `activeOn` | date | no |
+| `activeOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/targets?userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&metric=value&activeOn=2026-09-04&activeOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "metric": "value",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "targetValue": 1,
+      "name": "Sharma Kirana Store",
+      "achievedValue": 1,
+      "achievedPct": 1
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/targets/{id}/remove`
+
+Delete a target that has not been paid out against (owner) · contract `incentives.targets.remove`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/targets/01a06d17-0be7-794a-8dab-9b14cf78673b/remove" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "removed": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call POST /incentives/targets/{id}/remove",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/targets/{id}/refresh`
+
+Queue a recompute of this target's achievement cache · contract `incentives.targets.refresh`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/targets/01a06d17-0be7-794a-8dab-9b14cf78673b/refresh" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "status": "queued"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/progress`
+
+My own targets and how far along I am (salesperson, delivery) · contract `incentives.progress.mine`
+
+**Roles:** salesperson, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `activeOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/progress?activeOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "metric": "value",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "targetValue": 1,
+      "name": "Sharma Kirana Store",
+      "payoutRule": [
+        {
+          "fromPct": 1,
+          "toPct": 1,
+          "payoutBps": 500,
+          "flatPaise": 4000
+        }
+      ],
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "achievement": {
+        "achievedValue": 1,
+        "achievedPieces": 24,
+        "achievedPct": 1,
+        "computedAt": "2026-09-04T10:30:00.000Z"
+      }
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call GET /incentives/progress",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/progress/team`
+
+The team leaderboard for one metric, ranked by achievement · contract `incentives.progress.team`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `metric` | value | pieces | lines | outlets | visits | collections | yes |
+| `brandId` | uuid | no |
+| `periodFrom` | date | no |
+| `periodTo` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/progress/team?metric=value&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&periodFrom=2026-09-04&periodTo=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "rank": 1,
+      "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "metric": "value",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "targetValue": 1,
+      "achievedValue": 1,
+      "achievedPct": 1
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/statements/compute`
+
+Compute one rep's payout for a period (compute only, never payroll) · contract `incentives.statements.compute`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `userId` | uuid | yes |
+| `periodFrom` | date | yes |
+| `periodTo` | date | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/statements/compute" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "periodFrom": "2026-09-04",
+  "periodTo": "2026-09-04"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "amountPaise": 4000,
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "breakdown": [
+      {
+        "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a",
+        "metric": "value",
+        "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+        "name": "Sharma Kirana Store",
+        "targetValue": 1,
+        "achievedValue": 1,
+        "achievedPct": 1,
+        "payoutPaise": 4000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/statements/{id}/approve`
+
+Approve a computed statement (owner) · contract `incentives.statements.approve`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/statements/01a06d17-0be7-794a-8dab-9b14cf78673b/approve" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "amountPaise": 4000,
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "breakdown": [
+      {
+        "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a",
+        "metric": "value",
+        "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+        "name": "Sharma Kirana Store",
+        "targetValue": 1,
+        "achievedValue": 1,
+        "achievedPct": 1,
+        "payoutPaise": 4000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call POST /incentives/statements/{id}/approve",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/incentives/statements/{id}/reopen`
+
+Clear an approval so the statement can be computed again (owner) · contract `incentives.statements.reopen`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/incentives/statements/01a06d17-0be7-794a-8dab-9b14cf78673b/reopen" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "amountPaise": 4000,
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "breakdown": [
+      {
+        "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a",
+        "metric": "value",
+        "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+        "name": "Sharma Kirana Store",
+        "targetValue": 1,
+        "achievedValue": 1,
+        "achievedPct": 1,
+        "payoutPaise": 4000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the manager role may not call POST /incentives/statements/{id}/reopen",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/statements/{id}`
+
+One statement with its per-target breakdown (a rep: its own) · contract `incentives.statements.get`
+
+**Roles:** owner, manager, accountant, salesperson, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/statements/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+    "userName": "sunil.tarsun",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "amountPaise": 4000,
+    "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+    "approvedAt": "2026-09-04T10:30:00.000Z",
+    "computedAt": "2026-09-04T10:30:00.000Z",
+    "breakdown": [
+      {
+        "targetId": "01a06d45-b703-7f11-83bd-f5ca34b2169a",
+        "metric": "value",
+        "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+        "name": "Sharma Kirana Store",
+        "targetValue": 1,
+        "achievedValue": 1,
+        "achievedPct": 1,
+        "payoutPaise": 4000
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/incentives/statements`
+
+The payout register and a rep's own statement history (a rep: its own) · contract `incentives.statements.list`
+
+**Roles:** owner, manager, accountant, salesperson, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `userId` | uuid | no |
+| `from` | date | no |
+| `to` | date | no |
+| `approvedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/incentives/statements?userId=01a06d02-3731-7b6d-8798-5c7c2b7bf340&from=2026-09-04&to=2026-09-04&approvedOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "userName": "sunil.tarsun",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "amountPaise": 4000,
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "computedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -43498,3 +45161,17 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `reporting.registers.gstPurchaseRegister` | – | ✓ | ✓ | – | – | – | – |
 | `reporting.exports.request` | – | ✓ | ✓ | – | – | – | – |
 | `reporting.exports.get` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.targets.upsert` | – | – | – | – | – | – | – |
+| `incentives.targets.bulkAssign` | – | – | – | – | – | – | – |
+| `incentives.targets.whatIf` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.targets.get` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.targets.list` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.targets.remove` | – | – | – | – | – | – | – |
+| `incentives.targets.refresh` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.progress.mine` | – | – | – | – | – | – | – |
+| `incentives.progress.team` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.statements.compute` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.statements.approve` | – | – | – | – | – | – | – |
+| `incentives.statements.reopen` | – | – | – | – | – | – | – |
+| `incentives.statements.get` | – | ✓ | ✓ | – | – | – | – |
+| `incentives.statements.list` | – | ✓ | ✓ | – | – | – | – |

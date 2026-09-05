@@ -95,6 +95,10 @@
     "./reporting": {
       "types": "./dist/modules/reporting/worker.d.ts",
       "default": "./dist/modules/reporting/worker.js"
+    },
+    "./incentives": {
+      "types": "./dist/modules/incentives/worker.d.ts",
+      "default": "./dist/modules/incentives/worker.js"
     }
   }
 }

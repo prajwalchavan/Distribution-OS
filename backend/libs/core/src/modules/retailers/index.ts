@@ -43,3 +43,8 @@ export {
   type BeatAssignmentRow,
   type RetailerRef,
 } from './beat-reads.js'
+/**
+ * Completed beat calls in a window (coordination §3.9, slice 10): the source of a `visits` target's
+ * achievement. A plain function, so the incentives sweep in the worker imports it without Nest DI.
+ */
+export { visitCount, type VisitCountFilter, type VisitCountRow } from './visit-reads.js'

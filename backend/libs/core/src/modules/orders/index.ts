@@ -21,6 +21,17 @@ export {
   type FillRateFilter,
   type FillRateLineRow,
 } from './fill-rate.js'
+/**
+ * What one rep or crew member sold in a window (coordination §3.9, slice 10): value, pieces, lines
+ * and distinct outlets off the order book. A plain function, so the incentives achievement sweep in
+ * the worker imports it without Nest DI.
+ */
+export {
+  salesAggregate,
+  type SalesAggregateFilter,
+  type SalesAggregateMetric,
+  type SalesAggregateRow,
+} from './sales-aggregate.js'
 export type {
   DeliveredLine,
   FulfilmentEvent,

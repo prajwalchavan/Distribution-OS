@@ -342,3 +342,17 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/reporting/registers/gst-purchase` | GSTR-2-shaped purchase register over received supplier invoices | owner, manager, accountant |
 | POST | `/reporting/exports` | Queue a CSV / JSON export of a register (async, audited) | owner, manager, accountant |
 | GET | `/reporting/exports/{id}` | A report export job and, once rendered, its short-lived download URL | owner, manager, accountant |
+| POST | `/incentives/targets` | Assign or replace one rep's target with its payout slabs (owner) | owner |
+| POST | `/incentives/targets/bulk` | Assign the same target to a whole team in one transaction (owner) | owner |
+| POST | `/incentives/targets/what-if` | What a slab table would pay at a given achievement (pure, writes nothing) | owner, manager, accountant |
+| GET | `/incentives/targets/{id}` | One target with its cached achievement (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| GET | `/incentives/targets` | Targets running on a date, with achievement (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| POST | `/incentives/targets/{id}/remove` | Delete a target that has not been paid out against (owner) | owner |
+| POST | `/incentives/targets/{id}/refresh` | Queue a recompute of this target's achievement cache | owner, manager, accountant |
+| GET | `/incentives/progress` | My own targets and how far along I am (salesperson, delivery) | salesperson, delivery |
+| GET | `/incentives/progress/team` | The team leaderboard for one metric, ranked by achievement | owner, manager, accountant |
+| POST | `/incentives/statements/compute` | Compute one rep's payout for a period (compute only, never payroll) | owner, manager, accountant |
+| POST | `/incentives/statements/{id}/approve` | Approve a computed statement (owner) | owner |
+| POST | `/incentives/statements/{id}/reopen` | Clear an approval so the statement can be computed again (owner) | owner |
+| GET | `/incentives/statements/{id}` | One statement with its per-target breakdown (a rep: its own) | owner, manager, accountant, salesperson, delivery |
+| GET | `/incentives/statements` | The payout register and a rep's own statement history (a rep: its own) | owner, manager, accountant, salesperson, delivery |

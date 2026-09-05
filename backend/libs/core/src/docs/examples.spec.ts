@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
   bargainRequests,
@@ -10,6 +10,7 @@ import {
   salesOrders,
   supplierInvoices,
   supplierPackConfigs,
+  users,
   withSystem,
   type Db,
 } from '@dos/db'
@@ -664,6 +665,58 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
     }
     await pool3.end()
   }, 30_000)
+
+  /**
+   * EVERY lane, not only the spare one. Each running service publishes its OWN lane's slot, and the
+   * test above reads the spare lane — which sits past the used range, so it stays green while the
+   * lanes the services actually use are already spent. That is precisely how
+   * `procurement.supplierInvoices.create` reached a permanent 409 on the founder's database at
+   * `DOCS/26-27/0257`: its slot picker probed a SINGLE window of 256, and once weeks of demoing and
+   * smoke runs had spent it, the "give up" fallback published a fixed range the previous run had
+   * already taken. `tenancy.staff.create` was seven slots from the same wall. Both now walk the
+   * same `SLOT_WINDOWS` windows `freeSlots` walks, and this case is what says so.
+   *
+   * It asserts the natural keys too, not just the ids: an invoice number is unique per supplier and
+   * a username and a phone are unique platform-wide, so a spent one is a 409 the id check misses.
+   */
+  it('gives every service lane an id, a document number and a login the database does not hold', async () => {
+    const pool6 = createPool(url ?? '')
+    const db = createDb(pool6)
+    const ctx = await new DocExamplesService(db).load()
+    for (let lane = 0; lane <= SPARE_LANE; lane++) {
+      const laneExamples = buildExamples(PROCEDURES, ctx, { roles: ['owner'], lane })
+      const invoice = laneExamples.get('procurement.supplierInvoices.create')?.body
+      const staff = laneExamples.get('tenancy.staff.create')?.body
+      const orderIds = ['orders.create', 'orders.repeatLast'].map((path) =>
+        String(laneExamples.get(path)?.body?.id),
+      )
+      const held = await withSystem(db, async (tx: Db) => ({
+        invoiceIds: await tx
+          .select({ id: supplierInvoices.id })
+          .from(supplierInvoices)
+          .where(eq(supplierInvoices.id, String(invoice?.id))),
+        invoiceNumbers: await tx
+          .select({ invoiceNo: supplierInvoices.invoiceNo })
+          .from(supplierInvoices)
+          .where(eq(supplierInvoices.invoiceNo, String(invoice?.invoiceNo))),
+        logins: await tx
+          .select({ username: users.username })
+          .from(users)
+          .where(
+            or(eq(users.username, String(staff?.username)), eq(users.phone, String(staff?.phone))),
+          ),
+        orders: await tx
+          .select({ id: salesOrders.id })
+          .from(salesOrders)
+          .where(inArray(salesOrders.id, orderIds)),
+      }))
+      expect(held.invoiceIds, `lane ${lane}: supplier invoice id`).toEqual([])
+      expect(held.invoiceNumbers, `lane ${lane}: ${String(invoice?.invoiceNo)}`).toEqual([])
+      expect(held.logins, `lane ${lane}: ${String(staff?.username)}`).toEqual([])
+      expect(held.orders, `lane ${lane}: order id`).toEqual([])
+    }
+    await pool6.end()
+  }, 60_000)
 
   // The wizard example re-stages a file that must EXIST in the object store: the key of a party
   // master that parsed once (`total_rows` set), whether or not a staged job is left in the demo.

@@ -24,6 +24,7 @@ import {
   broadcasts,
   claimLines,
   claims,
+  computedPayouts,
   cycleCounts,
   deliveries,
   deliveryChallans,
@@ -63,6 +64,7 @@ import {
   supplierInvoices,
   supplierPackConfigs,
   suppliers,
+  targets,
   templates,
   tenantProductCosts,
   tenantProducts,
@@ -232,6 +234,42 @@ export interface ReportingExamples {
   behaviourRetailerId?: string | undefined
   /** A finished `report_*` export job: exports.get. */
   exportId?: string | undefined
+}
+
+/**
+ * Staff targets and payout statements as the seed left them (docs/plans/incentives.md §6).
+ *
+ * EVERY ID HERE IS PER-USER, because RLS scopes a rep to its OWN rows: a target of Rahul's is a 404
+ * on the delivery service's document, and vice versa. `targetFor` / `statementFor` pick the row the
+ * calling service's own login can actually open, and fall back to any row for the back office.
+ */
+export interface IncentivesExamples {
+  /** An OPEN target per rep / crew member: `targets.get`, `targets.refresh`. */
+  targetByUser?: Record<string, string> | undefined
+  /** Any open target, for a back-office document. */
+  anyTargetId?: string | undefined
+  /** A statement per rep / crew member: `statements.get`. */
+  statementByUser?: Record<string, string> | undefined
+  /** The statement still waiting for the owner: `approve` / `reopen` act on this one. */
+  pendingStatementId?: string | undefined
+  /** Its `(user, period)`, which is exactly what `statements.compute` takes. */
+  pendingUserId?: string | undefined
+  pendingFrom?: string | undefined
+  pendingTo?: string | undefined
+  /** A metric that has open targets today, so `progress.team` answers with rows and not an empty list. */
+  teamMetric?: string | undefined
+  /** The open period, so `targets.list`'s `activeOn` names a day the seeded targets are running on. */
+  activeOn?: string | undefined
+  /** That period's own bounds: what `targets.upsert`'s example assigns against. */
+  openFrom?: string | undefined
+  openTo?: string | undefined
+  /**
+   * The month AFTER it. `bulkAssign` assigns there rather than into the open period, because two
+   * targets of the same `(user, brand, metric)` with overlapping periods are a 409 by design — so a
+   * document whose two create examples both landed in September would refuse its own second call.
+   */
+  nextFrom?: string | undefined
+  nextTo?: string | undefined
 }
 
 /** The generic importer and the exports as the seed left them (docs/plans/integrations.md §6). */
@@ -464,6 +502,8 @@ export interface ExampleContext {
   /** The message log, the inboxes, the broadcast and the device tokens (notifications). */
   notifications?: NotificationsExamples | undefined
   reporting?: ReportingExamples | undefined
+  /** The targets, achievements and statements the incentives examples point at. */
+  incentives?: IncentivesExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -614,6 +654,7 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectClaims(tx, tenant.id, ctx)
   await collectNotifications(tx, tenant.id, ctx)
   await collectReporting(tx, tenant.id, ctx)
+  await collectIncentives(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
 }
@@ -680,6 +721,75 @@ async function collectReporting(tx: Db, tenantId: string, ctx: ExampleContext): 
       .orderBy(desc(exportJobs.createdAt))
       .limit(1)
   )[0]?.id
+}
+
+/**
+ * The targets and statements the incentives document points at (docs/plans/incentives.md §6).
+ *
+ * Per user, because RLS is per user: the sales document must name Rahul's target and the delivery
+ * document Ganesh's, or each answers 404 on a row that demonstrably exists. `activeOn` is the open
+ * period's own first day rather than `today`, so a document generated after the demo month has
+ * rolled over still lists the seeded targets instead of an empty page.
+ */
+async function collectIncentives(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: IncentivesExamples = {}
+  ctx.incentives = out
+  const today = businessDate().date
+  const targetRows = await tx
+    .select({
+      id: targets.id,
+      userId: targets.userId,
+      metric: targets.metric,
+      periodFrom: targets.periodFrom,
+      periodTo: targets.periodTo,
+    })
+    .from(targets)
+    .where(eq(targets.tenantId, tenantId))
+    .orderBy(desc(targets.periodFrom), asc(targets.id))
+  const open = targetRows.filter((r) => r.periodFrom <= today && r.periodTo >= today)
+  const usable = open.length > 0 ? open : targetRows
+  const byUser: Record<string, string> = {}
+  for (const row of usable) byUser[row.userId] ??= row.id
+  out.targetByUser = byUser
+  out.anyTargetId = usable[0]?.id
+  out.activeOn = usable[0]?.periodFrom
+  out.openFrom = usable[0]?.periodFrom
+  out.openTo = usable[0]?.periodTo
+  if (out.openTo) {
+    const next = new Date(Date.parse(`${out.openTo}T00:00:00Z`) + 86_400_000)
+    const y = next.getUTCFullYear()
+    const m = next.getUTCMonth()
+    out.nextFrom = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10)
+    out.nextTo = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10)
+  }
+  // The metric with the most open targets: ranking a leaderboard on one nobody holds shows nothing.
+  const counts = new Map<string, number>()
+  for (const row of usable) counts.set(row.metric, (counts.get(row.metric) ?? 0) + 1)
+  out.teamMetric = [...counts.entries()].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  )[0]?.[0]
+
+  const statementRows = await tx
+    .select({
+      id: computedPayouts.id,
+      userId: computedPayouts.userId,
+      periodFrom: computedPayouts.periodFrom,
+      periodTo: computedPayouts.periodTo,
+      approvedBy: computedPayouts.approvedBy,
+    })
+    .from(computedPayouts)
+    .where(eq(computedPayouts.tenantId, tenantId))
+    .orderBy(desc(computedPayouts.periodFrom), asc(computedPayouts.id))
+  const statementByUser: Record<string, string> = {}
+  for (const row of statementRows) statementByUser[row.userId] ??= row.id
+  out.statementByUser = statementByUser
+  // The owner's review queue: `approve` signs this one off and `reopen`, one operation later in the
+  // same document, puts it straight back — so pressing the whole page leaves the demo as it was.
+  const pending = statementRows.find((r) => r.approvedBy === null) ?? statementRows[0]
+  out.pendingStatementId = pending?.id
+  out.pendingUserId = pending?.userId
+  out.pendingFrom = pending?.periodFrom
+  out.pendingTo = pending?.periodTo
 }
 
 /**
@@ -1977,6 +2087,35 @@ const SLOT_LANES = 8
 type TakenIds = (candidates: readonly string[]) => Promise<ReadonlySet<string>>
 
 /**
+ * The first `SLOT_LANES` slots this database has not spent, walking `SLOT_WINDOWS` windows of
+ * `SLOT_TRIES`. `probe(base)` answers which slots of `[base, base + SLOT_TRIES)` are already taken —
+ * by an id, and for the two pickers below also by the natural key that walks with it.
+ *
+ * EVERY picker goes through this one function on purpose. A picker that probes a SINGLE window is a
+ * time bomb: one slot per service is spent every time a document is rebuilt and its example pressed,
+ * so after a few hundred smoke runs the window is gone, the "give up" fallback publishes a fixed
+ * range that the previous run already took, and the example is on a permanent 409 — exactly the
+ * failure this mechanism exists to remove. `procurement.supplierInvoices.create` reached that wall
+ * on the founder's database at `DOCS/26-27/0257`; `tenancy.staff.create` was seven slots away.
+ */
+async function walkFreeSlots(
+  probe: (base: number) => Promise<ReadonlySet<number>>,
+): Promise<number[]> {
+  // One window at a time; a database that has spent a whole window (weeks of demoing and smoke runs)
+  // moves on to the next one rather than publishing ids nobody probed.
+  for (let window = 0; window < SLOT_WINDOWS; window++) {
+    const base = window * SLOT_TRIES
+    const used = await probe(base)
+    const free: number[] = []
+    for (let i = 0; i < SLOT_TRIES && free.length < SLOT_LANES; i++) {
+      if (!used.has(base + i)) free.push(base + i)
+    }
+    if (free.length > 0) return free
+  }
+  return Array.from({ length: SLOT_LANES }, (_, i) => SLOT_WINDOWS * SLOT_TRIES + i)
+}
+
+/**
  * The free slots of a procedure's id sequence — the ones this database does not hold yet.
  *
  * A create refuses a duplicate id (`order … already exists`), and it must: the id is the client's, and
@@ -1985,21 +2124,17 @@ type TakenIds = (candidates: readonly string[]) => Promise<ReadonlySet<string>>
  * Walking the sequence keeps the document deterministic (same database, same slots) and executable.
  */
 async function freeSlots(procedurePath: string, trail: string, taken: TakenIds): Promise<number[]> {
-  // One window at a time; a database that has spent a whole window (weeks of demoing and smoke runs)
-  // moves on to the next one rather than publishing ids nobody probed.
-  for (let window = 0; window < SLOT_WINDOWS; window++) {
-    const base = window * SLOT_TRIES
+  return walkFreeSlots(async (base) => {
     const candidates = Array.from({ length: SLOT_TRIES }, (_, i) =>
       createdId(procedurePath, trail, base + i),
     )
     const used = await taken(candidates)
-    const free = candidates
-      .map((id, i) => (used.has(id) ? -1 : base + i))
-      .filter((slot) => slot >= 0)
-      .slice(0, SLOT_LANES)
-    if (free.length > 0) return free
-  }
-  return Array.from({ length: SLOT_LANES }, (_, i) => SLOT_WINDOWS * SLOT_TRIES + i)
+    const out = new Set<number>()
+    candidates.forEach((id, i) => {
+      if (used.has(id)) out.add(base + i)
+    })
+    return out
+  })
 }
 
 /** How many windows of `SLOT_TRIES` are probed before giving up (4096 ids per procedure). */
@@ -2283,26 +2418,28 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
  */
 async function staffSlots(tx: Db, takenIds: TakenIds): Promise<number[]> {
   const path = 'tenancy.staff.create'
-  const ids = Array.from({ length: SLOT_TRIES }, (_, slot) => createdId(path, 'userId', slot))
-  const usedIds = await takenIds(ids)
-  const usernames = Array.from({ length: SLOT_TRIES }, (_, slot) => docsStaffUsername(slot))
-  const phones = Array.from({ length: SLOT_TRIES }, (_, slot) => docsStaffPhone(slot))
-  const rows = await tx
-    .select({ username: users.username, phone: users.phone })
-    .from(users)
-    .where(or(inArray(users.username, usernames), inArray(users.phone, phones)))
-  const usedNames = new Set(rows.map((row) => row.username))
-  const usedPhones = new Set(rows.map((row) => row.phone))
-  const free: number[] = []
-  for (let slot = 0; slot < SLOT_TRIES && free.length < SLOT_LANES; slot++) {
-    if (
-      !usedIds.has(ids[slot] ?? '') &&
-      !usedNames.has(usernames[slot] ?? '') &&
-      !usedPhones.has(phones[slot] ?? '')
-    )
-      free.push(slot)
-  }
-  return free.length > 0 ? free : Array.from({ length: SLOT_LANES }, (_, i) => SLOT_TRIES + i)
+  return walkFreeSlots(async (base) => {
+    const ids = Array.from({ length: SLOT_TRIES }, (_, i) => createdId(path, 'userId', base + i))
+    const usernames = Array.from({ length: SLOT_TRIES }, (_, i) => docsStaffUsername(base + i))
+    const phones = Array.from({ length: SLOT_TRIES }, (_, i) => docsStaffPhone(base + i))
+    const usedIds = await takenIds(ids)
+    const rows = await tx
+      .select({ username: users.username, phone: users.phone })
+      .from(users)
+      .where(or(inArray(users.username, usernames), inArray(users.phone, phones)))
+    const usedNames = new Set(rows.map((row) => row.username))
+    const usedPhones = new Set(rows.map((row) => row.phone))
+    const out = new Set<number>()
+    for (let i = 0; i < SLOT_TRIES; i++) {
+      if (
+        usedIds.has(ids[i] ?? '') ||
+        usedNames.has(usernames[i] ?? '') ||
+        usedPhones.has(phones[i] ?? '')
+      )
+        out.add(base + i)
+    }
+    return out
+  })
 }
 
 /** Username and phone of the docs staff member on `slot`; both unique platform-wide, so both walk. */
@@ -2316,24 +2453,26 @@ const docsStaffPhone = (slot: number) => `+9190000${String(101 + slot).padStart(
  */
 async function supplierInvoiceSlots(tx: Db, tenantId: string): Promise<number[]> {
   const path = 'procurement.supplierInvoices.create'
-  const ids = Array.from({ length: SLOT_TRIES }, (_, slot) => createdId(path, 'id', slot))
-  const numbers = Array.from({ length: SLOT_TRIES }, (_, slot) => docsInvoiceNo(slot))
-  const rows = await tx
-    .select({ id: supplierInvoices.id, invoiceNo: supplierInvoices.invoiceNo })
-    .from(supplierInvoices)
-    .where(
-      and(
-        eq(supplierInvoices.tenantId, tenantId),
-        or(inArray(supplierInvoices.id, ids), inArray(supplierInvoices.invoiceNo, numbers)),
-      ),
-    )
-  const usedIds = new Set(rows.map((row) => row.id))
-  const usedNumbers = new Set(rows.map((row) => row.invoiceNo))
-  const free: number[] = []
-  for (let slot = 0; slot < SLOT_TRIES && free.length < SLOT_LANES; slot++) {
-    if (!usedIds.has(ids[slot] ?? '') && !usedNumbers.has(numbers[slot] ?? '')) free.push(slot)
-  }
-  return free.length > 0 ? free : Array.from({ length: SLOT_LANES }, (_, i) => SLOT_TRIES + i)
+  return walkFreeSlots(async (base) => {
+    const ids = Array.from({ length: SLOT_TRIES }, (_, i) => createdId(path, 'id', base + i))
+    const numbers = Array.from({ length: SLOT_TRIES }, (_, i) => docsInvoiceNo(base + i))
+    const rows = await tx
+      .select({ id: supplierInvoices.id, invoiceNo: supplierInvoices.invoiceNo })
+      .from(supplierInvoices)
+      .where(
+        and(
+          eq(supplierInvoices.tenantId, tenantId),
+          or(inArray(supplierInvoices.id, ids), inArray(supplierInvoices.invoiceNo, numbers)),
+        ),
+      )
+    const usedIds = new Set(rows.map((row) => row.id))
+    const usedNumbers = new Set(rows.map((row) => row.invoiceNo))
+    const out = new Set<number>()
+    for (let i = 0; i < SLOT_TRIES; i++) {
+      if (usedIds.has(ids[i] ?? '') || usedNumbers.has(numbers[i] ?? '')) out.add(base + i)
+    }
+    return out
+  })
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2658,6 +2797,36 @@ function docsQrText(ctx: ExampleContext): string {
  * And a MANAGER may only administer salesperson/warehouse/delivery members, so a junior role is the
  * only pick that works on the manager's document as well as the owner's.
  */
+/**
+ * The field user THIS service signs in as, when it serves exactly one field role. Incentives rows are
+ * per person and RLS enforces it, so the sales document must name Rahul's target and the delivery
+ * document Ganesh's — a back-office document may name anyone's.
+ */
+function incentiveUserFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
+  const roles = options.roles ?? []
+  if (roles.includes('salesperson')) return ctx.users?.salesperson?.id
+  if (roles.includes('delivery')) return ctx.users?.delivery?.id
+  return undefined
+}
+
+function incentiveTargetFor(
+  ctx: ExampleContext,
+  options: BuildExamplesOptions,
+): string | undefined {
+  const user = incentiveUserFor(ctx, options)
+  const own = user ? ctx.incentives?.targetByUser?.[user] : undefined
+  return own ?? ctx.incentives?.anyTargetId
+}
+
+function incentiveStatementFor(
+  ctx: ExampleContext,
+  options: BuildExamplesOptions,
+): string | undefined {
+  const user = incentiveUserFor(ctx, options)
+  const own = user ? ctx.incentives?.statementByUser?.[user] : undefined
+  return own ?? ctx.incentives?.pendingStatementId
+}
+
 const JUNIOR_ROLES: readonly string[] = ['salesperson', 'warehouse', 'delivery']
 
 function spareStaffFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
@@ -3944,21 +4113,75 @@ const OVERRIDES: Record<
   // 80% of target, 1% at par, 1.5% past 120% — with the top tier open-ended (`toPct: null`).
   'incentives.targets.upsert': (ctx) => ({
     userId: ctx.users?.salesperson?.id,
+    // Scoped to ONE brand on purpose: the seeded target for this rep in the same period is
+    // tenant-wide, and two targets of the same (user, brand, metric) with overlapping periods are a
+    // 409 by design. A different brand scope is a different target, so the example always lands.
+    brandId: ctx.brandId,
     metric: 'value',
-    periodFrom: '2026-09-01',
-    periodTo: '2026-09-30',
+    periodFrom: ctx.incentives?.openFrom ?? '2026-09-01',
+    periodTo: ctx.incentives?.openTo ?? '2026-09-30',
     targetValue: 5_000_000,
-    name: 'September push',
+    name: 'This month — one brand',
     payoutRule: INCENTIVE_PAYOUT_RULE,
   }),
+  // Next month's team target, for the same reason: assigning the whole team into the period the
+  // example above just filled would collide with it on the second press.
   'incentives.targets.bulkAssign': (ctx) => ({
     'assignments[0].userId': ctx.users?.salesperson?.id,
+    brandId: DROP,
     metric: 'value',
-    periodFrom: '2026-09-01',
-    periodTo: '2026-09-30',
+    periodFrom: ctx.incentives?.nextFrom ?? '2026-10-01',
+    periodTo: ctx.incentives?.nextTo ?? '2026-10-31',
     targetValue: 5_000_000,
-    name: 'September push',
+    name: 'Next month — the whole team',
     payoutRule: INCENTIVE_PAYOUT_RULE,
+  }),
+  // A target that exists AND that this service's own login may read: RLS scopes a rep to its own
+  // rows, so the sales document names Rahul's and the delivery document Ganesh's.
+  'incentives.targets.get': (ctx, options) => ({ id: incentiveTargetFor(ctx, options) }),
+  'incentives.targets.refresh': (ctx, options) => ({ id: incentiveTargetFor(ctx, options) }),
+  // The target THIS document creates, never a seeded one: pressing the page through leaves the demo
+  // exactly as it was, and the next reader's `targets.upsert` puts the row back under the same id.
+  'incentives.targets.remove': (ctx) => ({
+    id: createdId('incentives.targets.upsert', 'id', slotOf(ctx, 'incentives.targets.upsert')),
+    reason: 'Superseded by the revised plan for this brand',
+  }),
+  'incentives.targets.list': (ctx) => ({
+    userId: DROP,
+    brandId: DROP,
+    metric: DROP,
+    activeOn: ctx.incentives?.activeOn,
+    activeOnly: true,
+  }),
+  'incentives.progress.mine': () => ({ activeOnly: true }),
+  // One metric, because ranking pieces against rupees is meaningless — the one the demo actually has
+  // open targets on, so the leaderboard is never an empty list.
+  'incentives.progress.team': (ctx) => ({
+    metric: ctx.incentives?.teamMetric ?? 'value',
+    brandId: DROP,
+    periodFrom: ctx.incentives?.openFrom,
+    periodTo: ctx.incentives?.openTo,
+  }),
+  // The (user, period) of the statement still on the owner's desk: recomputing it is a no-op that
+  // reproduces the same number, and the period matches its targets EXACTLY, which is what compute needs.
+  'incentives.statements.compute': (ctx) => ({
+    userId: ctx.incentives?.pendingUserId ?? ctx.users?.salesperson?.id,
+    periodFrom: ctx.incentives?.pendingFrom,
+    periodTo: ctx.incentives?.pendingTo,
+  }),
+  // `approve` signs the pending statement off and `reopen`, the very next operation in the document,
+  // puts it straight back — so a reader who presses every button leaves the review queue as it was.
+  'incentives.statements.approve': (ctx) => ({ id: ctx.incentives?.pendingStatementId }),
+  'incentives.statements.reopen': (ctx) => ({
+    id: ctx.incentives?.pendingStatementId,
+    reason: 'Recomputing after a target correction',
+  }),
+  'incentives.statements.get': (ctx, options) => ({ id: incentiveStatementFor(ctx, options) }),
+  'incentives.statements.list': () => ({
+    userId: DROP,
+    from: DROP,
+    to: DROP,
+    approvedOnly: DROP,
   }),
   // Pure and side-effect free: give the hypothetical achievement, never a target id (the schema
   // wants exactly one of the two, and a made-up target id would be a dead end in the document).
@@ -4333,6 +4556,9 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'claims.periods.list': ['periods'],
   'claims.register': ['from', 'to', 'groupBy'],
   'claims.reconcile.suggest': ['supplierId', 'amountPaise', 'tolerancePaise'],
+  'incentives.targets.list': ['activeOn', 'activeOnly'],
+  'incentives.progress.mine': ['activeOnly'],
+  'incentives.progress.team': ['metric', 'periodFrom', 'periodTo'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */

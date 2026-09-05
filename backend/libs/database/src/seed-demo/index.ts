@@ -11,6 +11,7 @@ import { seedClaims } from './claims.js'
 import { seedDelivery } from './delivery.js'
 import { seedDeliveryRoad } from './delivery-road.js'
 import { seedDocint } from './docint.js'
+import { seedIncentives } from './incentives.js'
 import { seedIntegrations } from './integrations.js'
 import { seedNotifications } from './notifications.js'
 import { seedPeople, type PeopleResult } from './people.js'
@@ -76,6 +77,10 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   // Last of all: the message log points at the orders, bills, deliveries and receipts every seed
   // above wrote, and reads the shops' opt-ins the retailers seed recorded (docs/plans/notifications.md §6).
   await seedNotifications(db, tenantId, retailersRes, sales, people)
+  // The leaf of the module chain: targets read back the orders, visits and receipts every seed above
+  // wrote, so a rep's progress bar, the leaderboard and the payout register all agree
+  // (docs/plans/incentives.md §6).
+  await seedIncentives(db, tenantId, people)
 
   if (opts.printSignIn ?? true) printSignInTable(tenantId, people)
 }

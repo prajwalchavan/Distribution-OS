@@ -30,3 +30,13 @@ export {
 } from './collections-register.js'
 export { ageingHistory } from './ageing-history.js'
 export { listOutstanding } from './receivables.queries.js'
+/**
+ * What one staff member collected in a window (coordination §3.1, slice 10): the source of a
+ * `collections` target's achievement. A plain function, so the incentives sweep in the worker
+ * imports it without Nest DI.
+ */
+export {
+  collectedByUser,
+  type CollectedByUserFilter,
+  type CollectedByUserRow,
+} from './collected-by-user.js'
