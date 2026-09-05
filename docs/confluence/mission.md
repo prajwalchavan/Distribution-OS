@@ -2,14 +2,14 @@
 
 ## Document Information
 
-| Property | Value |
-| --- | --- |
-| Document | Product Mission |
-| Product | Distribution OS |
-| Version | 2.0 |
-| Status | Active |
-| Last Updated | September 2026 |
-| Owner | Product Management |
+| Property     | Value              |
+| ------------ | ------------------ |
+| Document     | Product Mission    |
+| Product      | Distribution OS    |
+| Version      | 2.0                |
+| Status       | Active             |
+| Last Updated | September 2026     |
+| Owner        | Product Management |
 
 ---
 
@@ -39,12 +39,12 @@ Distribution OS exists to help distributors move beyond disconnected tools and m
 
 We aim to enable businesses to:
 
-* Operate efficiently with connected workflows.
-* Reduce manual effort and operational errors.
-* Gain real-time visibility into business performance.
-* Improve collaboration across teams.
-* Make faster, data-driven decisions.
-* Scale confidently as their business grows.
+- Operate efficiently with connected workflows.
+- Reduce manual effort and operational errors.
+- Gain real-time visibility into business performance.
+- Improve collaboration across teams.
+- Make faster, data-driven decisions.
+- Scale confidently as their business grows.
 
 The unit of sale and the unit of isolation is the **distributorship**. Decided 2026-09-05: one tenant is one distributorship for the pilot and v1; multi-branch operation is a v2 capability where each branch is its own tenant with an owner group view. Version 1.0 assumed branches inside one business; there is no branch entity in the product today.
 
@@ -54,21 +54,21 @@ The unit of sale and the unit of isolation is the **distributorship**. Decided 2
 
 Distribution OS is built for every participant in the distribution ecosystem. Decided 2026-09-04: **every role gets its own app**, and the manager and the accountant share one. Decided 2026-09-05: a seventh application, the platform console, serves Distribution OS staff. Each app is delivered on web, Android and iOS; the admin console is web only.
 
-| # | Application | Who signs in | Day-to-day value |
-| --- | --- | --- | --- |
-| 1 | Distribution OS - Owner | Owner | Knows the day before the day ends; clears approvals in seconds; sets prices, schemes and credit |
-| 2 | Distribution OS - Manager | Manager, Accountant | Runs the desk: order queue, goods received, billing, load-out approval, day-end, registers, Tally export |
-| 3 | Distribution OS - Sales | Salesperson | Ninety seconds in a doorway: a repeat order in three taps, priced and credit-checked before it is submitted |
-| 4 | Distribution OS - Warehouse | Warehouse staff | Counts, picks, packs and loads without typing; the invoice comes out of the pack |
-| 5 | Distribution OS - Delivery | Delivery crew | One-handed trip screen; proof of delivery and money collected at the door |
-| 6 | Distribution OS - Retailer | Retailer | One login across every distributor they buy from: bills, outstanding, reorder, pay online, track delivery |
-| 7 | Distribution OS - Admin | Distribution OS staff | Onboards distributors, holds plans and subscription state, grants time-boxed audited support access |
+| #   | Application                 | Who signs in          | Day-to-day value                                                                                            |
+| --- | --------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | Distribution OS - Owner     | Owner                 | Knows the day before the day ends; clears approvals in seconds; sets prices, schemes and credit             |
+| 2   | Distribution OS - Manager   | Manager, Accountant   | Runs the desk: order queue, goods received, billing, load-out approval, day-end, registers, Tally export    |
+| 3   | Distribution OS - Sales     | Salesperson           | Ninety seconds in a doorway: a repeat order in three taps, priced and credit-checked before it is submitted |
+| 4   | Distribution OS - Warehouse | Warehouse staff       | Counts, picks, packs and loads without typing; the invoice comes out of the pack                            |
+| 5   | Distribution OS - Delivery  | Delivery crew         | One-handed trip screen; proof of delivery and money collected at the door                                   |
+| 6   | Distribution OS - Retailer  | Retailer              | One login across every distributor they buy from: bills, outstanding, reorder, pay online, track delivery   |
+| 7   | Distribution OS - Admin     | Distribution OS staff | Onboards distributors, holds plans and subscription state, grants time-boxed audited support access         |
 
 Three persona corrections against version 1.0:
 
-* **Sales Manager, Warehouse Manager, Delivery Manager and Data Entry Operator do not get apps.** Decided 2026-09-04: the first three are the `manager` role in the manager app; the fourth is designed away, because orders arrive from the rep or the shop and the invoice is derived from the pack rather than re-keyed.
-* **The Retailer is not a future persona.** Decided 2026-09-04 and confirmed 2026-09-05: the retailer app is in v1, and the retailer may place orders, not only view them.
-* **The Super Administrator now has a product.** Decided 2026-09-05: the platform console is in v1. Until then, tenants existed only through seed scripts.
+- **Sales Manager, Warehouse Manager, Delivery Manager and Data Entry Operator do not get apps.** Decided 2026-09-04: the first three are the `manager` role in the manager app; the fourth is designed away, because orders arrive from the rep or the shop and the invoice is derived from the pack rather than re-keyed.
+- **The Retailer is not a future persona.** Decided 2026-09-04 the retailer gets an app of their own; **decided 2026-09-05** that the retailer may place orders, not only view them.
+- **The Super Administrator now has a product.** Decided 2026-09-05: the platform console is in v1. Until then, tenants existed only through seed scripts.
 
 The **Manufacturer** remains a future persona. No manufacturer surface is planned for v1.
 
@@ -170,12 +170,12 @@ Decided 2026-09-04: the distributor's own name and logo appear inside the apps a
 
 # Core Values
 
-* **Customer-Centric** — product decisions begin with a real business problem, validated with the pilot distributor.
-* **Business-Driven** — technology exists to support business outcomes, not to add complexity.
-* **Simplicity** — complex processes are made easier by design, not by training.
-* **Transparency** — accurate, real-time information; anything derived is computed, never stored stale.
-* **Continuous Improvement** — the product improves from field feedback and operating data.
-* **Innovation with Purpose** — new technology is adopted when it removes work a person is doing by hand.
+- **Customer-Centric** — product decisions begin with a real business problem, validated with the pilot distributor.
+- **Business-Driven** — technology exists to support business outcomes, not to add complexity.
+- **Simplicity** — complex processes are made easier by design, not by training.
+- **Transparency** — accurate, real-time information; anything derived is computed, never stored stale.
+- **Continuous Improvement** — the product improves from field feedback and operating data.
+- **Innovation with Purpose** — new technology is adopted when it removes work a person is doing by hand.
 
 ---
 
@@ -183,14 +183,14 @@ Decided 2026-09-04: the distributor's own name and logo appear inside the apps a
 
 Distribution OS fulfills its mission by providing:
 
-* End-to-end distribution management on one order-to-cash loop.
-* Six role applications plus a platform console, each on web, Android and iOS (console on web).
-* One backend service per application, so a role can only reach the endpoints its own service serves.
-* Real-time registers today and chart-ready dashboards for the owner as reporting lands.
-* Workflow automation where the rule is unambiguous: auto-confirmation inside limits, oldest-expiry picking, oldest-bill allocation.
-* Role-based access enforced at the endpoint and again in the database.
-* Cloud-ready, stateless scalability on a single tenant-isolated database.
-* Coexistence with what the distributor already runs: a generic importer for any source, and brand-DMS bills captured and linked rather than re-invoiced.
+- End-to-end distribution management on one order-to-cash loop.
+- Six role applications plus a platform console, each on web, Android and iOS (console on web).
+- One backend service per application, so a role can only reach the endpoints its own service serves.
+- Real-time registers today and chart-ready dashboards for the owner as reporting lands.
+- Workflow automation where the rule is unambiguous: auto-confirmation inside limits, oldest-expiry picking, oldest-bill allocation.
+- Role-based access enforced at the endpoint and again in the database.
+- Cloud-ready, stateless scalability on a single tenant-isolated database.
+- Coexistence with what the distributor already runs: a generic importer for any source, and brand-DMS bills captured and linked rather than re-invoiced.
 
 Decided 2026-09-05: positioning stays **multi-industry with FMCG first** — pharma, electricals, dairy and agri are addressable markets, while the product stays FMCG-shaped until a customer in a second industry exists.
 
@@ -200,14 +200,14 @@ Decided 2026-09-05: positioning stays **multi-industry with FMCG first** — pha
 
 Every new feature should support at least one of the following outcomes:
 
-* Simplify business operations.
-* Reduce manual work.
-* Improve operational visibility.
-* Increase business efficiency.
-* Strengthen collaboration.
-* Support business growth.
-* Enhance customer experience.
-* Enable better decision-making.
+- Simplify business operations.
+- Reduce manual work.
+- Improve operational visibility.
+- Increase business efficiency.
+- Strengthen collaboration.
+- Support business growth.
+- Enhance customer experience.
+- Enable better decision-making.
 
 If a proposed feature does not contribute to these outcomes, its priority should be reconsidered.
 
@@ -221,21 +221,21 @@ Stating the boundary is part of the mission. We will not build payments aggregat
 
 Honest status as of 5 September 2026, from the build log:
 
-* **Backend:** 13 modules verified against the live database at the last recorded checkpoint — 1,254 tests and 844 endpoint calls with 0 broken. The delivery module was verified later the same day. Modules for document intake, integrations, claims, notifications, reporting and incentives are in progress or queued.
-* **Applications:** no app screen is built yet. The founder's sequence is backend first, then the six apps one at a time. The screen inventory (26 owner, 21 manager, 14 sales, 12 warehouse, 12 delivery, 13 retailer) and the visual system are settled.
-* **Reporting and graphs:** registers are live; the owner dashboard and chart series are planned, not built.
-* **AI features:** decided for v1 on 2026-09-05; not yet built.
-* **Pilot:** Tarsun Enterprises, Kalyan West. Demo data will cover three distributors, staff under each, and shops linked to more than one distributor.
+- **Backend:** As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). Modules for document intake, integrations, claims, notifications, reporting, incentives, the AI module and the platform console are in progress or queued.
+- **Applications:** no app screen is built yet. The founder's sequence is backend first, then the six apps one at a time. The screen inventory (26 owner, 21 manager, 14 sales, 12 warehouse, 12 delivery, 13 retailer) and the visual system are settled.
+- **Reporting and graphs:** registers are live; the owner dashboard and chart series are planned, not built.
+- **AI features:** decided for v1 on 2026-09-05; not yet built.
+- **Pilot:** Tarsun Enterprises, Kalyan West. Demo data will cover three distributors, staff under each, and shops linked to more than one distributor.
 
 ---
 
 # Sources
 
-| Statement area | Source in the repository |
-| --- | --- |
-| Apps, roles, services, dated decisions | `docs/22-source-of-truth.md` §2, §8, §9 |
-| Order-to-cash and inbound stock loops | `docs/22-source-of-truth.md` §4, §5, §6 |
-| Sign-in and permissions | `docs/22-source-of-truth.md` §7 |
-| Per-app screens and value | `docs/23-app-screens-and-api-gaps.md` |
+| Statement area                          | Source in the repository                 |
+| --------------------------------------- | ---------------------------------------- |
+| Apps, roles, services, dated decisions  | `docs/22-source-of-truth.md` §2, §8, §9  |
+| Order-to-cash and inbound stock loops   | `docs/22-source-of-truth.md` §4, §5, §6  |
+| Sign-in and permissions                 | `docs/22-source-of-truth.md` §7          |
+| Per-app screens and value               | `docs/23-app-screens-and-api-gaps.md`    |
 | Persona corrections against version 1.0 | `docs/24-confluence-alignment.md` §3, §6 |
-| Build status and numbers | `docs/18-build-log.md` |
+| Build status and numbers                | `docs/18-build-log.md`                   |
