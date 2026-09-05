@@ -29,3 +29,10 @@ export { DeliveryModule, deliveryPerformanceRows } from './modules/delivery/inde
 export { SyncModule, SyncRegistry, SyncRejection } from './modules/sync/index.js'
 export { FilesModule, FilesService } from './modules/files/index.js'
 export { DocintModule } from './modules/docint/index.js'
+export {
+  IntegrationsModule,
+  IntegrationsService,
+  ExportJobsService,
+  TallyService,
+  registerExportRenderer,
+} from './modules/integrations/index.js'

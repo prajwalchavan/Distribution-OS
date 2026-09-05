@@ -13,3 +13,7 @@ infra/docker
 # `pnpm smoke` writes its per-service JSON here (gitignored output, not source), so a run of the
 # harness before `pnpm format:check` must not turn into a formatting failure.
 .smoke
+
+# The local object-storage driver's files (uploads, rendered exports — JSON, XML, CSV, XLSX): output
+# of the running product and of `pnpm smoke`, never source (see platform/object-storage.ts).
+.storage

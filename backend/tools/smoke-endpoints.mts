@@ -1099,6 +1099,12 @@ interface RunChain {
   tripDayOffset: number | null
   stopWithBill: string | null
   deliveryId: string | null
+  /**
+   * The body this run sent to `integrations.imports.create` (the seeded file key and profile the
+   * published example re-stages), so `imports.cancel` can stage a throwaway import of its own and
+   * abandon THAT — never the demo's staged job, which is what the published example points at.
+   */
+  importCreateBody: Record<string, unknown> | null
 }
 
 /** Runs later than its position in the document, because it invalidates what earlier ones need. */
@@ -1915,6 +1921,35 @@ async function planFor(
       if (!userId) return { skip: 'no staff member other than the signed-in user' }
       return { pinned: { userId } }
     }
+
+    // --- integrations: a cancelled import is terminal and the idempotent seed never recreates one, so
+    // pointing this at the demo's staged party master (the published example) would take the owner
+    // app's review screen away for good on the first `--destructive` run — and every later lane's
+    // `imports.create` would then have no seeded file to re-stage and land `failed`. The run stages a
+    // throwaway import of its own from the same file and profile and abandons THAT one instead.
+    case 'integrations.imports.cancel': {
+      if (!isAllowed(permissionFor(op.operationId), ctx.role)) return {}
+      const created = chain.importCreateBody
+      if (!created) return { skip: 'no throwaway import: integrations.imports.create did not run' }
+      const id = stableUuid(`${RUN_NONCE}:${target.name}:import-to-cancel`)
+      const staged = await ctx.post('/integrations/imports', {
+        idempotencyKey: `smoke:${target.name}:import-to-cancel:${RUN_NONCE}`,
+        id,
+        source: created.source,
+        target: created.target,
+        sourceObjectKey: created.sourceObjectKey,
+        fileName: 'pnpm-smoke-import-to-cancel.csv',
+        ...(created.profileId !== undefined ? { profileId: created.profileId } : {}),
+      })
+      if (staged.status !== 200)
+        return {
+          skip: `could not stage an import to cancel: integrations.imports.create → HTTP ${String(staged.status)} ${messageOf(staged.body)}`,
+        }
+      return {
+        pathParams: { id },
+        pinned: { id, reason: 'pnpm smoke: a file that was never right' },
+      }
+    }
     default:
       return {}
   }
@@ -2167,6 +2202,7 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
     tripDayOffset: null,
     stopWithBill: null,
     deliveryId: null,
+    importCreateBody: null,
   }
   const results: Result[] = []
 
@@ -2363,6 +2399,9 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
     if (op.operationId === 'delivery.deliveries.record') {
       const b = res.body as { item?: { id?: string } } | null
       if (b?.item?.id) chain.deliveryId = b.item.id
+    }
+    if (op.operationId === 'integrations.imports.create' && body && typeof body === 'object') {
+      chain.importCreateBody = body as Record<string, unknown>
     }
   }
 

@@ -1,6 +1,19 @@
 import { createHash } from 'node:crypto'
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import {
   approvals,
   bargainRequests,
@@ -10,7 +23,10 @@ import {
   deliveryChallans,
   devices,
   documents,
+  exportJobs,
   extractions,
+  importJobs,
+  importRows,
   reviewSessions,
   skuMatchCandidates,
   grnLines,
@@ -52,6 +68,7 @@ import { contract, type ProcedureSummary } from '@dos/contracts'
 import { BACK_OFFICE } from '../platform/authz.js'
 import { DB } from '../platform/db.module.js'
 import { sample, type ZodLike } from './sample.js'
+import { BUILTIN_PROFILES, builtinProfileId, rowIdFor } from '../modules/integrations/index.js'
 
 /**
  * Real request examples for the OpenAPI document.
@@ -190,6 +207,22 @@ export interface DocintExamples {
   rerunnable?: string | undefined
   /** The GSTIN of the example supplier, for the QR the capture example carries. */
   supplierGstin?: string | undefined
+}
+
+/** The generic importer and the exports as the seed left them (docs/plans/integrations.md §6). */
+export interface IntegrationsExamples {
+  /** The staged party master with rows waiting for a human: preview / rows / review / cancel. */
+  stagedJobId?: string | undefined
+  /** Its source file in the object store: what a fresh `imports.create` stages again. */
+  sourceObjectKey?: string | undefined
+  /** The row of that job with a garbled mobile, and the shop it really is (pinned by the review example). */
+  reviewRowNo?: number | undefined
+  reviewRetailerId?: string | undefined
+  reviewPhone?: string | undefined
+  /** A finished Tally export: get / download-url / sync-ledger. */
+  exportId?: string | undefined
+  exportFrom?: string | undefined
+  exportTo?: string | undefined
 }
 
 /**
@@ -336,6 +369,8 @@ export interface ExampleContext {
   linkedReceiptId?: string | undefined
   /** The inbound inbox (docint): the rows every docint example points at. */
   docint?: DocintExamples | undefined
+  /** The import wizard and the exports screen (integrations). */
+  integrations?: IntegrationsExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -482,8 +517,93 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectPlatformGaps(tx, tenant.id, ctx)
   await collectDelivery(tx, tenant.id, ctx)
   await collectDocint(tx, tenant.id, ctx)
+  await collectIntegrations(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/** The wizard as the seed left it: a staged party master with a row to review, a finished Tally export. */
+async function collectIntegrations(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: IntegrationsExamples = {}
+  ctx.integrations = out
+  const [staged] = await tx
+    .select({ id: importJobs.id, sourceObjectKey: importJobs.sourceObjectKey })
+    .from(importJobs)
+    .where(
+      and(
+        eq(importJobs.tenantId, tenantId),
+        eq(importJobs.target, 'party_master'),
+        eq(importJobs.status, 'staged'),
+      ),
+    )
+    .orderBy(asc(importJobs.createdAt))
+    .limit(1)
+  if (!staged) {
+    // No staged party master (the founder cancelled it from Swagger, or the seed has not run): the
+    // wizard example still needs a file that EXISTS in the object store, so it re-stages the newest
+    // party master that ever parsed — never a made-up key, which would land the whole chain `failed`.
+    const [parsed] = await tx
+      .select({ sourceObjectKey: importJobs.sourceObjectKey })
+      .from(importJobs)
+      .where(
+        and(
+          eq(importJobs.tenantId, tenantId),
+          eq(importJobs.kind, 'tradeezee'),
+          eq(importJobs.target, 'party_master'),
+          isNotNull(importJobs.totalRows),
+        ),
+      )
+      .orderBy(desc(importJobs.createdAt))
+      .limit(1)
+    out.sourceObjectKey = parsed?.sourceObjectKey
+  }
+  if (staged) {
+    out.stagedJobId = staged.id
+    out.sourceObjectKey = staged.sourceObjectKey
+    const [row] = await tx
+      .select({ rowNo: importRows.rowNo, raw: importRows.raw })
+      .from(importRows)
+      .where(and(eq(importRows.importJobId, staged.id), eq(importRows.status, 'error')))
+      .orderBy(asc(importRows.rowNo))
+      .limit(1)
+    if (row) {
+      out.reviewRowNo = row.rowNo
+      const name = (row.raw as Record<string, string> | null)?.['Party Name']
+      if (name) {
+        const [shop] = await tx
+          .select({ id: retailers.id, phone: retailers.phone })
+          .from(retailers)
+          .where(
+            and(
+              eq(retailers.tenantId, tenantId),
+              eq(retailers.name, name),
+              eq(retailers.active, true),
+            ),
+          )
+          .limit(1)
+        out.reviewRetailerId = shop?.id
+        out.reviewPhone = shop?.phone
+      }
+    }
+  }
+  const [exported] = await tx
+    .select({ id: exportJobs.id, params: exportJobs.params })
+    .from(exportJobs)
+    .where(
+      and(
+        eq(exportJobs.tenantId, tenantId),
+        eq(exportJobs.kind, 'tally_xml'),
+        eq(exportJobs.status, 'succeeded'),
+      ),
+    )
+    .orderBy(asc(exportJobs.createdAt))
+    .limit(1)
+  if (exported) {
+    out.exportId = exported.id
+    const params = exported.params as { from?: string; to?: string } | null
+    out.exportFrom = params?.from
+    out.exportTo = params?.to
+  }
 }
 
 /** The inbound inbox as the seed left it (docs/plans/docint.md §6). */
@@ -1655,6 +1775,21 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       writeOffIds,
     ),
     'delivery.trips.create': await freeSlots('delivery.trips.create', 'id', tripIds),
+    'integrations.imports.create': await freeSlots(
+      'integrations.imports.create',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: importJobs.id })
+              .from(importJobs)
+              .where(
+                and(eq(importJobs.tenantId, tenantId), inArray(importJobs.id, [...candidates])),
+              )
+          ).map((row) => row.id),
+        ),
+    ),
     'billing.invoices.issueForPack': await freeSlots(
       'billing.invoices.issueForPack',
       'id',
@@ -1899,7 +2034,21 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
     return ctx.docint?.matchExtractionId ?? ctx.docint?.extractionId
   if (httpPath.startsWith('/docint/review-sessions/'))
     return Object.values(ctx.docint?.openSessions ?? {})[0]?.sessionId
+  // The wizard's own job: every `{id}` under /integrations/imports/ is the import THIS document
+  // creates, so the chain create → preview → map → dry run → review → commit → confirm reads as one story.
+  if (httpPath.startsWith('/integrations/imports/')) return createdImportId(ctx)
+  if (httpPath.startsWith('/integrations/exports/')) return ctx.integrations?.exportId
   return undefined
+}
+
+/** The import job the create example stages, on this service's lane. */
+function createdImportId(ctx: ExampleContext): string {
+  return createdId('integrations.imports.create', 'id', slotOf(ctx, 'integrations.imports.create'))
+}
+
+/** The built-in profile's mapping as data, for the map-columns example (the same guess the seed staged with). */
+function builtinMapping(key: string): unknown {
+  return BUILTIN_PROFILES.find((p) => p.key === key)?.mapping
 }
 
 /**
@@ -2887,6 +3036,137 @@ const OVERRIDES: Record<
     supplierId: DROP,
     kind: DROP,
   }),
+  // claims (contract landed ahead of module 7; no service mounts it yet): `evidence.attach` takes
+  // EXACTLY ONE of `documentId` / `objectKey`, which the sampler cannot know. The file path is the
+  // `files.uploadUrl` key of the claim (`domain: 'claim'`, entityId = the claim id in the path). The
+  // claims slice replaces this with a real seeded claim when its module and demo data land.
+  'claims.evidence.attach': (ctx) => {
+    const claimId = docUuid('claims.evidence.attach#id')
+    return {
+      id: claimId,
+      evidenceId: createdId('claims.evidence.attach', 'evidenceId'),
+      documentId: DROP,
+      objectKey: `tenant/${ctx.tenantId ?? 'tenant'}/claims/${claimId}/evidence-1.jpg`,
+      kind: 'damage_photo',
+      caption: 'Damaged carton at the door',
+    }
+  },
+  // integrations: the wizard walks ONE import per service lane — the seeded TradeEzee party file is
+  // staged again under a fresh job id, mapped, dry-run, its garbled row pinned to the shop it really is,
+  // committed and confirmed — under keys that move with the create slot so the steps replay together.
+  'integrations.imports.create': (ctx) => ({
+    id: createdImportId(ctx),
+    source: 'tradeezee',
+    target: 'party_master',
+    sourceObjectKey:
+      ctx.integrations?.sourceObjectKey ??
+      `tenant/${ctx.tenantId ?? 'tenant'}/import/${createdImportId(ctx)}/tradeezee-party-master.csv`,
+    fileName: 'tradeezee-party-master-sept.csv',
+    profileId: ctx.tenantId ? builtinProfileId(ctx.tenantId, 'tradeezee-party-master') : DROP,
+    mapping: DROP,
+    hasHeaderRow: DROP,
+    sheetName: DROP,
+  }),
+  'integrations.imports.list': () => ({
+    source: DROP,
+    target: DROP,
+    status: DROP,
+    from: DROP,
+    to: DROP,
+  }),
+  'integrations.imports.preview': () => ({ rows: 10 }),
+  'integrations.imports.setMapping': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.setMapping',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+    mapping: builtinMapping('tradeezee-party-master'),
+    saveAsProfile: DROP,
+  }),
+  'integrations.imports.dryRun': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.dryRun',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+  }),
+  'integrations.imports.rows.list': () => ({ status: DROP, plan: DROP, problemsOnly: DROP }),
+  'integrations.imports.rows.review': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.rows.review',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+    rowId: rowIdFor(createdImportId(ctx), ctx.integrations?.reviewRowNo ?? 9),
+    retailerId: ctx.integrations?.reviewRetailerId ?? ctx.retailerId,
+    variantId: DROP,
+    values: ctx.integrations?.reviewPhone
+      ? [{ field: 'phone', value: ctx.integrations.reviewPhone.replace(/^\+91/, '') }]
+      : DROP,
+    skip: DROP,
+    rememberCode: true,
+  }),
+  'integrations.imports.commit': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.commit',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+    skipUnresolved: true,
+  }),
+  'integrations.imports.confirm': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.confirm',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+  }),
+  'integrations.imports.rollback': (ctx) => ({
+    idempotencyKey: docsIdempotencyKey(
+      'integrations.imports.rollback',
+      slotOf(ctx, 'integrations.imports.create'),
+    ),
+    reason: 'the file was last month’s; importing the right one',
+  }),
+  // Cancel abandons the SEEDED staged job (the wizard's own job is confirmed by then).
+  'integrations.imports.cancel': (ctx) => ({
+    id: ctx.integrations?.stagedJobId ?? createdImportId(ctx),
+    reason: 'wrong file',
+  }),
+  'integrations.profiles.list': () => ({ source: DROP, target: DROP }),
+  'integrations.profiles.upsert': () => ({
+    id: docUuid('integrations.profiles.upsert#id'),
+    name: 'Docs: TradeEzee parties',
+    source: 'tradeezee',
+    target: 'party_master',
+    mapping: builtinMapping('tradeezee-party-master'),
+    hasHeaderRow: true,
+    sheetName: DROP,
+  }),
+  'integrations.exports.request': (ctx) => ({
+    id: docUuid('integrations.exports.request#id'),
+    kind: 'tally_xml',
+    from: ctx.integrations?.exportFrom ?? '2026-08-01',
+    to: ctx.integrations?.exportTo ?? '2026-08-31',
+    voucherTypes: ['sales', 'receipts', 'purchases'],
+    supplyType: DROP,
+    retailerId: DROP,
+    supplierId: DROP,
+    invoiceIds: DROP,
+    tallyCompanyName: DROP,
+  }),
+  'integrations.exports.list': () => ({ kind: DROP, status: DROP, from: DROP, to: DROP }),
+  'integrations.tally.mappings.list': () => ({ entityType: DROP, q: DROP }),
+  // The id follows the entity: the same item replays, another item gets a row of its own.
+  'integrations.tally.mappings.upsert': (ctx) => ({
+    id: docUuid(`integrations.tally.mappings.upsert#id#${ctx.variantId ?? 'variant'}`),
+    entityType: 'stock_item',
+    entityId: ctx.variantId,
+    tallyName: ctx.productSearch ? `${ctx.productSearch} (Tally)` : 'Campa Cola 750 ml',
+    tallyParent: 'Campa',
+  }),
+  'integrations.tally.syncLedger.list': (ctx) => ({
+    docType: DROP,
+    exportJobId: ctx.integrations?.exportId ?? DROP,
+    from: DROP,
+    to: DROP,
+  }),
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
     allocations: DROP,
@@ -2937,6 +3217,12 @@ function createsRowNote(ctx: ExampleContext, procedurePath: string, what: string
 
 /** Caveats that survive into the document as `x-dos-note`. */
 const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
+  'integrations.imports.create': (ctx) =>
+    `Stages the seeded TradeEzee party file again as a NEW import (${createdImportId(ctx)}); the mapping, dry-run, review, commit and confirm examples below all point at it, in that order. A second Execute replays; re-fetch \`/docs/openapi.json?fresh=1\` for the next job.`,
+  'integrations.imports.commit': () =>
+    'Applies the matched rows for real (shops created or updated). Reversible with rollback until confirm.',
+  'integrations.imports.rollback': () =>
+    'Undoes a committed, unconfirmed import. The wizard job of this document is confirmed by then, so this answers 409; call it on a committed job.',
   'auth.refresh': () => 'Paste the refreshToken from POST /auth/login; it rotates on every use.',
   'auth.logout': () => 'Paste the refreshToken from POST /auth/login.',
   'auth.switchTenant': () => 'Paste the refreshToken from POST /auth/login.',
@@ -3176,6 +3462,8 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'docint.documents.pageUrl': ['pageNo'],
   'docint.extractions.list': ['includeResult'],
   'docint.stats.summary': ['from', 'to'],
+  'integrations.imports.preview': ['rows'],
+  'integrations.tally.syncLedger.list': ['exportJobId'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */

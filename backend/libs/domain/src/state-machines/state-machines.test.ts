@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   documentMachine,
+  importJobMachine,
   invoiceMachine,
   ONDC_STATUS,
   orderMachine,
@@ -125,5 +126,35 @@ describe('state machines', () => {
     expect(reviewSessionMachine.next('open', 'submit')).toBe('submitted')
     expect(reviewSessionMachine.next('open', 'abandon')).toBe('abandoned')
     expect(reviewSessionMachine.can('submitted', 'abandon')).toBe(false)
+  })
+
+  /**
+   * The eight states are exactly the `job_status` enum values an import job may hold
+   * (schema/integrations.ts). A run is reversible only between commit and confirm (docs/17 §D7), and a
+   * running commit is never cancelled mid-batch.
+   */
+  it('walks an import from upload to the sign-off, reversible only before it', () => {
+    let s = importJobMachine.initial
+    for (const e of ['stage', 'commit', 'committed', 'confirm'] as const) {
+      s = importJobMachine.next(s, e)
+    }
+    expect(s).toBe('confirmed')
+    expect(importJobMachine.isTerminal(s)).toBe(true)
+    expect(importJobMachine.next('committed', 'rollback')).toBe('rolled_back')
+    expect(importJobMachine.can('confirmed', 'rollback')).toBe(false)
+    expect(importJobMachine.can('running', 'cancel')).toBe(false)
+    expect(importJobMachine.can('staged', 'confirm')).toBe(false)
+    expect(importJobMachine.next('staged', 'cancel')).toBe('cancelled')
+    expect(() => importJobMachine.next('rolled_back', 'commit')).toThrow(TransitionError)
+    expect(Object.keys(importJobMachine.transitions).sort()).toEqual([
+      'cancelled',
+      'committed',
+      'confirmed',
+      'failed',
+      'queued',
+      'rolled_back',
+      'running',
+      'staged',
+    ])
   })
 })

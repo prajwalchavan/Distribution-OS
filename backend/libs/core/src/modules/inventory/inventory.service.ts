@@ -117,6 +117,18 @@ const balanceKey = (lotId: string, locationId: string) => `${lotId}:${locationId
 
 @Injectable()
 export class InventoryService {
+  /** Location names for another module's labels (integrations' Tally godown mapping), one query. */
+  async locationNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ id: locations.id, name: locations.name })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), inArray(locations.id, unique)))
+    return new Map(rows.map((r) => [r.id, r.name]))
+  }
+
   /** Append ledger rows and move the balances in the caller's transaction. All-or-nothing with the caller. */
   async post(tx: Db, entries: LedgerEntryInput[]): Promise<PostResult> {
     const { tenantId, actorId } = currentTenant()

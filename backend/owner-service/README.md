@@ -244,6 +244,27 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
 | GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
 | GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |
+| POST | `/integrations/imports` | Register an uploaded CSV / XLSX for a target and stage its rows | owner, manager |
+| GET | `/integrations/imports` | Import jobs (the wizard history) | owner, manager, accountant |
+| GET | `/integrations/imports/{id}` | One import job with its mapping, detected columns, row counts and last dry run | owner, manager, accountant |
+| GET | `/integrations/imports/{id}/preview` | The first N rows as read, with the detected columns and a suggested field each | owner, manager, accountant |
+| POST | `/integrations/imports/{id}/mapping` | Map file columns to target fields; optionally save the mapping as a named profile | owner, manager |
+| POST | `/integrations/imports/{id}/dry-run` | Validate and match every row; answer the create / update / skip diff, create nothing | owner, manager |
+| GET | `/integrations/imports/{id}/rows` | The rows of an import with their status, plan, match and error (the review grid) | owner, manager, accountant |
+| POST | `/integrations/imports/{id}/rows/{rowId}/review` | Resolve one row: pin a shop or an item, correct a value, or skip it | owner, manager |
+| POST | `/integrations/imports/{id}/commit` | Apply the matched rows through the owning services (reversible until confirmed) | owner, manager |
+| POST | `/integrations/imports/{id}/confirm` | Sign off a committed import; it can no longer be rolled back | owner, manager |
+| POST | `/integrations/imports/{id}/rollback` | Reverse a committed, unconfirmed import (invoices cancelled, journals reversed) | owner, manager |
+| POST | `/integrations/imports/{id}/cancel` | Abandon a queued or staged import | owner, manager |
+| GET | `/integrations/import-profiles` | Saved column mappings per source and target (built-in ones included) | owner, manager, accountant |
+| POST | `/integrations/import-profiles` | Create or update a named mapping profile | owner, manager |
+| POST | `/integrations/exports` | Queue a Tally XML, GSTR-1, register, e-way bill or e-invoice export for a window | owner, manager, accountant |
+| GET | `/integrations/exports` | Export jobs of every kind (claims and reports included) | owner, manager, accountant |
+| GET | `/integrations/exports/{id}` | One export job and its status | owner, manager, accountant |
+| GET | `/integrations/exports/{id}/download-url` | A short-lived read URL for a rendered export | owner, manager, accountant |
+| GET | `/integrations/tally/mappings` | How our items, godowns, units, voucher types and parties are named in Tally | owner, manager, accountant |
+| POST | `/integrations/tally/mappings` | Set the Tally name (and parent) of one entity | owner, manager, accountant |
+| GET | `/integrations/tally/sync-ledger` | Which documents an export already pushed to Tally, with their GUIDs | owner, manager, accountant |
 
 ### GET `/health/ping`
 
@@ -30752,6 +30773,2772 @@ curl "http://localhost:3001/docint/stats?from=2026-09-04&to=2026-09-04&supplierI
 }
 ```
 
+### POST `/integrations/imports`
+
+Register an uploaded CSV / XLSX for a target and stage its rows · contract `integrations.imports.create`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `source` | tradeezee | marg | busy | tally | fieldassist | excel | other | yes |
+| `target` | party_master | item_master | opening_outstanding | sales_register | brand_dms_invoices | yes |
+| `sourceObjectKey` | string | yes |
+| `fileName` | string | no |
+| `profileId` | uuid | no |
+| `mapping` | object | no |
+| `hasHeaderRow` | boolean | no |
+| `sheetName` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "source": "tradeezee",
+  "target": "party_master",
+  "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+  "fileName": "text",
+  "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+  "mapping": {
+    "columns": [
+      {
+        "column": "Party Name",
+        "field": "partyCode"
+      }
+    ],
+    "constants": [],
+    "dateFormat": "auto",
+    "amountUnit": "rupees"
+  },
+  "hasHeaderRow": true,
+  "sheetName": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/imports`
+
+Import jobs (the wizard history) · contract `integrations.imports.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `source` | tradeezee | marg | busy | tally | fieldassist | excel | other | no |
+| `target` | party_master | item_master | opening_outstanding | sales_register | brand_dms_invoices | no |
+| `status` | queued | staged | running | committed | confirmed | rolled_back | failed | cancelled | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/imports?source=tradeezee&target=party_master&status=queued&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "source": "tradeezee",
+      "target": "party_master",
+      "status": "queued",
+      "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+      "fileName": "text",
+      "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+      "hasHeaderRow": true,
+      "sheetName": "text",
+      "totalRows": 1,
+      "okRows": 1,
+      "errorRows": 1,
+      "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "finishedAt": "2026-09-04T10:30:00.000Z",
+      "committedAt": "2026-09-04T10:30:00.000Z",
+      "confirmedAt": "2026-09-04T10:30:00.000Z",
+      "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+      "rolledBackAt": "2026-09-04T10:30:00.000Z",
+      "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+      "rollbackReason": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "error": "text",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/imports/{id}`
+
+One import job with its mapping, detected columns, row counts and last dry run · contract `integrations.imports.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "mapping": {
+      "columns": [
+        {
+          "column": "Party Name",
+          "field": "partyCode"
+        }
+      ],
+      "constants": [],
+      "dateFormat": "auto",
+      "amountUnit": "rupees"
+    },
+    "columns": [
+      {
+        "index": 1,
+        "header": "Party Name",
+        "samples": [
+          "text"
+        ],
+        "suggestedField": "partyCode"
+      }
+    ],
+    "rowCounts": {
+      "staged": 1,
+      "matched": 1,
+      "needsReview": 1,
+      "committed": 1,
+      "skipped": 1,
+      "error": 1
+    },
+    "dryRun": {
+      "status": "running",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "finishedAt": "2026-09-04T10:30:00.000Z",
+      "rows": 1,
+      "willCreate": 1,
+      "willUpdate": 1,
+      "willSkip": 1,
+      "needsReview": 1,
+      "errors": 1,
+      "amountPaise": 4000,
+      "sampleErrors": [
+        {
+          "rowNo": 1,
+          "field": "partyCode",
+          "message": "Confirmed on phone with the shopkeeper"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/imports/{id}/preview`
+
+The first N rows as read, with the detected columns and a suggested field each · contract `integrations.imports.preview`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `rows` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/preview?rows=20" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "columns": [
+    {
+      "index": 1,
+      "header": "Party Name",
+      "samples": [
+        "text"
+      ],
+      "suggestedField": "partyCode"
+    }
+  ],
+  "rows": [
+    {
+      "rowNo": 1,
+      "cells": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      }
+    }
+  ],
+  "totalRows": 1,
+  "sheetNames": [
+    "text"
+  ],
+  "hasHeaderRow": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/mapping`
+
+Map file columns to target fields; optionally save the mapping as a named profile · contract `integrations.imports.setMapping`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `mapping` | object | yes |
+| `saveAsProfile` | object | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/mapping" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "mapping": {
+    "columns": [
+      {
+        "column": "Party Name",
+        "field": "partyCode"
+      }
+    ],
+    "constants": [],
+    "dateFormat": "auto",
+    "amountUnit": "rupees"
+  },
+  "saveAsProfile": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "name": "Sharma Kirana Store"
+  }
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "mapping": {
+      "columns": [
+        {
+          "column": "Party Name",
+          "field": "partyCode"
+        }
+      ],
+      "constants": [],
+      "dateFormat": "auto",
+      "amountUnit": "rupees"
+    },
+    "columns": [
+      {
+        "index": 1,
+        "header": "Party Name",
+        "samples": [
+          "text"
+        ],
+        "suggestedField": "partyCode"
+      }
+    ],
+    "rowCounts": {
+      "staged": 1,
+      "matched": 1,
+      "needsReview": 1,
+      "committed": 1,
+      "skipped": 1,
+      "error": 1
+    },
+    "dryRun": {
+      "status": "running",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "finishedAt": "2026-09-04T10:30:00.000Z",
+      "rows": 1,
+      "willCreate": 1,
+      "willUpdate": 1,
+      "willSkip": 1,
+      "needsReview": 1,
+      "errors": 1,
+      "amountPaise": 4000,
+      "sampleErrors": [
+        {
+          "rowNo": 1,
+          "field": "partyCode",
+          "message": "Confirmed on phone with the shopkeeper"
+        }
+      ]
+    }
+  },
+  "profile": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "name": "Sharma Kirana Store",
+    "source": "tradeezee",
+    "target": "party_master",
+    "mapping": {
+      "columns": [
+        {
+          "column": "Party Name",
+          "field": "partyCode"
+        }
+      ],
+      "constants": [],
+      "dateFormat": "auto",
+      "amountUnit": "rupees"
+    },
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "builtIn": true,
+    "usedCount": 1,
+    "lastUsedAt": "2026-09-04T10:30:00.000Z",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/dry-run`
+
+Validate and match every row; answer the create / update / skip diff, create nothing · contract `integrations.imports.dryRun`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/dry-run" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z",
+    "mapping": {
+      "columns": [
+        {
+          "column": "Party Name",
+          "field": "partyCode"
+        }
+      ],
+      "constants": [],
+      "dateFormat": "auto",
+      "amountUnit": "rupees"
+    },
+    "columns": [
+      {
+        "index": 1,
+        "header": "Party Name",
+        "samples": [
+          "text"
+        ],
+        "suggestedField": "partyCode"
+      }
+    ],
+    "rowCounts": {
+      "staged": 1,
+      "matched": 1,
+      "needsReview": 1,
+      "committed": 1,
+      "skipped": 1,
+      "error": 1
+    },
+    "dryRun": {
+      "status": "running",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "finishedAt": "2026-09-04T10:30:00.000Z",
+      "rows": 1,
+      "willCreate": 1,
+      "willUpdate": 1,
+      "willSkip": 1,
+      "needsReview": 1,
+      "errors": 1,
+      "amountPaise": 4000,
+      "sampleErrors": [
+        {
+          "rowNo": 1,
+          "field": "partyCode",
+          "message": "Confirmed on phone with the shopkeeper"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/imports/{id}/rows`
+
+The rows of an import with their status, plan, match and error (the review grid) · contract `integrations.imports.rows.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `status` | staged | matched | needs_review | committed | skipped | error | no |
+| `plan` | create | update | skip | no |
+| `problemsOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/rows?status=staged&plan=create&problemsOnly=true&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "rowNo": 1,
+      "raw": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "normalized": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "status": "staged",
+      "plan": "create",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "candidates": [
+        {
+          "entityType": "retailer",
+          "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+          "label": "text",
+          "scoreBps": 500
+        }
+      ],
+      "entityType": "text",
+      "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+      "error": "text",
+      "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+      "reviewedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/rows/{rowId}/review`
+
+Resolve one row: pin a shop or an item, correct a value, or skip it · contract `integrations.imports.rows.review`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `rowId` | uuid | yes |
+| `retailerId` | uuid | no |
+| `variantId` | uuid | no |
+| `values` | object[] | no |
+| `skip` | boolean | no |
+| `rememberCode` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/rows/01a06de8-3cac-72d1-85d1-76dbdb3dbb96/review" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "rowId": "01a06de8-3cac-72d1-85d1-76dbdb3dbb96",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+  "values": [
+    {
+      "field": "partyCode",
+      "value": "text"
+    }
+  ],
+  "skip": true,
+  "rememberCode": true
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "rowNo": 1,
+    "raw": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "normalized": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "status": "staged",
+    "plan": "create",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+    "candidates": [
+      {
+        "entityType": "retailer",
+        "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+        "label": "text",
+        "scoreBps": 500
+      }
+    ],
+    "entityType": "text",
+    "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+    "error": "text",
+    "reviewedBy": "01a06d3d-06ff-74e5-8006-5a096d4a4631",
+    "reviewedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/commit`
+
+Apply the matched rows through the owning services (reversible until confirmed) · contract `integrations.imports.commit`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `skipUnresolved` | boolean | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/commit" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "skipUnresolved": false
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/confirm`
+
+Sign off a committed import; it can no longer be rolled back · contract `integrations.imports.confirm`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/confirm" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/rollback`
+
+Reverse a committed, unconfirmed import (invoices cancelled, journals reversed) · contract `integrations.imports.rollback`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/rollback" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  },
+  "reversedRows": 1,
+  "reversedByEntity": {
+    "line1": "12 Station Road",
+    "city": "Kalyan West",
+    "pincode": "421301"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/imports/{id}/cancel`
+
+Abandon a queued or staged import · contract `integrations.imports.cancel`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/imports/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "source": "tradeezee",
+    "target": "party_master",
+    "status": "queued",
+    "profileId": "01a06d9b-3e8d-75f3-8bb6-38d0bba87997",
+    "fileName": "text",
+    "sourceObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "totalRows": 1,
+    "okRows": 1,
+    "errorRows": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "committedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedBy": "01a06d16-c1ca-7463-8b33-8441a8e5c0cd",
+    "rolledBackAt": "2026-09-04T10:30:00.000Z",
+    "rolledBackBy": "01a06da5-a394-765c-80a0-4b97ba9027b6",
+    "rollbackReason": null,
+    "cancelledAt": null,
+    "cancelReason": null,
+    "error": "text",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/import-profiles`
+
+Saved column mappings per source and target (built-in ones included) · contract `integrations.profiles.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `source` | tradeezee | marg | busy | tally | fieldassist | excel | other | no |
+| `target` | party_master | item_master | opening_outstanding | sales_register | brand_dms_invoices | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/import-profiles?source=tradeezee&target=party_master&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "name": "Sharma Kirana Store",
+      "source": "tradeezee",
+      "target": "party_master",
+      "mapping": {
+        "columns": [
+          {
+            "column": "Party Name",
+            "field": "partyCode"
+          }
+        ],
+        "constants": [],
+        "dateFormat": "auto",
+        "amountUnit": "rupees"
+      },
+      "hasHeaderRow": true,
+      "sheetName": "text",
+      "builtIn": true,
+      "usedCount": 1,
+      "lastUsedAt": "2026-09-04T10:30:00.000Z",
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/import-profiles`
+
+Create or update a named mapping profile · contract `integrations.profiles.upsert`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `name` | string | yes |
+| `source` | tradeezee | marg | busy | tally | fieldassist | excel | other | yes |
+| `target` | party_master | item_master | opening_outstanding | sales_register | brand_dms_invoices | yes |
+| `mapping` | object | yes |
+| `hasHeaderRow` | boolean | no |
+| `sheetName` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/import-profiles" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "name": "Sharma Kirana Store",
+  "source": "tradeezee",
+  "target": "party_master",
+  "mapping": {
+    "columns": [
+      {
+        "column": "Party Name",
+        "field": "partyCode"
+      }
+    ],
+    "constants": [],
+    "dateFormat": "auto",
+    "amountUnit": "rupees"
+  },
+  "hasHeaderRow": true,
+  "sheetName": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "name": "Sharma Kirana Store",
+    "source": "tradeezee",
+    "target": "party_master",
+    "mapping": {
+      "columns": [
+        {
+          "column": "Party Name",
+          "field": "partyCode"
+        }
+      ],
+      "constants": [],
+      "dateFormat": "auto",
+      "amountUnit": "rupees"
+    },
+    "hasHeaderRow": true,
+    "sheetName": "text",
+    "builtIn": true,
+    "usedCount": 1,
+    "lastUsedAt": "2026-09-04T10:30:00.000Z",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/exports`
+
+Queue a Tally XML, GSTR-1, register, e-way bill or e-invoice export for a window · contract `integrations.exports.request`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `kind` | tally_xml | gstr1_json | sales_register_xlsx | outstanding_xlsx | eway_bill_json | einvoice_json | yes |
+| `from` | date | yes |
+| `to` | date | yes |
+| `voucherTypes` | sales | receipts | purchases[] | no |
+| `supplyType` | B2B | B2C | all | no |
+| `retailerId` | uuid | no |
+| `supplierId` | uuid | no |
+| `invoiceIds` | uuid[] | no |
+| `tallyCompanyName` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/exports" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "kind": "tally_xml",
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "voucherTypes": [
+    "sales"
+  ],
+  "supplyType": "B2B",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+  "invoiceIds": [
+    "01a06dea-de0c-7ad3-8a15-120111eb3642"
+  ],
+  "tallyCompanyName": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "credit_limit",
+    "status": "queued",
+    "params": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "rowCount": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "fileName": "text",
+    "mimeType": "text",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "error": "text",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/exports`
+
+Export jobs of every kind (claims and reports included) · contract `integrations.exports.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `kind` | string | no |
+| `status` | queued | running | succeeded | failed | cancelled | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/exports?kind=credit_limit&status=queued&from=2026-09-04&to=2026-09-04&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "kind": "credit_limit",
+      "status": "queued",
+      "params": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "rowCount": 1,
+      "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+      "fileName": "text",
+      "mimeType": "text",
+      "objectKey": "docs/2026/09/invoice-0042.jpg",
+      "error": "text",
+      "startedAt": "2026-09-04T10:30:00.000Z",
+      "finishedAt": "2026-09-04T10:30:00.000Z",
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/exports/{id}`
+
+One export job and its status · contract `integrations.exports.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/exports/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "kind": "credit_limit",
+    "status": "queued",
+    "params": {
+      "line1": "12 Station Road",
+      "city": "Kalyan West",
+      "pincode": "421301"
+    },
+    "rowCount": 1,
+    "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+    "fileName": "text",
+    "mimeType": "text",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "error": "text",
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "finishedAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/exports/{id}/download-url`
+
+A short-lived read URL for a rendered export · contract `integrations.exports.downloadUrl`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/exports/01a06d17-0be7-794a-8dab-9b14cf78673b/download-url" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "status": "queued",
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "url": "docs/2026/09/invoice-0042.jpg",
+  "expiresAt": "2026-09-04T10:30:00.000Z",
+  "fileName": "text",
+  "mimeType": "text"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/tally/mappings`
+
+How our items, godowns, units, voucher types and parties are named in Tally · contract `integrations.tally.mappings.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `entityType` | stock_item | godown | unit | voucher_type | party | ledger | no |
+| `q` | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/tally/mappings?entityType=stock_item&q=campa&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "entityType": "stock_item",
+      "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+      "entityLabel": "text",
+      "tallyName": "text",
+      "tallyParent": "text",
+      "updatedAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/integrations/tally/mappings`
+
+Set the Tally name (and parent) of one entity · contract `integrations.tally.mappings.upsert`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `entityType` | stock_item | godown | unit | voucher_type | party | ledger | yes |
+| `entityId` | string | yes |
+| `tallyName` | string | yes |
+| `tallyParent` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/integrations/tally/mappings" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "entityType": "stock_item",
+  "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+  "tallyName": "text",
+  "tallyParent": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "entityType": "stock_item",
+    "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+    "entityLabel": "text",
+    "tallyName": "text",
+    "tallyParent": "text",
+    "updatedAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/integrations/tally/sync-ledger`
+
+Which documents an export already pushed to Tally, with their GUIDs · contract `integrations.tally.syncLedger.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `docType` | invoice | credit_note | receipt | supplier_invoice | no |
+| `exportJobId` | uuid | no |
+| `from` | date | no |
+| `to` | date | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/integrations/tally/sync-ledger?docType=invoice&exportJobId=01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e&from=2026-09-04&to=2026-09-04&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "docType": "invoice",
+      "docId": "01a06d8e-518e-7f4e-8e43-105d492831d2",
+      "tallyGuid": "text",
+      "tallyVoucherId": "01a06df6-fdad-784f-890a-ed177d884aa7",
+      "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+      "exportedAt": "2026-09-04T10:30:00.000Z",
+      "contentHash": "text"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -30976,3 +33763,24 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `docint.review.submit` | ✓ | – | – | – | – | – | – |
 | `docint.queue.list` | ✓ | – | – | – | – | – | – |
 | `docint.stats.summary` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.create` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.list` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.get` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.preview` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.setMapping` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.dryRun` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.rows.list` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.rows.review` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.commit` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.confirm` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.rollback` | ✓ | – | – | – | – | – | – |
+| `integrations.imports.cancel` | ✓ | – | – | – | – | – | – |
+| `integrations.profiles.list` | ✓ | – | – | – | – | – | – |
+| `integrations.profiles.upsert` | ✓ | – | – | – | – | – | – |
+| `integrations.exports.request` | ✓ | – | – | – | – | – | – |
+| `integrations.exports.list` | ✓ | – | – | – | – | – | – |
+| `integrations.exports.get` | ✓ | – | – | – | – | – | – |
+| `integrations.exports.downloadUrl` | ✓ | – | – | – | – | – | – |
+| `integrations.tally.mappings.list` | ✓ | – | – | – | – | – | – |
+| `integrations.tally.mappings.upsert` | ✓ | – | – | – | – | – | – |
+| `integrations.tally.syncLedger.list` | ✓ | – | – | – | – | – | – |

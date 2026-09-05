@@ -5,6 +5,11 @@ loadDotenv()
 import { DOCUMENT_RENDER_EVENT } from '@dos/core/documents'
 import { logger } from './logger.js'
 import { registerDocintJobs } from './jobs/docint.js'
+import {
+  INTEGRATIONS_SWEEP,
+  registerIntegrationsJobs,
+  sweepIntegrations,
+} from './jobs/integrations.js'
 import { OUTBOX_RELAY, registerOutboxHandler, relayOutbox } from './jobs/outbox-relay.js'
 import { handlePdfRenderJob, PDF_RENDER, renderPending } from './jobs/pdf-render.js'
 import { RETENTION, runRetention } from './jobs/retention.js'
@@ -24,6 +29,14 @@ await boss.start()
 // docint's `docint.document.submitted` starts the four-step pipeline (jobs/docint.ts).
 registerOutboxHandler(DOCUMENT_RENDER_EVENT, (e) => handlePdfRenderJob(db, e.payload))
 await registerDocintJobs(boss, db)
+// Integrations (coordination §3.5): the importer's phases on `imports.run`, every export kind on the
+// one `exports.render` queue, and a minute sweep for hand-offs the relay missed.
+await registerIntegrationsJobs(boss, db)
+await boss.createQueue(INTEGRATIONS_SWEEP)
+await boss.work(INTEGRATIONS_SWEEP, async () => {
+  await sweepIntegrations(db, boss)
+})
+await boss.schedule(INTEGRATIONS_SWEEP, '* * * * *')
 await boss.createQueue(OUTBOX_RELAY)
 await boss.work(OUTBOX_RELAY, async () => {
   await relayOutbox(db)
@@ -46,7 +59,7 @@ await boss.work(PDF_RENDER, async ([job]) => {
   await renderPending(db)
 })
 logger.info(
-  'worker started: outbox relay every minute (PDF render + docint handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match',
+  'worker started: outbox relay every minute (PDF render, docint, integrations handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep',
 )
 
 const shutdown = async (): Promise<void> => {

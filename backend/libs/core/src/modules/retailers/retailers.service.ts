@@ -54,6 +54,24 @@ import {
   STAFF,
   writeAudit,
 } from '../../platform/index.js'
+import {
+  deactivateRetailer,
+  findBeatByName,
+  linkExternalCode,
+  matchRetailer,
+  recordPurchaseHistory,
+  removeExternalCodes,
+  removePurchaseHistory,
+  restoreRetailer,
+  retailerLabels,
+  upsertRetailerFromImport,
+  type PurchaseHistoryRow,
+  type RetailerImportResult,
+  type RetailerImportValues,
+  type RetailerMatch,
+  type RetailerProbe,
+  type RetailerSnapshot,
+} from './import.js'
 import { findOrCreateIdentity, nextRetailerCode } from './retailers.helpers.js'
 import {
   pickCredit,
@@ -110,6 +128,61 @@ const CREDIT_KEYS = [
 @Injectable()
 export class RetailersService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+
+  // =============================================================================================================
+  // the surface the generic importer calls (coordination §3.9 / §4: integrations → retailers), inside
+  // the caller's transaction. Thin delegations to `import.ts`; nothing here sets a credit term.
+  // =============================================================================================================
+
+  /** Exact external code → phone → GSTIN → one clear trigram name; two close names are never picked. */
+  matchRetailer(tx: Db, probe: RetailerProbe, limit?: number): Promise<RetailerMatch> {
+    return matchRetailer(tx, probe, limit)
+  }
+
+  /** Create or update a shop from a party-master row; returns the `before` snapshot an update replaced. */
+  upsertFromImport(
+    tx: Db,
+    input: { retailerId: string | null; newId: string; values: RetailerImportValues },
+  ): Promise<RetailerImportResult> {
+    return upsertRetailerFromImport(tx, input)
+  }
+
+  restoreFromImport(tx: Db, id: string, before: RetailerSnapshot): Promise<void> {
+    return restoreRetailer(tx, id, before)
+  }
+
+  deactivateFromImport(tx: Db, id: string): Promise<void> {
+    return deactivateRetailer(tx, id)
+  }
+
+  /** `external_party_codes`: "code X in system S is this shop" (docs/17 A7). */
+  linkExternalCode(
+    tx: Db,
+    input: { id?: string | undefined; system: string; code: string; retailerId: string },
+  ): Promise<{ id: string; created: boolean; previousRetailerId: string | null }> {
+    return linkExternalCode(tx, input)
+  }
+
+  removeExternalCodes(tx: Db, ids: readonly string[]): Promise<number> {
+    return removeExternalCodes(tx, ids)
+  }
+
+  /** `retailer_purchase_history` (docs/17 A11): migrated bill lines, no ledger effect. */
+  recordPurchaseHistory(tx: Db, rows: readonly PurchaseHistoryRow[]): Promise<number> {
+    return recordPurchaseHistory(tx, rows)
+  }
+
+  removePurchaseHistory(tx: Db, importJobId: string): Promise<number> {
+    return removePurchaseHistory(tx, importJobId)
+  }
+
+  findBeatByName(tx: Db, name: string): Promise<string | null> {
+    return findBeatByName(tx, name)
+  }
+
+  labels(tx: Db, ids: readonly string[]): ReturnType<typeof retailerLabels> {
+    return retailerLabels(tx, ids)
+  }
 
   /** Staff see every retailer of the tenant; the retailer role only its own linked rows, without code/tier/credit (RLS + toView). */
   async list(input: ListIn): Promise<ListOut> {

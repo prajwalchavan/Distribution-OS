@@ -5,6 +5,7 @@ import {
   bargainRequests,
   createDb,
   createPool,
+  importJobs,
   retailerLinks,
   salesOrders,
   supplierInvoices,
@@ -326,6 +327,20 @@ describe('doc examples', () => {
     expect(describeExamples({})).toContain('No demo data found')
   })
 
+  // A contract that lands ahead of its module still needs a working example: `claims.evidence.attach`
+  // refines "exactly one of documentId / objectKey", which no sampler can satisfy on its own. The
+  // example carries the tenant-scoped upload key of the claim in its path and no document id.
+  it('gives claims.evidence.attach exactly one of documentId or objectKey', () => {
+    const tenantId = '01a06c94-5a6c-752a-ab3c-65716a47362f'
+    const example = buildExamples(PROCEDURES, { tenantId }).get('claims.evidence.attach')
+    const body = example?.body ?? {}
+    expect(example?.pathParams.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect('documentId' in body).toBe(false)
+    expect(body.objectKey).toBe(
+      `tenant/${tenantId}/claims/${String(example?.pathParams.id)}/evidence-1.jpg`,
+    )
+  })
+
   it('names an operation the way the OpenAPI document does', () => {
     expect(routeKey('get', '/orders/{id}')).toBe('GET /orders/{id}')
   })
@@ -377,11 +392,14 @@ describe('every POST, on every service that serves it', () => {
    */
   // `delivery.vehicles.upsert` echoes the demo vehicle; `delivery.deliveries.record` completes the
   // planned row the stop created (its id is the stop's, docs/plans/delivery.md), never a new one.
+  // `integrations.tally.mappings.upsert` is an upsert on (entityType, entityId): its id follows the
+  // ENTITY, so the same item replays and another item gets a row of its own, never a clash on the id.
   const EXISTING_ROW_ID = new Set([
     'retailers.updateOwn',
     'files.uploadUrl',
     'delivery.vehicles.upsert',
     'delivery.deliveries.record',
+    'integrations.tally.mappings.upsert',
   ])
 
   it('keys every mutation to the id it creates, so a second Execute replays', () => {
@@ -590,6 +608,28 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       expect(row.variantId).toBe(pack?.variantId)
     }
     await pool3.end()
+  }, 30_000)
+
+  // The wizard example re-stages a file that must EXIST in the object store: the key of a party
+  // master that parsed once (`total_rows` set), whether or not a staged job is left in the demo.
+  // A made-up key stages `failed` and every later step of the chain answers 409 (found by the gate
+  // after `pnpm smoke --destructive` cancelled the seeded staged job).
+  it('re-stages a party-master file that really parsed, never a made-up key', async () => {
+    const pool5 = createPool(url ?? '')
+    const db = createDb(pool5)
+    const ctx = await new DocExamplesService(db).load()
+    const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'] })
+    const key = String(examples.get('integrations.imports.create')?.body?.sourceObjectKey)
+    expect(key.startsWith(`tenant/${ctx.tenantId ?? ''}/import/`)).toBe(true)
+    const parsed = await withSystem(db, (tx: Db) =>
+      tx
+        .select({ id: importJobs.id, totalRows: importJobs.totalRows })
+        .from(importJobs)
+        .where(and(eq(importJobs.sourceObjectKey, key), isNotNull(importJobs.totalRows)))
+        .limit(1),
+    )
+    expect(parsed, key).toHaveLength(1)
+    await pool5.end()
   }, 30_000)
 
   it('gives the shopkeeper app a shop that is really linked to its sign-in', async () => {

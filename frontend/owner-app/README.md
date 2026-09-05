@@ -251,3 +251,24 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
 | GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
 | GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |
+| POST | `/integrations/imports` | Register an uploaded CSV / XLSX for a target and stage its rows | owner, manager |
+| GET | `/integrations/imports` | Import jobs (the wizard history) | owner, manager, accountant |
+| GET | `/integrations/imports/{id}` | One import job with its mapping, detected columns, row counts and last dry run | owner, manager, accountant |
+| GET | `/integrations/imports/{id}/preview` | The first N rows as read, with the detected columns and a suggested field each | owner, manager, accountant |
+| POST | `/integrations/imports/{id}/mapping` | Map file columns to target fields; optionally save the mapping as a named profile | owner, manager |
+| POST | `/integrations/imports/{id}/dry-run` | Validate and match every row; answer the create / update / skip diff, create nothing | owner, manager |
+| GET | `/integrations/imports/{id}/rows` | The rows of an import with their status, plan, match and error (the review grid) | owner, manager, accountant |
+| POST | `/integrations/imports/{id}/rows/{rowId}/review` | Resolve one row: pin a shop or an item, correct a value, or skip it | owner, manager |
+| POST | `/integrations/imports/{id}/commit` | Apply the matched rows through the owning services (reversible until confirmed) | owner, manager |
+| POST | `/integrations/imports/{id}/confirm` | Sign off a committed import; it can no longer be rolled back | owner, manager |
+| POST | `/integrations/imports/{id}/rollback` | Reverse a committed, unconfirmed import (invoices cancelled, journals reversed) | owner, manager |
+| POST | `/integrations/imports/{id}/cancel` | Abandon a queued or staged import | owner, manager |
+| GET | `/integrations/import-profiles` | Saved column mappings per source and target (built-in ones included) | owner, manager, accountant |
+| POST | `/integrations/import-profiles` | Create or update a named mapping profile | owner, manager |
+| POST | `/integrations/exports` | Queue a Tally XML, GSTR-1, register, e-way bill or e-invoice export for a window | owner, manager, accountant |
+| GET | `/integrations/exports` | Export jobs of every kind (claims and reports included) | owner, manager, accountant |
+| GET | `/integrations/exports/{id}` | One export job and its status | owner, manager, accountant |
+| GET | `/integrations/exports/{id}/download-url` | A short-lived read URL for a rendered export | owner, manager, accountant |
+| GET | `/integrations/tally/mappings` | How our items, godowns, units, voucher types and parties are named in Tally | owner, manager, accountant |
+| POST | `/integrations/tally/mappings` | Set the Tally name (and parent) of one entity | owner, manager, accountant |
+| GET | `/integrations/tally/sync-ledger` | Which documents an export already pushed to Tally, with their GUIDs | owner, manager, accountant |

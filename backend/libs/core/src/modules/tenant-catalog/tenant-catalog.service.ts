@@ -39,6 +39,21 @@ import {
   STAFF,
 } from '../../platform/index.js'
 import { variantSearchPredicate, variantSummaryColumns } from '../catalog/index.js'
+import {
+  matchVariant,
+  restoreListing,
+  sellSidePackSizes,
+  supplierLabels,
+  tallyExportSourceByVariant,
+  unlistListing,
+  upsertListingFromImport,
+  variantLabels,
+  type ListingImportResult,
+  type ListingImportValues,
+  type ListingSnapshot,
+  type VariantMatch,
+  type VariantProbe,
+} from './import.js'
 
 type ListIn = z.infer<typeof TenantCatalogListInput>
 type ListOut = z.infer<typeof TenantCatalogListOutput>
@@ -69,6 +84,53 @@ const listingColumns = {
 @Injectable()
 export class TenantCatalogService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+
+  // =============================================================================================================
+  // the surface the generic importer calls (coordination §4: integrations → tenant-catalog), inside the
+  // caller's transaction. Thin delegations to `import.ts`; nothing here proposes a global product.
+  // =============================================================================================================
+
+  /** Exact EAN → this tenant's alias → one clear trigram name over the global catalog. */
+  matchVariant(tx: Db, probe: VariantProbe, limit?: number): Promise<VariantMatch> {
+    return matchVariant(tx, probe, limit)
+  }
+
+  /** List a variant for the tenant, or update the alias / case size of the listing it has. */
+  upsertListingFromImport(
+    tx: Db,
+    input: { variantId: string; newId: string; values: ListingImportValues },
+  ): Promise<ListingImportResult> {
+    return upsertListingFromImport(tx, input)
+  }
+
+  restoreListing(tx: Db, id: string, before: ListingSnapshot): Promise<void> {
+    return restoreListing(tx, id, before)
+  }
+
+  unlistListing(tx: Db, id: string): Promise<void> {
+    return unlistListing(tx, id)
+  }
+
+  /** Sell-side pack size (override else printed case size), HSN and MRP per variant. */
+  sellSidePackSizes(tx: Db, variantIds: readonly string[]): ReturnType<typeof sellSidePackSizes> {
+    return sellSidePackSizes(tx, variantIds)
+  }
+
+  /** Which brands the Tally export must leave out, per variant (`tenant_brands.tally_export_source`). */
+  tallyExportSourceByVariant(
+    tx: Db,
+    variantIds: readonly string[],
+  ): Promise<Map<string, 'dos' | 'brand_dms' | 'none'>> {
+    return tallyExportSourceByVariant(tx, variantIds)
+  }
+
+  variantLabels(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+    return variantLabels(tx, ids)
+  }
+
+  supplierLabels(tx: Db, ids: readonly string[]): ReturnType<typeof supplierLabels> {
+    return supplierLabels(tx, ids)
+  }
 
   /** Variants this tenant sells (listedOnly) or the whole catalog with the tenant overlay (for the owner's listing screen). */
   async list(input: ListIn): Promise<ListOut> {

@@ -42,7 +42,11 @@ export {
 } from './credit-notes.service.js'
 export {
   RegistersService,
+  type CreditNoteForExport,
   type CreditNoteLineForPeriod,
+  type ExportFilter,
+  type InvoiceForExport,
+  type InvoiceLineForExport,
   type InvoiceLineForPeriod,
   type PeriodFilter,
   type SchemeSpendRow,
@@ -52,3 +56,8 @@ export {
  * `creditNotes.get` answer with (docs/23 §8.2, platform-gaps slice). Plain functions, no Nest DI.
  */
 export { loadCreditNoteDocument, loadInvoiceDocument } from './documents.js'
+/**
+ * The billing stack for the worker (no Nest DI): integrations' commit run and export renderers call
+ * `BillingService` / `RegistersService` methods from a pg-boss process (coordination §3.9).
+ */
+export { createBillingStack, type BillingStack } from './worker-services.js'

@@ -1,8 +1,39 @@
 # Build log — where we are, what is next
 
-## RESUME HERE (updated 2026-09-05 15:00 IST, session 3)
+## RESUME HERE (updated 2026-09-05 18:40 IST, session 3)
 
-**MODULE 5 DONE — docint (2026-09-05 15:00 IST), verified by the independent gate; NEXT: integrations (step 6 of 10) is starting.**
+**MODULE 6 DONE — integrations (2026-09-05 18:40 IST), verified by the independent gate; NEXT: claims (step 7 of 10) is starting.**
+The gate ran the full chain on the founder's database: `pnpm install` ("already up to date", lockfile unchanged), `turbo run build typecheck lint
+test --force` (48/48 tasks, **1626 tests**), a second `turbo run test --force` (1626 again, 16/16) and, after the gate's own fixes, the full
+chain once more (48/48, **1627 tests** with the new spec cases), `docs:readme:check` + `format:check` clean
+(both workspaces), `pnpm smoke` **1124 calls · 0 BROKEN**, `pnpm smoke --destructive` (1124 · 0 BROKEN), `pnpm db:seed`, `pnpm smoke` again
+(1124 · 0 BROKEN), every service `/health` + `/docs/openapi.json` checked against coordination §6 (integrations' 21 procedures on owner and
+manager only, `x-roles` owner/manager/accountant; none on auth, sales, warehouse, delivery or retailer; claims mounted nowhere yet), live role
+gates (accountant reads + exports 200 and every import write 403; salesperson 403 on :3001; manager `commit` of `opening_outstanding` 403 "only
+the owner"; owner dry run of the seeded outstanding file = 6 bills, ₹1,09,805.50), `pnpm db:seed` twice with identical row counts across all
+128 tables (the 8 seeded import jobs stay 4 confirmed / 2 staged / 1 cancelled / 1 failed), and `pnpm db:migrate` a no-op at 24 migrations
+(0023 `integrations_wizard`, generated, expand-only: three `job_status` values + the wizard columns). Two defects found and fixed by the gate
+(each with a test so it cannot return): (1) `examples.spec` failed 4 cases because the claims contract landed with no `OVERRIDES` entry for
+`claims.evidence.attach` ("exactly one of documentId or objectKey") — `docs/examples.ts` now gives it the claim's `files.uploadUrl` key and no
+document id, asserted by a new spec case; (2) **`pnpm smoke --destructive` took the owner app's import review screen away for good**: the
+published `imports.cancel` example cancelled the SEEDED staged party master (a cancelled job is terminal and the idempotent seed never
+recreates it), so the next lane's `imports.create` had no seeded file to re-stage and landed `failed` with every later wizard step a 409 —
+the same class as the delivery gate's TRIP-NEXT. The harness now stages a throwaway import of its own from the same file and profile and
+cancels THAT (`chain.importCreateBody`), `collectIntegrations` falls back to the newest party master that ever parsed (never a made-up key),
+a DB-backed spec asserts the wizard example's `sourceObjectKey` belongs to a job with `total_rows` set, and the founder's seeded job
+`72cdae27…` was restored to `staged` by hand. Carried forward from the implementer, none blocking: the retailers demo seed writes
+`external_party_codes` under system `field_assist` (underscore) while the importer's source key is `fieldassist` (the integrations seed adds
+its own `fieldassist` rows; unify later); `INTEGRATIONS_INLINE_JOBS` defaults to inline outside production (set `0` with the worker running);
+rollback is one transaction (fine for the reversible window, could move to the worker for a 50k-row run); built-in vendor profiles are written
+on first use per tenant (`ensureBuiltinProfiles`), not by onboarding — coordination §7 question; coordination §2 should record 0023 as
+integrations' migration and §3.9 the additions to retailers (`import.ts`), tenant-catalog (`import.ts`), billing (`cancelImported`,
+`externalInvoiceNumbersOnFile`, `invoicesForExport`, `creditNotesForExport`, `createBillingStack`), receivables (`entryIdByRef`,
+`receiptsForExport`), procurement (`listForExport`), inventory (`locationNames`), platform (`csv.ts renderCsv`); docs/23 O21/O22/M13 call
+lists use the contract's names (`rows.review`, `exports.request`, GET `preview`, POST `dryRun`). Integrations' slice (21 procedures,
+`modules/integrations/**`, `@dos/core/integrations` worker subpath, `importJobMachine`, migration 0023, seed `integrations.ts`, worker queues
+`imports.run` / `exports.render` + sweep) is in the working tree — **commit the snapshot before starting claims.**
+
+**Earlier (MODULE 5 DONE — docint, 2026-09-05 15:00 IST, verified by the independent gate).**
 The gate ran the full chain on the founder's database: `pnpm install` ("already up to date", lockfile unchanged), `turbo run build typecheck lint
 test --force` (48/48 tasks, **1550 tests**) and a second `turbo run test --force` (1550 again, 16/16), `docs:readme:check` + `format:check` clean
 (both workspaces), `pnpm smoke` **1082 calls · 0 BROKEN**, `pnpm smoke --destructive` (1082 · 0 BROKEN), `pnpm db:seed`, `pnpm smoke` again
@@ -299,7 +330,8 @@ Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `d
 | 3b platform gaps (docs/23 in built modules, files + PDF, accountant scope, manager load-sheet approval) | ✅ verified (2026-09-05, 1254 tests, smoke 844/0 broken) | after backend    |
 | 4 delivery (vehicles + consents, trips, stops, doorstep deliveries + POD, collections, van sales, expenses, settlement, GPS; migrations 0014/0015; 32 procedures on owner/manager/warehouse/delivery/retailer; sync handlers for trip_stops, deliveries, pod_evidence, collections, trip_expenses; seed-demo `delivery-road.ts`; gate fixes: turbo `concurrency: 4`, delivery spec fixtures in a hook, `packConfigs.upsert` id clash → 409 + self-healing example, smoke `trips.cancel` on its own throwaway plan) | ✅ verified (2026-09-05, 1442 tests, smoke 1004/0 broken ×3, seed idempotent over 126 tables) | after backend    |
 | 5 docint (inbound-bill pipeline: capture → QR decode/verify → engine → validators → SKU cascade → single-writer review → approve into a supplier-invoice DRAFT via procurement's new `SupplierInvoiceService.createInTx`, never stock/lot/cost/journal; `documentMachine` + `reviewSessionMachine` in @dos/domain; 26 procedures on owner/manager/warehouse; `@dos/core/docint` DI-free pipeline subpath with a deterministic stub engine and a raw-HTTP Anthropic vision adapter (`DOCINT_ENGINE`, `DOCINT_INLINE_JOBS`); sync handlers for documents + document_pages; worker: real outbox relay (`registerOutboxHandler`, `FOR UPDATE SKIP LOCKED`, backoff, dead-letter — migration 0020) + pg-boss queues docint.qr-read/extract/validate/match; seed-demo `docint.ts` 11 documents in every state) | ✅ verified (2026-09-05, 1550 tests ×2, smoke 1082/0 broken ×3 incl. --destructive, seed idempotent over 127 tables, worker booted live: 1145 renders + 104 docint events relayed, 0 dead-lettered) | after backend    |
-| 6 integrations · 7 claims · 8 notifications · 9 reporting · 10 incentives                                | ⏳ chained, one at a time                                | after backend    |
+| 6 integrations (the GENERIC mapped importer, docs/17 §D7: upload → create → preview → map/save profile → dry run → review → commit → confirm | rollback, CSV + XLSX (dependency-free reader/writer), five targets party_master / item_master / opening_outstanding (owner-only, bill by bill, balanced OPENING entries) / sales_register (no ledger effect) / brand_dms_invoices (one bill per invoice number, no stock, overlaps skipped); built-in vendor profiles as data (TradeEzee, Marg, Busy, Tally, FieldAssist); matching by external code → phone/GSTIN → trigram name, EAN → alias → name, never a guess; per-row commit transactions keyed `import:<job>:<rowNo>` with before/effects snapshots and a one-transaction rollback through `invoiceMachine` + mirror journals; `importJobMachine` in @dos/domain; the single `export_jobs` owner + `exports.render` renderer registry (`registerExportRenderer`): Tally XML with brand-DMS lines excluded and stable GUIDs in `tally_sync_ledger`, GSTR-1 JSON, sales-register / outstanding XLSX + CSV twins, e-way / e-invoice JSON stubs; Tally mappings; 21 procedures on owner + manager (accountant reads + exports); migration 0023; worker queues `imports.run` / `exports.render` + minute sweep, `INTEGRATIONS_INLINE_JOBS`; seed `integrations.ts` 8 jobs in every state with real files in the object store, 40 purchase-history rows, external codes, Tally mappings, a rendered Tally export + sync rows, 2 queued exports; gate fixes: `claims.evidence.attach` docs example, `imports.cancel` on a throwaway import + parsed-file fallback for the wizard example) | ✅ verified (2026-09-05, 1626 tests ×2 then 1627, smoke 1124/0 broken ×3 incl. --destructive, seed idempotent over 128 tables) | after backend    |
+| 7 claims · 8 notifications · 9 reporting · 10 incentives                                                | ⏳ chained, one at a time                                | after backend    |
 | 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                          | —                |
 | six apps (layout A Ledger, design system being finalised)                                               | —                                                        | ⏳ after backend |
 

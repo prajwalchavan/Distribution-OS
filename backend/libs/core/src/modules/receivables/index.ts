@@ -2,6 +2,7 @@ export { ReceivablesModule } from './receivables.module.js'
 export {
   ReceivablesService,
   type CreditNoteForPosting,
+  type ReceiptForExport,
   type InvoiceForPosting,
   type RecordReceiptInput,
   type RecordReceiptResult,

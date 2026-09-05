@@ -276,6 +276,24 @@ function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
   }
 }
 
+/** A receipt as the Tally receipt voucher reads it (integrations, slice 6). */
+export interface ReceiptForExport {
+  id: string
+  receiptNo: string | null
+  retailerId: string
+  mode: string
+  amountPaise: number
+  receivedAt: string
+  reference: string | null
+  bankName: string | null
+  chequeDate: string | null
+  status: string
+  cashDiscountPaise: number
+  tripId: string | null
+  depositedAt: string | null
+  depositRef: string | null
+}
+
 @Injectable()
 export class ReceivablesService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
@@ -287,6 +305,57 @@ export class ReceivablesService {
   /** One balanced, keyed, append-only journal entry. Nothing else in the codebase writes the book. */
   async postEntry(tx: Db, entry: JournalEntryInput): Promise<{ entryId: string }> {
     return postJournalEntry(tx, entry)
+  }
+
+  /**
+   * Receipts in a window for the Tally receipt voucher (integrations, slice 6): collected or deposited
+   * money, never a reversal mirror, bounded and date-ordered so a re-run emits the same vouchers.
+   */
+  async receiptsForExport(
+    tx: Db,
+    filter: {
+      from: string
+      to: string
+      retailerId?: string | undefined
+      limit?: number | undefined
+    },
+  ): Promise<ReceiptForExport[]> {
+    const { tenantId } = currentTenant()
+    const limit = Math.min(filter.limit ?? 5000, 20_000)
+    const result = await tx.execute(sql`
+      SELECT r.id, r.receipt_no, r.retailer_id, r.mode::text AS mode, r.amount_paise, r.received_at,
+             r.reference, r.bank_name, r.cheque_date, r.status::text AS status, r.cash_discount_paise,
+             r.trip_id, r.deposited_at, r.deposit_ref
+        FROM receipts r
+       WHERE r.tenant_id = ${tenantId}
+         AND r.status IN ('collected', 'deposited')
+         AND r.amount_paise > 0
+         AND r.reverses_receipt_id IS NULL
+         AND (r.received_at AT TIME ZONE 'Asia/Kolkata')::date BETWEEN ${filter.from} AND ${filter.to}
+         AND (${filter.retailerId ?? null}::text IS NULL OR r.retailer_id = ${filter.retailerId ?? null})
+       ORDER BY r.received_at ASC, r.id ASC
+       LIMIT ${limit}`)
+    return result.rows.map((r) => ({
+      id: String(r.id),
+      receiptNo: (r.receipt_no as string | null) ?? null,
+      retailerId: String(r.retailer_id),
+      mode: String(r.mode),
+      amountPaise: Number(r.amount_paise),
+      receivedAt: new Date(r.received_at as string | Date).toISOString(),
+      reference: (r.reference as string | null) ?? null,
+      bankName: (r.bank_name as string | null) ?? null,
+      chequeDate: (r.cheque_date as string | null) ?? null,
+      status: String(r.status),
+      cashDiscountPaise: Number(r.cash_discount_paise ?? 0),
+      tripId: (r.trip_id as string | null) ?? null,
+      depositedAt: r.deposited_at ? new Date(r.deposited_at as string | Date).toISOString() : null,
+      depositRef: (r.deposit_ref as string | null) ?? null,
+    }))
+  }
+
+  /** The entry a document produced (`opening`, `invoice_issued`, …), so a caller can reverse it without carrying the id around. */
+  async entryIdByRef(tx: Db, refType: string, refId: string): Promise<string | null> {
+    return findEntryByRef(tx, refType, refId)
   }
 
   /** The only correction a ledger allows: a mirror entry, with `reversed_by_entry_id` on the original. */

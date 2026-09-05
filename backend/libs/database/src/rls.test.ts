@@ -3925,7 +3925,9 @@ describeDb('row level security and ledger guarantees', () => {
     )
     expect(resolved).toMatchObject({ status: 'matched', reviewedBy: manager, error: null })
     expect(resolved?.reviewedAt?.getTime()).toBe(reviewedAt.getTime())
-    // an export never pauses for review, but the enum is shared: the value is there for it too
+    // an export never pauses for review, but the enum is shared: the value is there for it too. 0023
+    // completed the import machine (committed = applied and reversible, confirmed = signed off,
+    // rolled_back = reversed; importJobMachine in @dos/domain) — an export never holds those either.
     const labels = await db.execute(
       sql`select enumlabel from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typname = 'job_status' order by enumsortorder`,
     )
@@ -3936,6 +3938,9 @@ describeDb('row level security and ledger guarantees', () => {
       'failed',
       'cancelled',
       'staged',
+      'committed',
+      'confirmed',
+      'rolled_back',
     ])
     // the export-detail screen's "what did this job push" list has its index (0018), leading with tenant_id
     const idx = await db.execute(

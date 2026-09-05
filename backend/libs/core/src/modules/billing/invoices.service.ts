@@ -586,6 +586,104 @@ export class BillingService {
     return row
   }
 
+  /**
+   * INTEGRATIONS (6), the dry run: which of a file's bill numbers are already on file (an opening
+   * balance or a brand-DMS bill imported before), so the row is `skipped` rather than a duplicate
+   * document. One query for a batch, cancelled bills included: a number is never reused.
+   */
+  async externalInvoiceNumbersOnFile(
+    tx: Db,
+    numbers: readonly string[],
+  ): Promise<Map<string, { id: string; state: InvoiceRow['state'] }>> {
+    const unique = [...new Set(numbers.filter((n) => n.length > 0))]
+    if (unique.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ id: invoices.id, no: invoices.externalInvoiceNo, state: invoices.state })
+      .from(invoices)
+      .where(and(eq(invoices.tenantId, tenantId), inArray(invoices.externalInvoiceNo, unique)))
+    const out = new Map<string, { id: string; state: InvoiceRow['state'] }>()
+    for (const r of rows) if (r.no) out.set(r.no, { id: r.id, state: r.state })
+    return out
+  }
+
+  /**
+   * INTEGRATIONS (6), the rollback of a committed-but-unconfirmed import (docs/17 §D7 "reversible
+   * before it is confirmed"): cancel a bill this module recorded FROM A FILE — an opening balance
+   * (`source = import`) or a brand-DMS bill (`brand_dms_import`) — inside the caller's transaction.
+   * Through `invoiceMachine` like every cancellation, and refused the same way once a rupee has been
+   * allocated or a credit note stands. The number survives. The money comes back on the mirror of the
+   * entry that put it in: the OPENING entry for an opening balance (`ReceivablesService.reverseEntry`),
+   * the SALES / output-tax entry for a brand bill. No stock ever moved for either, so none comes back.
+   * An already-cancelled bill is a no-op (a rollback replay).
+   */
+  async cancelImported(
+    tx: Db,
+    input: { invoiceId: string; reason: string },
+  ): Promise<{ invoice: InvoiceRow; reversalEntryId: string | null }> {
+    const ctx = currentTenant()
+    const invoice = await this.lockInvoice(tx, input.invoiceId)
+    if (invoice.state === 'cancelled') return { invoice, reversalEntryId: null }
+    if (invoice.source !== 'import' && invoice.source !== 'brand_dms_import')
+      throw new ORPCError('CONFLICT', {
+        message: `bill ${invoice.invoiceNo ?? invoice.id} was not recorded from a file; use invoices.cancel`,
+      })
+    const outstanding = await this.receivables.invoiceOutstandingPaise(tx, invoice.id)
+    if (outstanding < invoice.totalPaise)
+      throw new ORPCError('CONFLICT', {
+        message: `bill ${invoice.invoiceNo ?? invoice.id} has money allocated against it; remove that allocation first (money_allocated)`,
+        data: { code: 'money_allocated', invoiceId: invoice.id },
+      })
+    const [note] = await tx
+      .select({ id: creditNotes.id })
+      .from(creditNotes)
+      .where(
+        and(
+          eq(creditNotes.tenantId, ctx.tenantId),
+          eq(creditNotes.invoiceId, invoice.id),
+          ne(creditNotes.state, 'cancelled'),
+        ),
+      )
+      .limit(1)
+    if (note)
+      throw new ORPCError('CONFLICT', {
+        message: `bill ${invoice.invoiceNo ?? invoice.id} already carries a credit note; it cannot be reversed`,
+      })
+    const to = invoiceTransition(invoice.state, 'cancel')
+    let reversalEntryId: string | null = null
+    if (invoice.source === 'import') {
+      const entryId = await this.receivables.entryIdByRef(tx, 'opening', invoice.id)
+      if (entryId) {
+        const posted = await asLedgerPoster(tx, () =>
+          this.receivables.reverseEntry(
+            tx,
+            entryId,
+            `journal:opening-reversal:${invoice.id}`,
+            `reverses opening balance ${invoice.invoiceNo ?? invoice.id}: ${input.reason}`,
+          ),
+        )
+        reversalEntryId = posted.entryId
+      }
+    } else {
+      await this.reverseInvoiceEntry(tx, invoice)
+      reversalEntryId = await this.receivables.entryIdByRef(tx, 'invoice_cancel', invoice.id)
+    }
+    const [cancelled] = await tx
+      .update(invoices)
+      .set({
+        state: to,
+        cancelledAt: new Date(),
+        cancelReason: input.reason,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(invoices.tenantId, ctx.tenantId), eq(invoices.id, invoice.id)))
+      .returning()
+    const row = cancelled ?? invoice
+    await this.receivables.refreshOutstanding(tx, row.retailerId)
+    await this.emit(tx, row, 'InvoiceCancelled', { reason: input.reason, importRollback: true })
+    return { invoice: row, reversalEntryId }
+  }
+
   // =============================================================================================================
   // procedures
   // =============================================================================================================

@@ -78,6 +78,26 @@ export type CreateInTxInput = Omit<CreateIn, 'lines'> & {
 const CASE_UNITS = /^(cs|case|cases|ctn|carton|cartons|box|boxes|bx)$/i
 
 /** Everything here carries rates, so every procedure is back office; RLS on the tables says the same. */
+/** A booked supplier bill's header, as the Tally purchase voucher reads it. */
+export interface SupplierInvoiceForExport {
+  id: string
+  supplierId: string
+  invoiceNo: string
+  invoiceDate: string
+  status: string
+  supplierGstin: string | null
+  placeOfSupplyState: string | null
+  subtotalPaise: number
+  discountPaise: number
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  cessPaise: number
+  freightPaise: number
+  roundOffPaise: number
+  totalPaise: number
+}
+
 @Injectable()
 export class SupplierInvoiceService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
@@ -250,6 +270,56 @@ export class SupplierInvoiceService {
     requireRole(BACK_OFFICE)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => ({ item: await this.load(tx, input.id) }))
+  }
+
+  /**
+   * Booked supplier bills in a window (approved or received — never a draft under review, never a
+   * disputed or cancelled one), for the Tally purchase voucher (integrations, slice 6; coordination §4
+   * "integrations → procurement: SupplierInvoiceService.list"). Header totals only, in the caller's
+   * transaction, bounded and ordered by date then id so a re-run emits the same vouchers.
+   */
+  async listForExport(
+    tx: Db,
+    filter: {
+      from: string
+      to: string
+      supplierId?: string | undefined
+      limit?: number | undefined
+    },
+  ): Promise<SupplierInvoiceForExport[]> {
+    const { tenantId } = currentTenant()
+    const limit = Math.min(filter.limit ?? 5000, 20_000)
+    const result = await tx.execute(sql`
+      SELECT si.id, si.supplier_id, si.invoice_no, si.invoice_date, si.status::text AS status,
+             si.supplier_gstin, si.place_of_supply_state, si.subtotal_paise, si.discount_paise,
+             si.cgst_paise, si.sgst_paise, si.igst_paise, si.cess_paise, si.freight_paise,
+             si.round_off_paise, si.total_paise
+        FROM supplier_invoices si
+       WHERE si.tenant_id = ${tenantId}
+         AND si.status IN ('approved', 'received')
+         AND si.invoice_date BETWEEN ${filter.from} AND ${filter.to}
+         AND (${filter.supplierId ?? null}::text IS NULL OR si.supplier_id = ${filter.supplierId ?? null})
+       ORDER BY si.invoice_date ASC, si.id ASC
+       LIMIT ${limit}`)
+    const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v))
+    return result.rows.map((r) => ({
+      id: String(r.id),
+      supplierId: String(r.supplier_id),
+      invoiceNo: String(r.invoice_no),
+      invoiceDate: String(r.invoice_date),
+      status: String(r.status),
+      supplierGstin: (r.supplier_gstin as string | null) ?? null,
+      placeOfSupplyState: (r.place_of_supply_state as string | null) ?? null,
+      subtotalPaise: num(r.subtotal_paise),
+      discountPaise: num(r.discount_paise),
+      cgstPaise: num(r.cgst_paise),
+      sgstPaise: num(r.sgst_paise),
+      igstPaise: num(r.igst_paise),
+      cessPaise: num(r.cess_paise),
+      freightPaise: num(r.freight_paise),
+      roundOffPaise: num(r.round_off_paise),
+      totalPaise: num(r.total_paise),
+    }))
   }
 
   /**

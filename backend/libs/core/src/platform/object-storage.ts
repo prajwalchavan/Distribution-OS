@@ -93,6 +93,8 @@ export const ALLOWED_CONTENT_TYPES: Readonly<
     maxBytes: 64 * MB,
   },
   'application/json': { extensions: ['json'], maxBytes: 64 * MB },
+  /** The Tally import file the integrations exporter writes (coordination §3.5). */
+  'application/xml': { extensions: ['xml'], maxBytes: 64 * MB },
 }
 
 export interface PutUrlOptions {

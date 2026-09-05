@@ -88,6 +88,8 @@ const NAME_HINTS: [RegExp, unknown][] = [
   [/lineNo|sequence|priority|version/i, 1],
   [/days$/i, 7],
   [/^name$/i, 'Sharma Kirana Store'],
+  // The importer's column names are header text as the file wrote it, not a code.
+  [/^(column|header)$/i, 'Party Name'],
   [/(shop|legal|product|variant|brand|manufacturer|supplier|beat|list)Name$/i, 'Campa Cola 750 ml'],
   [/ownerName/i, 'Ramesh Sharma'],
   [/note|reason|message|description|narration/i, 'Confirmed on phone with the shopkeeper'],

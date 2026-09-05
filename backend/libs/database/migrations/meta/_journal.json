@@ -162,6 +162,13 @@
       "when": 1788600861146,
       "tag": "0022_claims_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788607154675,
+      "tag": "0023_integrations_wizard",
+      "breakpoints": true
     }
   ]
 }

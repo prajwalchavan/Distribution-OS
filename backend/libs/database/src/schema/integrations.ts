@@ -61,8 +61,11 @@ export const tallySyncLedger = pgTable(
 
 /**
  * `staged` (0018) is the import wizard's "parsed, matched, waiting for a human" state — between `running`
- * (the stage or commit worker is busy) and `succeeded`. An export never pauses for review, so `export_jobs`
- * never carries it.
+ * (the stage or commit worker is busy) and the end of the run. `committed`, `confirmed` and `rolled_back`
+ * (0023) are the import machine's last three states (docs/17 §D7: "a migration run must be reversible
+ * before it is confirmed"; `importJobMachine` in @dos/domain): applied and still reversible, signed off,
+ * reversed. An export never pauses for review and is never reversed, so `export_jobs` uses only
+ * `queued | running | succeeded | failed | cancelled`.
  */
 export const jobStatus = pgEnum('job_status', [
   'queued',
@@ -71,6 +74,9 @@ export const jobStatus = pgEnum('job_status', [
   'failed',
   'cancelled',
   'staged',
+  'committed',
+  'confirmed',
+  'rolled_back',
 ])
 
 export const exportJobs = pgTable(
@@ -139,6 +145,8 @@ export const importProfiles = pgTable(
     sourceColumns: jsonb('source_columns'),
     /** Ships with the product (seeded), as opposed to saved by the operator from a real file. */
     builtin: boolean('builtin').notNull().default(false),
+    /** How many jobs used it; the wizard offers the most-used profile of a (source, target) first. */
+    usedCount: integer('used_count').notNull().default(0),
     lastUsedAt: tz('last_used_at'),
     createdBy: text('created_by').references(() => users.id),
     ...timestamps,
@@ -173,6 +181,13 @@ export const importJobs = pgTable(
     sheetName: text('sheet_name'),
     /** The header row the stage job found, in file order (`string[]`); the map-columns screen reads it. */
     sourceColumns: jsonb('source_columns'),
+    /** Every sheet of an XLSX (`string[]`), so the operator can pick another and re-create; null for a CSV. */
+    sheetNames: jsonb('sheet_names'),
+    /**
+     * The latest dry run (`DryRunSummary`: status, started/finished, the create/update/skip diff, the
+     * amount and the first sample errors). Cleared by every mapping change; null until the first.
+     */
+    dryRun: jsonb('dry_run'),
     status: jobStatus('status').notNull().default('queued'),
     requestedBy: text('requested_by')
       .notNull()
@@ -184,6 +199,15 @@ export const importJobs = pgTable(
     startedAt: tz('started_at'),
     finishedAt: tz('finished_at'),
     committedAt: tz('committed_at'),
+    /** The sign-off (`imports.confirm`): after it nothing is reversible. */
+    confirmedAt: tz('confirmed_at'),
+    confirmedBy: text('confirmed_by').references(() => users.id),
+    /** The reversal (`imports.rollback`) of a committed, unconfirmed run, and why. */
+    rolledBackAt: tz('rolled_back_at'),
+    rolledBackBy: text('rolled_back_by').references(() => users.id),
+    rollbackReason: text('rollback_reason'),
+    cancelledAt: tz('cancelled_at'),
+    cancelReason: text('cancel_reason'),
     error: text('error'),
     ...timestamps,
   },
@@ -215,6 +239,22 @@ export const importRows = pgTable(
     raw: jsonb('raw').notNull(),
     normalized: jsonb('normalized'),
     status: importRowStatus('status').notNull().default('staged'),
+    /** What commit would do with a matched row: `create` | `update` | `skip` (duplicate / blank); null until scored. */
+    plan: text('plan'),
+    /** The retailer the row resolved to (every target but item_master), matched or pinned by the reviewer. Plain id: retailers is upstream. */
+    retailerId: text('retailer_id'),
+    /** The variant the row resolved to (item_master, sales_register, brand_dms_invoices). Plain id: catalog is upstream. */
+    variantId: text('variant_id'),
+    /** The parties / items the matcher considered, scored 0–10000 bps (`ImportMatchCandidate[]`), for the review screen. */
+    candidates: jsonb('candidates')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    /** The reviewer's hand-corrected cells, target field → text as typed (`''` clears); applied on top of the mapping at every dry run. */
+    overrides: jsonb('overrides'),
+    /** The entity's values BEFORE an `update` commit touched them, so a rollback restores them exactly. */
+    before: jsonb('before'),
+    /** What commit did beyond `entityId` (the journal entry, the external code it learned, the listing it created), so a rollback can undo it. */
+    effects: jsonb('effects'),
     /** Entity created/updated on commit. */
     entityType: text('entity_type'),
     entityId: text('entity_id'),

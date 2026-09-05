@@ -103,6 +103,87 @@ export interface PeriodFilter {
   limit?: number | undefined
 }
 
+/** One issued (or cancelled) bill with its lines, as the Tally sales voucher and GSTR-1 read it (integrations, slice 6). */
+export interface InvoiceForExport {
+  id: string
+  invoiceNo: string | null
+  externalInvoiceNo: string | null
+  invoiceDate: string
+  retailerId: string
+  buyerName: string
+  buyerGstin: string | null
+  supplyType: 'B2B' | 'B2C'
+  placeOfSupplyState: string
+  isInterState: boolean
+  state: string
+  source: string
+  subtotalPaise: number
+  discountPaise: number
+  taxablePaise: number
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  cessPaise: number
+  roundOffPaise: number
+  totalPaise: number
+  irn: string | null
+  ackNo: string | null
+  ackDate: string | null
+  ewayBillNo: string | null
+  transportMode: string | null
+  vehicleNo: string | null
+  lines: InvoiceLineForExport[]
+}
+
+export interface InvoiceLineForExport {
+  lineNo: number
+  variantId: string
+  description: string
+  hsnCode: string
+  qtyPcs: number
+  freeQtyPcs: number
+  ratePaise: number
+  discountPaise: number
+  taxablePaise: number
+  gstBps: number
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  cessBps: number
+  cessPaise: number
+  lineTotalPaise: number
+}
+
+/** A credit note as the Tally `Credit Note` voucher reads it. */
+export interface CreditNoteForExport {
+  id: string
+  creditNoteNo: string | null
+  noteDate: string
+  invoiceId: string
+  invoiceNo: string | null
+  retailerId: string
+  reason: string
+  state: string
+  taxablePaise: number
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  cessPaise: number
+  roundOffPaise: number
+  totalPaise: number
+}
+
+export interface ExportFilter {
+  from: string
+  to: string
+  retailerId?: string | undefined
+  /** Only these bills (an e-way / e-invoice bundle); the window still applies. */
+  invoiceIds?: readonly string[] | undefined
+  /** Issued bills only (the default) or every non-draft bill, cancelled ones included (GSTR-1 Table 13). */
+  includeCancelled?: boolean | undefined
+  limit?: number | undefined
+}
+
 @Injectable()
 export class RegistersService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
@@ -250,6 +331,137 @@ export class RegistersService {
       discountPaise: n(row.discount_paise),
       taxablePaise: n(row.taxable_paise),
       appliedRules: (row.applied_rules as AppliedRule[] | null) ?? [],
+    }))
+  }
+
+  /**
+   * Every bill in a window with its lines, for the exports (integrations, slice 6): the Tally sales
+   * voucher, GSTR-1, the e-way / e-invoice bundles. Same arithmetic the register shows, read once,
+   * bounded (`limit`, default 5000 bills) and ordered by date then id so a re-run emits the same file.
+   */
+  async invoicesForExport(tx: Db, filter: ExportFilter): Promise<InvoiceForExport[]> {
+    const { tenantId } = currentTenant()
+    const limit = Math.min(filter.limit ?? 5000, 20_000)
+    const ids = filter.invoiceIds && filter.invoiceIds.length > 0 ? [...filter.invoiceIds] : null
+    // A JS array inside `sql\`\`` renders as a row constructor, so an id list is joined by hand.
+    const list = (values: readonly string[]) =>
+      sql.join(
+        values.map((v) => sql`${v}`),
+        sql`, `,
+      )
+    const idsFilter = ids ? sql`AND i.id IN (${list(ids)})` : sql``
+    const heads = await tx.execute(sql`
+      SELECT i.id, i.invoice_no, i.external_invoice_no, i.invoice_date, i.retailer_id, i.buyer_name,
+             i.buyer_gstin, i.supply_type, i.place_of_supply_state, i.is_inter_state, i.state::text AS state,
+             i.source::text AS source, i.subtotal_paise, i.discount_paise, i.taxable_paise, i.cgst_paise,
+             i.sgst_paise, i.igst_paise, i.cess_paise, i.round_off_paise, i.total_paise, i.irn, i.ack_no,
+             i.ack_date, i.eway_bill_no, i.transport_mode, i.vehicle_no
+        FROM invoices i
+       WHERE i.tenant_id = ${tenantId}
+         AND i.state <> 'draft'
+         AND (${filter.includeCancelled === true} OR i.state <> 'cancelled')
+         AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
+         AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
+         ${idsFilter}
+       ORDER BY i.invoice_date ASC, i.id ASC
+       LIMIT ${limit}`)
+    const invoiceIds = heads.rows.map((r: Record<string, unknown>) => String(r.id))
+    const byInvoice = new Map<string, InvoiceLineForExport[]>()
+    if (invoiceIds.length > 0) {
+      const lines = await tx.execute(sql`
+        SELECT l.invoice_id, l.line_no, l.variant_id, l.description, l.hsn_code, l.qty_pcs, l.free_qty_pcs,
+               l.rate_paise, l.discount_paise, l.taxable_paise, l.gst_bps, l.cgst_paise, l.sgst_paise,
+               l.igst_paise, l.cess_bps, l.cess_paise, l.line_total_paise
+          FROM invoice_lines l
+         WHERE l.tenant_id = ${tenantId} AND l.invoice_id IN (${list(invoiceIds)})
+         ORDER BY l.invoice_id, l.line_no`)
+      for (const row of lines.rows) {
+        const list = byInvoice.get(String(row.invoice_id)) ?? []
+        list.push({
+          lineNo: n(row.line_no),
+          variantId: String(row.variant_id),
+          description: String(row.description),
+          hsnCode: String(row.hsn_code),
+          qtyPcs: n(row.qty_pcs),
+          freeQtyPcs: n(row.free_qty_pcs),
+          ratePaise: n(row.rate_paise),
+          discountPaise: n(row.discount_paise),
+          taxablePaise: n(row.taxable_paise),
+          gstBps: n(row.gst_bps),
+          cgstPaise: n(row.cgst_paise),
+          sgstPaise: n(row.sgst_paise),
+          igstPaise: n(row.igst_paise),
+          cessBps: n(row.cess_bps),
+          cessPaise: n(row.cess_paise),
+          lineTotalPaise: n(row.line_total_paise),
+        })
+        byInvoice.set(String(row.invoice_id), list)
+      }
+    }
+    return heads.rows.map((r) => ({
+      id: String(r.id),
+      invoiceNo: (r.invoice_no as string | null) ?? null,
+      externalInvoiceNo: (r.external_invoice_no as string | null) ?? null,
+      invoiceDate: String(r.invoice_date),
+      retailerId: String(r.retailer_id),
+      buyerName: String(r.buyer_name),
+      buyerGstin: (r.buyer_gstin as string | null) ?? null,
+      supplyType: r.supply_type === 'B2B' ? 'B2B' : 'B2C',
+      placeOfSupplyState: String(r.place_of_supply_state),
+      isInterState: Boolean(r.is_inter_state),
+      state: String(r.state),
+      source: String(r.source),
+      subtotalPaise: n(r.subtotal_paise),
+      discountPaise: n(r.discount_paise),
+      taxablePaise: n(r.taxable_paise),
+      cgstPaise: n(r.cgst_paise),
+      sgstPaise: n(r.sgst_paise),
+      igstPaise: n(r.igst_paise),
+      cessPaise: n(r.cess_paise),
+      roundOffPaise: n(r.round_off_paise),
+      totalPaise: n(r.total_paise),
+      irn: (r.irn as string | null) ?? null,
+      ackNo: (r.ack_no as string | null) ?? null,
+      ackDate: r.ack_date ? new Date(r.ack_date as string | Date).toISOString() : null,
+      ewayBillNo: (r.eway_bill_no as string | null) ?? null,
+      transportMode: (r.transport_mode as string | null) ?? null,
+      vehicleNo: (r.vehicle_no as string | null) ?? null,
+      lines: byInvoice.get(String(r.id)) ?? [],
+    }))
+  }
+
+  /** Issued / applied credit notes in a window, for the Tally `Credit Note` voucher (integrations, slice 6). */
+  async creditNotesForExport(tx: Db, filter: ExportFilter): Promise<CreditNoteForExport[]> {
+    const { tenantId } = currentTenant()
+    const limit = Math.min(filter.limit ?? 5000, 20_000)
+    const result = await tx.execute(sql`
+      SELECT c.id, c.credit_note_no, c.note_date, c.invoice_id, i.invoice_no, c.retailer_id,
+             c.reason::text AS reason, c.state::text AS state, c.taxable_paise, c.cgst_paise, c.sgst_paise,
+             c.igst_paise, c.cess_paise, c.round_off_paise, c.total_paise
+        FROM credit_notes c
+        JOIN invoices i ON i.id = c.invoice_id
+       WHERE c.tenant_id = ${tenantId}
+         AND c.state IN ('issued', 'applied')
+         AND c.note_date BETWEEN ${filter.from} AND ${filter.to}
+         AND (${filter.retailerId ?? null}::text IS NULL OR c.retailer_id = ${filter.retailerId ?? null})
+       ORDER BY c.note_date ASC, c.id ASC
+       LIMIT ${limit}`)
+    return result.rows.map((r) => ({
+      id: String(r.id),
+      creditNoteNo: (r.credit_note_no as string | null) ?? null,
+      noteDate: String(r.note_date),
+      invoiceId: String(r.invoice_id),
+      invoiceNo: (r.invoice_no as string | null) ?? null,
+      retailerId: String(r.retailer_id),
+      reason: String(r.reason),
+      state: String(r.state),
+      taxablePaise: n(r.taxable_paise),
+      cgstPaise: n(r.cgst_paise),
+      sgstPaise: n(r.sgst_paise),
+      igstPaise: n(r.igst_paise),
+      cessPaise: n(r.cess_paise),
+      roundOffPaise: n(r.round_off_paise),
+      totalPaise: n(r.total_paise),
     }))
   }
 
