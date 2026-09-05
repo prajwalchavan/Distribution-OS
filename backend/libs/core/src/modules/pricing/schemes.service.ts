@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, eq, gt, lte, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   Scheme,
@@ -29,6 +29,25 @@ import {
   requireRole,
 } from '../../platform/index.js'
 
+/**
+ * What a claim needs to know about a scheme it found in `invoice_lines.applied_rules` (coordination §4:
+ * claims → pricing `schemesByIds`): who funds it, whether it is claimable, on which channel, its reward
+ * kind (a cash discount is never claimable), its window and the brand's circular reference for the sheet.
+ */
+export interface SchemeForClaim {
+  id: string
+  name: string
+  brandId: string | null
+  rewardKind: string
+  rewardUnit: 'pcs' | 'case'
+  fundingSource: 'company' | 'distributor'
+  claimable: boolean
+  claimChannel: 'dos' | 'brand_dms'
+  claimWindowDays: number | null
+  sourceRef: string | null
+  version: number
+}
+
 type SchemesIn = z.infer<typeof SchemesListInput>
 type SchemesOut = z.infer<typeof SchemesListOutput>
 type SchemeIn = z.infer<typeof UpsertSchemeInput>
@@ -41,6 +60,34 @@ type SchemeOut = z.infer<typeof UpsertSchemeOutput>
 @Injectable()
 export class SchemesService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+
+  /**
+   * The schemes behind a set of `applied_rules.ruleId`s, with the claim-side columns only (claims, slice
+   * 7). Inside the caller's transaction; unknown ids are simply absent from the map. Bounded by the
+   * caller (a build reads at most a few hundred distinct rules).
+   */
+  async schemesByIds(tx: Db, ids: readonly string[]): Promise<Map<string, SchemeForClaim>> {
+    const { tenantId } = currentTenant()
+    const wanted = [...new Set(ids)]
+    if (wanted.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        id: schemes.id,
+        name: schemes.name,
+        brandId: schemes.brandId,
+        rewardKind: schemes.rewardKind,
+        rewardUnit: schemes.rewardUnit,
+        fundingSource: schemes.fundingSource,
+        claimable: schemes.claimable,
+        claimChannel: schemes.claimChannel,
+        claimWindowDays: schemes.claimWindowDays,
+        sourceRef: schemes.sourceRef,
+        version: schemes.version,
+      })
+      .from(schemes)
+      .where(and(eq(schemes.tenantId, tenantId), inArray(schemes.id, wanted)))
+    return new Map(rows.map((r) => [r.id, r]))
+  }
 
   /**
    * The back office reads the whole row; the field and the SHOP get `SchemePublicSchema` — never

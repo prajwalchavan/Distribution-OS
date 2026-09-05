@@ -65,6 +65,27 @@ interface CreditSource {
   qty_pcs: string | number
 }
 
+/** Prices one line the way the invoice does: taxable, then the split by place of supply. */
+function priceLine(
+  v: VariantRow,
+  qtyPcs: number,
+  ratePaise: number,
+  interState: boolean,
+): { taxable: number; cgst: number; sgst: number; igst: number; cess: number; total: number } {
+  const taxable = ratePaise * qtyPcs
+  const gst = percentOf(paise(taxable), v.gstBps)
+  const half = percentOf(paise(taxable), v.gstBps / 2)
+  const cess = percentOf(paise(taxable), v.cessBps)
+  return {
+    taxable,
+    cgst: interState ? 0 : half,
+    sgst: interState ? 0 : half,
+    igst: interState ? gst : 0,
+    cess,
+    total: taxable + (interState ? gst : half + half) + cess,
+  }
+}
+
 export async function seedBilling(
   db: Db,
   tenantId: string,
@@ -250,22 +271,6 @@ export async function seedBilling(
     line('igst', 'OUTPUT_IGST', -i.igst)
     line('cess', 'OUTPUT_CESS', -i.cess)
     line('roundoff', 'ROUND_OFF', -i.roundOff)
-  }
-
-  /** Prices one line the way the invoice does: taxable, then the split by place of supply. */
-  const priceLine = (v: VariantRow, qtyPcs: number, ratePaise: number, interState: boolean) => {
-    const taxable = ratePaise * qtyPcs
-    const gst = percentOf(paise(taxable), v.gstBps)
-    const half = percentOf(paise(taxable), v.gstBps / 2)
-    const cess = percentOf(paise(taxable), v.cessBps)
-    return {
-      taxable,
-      cgst: interState ? 0 : half,
-      sgst: interState ? 0 : half,
-      igst: interState ? gst : 0,
-      cess,
-      total: taxable + (interState ? gst : half + half) + cess,
-    }
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -708,64 +713,6 @@ export async function seedBilling(
   }
 
   // ---------------------------------------------------------------------------------------------------------------
-  // 4b. …and ONE van-sale order still waiting to be billed, so `invoices.issueVanSale` has something
-  //     real to bill off the van. The variant is whichever one Tempo 1 actually carries, so the
-  //     reservation succeeds instead of answering "the van is short".
-
-  const [onVan] = (
-    await db.execute(sql`
-      SELECT l.variant_id, (sb.on_hand - sb.reserved) AS available
-        FROM stock_balances sb
-        JOIN stock_lots l ON l.id = sb.lot_id
-       WHERE sb.tenant_id = ${tenantId} AND sb.location_id = ${vanLocationId}
-         AND (sb.on_hand - sb.reserved) >= 2
-       ORDER BY available DESC, l.variant_id
-       LIMIT 1`)
-  ).rows as unknown as { variant_id: string; available: string | number }[]
-  const vanStockVariant = variants.find((v) => v.id === onVan?.variant_id)
-  if (vanStockVariant) {
-    const pendingVanOrderId = demoId('order', 'van-sale-pending')
-    const qty = 2
-    const priced = priceLine(vanStockVariant, qty, 1050, false)
-    const { rounded, roundOff } = roundToRupee(
-      paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
-    )
-    orderRows.push({
-      id: pendingVanOrderId,
-      tenantId,
-      orderNo: 'SO-9003',
-      retailerId: nth(retailersRes.retailers, 11).id,
-      state: 'confirmed',
-      source: 'van_sale',
-      createdBy: people.delivery.ganesh.id,
-      paymentTerms: 'ON',
-      fulfilFromLocationId: vanLocationId,
-      subtotalPaise: priced.taxable,
-      taxPaise: priced.cgst + priced.sgst + priced.cess,
-      roundOffPaise: roundOff,
-      totalPaise: rounded,
-      submittedAt: atIstTime(TODAY_SEED, 9, 30),
-      confirmedAt: atIstTime(TODAY_SEED, 9, 31),
-    })
-    orderLineRows.push({
-      id: demoId('order-line', `${pendingVanOrderId}:0`),
-      tenantId,
-      orderId: pendingVanOrderId,
-      lineNo: 1,
-      variantId: vanStockVariant.id,
-      enteredQty: qty,
-      enteredUnit: 'piece',
-      packSizeAtEntry: 1,
-      qtyPcs: qty,
-      listRatePaise: 1050,
-      ratePaise: 1050,
-      gstBps: vanStockVariant.gstBps,
-      taxPaise: priced.cgst + priced.sgst + priced.cess,
-      lineTotalPaise: priced.total,
-    })
-  }
-
-  // ---------------------------------------------------------------------------------------------------------------
   // 5. A BRAND-DMS import (ADR 0014 / docs/17 item 1). The brand's system already issued the legal
   //    invoice, so it is stored verbatim on an `external` series, the AR is posted because we still
   //    collect the money, and NO stock moves — the goods came in on the brand's own documents.
@@ -1106,6 +1053,89 @@ export async function seedBilling(
       allocationMode: 'external',
     })
     .onConflictDoNothing()
+}
+
+/**
+ * ONE van-sale order still waiting to be billed, so `invoices.issueVanSale` has something real to
+ * bill off the van. The variant is whichever one Tempo 1 ACTUALLY carries, so the reservation
+ * succeeds instead of answering "the van is short" — which is why this runs AFTER `seedWarehouse`:
+ * that seed is what loads the van (`transfer_in` on the freshest load sheet). Inside `seedBilling`
+ * the van was still empty on the first seed of a fresh database, the order was silently skipped,
+ * and the SECOND `pnpm db:seed` added it — one row that made the seed non-idempotent.
+ */
+export async function seedPendingVanSaleOrder(
+  db: Db,
+  tenantId: string,
+  variants: VariantRow[],
+  retailersRes: RetailersResult,
+  people: PeopleResult,
+): Promise<void> {
+  const [vehicleLocation] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(
+      and(eq(locations.tenantId, tenantId), eq(locations.id, demoId('location-vehicle', 'tempo'))),
+    )
+    .limit(1)
+  if (!vehicleLocation) return
+  const vanLocationId = vehicleLocation.id
+
+  const [onVan] = (
+    await db.execute(sql`
+      SELECT l.variant_id, (sb.on_hand - sb.reserved) AS available
+        FROM stock_balances sb
+        JOIN stock_lots l ON l.id = sb.lot_id
+       WHERE sb.tenant_id = ${tenantId} AND sb.location_id = ${vanLocationId}
+         AND (sb.on_hand - sb.reserved) >= 2
+       ORDER BY available DESC, l.variant_id
+       LIMIT 1`)
+  ).rows as unknown as { variant_id: string; available: string | number }[]
+  const vanStockVariant = variants.find((v) => v.id === onVan?.variant_id)
+  if (!vanStockVariant) return
+
+  const pendingVanOrderId = demoId('order', 'van-sale-pending')
+  const qty = 2
+  const priced = priceLine(vanStockVariant, qty, 1050, false)
+  const { rounded, roundOff } = roundToRupee(
+    paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
+  )
+  await insertMany(db, salesOrders, [
+    {
+      id: pendingVanOrderId,
+      tenantId,
+      orderNo: 'SO-9003',
+      retailerId: nth(retailersRes.retailers, 11).id,
+      state: 'confirmed',
+      source: 'van_sale',
+      createdBy: people.delivery.ganesh.id,
+      paymentTerms: 'ON',
+      fulfilFromLocationId: vanLocationId,
+      subtotalPaise: priced.taxable,
+      taxPaise: priced.cgst + priced.sgst + priced.cess,
+      roundOffPaise: roundOff,
+      totalPaise: rounded,
+      submittedAt: atIstTime(TODAY_SEED, 9, 30),
+      confirmedAt: atIstTime(TODAY_SEED, 9, 31),
+    },
+  ])
+  await insertMany(db, salesOrderLines, [
+    {
+      id: demoId('order-line', `${pendingVanOrderId}:0`),
+      tenantId,
+      orderId: pendingVanOrderId,
+      lineNo: 1,
+      variantId: vanStockVariant.id,
+      enteredQty: qty,
+      enteredUnit: 'piece',
+      packSizeAtEntry: 1,
+      qtyPcs: qty,
+      listRatePaise: 1050,
+      ratePaise: 1050,
+      gstBps: vanStockVariant.gstBps,
+      taxPaise: priced.cgst + priced.sgst + priced.cess,
+      lineTotalPaise: priced.total,
+    },
+  ])
 }
 
 /**

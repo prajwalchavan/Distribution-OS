@@ -36,6 +36,7 @@ export {
   stableUuid,
   tallyGuidFor,
   integrationsConfig,
+  exportFileName,
   IMPORT_RUN_EVENT,
   EXPORT_REQUESTED_EVENT,
   IMPORT_COMMITTED_EVENT,
@@ -46,4 +47,12 @@ export {
 } from './integrations.internals.js'
 export { BUILTIN_PROFILES, type BuiltinProfile } from './profiles.data.js'
 export { parseSource, SourceFileError, type ParsedSource } from './parsing.js'
-export { readXlsx, writeXlsx, parseCsv, XlsxError, type XlsxWorkbook } from './xlsx.js'
+export {
+  readXlsx,
+  writeXlsx,
+  parseCsv,
+  XlsxError,
+  type XlsxCell,
+  type XlsxWorkbook,
+  type XlsxWriteSheet,
+} from './xlsx.js'

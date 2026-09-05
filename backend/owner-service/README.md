@@ -265,6 +265,29 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/integrations/tally/mappings` | How our items, godowns, units, voucher types and parties are named in Tally | owner, manager, accountant |
 | POST | `/integrations/tally/mappings` | Set the Tally name (and parent) of one entity | owner, manager, accountant |
 | GET | `/integrations/tally/sync-ledger` | Which documents an export already pushed to Tally, with their GUIDs | owner, manager, accountant |
+| GET | `/claims/policies` | Every brand's claim policy for this distributor (unconfigured brands included) | owner, manager, accountant |
+| POST | `/claims/policies` | Set a brand's claim policy: what is claimable, the cadence, the valuation (owner only) | owner |
+| GET | `/claims/periods` | Claim periods per brand: what is due, what is already claimed, what it is worth | owner, manager, accountant |
+| GET | `/claims/ageing` | Ageing of claims receivable by supplier or brand (brand-DMS claims listed apart) | owner, manager, accountant |
+| GET | `/claims/register` | The claims register: claimed, settled, written off and recovery rate, grouped | owner, manager, accountant |
+| GET | `/claims/reconcile` | Which open claims a brand payment of this amount settles | owner, manager, accountant |
+| POST | `/claims` | Open a draft claim on a supplier for a brand, kind and period | owner, manager, accountant |
+| GET | `/claims` | Claims, newest first, with their money | owner, manager, accountant |
+| GET | `/claims/{id}` | One claim with its lines, evidence, statements, settlements and policy | owner, manager, accountant |
+| POST | `/claims/{id}/build` | Reconstruct the lines of a draft from invoices, credit notes, the stock ledger and discrepancies | owner, manager, accountant |
+| GET | `/claims/{id}/lines` | The lines of a claim (back office: a damage line carries purchase cost) | owner, manager, accountant |
+| POST | `/claims/{id}/lines` | Add a manual line to a draft claim | owner, manager, accountant |
+| POST | `/claims/{id}/lines/{lineId}/adjust` | Review a built line: change its money, exclude it, or bring it back (draft only) | owner, manager, accountant |
+| POST | `/claims/{id}/lines/{lineId}/remove` | Remove a line from a draft claim | owner, manager, accountant |
+| POST | `/claims/{id}/evidence` | Attach a damage photo, the brand's mail or credit note (an uploaded object or a document) | owner, manager, accountant |
+| POST | `/claims/{id}/submit` | Submit: allocate the claim number, accrue the receivable and, optionally, queue the claim sheet | owner, manager, accountant |
+| POST | `/claims/{id}/acknowledge` | Record the brand's acknowledgement and its claim reference | owner, manager, accountant |
+| POST | `/claims/{id}/settlements` | Record the brand's settlement: credit note, bank receipt, cheque, goods or adjustment | owner, manager, accountant |
+| POST | `/claims/{id}/reject` | The brand refused: reverse the accrual and free the sources | owner, manager, accountant |
+| POST | `/claims/{id}/write-off` | Write off the unrecovered balance (owner or accountant) | owner, accountant |
+| POST | `/claims/{id}/cancel` | Discard a draft claim (never a numbered one) | owner, manager, accountant |
+| POST | `/claims/{id}/statements` | Queue the claim sheet in the brand's format (rendered by the worker, never inline) | owner, manager, accountant |
+| GET | `/claims/{id}/statements` | Claim sheets requested for a claim and whether each is ready | owner, manager, accountant |
 
 ### GET `/health/ping`
 
@@ -33539,6 +33562,4448 @@ curl "http://localhost:3001/integrations/tally/sync-ledger?docType=invoice&expor
 }
 ```
 
+### GET `/claims/policies`
+
+Every brand's claim policy for this distributor (unconfigured brands included) · contract `claims.policies.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `brandId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/policies?brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/policies`
+
+Set a brand's claim policy: what is claimable, the cadence, the valuation (owner only) · contract `claims.policies.upsert`
+
+**Roles:** owner
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `brandId` | uuid | yes |
+| `claimSupplierId` | uuid | no |
+| `damageClaimable` | boolean | no |
+| `expiryClaimable` | boolean | no |
+| `claimWindowDays` | integer | no |
+| `claimSheetFormat` | string | no |
+| `claimPeriodKind` | monthly | fortnightly | quarterly | adhoc | no |
+| `claimCutoffDay` | integer | no |
+| `settlementDays` | integer | no |
+| `damageValueBasis` | ptd | landed_cost | mrp | invoice_rate | scheme_amount | no |
+| `expiryValueBasis` | ptd | landed_cost | mrp | invoice_rate | scheme_amount | no |
+| `saleableReturnDays` | integer | no |
+| `notes` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/policies" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+  "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+  "damageClaimable": false,
+  "expiryClaimable": false,
+  "claimWindowDays": 7,
+  "claimSheetFormat": "text",
+  "claimPeriodKind": "monthly",
+  "claimCutoffDay": 1,
+  "settlementDays": 7,
+  "damageValueBasis": "ptd",
+  "expiryValueBasis": "ptd",
+  "saleableReturnDays": 7,
+  "notes": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+    "claimSupplierName": "Campa Cola 750 ml",
+    "damageClaimable": true,
+    "expiryClaimable": true,
+    "claimWindowDays": 7,
+    "claimSheetFormat": "text",
+    "claimPeriodKind": "monthly",
+    "claimCutoffDay": 1,
+    "settlementDays": 7,
+    "damageValueBasis": "ptd",
+    "expiryValueBasis": "ptd",
+    "claimChannel": "dos",
+    "saleableReturnDays": 7,
+    "notes": "Confirmed on phone with the shopkeeper"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/periods`
+
+Claim periods per brand: what is due, what is already claimed, what it is worth · contract `claims.periods.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `brandId` | uuid | no |
+| `supplierId` | uuid | no |
+| `kind` | scheme | damage | expiry | shortage | rate_difference | other | no |
+| `periods` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/periods?brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&kind=scheme&periods=6" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "asOf": "2026-09-04",
+  "items": [
+    {
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "kind": "scheme",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "cutoffDate": "2026-09-04",
+      "existingClaimId": "01a06dc7-86f2-749b-8ff8-ba4e2ad896e6",
+      "existingStatus": "draft",
+      "estimatedSourceCount": 1,
+      "estimatedClaimablePaise": 4000
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/ageing`
+
+Ageing of claims receivable by supplier or brand (brand-DMS claims listed apart) · contract `claims.ageing`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `asOf` | date | no |
+| `supplierId` | uuid | no |
+| `brandId` | uuid | no |
+| `kind` | scheme | damage | expiry | shortage | rate_difference | other | no |
+| `groupBy` | supplier | brand | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/ageing?asOf=2026-09-04&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&kind=scheme&groupBy=supplier&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "asOf": "2026-09-04",
+  "groupBy": "supplier",
+  "totals": {
+    "outstandingPaise": 2680000,
+    "notSubmittedPaise": 4000,
+    "buckets": {
+      "b0_30": 1,
+      "b31_60": 1,
+      "b61_90": 1,
+      "b90plus": 1
+    },
+    "openClaims": 1
+  },
+  "groups": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "claimChannel": "dos",
+      "outstandingPaise": 2680000,
+      "notSubmittedPaise": 4000,
+      "buckets": {
+        "b0_30": 1,
+        "b31_60": 1,
+        "b61_90": 1,
+        "b90plus": 1
+      },
+      "openClaims": 1,
+      "oldestSubmittedAt": "2026-09-04T10:30:00.000Z",
+      "oldestClaimNo": "SO-0042"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/register`
+
+The claims register: claimed, settled, written off and recovery rate, grouped · contract `claims.register`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `from` | date | yes |
+| `to` | date | yes |
+| `groupBy` | supplier | brand | kind | status | month | no |
+| `supplierId` | uuid | no |
+| `brandId` | uuid | no |
+| `kind` | scheme | damage | expiry | shortage | rate_difference | other | no |
+| `claimChannel` | dos | brand_dms | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/register?from=2026-09-04&to=2026-09-04&groupBy=brand&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&kind=scheme&claimChannel=dos&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "from": "2026-09-04",
+  "to": "2026-09-04",
+  "groupBy": "supplier",
+  "totals": {
+    "claims": 1,
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "recoveryBps": 500
+  },
+  "rows": [
+    {
+      "key": "text",
+      "name": "Sharma Kirana Store",
+      "claims": 1,
+      "claimedPaise": 4000,
+      "settledPaise": 4000,
+      "writtenOffPaise": 4000,
+      "outstandingPaise": 2680000,
+      "recoveryBps": 500
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/reconcile`
+
+Which open claims a brand payment of this amount settles · contract `claims.reconcile.suggest`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `supplierId` | uuid | yes |
+| `amountPaise` | integer | yes |
+| `tolerancePaise` | integer | no |
+| `fromDate` | date | no |
+| `toDate` | date | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/reconcile?supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&amountPaise=4000&tolerancePaise=100&fromDate=2026-09-04&toDate=2026-09-04" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "consideredClaims": 1,
+  "candidates": [
+    {
+      "claimIds": [
+        "01a06d59-f811-7b30-8054-47f2dc5b6728"
+      ],
+      "claimNos": [
+        "SO-0042"
+      ],
+      "totalPaise": 2680000,
+      "differencePaise": 4000,
+      "exact": true
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims`
+
+Open a draft claim on a supplier for a brand, kind and period · contract `claims.open`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `supplierId` | uuid | yes |
+| `brandId` | uuid | no |
+| `kind` | scheme | damage | expiry | shortage | rate_difference | other | yes |
+| `periodFrom` | date | yes |
+| `periodTo` | date | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+  "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+  "kind": "scheme",
+  "periodFrom": "2026-09-04",
+  "periodTo": "2026-09-04",
+  "note": null
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims`
+
+Claims, newest first, with their money · contract `claims.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `status` | draft | submitted | acknowledged | partially_settled | settled | rejected | written_off | cancelled | no |
+| `statuses` | draft | submitted | acknowledged | partially_settled | settled | rejected | written_off | cancelled[] | no |
+| `openOnly` | boolean | string | no |
+| `overdueOnly` | boolean | string | no |
+| `kind` | scheme | damage | expiry | shortage | rate_difference | other | no |
+| `supplierId` | uuid | no |
+| `brandId` | uuid | no |
+| `claimChannel` | dos | brand_dms | no |
+| `periodFrom` | date | no |
+| `periodTo` | date | no |
+| `q` | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims?status=draft&openOnly=true&overdueOnly=true&kind=scheme&supplierId=01a06d4d-b127-7ad7-815f-92d49a8a08b8&brandId=01a06db4-0f6a-71b5-8f6e-febe6219c69d&claimChannel=dos&periodFrom=2026-09-04&periodTo=2026-09-04&q=campa&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "claimNo": "SO-0042",
+      "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+      "supplierName": "Campa Cola 750 ml",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "kind": "scheme",
+      "status": "draft",
+      "claimChannel": "dos",
+      "periodFrom": "2026-09-04",
+      "periodTo": "2026-09-04",
+      "claimedPaise": 4000,
+      "settledPaise": 4000,
+      "writtenOffPaise": 4000,
+      "outstandingPaise": 2680000,
+      "lineCount": 1,
+      "externalRef": null,
+      "submittedAt": "2026-09-04T10:30:00.000Z",
+      "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+      "dueDate": "2026-09-04",
+      "overdue": true,
+      "settledAt": null,
+      "rejectedAt": "2026-09-04T10:30:00.000Z",
+      "rejectionReason": null,
+      "accruedAt": "2026-09-04T10:30:00.000Z",
+      "note": null,
+      "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+      "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/{id}`
+
+One claim with its lines, evidence, statements, settlements and policy · contract `claims.get`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/build`
+
+Reconstruct the lines of a draft from invoices, credit notes, the stock ledger and discrepancies · contract `claims.build`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `sources` | invoice | credit_note | stock_ledger | inbound_discrepancy[] | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/build" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "sources": [
+    "invoice"
+  ],
+  "limit": 2000
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "added": 1,
+  "skipped": 1,
+  "outOfWindow": 1,
+  "truncated": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/{id}/lines`
+
+The lines of a claim (back office: a damage line carries purchase cost) · contract `claims.lines.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `status` | open | claimed | settled | rejected | written_off | no |
+| `sourceType` | invoice | credit_note | stock_ledger | inbound_discrepancy | manual | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/lines?status=open&sourceType=invoice&limit=100" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+      "lineNo": 1,
+      "status": "open",
+      "sourceType": "invoice",
+      "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+      "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "batchNo": "SO-0042",
+      "expiryDate": "2026-09-04",
+      "mrpPaise": 4000,
+      "qtyPcs": 24,
+      "caseSize": 24,
+      "ratePaise": 4000,
+      "basis": "ptd",
+      "amountPaise": 4000,
+      "settledPaise": 4000,
+      "detail": {
+        "invoiceNo": "SO-0042",
+        "creditNoteNo": "Confirmed on phone with the shopkeeper",
+        "ruleKind": "text",
+        "rewardKind": "free_qty",
+        "appliedRule": {
+          "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+          "version": 1,
+          "kind": "override",
+          "rewardKind": "free_qty",
+          "amountPaise": 4000,
+          "freeQty": 24,
+          "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+        },
+        "ledgerRef": "text",
+        "reason": "Confirmed on phone with the shopkeeper",
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/lines`
+
+Add a manual line to a draft claim · contract `claims.lines.add`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineId` | uuid | yes |
+| `variantId` | uuid | no |
+| `retailerId` | uuid | no |
+| `schemeId` | uuid | no |
+| `qtyPcs` | integer | no |
+| `ratePaise` | integer | no |
+| `basis` | ptd | landed_cost | mrp | invoice_rate | scheme_amount | no |
+| `amountPaise` | integer | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/lines" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+  "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+  "qtyPcs": 0,
+  "ratePaise": 4000,
+  "basis": "scheme_amount",
+  "amountPaise": 4000,
+  "note": null
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "line": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "lineNo": 1,
+    "status": "open",
+    "sourceType": "invoice",
+    "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+    "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+    "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+    "batchNo": "SO-0042",
+    "expiryDate": "2026-09-04",
+    "mrpPaise": 4000,
+    "qtyPcs": 24,
+    "caseSize": 24,
+    "ratePaise": 4000,
+    "basis": "ptd",
+    "amountPaise": 4000,
+    "settledPaise": 4000,
+    "detail": {
+      "invoiceNo": "SO-0042",
+      "creditNoteNo": "Confirmed on phone with the shopkeeper",
+      "ruleKind": "text",
+      "rewardKind": "free_qty",
+      "appliedRule": {
+        "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+        "version": 1,
+        "kind": "override",
+        "rewardKind": "free_qty",
+        "amountPaise": 4000,
+        "freeQty": 24,
+        "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+      },
+      "ledgerRef": "text",
+      "reason": "Confirmed on phone with the shopkeeper",
+      "note": "Confirmed on phone with the shopkeeper"
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/lines/{lineId}/adjust`
+
+Review a built line: change its money, exclude it, or bring it back (draft only) · contract `claims.lines.adjust`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineId` | uuid | yes |
+| `qtyPcs` | integer | no |
+| `ratePaise` | integer | no |
+| `amountPaise` | integer | no |
+| `exclude` | boolean | no |
+| `reason` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/lines/01a06db2-da39-7334-863c-3d85d8b13619/adjust" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+  "qtyPcs": 24,
+  "ratePaise": 4000,
+  "amountPaise": 4000,
+  "exclude": true,
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "line": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "lineNo": 1,
+    "status": "open",
+    "sourceType": "invoice",
+    "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+    "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+    "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+    "batchNo": "SO-0042",
+    "expiryDate": "2026-09-04",
+    "mrpPaise": 4000,
+    "qtyPcs": 24,
+    "caseSize": 24,
+    "ratePaise": 4000,
+    "basis": "ptd",
+    "amountPaise": 4000,
+    "settledPaise": 4000,
+    "detail": {
+      "invoiceNo": "SO-0042",
+      "creditNoteNo": "Confirmed on phone with the shopkeeper",
+      "ruleKind": "text",
+      "rewardKind": "free_qty",
+      "appliedRule": {
+        "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+        "version": 1,
+        "kind": "override",
+        "rewardKind": "free_qty",
+        "amountPaise": 4000,
+        "freeQty": 24,
+        "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+      },
+      "ledgerRef": "text",
+      "reason": "Confirmed on phone with the shopkeeper",
+      "note": "Confirmed on phone with the shopkeeper"
+    },
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/lines/{lineId}/remove`
+
+Remove a line from a draft claim · contract `claims.lines.remove`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `lineId` | uuid | yes |
+| `reason` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/lines/01a06db2-da39-7334-863c-3d85d8b13619/remove" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/evidence`
+
+Attach a damage photo, the brand's mail or credit note (an uploaded object or a document) · contract `claims.evidence.attach`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `evidenceId` | uuid | yes |
+| `documentId` | uuid | no |
+| `objectKey` | string | no |
+| `kind` | damage_photo | claim_sheet | brand_credit_note | email | other | no |
+| `caption` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/evidence" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "evidenceId": "01a06d17-2b89-7b51-845b-dda3b8ce8cb8",
+  "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+  "objectKey": "docs/2026/09/invoice-0042.jpg",
+  "kind": "other",
+  "caption": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "evidence": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "kind": "damage_photo",
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "caption": "text",
+    "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/submit`
+
+Submit: allocate the claim number, accrue the receivable and, optionally, queue the claim sheet · contract `claims.submit`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `submittedOn` | date | no |
+| `statement` | object | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/submit" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "submittedOn": "2026-09-04",
+  "statement": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "format": "text"
+  }
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "statement": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "format": "text",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "rowCount": 1,
+    "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+    "generatedAt": "2026-09-04T10:30:00.000Z",
+    "ready": true
+  },
+  "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/acknowledge`
+
+Record the brand's acknowledgement and its claim reference · contract `claims.acknowledge`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `externalRef` | string | yes |
+| `acknowledgedOn` | date | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/acknowledge" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "externalRef": "FA-2026-000123",
+  "acknowledgedOn": "2026-09-04"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/settlements`
+
+Record the brand's settlement: credit note, bank receipt, cheque, goods or adjustment · contract `claims.settlements.record`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `settlementId` | uuid | yes |
+| `settledOn` | date | yes |
+| `amountPaise` | integer | yes |
+| `mode` | credit_note | bank_receipt | cheque | goods_replacement | adjustment | yes |
+| `externalRef` | string | no |
+| `documentId` | uuid | no |
+| `grnId` | uuid | no |
+| `lineAllocations` | object[] | no |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/settlements" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "settlementId": "01a06d3c-ddb0-7198-85c3-c1e43862e865",
+  "settledOn": "2026-09-04",
+  "amountPaise": 4000,
+  "mode": "credit_note",
+  "externalRef": null,
+  "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+  "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+  "lineAllocations": [
+    {
+      "claimLineId": "01a06dfb-b873-74da-87e2-382db64d507b",
+      "amountPaise": 4000
+    }
+  ],
+  "note": null
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  },
+  "settlement": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "settledOn": "2026-09-04",
+    "amountPaise": 4000,
+    "mode": "credit_note",
+    "externalRef": null,
+    "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+    "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+    "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+    "note": null,
+    "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/reject`
+
+The brand refused: reverse the accrual and free the sources · contract `claims.reject`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+| `rejectedOn` | date | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/reject" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper",
+  "rejectedOn": "2026-09-04"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/write-off`
+
+Write off the unrecovered balance (owner or accountant) · contract `claims.writeOff`
+
+**Roles:** owner, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+| `writtenOffOn` | date | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/write-off" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper",
+  "writtenOffOn": "2026-09-04"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/cancel`
+
+Discard a draft claim (never a numbered one) · contract `claims.cancel`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/cancel" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimNo": "SO-0042",
+    "supplierId": "01a06d4d-b127-7ad7-815f-92d49a8a08b8",
+    "supplierName": "Campa Cola 750 ml",
+    "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+    "brandName": "Campa Cola 750 ml",
+    "kind": "scheme",
+    "status": "draft",
+    "claimChannel": "dos",
+    "periodFrom": "2026-09-04",
+    "periodTo": "2026-09-04",
+    "claimedPaise": 4000,
+    "settledPaise": 4000,
+    "writtenOffPaise": 4000,
+    "outstandingPaise": 2680000,
+    "lineCount": 1,
+    "externalRef": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "acknowledgedAt": "2026-09-04T10:30:00.000Z",
+    "dueDate": "2026-09-04",
+    "overdue": true,
+    "settledAt": null,
+    "rejectedAt": "2026-09-04T10:30:00.000Z",
+    "rejectionReason": null,
+    "accruedAt": "2026-09-04T10:30:00.000Z",
+    "note": null,
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "submittedBy": "01a06d24-6dfa-7258-84f3-96551b7c2519",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "lineNo": 1,
+        "status": "open",
+        "sourceType": "invoice",
+        "sourceId": "01a06d6f-3bc2-775a-82fc-a67a5d38a988",
+        "schemeId": "01a06daf-72be-7837-8605-139be7237dfd",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
+        "mrpPaise": 4000,
+        "qtyPcs": 24,
+        "caseSize": 24,
+        "ratePaise": 4000,
+        "basis": "ptd",
+        "amountPaise": 4000,
+        "settledPaise": 4000,
+        "detail": {
+          "invoiceNo": "SO-0042",
+          "creditNoteNo": "Confirmed on phone with the shopkeeper",
+          "ruleKind": "text",
+          "rewardKind": "free_qty",
+          "appliedRule": {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          },
+          "ledgerRef": "text",
+          "reason": "Confirmed on phone with the shopkeeper",
+          "note": "Confirmed on phone with the shopkeeper"
+        },
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "linesNextCursor": "text",
+    "evidence": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "kind": "damage_photo",
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "caption": "text",
+        "uploadedBy": "01a06db0-2f89-716c-8fee-411b6df534d6",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "statements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "format": "text",
+        "objectKey": "docs/2026/09/invoice-0042.jpg",
+        "rowCount": 1,
+        "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+        "generatedAt": "2026-09-04T10:30:00.000Z",
+        "ready": true
+      }
+    ],
+    "settlements": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+        "settledOn": "2026-09-04",
+        "amountPaise": 4000,
+        "mode": "credit_note",
+        "externalRef": null,
+        "documentId": "01a06db5-ede3-7c28-8156-6eb0d97e07fe",
+        "grnId": "01a06dbb-51b1-75fd-83c0-1b162ad95028",
+        "journalEntryId": "01a06d6e-634c-73fe-89e7-02eab3bdb44f",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "policy": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "claimSupplierId": "01a06d93-c349-7ba3-853b-34f8956fb72a",
+      "claimSupplierName": "Campa Cola 750 ml",
+      "damageClaimable": true,
+      "expiryClaimable": true,
+      "claimWindowDays": 7,
+      "claimSheetFormat": "text",
+      "claimPeriodKind": "monthly",
+      "claimCutoffDay": 1,
+      "settlementDays": 7,
+      "damageValueBasis": "ptd",
+      "expiryValueBasis": "ptd",
+      "claimChannel": "dos",
+      "saleableReturnDays": 7,
+      "notes": "Confirmed on phone with the shopkeeper"
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/claims/{id}/statements`
+
+Queue the claim sheet in the brand's format (rendered by the worker, never inline) · contract `claims.statements.generate`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `statementId` | uuid | yes |
+| `format` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/statements" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "statementId": "01a06de9-a916-7c82-8539-4c87044b5a36",
+  "format": "text"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+    "format": "text",
+    "objectKey": "docs/2026/09/invoice-0042.jpg",
+    "rowCount": 1,
+    "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+    "generatedAt": "2026-09-04T10:30:00.000Z",
+    "ready": true
+  },
+  "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/claims/{id}/statements`
+
+Claim sheets requested for a claim and whether each is ready · contract `claims.statements.list`
+
+**Roles:** owner, manager, accountant
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `id` | uuid | yes |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3001/claims/01a06d17-0be7-794a-8dab-9b14cf78673b/statements?limit=20" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "claimId": "01a06d59-f811-7b30-8054-47f2dc5b6728",
+      "format": "text",
+      "objectKey": "docs/2026/09/invoice-0042.jpg",
+      "rowCount": 1,
+      "exportJobId": "01a06d60-ba7f-7deb-8e56-d0e8d68d0b7e",
+      "generatedAt": "2026-09-04T10:30:00.000Z",
+      "ready": true
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "owner-service does not serve the manager role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ## Permission matrix
 
 Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to the roles this service serves — ✓ = allowed, – = refused (either the matrix excludes the role, or this service does not serve it). O owner · M manager · A accountant · S salesperson · W warehouse · D delivery · R retailer.
@@ -33784,3 +38249,26 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `integrations.tally.mappings.list` | ✓ | – | – | – | – | – | – |
 | `integrations.tally.mappings.upsert` | ✓ | – | – | – | – | – | – |
 | `integrations.tally.syncLedger.list` | ✓ | – | – | – | – | – | – |
+| `claims.policies.list` | ✓ | – | – | – | – | – | – |
+| `claims.policies.upsert` | ✓ | – | – | – | – | – | – |
+| `claims.periods.list` | ✓ | – | – | – | – | – | – |
+| `claims.ageing` | ✓ | – | – | – | – | – | – |
+| `claims.register` | ✓ | – | – | – | – | – | – |
+| `claims.reconcile.suggest` | ✓ | – | – | – | – | – | – |
+| `claims.open` | ✓ | – | – | – | – | – | – |
+| `claims.list` | ✓ | – | – | – | – | – | – |
+| `claims.get` | ✓ | – | – | – | – | – | – |
+| `claims.build` | ✓ | – | – | – | – | – | – |
+| `claims.lines.list` | ✓ | – | – | – | – | – | – |
+| `claims.lines.add` | ✓ | – | – | – | – | – | – |
+| `claims.lines.adjust` | ✓ | – | – | – | – | – | – |
+| `claims.lines.remove` | ✓ | – | – | – | – | – | – |
+| `claims.evidence.attach` | ✓ | – | – | – | – | – | – |
+| `claims.submit` | ✓ | – | – | – | – | – | – |
+| `claims.acknowledge` | ✓ | – | – | – | – | – | – |
+| `claims.settlements.record` | ✓ | – | – | – | – | – | – |
+| `claims.reject` | ✓ | – | – | – | – | – | – |
+| `claims.writeOff` | ✓ | – | – | – | – | – | – |
+| `claims.cancel` | ✓ | – | – | – | – | – | – |
+| `claims.statements.generate` | ✓ | – | – | – | – | – | – |
+| `claims.statements.list` | ✓ | – | – | – | – | – | – |

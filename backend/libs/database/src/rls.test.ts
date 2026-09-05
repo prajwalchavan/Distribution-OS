@@ -12,6 +12,7 @@ import {
   beatAssignments,
   beats,
   brands,
+  broadcasts,
   claimEvidence,
   claimLines,
   claims,
@@ -36,6 +37,7 @@ import {
   importJobs,
   importProfiles,
   importRows,
+  inboundMessages,
   invoiceLines,
   authSessions,
   invoices,
@@ -43,6 +45,7 @@ import {
   journalLines,
   loadSheets,
   memberships,
+  messages,
   numberingSeries,
   packConfirmations,
   pickLines,
@@ -50,6 +53,7 @@ import {
   podEvidence,
   priceLists,
   priceListItems,
+  pushTokens,
   receipts,
   retailerIdentities,
   retailerLinks,
@@ -81,6 +85,7 @@ import {
   users,
   vehiclePositions,
   vehicles,
+  whatsappWindows,
   manufacturers,
   products,
   productVariants,
@@ -220,6 +225,22 @@ describeDb('row level security and ledger guarantees', () => {
   const claimSettlementA = uuidv7()
   const supplierB = uuidv7()
   const claimB = uuidv7()
+  /**
+   * Migration 0024/0025 fixtures (notifications): shop A's bill went out on WhatsApp and it has an
+   * unread in-app notice; shop B's bill went out too; the rep has a push "needs approval" notice with
+   * no shop on it; the rep and the driver each registered a device; shop A texted an order and opened
+   * a 24-hour window; the owner announced a scheme to beat A. Beside them tenant B's own beat, so the
+   * broadcast↔beat guard has a foreign row to refuse.
+   */
+  const messageA = uuidv7()
+  const messageB = uuidv7()
+  const noticeA = uuidv7()
+  const staffNotice = uuidv7()
+  const tokenRep = uuidv7()
+  const tokenDriver = uuidv7()
+  const inboundA = uuidv7()
+  const broadcastA = uuidv7()
+  const beatB = uuidv7()
 
   beforeAll(async () => {
     // Fixture setup runs as the connection owner (no RLS) on purpose.
@@ -1142,6 +1163,118 @@ describeDb('row level security and ledger guarantees', () => {
       periodTo: '2026-08-31',
       claimedPaise: 5_000,
     })
+    // Notifications fixtures (0024/0025): two shops' bill notifications, shop A's unread in-app
+    // notice, the rep's staff-only push notice, two device tokens, an inbound text, a window, a
+    // broadcast to beat A; and tenant B's beat.
+    await db.insert(messages).values([
+      {
+        id: messageA,
+        tenantId: tenantA,
+        channel: 'whatsapp',
+        templateKey: 'invoice_issued',
+        to: `+91900${run}3`,
+        recipientRetailerId: retailerA,
+        payload: { invoiceNo: `T${run}/1`, totalPaise: 118_000 },
+        status: 'sent',
+        providerMessageId: `wamid.${run}.a`,
+        costPaise: 14,
+        refType: 'invoice',
+        refId: invoiceA,
+        sentAt: new Date(),
+        idempotencyKey: `InvoiceIssued:${invoiceA}`,
+      },
+      {
+        id: messageB,
+        tenantId: tenantA,
+        channel: 'whatsapp',
+        templateKey: 'invoice_issued',
+        to: `+91900${run}4`,
+        recipientRetailerId: retailerB,
+        payload: { invoiceNo: `T${run}/2`, totalPaise: 250_000 },
+        status: 'delivered',
+        providerMessageId: `wamid.${run}.b`,
+        costPaise: 14,
+        refType: 'invoice',
+        refId: invoiceB,
+        sentAt: new Date(),
+        deliveredAt: new Date(),
+        idempotencyKey: `InvoiceIssued:${invoiceB}`,
+      },
+      {
+        id: noticeA,
+        tenantId: tenantA,
+        channel: 'in_app',
+        templateKey: 'pod_delivered',
+        to: shopUser,
+        recipientUserId: shopUser,
+        recipientRetailerId: retailerA,
+        payload: { invoiceNo: `T${run}/1`, outcome: 'delivered' },
+        status: 'delivered',
+        refType: 'delivery',
+        refId: deliveryA,
+        sentAt: new Date(),
+        deliveredAt: new Date(),
+        idempotencyKey: `DeliveryRecorded:${deliveryA}:shop`,
+      },
+      {
+        id: staffNotice,
+        tenantId: tenantA,
+        channel: 'push',
+        templateKey: 'order_needs_approval',
+        to: `ExponentPushToken[rep-${run}]`,
+        recipientUserId: rep,
+        payload: { orderNo: `SO-${run}`, approvalFlags: ['bargain'] },
+        status: 'queued',
+        refType: 'order',
+        refId: orderA,
+        idempotencyKey: `OrderSubmitted:${orderA}:${rep}`,
+      },
+    ])
+    await db.insert(pushTokens).values([
+      {
+        id: tokenRep,
+        tenantId: tenantA,
+        userId: rep,
+        deviceId: `dev-rep-${run}`,
+        token: `ExponentPushToken[rep-${run}]`,
+        platform: 'android',
+      },
+      {
+        id: tokenDriver,
+        tenantId: tenantA,
+        userId: driver,
+        deviceId: `dev-driver-${run}`,
+        token: `ExponentPushToken[driver-${run}]`,
+        platform: 'android',
+      },
+    ])
+    await db.insert(inboundMessages).values({
+      id: inboundA,
+      tenantId: tenantA,
+      channel: 'whatsapp',
+      from: `+91900${run}3`,
+      retailerId: retailerA,
+      body: 'bhai 2 case cola kal',
+      providerMessageId: `wamid.${run}.in`,
+    })
+    await db.insert(whatsappWindows).values({
+      tenantId: tenantA,
+      phone: `+91900${run}3`,
+      openedAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+    })
+    await db.insert(broadcasts).values({
+      id: broadcastA,
+      tenantId: tenantA,
+      beatId: beatA,
+      channel: 'whatsapp',
+      templateKey: 'scheme_announcement',
+      variables: { schemeName: 'Diwali 10+1' },
+      createdBy: owner,
+      totalRecipients: 1,
+      queuedCount: 1,
+    })
+    await db.insert(beats).values({ id: beatB, tenantId: tenantB, name: `Beat B ${run}` })
   })
 
   afterAll(async () => {
@@ -4502,6 +4635,451 @@ describeDb('row level security and ledger guarantees', () => {
         .update(claimSettlements)
         .set({ claimId: claimB })
         .where(eq(claimSettlements.id, claimSettlementA)),
+      /belongs to another tenant/,
+    )
+  })
+
+  // Migrations 0024/0025 (notifications): `messages` loses its any-member FOR ALL policy — under which a
+  // shopkeeper token read every other shop's bill, proof-of-delivery and dues-reminder history in the
+  // tenant — and gains a read scoped through retailer_links, staff writes, and one narrow shop write:
+  // the read receipt on its own in-app / push notice (`messages.markRead`, docs/23 R12), whose column is
+  // held by `dos_messages_guard()`. Inbound texts and the 24-hour windows go staff-only; a device token
+  // is written by its own user or the worker; a broadcast is sent by the owner or the manager and read
+  // by the money desk. One refusal per role on each.
+
+  it('shows a shop only the messages addressed to its own shop, and lets it mark its own notice read and nothing else', async () => {
+    const asShop = as('retailer')
+    expect(
+      (await asShop((tx) => tx.select({ id: messages.id }).from(messages))).map((m) => m.id).sort(),
+    ).toEqual([messageA, noticeA].sort())
+    // the other shop's token is the mirror image; neither sees the rep's staff-only push notice
+    const asOtherShop = as('retailer', otherShopUser)
+    expect(
+      (await asOtherShop((tx) => tx.select({ id: messages.id }).from(messages))).map((m) => m.id),
+    ).toEqual([messageB])
+    // a shop never queues a message
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(messages).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'in_app',
+          to: shopUser,
+          recipientRetailerId: retailerA,
+          payload: {},
+          idempotencyKey: `shop-${run}`,
+        }),
+      ),
+      /row-level security/,
+    )
+    // the read receipt on its own in-app notice: the one write it may make
+    const readAt = new Date()
+    const marked = await asShop((tx) =>
+      tx
+        .update(messages)
+        .set({ readAt })
+        .where(eq(messages.id, noticeA))
+        .returning({ id: messages.id, readAt: messages.readAt }),
+    )
+    expect(marked).toHaveLength(1)
+    expect(marked[0]?.readAt?.getTime()).toBe(readAt.getTime())
+    // not on a WhatsApp row (read state comes from the provider): the update matches nothing
+    expect(
+      await asShop((tx) =>
+        tx
+          .update(messages)
+          .set({ readAt })
+          .where(eq(messages.id, messageA))
+          .returning({ id: messages.id }),
+      ),
+    ).toHaveLength(0)
+    // not on another shop's row
+    expect(
+      await asShop((tx) =>
+        tx
+          .update(messages)
+          .set({ readAt })
+          .where(eq(messages.id, messageB))
+          .returning({ id: messages.id }),
+      ),
+    ).toHaveLength(0)
+    // and never a column other than read_at, even on its own notice: the trigger refuses
+    await rejectsWith(
+      asShop((tx) =>
+        tx.update(messages).set({ status: 'read', costPaise: 0 }).where(eq(messages.id, noticeA)),
+      ),
+      /marks its own notice read/,
+    )
+    await rejectsWith(
+      asShop((tx) => tx.update(messages).set({ attempts: 99 }).where(eq(messages.id, noticeA))),
+      /marks its own notice read/,
+    )
+    expect(
+      await asShop((tx) =>
+        tx.delete(messages).where(eq(messages.id, noticeA)).returning({ id: messages.id }),
+      ),
+    ).toHaveLength(0)
+    const [notice] = await db.select().from(messages).where(eq(messages.id, noticeA))
+    expect(notice?.status).toBe('delivered')
+    expect(notice?.attempts).toBe(0)
+    // the staff-only operational tables, the device list and the broadcast desk: not a row, not a write
+    for (const table of [inboundMessages, whatsappWindows, pushTokens, broadcasts]) {
+      expect(await asShop((tx) => tx.select().from(table))).toHaveLength(0)
+    }
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(inboundMessages).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'whatsapp',
+          from: `+91900${run}3`,
+          body: 'sneaky',
+        }),
+      ),
+      /row-level security/,
+    )
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(pushTokens).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          userId: shopUser,
+          deviceId: `dev-shop-${run}`,
+          token: 'x',
+          platform: 'android',
+        }),
+      ),
+      /row-level security/,
+    )
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(broadcasts).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'sms',
+          templateKey: 'scheme_announcement',
+          createdBy: shopUser,
+          totalRecipients: 0,
+        }),
+      ),
+      /row-level security/,
+    )
+    expect(
+      await asShop((tx) =>
+        tx
+          .update(inboundMessages)
+          .set({ handled: true })
+          .where(eq(inboundMessages.id, inboundA))
+          .returning({ id: inboundMessages.id }),
+      ),
+    ).toHaveLength(0)
+  })
+
+  it('keeps a message what it was when it was queued: a correction is a fresh message', async () => {
+    // the dispatch columns move (status, provider id, cost, attempts, next try) ...
+    const dispatched = await as('owner')((tx) =>
+      tx
+        .update(messages)
+        .set({ status: 'delivered', deliveredAt: new Date(), attempts: 1 })
+        .where(eq(messages.id, messageA))
+        .returning({ status: messages.status }),
+    )
+    expect(dispatched[0]?.status).toBe('delivered')
+    // ... the message itself never does, for the owner, the worker, or the owner connection itself
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx
+          .update(messages)
+          .set({ to: `+91900${run}4` })
+          .where(eq(messages.id, messageA)),
+      ),
+      /never change after insert/,
+    )
+    await rejectsWith(
+      withTenant(db, { tenantId: tenantA, actorId: 'worker', actorRole: 'system' }, (tx) =>
+        tx
+          .update(messages)
+          .set({ payload: { invoiceNo: 'X' } })
+          .where(eq(messages.id, messageA)),
+      ),
+      /never change after insert/,
+    )
+    await rejectsWith(
+      db.update(messages).set({ recipientRetailerId: retailerB }).where(eq(messages.id, messageA)),
+      /never change after insert/,
+    )
+    await rejectsWith(
+      db.update(messages).set({ templateKey: 'dues_reminder' }).where(eq(messages.id, messageA)),
+      /never change after insert/,
+    )
+    await rejectsWith(
+      db.update(messages).set({ attempts: -1 }).where(eq(messages.id, messageA)),
+      /messages_attempts_nonnegative/,
+    )
+    const [row] = await db.select().from(messages).where(eq(messages.id, messageA))
+    expect(row?.to).toBe(`+91900${run}3`)
+    expect(row?.recipientRetailerId).toBe(retailerA)
+    expect(row?.locale).toBe('en-IN')
+  })
+
+  it('keeps inbound texts and the 24-hour windows to staff, and the message log to staff plus the shop it names', async () => {
+    for (const role of [
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+      'warehouse',
+      'delivery',
+    ] as const) {
+      expect(
+        (await as(role)((tx) => tx.select({ id: inboundMessages.id }).from(inboundMessages))).map(
+          (m) => m.id,
+        ),
+        `${role} reads the inbound queue`,
+      ).toContain(inboundA)
+      expect(
+        (await as(role)((tx) => tx.select().from(whatsappWindows))).map((w) => w.phone),
+        `${role} reads the windows`,
+      ).toContain(`+91900${run}3`)
+      const seen = (await as(role)((tx) => tx.select({ id: messages.id }).from(messages))).map(
+        (m) => m.id,
+      )
+      expect(seen, `${role} reads the whole log`).toEqual(
+        expect.arrayContaining([messageA, messageB, noticeA, staffNotice]),
+      )
+    }
+    // the rep marks the shop's text handled — its beat, its triage
+    const handled = await as('salesperson')((tx) =>
+      tx
+        .update(inboundMessages)
+        .set({ handled: true })
+        .where(eq(inboundMessages.id, inboundA))
+        .returning({ handled: inboundMessages.handled, body: inboundMessages.body }),
+    )
+    expect(handled[0]).toEqual({ handled: true, body: 'bhai 2 case cola kal' })
+  })
+
+  it('lets a staff member register only its own device and read the tenant’s list; not even the owner rewrites a co-worker’s token', async () => {
+    const asRep = as('salesperson')
+    expect(
+      (await asRep((tx) => tx.select({ id: pushTokens.id }).from(pushTokens))).map((t) => t.id),
+    ).toEqual(expect.arrayContaining([tokenRep, tokenDriver]))
+    // its own device: register, refresh, forget
+    const own = uuidv7()
+    await asRep((tx) =>
+      tx.insert(pushTokens).values({
+        id: own,
+        tenantId: tenantA,
+        userId: rep,
+        deviceId: `dev-rep-2-${run}`,
+        token: `ExponentPushToken[rep-2-${run}]`,
+        platform: 'ios',
+      }),
+    )
+    expect(
+      await asRep((tx) =>
+        tx
+          .update(pushTokens)
+          .set({ token: `ExponentPushToken[rep-2-${run}-refreshed]`, lastSeenAt: new Date() })
+          .where(eq(pushTokens.id, own))
+          .returning({ id: pushTokens.id }),
+      ),
+    ).toHaveLength(1)
+    expect(
+      await asRep((tx) =>
+        tx.delete(pushTokens).where(eq(pushTokens.id, own)).returning({ id: pushTokens.id }),
+      ),
+    ).toHaveLength(1)
+    // never someone else's: a token for the driver is refused, the driver's row is untouchable
+    await rejectsWith(
+      asRep((tx) =>
+        tx.insert(pushTokens).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          userId: driver,
+          deviceId: `dev-driver-2-${run}`,
+          token: 'hijack',
+          platform: 'android',
+        }),
+      ),
+      /row-level security/,
+    )
+    // nor may it re-point its own row at someone else
+    await rejectsWith(
+      asRep((tx) =>
+        tx.update(pushTokens).set({ userId: driver }).where(eq(pushTokens.id, tokenRep)),
+      ),
+      /row-level security/,
+    )
+    for (const role of ['owner', 'manager', 'accountant', 'salesperson', 'warehouse'] as const) {
+      expect(
+        await as(role)((tx) =>
+          tx
+            .update(pushTokens)
+            .set({ token: `stolen-${role}` })
+            .where(eq(pushTokens.id, tokenDriver))
+            .returning({ id: pushTokens.id }),
+        ),
+        `${role} must not rewrite the driver's token`,
+      ).toHaveLength(0)
+      expect(
+        await as(role)((tx) =>
+          tx
+            .delete(pushTokens)
+            .where(eq(pushTokens.id, tokenDriver))
+            .returning({ id: pushTokens.id }),
+        ),
+        `${role} must not remove the driver's token`,
+      ).toHaveLength(0)
+    }
+    const [driverToken] = await db.select().from(pushTokens).where(eq(pushTokens.id, tokenDriver))
+    expect(driverToken?.token).toBe(`ExponentPushToken[driver-${run}]`)
+    // the worker (system) prunes a dead token
+    expect(
+      await withTenant(db, { tenantId: tenantA, actorId: 'worker', actorRole: 'system' }, (tx) =>
+        tx
+          .update(pushTokens)
+          .set({ lastSeenAt: new Date() })
+          .where(eq(pushTokens.id, tokenDriver))
+          .returning({ id: pushTokens.id }),
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('lets the owner or the manager send a broadcast, the accountant read the history, and the rep, the godown and the crew neither', async () => {
+    for (const role of ['salesperson', 'warehouse', 'delivery'] as const) {
+      expect(
+        await as(role)((tx) => tx.select().from(broadcasts)),
+        `${role} must not read broadcasts`,
+      ).toHaveLength(0)
+      await rejectsWith(
+        as(role)((tx) =>
+          tx.insert(broadcasts).values({
+            id: uuidv7(),
+            tenantId: tenantA,
+            beatId: beatA,
+            channel: 'sms',
+            templateKey: 'scheme_announcement',
+            createdBy: actorFor(role),
+            totalRecipients: 0,
+          }),
+        ),
+        /row-level security/,
+      )
+    }
+    // the accountant reads the history and sends nothing (docs/22 §8 2026-09-05: reads, no decisions)
+    expect(
+      (await as('accountant')((tx) => tx.select({ id: broadcasts.id }).from(broadcasts))).map(
+        (b) => b.id,
+      ),
+    ).toContain(broadcastA)
+    await rejectsWith(
+      as('accountant')((tx) =>
+        tx.insert(broadcasts).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'sms',
+          templateKey: 'scheme_announcement',
+          createdBy: owner,
+          totalRecipients: 0,
+        }),
+      ),
+      /row-level security/,
+    )
+    expect(
+      await as('accountant')((tx) =>
+        tx
+          .update(broadcasts)
+          .set({ sentCount: 1 })
+          .where(eq(broadcasts.id, broadcastA))
+          .returning({ id: broadcasts.id }),
+      ),
+    ).toHaveLength(0)
+    // the manager sends; the worker refreshes the counters, within the arithmetic
+    const byManager = uuidv7()
+    await as('manager')((tx) =>
+      tx.insert(broadcasts).values({
+        id: byManager,
+        tenantId: tenantA,
+        channel: 'in_app',
+        templateKey: 'scheme_announcement',
+        createdBy: manager,
+        totalRecipients: 2,
+        queuedCount: 2,
+      }),
+    )
+    expect(
+      await withTenant(db, { tenantId: tenantA, actorId: 'worker', actorRole: 'system' }, (tx) =>
+        tx
+          .update(broadcasts)
+          .set({ queuedCount: 0, sentCount: 1, failedCount: 1 })
+          .where(eq(broadcasts.id, byManager))
+          .returning({ id: broadcasts.id }),
+      ),
+    ).toHaveLength(1)
+    await rejectsWith(
+      db.update(broadcasts).set({ sentCount: 5 }).where(eq(broadcasts.id, byManager)),
+      /broadcasts_counts_within_total/,
+    )
+    await rejectsWith(
+      db
+        .update(broadcasts)
+        .set({ failedCount: -1, sentCount: 0 })
+        .where(eq(broadcasts.id, byManager)),
+      /broadcasts_counts_nonnegative/,
+    )
+    // a broadcast is a message to shops: never push, never email
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.insert(broadcasts).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'push',
+          templateKey: 'scheme_announcement',
+          createdBy: owner,
+          totalRecipients: 0,
+        }),
+      ),
+      /broadcasts_channel_for_shops/,
+    )
+  })
+
+  it('keeps the message log and a broadcast’s beat inside the tenant', async () => {
+    const asOtherTenant = <T>(fn: (tx: Db) => Promise<T>) =>
+      withTenant(db, { tenantId: tenantB, actorId: owner, actorRole: 'owner' }, fn)
+    for (const table of [messages, inboundMessages, whatsappWindows, pushTokens, broadcasts]) {
+      expect(await asOtherTenant((tx) => tx.select().from(table))).toHaveLength(0)
+    }
+    // tenant B cannot announce to tenant A's beat: RLS hides the beat from app_rw, but a foreign-key
+    // check bypasses row security, so the guard trigger is the rule — for the owner connection too
+    await rejectsWith(
+      asOtherTenant((tx) =>
+        tx.insert(broadcasts).values({
+          id: uuidv7(),
+          tenantId: tenantB,
+          beatId: beatA,
+          channel: 'sms',
+          templateKey: 'scheme_announcement',
+          createdBy: owner,
+          totalRecipients: 0,
+        }),
+      ),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.insert(broadcasts).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        beatId: beatB,
+        channel: 'sms',
+        templateKey: 'scheme_announcement',
+        createdBy: owner,
+        totalRecipients: 0,
+      }),
+      /belongs to another tenant/,
+    )
+    await rejectsWith(
+      db.update(broadcasts).set({ beatId: beatB }).where(eq(broadcasts.id, broadcastA)),
       /belongs to another tenant/,
     )
   })

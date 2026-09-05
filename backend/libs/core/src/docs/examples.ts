@@ -16,8 +16,11 @@ import {
 } from 'drizzle-orm'
 import {
   approvals,
+  auditLog,
   bargainRequests,
   beats,
+  claimLines,
+  claims,
   cycleCounts,
   deliveries,
   deliveryChallans,
@@ -64,11 +67,12 @@ import {
   writeOffs,
   type Db,
 } from '@dos/db'
-import { contract, type ProcedureSummary } from '@dos/contracts'
+import { contract, MAX_CLAIM_BUILD_LINES, type ProcedureSummary } from '@dos/contracts'
 import { BACK_OFFICE } from '../platform/authz.js'
 import { DB } from '../platform/db.module.js'
 import { sample, type ZodLike } from './sample.js'
 import { BUILTIN_PROFILES, builtinProfileId, rowIdFor } from '../modules/integrations/index.js'
+import { builtLineId } from '../modules/claims/index.js'
 
 /**
  * Real request examples for the OpenAPI document.
@@ -225,6 +229,39 @@ export interface IntegrationsExamples {
   exportTo?: string | undefined
 }
 
+/** The claims desk as the seed left it (docs/plans/claims.md §6). */
+export interface ClaimsExamples {
+  /** The settled Campa claim: get / lines / statements — everything a finished claim carries. */
+  settledClaimId?: string | undefined
+  /** A draft (the damage claim) the `build` example reconstructs and `lines.remove` trims; `build` restores the line next time. */
+  draftClaimId?: string | undefined
+  draftLineId?: string | undefined
+  /** A submitted claim nobody moves on: the claim sheet is generated against it. */
+  submittedClaimId?: string | undefined
+  /** A supplier with an open `dos` claim and what it is still owed: the reconcile example finds it exactly. */
+  reconcileSupplierId?: string | undefined
+  reconcileAmountPaise?: number | undefined
+  /** The current policy of the example brand, echoed back unchanged by `policies.upsert`. */
+  policy?:
+    | {
+        id: string | null
+        brandId: string
+        claimSupplierId: string | null
+        damageClaimable: boolean
+        expiryClaimable: boolean
+        claimWindowDays: number | null
+        claimSheetFormat: string | null
+        claimPeriodKind: string
+        claimCutoffDay: number | null
+        settlementDays: number | null
+        damageValueBasis: string
+        expiryValueBasis: string
+        saleableReturnDays: number
+        notes: string | null
+      }
+    | undefined
+}
+
 /**
  * Rows pulled from the demo tenant. Every field is optional: a missing one falls back to the static
  * sampler, so the document still generates against an empty or unmigrated database.
@@ -371,6 +408,8 @@ export interface ExampleContext {
   docint?: DocintExamples | undefined
   /** The import wizard and the exports screen (integrations). */
   integrations?: IntegrationsExamples | undefined
+  /** The claims desk: the seeded claims every claims example points at. */
+  claims?: ClaimsExamples | undefined
   /**
    * Free slots of the id sequence of every CREATING procedure, in order — the ones this database does
    * not hold. One lane per role (see `serviceLane`) so seven services generating their documents in
@@ -518,8 +557,131 @@ async function collect(tx: Db): Promise<ExampleContext> {
   await collectDelivery(tx, tenant.id, ctx)
   await collectDocint(tx, tenant.id, ctx)
   await collectIntegrations(tx, tenant.id, ctx)
+  await collectClaims(tx, tenant.id, ctx)
   await collectFreshSlots(tx, tenant.id, ctx)
   return ctx
+}
+
+/** The claims desk as the seed left it: a settled claim, a draft to build, a submitted one to sheet, a payment to reconcile. */
+async function collectClaims(tx: Db, tenantId: string, ctx: ExampleContext): Promise<void> {
+  const out: ClaimsExamples = {}
+  ctx.claims = out
+  const rows = await tx
+    .select({
+      id: claims.id,
+      status: claims.status,
+      kind: claims.kind,
+      channel: claims.claimChannel,
+      supplierId: claims.supplierId,
+      brandId: claims.brandId,
+      claimNo: claims.claimNo,
+      claimedPaise: claims.claimedPaise,
+      settledPaise: claims.settledPaise,
+      writtenOffPaise: claims.writtenOffPaise,
+    })
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId))
+    .orderBy(asc(claims.createdAt), asc(claims.id))
+    .limit(200)
+  const withLines = new Set(
+    (
+      await tx
+        .selectDistinct({ claimId: claimLines.claimId })
+        .from(claimLines)
+        .where(eq(claimLines.tenantId, tenantId))
+    ).map((r) => r.claimId),
+  )
+  out.settledClaimId =
+    rows.find((r) => r.status === 'settled' && withLines.has(r.id))?.id ??
+    rows.find((r) => withLines.has(r.id))?.id
+  const draft = rows.find((r) => r.status === 'draft' && r.kind !== 'other' && r.brandId !== null)
+  out.draftClaimId = draft?.id
+  if (draft) {
+    out.draftLineId = first(
+      await tx
+        .select({ id: claimLines.id })
+        .from(claimLines)
+        .where(
+          and(
+            eq(claimLines.tenantId, tenantId),
+            eq(claimLines.claimId, draft.id),
+            eq(claimLines.status, 'open'),
+            eq(claimLines.settledPaise, 0),
+          ),
+        )
+        .orderBy(asc(claimLines.lineNo))
+        .limit(1),
+    )?.id
+    // The remove example took the draft's line out a moment ago (another service's document ran
+    // first): the build example above re-creates it under the SAME id — a built line's id is a
+    // function of (claim, source) — so the audit trail's before image names the line that will exist.
+    if (!out.draftLineId) {
+      const removed = first(
+        await tx
+          .select({ before: auditLog.before })
+          .from(auditLog)
+          .where(
+            and(
+              eq(auditLog.tenantId, tenantId),
+              eq(auditLog.action, 'claims.line.remove'),
+              eq(auditLog.entityId, draft.id),
+            ),
+          )
+          .orderBy(desc(auditLog.occurredAt))
+          .limit(1),
+      )?.before as { sourceType?: string; sourceId?: string } | null | undefined
+      if (removed?.sourceType && removed.sourceId && removed.sourceType !== 'manual')
+        out.draftLineId = builtLineId(draft.id, removed.sourceType, removed.sourceId)
+    }
+  }
+  out.submittedClaimId = rows.find(
+    (r) => r.status === 'submitted' && r.channel === 'dos' && withLines.has(r.id),
+  )?.id
+  const open = rows.find(
+    (r) =>
+      r.channel === 'dos' &&
+      (r.status === 'submitted' ||
+        r.status === 'acknowledged' ||
+        r.status === 'partially_settled') &&
+      r.claimedPaise - r.settledPaise - r.writtenOffPaise > 0,
+  )
+  if (open) {
+    out.reconcileSupplierId = open.supplierId
+    out.reconcileAmountPaise = open.claimedPaise - open.settledPaise - open.writtenOffPaise
+  }
+  const brandId = ctx.brandId
+  if (brandId) {
+    const policy = (
+      await tx.execute(sql`
+        select rp.id, rp.brand_id, rp.claim_supplier_id, rp.damage_claimable, rp.expiry_claimable,
+               rp.claim_window_days, rp.claim_sheet_format, rp.claim_period_kind::text as claim_period_kind,
+               rp.claim_cutoff_day, rp.settlement_days, rp.damage_value_basis::text as damage_value_basis,
+               rp.expiry_value_basis::text as expiry_value_basis, rp.saleable_return_days, rp.notes
+          from return_policies rp
+         where rp.tenant_id = ${tenantId} and rp.brand_id = ${brandId}
+         limit 1`)
+    ).rows[0]
+    if (policy) {
+      const text = (v: unknown): string | null => (typeof v === 'string' ? v : null)
+      const int = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v))
+      out.policy = {
+        id: text(policy.id),
+        brandId,
+        claimSupplierId: text(policy.claim_supplier_id),
+        damageClaimable: policy.damage_claimable === true,
+        expiryClaimable: policy.expiry_claimable === true,
+        claimWindowDays: int(policy.claim_window_days),
+        claimSheetFormat: text(policy.claim_sheet_format),
+        claimPeriodKind: text(policy.claim_period_kind) ?? 'monthly',
+        claimCutoffDay: int(policy.claim_cutoff_day),
+        settlementDays: int(policy.settlement_days),
+        damageValueBasis: text(policy.damage_value_basis) ?? 'ptd',
+        expiryValueBasis: text(policy.expiry_value_basis) ?? 'ptd',
+        saleableReturnDays: int(policy.saleable_return_days) ?? 0,
+        notes: text(policy.notes),
+      }
+    }
+  }
 }
 
 /** The wizard as the seed left it: a staged party master with a row to review, a finished Tally export. */
@@ -1802,6 +1964,21 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       'supplierInvoiceId',
       supplierInvoiceIds,
     ),
+    // Every claims example that creates a child row (line, evidence, settlement, sheet) hangs off the
+    // claim `claims.open` creates on this lane, so ONE slot walks the whole story forward together.
+    'claims.open': await freeSlots(
+      'claims.open',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: claims.id })
+              .from(claims)
+              .where(and(eq(claims.tenantId, tenantId), inArray(claims.id, [...candidates])))
+          ).map((row) => row.id),
+        ),
+    ),
   }
 }
 
@@ -2038,7 +2215,29 @@ function pathIdFor(httpPath: string, ctx: ExampleContext): string | undefined {
   // creates, so the chain create → preview → map → dry run → review → commit → confirm reads as one story.
   if (httpPath.startsWith('/integrations/imports/')) return createdImportId(ctx)
   if (httpPath.startsWith('/integrations/exports/')) return ctx.integrations?.exportId
+  // The claim THIS document opens: every `{id}` under /claims/ defaults to it (overrides pick the
+  // seeded settled / draft / submitted claim where a read or a sheet wants a finished one).
+  if (httpPath.startsWith('/claims/')) return createdClaimId(ctx)
   return undefined
+}
+
+/** The claim `claims.open` creates, on this service's lane; its children walk with the same slot. */
+function createdClaimId(ctx: ExampleContext): string {
+  return createdId('claims.open', 'id', slotOf(ctx, 'claims.open'))
+}
+
+/** A child id / key of the document's own claim, derived from the SAME slot so the story replays as one. */
+function claimChildId(ctx: ExampleContext, procedurePath: string, trail: string): string {
+  return createdId(procedurePath, trail, slotOf(ctx, 'claims.open'))
+}
+
+function claimKey(ctx: ExampleContext, procedurePath: string): string {
+  return docsIdempotencyKey(procedurePath, slotOf(ctx, 'claims.open'))
+}
+
+/** One calendar day per slot, so every document's `other` claim covers its own window (the period is unique per supplier × kind). */
+function claimPeriodDay(ctx: ExampleContext): string {
+  return addDaysIso('2026-04-01', slotOf(ctx, 'claims.open'))
 }
 
 /** The import job the create example stages, on this service's lane. */
@@ -3036,21 +3235,171 @@ const OVERRIDES: Record<
     supplierId: DROP,
     kind: DROP,
   }),
-  // claims (contract landed ahead of module 7; no service mounts it yet): `evidence.attach` takes
-  // EXACTLY ONE of `documentId` / `objectKey`, which the sampler cannot know. The file path is the
-  // `files.uploadUrl` key of the claim (`domain: 'claim'`, entityId = the claim id in the path). The
-  // claims slice replaces this with a real seeded claim when its module and demo data land.
-  'claims.evidence.attach': (ctx) => {
-    const claimId = docUuid('claims.evidence.attach#id')
-    return {
-      id: claimId,
-      evidenceId: createdId('claims.evidence.attach', 'evidenceId'),
-      documentId: DROP,
-      objectKey: `tenant/${ctx.tenantId ?? 'tenant'}/claims/${claimId}/evidence-1.jpg`,
-      kind: 'damage_photo',
-      caption: 'Damaged carton at the door',
-    }
-  },
+  // claims: the document tells ONE story on the claim it opens (`other` kind, one manual line):
+  // open → build (the seeded damage draft) → add a line → adjust it → remove a seeded draft line →
+  // attach evidence → submit (number + accrual) → acknowledge → settle in part → reject (409: money
+  // has landed) → write off the remainder (destructive) → a sheet for the seeded submitted claim.
+  'claims.policies.list': () => ({ brandId: DROP }),
+  'claims.policies.upsert': (ctx) => ({
+    id: ctx.claims?.policy?.id ?? docUuid('claims.policies.upsert#id'),
+    brandId: ctx.claims?.policy?.brandId ?? ctx.brandId,
+    claimSupplierId: ctx.claims?.policy?.claimSupplierId ?? ctx.supplierId ?? DROP,
+    damageClaimable: ctx.claims?.policy?.damageClaimable ?? true,
+    expiryClaimable: ctx.claims?.policy?.expiryClaimable ?? true,
+    claimWindowDays: ctx.claims?.policy?.claimWindowDays ?? DROP,
+    claimSheetFormat: ctx.claims?.policy?.claimSheetFormat ?? DROP,
+    claimPeriodKind: ctx.claims?.policy?.claimPeriodKind ?? 'monthly',
+    claimCutoffDay: ctx.claims?.policy?.claimCutoffDay ?? DROP,
+    settlementDays: ctx.claims?.policy?.settlementDays ?? DROP,
+    damageValueBasis: ctx.claims?.policy?.damageValueBasis ?? 'ptd',
+    expiryValueBasis: ctx.claims?.policy?.expiryValueBasis ?? 'ptd',
+    saleableReturnDays: ctx.claims?.policy?.saleableReturnDays ?? DROP,
+    notes: ctx.claims?.policy?.notes ?? DROP,
+  }),
+  'claims.periods.list': () => ({ brandId: DROP, supplierId: DROP, kind: DROP, periods: 3 }),
+  'claims.ageing': () => ({ asOf: DROP, supplierId: DROP, brandId: DROP, kind: DROP }),
+  'claims.register': () => ({
+    from: '2026-04-01',
+    to: '2027-03-31',
+    groupBy: 'brand',
+    supplierId: DROP,
+    brandId: DROP,
+    kind: DROP,
+    claimChannel: DROP,
+  }),
+  'claims.reconcile.suggest': (ctx) => ({
+    supplierId: ctx.claims?.reconcileSupplierId ?? ctx.supplierId,
+    amountPaise: ctx.claims?.reconcileAmountPaise ?? 125000,
+    tolerancePaise: 100,
+    fromDate: DROP,
+    toDate: DROP,
+  }),
+  'claims.open': (ctx) => ({
+    id: createdClaimId(ctx),
+    supplierId: ctx.supplierId,
+    brandId: DROP,
+    kind: 'other',
+    periodFrom: claimPeriodDay(ctx),
+    periodTo: claimPeriodDay(ctx),
+    note: 'Docs: rate-difference letter from the depot, one manual line',
+  }),
+  'claims.list': () => ({
+    status: DROP,
+    statuses: DROP,
+    openOnly: DROP,
+    overdueOnly: DROP,
+    kind: DROP,
+    supplierId: DROP,
+    brandId: DROP,
+    claimChannel: DROP,
+    periodFrom: DROP,
+    periodTo: DROP,
+    q: DROP,
+  }),
+  'claims.get': (ctx) => ({ id: ctx.claims?.settledClaimId ?? createdClaimId(ctx) }),
+  'claims.build': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.build'),
+    id: ctx.claims?.draftClaimId ?? createdClaimId(ctx),
+    sources: DROP,
+    // Walks with the document's slot so each generated document is a NEW build (a harness that keys
+    // on the body would otherwise replay yesterday's build and never restore the removed line).
+    limit: MAX_CLAIM_BUILD_LINES - slotOf(ctx, 'claims.open'),
+  }),
+  'claims.lines.list': (ctx) => ({
+    id: ctx.claims?.settledClaimId ?? createdClaimId(ctx),
+    status: DROP,
+    sourceType: DROP,
+  }),
+  'claims.lines.add': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.lines.add'),
+    id: createdClaimId(ctx),
+    lineId: claimChildId(ctx, 'claims.lines.add', 'lineId'),
+    variantId: ctx.variantId ?? DROP,
+    retailerId: DROP,
+    schemeId: DROP,
+    qtyPcs: 12,
+    ratePaise: DROP,
+    basis: 'invoice_rate',
+    amountPaise: 250000,
+    note: 'Rate difference per the depot letter',
+  }),
+  'claims.lines.adjust': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.lines.adjust'),
+    id: createdClaimId(ctx),
+    lineId: claimChildId(ctx, 'claims.lines.add', 'lineId'),
+    qtyPcs: DROP,
+    ratePaise: DROP,
+    amountPaise: 240000,
+    exclude: DROP,
+    reason: 'The letter says 2,400, not 2,500',
+  }),
+  'claims.lines.remove': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.lines.remove'),
+    id: ctx.claims?.draftLineId ? ctx.claims.draftClaimId : createdClaimId(ctx),
+    lineId: ctx.claims?.draftLineId ?? claimChildId(ctx, 'claims.lines.add', 'lineId'),
+    reason: 'Carton was not ours',
+  }),
+  'claims.evidence.attach': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.evidence.attach'),
+    id: createdClaimId(ctx),
+    evidenceId: claimChildId(ctx, 'claims.evidence.attach', 'evidenceId'),
+    documentId: DROP,
+    objectKey: `tenant/${ctx.tenantId ?? 'tenant'}/claims/${createdClaimId(ctx)}/depot-letter.jpg`,
+    kind: 'email',
+    caption: 'The depot’s rate-difference letter',
+  }),
+  'claims.submit': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.submit'),
+    id: createdClaimId(ctx),
+    submittedOn: DROP,
+    'statement.id': claimChildId(ctx, 'claims.submit', 'statement.id'),
+    'statement.format': DROP,
+  }),
+  'claims.acknowledge': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.acknowledge'),
+    id: createdClaimId(ctx),
+    externalRef: `DOCS/ACK/${String(slotOf(ctx, 'claims.open') + 1).padStart(4, '0')}`,
+    acknowledgedOn: DROP,
+  }),
+  'claims.settlements.record': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.settlements.record'),
+    id: createdClaimId(ctx),
+    settlementId: claimChildId(ctx, 'claims.settlements.record', 'settlementId'),
+    settledOn: claimPeriodDay(ctx),
+    amountPaise: 100000,
+    mode: 'credit_note',
+    externalRef: `DOCS/CN/${String(slotOf(ctx, 'claims.open') + 1).padStart(4, '0')}`,
+    documentId: DROP,
+    grnId: DROP,
+    lineAllocations: DROP,
+    note: 'Part credit note against the letter',
+  }),
+  'claims.reject': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.reject'),
+    id: createdClaimId(ctx),
+    reason: 'Depot says the difference was already passed in the price circular',
+    rejectedOn: DROP,
+  }),
+  'claims.writeOff': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.writeOff'),
+    id: createdClaimId(ctx),
+    reason: 'Remainder not recoverable after two reminders',
+    writtenOffOn: DROP,
+  }),
+  'claims.cancel': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.cancel'),
+    id: createdClaimId(ctx),
+    reason: 'Opened on the wrong supplier',
+  }),
+  'claims.statements.generate': (ctx) => ({
+    idempotencyKey: claimKey(ctx, 'claims.statements.generate'),
+    id: ctx.claims?.submittedClaimId ?? createdClaimId(ctx),
+    statementId: claimChildId(ctx, 'claims.statements.generate', 'statementId'),
+    format: DROP,
+  }),
+  'claims.statements.list': (ctx) => ({
+    id: ctx.claims?.settledClaimId ?? ctx.claims?.submittedClaimId ?? createdClaimId(ctx),
+  }),
   // integrations: the wizard walks ONE import per service lane — the seeded TradeEzee party file is
   // staged again under a fresh job id, mapped, dry-run, its garbled row pinned to the shop it really is,
   // committed and confirmed — under keys that move with the create slot so the steps replay together.
@@ -3217,6 +3566,30 @@ function createsRowNote(ctx: ExampleContext, procedurePath: string, what: string
 
 /** Caveats that survive into the document as `x-dos-note`. */
 const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
+  'claims.open': (ctx) =>
+    `Opens a REAL draft claim (${createdClaimId(ctx)}, kind \`other\`, a one-day window of its own); the add / adjust / evidence / submit / acknowledge / settle / reject / write-off examples below all point at it, in that order, so the document reads as one story. A second Execute replays; re-fetch \`/docs/openapi.json?fresh=1\` for the next claim.`,
+  'claims.build': (ctx) =>
+    ctx.claims?.draftClaimId
+      ? 'Rebuilds the lines of the seeded damage draft from the stock ledger. Re-runnable: what is already on the claim is reported as skipped, and a line the remove example took out is put back.'
+      : 'Points at the claim this document opens (kind `other` has no sources, so it adds nothing); open a scheme or damage draft to see the build reconstruct lines.',
+  'claims.lines.remove': (ctx) =>
+    ctx.claims?.draftLineId
+      ? 'Removes one line of the seeded damage draft; the build example above restores it on the next run.'
+      : undefined,
+  'claims.submit': () =>
+    'Allocates the CLAIM number, accrues the receivable (Dr CLAIMS_RECEIVABLE / Cr DAMAGES for kind `other`) and queues the claim sheet in the same transaction. Once submitted, a second Execute answers 409 — the claim is no longer a draft.',
+  'claims.settlements.record': () =>
+    'Records a part payment against the claim this document opened (Dr AP / Cr CLAIMS_RECEIVABLE). The example never settles the whole claim, so the reject example below can show its refusal.',
+  'claims.reject': () =>
+    'Answers 409 here on purpose: the settlement example has already landed money on this claim, and a claim with money on it can only be settled further or written off. Reject a submitted or acknowledged claim with no settlement to see the accrual reversed.',
+  'claims.writeOff': () =>
+    'Writes the unrecovered remainder of the document’s claim off to BAD_DEBTS (owner or accountant only). Destructive: `pnpm smoke` skips it unless --destructive.',
+  'claims.cancel': () =>
+    'Answers 409 here on purpose: the document’s claim was submitted a few steps above and only a DRAFT can be cancelled. Cancel a fresh draft to see its window freed.',
+  'claims.statements.generate': (ctx) =>
+    ctx.claims?.submittedClaimId
+      ? 'Snapshots the seeded submitted claim into a new claim sheet and queues it on the export queue; outside production the file is rendered at once, so the reply already says `ready: true`.'
+      : undefined,
   'integrations.imports.create': (ctx) =>
     `Stages the seeded TradeEzee party file again as a NEW import (${createdImportId(ctx)}); the mapping, dry-run, review, commit and confirm examples below all point at it, in that order. A second Execute replays; re-fetch \`/docs/openapi.json?fresh=1\` for the next job.`,
   'integrations.imports.commit': () =>
@@ -3464,6 +3837,9 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'docint.stats.summary': ['from', 'to'],
   'integrations.imports.preview': ['rows'],
   'integrations.tally.syncLedger.list': ['exportJobId'],
+  'claims.periods.list': ['periods'],
+  'claims.register': ['from', 'to', 'groupBy'],
+  'claims.reconcile.suggest': ['supplierId', 'amountPaise', 'tolerancePaise'],
 }
 
 /** `q` is a free-text search: give it a word that certainly matches a seeded row. */

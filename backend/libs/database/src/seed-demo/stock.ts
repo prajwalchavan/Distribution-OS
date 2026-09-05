@@ -1,7 +1,7 @@
 /** Inventory + inbound procurement (ADR 0003): lots, opening/GRN ledger rows, balances, one posted GRN per supplier. */
 import { insertMany } from './db-helpers.js'
 import { paise, percentOf, splitGst } from '@dos/domain'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import {
   grnLines,
   grns,
@@ -124,11 +124,18 @@ export async function seedStock(
   tenantCatalog: TenantCatalogResult,
   people: PeopleResult,
 ): Promise<StockResult> {
+  // Oldest first: the tenant's bootstrap rows ('Godown', 'Damaged / expiry bin') come before anything
+  // a docs example or a smoke probe adds later ('Demo Godown (docs)', 'Smoke Probe (owner)' — also
+  // `warehouse` kind). An unordered `find()` once picked the docs godown on the founder's re-seeded
+  // database, so every later seed that trusts `godownId` debited a location the lots were never in.
   const existingLocations = await db
     .select()
     .from(locations)
     .where(eq(locations.tenantId, tenantId))
-  const godown = existingLocations.find((l) => l.kind === 'warehouse')
+    .orderBy(asc(locations.createdAt), asc(locations.id))
+  const godown =
+    existingLocations.find((l) => l.kind === 'warehouse' && l.name === 'Godown') ??
+    existingLocations.find((l) => l.kind === 'warehouse')
   const damaged = existingLocations.find((l) => l.kind === 'damaged')
   if (!godown || !damaged) {
     throw new Error(

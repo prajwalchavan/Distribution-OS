@@ -272,3 +272,26 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/integrations/tally/mappings` | How our items, godowns, units, voucher types and parties are named in Tally | owner, manager, accountant |
 | POST | `/integrations/tally/mappings` | Set the Tally name (and parent) of one entity | owner, manager, accountant |
 | GET | `/integrations/tally/sync-ledger` | Which documents an export already pushed to Tally, with their GUIDs | owner, manager, accountant |
+| GET | `/claims/policies` | Every brand's claim policy for this distributor (unconfigured brands included) | owner, manager, accountant |
+| POST | `/claims/policies` | Set a brand's claim policy: what is claimable, the cadence, the valuation (owner only) | owner |
+| GET | `/claims/periods` | Claim periods per brand: what is due, what is already claimed, what it is worth | owner, manager, accountant |
+| GET | `/claims/ageing` | Ageing of claims receivable by supplier or brand (brand-DMS claims listed apart) | owner, manager, accountant |
+| GET | `/claims/register` | The claims register: claimed, settled, written off and recovery rate, grouped | owner, manager, accountant |
+| GET | `/claims/reconcile` | Which open claims a brand payment of this amount settles | owner, manager, accountant |
+| POST | `/claims` | Open a draft claim on a supplier for a brand, kind and period | owner, manager, accountant |
+| GET | `/claims` | Claims, newest first, with their money | owner, manager, accountant |
+| GET | `/claims/{id}` | One claim with its lines, evidence, statements, settlements and policy | owner, manager, accountant |
+| POST | `/claims/{id}/build` | Reconstruct the lines of a draft from invoices, credit notes, the stock ledger and discrepancies | owner, manager, accountant |
+| GET | `/claims/{id}/lines` | The lines of a claim (back office: a damage line carries purchase cost) | owner, manager, accountant |
+| POST | `/claims/{id}/lines` | Add a manual line to a draft claim | owner, manager, accountant |
+| POST | `/claims/{id}/lines/{lineId}/adjust` | Review a built line: change its money, exclude it, or bring it back (draft only) | owner, manager, accountant |
+| POST | `/claims/{id}/lines/{lineId}/remove` | Remove a line from a draft claim | owner, manager, accountant |
+| POST | `/claims/{id}/evidence` | Attach a damage photo, the brand's mail or credit note (an uploaded object or a document) | owner, manager, accountant |
+| POST | `/claims/{id}/submit` | Submit: allocate the claim number, accrue the receivable and, optionally, queue the claim sheet | owner, manager, accountant |
+| POST | `/claims/{id}/acknowledge` | Record the brand's acknowledgement and its claim reference | owner, manager, accountant |
+| POST | `/claims/{id}/settlements` | Record the brand's settlement: credit note, bank receipt, cheque, goods or adjustment | owner, manager, accountant |
+| POST | `/claims/{id}/reject` | The brand refused: reverse the accrual and free the sources | owner, manager, accountant |
+| POST | `/claims/{id}/write-off` | Write off the unrecovered balance (owner or accountant) | owner, accountant |
+| POST | `/claims/{id}/cancel` | Discard a draft claim (never a numbered one) | owner, manager, accountant |
+| POST | `/claims/{id}/statements` | Queue the claim sheet in the brand's format (rendered by the worker, never inline) | owner, manager, accountant |
+| GET | `/claims/{id}/statements` | Claim sheets requested for a claim and whether each is ready | owner, manager, accountant |

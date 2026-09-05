@@ -327,17 +327,44 @@ describe('doc examples', () => {
     expect(describeExamples({})).toContain('No demo data found')
   })
 
-  // A contract that lands ahead of its module still needs a working example: `claims.evidence.attach`
-  // refines "exactly one of documentId / objectKey", which no sampler can satisfy on its own. The
-  // example carries the tenant-scoped upload key of the claim in its path and no document id.
-  it('gives claims.evidence.attach exactly one of documentId or objectKey', () => {
+  // `claims.evidence.attach` refines "exactly one of documentId / objectKey", which no sampler can
+  // satisfy on its own. The example carries the tenant-scoped upload key of the claim in its path
+  // (the claim this document opens — the handler refuses any other claim's folder) and no document id.
+  it('gives claims.evidence.attach exactly one of documentId or objectKey, in the claim’s own folder', () => {
     const tenantId = '01a06c94-5a6c-752a-ab3c-65716a47362f'
-    const example = buildExamples(PROCEDURES, { tenantId }).get('claims.evidence.attach')
+    const examples = buildExamples(PROCEDURES, { tenantId })
+    const example = examples.get('claims.evidence.attach')
     const body = example?.body ?? {}
     expect(example?.pathParams.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(example?.pathParams.id).toBe(
+      examples.get('claims.open')?.pathParams.id ?? examples.get('claims.open')?.input.id,
+    )
     expect('documentId' in body).toBe(false)
     expect(body.objectKey).toBe(
-      `tenant/${tenantId}/claims/${String(example?.pathParams.id)}/evidence-1.jpg`,
+      `tenant/${tenantId}/claims/${String(example?.pathParams.id)}/depot-letter.jpg`,
+    )
+  })
+
+  // The claims story hangs off the claim `claims.open` creates: every child id and key derives from
+  // that one slot, so the whole chain replays together and walks forward together.
+  it('keeps every claims mutation on the claim the document opens', () => {
+    const tenantId = '01a06c94-5a6c-752a-ab3c-65716a47362f'
+    const examples = buildExamples(PROCEDURES, { tenantId })
+    const opened = String(examples.get('claims.open')?.input.id)
+    for (const path of [
+      'claims.lines.add',
+      'claims.lines.adjust',
+      'claims.submit',
+      'claims.acknowledge',
+      'claims.settlements.record',
+      'claims.reject',
+      'claims.writeOff',
+      'claims.cancel',
+    ]) {
+      expect(examples.get(path)?.pathParams.id, path).toBe(opened)
+    }
+    expect(examples.get('claims.lines.adjust')?.pathParams.lineId).toBe(
+      examples.get('claims.lines.add')?.body?.lineId,
     )
   })
 

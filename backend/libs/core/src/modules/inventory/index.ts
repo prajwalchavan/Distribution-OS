@@ -3,6 +3,8 @@ export {
   InventoryService,
   pgConstraint,
   type LedgerEntryInput,
+  type LedgerReasonFilter,
+  type LedgerReasonRow,
   type LedgerRefRow,
   type LotInput,
   type PostPickInput,

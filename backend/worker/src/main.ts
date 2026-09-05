@@ -2,6 +2,7 @@ import { PgBoss } from 'pg-boss'
 import { createDb, createPool, loadDotenv } from '@dos/db'
 
 loadDotenv()
+import { registerClaimSheetRenderer } from '@dos/core/claims'
 import { DOCUMENT_RENDER_EVENT } from '@dos/core/documents'
 import { logger } from './logger.js'
 import { registerDocintJobs } from './jobs/docint.js'
@@ -32,6 +33,8 @@ await registerDocintJobs(boss, db)
 // Integrations (coordination §3.5): the importer's phases on `imports.run`, every export kind on the
 // one `exports.render` queue, and a minute sweep for hand-offs the relay missed.
 await registerIntegrationsJobs(boss, db)
+// Claims (coordination §3.5): the `claim_sheet` renderer on the same `exports.render` registry.
+registerClaimSheetRenderer()
 await boss.createQueue(INTEGRATIONS_SWEEP)
 await boss.work(INTEGRATIONS_SWEEP, async () => {
   await sweepIntegrations(db, boss)

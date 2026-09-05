@@ -1,8 +1,46 @@
 # Build log — where we are, what is next
 
-## RESUME HERE (updated 2026-09-05 18:40 IST, session 3)
+## RESUME HERE (updated 2026-09-05 19:55 IST, session 3)
 
-**MODULE 6 DONE — integrations (2026-09-05 18:40 IST), verified by the independent gate; NEXT: claims (step 7 of 10) is starting.**
+**MODULE 7 DONE — claims (2026-09-05 19:55 IST), verified by the independent gate; NEXT: notifications (step 8 of 10) is starting
+(its contract `notifications.ts` and migrations 0024/0025 are already in the working tree from the parallel DB/contract slices; the core
+module `modules/notifications` is what comes next).**
+The gate ran the full chain on the founder's database: `pnpm install` ("already up to date", lockfile unchanged), `turbo run build typecheck lint
+test --force` (48/48 tasks, **1702 tests**), a second `turbo run test --force` (1702 again, 16/16) and, after the gate's own fixes, the full
+chain once more (48/48, **1703 tests** with the new spec) plus a second test run (1703), `docs:readme:check` + `format:check` clean (both
+workspaces), `pnpm smoke` **1170 calls · 0 BROKEN**, `pnpm smoke --destructive` (1170 · 0 BROKEN), `pnpm db:seed`, `pnpm smoke` again
+(1170 · 0 BROKEN; the run-to-run OK/EXPECTED flips are the known approvals/picklist/pack demo drift after a destructive run, none in claims),
+every service `/health` + `/docs/openapi.json` checked against coordination §6 (claims' 23 procedures / 19 paths on owner and manager only,
+`x-roles` owner/manager/accountant, `policies.upsert` owner, `writeOff` owner + accountant; none on auth, sales, warehouse, delivery or
+retailer), live role gates with real tokens (salesperson 403 on :3001, 404 on :3003/:3004/:3005/:3006 where the key is not mounted, 401
+without a token, accountant 403 on `policies.upsert`, manager 403 on `write-off`; ageing keeps the brand-DMS group in `groups` and out of
+`totals`), `pnpm db:seed` twice with identical row counts across all 129 tables, `pnpm db:migrate` a no-op at 27 migrations, `pnpm db:generate`
+"No schema changes", the whole migration chain 0000→0026 applied on a FRESH database in one transaction followed by the seed (7 claims / 28
+lines / 3 settlements / 2 sheets, CLM-0007 brand_dms with no journal), and the built worker booted for 80 s: outbox relay 585 published /
+0 failed, the seeded queued CLM-0002 sheet swept and rendered by the registered `claim_sheet` renderer into a real XLSX (8 rows, "Claimed by
+Tarsun Enterprises", no product branding). Three defects found and fixed by the gate, none inside the claims module itself: (1) on a FRESH
+database the second `pnpm db:seed` added one row — the pending van-sale order `SO-9003` lived in `seedBilling` but only exists when the van
+carries stock, and `seedWarehouse` (which loads the van) runs after billing; it is now `seedPendingVanSaleOrder`, called right after
+`seedWarehouse`; (2) `seedStock` picked the godown with an unordered `find(kind === 'warehouse')`, which on the founder's re-seeded database
+(smoke probes + "Demo Godown (docs)" are `warehouse` rows too) resolved to the docs godown, so the claims seed's two `expiry_writeoff`
+movements debited a location the lots were never in (those two append-only rows stay on the founder's copy; the fresh seed is right); the
+pick is now the bootstrap `Godown`, oldest first; (3) the seeded claim-sheet snapshots left `retailerName`/`retailerCode` null (empty "Party"
+column on the demo sheet) while the live `statements.generate` fills them — the seed now looks the shops up, and the founder's two seeded
+snapshots were backfilled by hand. All three are locked by a new DB-backed spec `libs/database/src/seed-demo.test.ts` that creates its own
+empty database, migrates it, seeds it twice and compares every table (≈3 s). Carried forward from the implementer, none blocking: write-off
+posts Dr `BAD_DEBTS` / Cr the receivable (the brief's Dr `SCHEME_EXPENSE`/`DAMAGES` variant is documented in `claims.service.ts`, not used —
+founder/CA call); migration 0026's index predicate spells "cancelled" as `claim_no IS NULL AND status <> 'draft'` because a new enum value
+cannot be used in the transaction that adds it; the worker crons `claims.period.rollover` / `claims.overdue.sweep` are not built
+(`periods.list` gives the desk the same view on demand); `claims.periods.list` estimates ≈600 ms on the demo tenant — cache if a screen
+polls it; the very first seed on the founder's database (before the invoice-line rule filter) left CLM-0001 with one August line
+(53,616 paise) and the expiry draft with one line — consistent, just smaller than the fresh seed; each `pnpm smoke` leaves one
+partially-settled `other` claim of ₹1,400 on Alan's (the docs story, closed by `--destructive`); today's many smoke runs have emptied one
+Godown lot, so `warehouse.orders.pack` / `loadSheets.confirm` now answer 400 "insufficient stock" (EXPECTED, demo drift, a GRN or a fresh
+seed restores it). Claims' slice (23 procedures, `modules/claims/**`, `@dos/core/claims` worker subpath, `claimMachine`, migration 0026,
+seed `claims.ts`, callee additions in pricing/inventory/procurement/tenant-catalog/billing/integrations) plus the notifications contract +
+migrations 0024/0025 are in the working tree — **commit the snapshot before starting notifications.**
+
+**Earlier (MODULE 6 DONE — integrations, 2026-09-05 18:40 IST, verified by the independent gate).**
 The gate ran the full chain on the founder's database: `pnpm install` ("already up to date", lockfile unchanged), `turbo run build typecheck lint
 test --force` (48/48 tasks, **1626 tests**), a second `turbo run test --force` (1626 again, 16/16) and, after the gate's own fixes, the full
 chain once more (48/48, **1627 tests** with the new spec cases), `docs:readme:check` + `format:check` clean
@@ -331,7 +369,8 @@ Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `d
 | 4 delivery (vehicles + consents, trips, stops, doorstep deliveries + POD, collections, van sales, expenses, settlement, GPS; migrations 0014/0015; 32 procedures on owner/manager/warehouse/delivery/retailer; sync handlers for trip_stops, deliveries, pod_evidence, collections, trip_expenses; seed-demo `delivery-road.ts`; gate fixes: turbo `concurrency: 4`, delivery spec fixtures in a hook, `packConfigs.upsert` id clash → 409 + self-healing example, smoke `trips.cancel` on its own throwaway plan) | ✅ verified (2026-09-05, 1442 tests, smoke 1004/0 broken ×3, seed idempotent over 126 tables) | after backend    |
 | 5 docint (inbound-bill pipeline: capture → QR decode/verify → engine → validators → SKU cascade → single-writer review → approve into a supplier-invoice DRAFT via procurement's new `SupplierInvoiceService.createInTx`, never stock/lot/cost/journal; `documentMachine` + `reviewSessionMachine` in @dos/domain; 26 procedures on owner/manager/warehouse; `@dos/core/docint` DI-free pipeline subpath with a deterministic stub engine and a raw-HTTP Anthropic vision adapter (`DOCINT_ENGINE`, `DOCINT_INLINE_JOBS`); sync handlers for documents + document_pages; worker: real outbox relay (`registerOutboxHandler`, `FOR UPDATE SKIP LOCKED`, backoff, dead-letter — migration 0020) + pg-boss queues docint.qr-read/extract/validate/match; seed-demo `docint.ts` 11 documents in every state) | ✅ verified (2026-09-05, 1550 tests ×2, smoke 1082/0 broken ×3 incl. --destructive, seed idempotent over 127 tables, worker booted live: 1145 renders + 104 docint events relayed, 0 dead-lettered) | after backend    |
 | 6 integrations (the GENERIC mapped importer, docs/17 §D7: upload → create → preview → map/save profile → dry run → review → commit → confirm | rollback, CSV + XLSX (dependency-free reader/writer), five targets party_master / item_master / opening_outstanding (owner-only, bill by bill, balanced OPENING entries) / sales_register (no ledger effect) / brand_dms_invoices (one bill per invoice number, no stock, overlaps skipped); built-in vendor profiles as data (TradeEzee, Marg, Busy, Tally, FieldAssist); matching by external code → phone/GSTIN → trigram name, EAN → alias → name, never a guess; per-row commit transactions keyed `import:<job>:<rowNo>` with before/effects snapshots and a one-transaction rollback through `invoiceMachine` + mirror journals; `importJobMachine` in @dos/domain; the single `export_jobs` owner + `exports.render` renderer registry (`registerExportRenderer`): Tally XML with brand-DMS lines excluded and stable GUIDs in `tally_sync_ledger`, GSTR-1 JSON, sales-register / outstanding XLSX + CSV twins, e-way / e-invoice JSON stubs; Tally mappings; 21 procedures on owner + manager (accountant reads + exports); migration 0023; worker queues `imports.run` / `exports.render` + minute sweep, `INTEGRATIONS_INLINE_JOBS`; seed `integrations.ts` 8 jobs in every state with real files in the object store, 40 purchase-history rows, external codes, Tally mappings, a rendered Tally export + sync rows, 2 queued exports; gate fixes: `claims.evidence.attach` docs example, `imports.cancel` on a throwaway import + parsed-file fallback for the wizard example) | ✅ verified (2026-09-05, 1626 tests ×2 then 1627, smoke 1124/0 broken ×3 incl. --destructive, seed idempotent over 128 tables) | after backend    |
-| 7 claims · 8 notifications · 9 reporting · 10 incentives                                                | ⏳ chained, one at a time                                | after backend    |
+| 7 claims (money the brand owes the distributor: policies per brand (`return_policies` + `tenant_brands.claim_channel`), periods, open → build → lines (add / adjust / remove) → evidence → submit (CLAIM series, accrual Dr SCHEME_RECEIVABLE or CLAIMS_RECEIVABLE) → acknowledge → settlements (credit note / bank / cheque / goods / adjustment, allocated to lines with `allocate()`) → reject (true reversal) / write-off (Dr BAD_DEBTS, owner + accountant) / cancel (draft only); `build.service.ts` reconstructs scheme lines from `invoice_lines.applied_rules` (company-funded, claimable, the claim's channel, never cash discount; free goods at PTD; credit notes scale the claimable qty), damage / expiry from credit notes + `damage` / `expiry_writeoff` ledger rows at the policy basis with the lot's own case size, shortage / rate difference from open gate-count findings (marked `claimed` at submit); brand_dms claims numbered and exported but never journalled; ageing, chart-ready register, bounded reconcile; claim-sheet snapshots rendered by the `claim_sheet` renderer on integrations' `exports.render` registry (brand column sets, distributor's own name); `claimMachine` in @dos/domain; 23 procedures on owner + manager; migrations 0021/0022 (DB slice) + 0026 (`cancelled`, `cheque`, index rebuilt); seed `claims.ts` 7 claims in every state; gate fixes: `seedPendingVanSaleOrder` after `seedWarehouse`, deterministic godown pick in `seedStock`, shop names on seeded sheets, new fresh-database seed spec) | ✅ verified (2026-09-05, 1702 tests ×2 then 1703 ×2, smoke 1170/0 broken ×3 incl. --destructive, seed idempotent over 129 tables on the founder's DB AND on a fresh one, worker rendered the queued sheet) | after backend    |
+| 8 notifications · 9 reporting · 10 incentives                                                           | ⏳ chained, one at a time                                | after backend    |
 | 11 three distributors + shared shops demo, ledger partition plan                                        | ⏳ end of chain                                          | —                |
 | six apps (layout A Ledger, design system being finalised)                                               | —                                                        | ⏳ after backend |
 

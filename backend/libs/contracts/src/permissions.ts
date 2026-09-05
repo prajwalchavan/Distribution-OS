@@ -189,6 +189,34 @@ const CREDIT_NOTE_RAISERS = [
  */
 const LOSS_ACCEPTORS = ['owner', 'accountant'] as const satisfies readonly MembershipRole[]
 
+/**
+ * Support triage (coordination §6): who reads what a shop texted us and marks it handled — the desk
+ * plus the beat-owning rep (the handler scopes a salesperson to the shops on its own beats). Never the
+ * godown, the crew or the shop: a rep's own conversations about pricing and complaints are not the
+ * crew's business, and a shop does not triage itself.
+ */
+const TRIAGE = [
+  'owner',
+  'manager',
+  'accountant',
+  'salesperson',
+] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who may push a document to a shop's phone ON DEMAND (`notifications.messages.send`, docs/23 §8.8:
+ * "send this bill / receipt / statement to the shop now" — D9, M9, O6): the desk from the office and
+ * the crew at the door. The same four people as MONEY_COLLECTORS and CREDIT_NOTE_RAISERS, declared
+ * apart because handing a shop its paperwork is neither taking its money nor raising a tax document,
+ * and the three will drift. The salesperson is absent on purpose: the rep READS what went to its shops
+ * (`messages.list`, ANY_MEMBER) and what they wrote back (TRIAGE) and sends nothing (notifications.ts).
+ */
+const SHOP_MESSENGERS = [
+  'owner',
+  'manager',
+  'accountant',
+  'delivery',
+] as const satisfies readonly MembershipRole[]
+
 const { ANY_MEMBER, STAFF, BACK_OFFICE, MONEY_DESK, OWNER_ONLY } = ROLE_GROUPS
 
 /** Dotted path of a leaf procedure in the contract, e.g. 'orders.approvals.decide'. */
@@ -650,6 +678,43 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'claims.cancel': BACK_OFFICE,
   'claims.statements.generate': BACK_OFFICE,
   'claims.statements.list': BACK_OFFICE,
+
+  // Notifications — every message the platform sends under the DISTRIBUTOR'S name (coordination §6,
+  // narrowed by the founder's 2026-09-05 accountant scope). Five populations, two new tuples:
+  //  * ANY_MEMBER reads the log / its inbox and marks its own notice read: `messages.list/get/markRead`.
+  //    RLS (`messages_read`) scopes the shop to rows addressed to its own shop; the handler scopes the
+  //    rep to the shops on its own beats plus its own in-app notices; `costPaise` / `providerMessageId`
+  //    / `error` are omitted for every role but the back office (brief §4.7 — messaging spend is a
+  //    back-office figure like purchase cost).
+  //  * BACK_OFFICE reads templates and broadcast history and resends a failed row: the accountant "reads
+  //    and exports everything" and a resend changes no wording, no audience and no rupee.
+  //  * MANAGEMENT writes the wording and picks the audience: `templates.upsert` is what every shop of
+  //    the distributorship is TOLD and `broadcasts.create` is a send to a whole beat — decisions about
+  //    the business the accountant does not take (docs/22 2026-09-05: no settings). Coordination §6
+  //    names PIN_HOLDERS for these two; the same two people, and MANAGEMENT is the tuple this file
+  //    later introduced for exactly "the writes the accountant lost" — a template is not the PIN.
+  //  * SHOP_MESSENGERS (new) sends a bill / receipt / statement to one shop on demand: the desk and
+  //    the crew at the door, never the rep (docs/17 §D4 in spirit: the rep's shop contact is the desk's
+  //    to see, not the rep's to push).
+  //  * TRIAGE (new) reads and closes what shops texted us: the desk plus the beat-owning rep.
+  //  * STAFF registers its own device's push token (`userId` is always the caller); the retailer app is
+  //    WhatsApp / in-app first and registers no token (brief §8.7 — a one-line widening later).
+  // Only owner- and manager-service serve the whole key; sales mounts it for the rep's reads, warehouse
+  // and delivery for their inbox and push token, retailer for its inbox (notifications.ts header).
+  'notifications.messages.list': ANY_MEMBER,
+  'notifications.messages.get': ANY_MEMBER,
+  'notifications.messages.send': SHOP_MESSENGERS,
+  'notifications.messages.resend': BACK_OFFICE,
+  'notifications.messages.markRead': ANY_MEMBER,
+  'notifications.templates.list': BACK_OFFICE,
+  'notifications.templates.upsert': MANAGEMENT,
+  'notifications.broadcasts.create': MANAGEMENT,
+  'notifications.broadcasts.list': BACK_OFFICE,
+  'notifications.broadcasts.get': BACK_OFFICE,
+  'notifications.pushTokens.register': STAFF,
+  'notifications.pushTokens.unregister': STAFF,
+  'notifications.inbound.list': TRIAGE,
+  'notifications.inbound.markHandled': TRIAGE,
 }
 
 /**

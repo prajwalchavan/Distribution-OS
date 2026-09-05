@@ -47,9 +47,11 @@ export const claimKind = pgEnum('claim_kind', [
 /**
  * Driven only through `claimMachine.next()` (@dos/domain): draft → submitted → acknowledged →
  * partially_settled → settled; submitted / acknowledged may be rejected; submitted / acknowledged /
- * partially_settled may be written_off (owner or accountant: accepting a loss). `written_off` was added
- * in 0021 (`ALTER TYPE … ADD VALUE`, so it must never be USED by a migration in the same run — it is
- * first used by application code).
+ * partially_settled may be written_off (owner or accountant: accepting a loss); a DRAFT may be
+ * cancelled (discarded before any number or journal exists). `written_off` was added in 0021 and
+ * `cancelled` in 0026 (`ALTER TYPE … ADD VALUE`, so neither may be USED by a migration in the same run —
+ * they are first used by application code; the partial index below spells "cancelled" as
+ * "no number and not a draft" for that reason).
  */
 export const claimStatus = pgEnum('claim_status', [
   'draft',
@@ -59,13 +61,18 @@ export const claimStatus = pgEnum('claim_status', [
   'partially_settled',
   'rejected',
   'written_off',
+  'cancelled',
 ])
-/** How a brand paid a claim: its credit note, money in the bank, replacement goods on a GRN, or a book adjustment. */
+/**
+ * How a brand paid a claim: its credit note, money in the bank, a cheque in hand (0026), replacement
+ * goods on a GRN, or a book adjustment.
+ */
 export const claimSettlementMode = pgEnum('claim_settlement_mode', [
   'credit_note',
   'bank_receipt',
   'goods_replacement',
   'adjustment',
+  'cheque',
 ])
 /**
  * `open` on a draft, `claimed` once submitted, `settled` when the brand's money covers it, `rejected` when
@@ -127,13 +134,17 @@ export const claims = pgTable(
     /** The ageing and the overdue sweep: `status IN (…) AND due_date < today`. */
     index('claims_due_idx').on(t.tenantId, t.status, t.dueDate),
     /**
-     * One live claim per supplier × brand × kind × period; a rejected one may be re-raised. `brand_id`
-     * is nullable (shortage / rate-difference claims are per supplier), and NULLs are distinct in a
-     * unique index, hence the coalesce.
+     * One LIVE claim per supplier × brand × kind × period; a rejected or a cancelled one may be
+     * re-raised. `brand_id` is nullable (shortage / rate-difference claims are per supplier), and NULLs
+     * are distinct in a unique index, hence the coalesce. "Live" is spelled without the `cancelled`
+     * literal on purpose: a cancelled claim is exactly a non-draft with NO number (only a draft can be
+     * cancelled and only a submit allocates a number), and Postgres refuses an enum value inside the
+     * transaction that added it while drizzle's migrator applies every pending migration in one
+     * transaction (coordination §2 rule 4) — an `::text` cast is not IMMUTABLE and cannot index either.
      */
     uniqueIndex('claims_open_period_idx')
       .on(t.tenantId, t.supplierId, sql`coalesce(brand_id, '')`, t.kind, t.periodFrom, t.periodTo)
-      .where(sql`status <> 'rejected'`),
+      .where(sql`status <> 'rejected' AND (claim_no IS NOT NULL OR status = 'draft')`),
     /** The service answers 409 first; this is the guarantee (claims §4.16). */
     check('claims_settled_within_claimed', sql`settled_paise + written_off_paise <= claimed_paise`),
     check('claims_period_order', sql`period_from <= period_to`),

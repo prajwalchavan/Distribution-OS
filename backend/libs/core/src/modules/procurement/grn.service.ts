@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, inArray, lt, ne, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lt, ne, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
 import type {
@@ -67,6 +67,41 @@ type DiscIn = z.infer<typeof DiscrepanciesListInput>
 type ResolveIn = z.infer<typeof ResolveDiscrepancyInput>
 type ResolveOut = z.infer<typeof ResolveDiscrepancyOutput>
 type DiscOut = z.infer<typeof DiscrepanciesListOutput>
+
+/**
+ * An open gate-count finding as a shortage / rate-difference claim reads it (coordination §4: claims →
+ * procurement `openDiscrepancies`): the finding, the GRN and supplier invoice it came from, the line's
+ * variant, lot and the PURCHASE RATE printed on the supplier's line — back office only on the caller's
+ * side (`claim_lines.rate_paise`).
+ */
+export interface OpenDiscrepancyRow {
+  id: string
+  grnId: string
+  grnNo: string | null
+  grnLineId: string | null
+  supplierInvoiceId: string
+  supplierInvoiceNo: string
+  invoiceDate: string
+  supplierId: string
+  kind: string
+  qtyPcs: number
+  amountPaise: number | null
+  variantId: string | null
+  lotId: string | null
+  /** The supplier line's per-piece rate, when the finding is tied to one. */
+  ratePaise: number | null
+  note: string | null
+  createdAt: Date
+}
+
+export interface OpenDiscrepancyFilter {
+  supplierId: string
+  /** Supplier invoice dates (IST), inclusive. */
+  from: string
+  to: string
+  kinds?: readonly string[] | undefined
+  limit?: number | undefined
+}
 
 /** Who counts at the gate. Accountants do not; reps and delivery never see a GRN. */
 const COUNTERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
@@ -428,6 +463,130 @@ export class GrnService {
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
+  }
+
+  // =============================================================================================================
+  // the surface claims (slice 7) consumes — inside the caller's transaction, no HTTP face
+  // =============================================================================================================
+
+  /**
+   * `status = 'open'` findings on GRNs of one supplier whose invoice is dated inside the window, with the
+   * line's variant, lot and printed rate. Bounded and id-ordered so a re-run sees the same rows.
+   */
+  async openDiscrepancies(tx: Db, filter: OpenDiscrepancyFilter): Promise<OpenDiscrepancyRow[]> {
+    const { tenantId } = currentTenant()
+    if (filter.kinds?.length === 0) return []
+    const limit = Math.min(filter.limit ?? 2000, 5000)
+    const where = [
+      eq(inboundDiscrepancies.tenantId, tenantId),
+      eq(inboundDiscrepancies.status, 'open'),
+      eq(supplierInvoices.supplierId, filter.supplierId),
+      sql`${supplierInvoices.invoiceDate} BETWEEN ${filter.from} AND ${filter.to}`,
+      filter.kinds
+        ? inArray(inboundDiscrepancies.kind, [
+            ...filter.kinds,
+          ] as (typeof inboundDiscrepancies.kind.enumValues)[number][])
+        : undefined,
+    ].filter((f): f is SQL => f !== undefined)
+    const rows = await tx
+      .select({
+        id: inboundDiscrepancies.id,
+        grnId: inboundDiscrepancies.grnId,
+        grnNo: grns.grnNo,
+        grnLineId: inboundDiscrepancies.grnLineId,
+        supplierInvoiceId: grns.supplierInvoiceId,
+        supplierInvoiceNo: supplierInvoices.invoiceNo,
+        invoiceDate: supplierInvoices.invoiceDate,
+        supplierId: supplierInvoices.supplierId,
+        kind: inboundDiscrepancies.kind,
+        qtyPcs: inboundDiscrepancies.qtyPcs,
+        amountPaise: inboundDiscrepancies.amountPaise,
+        variantId: grnLines.variantId,
+        lotId: grnLines.lotId,
+        ratePaise: supplierInvoiceLines.ratePaise,
+        rateBasis: supplierInvoiceLines.rateBasis,
+        basisQty: supplierInvoiceLines.basisQty,
+        note: inboundDiscrepancies.note,
+        createdAt: inboundDiscrepancies.createdAt,
+      })
+      .from(inboundDiscrepancies)
+      .innerJoin(grns, eq(grns.id, inboundDiscrepancies.grnId))
+      .innerJoin(supplierInvoices, eq(supplierInvoices.id, grns.supplierInvoiceId))
+      .leftJoin(grnLines, eq(grnLines.id, inboundDiscrepancies.grnLineId))
+      .leftJoin(supplierInvoiceLines, eq(supplierInvoiceLines.id, grnLines.supplierInvoiceLineId))
+      .where(and(...where))
+      .orderBy(asc(inboundDiscrepancies.id))
+      .limit(limit)
+    return rows.map((r) => ({
+      id: r.id,
+      grnId: r.grnId,
+      grnNo: r.grnNo,
+      grnLineId: r.grnLineId,
+      supplierInvoiceId: r.supplierInvoiceId,
+      supplierInvoiceNo: r.supplierInvoiceNo,
+      invoiceDate: r.invoiceDate,
+      supplierId: r.supplierId,
+      kind: r.kind,
+      qtyPcs: r.qtyPcs,
+      amountPaise: r.amountPaise,
+      variantId: r.variantId,
+      lotId: r.lotId,
+      // A per-case rate is brought to the piece the same way the GRN costs it (docs/17 A4).
+      ratePaise:
+        r.ratePaise === null
+          ? null
+          : r.rateBasis === 'case' && (r.basisQty ?? 0) > 0
+            ? Math.round(r.ratePaise / (r.basisQty ?? 1))
+            : r.ratePaise,
+      note: r.note,
+      createdAt: r.createdAt,
+    }))
+  }
+
+  /**
+   * The findings a submitted claim carries move `open → claimed` in the same transaction (claims §2
+   * `submit`); a finding no longer open is left as the desk decided it. Returns how many moved.
+   */
+  async markDiscrepanciesClaimed(tx: Db, ids: readonly string[], claimId: string): Promise<number> {
+    const { tenantId, actorId } = currentTenant()
+    if (ids.length === 0) return 0
+    const now = new Date()
+    const rows = await tx
+      .update(inboundDiscrepancies)
+      .set({
+        status: 'claimed',
+        resolvedBy: actorId,
+        resolvedAt: now,
+        updatedAt: now,
+        note: sql`coalesce(${inboundDiscrepancies.note}, '') || ${` [claimed on ${claimId}]`}`,
+      })
+      .where(
+        and(
+          eq(inboundDiscrepancies.tenantId, tenantId),
+          eq(inboundDiscrepancies.status, 'open'),
+          inArray(inboundDiscrepancies.id, [...ids]),
+        ),
+      )
+      .returning({ id: inboundDiscrepancies.id })
+    return rows.length
+  }
+
+  /** A rejected claim gives its findings back: `claimed → open` for the ids it carried, so a later claim may take them. */
+  async reopenDiscrepancies(tx: Db, ids: readonly string[]): Promise<number> {
+    const { tenantId } = currentTenant()
+    if (ids.length === 0) return 0
+    const rows = await tx
+      .update(inboundDiscrepancies)
+      .set({ status: 'open', resolvedBy: null, resolvedAt: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(inboundDiscrepancies.tenantId, tenantId),
+          eq(inboundDiscrepancies.status, 'claimed'),
+          inArray(inboundDiscrepancies.id, [...ids]),
+        ),
+      )
+      .returning({ id: inboundDiscrepancies.id })
+    return rows.length
   }
 
   /**

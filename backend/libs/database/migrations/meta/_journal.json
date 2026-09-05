@@ -169,6 +169,27 @@
       "when": 1788607154675,
       "tag": "0023_integrations_wizard",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788613167433,
+      "tag": "0024_notifications_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788613167434,
+      "tag": "0025_notifications_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788613343100,
+      "tag": "0026_claims_cancel_expand",
+      "breakpoints": true
     }
   ]
 }

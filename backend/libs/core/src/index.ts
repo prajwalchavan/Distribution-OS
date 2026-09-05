@@ -36,3 +36,4 @@ export {
   TallyService,
   registerExportRenderer,
 } from './modules/integrations/index.js'
+export { ClaimsModule, ClaimsService, ClaimReportsService } from './modules/claims/index.js'

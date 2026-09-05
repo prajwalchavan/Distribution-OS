@@ -100,6 +100,8 @@ export interface PeriodFilter {
   to: string
   retailerId?: string | undefined
   variantId?: string | undefined
+  /** The brand of the line's product (global catalog): a scheme claim is per brand (claims, slice 7). */
+  brandId?: string | undefined
   limit?: number | undefined
 }
 
@@ -310,11 +312,14 @@ export class RegistersService {
              l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
         FROM invoice_lines l
         JOIN invoices i ON i.id = l.invoice_id
+        JOIN product_variants v ON v.id = l.variant_id
+        JOIN products p ON p.id = v.product_id
        WHERE l.tenant_id = ${tenantId}
          AND i.state NOT IN ('draft', 'cancelled')
          AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
          AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
          AND (${filter.variantId ?? null}::text IS NULL OR l.variant_id = ${filter.variantId ?? null})
+         AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
        ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
        LIMIT ${limit}`)
     return result.rows.map((row: Record<string, unknown>) => ({
@@ -476,11 +481,14 @@ export class RegistersService {
         FROM credit_note_lines cl
         JOIN credit_notes c ON c.id = cl.credit_note_id
         JOIN invoice_lines il ON il.id = cl.invoice_line_id
+        JOIN product_variants v ON v.id = il.variant_id
+        JOIN products p ON p.id = v.product_id
        WHERE cl.tenant_id = ${tenantId}
          AND c.state IN ('issued', 'applied')
          AND c.note_date BETWEEN ${filter.from} AND ${filter.to}
          AND (${filter.retailerId ?? null}::text IS NULL OR c.retailer_id = ${filter.retailerId ?? null})
          AND (${filter.variantId ?? null}::text IS NULL OR il.variant_id = ${filter.variantId ?? null})
+         AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
        ORDER BY c.note_date ASC, c.id ASC, cl.id ASC
        LIMIT ${limit}`)
     return result.rows.map((row: Record<string, unknown>) => ({
@@ -516,10 +524,14 @@ export class RegistersService {
              COALESCE(SUM(COALESCE((rule ->> 'amountPaise')::bigint, 0)), 0)::bigint AS amount_paise
         FROM invoice_lines l
         JOIN invoices i ON i.id = l.invoice_id
+        JOIN product_variants v ON v.id = l.variant_id
+        JOIN products p ON p.id = v.product_id
         CROSS JOIN LATERAL jsonb_array_elements(l.applied_rules) AS rule
        WHERE l.tenant_id = ${tenantId}
          AND i.state NOT IN ('draft', 'cancelled')
          AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
+         AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
+         AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
          AND rule ->> 'ruleId' IS NOT NULL
        GROUP BY 1, 2
        ORDER BY amount_paise DESC, rule_id ASC`)

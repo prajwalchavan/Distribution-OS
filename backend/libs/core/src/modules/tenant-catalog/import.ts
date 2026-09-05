@@ -302,6 +302,17 @@ export async function variantLabels(tx: Db, ids: readonly string[]): Promise<Map
   return new Map(rows.map((r) => [r.id, r.brandName ? `${r.name} · ${r.brandName}` : r.name]))
 }
 
+/** Brand names by id (global catalog), one query — the claims register and the claim sheet print them. */
+export async function brandLabels(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return new Map()
+  const rows = await tx
+    .select({ id: brands.id, name: brands.name })
+    .from(brands)
+    .where(inArray(brands.id, unique))
+  return new Map(rows.map((r) => [r.id, r.name]))
+}
+
 /** Supplier names and Tally ledger names for the purchase voucher, one query. */
 export async function supplierLabels(
   tx: Db,

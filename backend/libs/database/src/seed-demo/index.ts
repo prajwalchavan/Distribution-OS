@@ -5,8 +5,9 @@
  * connection; never uses `withTenant`.
  */
 import type { Db } from '../client.js'
-import { seedBilling } from './billing.js'
+import { seedBilling, seedPendingVanSaleOrder } from './billing.js'
 import { seedCatalog } from './catalog.js'
+import { seedClaims } from './claims.js'
 import { seedDelivery } from './delivery.js'
 import { seedDeliveryRoad } from './delivery-road.js'
 import { seedDocint } from './docint.js'
@@ -53,6 +54,10 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   // sheet's value is the sum of those invoices. After delivery: a sheet loads a VEHICLE location, and
   // `seedDelivery` is what creates them.
   await seedWarehouse(db, tenantId, sales, stock, people)
+  // After warehouse: the freshest load sheet has put real stock on Tempo 1, so the one van-sale order
+  // still waiting to be billed can be fulfilled from it (inside `seedBilling` the van was still empty
+  // on the first seed of a fresh database and the order only appeared on the second run).
+  await seedPendingVanSaleOrder(db, tenantId, variants, retailersRes, people)
   await seedReceivables(db, tenantId, retailersRes, people)
   await seedReporting(db, tenantId, retailersRes, sales, people)
   // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
@@ -64,6 +69,9 @@ export async function seedDemo(db: Db, tenantId: string, opts: SeedDemoOptions):
   await seedIntegrations(db, tenantId, variants, retailersRes, stock, sales, people)
   // Last: the delivery module's road data reads the bills, orders and loads every seed above wrote.
   await seedDeliveryRoad(db, tenantId, sales, people, delivery)
+  // After sales, stock and integrations: the claims read the August scheme bills, the damaged-bin
+  // ledger rows and the gate-count shortage back from the database (docs/plans/claims.md §6).
+  await seedClaims(db, tenantId, variants, tenantCatalog, stock, people)
 
   if (opts.printSignIn ?? true) printSignInTable(tenantId, people)
 }

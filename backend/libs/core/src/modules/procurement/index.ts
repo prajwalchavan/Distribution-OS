@@ -4,4 +4,4 @@ export {
   type CreateInTxInput,
   type SupplierInvoiceForExport,
 } from './supplier-invoice.service.js'
-export { GrnService } from './grn.service.js'
+export { GrnService, type OpenDiscrepancyFilter, type OpenDiscrepancyRow } from './grn.service.js'

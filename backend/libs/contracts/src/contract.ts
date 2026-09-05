@@ -37,6 +37,7 @@ import { deliveryContract } from './delivery.js'
 import { docintContract } from './docint.js'
 import { integrationsContract } from './integrations.js'
 import { claimsContract } from './claims.js'
+import { notificationsContract } from './notifications.js'
 
 /**
  * The API contract. The NestJS API implements it (backend/apps/api), the apps call it through
@@ -148,6 +149,8 @@ export const contract = {
   integrations: integrationsContract,
   // Money the brand owes us: scheme, damage, expiry and shortage claims, settlements, ageing (claims.ts).
   claims: claimsContract,
+  // Every WhatsApp / SMS / push / in-app row, templates, broadcasts, push tokens, inbound triage (notifications.ts).
+  notifications: notificationsContract,
 }
 
 export type AppContract = typeof contract

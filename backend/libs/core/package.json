@@ -83,6 +83,10 @@
     "./integrations": {
       "types": "./dist/modules/integrations/worker.d.ts",
       "default": "./dist/modules/integrations/worker.js"
+    },
+    "./claims": {
+      "types": "./dist/modules/claims/worker.d.ts",
+      "default": "./dist/modules/claims/worker.js"
     }
   }
 }

@@ -6,6 +6,7 @@ import { uuidv7 } from '@dos/domain'
 import {
   locations,
   productVariants,
+  products,
   reservationState,
   reservations,
   stockBalances,
@@ -75,6 +76,45 @@ export interface LedgerRefRow {
   reason: string
   idempotencyKey: string
   occurredAt: Date
+}
+
+/**
+ * A damage / expiry movement as a claim reads it (coordination §3.9 `ledgerRowsByReason`): the row, the
+ * lot it moved (batch, expiry, MRP and the LOT'S OWN case size — docs/17 A2) and the location kind it
+ * landed in. Pieces and keys only; the valuation is the caller's (`tenant_product_costs`, back office).
+ */
+export interface LedgerReasonRow {
+  id: string
+  lotId: string
+  variantId: string
+  batchNo: string
+  expiryDate: string | null
+  mrpPaise: number
+  caseSize: number | null
+  locationId: string
+  locationKind: string
+  qtyDelta: number
+  reason: string
+  refType: string | null
+  refId: string | null
+  idempotencyKey: string
+  note: string | null
+  occurredAt: Date
+}
+
+export interface LedgerReasonFilter {
+  reasons: readonly StockReason[]
+  /** Only rows posted INTO a location of this kind (the damaged bin for a claim). */
+  locationKind?: 'warehouse' | 'vehicle' | 'damaged' | 'in_transit' | 'customer' | undefined
+  /** IST business dates, inclusive. */
+  from: string
+  to: string
+  variantIds?: readonly string[] | undefined
+  /** Only lots of this brand's products (global catalog): a damage / expiry claim is per brand. */
+  brandId?: string | undefined
+  /** Positive deltas only (goods arriving in the bin), the default for a claim; false = every row. */
+  inboundOnly?: boolean | undefined
+  limit?: number | undefined
 }
 
 export interface PostPickInput {
@@ -476,6 +516,56 @@ export class InventoryService {
         ),
       )
       .orderBy(asc(stockLedger.id))
+    return rows
+  }
+
+  /**
+   * The ledger rows of given reasons inside an IST date window, joined with their lot and location
+   * (coordination §3.9; claims builds damage / expiry lines from the `damage` / `expiry_writeoff` rows
+   * posted INTO the damaged bin). Bounded (`limit`, default 2000, ≤ 5000) and ordered by id so a re-run
+   * sees the same rows in the same order.
+   */
+  async ledgerRowsByReason(tx: Db, filter: LedgerReasonFilter): Promise<LedgerReasonRow[]> {
+    const { tenantId } = currentTenant()
+    if (filter.reasons.length === 0 || filter.variantIds?.length === 0) return []
+    const limit = Math.min(filter.limit ?? 2000, 5000)
+    const inbound = filter.inboundOnly ?? true
+    const where = [
+      eq(stockLedger.tenantId, tenantId),
+      inArray(stockLedger.reason, [...filter.reasons]),
+      sql`(${stockLedger.occurredAt} AT TIME ZONE 'Asia/Kolkata')::date BETWEEN ${filter.from} AND ${filter.to}`,
+      filter.locationKind ? eq(locations.kind, filter.locationKind) : undefined,
+      filter.variantIds ? inArray(stockLots.variantId, [...filter.variantIds]) : undefined,
+      filter.brandId ? eq(products.brandId, filter.brandId) : undefined,
+      inbound ? sql`${stockLedger.qtyDelta} > 0` : undefined,
+    ].filter((f): f is SQL => f !== undefined)
+    const rows = await tx
+      .select({
+        id: stockLedger.id,
+        lotId: stockLedger.lotId,
+        variantId: stockLots.variantId,
+        batchNo: stockLots.batchNo,
+        expiryDate: stockLots.expiryDate,
+        mrpPaise: stockLots.mrpPaise,
+        caseSize: stockLots.caseSize,
+        locationId: stockLedger.locationId,
+        locationKind: locations.kind,
+        qtyDelta: stockLedger.qtyDelta,
+        reason: stockLedger.reason,
+        refType: stockLedger.refType,
+        refId: stockLedger.refId,
+        idempotencyKey: stockLedger.idempotencyKey,
+        note: stockLedger.note,
+        occurredAt: stockLedger.occurredAt,
+      })
+      .from(stockLedger)
+      .innerJoin(stockLots, eq(stockLots.id, stockLedger.lotId))
+      .innerJoin(productVariants, eq(productVariants.id, stockLots.variantId))
+      .innerJoin(products, eq(products.id, productVariants.productId))
+      .innerJoin(locations, eq(locations.id, stockLedger.locationId))
+      .where(and(...where))
+      .orderBy(asc(stockLedger.id))
+      .limit(limit)
     return rows
   }
 

@@ -818,6 +818,133 @@ describe('permission matrix', () => {
     }
   })
 
+  it('keeps the wording and the audience with the desk, the inbox with everyone (notifications)', () => {
+    const notificationPaths = paths.filter((p) => p.startsWith('notifications.'))
+    expect(notificationPaths).toHaveLength(14)
+    // The log / inbox and "mark my notice read" reach every member, the shop included: RLS scopes the
+    // shop to rows addressed to its own shop, the handler scopes the rep to its beats' shops.
+    const inbox = [
+      'notifications.messages.list',
+      'notifications.messages.get',
+      'notifications.messages.markRead',
+    ]
+    for (const path of inbox) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.ANY_MEMBER)
+    }
+    // The shop reads its inbox and nothing else: no template, no broadcast, no resend, no send, no
+    // triage, no push token (the retailer app is WhatsApp / in-app first, brief §8.7).
+    for (const path of notificationPaths.filter((p) => !inbox.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
+    }
+    // Every write in the block is a POST that refuses the shop, except marking its own notice read.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('notifications.'))) {
+      if (row.method === 'POST' && row.path !== 'notifications.messages.markRead')
+        expect(isAllowed(row.permission, 'retailer'), `${row.path} must refuse retailer`).toBe(
+          false,
+        )
+    }
+    // Wording and audience are the owner's and the manager's (coordination §6: the same two people it
+    // calls PIN_HOLDERS); the accountant reads templates and broadcast history and resends a failed row.
+    for (const path of [
+      'notifications.templates.upsert',
+      'notifications.broadcasts.create',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+      expect(permissionFor(path), path).toEqual(permissionFor('pricing.schemes.upsert'))
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
+        false,
+      )
+    }
+    for (const path of [
+      'notifications.templates.list',
+      'notifications.broadcasts.list',
+      'notifications.broadcasts.get',
+      'notifications.messages.resend',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    }
+    // The rep READS what went to its shops and what they wrote back, and sends nothing: never a
+    // template, a broadcast, a resend or an on-demand send (notifications.ts founder answer 3).
+    for (const path of [
+      'notifications.messages.list',
+      'notifications.messages.get',
+      'notifications.inbound.list',
+      'notifications.inbound.markHandled',
+      'notifications.pushTokens.register',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must allow salesperson`).toBe(
+        true,
+      )
+    }
+    for (const path of [
+      'notifications.messages.send',
+      'notifications.messages.resend',
+      'notifications.templates.list',
+      'notifications.templates.upsert',
+      'notifications.broadcasts.create',
+      'notifications.broadcasts.list',
+      'notifications.broadcasts.get',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'salesperson'), `${path} must refuse salesperson`).toBe(
+        false,
+      )
+    }
+    // On-demand "send this bill to the shop now" is the desk and the crew at the door (docs/23 §8.8:
+    // D9, M9, O6) — the same four who take money at the door, and never the rep or the godown.
+    expect(permissionFor('notifications.messages.send')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'delivery',
+    ])
+    expect(permissionFor('notifications.messages.send')).toEqual(
+      permissionFor('receivables.receipts.create'),
+    )
+    expect(isAllowed(permissionFor('notifications.messages.send'), 'warehouse')).toBe(false)
+    // Triage is the desk plus the beat-owning rep; the godown and the crew are not in the room.
+    for (const path of [
+      'notifications.inbound.list',
+      'notifications.inbound.markHandled',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'salesperson'])
+      for (const role of ['warehouse', 'delivery', 'retailer'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Every staff member registers its own device; the godown and the crew otherwise only read their inbox.
+    for (const path of [
+      'notifications.pushTokens.register',
+      'notifications.pushTokens.unregister',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.STAFF)
+    }
+    const crewMay = [
+      ...inbox,
+      'notifications.pushTokens.register',
+      'notifications.pushTokens.unregister',
+    ]
+    for (const path of notificationPaths.filter((p) => !crewMay.includes(p))) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+      if (path !== 'notifications.messages.send')
+        expect(isAllowed(permissionFor(path), 'delivery'), `${path} must refuse delivery`).toBe(
+          false,
+        )
+    }
+    // The on-demand send lives beside the resend under one prefix, and neither is a GET.
+    for (const [path, httpPath] of [
+      ['notifications.messages.send', '/notifications/messages/send'],
+      ['notifications.messages.resend', '/notifications/messages/{id}/resend'],
+      ['notifications.messages.markRead', '/notifications/messages/{id}/read'],
+      ['notifications.inbound.markHandled', '/notifications/inbound/{id}/handled'],
+    ] as const) {
+      const row = allProcedures().find((r) => r.path === path)
+      expect(row?.httpPath, path).toBe(httpPath)
+      expect(row?.method, path).toBe('POST')
+    }
+  })
+
   it('lets only auth and health be reached without a token', () => {
     const open = paths.filter((p) => permissionFor(p) === 'public')
     expect(open.sort()).toEqual(

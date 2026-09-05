@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  claimMachine,
   documentMachine,
   importJobMachine,
   invoiceMachine,
@@ -155,6 +156,38 @@ describe('state machines', () => {
       'rolled_back',
       'running',
       'staged',
+    ])
+  })
+
+  /**
+   * The eight states are exactly the `claim_status` enum values (schema/claims.ts): a draft is numbered
+   * and accrued only at submit, money may land in parts, a rejection or a write-off keeps the number,
+   * and once a rupee has been settled the claim can no longer be rejected (docs/plans/claims.md §3).
+   */
+  it('walks a claim from the draft to the brand paying, and never rejects a paid one', () => {
+    let s = claimMachine.initial
+    for (const e of ['submit', 'acknowledge', 'settle_partial', 'settle_full'] as const) {
+      s = claimMachine.next(s, e)
+    }
+    expect(s).toBe('settled')
+    expect(claimMachine.isTerminal(s)).toBe(true)
+    expect(claimMachine.next('draft', 'cancel')).toBe('cancelled')
+    expect(claimMachine.next('submitted', 'reject')).toBe('rejected')
+    expect(claimMachine.next('acknowledged', 'write_off')).toBe('written_off')
+    expect(claimMachine.next('partially_settled', 'write_off')).toBe('written_off')
+    expect(claimMachine.can('partially_settled', 'reject')).toBe(false)
+    expect(claimMachine.can('submitted', 'cancel')).toBe(false)
+    expect(claimMachine.can('draft', 'acknowledge')).toBe(false)
+    expect(() => claimMachine.next('settled', 'write_off')).toThrow(TransitionError)
+    expect(Object.keys(claimMachine.transitions).sort()).toEqual([
+      'acknowledged',
+      'cancelled',
+      'draft',
+      'partially_settled',
+      'rejected',
+      'settled',
+      'submitted',
+      'written_off',
     ])
   })
 })

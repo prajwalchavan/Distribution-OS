@@ -90,11 +90,20 @@ export const NUMBERING_SERIES = [
  * | `delivery.pod_required`    | string   | `always` / `credit_only` / `never`: when a photo/signature is a must. |
  * | `delivery.geofence_metres` | number   | distance from the shop pin that turns the arrival amber (evidence). |
  * | `dpdp.gps_retention_days`  | number   | days raw `trip_points` are kept; stop coordinates and POD stay. |
+ * | `notifications.default_locale` | string | `LocaleSchema` value a message falls back to when the shop has no `preferred_lang`. |
+ * | `whatsapp.phone_number_id` | string   | the Meta Cloud API phone number this tenant sends from. ABSENT = stub adapter. |
  *
  * The four `delivery.*` / `dpdp.*` rows were added by the delivery slice (coordination §2, delivery §3
  * item 11): the crew's offline device reads them through `trips.get` (`TripDetail.settings`, docs/23
  * §8.4), the settlement trigger `dos_trip_settlement_guard` (migration 0015) reads the tolerance, and
  * the worker's retention sweep reads the GPS window. Seeded so none of them ever reads as "absent".
+ *
+ * `notifications.default_locale` was added by the notifications slice (coordination §2, slice 8):
+ * seeded `en-IN`, not the brief's `hi-IN` — English only for now (founder, 2026-09-04). The locale
+ * chain is the shop's `retailer_links.preferred_lang` → this row → `en-IN`. `whatsapp.phone_number_id`
+ * is deliberately NOT seeded: absent means the stub adapter; the Meta status webhook resolves a tenant
+ * by this value, so a made-up one would misroute a real receipt. The Meta access token, when it exists,
+ * is `secret.whatsapp.access_token` (owner-only by the `secret.` rule).
  *
  * `branding.address` and `seller_fssai` were added by the billing slice: both are printed on the tax
  * invoice and the credit note, and neither has a sensible default — a made-up address on a GST document
@@ -118,7 +127,16 @@ export const TENANT_SETTING_KEYS = {
   deliveryPodRequired: 'delivery.pod_required',
   deliveryGeofenceMetres: 'delivery.geofence_metres',
   dpdpGpsRetentionDays: 'dpdp.gps_retention_days',
+  notificationsDefaultLocale: 'notifications.default_locale',
+  whatsappPhoneNumberId: 'whatsapp.phone_number_id',
 } as const
+
+/**
+ * The locale a message is sent in when the shop has stated no preference (notifications §4.4 chain,
+ * English-only decision). A `LocaleSchema` value (`en-IN | hi-IN | mr-IN`); the owner changes the
+ * `tenant_settings` row, never this constant.
+ */
+export const DEFAULT_NOTIFICATION_LOCALE = 'en-IN'
 
 /**
  * ₹1,00,000 in paise. A vehicle load worth this or more may not leave the godown without an e-way bill
@@ -221,6 +239,11 @@ export async function bootstrapTenant(
         tenantId,
         key: TENANT_SETTING_KEYS.dpdpGpsRetentionDays,
         value: DEFAULT_GPS_RETENTION_DAYS,
+      },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.notificationsDefaultLocale,
+        value: DEFAULT_NOTIFICATION_LOCALE,
       },
     ])
     .onConflictDoNothing()
