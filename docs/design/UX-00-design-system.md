@@ -741,7 +741,14 @@ You owe Tarsun Enterprises                    ₹18,400    field.hero
 Nothing here needs an English sentence: bill number, date, ₹, a chip, a QR `[UX-01 R10]`. Every outcome also arrives on WhatsApp `[UX-01 R9]`.
 Distribution OS is never named on this screen.
 
-## 10. Product brand — three options
+## 10. Product brand — DECIDED: Distribution OS (founder, 2026-09-05)
+
+**Decision.** The product is named **Distribution OS** (option C below). Each app is listed and labelled as "Distribution OS - Owner",
+"Distribution OS - Manager", "Distribution OS - Sales", "Distribution OS - Warehouse", "Distribution OS - Delivery", "Distribution OS - Retailer".
+The wordmark and icon rules of option C apply; the role name follows the mark on the sign-in screen and in the store listing only. Inside
+the apps the distributor's own name and logo show (§11). Options A and B are kept below as history.
+
+### 10.0 The three options that were considered
 
 The founder has no brand and asked for one (`docs/17` §D6). Constraints: the product mark appears **only on the sign-in screen and in the
 store listing** (`docs/22` §9 item 10); every colour comes from the A palette; the mark must work at 16 dp, in one colour on the store-listing
