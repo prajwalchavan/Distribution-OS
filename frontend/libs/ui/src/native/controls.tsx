@@ -282,6 +282,7 @@ export function Search({
 export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.Element {
   const theme = useTheme()
   const height = sizeTokens[theme.touch]
+  const phone = theme.density !== 'desk'
   return (
     <View
       testID={testID}
@@ -291,6 +292,14 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
         backgroundColor: theme.colors.bg.surface,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border.hairline,
+        /*
+         * The same sentence the web half carries, and it matters MORE here: the tab strip sits in the
+         * screen header's wrapping chip row, and a row-wrap parent sizes a child to its content — but
+         * these children are `flex: 1` with no intrinsic width, so on a phone the whole level-2 tab
+         * row collapsed to nothing and left a 63 dp empty band where "Today · Approvals · Live map"
+         * should be. A tab row is a full-width control; a DOM `<div>` is that for free.
+         */
+        ...(phone ? { width: '100%' } : {}),
       }}
     >
       {items.slice(0, 4).map((item) => {
@@ -409,9 +418,17 @@ export function Segments({
             onPress={() => {
               onChange(item.id)
             }}
+            /*
+             * Sized by its own label, exactly as the web half is (`padding: 0 space[4]`), NOT `flex: 1`.
+             * A segmented control normally sits in the screen header's wrapping action row, which
+             * shrinks a flex item to its content: with `flex: 1` and nothing to divide, all three
+             * segments collapsed and "7 days · 30 days · 90 days" rendered as an empty 2 px pill on
+             * every phone.
+             */
             style={{
-              flex: 1,
               height: height - 4,
+              minHeight: height - 4,
+              paddingHorizontal: space[4],
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: radius.sm - 2,

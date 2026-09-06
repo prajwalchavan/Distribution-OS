@@ -24,10 +24,12 @@ import { useState } from 'react'
 
 import { Async, PageTabs, Panel, moneyColumn, textColumn } from '../../src/lib/ui'
 import { longDate } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 export default function Incentives(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
+  const word = useWord()
   const [view, setView] = useState<'targets' | 'statements'>('targets')
 
   const targets = useQuery(['incentives', 'targets'], () =>
@@ -72,7 +74,7 @@ export default function Incentives(): React.JSX.Element {
   const targetColumns: readonly RegisterColumn<TargetSummary>[] = [
     textColumn('person', t('o20.person'), (row) => row.userName, { priority: 'identity' }),
     textColumn('target', t('o20.target'), (row) => row.name),
-    textColumn('metric', t('o20.metric'), (row) => row.metric),
+    textColumn('metric', t('o20.metric'), (row) => word(row.metric)),
     textColumn(
       'period',
       t('o20.period'),

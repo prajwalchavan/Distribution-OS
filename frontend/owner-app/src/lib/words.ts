@@ -21,3 +21,18 @@ export function useWord(): (value: string | null | undefined) => string {
   const t = useStrings()
   return (value) => wordFor(t, value)
 }
+
+/**
+ * A percentage held in basis points, as a percentage.
+ *
+ * Every rate in this product is an integer in bps (`@dos/domain`: 1 % = 100 bps), and the schemes
+ * register printed the integer: a 2 % cash discount read "cash_discount_pct 200" and a 5 % slab read
+ * "line_pct 500". Trailing zeros go, because "2%" is what is written on the scheme letter.
+ */
+export function formatBps(bps: number): string {
+  const whole = Math.trunc(bps / 100)
+  const frac = Math.abs(bps % 100)
+  if (frac === 0) return `${String(whole)}%`
+  const two = frac.toString().padStart(2, '0')
+  return `${String(whole)}.${two.replace(/0$/, '')}%`
+}

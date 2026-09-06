@@ -42,10 +42,12 @@ import {
   shortDate,
   type RangeId,
 } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 export default function Growth(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
+  const word = useWord()
   const [range, setRange] = useState<RangeId>('d30')
   const [compare, setCompare] = useState<'none' | 'previousPeriod' | 'previousYear'>(
     'previousPeriod',
@@ -126,6 +128,28 @@ export default function Growth(): React.JSX.Element {
     points: points.map((p) => ({ x: shortDate(p.bucket), y: p.value })),
   })
 
+  /**
+   * One `reporting.series.*` answer carries series in DIFFERENT units, and one chart has one y axis.
+   * `delivery-performance` returns three counts (0-8 stops) and two ratios (0-1); `stock` returns two
+   * paise figures (₹5.8 lakh) and `stockTurns` (0.89). Drawn together, every ratio was a dead-flat
+   * line on the axis floor under a rupee or a stop scale — the stock chart printed "stockTurns" as a
+   * line at exactly ₹0.00 for twelve months running. Each unit gets its own chart, and each series
+   * gets the trade's word for it instead of the metric id.
+   */
+  const seriesOf = (
+    named: readonly {
+      metric: string
+      unit: 'paise' | 'count' | 'ratio'
+      points: readonly { bucket: string; value: number }[]
+    }[],
+    unit: 'paise' | 'count' | 'ratio',
+  ): readonly Series[] =>
+    named
+      .filter((s) => s.unit === unit)
+      .map((s, index) =>
+        line(s.metric, word(s.metric), s.points, index === 0 ? 'primary' : 'secondary'),
+      )
+
   const salesSeries: readonly Series[] = [
     line('invoiced', t('o1.salesLine'), sales.data?.points ?? [], 'primary'),
     ...(compare === 'none'
@@ -165,21 +189,11 @@ export default function Growth(): React.JSX.Element {
     value: group.points.reduce((sum, point) => sum + point.value, 0),
   }))
 
-  const outstandingSeries: readonly Series[] = (outstanding.data?.series ?? []).map(
-    (named, index) => ({
-      id: named.metric,
-      label: named.metric,
-      role: index === 0 ? ('primary' as const) : ('secondary' as const),
-      points: named.points.map((p) => ({ x: shortDate(p.bucket), y: p.value })),
-    }),
-  )
-
-  const deliverySeries: readonly Series[] = (delivery.data?.series ?? []).map((named, index) => ({
-    id: named.metric,
-    label: named.metric,
-    role: index === 0 ? ('primary' as const) : ('secondary' as const),
-    points: named.points.map((p) => ({ x: shortDate(p.bucket), y: p.value })),
-  }))
+  const outstandingSeries = seriesOf(outstanding.data?.series ?? [], 'paise')
+  const deliveryCounts = seriesOf(delivery.data?.series ?? [], 'count')
+  const deliveryRates = seriesOf(delivery.data?.series ?? [], 'ratio')
+  const stockValues = seriesOf(stock.data?.series ?? [], 'paise')
+  const stockRates = seriesOf(stock.data?.series ?? [], 'ratio')
 
   const shopColumns: readonly RegisterColumn<RankingItem>[] = [
     textColumn('rank', t('o2.rank'), (row) => row.rank, { priority: 'detail' }),
@@ -314,12 +328,44 @@ export default function Growth(): React.JSX.Element {
           </Half>
           <Half>
             <Panel title={t('o2.delivery')} testID="growth-delivery">
-              <Async state={[delivery]} rows={4} empty={deliverySeries.length === 0}>
+              <Async state={[delivery]} rows={4} empty={deliveryCounts.length === 0}>
                 <TrendChart
-                  series={deliverySeries}
+                  series={deliveryCounts}
                   legend
                   height={160}
-                  formatValue={formatFor(delivery.data?.series[0]?.unit ?? 'count')}
+                  formatValue={formatFor('count')}
+                />
+              </Async>
+            </Panel>
+          </Half>
+        </Columns>
+
+        <Columns>
+          <Half>
+            <Panel title={t('o2.deliveryRates')} testID="growth-delivery-rates">
+              <Async state={[delivery]} rows={4} empty={deliveryRates.length === 0}>
+                <TrendChart
+                  series={deliveryRates}
+                  legend
+                  height={160}
+                  formatValue={formatFor('ratio')}
+                />
+              </Async>
+            </Panel>
+          </Half>
+          <Half>
+            <Panel title={t('o2.stockTurns')} testID="growth-stock-turns">
+              <Async state={[stock]} rows={3} empty={stockRates.length === 0}>
+                {/*
+                  `stockTurns` is a `ratio` on the wire like a fill rate, but it is a MULTIPLE, not a
+                  percentage: 0.89 turns in a month is "0.9×", and printing it as "89%" says the wrong
+                  thing about the one number this chart exists for.
+                */}
+                <TrendChart
+                  series={stockRates}
+                  legend
+                  height={160}
+                  formatValue={(value) => `${value.toFixed(1)}×`}
                 />
               </Async>
             </Panel>
@@ -327,17 +373,8 @@ export default function Growth(): React.JSX.Element {
         </Columns>
 
         <Panel title={t('o2.stockCover')} testID="growth-stock">
-          <Async state={[stock]} rows={3} empty={(stock.data?.series.length ?? 0) === 0}>
-            <TrendChart
-              series={(stock.data?.series ?? []).map((named, index) => ({
-                id: named.metric,
-                label: named.metric,
-                role: index === 0 ? ('primary' as const) : ('secondary' as const),
-                points: named.points.map((p) => ({ x: shortDate(p.bucket), y: p.value })),
-              }))}
-              legend
-              height={160}
-            />
+          <Async state={[stock]} rows={3} empty={stockValues.length === 0}>
+            <TrendChart series={stockValues} legend height={160} />
           </Async>
         </Panel>
 

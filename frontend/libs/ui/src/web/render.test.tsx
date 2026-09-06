@@ -12,9 +12,11 @@ import { KpiStrip } from './list.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { TextInput, Tabs } from './controls.js'
-import { Sheet } from './feedback.js'
+import { ConnectionStrip, Sheet } from './feedback.js'
 import { MenuRow, TenantSwitcher } from './shell.js'
+import { Link } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
+import type { ConnectionState } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
   return renderToStaticMarkup(
@@ -401,5 +403,66 @@ describe('<Tabs> at the two viewports', () => {
   it('leaves the desk row hugging the left, sized by its own labels', () => {
     const html = renderDesk(<Tabs items={items} value="a" onChange={() => undefined} />)
     expect(html).not.toContain('flex:1 1 0')
+  })
+})
+
+describe('<Link variant="text"> is a tap target, not a word (UX-00 §5.2)', () => {
+  function link(touch: 'phone' | 'field' | 'desk', viewport: 'desk' | 'phone'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={touch} viewport={viewport}>
+        <Link href="/money">Open the rows behind this</Link>
+      </ThemeContextProvider>,
+    )
+  }
+
+  it('carries the owner phone floor, not the 21 dp of a bare underlined word', () => {
+    const html = link('phone', 'phone')
+    expect(html).toContain('min-height:63px')
+  })
+
+  it('carries the field floor in a sales or retailer app', () => {
+    expect(link('field', 'phone')).toContain('min-height:69px')
+  })
+
+  it('is the desk size on the laptop the same screen opens on', () => {
+    expect(link('phone', 'desk')).toContain('min-height:32px')
+  })
+
+  it('leaves `plain` alone — it wraps something that already has its own size', () => {
+    const html = renderToStaticMarkup(
+      <ThemeContextProvider touch="phone" viewport="phone">
+        <Link href="/money" variant="plain">
+          <span>row</span>
+        </Link>
+      </ThemeContextProvider>,
+    )
+    expect(html).not.toContain('min-height')
+  })
+})
+
+describe('<ConnectionStrip> never claims a read it has not had', () => {
+  function strip(state: ConnectionState): string {
+    return renderToStaticMarkup(
+      <ThemeProvider touch="desk" density="desk">
+        <ConnectionStrip state={state} now={1_757_000_000_000} />
+      </ThemeProvider>,
+    )
+  }
+
+  it('says so while the first read is still in flight, instead of "Updated just now"', () => {
+    const html = strip({ online: true, lastSyncedAt: null })
+    expect(html).toContain('Not updated yet')
+    expect(html).not.toContain('Updated just now')
+  })
+
+  it('keeps the dot grey until something has actually come back', () => {
+    // `moss.edge` is the "we have data" dot; `border.strong` is the quiet one.
+    expect(strip({ online: true, lastSyncedAt: null })).not.toContain('#4E9270')
+    expect(strip({ online: true, lastSyncedAt: 1_757_000_000_000 })).toContain('#4E9270')
+    expect(strip({ online: true, lastSyncedAt: 1_757_000_000_000 })).toContain('Updated just now')
+  })
+
+  it('still names the clock time it went quiet when the read has failed', () => {
+    expect(strip({ online: false, lastSyncedAt: null })).toContain('Offline since')
   })
 })

@@ -37,10 +37,12 @@ import {
   textColumn,
 } from '../../src/lib/ui'
 import { instantWithClock, longDate, shiftDays, today } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 export default function StockScreen(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
+  const word = useWord()
 
   const [view, setView] = useState<'balances' | 'ledger'>('balances')
   const [locationId, setLocationId] = useState<string | null>(null)
@@ -147,7 +149,7 @@ export default function StockScreen(): React.JSX.Element {
     textColumn('when', t('o12.date'), (row) => instantWithClock(row.occurredAt), {
       priority: 'identity',
     }),
-    textColumn('reason', t('o15.reason'), (row) => row.reason, { priority: 'chip' }),
+    textColumn('reason', t('o15.reason'), (row) => word(row.reason), { priority: 'chip' }),
     {
       key: 'delta',
       head: t('o15.movement'),
@@ -159,7 +161,7 @@ export default function StockScreen(): React.JSX.Element {
         </Txt>
       ),
     },
-    textColumn('ref', t('o15.ref'), (row) => row.refType),
+    textColumn('ref', t('o15.ref'), (row) => word(row.refType)),
     textColumn('note', t('o3.note'), (row) => row.note),
   ]
 

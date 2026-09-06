@@ -210,7 +210,7 @@ export default function Shops(): React.JSX.Element {
           testID="shops-search"
           value={q}
           onChange={setQ}
-          placeholder={t('app.search')}
+          placeholder={t('app.filterShops')}
           autoFocus
           state={
             q === ''
@@ -293,7 +293,7 @@ export default function Shops(): React.JSX.Element {
                     <Money value={current.creditLimitPaise} size="cell" />
                   </Field>
                   <Field label={t('o6.creditDays')}>{String(current.creditDays)}</Field>
-                  <Field label={t('o6.creditMode')}>{current.creditMode}</Field>
+                  <Field label={t('o6.creditMode')}>{word(current.creditMode)}</Field>
                 </Stack>
               </Panel>
 

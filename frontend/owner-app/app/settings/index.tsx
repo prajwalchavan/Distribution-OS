@@ -151,7 +151,7 @@ export default function Settings(): React.JSX.Element {
     textColumn('code', t('o24.series'), (row) => row.seriesCode, { priority: 'identity' }),
     textColumn('prefix', t('o24.prefix'), (row) => row.prefix),
     textColumn('next', t('o24.next'), (row) => row.nextNo),
-    textColumn('mode', t('o8.trigger'), (row) => row.allocationMode),
+    textColumn('mode', t('o24.allocation'), (row) => word(row.allocationMode)),
     {
       key: 'locked',
       head: t('o24.lockedHint'),
@@ -166,7 +166,7 @@ export default function Settings(): React.JSX.Element {
   ]
 
   const flagColumns: readonly RegisterColumn<FeatureFlagRow>[] = [
-    textColumn('flag', t('o24.flag'), (row) => row.flag, { priority: 'identity' }),
+    textColumn('flag', t('o24.flag'), (row) => word(row.flag), { priority: 'identity' }),
     {
       key: 'enabled',
       head: t('o24.on'),
@@ -195,7 +195,7 @@ export default function Settings(): React.JSX.Element {
 
   const grantColumns: readonly RegisterColumn<SupportGrant>[] = [
     textColumn('who', t('o7.person'), (row) => row.requestedByName, { priority: 'identity' }),
-    textColumn('scope', t('o24.supportWindow'), (row) => row.scope),
+    textColumn('scope', t('o24.supportWindow'), (row) => word(row.scope)),
     textColumn('reason', t('o3.note'), (row) => row.reason),
     textColumn('asked', t('o3.asked'), (row) => instantWithClock(row.requestedAt)),
     {
@@ -365,12 +365,12 @@ export default function Settings(): React.JSX.Element {
                     keyboard="decimal"
                   />
                   {/*
-                    * `delivery.pod_required` is one of three words the delivery service reads
-                    * (`always` / `credit_only` / `never`, tenant-bootstrap). A free-text box made
-                    * the owner type one of them exactly — and printed the machine word back at them
-                    * — so a typo would silently turn proof of delivery off for the whole
-                    * distributorship. Three buttons cannot be mistyped.
-                    */}
+                   * `delivery.pod_required` is one of three words the delivery service reads
+                   * (`always` / `credit_only` / `never`, tenant-bootstrap). A free-text box made
+                   * the owner type one of them exactly — and printed the machine word back at them
+                   * — so a typo would silently turn proof of delivery off for the whole
+                   * distributorship. Three buttons cannot be mistyped.
+                   */}
                   <Stack gap={1}>
                     <Txt field="label" desk="meta" color={colors.text.secondary}>
                       {t('o24.pod')}

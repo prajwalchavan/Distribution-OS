@@ -183,3 +183,45 @@ describe('entry parity: @dos/ui', () => {
     expect(native).toContain("export * from './native/index.js'")
   })
 })
+
+/**
+ * The screen header lays its chips and its actions out in a `flexDirection: 'row', flexWrap: 'wrap'`
+ * box, which sizes a child to its CONTENT. A React Native child that expects the parent to hand it a
+ * width therefore collapses to nothing, and does it silently — no error, no warning, just an empty
+ * band where a control should be. Two shipped that way and only the phone showed it: the level-2 tab
+ * row of UX-00 §8.1 ("Today · Approvals · Live map") and the 7/30/90-day segmented control, which
+ * rendered as an empty 2 px pill. The DOM does not have the problem — a `<div>` is block-level and a
+ * `<button>` has padding — which is exactly why walking the web build cannot find it.
+ *
+ * These read the source rather than render it, like everything else in this file: importing
+ * `./native/*` in Node pulls in `react-native`, which does not resolve outside Metro.
+ */
+describe('native controls do not depend on a parent for their width', () => {
+  const source = readFileSync(join(here, 'native', 'controls.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`export function ${name}(`)
+    expect(start, `${name} is not exported from native/controls.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('<Tabs> claims the full width on a phone, as the web half already does', () => {
+    const body = bodyOf('Tabs')
+    expect(body).toContain("width: '100%'")
+    expect(body).toContain("theme.density !== 'desk'")
+  })
+
+  it('<Segments> sizes each option by its own label instead of dividing a shrink-to-fit box', () => {
+    const body = bodyOf('Segments')
+    expect(body).toContain('paddingHorizontal: space[4]')
+    // Comments mention `flex: 1`; only a style line counts.
+    expect(body).not.toMatch(/^\s*flex: 1,/m)
+  })
+
+  it('the web half of both still says the same thing', () => {
+    const web = readFileSync(join(here, 'web', 'controls.tsx'), 'utf8')
+    expect(web).toContain("width: '100%'")
+    expect(web).toContain(`padding: \`0 \${space[4]}px\``)
+  })
+})

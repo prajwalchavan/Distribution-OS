@@ -34,6 +34,9 @@ export type AuthRouter = ContractRouterClient<typeof authContract>
  * `refresh`, `logout`, `switchTenant` and `jwks` authenticate through the body (or not at all);
  * retrying `refresh` on its own 401 would loop.
  */
+/** A request that has gone unanswered this long is a dead spot, not a slow service. */
+const DEFAULT_REQUEST_TIMEOUT_MS = 20_000
+
 const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
   'me',
   'sessions',
@@ -58,6 +61,14 @@ export interface CreateApiClientOptions {
   deviceName?: string
   /** Called whenever the session ends, including when a refresh is rejected. */
   onSignOut?: (reason: ApiError | null) => void
+  /**
+   * How long one request may go unanswered before it becomes "No connection", in ms. Default 20 s;
+   * 0 disables it. A dead spot on an Indian highway does not REFUSE the connection — it accepts it
+   * and never answers, and `fetch` has no timeout of its own, so without this every screen sits on a
+   * skeleton for the OS TCP timeout (minutes) while the strip says the data is fresh. Measured on
+   * the owner app against a suspended owner-service: skeletons and "Updated just now" for 40 s.
+   */
+  requestTimeoutMs?: number
 }
 
 export interface SignInOptions {
@@ -205,9 +216,23 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     }
   }
 
+  /**
+   * `fetch` with a deadline. The caller's own signal still wins (the query cache abandons a read when
+   * the distributor is switched), so the two are combined rather than replaced.
+   */
+  const timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+  const fetchWithDeadline = (request: Request, init: RequestInit): Promise<Response> => {
+    if (timeoutMs <= 0) return fetch(request, init)
+    const deadline = AbortSignal.timeout(timeoutMs)
+    const signal =
+      typeof AbortSignal.any === 'function' ? AbortSignal.any([request.signal, deadline]) : deadline
+    return fetch(request, { ...init, signal })
+  }
+
   const authLink = new OpenAPILink(authContract, {
     url: join(options.authUrl, options.authPrefix),
     headers,
+    fetch: fetchWithDeadline,
     interceptors: [interceptor((path) => AUTH_RETRY_PATHS.has(path[0] ?? ''))],
   })
   const authClient: AuthRouter = createORPCClient<AuthRouter>(authLink)
@@ -215,6 +240,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   const apiLink = new OpenAPILink(contract, {
     url: join(options.apiUrl, options.prefix),
     headers,
+    fetch: fetchWithDeadline,
     interceptors: [interceptor(() => true)],
   })
   const apiClient: ApiRouter = createORPCClient<ApiRouter>(apiLink)

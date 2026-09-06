@@ -21,11 +21,12 @@ import {
   useStrings,
   type RegisterColumn,
 } from '@dos/ui'
+import { formatINR, paise } from '@dos/domain'
 import { useState } from 'react'
 
 import { Async, Field, Panel, moneyColumn, textColumn, useNames } from '../../src/lib/ui'
 import { longDate, today } from '../../src/lib/dates'
-import { useWord } from '../../src/lib/words'
+import { formatBps, useWord } from '../../src/lib/words'
 
 type PriceListItem = {
   id: string
@@ -151,15 +152,35 @@ export default function Prices(): React.JSX.Element {
     },
   ]
 
+  /*
+   * The scheme's own economics, in the units the contract states and NOT the integers it stores:
+   * `triggerMin` is PAISE when the unit is `inr` and a piece/case count otherwise, and `rewardValue`
+   * is BASIS POINTS for the three `_pct` kinds, free pieces for `free_qty` and paise for
+   * `net_scheme_amount` (`pricing.ts`, "free pieces, bps for the pct kinds, paise for
+   * net_scheme_amount"). This register printed the raw integer under the raw enum, so the pilot's own
+   * "2% off on bills over ₹5,000" read `value ≥ 500000 inr` / `order_pct 200` — a threshold a hundred
+   * times too big beside a discount a hundred times too big.
+   */
+  const trigger = (row: Scheme): string =>
+    row.triggerUnit === 'inr'
+      ? `${word(row.triggerKind)} ≥ ${formatINR(paise(row.triggerMin))}`
+      : `${word(row.triggerKind)} ≥ ${String(row.triggerMin)} ${word(row.triggerUnit)}`
+
+  const reward = (row: Scheme): string => {
+    if (row.rewardKind === 'free_qty') {
+      return `${word(row.rewardKind)}: ${String(row.rewardValue)}`
+    }
+    if (row.rewardKind === 'net_scheme_amount') {
+      return `${word(row.rewardKind)}: ${formatINR(paise(row.rewardValue))}`
+    }
+    return `${word(row.rewardKind)}: ${formatBps(row.rewardValue)}`
+  }
+
   const schemeColumns: readonly RegisterColumn<Scheme>[] = [
     textColumn('name', t('o8.scheme'), (row) => row.name, { priority: 'identity' }),
-    textColumn(
-      'trigger',
-      t('o8.trigger'),
-      (row) => `${row.triggerKind} ≥ ${String(row.triggerMin)} ${row.triggerUnit}`,
-    ),
-    textColumn('reward', t('o8.reward'), (row) => `${row.rewardKind} ${String(row.rewardValue)}`),
-    textColumn('funding', t('o8.funding'), (row) => row.fundingSource),
+    textColumn('trigger', t('o8.trigger'), trigger),
+    textColumn('reward', t('o8.reward'), reward),
+    textColumn('funding', t('o8.funding'), (row) => word(row.fundingSource)),
     textColumn(
       'valid',
       t('o8.valid'),

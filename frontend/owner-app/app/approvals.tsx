@@ -266,7 +266,7 @@ export default function Approvals(): React.JSX.Element {
               variant="destructive"
               shortcut="2"
               disabled={note.trim() === ''}
-              disabledReason={t('o3.note')}
+              disabledReason={t('o3.rejectNeedsNote')}
               onPress={() => {
                 setConfirm('reject')
               }}

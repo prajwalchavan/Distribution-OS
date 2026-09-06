@@ -68,7 +68,7 @@ export default function Books(): React.JSX.Element {
 
   const entryColumns: readonly RegisterColumn<JournalEntry>[] = [
     textColumn('date', t('o12.date'), (row) => longDate(row.entryDate), { priority: 'identity' }),
-    textColumn('ref', t('o15.ref'), (row) => row.refType),
+    textColumn('ref', t('o15.ref'), (row) => word(row.refType)),
     textColumn('narration', t('o12.narration'), (row) => row.narration),
     textColumn('by', t('o7.person'), (row) => names.staff(row.postedBy)),
     moneyColumn('amount', t('o12.debit'), (row) =>

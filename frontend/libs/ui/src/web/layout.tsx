@@ -406,9 +406,15 @@ export function Img(props: ImgProps): React.JSX.Element {
  * A real anchor. `onNavigate` from the router intercepts the plain left click; every other gesture —
  * middle click, Cmd-click, "copy link address", the browser's own history — is the browser's, which
  * is half the reason the desk apps render to a DOM at all.
+ *
+ * `text` is a standalone accent word ("Open the rows behind this") and is therefore a TAP TARGET: it
+ * carries `theme.touchSize`, the one floor of UX-00 section 5.2, exactly as `<Button>` and the shell's
+ * menu rows do. It read 21 dp on a 375 px phone before this — a third of the 63 dp owner floor — and
+ * the native half had the condition inverted, giving the floor to `plain` (which wraps something that
+ * already has its own size) and nothing to `text`. `plain` keeps no minimum on purpose.
  */
 export function Link(props: LinkProps): React.JSX.Element {
-  const { colors } = useTheme()
+  const { colors, touchSize } = useTheme()
   const { href, children, replace = false, variant = 'text', testID } = props
   const navigate = useRouterNavigate()
   return (
@@ -423,7 +429,14 @@ export function Link(props: LinkProps): React.JSX.Element {
       }}
       style={
         variant === 'text'
-          ? { color: colors.accent.fg, textDecoration: 'underline', textUnderlineOffset: 2 }
+          ? {
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: touchSize,
+              color: colors.accent.fg,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+            }
           : { color: 'inherit', textDecoration: 'none' }
       }
     >

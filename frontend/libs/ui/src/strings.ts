@@ -52,7 +52,8 @@ export const en = {
   // Register (UX-00 section 6.7).
   'register.selected': '{count} selected',
   'register.total': 'Total',
-  'register.filters': '{count} filters',
+  /* Parenthesised rather than "{count} filters", which reads "1 filters" the moment one is on. */
+  'register.filters': 'Filters ({count})',
   'register.clearFilters': 'Clear',
   'register.asOf': 'As of {when}',
   'register.empty': 'Nothing here yet',
@@ -64,6 +65,8 @@ export const en = {
   'connection.stale': 'Stock as of {when}',
   'connection.attention': '{count} need attention',
   'connection.justNow': 'just now',
+  /* Online, but nothing has come back yet: the strip must not claim a read it has never had. */
+  'connection.notYet': 'Not updated yet',
   'connection.minutesAgo': '{count} min ago',
   'connection.hoursAgo': '{count} h ago',
 

@@ -345,7 +345,10 @@ export function Link(props: LinkProps): React.JSX.Element {
       onPress={() => {
         routerNavigate?.(href, replace)
       }}
-      style={{ minHeight: variant === 'text' ? undefined : touchSize, justifyContent: 'center' }}
+      // `text` is a standalone accent word and IS the tap target, so it carries the floor of UX-00
+      // section 5.2; `plain` wraps something that already has its own size. This was the wrong way
+      // round, which is how the owner app shipped a 21 dp link on a 63 dp phone.
+      style={{ minHeight: variant === 'text' ? touchSize : undefined, justifyContent: 'center' }}
     >
       {variant === 'text' ? (
         <Txt field="body" desk="body" color={colors.accent.fg} style={styles.underline}>

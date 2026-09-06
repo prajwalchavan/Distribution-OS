@@ -17,7 +17,7 @@ import { isAllowed, permissionFor } from '@dos/contracts'
 import type { ApiClient } from '@dos/api-client'
 import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
-import { Slot, usePathname, useRouter } from 'expo-router'
+import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { boot } from '../src/api'
@@ -141,9 +141,20 @@ function Shell(): React.JSX.Element {
           ? '/'
           : null
 
+  /*
+   * Wait for the root navigator to exist before moving. On the web the layout effect and the
+   * navigator mount in the same tick, so `router.replace` from an effect is safe; on a phone it is
+   * not, and React Native answers with "Can't perform a React state update on a component that
+   * hasn't mounted yet" naming expo-router's own `<ContextNavigator/>` — measured on the Pixel 7
+   * emulator, on the first launch and on every sign-in. `useRootNavigationState()` has a `key` only
+   * once that navigator is mounted, which is exactly the condition.
+   */
+  const navigationState = useRootNavigationState()
+  const navigatorReady = navigationState?.key !== undefined
+
   useEffect(() => {
-    if (redirectTo !== null) router.replace(redirectTo)
-  }, [redirectTo, router])
+    if (navigatorReady && redirectTo !== null) router.replace(redirectTo)
+  }, [navigatorReady, redirectTo, router])
 
   if (hydrating) {
     return (

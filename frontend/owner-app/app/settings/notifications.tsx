@@ -112,9 +112,9 @@ export default function Notifications(): React.JSX.Element {
   ]
 
   const templateColumns: readonly RegisterColumn<Template>[] = [
-    textColumn('key', t('o23.key'), (row) => row.key, { priority: 'identity' }),
+    textColumn('key', t('o23.key'), (row) => word(row.key), { priority: 'identity' }),
     textColumn('channel', t('o23.channel'), (row) => word(row.channel)),
-    textColumn('locale', t('o24.stateCode'), (row) => row.locale),
+    textColumn('locale', t('o23.language'), (row) => row.locale),
     textColumn('body', t('o23.body'), (row) => row.body),
     {
       key: 'override',

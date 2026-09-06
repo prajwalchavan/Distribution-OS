@@ -374,3 +374,60 @@ describe('mutation identity', () => {
     expect(a.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 })
+
+describe('a service that accepts the connection and never answers', () => {
+  /**
+   * The realistic dead spot: the TCP connection is made and no reply ever comes. `fetch` has no
+   * timeout of its own, so before the deadline every screen sat on a skeleton for the OS timeout
+   * (measured: 40 s and counting against a suspended owner-service) while the connection strip said
+   * "Updated just now".
+   */
+  function stubSilentFetch(): void {
+    vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+      const request = input instanceof Request ? input : new Request(String(input), init)
+      if (new URL(request.url).pathname === '/auth/login') {
+        return json(tokenPair('access-1', 'refresh-1'))
+      }
+      const signal = init?.signal ?? request.signal
+      return new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          reject(signal.reason as Error)
+        })
+      })
+    })
+  }
+
+  it('becomes "No connection" at the deadline instead of hanging for ever', async () => {
+    stubSilentFetch()
+    const c = createApiClient({
+      apiUrl: 'http://api.test',
+      authUrl: 'http://auth.test',
+      storage: memoryTokenStorage(DEVICE),
+      platform: 'web',
+      deviceName: 'vitest',
+      requestTimeoutMs: 40,
+    })
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    const err = await c.api.tenancy.me().catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ApiError)
+    expect((err as ApiError).kind).toBe('network')
+    expect((err as ApiError).message).toContain('No connection')
+  })
+
+  it('keeps the link’s own request options — the deadline replaces nothing', async () => {
+    const seen: RequestInit[] = []
+    vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+      const request = input instanceof Request ? input : new Request(String(input), init)
+      if (init) seen.push(init)
+      return new URL(request.url).pathname === '/auth/login'
+        ? json(tokenPair('access-1', 'refresh-1'))
+        : json({ id: 't', legalName: 'Tarsun Enterprises' })
+    })
+    const c = client()
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    await c.api.tenancy.me()
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((init) => init.redirect === 'manual')).toBe(true)
+    expect(seen.every((init) => init.signal !== undefined)).toBe(true)
+  })
+})

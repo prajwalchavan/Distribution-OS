@@ -17,6 +17,12 @@ export const strings = {
   'app.signInFailed': 'Could not sign in',
   'app.signInHint': 'Use the username your distributorship issued.',
   'app.search': 'Search shops, bills, orders',
+  'app.searchShops': 'Shop',
+  'app.searchBills': 'Bill',
+  'app.searchOrders': 'Order',
+  /* The shops register's own filter, which is NOT the header's three-way search. */
+  'app.filterShops': 'Filter these shops',
+  'app.searchFilter': 'Any date, matching "{query}"',
   'app.searchShort': 'Search',
   'app.changePassword': 'Change password',
   'app.currentPassword': 'Current password',
@@ -106,6 +112,7 @@ export const strings = {
   'o3.reject': 'Reject',
   'o3.ask': 'Ask again',
   'o3.note': 'Note for the person who asked',
+  'o3.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'o3.approved': 'Approved',
   'o3.rejected': 'Rejected',
   'o3.bargains': 'Rate requests',
@@ -448,6 +455,8 @@ export const strings = {
   'o2.fillRate': 'Fill rate',
   'o2.delivery': 'Delivery performance',
   'o2.stockCover': 'Stock cover',
+  'o2.deliveryRates': 'On time and proof of delivery',
+  'o2.stockTurns': 'Stock turns',
   'o2.compare': 'Compare with',
   'o2.comparePrev': 'Previous period',
   'o2.compareYear': 'Last year',
@@ -552,6 +561,7 @@ export const strings = {
   'o23.inbound': 'Replies',
   'o23.channel': 'Channel',
   'o23.key': 'Template',
+  'o23.language': 'Language',
   'o23.body': 'Body',
   'o23.destination': 'To',
   'o23.status': 'Status',
@@ -583,6 +593,7 @@ export const strings = {
   'o24.logoHint': 'PNG or JPG, square, at least 256 px',
   'o24.preview': 'How it prints',
   'o24.series': 'Series',
+  'o24.allocation': 'Number comes from',
   'o24.prefix': 'Prefix',
   'o24.next': 'Next number',
   'o24.lockedHint': 'Locked once the first document is issued',
@@ -647,7 +658,8 @@ export const strings = {
   'word.below_floor': 'Below floor price',
   'word.manual_price': 'Price changed by hand',
   'word.scheme_override': 'Scheme overridden',
-  'word.trip_settlement': 'Trip cash variance',
+  /* One value, one word: this is the approval kind AND the day book's journal reference. */
+  'word.trip_settlement': 'Trip settlement',
 
   // invoices and credit notes
   'word.partially_paid': 'Part paid',
@@ -676,8 +688,18 @@ export const strings = {
   'word.strict': 'Needs approval',
   'word.stop': 'Blocked',
 
-  // stock and inbound
+  // stock and inbound — the stock ledger's own reasons (`inventory.StockReasonSchema`).
   'word.grn': 'GRN',
+  'word.sale': 'Sold',
+  'word.sale_return_saleable': 'Returned, saleable',
+  'word.sale_return_damaged': 'Returned, damaged',
+  'word.damage': 'Damaged',
+  'word.expiry_writeoff': 'Expired',
+  'word.transfer_out': 'Sent out',
+  'word.transfer_in': 'Brought in',
+  'word.van_load': 'Loaded on a van',
+  'word.van_unload': 'Unloaded from a van',
+  'word.adjustment': 'Adjusted by hand',
   'word.fefo_override': 'FEFO overridden',
   'word.needs_review': 'Needs review',
   'word.mrp': 'MRP',
@@ -730,6 +752,69 @@ export const strings = {
   'word.invoice_issued': 'Bill issued',
   'word.dues_reminder': 'Dues reminder',
   'word.scheme_announcement': 'Scheme announcement',
+
+  // Chart series: `reporting.series.*` names its metrics in code, the screen names them in words.
+  'word.invoiced': 'Invoiced',
+  'word.collected': 'Collected',
+  'word.outstanding': 'Money owed',
+  'word.overdue': 'Overdue',
+  'word.deliveredStops': 'Stops delivered',
+  'word.partialStops': 'Part delivered',
+  'word.failedStops': 'Not delivered',
+  'word.onTimeRate': 'On time',
+  'word.podCoverageRate': 'Proof taken',
+  'word.nearExpiryValue': 'Near expiry',
+  'word.stockTurns': 'Stock turns',
+  'word.grossMargin': 'Gross margin',
+
+  // Scheme economics (pricing.schemes) — the words a distributor uses for the same rows.
+  'word.qty': 'Quantity',
+  'word.value': 'Order value',
+  'word.mix': 'Mixed',
+  /* The trade's own abbreviations, which UX-00 section 4.5 rule 7 already uses ("2 cs + 6 pc"), so a
+     count of one does not have to read "1 pieces". */
+  'word.pcs': 'pc',
+  'word.case': 'cs',
+  'word.line_pct': 'Off the line',
+  'word.order_pct': 'Off the bill',
+  'word.cash_discount_pct': 'Cash discount',
+  'word.net_scheme_amount': 'Flat scheme amount',
+  'word.company': 'The brand',
+  'word.distributor': 'Us',
+
+  // Journal reference types (the day book's Document column). `trip_settlement` already has a word
+  // above, where it is an approval kind; one value keeps one word.
+  'word.claim_settlement': 'Claim settled',
+  'word.claim_write_off': 'Claim written off',
+  'word.receipt_reversal': 'Receipt reversed',
+  'word.invoice_cancel': 'Bill cancelled',
+  'word.load_sheet': 'Load sheet',
+  'word.cycle_count': 'Cycle count',
+  'word.trip_stop': 'Delivery stop',
+  'word.writeoff': 'Written off',
+  'word.opening': 'Opening balance',
+  'word.manual': 'Manual entry',
+
+  // Numbering series allocation, feature flags and the support desk's access scope.
+  'word.server': 'We allot it',
+  'word.device': 'The device allots it',
+  'word.external': 'It comes on the supplier bill',
+  'word.van_sales': 'Van sales',
+  'word.claims_ui': 'Claims screens',
+  'word.retailer_app': 'Shopkeeper app',
+  'word.e_invoicing': 'E-invoicing',
+  'word.read_only': 'Read only',
+  'word.read_write': 'Read and change',
+
+  // Incentive target metrics.
+  'word.pieces': 'Pieces',
+  'word.outlets': 'Shops billed',
+  'word.visits': 'Beat visits',
+  'word.collections': 'Money collected',
+
+  // Message templates the platform ships (notifications.templates).
+  'word.order_needs_approval': 'Order needs approval',
+  'word.welcome': 'Welcome',
 
   // schemes and visits
   'word.free_qty': 'Free goods',

@@ -25,6 +25,7 @@ import {
   type StatusFamily,
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
 import {
@@ -58,7 +59,9 @@ export default function Billing(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
 
+  const params = useLocalSearchParams<{ q?: string }>()
   const [range, setRange] = useState<RangeId>('d30')
+  const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [view, setView] = useState<'bills' | 'gst'>('bills')
   const [selected, setSelected] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'cancel' | 'eway' | null>(null)
@@ -67,8 +70,16 @@ export default function Billing(): React.JSX.Element {
   const [pdfNote, setPdfNote] = useState<string | null>(null)
 
   const span = rangeOf(range)
-  const list = useQuery(['invoices', 'list', span.from, span.to], () =>
-    api.api.billing.invoices.list({ from: span.from, to: span.to, limit: 200 }),
+  /*
+   * A bill number typed into the header search is looked for across every date: the person holding
+   * the paper does not know which month the register happens to be showing. The chip says so.
+   */
+  const searching = q !== ''
+  const list = useQuery(['invoices', 'list', searching ? q : `${span.from}:${span.to}`], () =>
+    api.api.billing.invoices.list({
+      ...(searching ? { q } : { from: span.from, to: span.to }),
+      limit: 200,
+    }),
   )
   const gst = useQuery(
     ['billing', 'gst', span.from, span.to],
@@ -223,6 +234,10 @@ export default function Billing(): React.JSX.Element {
               setSelected(row.id)
             }}
             state="ready"
+            filters={searching ? [{ id: 'q', label: t('app.searchFilter', { query: q }) }] : []}
+            onClearFilters={() => {
+              setQ('')
+            }}
             totals={{
               invoiceNo: t('app.rows', { count: rows.length }),
               total: (
@@ -265,6 +280,10 @@ export default function Billing(): React.JSX.Element {
             rows={gst.data?.rows ?? []}
             rowKey={(row) => `${row.hsnCode}-${String(row.gstBps)}-${String(row.cessBps)}`}
             state="ready"
+            filters={searching ? [{ id: 'q', label: t('app.searchFilter', { query: q }) }] : []}
+            onClearFilters={() => {
+              setQ('')
+            }}
             totals={{
               hsn: t('word.total'),
               taxable: (

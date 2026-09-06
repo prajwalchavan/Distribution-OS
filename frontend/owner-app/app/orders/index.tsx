@@ -25,6 +25,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
 import {
@@ -72,21 +73,30 @@ export default function Orders(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
 
+  const params = useLocalSearchParams<{ q?: string }>()
   const [range, setRange] = useState<RangeId>('d30')
+  const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [states, setStates] = useState<readonly OrderState[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
 
   const span = rangeOf(range)
-  const list = useQuery(['orders', 'list', span.from, span.to, states.join(',')], () =>
-    api.api.orders.list({
-      from: span.from,
-      to: span.to,
-      limit: 200,
-      ...(states.length === 1 ? { state: states[0] } : {}),
-      ...(states.length > 1 ? { states: [...states] } : {}),
-    }),
+  /*
+   * A search from the header carries the order number a person is holding, and that order is as
+   * likely to be from May as from this week — so a number search looks at every date rather than
+   * being silently hidden by the 30-day window the register opens on. The chip says which it is.
+   */
+  const searching = q !== ''
+  const list = useQuery(
+    ['orders', 'list', searching ? q : `${span.from}:${span.to}`, states.join(',')],
+    () =>
+      api.api.orders.list({
+        ...(searching ? { q } : { from: span.from, to: span.to }),
+        limit: 200,
+        ...(states.length === 1 ? { state: states[0] } : {}),
+        ...(states.length > 1 ? { states: [...states] } : {}),
+      }),
   )
 
   const detail = useQuery(
@@ -233,9 +243,13 @@ export default function Orders(): React.JSX.Element {
               setSelected(row.id)
             }}
             state="ready"
-            filters={states.map((state) => ({ id: state, label: state }))}
+            filters={[
+              ...(searching ? [{ id: 'q', label: t('app.searchFilter', { query: q }) }] : []),
+              ...states.map((state) => ({ id: state, label: word(state) })),
+            ]}
             onClearFilters={() => {
               setStates([])
+              setQ('')
             }}
             totals={{
               orderNo: t('app.rows', { count: rows.length }),

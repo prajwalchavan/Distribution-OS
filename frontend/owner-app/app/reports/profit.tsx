@@ -88,7 +88,9 @@ export default function Profit(): React.JSX.Element {
    */
   const schemeLabel = (row: SchemeSpendRow): string =>
     row.schemeName === row.schemeId
-      ? t('o17.unnamedScheme', { ref: row.schemeId.slice(0, 8) })
+      ? // The LAST eight: a UUIDv7's leading hex is its millisecond, so rows written in one smoke
+        // run all began `01a0d0c5` and every reference read the same. The tail is the random half.
+        t('o17.unnamedScheme', { ref: row.schemeId.slice(-8) })
       : row.schemeName
 
   const fundingSlices = Object.entries(

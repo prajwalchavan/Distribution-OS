@@ -35,10 +35,7 @@ export function ConnectionStrip({
   const attention = state.needsAttention ?? 0
   const stale =
     state.staleSince !== null && state.staleSince !== undefined && now - state.staleSince > STALE_MS
-  const lastSynced =
-    state.lastSyncedAt === null || state.lastSyncedAt === undefined
-      ? theme.t('connection.justNow')
-      : relativeTime(state.lastSyncedAt, now, theme.t)
+  const syncedAt = state.lastSyncedAt ?? null
 
   let message: string
   let tone: string = theme.colors.text.secondary
@@ -59,8 +56,17 @@ export function ConnectionStrip({
   } else if (stale && state.staleSince) {
     message = theme.t('connection.stale', { when: clockTime(state.staleSince) })
     tone = theme.colors.status.ochre.fg
+  } else if (syncedAt === null) {
+    /*
+     * Online, but no read has come back yet. Saying "Updated just now" here is the one lie this
+     * component exists to prevent: with a service that accepts the connection and never answers,
+     * every panel is a skeleton and the strip was announcing fresh data. It says what is true.
+     */
+    message = theme.t('connection.notYet')
   } else {
-    message = theme.t('connection.synced', { when: lastSynced })
+    message = theme.t('connection.synced', {
+      when: relativeTime(syncedAt, now, theme.t),
+    })
   }
 
   // 28 dp and inert while it has nothing to open; a touch-floor row once something is waiting.
@@ -73,9 +79,10 @@ export function ConnectionStrip({
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: state.online
-            ? theme.colors.status.moss.edge
-            : theme.colors.border.strong,
+          backgroundColor:
+            state.online && syncedAt !== null
+              ? theme.colors.status.moss.edge
+              : theme.colors.border.strong,
         }}
       />
       <Txt field="label" desk="meta" color={tone}>

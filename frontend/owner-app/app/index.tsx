@@ -247,7 +247,17 @@ export default function Today(): React.JSX.Element {
         </Columns>
 
         <Panel
-          title={t('o1.needsYouCount', { count: d?.pendingApprovals ?? waiting.length })}
+          /*
+           * The count is stated only when a read has actually answered. With the service refusing or
+           * unreachable, `d` is undefined and `waiting` is empty, so this asserted "Needs you (0)"
+           * over a panel whose own body was reporting the failure — the heading contradicting the
+           * body, and claiming the safer of the two possible facts.
+           */
+          title={
+            d !== undefined || approvals.data !== undefined || bargains.data !== undefined
+              ? t('o1.needsYouCount', { count: d?.pendingApprovals ?? waiting.length })
+              : t('o1.needsYou')
+          }
           actions={
             <Button
               label={t('o1.openApprovals')}

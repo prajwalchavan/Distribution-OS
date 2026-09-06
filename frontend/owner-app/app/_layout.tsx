@@ -28,7 +28,7 @@ import { isAllowed, permissionFor } from '@dos/contracts'
 import type { ApiClient } from '@dos/api-client'
 import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
-import { Slot, usePathname, useRouter } from 'expo-router'
+import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { boot } from '../src/api'
@@ -37,6 +37,7 @@ import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
 import { useHotkeys } from '../src/lib/keys'
 import { staffRetailer } from '../src/lib/ui'
+import { useWord } from '../src/lib/words'
 
 export default function RootLayout(): React.JSX.Element | null {
   const [client, setClient] = useState<ApiClient | null>(null)
@@ -150,9 +151,20 @@ function Shell(): React.JSX.Element {
           ? '/'
           : null
 
+  /*
+   * Wait for the root navigator to exist before moving. On the web the layout effect and the
+   * navigator mount in the same tick, so `router.replace` from an effect is safe; on a phone it is
+   * not, and React Native answers with "Can't perform a React state update on a component that
+   * hasn't mounted yet" naming expo-router's own `<ContextNavigator/>` — measured on the Pixel 7
+   * emulator, on the first launch and on every sign-in. `useRootNavigationState()` has a `key` only
+   * once that navigator is mounted, which is exactly the condition.
+   */
+  const navigationState = useRootNavigationState()
+  const navigatorReady = navigationState?.key !== undefined
+
   useEffect(() => {
-    if (redirectTo !== null) router.replace(redirectTo)
-  }, [redirectTo, router])
+    if (navigatorReady && redirectTo !== null) router.replace(redirectTo)
+  }, [navigatorReady, redirectTo, router])
 
   if (hydrating) {
     return (
@@ -251,6 +263,7 @@ function Chrome({
 }: ChromeProps): React.JSX.Element {
   const api = useApi()
   const router = useRouter()
+  const word = useWord()
   const [query, setQuery] = useState('')
 
   /*
@@ -279,16 +292,57 @@ function Chrome({
   )
 
   /*
-   * The shops register is this app's search surface: its own `<Search>` opens focused, so "go to"
-   * lands the cursor in a field the reader can actually type into. The kit's `<Search>` contract has
-   * no imperative focus — deliberately, since a native screen has no DOM node to focus — so `/`
-   * navigates rather than pretending to reach into a component.
+   * "Search shops, bills, orders" — and it does all three, because the box says so. It read
+   * `retailers.list` alone before, so typing a bill or an order number a person was holding in their
+   * hand ("SO-0220", off this app's own orders register) answered "Nothing matches". `orders.list`
+   * and `billing.invoices.list` both take a `q` that matches the document number (the contract says
+   * so in as many words), so the promise costs two more reads of four rows each, and each result
+   * lands on the register that holds it with the query already applied.
+   *
+   * `/` still goes to the shops register, whose own `<Search>` opens focused: the kit's `<Search>`
+   * has no imperative focus, deliberately, since a native screen has no DOM node to reach into.
    */
-  const matches = useQuery(
+  const enabled = query.trim().length >= 2
+  const shopHits = useQuery(
     ['search', 'retailers', query],
-    () => api.api.retailers.list({ q: query, limit: 6 }),
-    { enabled: query.trim().length >= 2, staleTime: 30_000 },
+    () => api.api.retailers.list({ q: query, limit: 4 }),
+    { enabled: enabled && isAllowed(permissionFor('retailers.list'), role), staleTime: 30_000 },
   )
+  const billHits = useQuery(
+    ['search', 'invoices', query],
+    () => api.api.billing.invoices.list({ q: query, limit: 4 }),
+    {
+      enabled: enabled && isAllowed(permissionFor('billing.invoices.list'), role),
+      staleTime: 30_000,
+    },
+  )
+  const orderHits = useQuery(
+    ['search', 'orders', query],
+    () => api.api.orders.list({ q: query, limit: 4 }),
+    { enabled: enabled && isAllowed(permissionFor('orders.list'), role), staleTime: 30_000 },
+  )
+
+  const hits = [
+    ...(shopHits.data?.items ?? []).map((shop) => ({
+      key: `shop:${shop.id}`,
+      primary: shop.name,
+      secondary: staffRetailer(shop)?.code ?? strings['app.searchShops'],
+      href: `/shops?q=${encodeURIComponent(staffRetailer(shop)?.code ?? shop.name)}`,
+    })),
+    ...(billHits.data?.items ?? []).map((bill) => ({
+      key: `bill:${bill.id}`,
+      primary: bill.invoiceNo ?? bill.externalInvoiceNo ?? strings['app.searchBills'],
+      secondary: bill.buyerName,
+      href: `/billing?q=${encodeURIComponent(bill.invoiceNo ?? bill.id)}`,
+    })),
+    ...(orderHits.data?.items ?? []).map((order) => ({
+      key: `order:${order.id}`,
+      primary: order.orderNo ?? strings['app.searchOrders'],
+      secondary: word(order.state),
+      href: `/orders?q=${encodeURIComponent(order.orderNo ?? order.id)}`,
+    })),
+  ]
+  const searching = shopHits.isFetching || billHits.isFetching || orderHits.isFetching
 
   useHotkeys({
     '/': () => {
@@ -313,25 +367,17 @@ function Chrome({
           onChange={setQuery}
           placeholder={strings['app.search']}
           state={
-            query.trim().length < 2
-              ? 'idle'
-              : matches.isFetching
-                ? 'typing'
-                : (matches.data?.items.length ?? 0) === 0
-                  ? 'noResults'
-                  : 'results'
+            !enabled ? 'idle' : searching ? 'typing' : hits.length === 0 ? 'noResults' : 'results'
           }
         >
-          {(matches.data?.items ?? []).map((shop) => (
+          {hits.map((hit) => (
             <ListRow
-              key={shop.id}
-              primary={shop.name}
-              secondary={staffRetailer(shop)?.code}
+              key={hit.key}
+              primary={hit.primary}
+              secondary={hit.secondary}
               onPress={() => {
                 setQuery('')
-                router.push(
-                  `/shops?q=${encodeURIComponent(staffRetailer(shop)?.code ?? shop.name)}`,
-                )
+                router.push(hit.href)
               }}
             />
           ))}
