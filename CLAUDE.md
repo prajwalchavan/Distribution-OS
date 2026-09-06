@@ -103,7 +103,7 @@ frontend/<role>-app           owner, manager, sales, warehouse, delivery, retail
                               website + Android + iOS from one codebase each. Screens import ONLY @dos/ui (never react-native or
                               react-dom; ESLint enforces). `pnpm --filter @dos/<role>-app web` serves the browser build; EXPO_PUBLIC_API_URL.
 docs/                         22 source of truth · 18 build log · 23 screen inventory + API gaps · 24 Confluence audit · 25 phase-2
-                              enhancements · 26 environments, config and least-cost deployment · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
+                              enhancements · 26 environments, config and least-cost deployment · 27 offline sync client design (binding for @dos/offline) · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
                               Confluence space, README maps page ids; docs/22 wins) · design/ (UX-00 design system on layout A Ledger,
                               layout-options.html) · adr/, domain/, research/, blueprint 00–21.
 ```

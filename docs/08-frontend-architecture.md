@@ -22,6 +22,19 @@
 
 **Rules a reviewer can check.** (1) `grep -r "from 'react-native'" frontend/*-app/src` is empty, and so is `react-dom` — ESLint `no-restricted-imports` enforces it. (2) Every component in `@dos/ui/web` has a sibling in `@dos/ui/native` with the identical props (a test walks the contract). (3) `expo export --platform web` and `tsc` for native both pass for every app in CI. (4) Money, quantity and date helpers come from `@dos/domain`; the apps do no arithmetic on formatted strings.
 
+**Platform decisions closed with the universal call (2026-09-06).**
+
+| Concern | Decision |
+| --- | --- |
+| Offline client | `@dos/offline` per `docs/27-offline-sync-client.md` (binding): SQLite adapters native/web/memory, manifest-built schema, outbox FIFO, LWW with server veto, GPS buffer outside the queue, receipts offline by paper-book number |
+| Maps | A `MapView` contract component in the kit: web = MapLibre GL JS with OpenStreetMap raster tiles (free, attribution shown); native = `react-native-maps` (Apple Maps on iOS, Google Maps SDK on Android — the mobile SDK is free of charge; a key is still needed on Android). Owner live map and trip replay use it; navigation to a stop is a URL hand-off to the phone's map app, never an in-app router |
+| Printing | Web: print CSS on the document view and the worker-rendered PDF; native: share sheet / `expo-print` of the same PDF. Bluetooth thermal printers (ESC/POS) are phase 2 (docs/25); the pilot shares receipts on WhatsApp |
+| Push | Expo push tokens registered through `notifications.pushTokens.register`; the worker delivers via Expo's push service (free). Web push is phase 2 |
+| Web token storage | access token in memory, refresh token in `localStorage` (documented XSS risk: no third-party scripts, strict CSP, rotation on every refresh); native in `expo-secure-store` |
+| Updates | EAS Update (free tier) for JS-only releases of the phone apps; a native build only when a native module changes; the web build deploys on every merge |
+| Camera / scanning | `platform.camera`: `expo-camera` barcode + photo on native; `getUserMedia` / file input on web. No ML-Kit dependency at the pilot |
+| Language | English only for the pilot (founder, 2026-09-05); strings keyed for `hi`/`mr` later; IBM Plex Sans self-hosted |
+
 **Why this and not "React Native everywhere".** RN primitives on the web (react-native-web) give one component set but lose HTML tables, print stylesheets and keyboard behaviour that a distributor's owner and accountant use all day; the renderer swap keeps a real DOM on desk and real native views on phones for the same screen. The price is one contract to maintain in two places, which the kit already pays.
 
 

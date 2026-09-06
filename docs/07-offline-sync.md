@@ -6,6 +6,8 @@
 
 ## 0. Our own sync (2026-09-05)
 
+> **Client side (device):** the binding design for `@dos/offline` is `docs/27-offline-sync-client.md` (2026-09-06). This section is the server side.
+
 No vendor, no logical replication, no second database process: the device keeps SQLite and talks to four procedures of the `sync` contract (`backend/libs/contracts/src/sync.ts`), all over the same access token and the same permission matrix as every other endpoint. `SYNC_PROTOCOL_VERSION` is the wire version; a batch that carries a different one is answered `upgradeRequired` with every op rejected, never 4xx.
 
 **Who syncs.** The five staff apps (owner, manager, sales, warehouse, delivery) hold the read set AND the write queue. The retailer app holds the READ half only — `sync.manifest` and `sync.pull` are `ANY_MEMBER`, so the shop keeps its own bills, orders and dues on the phone and opens them in a dead spot, while `sync.upload` and `sync.errors.list` stay `STAFF`: a shop places an order online through `orders.*` and never carries a device queue. That is a widening of the read path only; RLS narrows every pulled table to the shop's own rows, and no table a shop can hold has a cost column.
