@@ -4,3 +4,5 @@ expo-env.d.ts
 ios/
 android/
 .env
+# copied from libs/ui/assets/fonts by scripts/sync-fonts.mjs
+public/fonts/

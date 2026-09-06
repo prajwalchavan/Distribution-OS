@@ -201,6 +201,14 @@ different number — days past the due date — and a screen never mixes the two
 
 ### 4.1 One family: IBM Plex Sans
 
+> **Shipped 2026-09-06:** the binaries are in the repo at `frontend/libs/ui/assets/fonts` (OFL-1.1, licence beside them):
+> four static weights, 400 Regular / 500 Medium / 600 SemiBold / 700 Bold, as `.woff2` for the web and `.ttf` for the phone
+> builds — static rather than the variable face because the type scale carries exactly those four weights. Each app copies the
+> woff2 into its own `public/fonts` through `scripts/sync-fonts.mjs` before `web`, `build` and `export:web`, and `FONT_CSS` in
+> `@dos/ui/web` emits one `@font-face` per weight against `/fonts`. The phone half still renders in the platform UI face:
+> registering the TTFs through the `expo-font` plugin is verified by the first field app's gate, because an unresolved family
+> name on Android silently breaks `fontWeight`.
+
 Reasons are measured (font binaries inspected with fontTools 4.60.2): Plex digits advance 600/1000 at every weight — **tabular by default, no
 `tnum` flag that can silently fail on a 4 GB Android**; `₹` present; IBM Plex Sans Devanagari is a sibling with the identical digit advance, so
 the later Marathi pass is a font swap, not a redesign `[UX-01 U15]`. A's sketch was set in Inter only because it was a browser artifact; at the

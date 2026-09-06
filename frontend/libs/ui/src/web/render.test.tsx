@@ -230,4 +230,22 @@ describe('the self-hosted typeface', () => {
       expect(FONT_CSS).toContain(FONT_URL)
     }
   })
+
+  /**
+   * The type scale carries exactly four weights (`TypeToken`), so the sheet must declare exactly
+   * four faces — one file per weight, no variable-font syntax, no weight the scale cannot ask for.
+   */
+  it('declares one face per weight of the type scale', () => {
+    if (FONT_URL === null) return
+    for (const weight of [400, 500, 600, 700]) {
+      expect(FONT_CSS).toContain(`font-weight: ${String(weight)};`)
+    }
+    expect(FONT_CSS.match(/@font-face/g)).toHaveLength(4)
+    expect(FONT_CSS).toContain(`format('woff2')`)
+    expect(FONT_CSS).not.toContain('woff2-variations')
+    // Every file the sheet names is one the design system actually ships (assets/fonts).
+    for (const file of ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+      expect(FONT_CSS).toContain(`IBMPlexSans-${file}.woff2`)
+    }
+  })
 })

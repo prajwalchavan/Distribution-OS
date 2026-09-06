@@ -124,32 +124,42 @@ export const BASE_CSS = `
 `
 
 /**
- * Where an app serves the self-hosted IBM Plex Sans binary from (founder, 2026-09-05), or `null`
- * while it ships none.
+ * Where an app serves the self-hosted IBM Plex Sans binaries from (founder, 2026-09-05; the four
+ * weights the type scale uses are in `frontend/libs/ui/assets/fonts`, OFL-1.1, and every app copies
+ * them into its own `public/fonts` through `scripts/sync-fonts.mjs` before it starts or exports).
  *
- * It is `null` today because **the binaries are not in this repo yet**. A `@font-face` whose `src`
- * does not exist is not free: an Expo web server answers an unknown path with `index.html`, so the
- * browser downloads HTML, fails to parse it as a font and logs `OTS parsing error: invalid
- * sfntVersion` on EVERY page of EVERY app — noise that hides the errors a reviewer is looking for,
- * for a face that was never going to load. The stack in `fontFamily.sans` already falls through to
- * the platform UI face at the same sizes, so nothing shifts except the letterforms.
+ * Set it to `null` in an app that ships no binaries: a `@font-face` whose `src` does not exist is not
+ * free — an Expo web server answers an unknown path with `index.html`, so the browser downloads HTML,
+ * fails to parse it as a font and logs `OTS parsing error: invalid sfntVersion` on every page. The
+ * stack in `fontFamily.sans` falls through to the platform UI face at the same sizes, so nothing
+ * shifts except the letterforms.
  *
- * To turn the typeface on: put `IBMPlexSans[wdth,wght].woff2` (UX-00 section 4.1, OFL-1.1) in the
- * app's `public/fonts/`, set this to its path, and set `fontFamily.native` in `tokens.ts` for the
- * phone half.
+ * Static weights, not the variable face: 400/500/600/700 are the only weights `TypeToken` can carry
+ * (tokens.ts), four files are 260 KB together against 130 KB for the variable one, and every browser
+ * we target handles static woff2 without the `woff2-variations` feature test.
  */
-export const FONT_URL: string | null = null
+export const FONT_URL: string | null = '/fonts'
 
-function fontFace(url: string): string {
-  return `
+/** The four weights, in the order the browser should prefer them. */
+const FONT_WEIGHTS: readonly (readonly [number, string])[] = [
+  [400, 'IBMPlexSans-Regular.woff2'],
+  [500, 'IBMPlexSans-Medium.woff2'],
+  [600, 'IBMPlexSans-SemiBold.woff2'],
+  [700, 'IBMPlexSans-Bold.woff2'],
+]
+
+function fontFace(base: string): string {
+  return FONT_WEIGHTS.map(
+    ([weight, file]) => `
 @font-face {
   font-family: 'IBM Plex Sans';
-  src: url('${url}') format('woff2-variations');
-  font-weight: 400 700;
+  src: url('${base.replace(/\/$/, '')}/${file}') format('woff2');
+  font-weight: ${String(weight)};
   font-style: normal;
   font-display: swap;
 }
-`
+`,
+  ).join('')
 }
 
 export const FONT_CSS: string = FONT_URL === null ? '' : fontFace(FONT_URL)
