@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { availableLine, caseLine, joinQty, qtyState, splitQty, stepByCase } from './qty.js'
+import {
+  availableLine,
+  billLineQty,
+  caseLine,
+  joinQty,
+  qtyState,
+  splitQty,
+  stepByCase,
+} from './qty.js'
 
 describe('cases and pieces', () => {
   it('splits pieces into cases plus loose pieces', () => {
@@ -79,5 +87,52 @@ describe('qtyState', () => {
   it('ignores availability when the caller does not know it', () => {
     expect(qtyState({ pieces: 500, availablePieces: null })).toBe('default')
     expect(qtyState({ pieces: 500 })).toBe('default')
+  })
+})
+
+describe('billLineQty', () => {
+  it('reprints what was typed and what it came to', () => {
+    expect(
+      billLineQty({
+        qtyPcs: 51,
+        enteredQty: 2,
+        enteredUnit: 'case',
+        packSizeAtEntry: 24,
+        caseSize: 24,
+      }),
+    ).toBe('2 cs + 3 pc · 51 pc')
+  })
+
+  it('says only the piece count when the entry adds nothing', () => {
+    expect(
+      billLineQty({ qtyPcs: 51, enteredQty: 51, enteredUnit: 'piece', packSizeAtEntry: 1 }),
+    ).toBe('51 pc')
+    expect(billLineQty({ qtyPcs: 7 })).toBe('7 pc')
+  })
+
+  it('uses the pack size of the day, not today’s case size', () => {
+    // The bill was typed as 2 cases of 12; the product now ships 24 to a case. The line must still
+    // read the way it was issued (docs/17 A3).
+    expect(
+      billLineQty({
+        qtyPcs: 24,
+        enteredQty: 2,
+        enteredUnit: 'case',
+        packSizeAtEntry: 12,
+        caseSize: 24,
+      }),
+    ).toBe('2 cs · 24 pc')
+  })
+
+  it('names free goods, which carry quantity and no value', () => {
+    expect(
+      billLineQty({
+        qtyPcs: 48,
+        freeQtyPcs: 6,
+        enteredQty: 2,
+        enteredUnit: 'case',
+        packSizeAtEntry: 24,
+      }),
+    ).toBe('2 cs · 48 pc · 6 pc free')
   })
 })

@@ -50,8 +50,15 @@ const ROLES = {
   admin: { title: 'Admin', webPort: 5179, servicePort: 3007, touch: 'phone', density: 'desk' },
 }
 
-/** Files and folders that are the template's own and never travel into an app. */
-const SKIP = new Set(['node_modules', 'dist', '.expo', 'scripts', 'README.md', 'expo-env.d.ts'])
+/**
+ * Files and folders that are the template's own and never travel into an app.
+ *
+ * `scripts/` is NOT one of them: `package.json`'s `web`, `export:web` and `build` all call
+ * `./scripts/sync-fonts.mjs`, so an app generated without it has a build that fails on a missing
+ * file. Only `new-app.mjs` — this generator, which an app must not carry — is filtered out below.
+ */
+const SKIP = new Set(['node_modules', 'dist', '.expo', 'README.md', 'expo-env.d.ts'])
+const SKIP_FILES = new Set(['scripts/new-app.mjs'])
 
 function fail(message) {
   console.error(`new-app: ${message}`)
@@ -89,7 +96,7 @@ cpSync(templateRoot, target, {
     const rel = src.slice(templateRoot.length + 1)
     if (rel === '') return true
     const head = rel.split('/')[0]
-    return !SKIP.has(head)
+    return !SKIP.has(head) && !SKIP_FILES.has(rel)
   },
 })
 
@@ -104,7 +111,7 @@ edit('package.json', (raw) => {
   pkg.name = `@dos/${role}-app`
   pkg.description = `Distribution OS - ${config.title}: one Expo codebase shipping as website, Android and iOS (docs/08 §0). Talks to its own service on :${String(config.servicePort)}.`
   delete pkg.scripts.new
-  pkg.scripts.web = `expo start --web --port ${String(webPort)}`
+  pkg.scripts.web = `node ./scripts/sync-fonts.mjs && expo start --web --port ${String(webPort)}`
 
   /*
    * `link:` is a RELATIVE path, and an app sits one directory shallower than the template

@@ -9,10 +9,12 @@
 import type { GstSummaryRow, InvoiceListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
+  billLineQty,
   Button,
   Dialog,
   Money,
   Register,
+  Row,
   Screen,
   Segments,
   Sheet,
@@ -20,6 +22,7 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  useColors,
   useStrings,
   type RegisterColumn,
   type StatusFamily,
@@ -55,6 +58,7 @@ const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Billing(): React.JSX.Element {
   const t = useStrings()
+  const colors = useColors()
   const word = useWord()
   const api = useApi()
   const names = useNames()
@@ -325,6 +329,29 @@ export default function Billing(): React.JSX.Element {
                       <Txt field="body" desk="cell" numberOfLines={1}>
                         {line.description}
                       </Txt>
+                      <Row gap={2} wrap align="center">
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          {billLineQty(line)}
+                        </Txt>
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          ·
+                        </Txt>
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          {t('qty.at')}
+                        </Txt>
+                        <Money value={line.ratePaise} size="body" tone="secondary" />
+                        {line.discountPaise > 0 ? (
+                          <>
+                            <Txt field="label" desk="meta" color={colors.text.secondary}>
+                              ·
+                            </Txt>
+                            <Txt field="label" desk="meta" color={colors.text.secondary}>
+                              {t('bill.lessDiscount')}
+                            </Txt>
+                            <Money value={line.discountPaise} size="body" tone="secondary" />
+                          </>
+                        ) : null}
+                      </Row>
                       <Money value={line.lineTotalPaise} size="cell" />
                     </Stack>
                   ))}

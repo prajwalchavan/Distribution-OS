@@ -20,6 +20,7 @@ import {
   buildScales,
   compareBarRects,
   endDot,
+  fitLabel,
   linePath,
   mixSegments,
   niceTicks,
@@ -137,7 +138,13 @@ export function TrendChart({
               stroke={tick === 0 ? theme.colors.chart.baseline : theme.colors.chart.grid}
               strokeWidth={chartTokens.gridWidth}
             />
-            <text x={0} y={scales.y(tick) + 4} fill={labelColor} fontSize={12} fontFamily="inherit">
+            <text
+              x={0}
+              y={scales.y(tick) + 4}
+              fill={labelColor}
+              fontSize={chartTokens.labelSize}
+              fontFamily="inherit"
+            >
               {formatValue(tick)}
             </text>
           </g>
@@ -171,7 +178,7 @@ export function TrendChart({
             x={scales.x(i)}
             y={height - 4}
             fill={labelColor}
-            fontSize={12}
+            fontSize={chartTokens.labelSize}
             fontFamily="inherit"
             textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
           >
@@ -234,6 +241,12 @@ export function CompareBars({
   const top = axisTop(Math.max(0, ...capped.flatMap((g) => [g.current, g.previous ?? 0])))
   const rects = compareBarRects(capped, plot, top)
   const ticks = niceTicks(top)
+  /*
+   * A legend key for a bar that is not drawn. `compareBarRects` already decides one bar per group
+   * or two by looking for a `previous`; the legend named both regardless, so a single-series chart
+   * ("Strike rate by person") printed "This period · Previous" with nothing previous on it.
+   */
+  const hasPrevious = capped.some((group) => group.previous !== undefined)
   const labelColor =
     theme.density === 'desk' ? theme.colors.text.tertiary : theme.colors.text.secondary
   return (
@@ -253,7 +266,7 @@ export function CompareBars({
               x={0}
               y={plot.y + plot.height - (plot.height * tick) / (top || 1) + 4}
               fill={labelColor}
-              fontSize={12}
+              fontSize={chartTokens.labelSize}
             >
               {formatValue(tick)}
             </text>
@@ -270,28 +283,37 @@ export function CompareBars({
           />
         ))}
         {capped.map((g, i) => (
+          /*
+           * The label is CUT TO ITS SLOT. Six salespeople with real names overprinted each other
+           * into one unreadable band under the bars — "Demo Docs Staff (edited)Demo Docs Staff
+           * (edite…" — because each label was centred on its bar at full length with nothing
+           * stopping it. `title` keeps the whole name a hover away.
+           */
           <text
             key={`${g.label}-${String(i)}`}
             x={plot.x + (plot.width / capped.length) * (i + 0.5)}
             y={height - 4}
             fill={labelColor}
-            fontSize={12}
+            fontSize={chartTokens.labelSize}
             textAnchor="middle"
           >
-            {g.label}
+            <title>{g.label}</title>
+            {fitLabel(g.label, plot.width / capped.length)}
           </text>
         ))}
       </svg>
-      <div style={{ display: 'flex', gap: space[4], marginTop: space[1] }}>
-        <LegendSwatch
-          color={theme.colors.chart.primary}
-          label={currentLabel ?? theme.t('chart.current')}
-        />
-        <LegendSwatch
-          color={theme.colors.chart.previous}
-          label={previousLabel ?? theme.t('chart.previous')}
-        />
-      </div>
+      {hasPrevious ? (
+        <div style={{ display: 'flex', gap: space[4], marginTop: space[1] }}>
+          <LegendSwatch
+            color={theme.colors.chart.primary}
+            label={currentLabel ?? theme.t('chart.current')}
+          />
+          <LegendSwatch
+            color={theme.colors.chart.previous}
+            label={previousLabel ?? theme.t('chart.previous')}
+          />
+        </div>
+      ) : null}
       <ChartFooter {...(range ? { range } : {})} {...(asOf ? { asOf } : {})} />
     </div>
   )

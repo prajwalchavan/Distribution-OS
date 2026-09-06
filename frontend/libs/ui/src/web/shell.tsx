@@ -519,6 +519,10 @@ function PhoneShell({
             border: 0,
             cursor: 'pointer',
             fontSize: 20,
+            // A `<button>` does not inherit the page family; without this the phone shell's own
+            // "More" glyph was drawn in Arial while every other character in the app was Plex.
+            fontFamily: 'inherit',
+            color: colors.text.primary,
           }}
         >
           ⋯

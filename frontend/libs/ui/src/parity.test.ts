@@ -225,3 +225,74 @@ describe('native controls do not depend on a parent for their width', () => {
     expect(web).toContain(`padding: \`0 \${space[4]}px\``)
   })
 })
+
+/**
+ * A legend key for a mark that is not drawn.
+ *
+ * `<CompareBars>` decides ONE bar per group or two by looking for a `previous` on any group
+ * (`compareBarRects`), but both renderers printed both legend swatches unconditionally. A
+ * single-series chart — the manager app's "Strike rate by person", where there is no previous
+ * period to compare against — therefore carried a "Previous" key in the paper colour with nothing
+ * on the chart in that colour, which reads as "the previous period was zero".
+ *
+ * Source-read for the same reason as the block above: `./native/*` cannot be imported in Node.
+ */
+describe('<CompareBars> draws a legend only for the bars it actually drew', () => {
+  it('the web half gates the legend on a group having a previous', () => {
+    const web = readFileSync(join(here, 'web', 'charts.tsx'), 'utf8')
+    expect(web).toContain(
+      'const hasPrevious = capped.some((group) => group.previous !== undefined)',
+    )
+    expect(web).toContain('{hasPrevious ? (')
+  })
+
+  it('the native half gates it the same way', () => {
+    const native = readFileSync(join(here, 'native', 'charts.tsx'), 'utf8')
+    expect(native).toContain('capped.some((group) => group.previous !== undefined)')
+  })
+
+  it('the geometry the legend must agree with is unchanged', () => {
+    const geometry = readFileSync(join(here, 'charts', 'geometry.ts'), 'utf8')
+    expect(geometry).toContain('const hasPrevious = groups.some((g) => g.previous !== undefined)')
+  })
+})
+
+/**
+ * The register's "Clear" is a BUTTON, and UX-00 §5.2 sizes desk buttons at 32 px ("≥ 24 px on desk,
+ * where buttons are 32 px"); §4.2/§4.3 put the smallest readable face at 14 px. It carried 24 px and
+ * no type style at all, so it inherited a 13 px face — measured on the order queue at both widths.
+ */
+describe('register clear-filters affordance', () => {
+  const web = readFileSync(new URL('./web/list.tsx', import.meta.url), 'utf8')
+
+  it('is a desk button at the button height, not the bare target floor', () => {
+    expect(web).toContain('minHeight: isDesk ? 32 : theme.touchSize')
+  })
+
+  it('carries a type style rather than inheriting one', () => {
+    expect(web).toContain("const clearStyle = useTypeStyle('label', 'meta')")
+    expect(web).toContain('...clearStyle,')
+  })
+})
+
+/**
+ * The phone shell's "More" sheet carries every destination that does not fit the four bottom tabs —
+ * eleven of them in the manager app, plus a search box and a Close button. `<Sheet>` is anchored to
+ * the bottom of the screen, so a sheet taller than the screen grew UPWARD until its own heading sat
+ * under the status bar (measured on the iPhone 16 Pro: "More" printed through the 8:15 clock), and
+ * whatever went past the bottom could not be reached because the body did not scroll.
+ */
+describe('native sheet fits the screen', () => {
+  const native = readFileSync(new URL('./native/feedback.tsx', import.meta.url), 'utf8')
+
+  it('caps its height so the top stays clear of the notch', () => {
+    expect(native).toContain("maxHeight: '86%'")
+  })
+
+  it('scrolls its own body rather than overflowing', () => {
+    expect(native).toContain('<ScrollView')
+    expect(native).toContain(
+      "import { Image, Modal, Pressable, ScrollView, View } from 'react-native'",
+    )
+  })
+})

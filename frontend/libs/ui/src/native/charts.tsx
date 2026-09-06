@@ -10,6 +10,7 @@ import {
   buildScales,
   compareBarRects,
   endDot,
+  fitLabel,
   linePath,
   mixSegments,
   niceTicks,
@@ -127,7 +128,13 @@ export function TrendChart({
           />
         ))}
         {ticks.map((tick) => (
-          <SvgText key={`t${tick}`} x={0} y={scales.y(tick) + 4} fill={labelColor} fontSize={12}>
+          <SvgText
+            key={`t${tick}`}
+            x={0}
+            y={scales.y(tick) + 4}
+            fill={labelColor}
+            fontSize={chartTokens.labelSize}
+          >
             {formatValue(tick)}
           </SvgText>
         ))}
@@ -160,7 +167,7 @@ export function TrendChart({
             x={scales.x(i)}
             y={height - 4}
             fill={labelColor}
-            fontSize={12}
+            fontSize={chartTokens.labelSize}
             textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
           >
             {points[i]?.x ?? ''}
@@ -224,7 +231,13 @@ export function CompareBars({
           />
         ))}
         {ticks.map((tick) => (
-          <SvgText key={`t${tick}`} x={0} y={yOf(tick) + 4} fill={labelColor} fontSize={12}>
+          <SvgText
+            key={`t${tick}`}
+            x={0}
+            y={yOf(tick) + 4}
+            fill={labelColor}
+            fontSize={chartTokens.labelSize}
+          >
             {formatValue(tick)}
           </SvgText>
         ))}
@@ -239,23 +252,34 @@ export function CompareBars({
           />
         ))}
         {capped.map((g, i) => (
+          /* Cut to the slot, same as the DOM half — see `fitLabel`. */
           <SvgText
             key={`${g.label}-${String(i)}`}
             x={plot.x + (plot.width / capped.length) * (i + 0.5)}
             y={height - 4}
             fill={labelColor}
-            fontSize={12}
+            fontSize={chartTokens.labelSize}
             textAnchor="middle"
+            accessibilityLabel={g.label}
           >
-            {g.label}
+            {fitLabel(g.label, plot.width / capped.length)}
           </SvgText>
         ))}
       </Svg>
       <View style={{ flexDirection: 'row', gap: space[4], marginTop: space[1] }}>
-        {[
-          { color: theme.colors.chart.primary, label: currentLabel ?? theme.t('chart.current') },
-          { color: theme.colors.chart.previous, label: previousLabel ?? theme.t('chart.previous') },
-        ].map((entry) => (
+        {(capped.some((group) => group.previous !== undefined)
+          ? [
+              {
+                color: theme.colors.chart.primary,
+                label: currentLabel ?? theme.t('chart.current'),
+              },
+              {
+                color: theme.colors.chart.previous,
+                label: previousLabel ?? theme.t('chart.previous'),
+              },
+            ]
+          : []
+        ).map((entry) => (
           <View
             key={entry.label}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}

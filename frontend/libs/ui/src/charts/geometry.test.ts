@@ -6,6 +6,7 @@ import {
   axisTop,
   buildScales,
   compareBarRects,
+  fitLabel,
   linePath,
   mixSegments,
   niceTicks,
@@ -266,5 +267,28 @@ describe('ladderValueWidth', () => {
   it('is one width for the whole ladder, so the figures right-align to the same edge', () => {
     const values = ['2,81,290.00', '229.12']
     expect(ladderValueWidth(values, 11)).toBe(ladderValueWidth([...values].reverse(), 11))
+  })
+})
+
+describe('fitLabel', () => {
+  it('leaves a label that fits alone', () => {
+    expect(fitLabel('Godrej Hill', 200)).toBe('Godrej Hill')
+  })
+
+  it('cuts a label wider than its slot and marks the cut', () => {
+    // The team screen's own case: six 24-character names sharing a 570 px plot.
+    const cut = fitLabel('Demo Docs Staff (edited)', 570 / 6)
+    expect(cut.length).toBeLessThan('Demo Docs Staff (edited)'.length)
+    expect(cut.endsWith('…')).toBe(true)
+  })
+
+  it('never returns more characters than the slot holds', () => {
+    const slot = 60
+    const cut = fitLabel('A very long salesperson name indeed', slot)
+    expect(cut.length * 7.3).toBeLessThanOrEqual(slot)
+  })
+
+  it('gives up rather than print one character and an ellipsis', () => {
+    expect(fitLabel('Anything', 8)).toBe('')
   })
 })

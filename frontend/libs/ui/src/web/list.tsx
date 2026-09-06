@@ -420,6 +420,7 @@ export function Register<Row>({
   const theme = useTheme()
   const headStyle = useTypeStyle('label', 'label')
   const cellStyle = useTypeStyle('body', 'cell')
+  const clearStyle = useTypeStyle('label', 'meta')
   const isDesk = theme.density === 'desk'
 
   const filterRow = useMemo(
@@ -450,9 +451,14 @@ export function Register<Row>({
                 color: theme.colors.accent.fg,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                // 24 px is the DESK floor. The same register opens on a phone, where the floor is
-                // the app's own (UX-00 section 5.2) — this button was the exception.
-                minHeight: isDesk ? 24 : theme.touchSize,
+                /*
+                 * UX-00 §5.2 in one sentence: "≥ 24 px on desk, WHERE BUTTONS ARE 32 px", and the
+                 * app's own floor on a phone. This was 24 with no type style, so it also inherited
+                 * a 13 px face — under the 14 px floor of §4.2 and §4.3 alike, on the only control
+                 * that undoes a filter.
+                 */
+                minHeight: isDesk ? 32 : theme.touchSize,
+                ...clearStyle,
               }}
             >
               {theme.t('register.clearFilters')}
@@ -460,7 +466,7 @@ export function Register<Row>({
           ) : null}
         </div>
       ) : null,
-    [filters, onClearFilters, theme],
+    [clearStyle, filters, onClearFilters, theme],
   )
 
   if (state === 'loading') {

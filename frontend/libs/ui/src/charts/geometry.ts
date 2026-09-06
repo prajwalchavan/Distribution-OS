@@ -327,3 +327,27 @@ export function ladderValueWidth(formatted: readonly string[], charWidth: number
   const longest = formatted.reduce((n, text) => Math.max(n, text.length), 0)
   return Math.max(LADDER_VALUE_MIN, Math.ceil(longest * charWidth))
 }
+
+/**
+ * A bar's group label, cut to the width of its own slot.
+ *
+ * `<CompareBars>` centred each label on its bar at full length, so six salespeople with real names
+ * printed straight through one another into an unreadable band — the team screen's strike-rate chart
+ * read "Demo Docs Staff (edited)Demo Docs Staff (edite…" across the axis. A label wider than its
+ * slot is cut and given a single-character ellipsis; the whole name stays available on the mark
+ * itself (`<title>` on the web, `accessibilityLabel` on a phone).
+ *
+ * `charWidth` is an average advance, not a measurement: SVG text cannot be measured before it is
+ * laid out and both renderers must agree on the same picture, so the estimate is deliberately a
+ * little generous and the same one `ladderValueWidth` already uses.
+ */
+export function fitLabel(
+  label: string,
+  slotWidth: number,
+  charWidth: number = chart.labelCharWidth,
+): string {
+  const room = Math.floor((slotWidth - 4) / charWidth)
+  if (room <= 1) return ''
+  if (label.length <= room) return label
+  return `${label.slice(0, room - 1).trimEnd()}…`
+}

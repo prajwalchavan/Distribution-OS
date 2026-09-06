@@ -3,7 +3,7 @@
  * TenantLogo, EmptyState, ErrorState, Skeleton.
  */
 import { useEffect, useState } from 'react'
-import { Image, Modal, Pressable, View } from 'react-native'
+import { Image, Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
@@ -122,6 +122,16 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
         onPress={onClose}
         style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop, justifyContent: 'flex-end' }}
       >
+        {/*
+         * A SHEET NEVER REACHES THE NOTCH, AND NEVER RUNS OFF THE BOTTOM.
+         *
+         * It is `justifyContent: 'flex-end'`, so a sheet taller than the screen simply grew upward
+         * until its own title sat under the status bar — measured on the iPhone 16 Pro, where the
+         * phone shell's "More" sheet (eleven destinations plus a search box and a Close button)
+         * printed its heading "More" straight through the 8:15 clock, and anything past the bottom
+         * of the screen was unreachable because the body does not scroll. `maxHeight` keeps the top
+         * clear of the inset and the body scrolls inside whatever is left.
+         */}
         <Pressable
           onPress={() => undefined}
           style={[
@@ -131,6 +141,7 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
               borderTopRightRadius: radius.xl,
               padding: space[4],
               paddingBottom: space[8],
+              maxHeight: '86%',
             },
             nativeShadow('sheet'),
           ]}
@@ -161,7 +172,13 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
               <View />
             )}
           </View>
-          {children}
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ flexGrow: 0 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
           <View style={{ marginTop: space[4] }}>
             <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
           </View>

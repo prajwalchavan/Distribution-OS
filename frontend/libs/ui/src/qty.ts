@@ -77,3 +77,46 @@ export function availableLine(
 ): string {
   return translate('qty.available', { cases: splitQty(availablePieces, caseSize).cases })
 }
+
+/**
+ * What a printed bill line says about quantity, above its amount: what was TYPED, and what that came
+ * to in pieces — `2 cs + 3 pc · 51 pc`, or just `51 pc` when nothing about the entry is recorded.
+ *
+ * The entry is reprinted for ever (docs/17 A3): `enteredQty` + `enteredUnit` with the pack size that
+ * applied at the time, never recomputed from today's case size, because the case size can change and
+ * a reissued bill must still read the way it was issued. `freeQtyPcs` is appended as its own clause
+ * because free goods carry quantity and no value, and a reader who cannot see them cannot check the
+ * scheme that gave them.
+ */
+export function billLineQty(
+  line: {
+    qtyPcs: number
+    freeQtyPcs?: number | null
+    enteredQty?: number | null
+    enteredUnit?: string | null
+    packSizeAtEntry?: number | null
+    caseSize?: number | null
+  },
+  translate: Translator = defaultT,
+): string {
+  const pieces = Math.max(0, Math.trunc(line.qtyPcs))
+  const pc = translate('qty.piece')
+  const parts: string[] = []
+
+  const pack = line.packSizeAtEntry ?? line.caseSize ?? null
+  const entered = line.enteredQty ?? null
+  const unit = line.enteredUnit ?? null
+  // Only worth printing when the entry says something the piece count does not: a case count, or an
+  // inner-pack count. `piece` entry of 51 pieces would print "51 pc · 51 pc".
+  if (entered !== null && unit !== null && unit !== 'piece' && pack !== null && pack > 1) {
+    const unitWord = unit === 'case' ? translate('qty.case') : unit
+    parts.push(`${String(entered)} ${unitWord}`)
+    const loose = pieces - entered * pack
+    if (loose > 0) parts.push(`+ ${String(loose)} ${pc}`)
+  }
+
+  const total = `${String(pieces)} ${pc}`
+  const head = parts.length === 0 ? total : `${parts.join(' ')} · ${total}`
+  const free = Math.max(0, Math.trunc(line.freeQtyPcs ?? 0))
+  return free === 0 ? head : `${head} · ${translate('qty.freeGoods', { pieces: free })}`
+}

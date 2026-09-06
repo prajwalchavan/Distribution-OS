@@ -274,7 +274,13 @@ describe('duplicate display labels', () => {
         ]}
       />,
     )
-    expect(html.split('Demo Docs Staff').length - 1).toBe(2)
+    /*
+     * Each bar now carries its label TWICE — once whole in the `<title>` a hover shows, once cut to
+     * the width of its own slot in the mark itself (`fitLabel`) — so two same-named groups make
+     * four occurrences, and a third bar with a different name makes two more.
+     */
+    expect(html.split('Demo Docs Staff').length - 1).toBe(4)
+    expect(html.split('Vikas Kadam').length - 1).toBe(2)
   })
 
   it('draws every segment of a StackedMix even when two share a name', () => {

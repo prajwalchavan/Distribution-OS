@@ -514,6 +514,15 @@ export const chart = {
   maxTicks: 5,
   /** BarLadder rung track height. */
   ladderTrackHeight: 16,
+  /**
+   * Axis ticks and bar labels: `desk.meta` (UX-00 §4.3), which names "axis ticks" in as many words
+   * and puts the desk floor at 14 px — `desk.eyebrow` is the one token allowed below it. Both
+   * renderers had 12 hard-coded in six places, so every chart in every app was drawing the one kind
+   * of text a reader has to squint at anyway a size under the floor.
+   */
+  labelSize: 14,
+  /** Roughly the advance of one Plex character at `labelSize`, for fitting a label to its slot. */
+  labelCharWidth: 7.3,
 } as const
 
 // ---------------------------------------------------------------------------
