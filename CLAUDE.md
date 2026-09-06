@@ -69,6 +69,13 @@ cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173
 
 - Postgres 17 runs as the Homebrew service `postgresql@17` on **127.0.0.1:5439** (data in `/opt/homebrew/var/postgresql@17`, log `/opt/homebrew/var/log/postgresql@17.log`); `brew services start postgresql@17` if it is down. Port 5432 belongs to an unrelated Postgres 14 (too old: the schema needs 15+). `backend/.env` has `DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos`; `psql` lives in `/opt/homebrew/opt/postgresql@17/bin`; the founder views data in DBeaver/pgAdmin with the same connection. Role `dos` is the owner (CREATEDB, CREATEROLE, BYPASSRLS — it runs migrations and seeds); `app_rw` and `app_worker` are created by migrations.
 - No Docker on this machine; `backend/infra/docker-compose.yml` and the `Dockerfile` are for CI/other machines.
+- **Mobile toolchains are installed.** iOS: Xcode 16 with iPhone simulators (`npx expo start --ios`, or the simulator MCP tools).
+  Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
+  Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
+  (API 36 arm64). Any shell that builds or runs Android needs:
+  `export ANDROID_HOME=$HOME/Library/Android/sdk; export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home";
+  export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"`. Boot it with
+  `emulator -avd Pixel_7_API_36 -no-snapshot-save` and check with `adb devices`.
 - Tests that need a database (`describeDb` in specs, `backend/libs/database/src/rls.test.ts`) run whenever `DATABASE_URL` resolves, which with `.env` present is always; they create their own fixtures with a unique run suffix, so the dev database accumulates test rows (harmless; `pnpm db:seed` data is separate).
 - Sign-in everywhere is username + password against the auth service on :3000 (demo users from `pnpm db:seed`, e.g. `sunil.tarsun` / `Dos@1234`; `docs/18-build-log.md` lists one per role). Omit `tenantId` on login unless the user belongs to more than one distributor.
 
