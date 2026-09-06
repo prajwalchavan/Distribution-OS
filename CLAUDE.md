@@ -69,7 +69,11 @@ cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173
 
 - Postgres 17 runs as the Homebrew service `postgresql@17` on **127.0.0.1:5439** (data in `/opt/homebrew/var/postgresql@17`, log `/opt/homebrew/var/log/postgresql@17.log`); `brew services start postgresql@17` if it is down. Port 5432 belongs to an unrelated Postgres 14 (too old: the schema needs 15+). `backend/.env` has `DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos`; `psql` lives in `/opt/homebrew/opt/postgresql@17/bin`; the founder views data in DBeaver/pgAdmin with the same connection. Role `dos` is the owner (CREATEDB, CREATEROLE, BYPASSRLS — it runs migrations and seeds); `app_rw` and `app_worker` are created by migrations.
 - No Docker on this machine; `backend/infra/docker-compose.yml` and the `Dockerfile` are for CI/other machines.
-- **Mobile toolchains are installed.** iOS: Xcode 16 with iPhone simulators (`npx expo start --ios`, or the simulator MCP tools).
+- **Mobile toolchains are installed.** iOS: Xcode 16.0 with iPhone simulators. **Expo Go only** — a real dev build (`expo run:ios`)
+  needs Xcode >= 16.1 for React Native 0.86, and this Mac cannot get one: macOS here is 14.6.1 (Sonoma) while the App Store's
+  current Xcode 26.6 needs macOS 26.2, and Xcode 16.2 is only on developer.apple.com behind an Apple ID. So verify iOS in Expo
+  Go (`expo start --ios`) or the simulator MCP tools, and do NOT report an `expo run:ios` failure as a code defect. Android is
+  the pilot platform and builds fully.
   Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
   Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
   (API 36 arm64). Any shell that builds or runs Android needs:

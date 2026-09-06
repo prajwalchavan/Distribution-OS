@@ -1,11 +1,11 @@
 /**
- * Sign in: username + password against auth-service (docs/22 §7). OTP is a later enhancement on top,
- * never a replacement.
+ * X1 Sign in: username + password against auth-service :3000 (docs/22 §7). OTP is a later layer on
+ * top, never a replacement.
  *
- * `tenantId` is deliberately NOT asked for. Omitting it signs a person into their own
- * distributorship; a shopkeeper who buys from three distributors lands in one and switches from the
- * header. Asking up front would make every one of a distributor's own staff answer a question that
- * has one possible answer.
+ * `tenantId` is deliberately not asked for. Omitting it signs a person into their own
+ * distributorship; someone who works for more than one lands in one and switches from the header.
+ * Asking up front would make every one of a distributor's own staff answer a question with exactly
+ * one possible answer.
  */
 import { useSession } from '@dos/api-client/react'
 import { Button, ErrorState, Screen, Stack, TextInput, Txt, useColors, useStrings } from '@dos/ui'
@@ -43,6 +43,7 @@ export default function SignIn(): React.JSX.Element {
           value={username}
           onChange={setUsername}
           autoFocus
+          onSubmit={submit}
           testID="sign-in-username"
         />
         <TextInput
@@ -63,7 +64,7 @@ export default function SignIn(): React.JSX.Element {
           testID="sign-in-submit"
         />
         <Txt field="label" desk="meta" color={colors.text.secondary}>
-          {t('app.templateBody')}
+          {t('app.signInHint')}
         </Txt>
       </Stack>
     </Screen>
