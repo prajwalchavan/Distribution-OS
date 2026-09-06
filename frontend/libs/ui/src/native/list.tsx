@@ -4,6 +4,7 @@
  * `<Register>` here is always the PHONE rendering — grouped `<ListRow>`s in column-priority order.
  * The `<table>` rendering never appears in a field app (UX-00 section 6.7).
  */
+import type { ReactNode } from 'react'
 import { FlatList, Pressable, View } from 'react-native'
 
 import { ladderFraction } from '../charts/geometry.js'
@@ -22,6 +23,7 @@ import type {
 import { Eyebrow, Txt } from './base.js'
 import { Sparkline } from './charts.js'
 import { EmptyState, ErrorState, Skeleton } from './feedback.js'
+import { useViewport } from './viewport.js'
 import { Money } from './money.js'
 
 // ---------------------------------------------------------------------------
@@ -180,8 +182,36 @@ export function ListRow({
 // 6.8 KpiStrip and BarLadder
 // ---------------------------------------------------------------------------
 
+/**
+ * 2-up on a phone viewport, one column per item on a desk one — the same rule as the web renderer's,
+ * so a tablet in landscape reads like the browser and a phone reads like UX-00 §8.2's 2×2.
+ */
+
+/**
+ * A KPI value is `ReactNode` because most of them are a `<Money>`; a count or a word is a plain
+ * string, and on React Native a bare string inside a `<View>` throws "Text strings must be rendered
+ * within a <Text> component". Wrapping it here is what makes `value` mean the same thing on a
+ * browser and on a phone — found by running the universal template on the iOS simulator, 2026-09-06.
+ */
+function kpiValue(value: ReactNode): ReactNode {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return (
+      <Txt field="moneyM" desk="kpi" numeric>
+        {value}
+      </Txt>
+    )
+  }
+  return value
+}
+
 export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
   const theme = useTheme()
+  const viewport = useViewport()
+  const wide = theme.density === 'desk' && viewport.kind === 'desk'
+  // RN types a percentage as the literal `${number}%`, so the division is named rather than inlined.
+  const columnWidth: `${number}%` = wide
+    ? `${100 / Math.max(1, items.length)}%`
+    : '50%'
   const deltaTone = {
     positive: theme.colors.status.moss.fg,
     critical: theme.colors.status.brick.fg,
@@ -203,16 +233,17 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
         <View
           key={item.label}
           style={{
-            // 2x2 on a phone, as UX-00 8.2 draws it.
-            width: '50%',
+            width: columnWidth,
             padding: space[3],
-            borderLeftWidth: i % 2 === 0 ? 0 : 1,
+            borderLeftWidth: (wide ? i === 0 : i % 2 === 0) ? 0 : 1,
             borderLeftColor: theme.colors.border.faint,
+            borderTopWidth: !wide && i > 1 ? 1 : 0,
+            borderTopColor: theme.colors.border.faint,
           }}
         >
           <Eyebrow>{item.label}</Eyebrow>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
-            {item.value}
+            {kpiValue(item.value)}
             {item.spark ? <Sparkline values={item.spark} /> : null}
           </View>
           {item.delta ? (

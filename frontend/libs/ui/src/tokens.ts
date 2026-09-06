@@ -364,6 +364,11 @@ export const layout = {
   railCollapsedWidth: 56,
   /** The viewport below which a desk app takes the phone shell (UX-00 section 2). */
   phoneBreakpoint: 768,
+  /**
+   * `AppShell` renders the desk shell at this width and wider and the phone shell below it
+   * (docs/08 section 0). An owner on a phone gets bottom tabs; a salesperson on a laptop gets the rail.
+   */
+  deskBreakpoint: 1024,
   railCollapseBreakpoint: 1100,
   /** Desk main padding, all round. */
   deskPadding: space[5],

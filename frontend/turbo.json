@@ -1,18 +1,34 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV"],
+  "globalEnv": ["NODE_ENV", "PORT", "EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_AUTH_URL", "EXPO_PUBLIC_API_PREFIX"],
   "globalDependencies": ["libs/config/tsconfig/base.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".expo/**"]
     },
+    "export:web": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "web": {
+      "cache": false,
+      "persistent": true
+    },
+    "ios": {
+      "cache": false,
+      "persistent": true
+    },
+    "android": {
       "cache": false,
       "persistent": true
     },

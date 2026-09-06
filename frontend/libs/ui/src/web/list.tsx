@@ -4,7 +4,7 @@
  *
  * A row does ZERO derivation: ageing, totals and formatting arrive pre-computed from the service.
  */
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { formatMoney } from '../money.js'
 import { useTheme } from '../theme.js'
@@ -31,6 +31,7 @@ import { Eyebrow, Txt, typeStyle, useTypeStyle } from './base.js'
 import { Money } from './money.js'
 import { Sparkline } from './charts.js'
 import { EmptyState, ErrorState, Skeleton } from './feedback.js'
+import { useViewport } from './viewport.js'
 
 // ---------------------------------------------------------------------------
 // 6.9 StatusChip — information, never a tap target
@@ -203,8 +204,34 @@ export function ListRow({
 // 6.8 KpiStrip — columns of a register strip, never tiles
 // ---------------------------------------------------------------------------
 
+/**
+ * The strip is 2-up on a PHONE VIEWPORT whatever the app's density (UX-00 §8.2: "the owner's Today is
+ * the strip 2×2"). Density alone stopped being enough the day one codebase became website, Android and
+ * iOS (docs/08 §0): an owner app is `desk` density and still opens on a 390 px phone, where four
+ * columns put "Distributor" through a shredder.
+ */
+
+/**
+ * A KPI value is `ReactNode` because most of them are a `<Money>`; a count or a word is a plain
+ * string, and on React Native a bare string inside a `<View>` throws "Text strings must be rendered
+ * within a <Text> component". Wrapping it here is what makes `value` mean the same thing on a
+ * browser and on a phone — found by running the universal template on the iOS simulator, 2026-09-06.
+ */
+function kpiValue(value: ReactNode): ReactNode {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return (
+      <Txt field="moneyM" desk="kpi" numeric>
+        {value}
+      </Txt>
+    )
+  }
+  return value
+}
+
 export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
   const theme = useTheme()
+  const viewport = useViewport()
+  const wide = theme.density === 'desk' && viewport.kind === 'desk'
   const deltaTone = {
     positive: theme.colors.status.moss.fg,
     critical: theme.colors.status.brick.fg,
@@ -215,10 +242,9 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
       data-testid={testID}
       style={{
         display: 'grid',
-        gridTemplateColumns:
-          theme.density === 'desk'
-            ? `repeat(${Math.max(1, items.length)}, minmax(0, 1fr))`
-            : 'repeat(2, minmax(0, 1fr))',
+        gridTemplateColumns: wide
+          ? `repeat(${String(Math.max(1, items.length))}, minmax(0, 1fr))`
+          : 'repeat(2, minmax(0, 1fr))',
         borderTop: `1px solid ${theme.colors.border.hairline}`,
         borderBottom: `1px solid ${theme.colors.border.hairline}`,
         background: theme.colors.bg.surface,
@@ -229,12 +255,18 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
           key={item.label}
           style={{
             padding: `${space[3]}px ${space[4]}px`,
-            borderLeft: i === 0 ? undefined : `1px solid ${theme.colors.border.faint}`,
+            borderLeft:
+              (wide ? i === 0 : i % 2 === 0)
+                ? undefined
+                : `1px solid ${theme.colors.border.faint}`,
+            borderTop:
+              !wide && i > 1 ? `1px solid ${theme.colors.border.faint}` : undefined,
+            minWidth: 0,
           }}
         >
           <Eyebrow>{item.label}</Eyebrow>
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: space[2] }}>
-            {item.value}
+            {kpiValue(item.value)}
             {item.spark ? <Sparkline values={item.spark} /> : null}
           </div>
           {item.delta ? (

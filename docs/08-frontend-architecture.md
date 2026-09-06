@@ -6,7 +6,9 @@
 
 ## 0. Universal apps (2026-09-06)
 
-**Shape.** `frontend/<role>-app` is an Expo app (expo-router, New Architecture, development builds). Its screens are written against the `@dos/ui` component **contract** (`frontend/libs/ui/src/types.ts`, one prop type per UX-00 §6 component) and never against a renderer. `@dos/ui` resolves per platform through Metro's platform extensions: `index.web.ts` re-exports `./web` (real DOM — HTML tables, CSS print, keyboard, text selection), `index.native.ts` re-exports `./native` (React Native views). One screen file therefore serves three targets; nothing is written twice above the component layer.
+**Shape.** `frontend/<role>-app` is an Expo app (expo-router, New Architecture, development builds). Its screens are written against the `@dos/ui` component **contract** (`frontend/libs/ui/src/types.ts`, one prop type per UX-00 §6 component) and never against a renderer. `@dos/ui` resolves per platform through the package's `exports` conditions: `react-native` picks `src/index.native.ts` (React Native views), `browser` and `default` pick `src/index.web.ts` (real DOM — HTML tables, CSS print, keyboard, text selection). Both re-export `src/shared.ts` (tokens, strings, money/qty, chart geometry, the theme) plus their own renderer. One screen file therefore serves three targets; nothing is written twice above the component layer. `@dos/ui/web` and `@dos/ui/native` stay addressable for the gallery and the kit's own tests; an APP that names either has pinned itself to one platform, and ESLint refuses both.
+
+**Built and proven 2026-09-06.** The kit layer, `@dos/ui/platform`, `AppShell` and `frontend/libs/app-template` exist and run. A throwaway `hello-app` generated from the template signed in as `sunil.tarsun` against owner-service :3001 and rendered `KpiStrip` + `Register` + `Button` — in a browser at 1400 px and 1024 px (desk rail), at 390 px (phone tabs), and on the iOS simulator from the same files.
 
 **Layout primitives.** Because screens may not touch `View`/`div`, the kit exports a small layout vocabulary under the same contract: `Screen`, `Box`, `Stack`, `Row`, `Scroll`, `List` (virtualised), `Pressable`, `Img`, `Link`, `Txt`. That is the whole surface a screen may use for structure.
 
@@ -14,15 +16,38 @@
 
 **Permissions on the device.** A route declares the contract procedure(s) it needs; the shell computes whether the signed-in role may call them from `PERMISSIONS` in `@dos/contracts` (linked, so it is the same matrix the server enforces) and hides what the matrix refuses. The server still answers 403 if a hidden route is reached; the app never carries a second permission list.
 
-**Platform modules.** `@dos/ui/platform` holds the few things that genuinely differ: `storage` (secure token store), `documents` (open/print a PDF), `camera` (scan a barcode, photograph a bill), `location` (trip tracking), `files` (pick/upload), `haptics`, `share`. Each is a `.web.ts` / `.native.ts` pair with one signature. A screen calls `platform.documents.open(url)` and never knows which one ran.
+**Platform modules.** `@dos/ui/platform` holds the few things that genuinely differ: `storage` (secure token store — `expo-secure-store` / `localStorage`), `documents` (open or print a PDF — `expo-sharing` + `expo-print` / a new tab + a hidden print iframe), `camera` (barcode scan and bill photo — `expo-image-picker` + `Camera.scanFromURLAsync` / a `capture` file input + `BarcodeDetector`), `location` (trip tracking — `expo-location` / `navigator.geolocation`, foreground only in a browser and it says so), `files` (pick + PUT to a signed URL), `haptics`, `share`, and **`crypto`**. Each is a `.web.ts` / `.native.ts` pair with ONE signature declared in `platform/types.ts`; a screen calls `documents.open(url)` and never knows which one ran. Nothing throws for being unavailable — a missing capability answers `null`, `false` or `available: false`.
+
+`crypto` is the one nobody planned for and everybody needs: Hermes has no `crypto.getRandomValues`, `@dos/domain` is dependency-free by rule, and every row in this product carries a client-generated UUIDv7 — so on a phone the FIRST id an app asked for threw. Importing `@dos/ui/platform` installs `expo-crypto`'s generator as a side effect, before any screen can ask.
 
 **Offline.** `@dos/offline` (our own delta sync; docs/22 §8) uses `expo-sqlite` on native and its web build (OPFS/wa-sqlite) in the browser, behind one storage adapter; an in-memory adapter is the honest fallback and says so in `ConnectionStrip`.
 
 **Data.** `@dos/api-client` everywhere (typed oRPC client, session, refresh, cache hooks). No TanStack Query, no Zustand: the kit's hooks and React state are enough, and one fewer dependency in the bundle every field phone downloads.
 
-**Build and run.** Development: `pnpm --filter @dos/<role>-app web` (`expo start --web --port 51xx`) opens the app in the browser pane; `expo run:ios` on the simulator; `expo run:android` on the phone (dev build, not Expo Go). Hosting: `expo export --platform web` → static files on S3 + CloudFront; Android APK/AAB via `eas build --local` or Android Studio; iOS from the same code once the Apple account exists. Versions: the Expo SDK decides `react-native` and `react`; the frontend catalog follows the SDK, never the other way round.
+**The template.** `frontend/libs/app-template` (`@dos/app-template`) is the skeleton every app is generated from, and a running app in its own right — `pnpm build` there is `expo export --platform web`, so the skeleton cannot rot. `pnpm --filter @dos/app-template new <role> [port]` copies it to `frontend/<role>-app` and rewrites exactly six things: the package name and its `web` port, `app.json` (name, slug, scheme, bundle ids), `src/config.ts` (role, title, ports, the UX-00 §5.2 touch floor, density), the `link:` paths (an app sits one directory shallower than the template), `.env.example`, and the README. `app/_layout.tsx` — `boot()` → `ApiProvider` → `ThemeProvider` → `AppShell`, the session gate, and the hand-off of expo-router's navigation to the kit — is byte-identical in all seven.
 
-**Rules a reviewer can check.** (1) `grep -r "from 'react-native'" frontend/*-app/src` is empty, and so is `react-dom` — ESLint `no-restricted-imports` enforces it. (2) Every component in `@dos/ui/web` has a sibling in `@dos/ui/native` with the identical props (a test walks the contract). (3) `expo export --platform web` and `tsc` for native both pass for every app in CI. (4) Money, quantity and date helpers come from `@dos/domain`; the apps do no arithmetic on formatted strings.
+**Build and run.** Development: `pnpm --filter @dos/<role>-app web` (`expo start --web --port 51xx`); `expo start --ios` / `run:ios` on the simulator; `expo run:android` on the phone (dev build, not Expo Go). Hosting: `expo export --platform web` → static files on S3 + CloudFront; Android APK/AAB via `eas build --local` or Android Studio; iOS from the same code once the Apple account exists. Web ports: owner 5173 · manager 5174 · sales 5175 · warehouse 5176 · delivery 5177 · retailer 5178 · admin 5179 · the template itself 5170.
+
+**Versions — the SDK decides, always.** Settled 2026-09-06 from `expo@57.0.20`'s own `bundledNativeModules.json`, into `frontend/pnpm-workspace.yaml`'s catalog:
+
+| | |
+| --- | --- |
+| Expo SDK | **57.0.20** (current stable; `expo@latest`) |
+| React Native | **0.86.3** (New Architecture only) |
+| React / React DOM | **19.2.3** |
+| react-native-web | 0.21.2 |
+| expo-router | 57.0.19 |
+| react-native-safe-area-context · screens · gesture-handler | 5.7.0 · 4.26.0 · 2.32.0 |
+| react-native-svg | 15.15.4 |
+| TypeScript | 6.0.3 (unchanged; one copy per workspace) |
+
+To move SDK, read `bundledNativeModules.json` again and copy it — never bump a `react-native` or `expo-*` line by hand.
+
+**Metro, in a two-workspace repo.** Each app's `metro.config.js` does four things the default does not: watches `backend/libs` (the `link:`ed contract and domain packages); pins `nodeModulesPaths` with `disableHierarchicalLookup` so a linked backend package resolves `zod` out of the FRONTEND's hoisted `node_modules` instead of dragging a second copy in from `backend/node_modules`; turns package `exports` on (that is what swaps the renderer); and adds a `resolveRequest` that tries the extensionless form of a relative `./thing.js` specifier first, because `tsc` and Vite rewrite those to `.ts` and Metro does not. That last one is why the kit's shared barrel is `src/shared.ts` and not `src/index.ts` — resolving `./index` from inside `index.web.ts` would find the platform variant, i.e. itself.
+
+**Rules a reviewer can check.** (1) `react-native`, `react-dom`, `@dos/ui/web` and `@dos/ui/native` are unimportable from an app, and so is a raw hex colour — `@dos/config/eslint/app` (`no-restricted-imports` + `no-restricted-syntax`) fails the build with a message pointing here. (2) Every export of `@dos/ui/web` has a same-named sibling in `@dos/ui/native` and the other way round, and every `@dos/ui/platform` capability is a `.web.ts` / `.native.ts` pair exporting the same names — `libs/ui/src/parity.test.ts` reads the barrels (it cannot import the native one in Node) and `parity.types.ts` binds every primitive on both renderers to the ONE contract in `types.ts`, so a matching name with the wrong props fails `pnpm typecheck`. The only exceptions are six documented web-only names: the CSS generator has no native counterpart and never will. (3) `expo export --platform web` and `tsc` for native both pass for every app in CI. (4) Money, quantity and date helpers come from `@dos/domain`; the apps do no arithmetic on formatted strings.
+
+**Two things running it on a phone taught us, and the kit now carries.** A `ReactNode` prop that a screen fills with a plain STRING (`KpiItem.value`) is legal on the web and throws "Text strings must be rendered within a `<Text>` component" on React Native — the kit wraps it, so `value` means the same thing on both. And density is no longer enough to decide a layout: the same `desk` app opens on a 390 px phone, so `useViewport()` (a `.web` / `.native` pair, `layout.deskBreakpoint` = 1024) is what `AppShell` and `KpiStrip` read, not `theme.density` alone.
 
 **Platform decisions closed with the universal call (2026-09-06).**
 

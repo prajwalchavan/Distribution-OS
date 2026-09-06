@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from 'react'
 import { View } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { ThemeContextProvider, buildTheme, type ThemeProviderProps } from '../theme.js'
 
@@ -14,11 +15,19 @@ export interface NativeThemeProviderProps extends ThemeProviderProps {
   children: ReactNode
 }
 
+/**
+ * The safe-area provider lives HERE, not in each app's root layout, for the same reason the
+ * stylesheet lives in the web provider: `<Screen>` reads insets from the first frame (UX-00 section
+ * 8.2 — a hard-coded `paddingTop` is a bug), and an app that forgot the wrapper would lay out
+ * correctly in a simulator and wrongly on a notched phone.
+ */
 export function ThemeProvider({ children, ...rest }: NativeThemeProviderProps): React.JSX.Element {
   const theme = buildTheme(rest)
   return (
-    <ThemeContextProvider {...rest}>
-      <View style={{ flex: 1, backgroundColor: theme.colors.bg.ground }}>{children}</View>
-    </ThemeContextProvider>
+    <SafeAreaProvider>
+      <ThemeContextProvider {...rest}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.bg.ground }}>{children}</View>
+      </ThemeContextProvider>
+    </SafeAreaProvider>
   )
 }

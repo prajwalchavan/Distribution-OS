@@ -24,7 +24,8 @@ export interface Series {
   readonly points: readonly SeriesPoint[]
 }
 
-export interface Box {
+/** The outer rectangle of a chart plus its four insets. `Box` in `@dos/ui` is the LAYOUT primitive. */
+export interface ChartBox {
   readonly width: number
   readonly height: number
   readonly top: number
@@ -41,7 +42,7 @@ export interface Plot {
   readonly height: number
 }
 
-export function plotArea(box: Box): Plot {
+export function plotArea(box: ChartBox): Plot {
   return {
     x: box.left,
     y: box.top,

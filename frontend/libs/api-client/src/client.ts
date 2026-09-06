@@ -201,9 +201,14 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   })
   const apiClient: ApiRouter = createORPCClient<ApiRouter>(apiLink)
 
+  /**
+   * React Native has a `navigator`, but not a `userAgent` on it — reading `.slice` off `undefined`
+   * threw before the first request on a phone (found running the universal template in the iOS
+   * simulator, 2026-09-06). The sessions list simply goes unnamed where the platform has no string.
+   */
+  const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent
   const deviceName =
-    options.deviceName ??
-    (typeof navigator === 'undefined' ? undefined : navigator.userAgent.slice(0, 120))
+    options.deviceName ?? (typeof userAgent === 'string' ? userAgent.slice(0, 120) : undefined)
 
   return {
     api: apiClient,

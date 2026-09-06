@@ -13,12 +13,13 @@ import {
   seedExtraTenants,
   seedPlatformConsole,
 } from './seed-demo.js'
+import { PILOT_BRANDING } from './seed-demo/branding.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
  * Dev seed. Writes THREE distributors (founder requirement, docs/22 §8 2026-09-04):
  *
- * 1. **Tarsun Enterprises** — the pilot, every module's demo data, unscoped ids.
+ * 1. **Tarsun Enterprise** (M/s. Tarsun Enterprise, Kalyan West) — the pilot, every module's demo data, unscoped ids.
  * 2. **Sai Distributors** and **Kalyan Agencies** — their own owners, managers, accountants,
  *    warehouse hands, reps and drivers, their own smaller shelf, price lists, schemes, beats and a
  *    month of orders, invoices, receipts, trips and deliveries (`seed-demo/tenants.ts`).
@@ -47,8 +48,8 @@ try {
     .values({
       id: uuidv7(),
       slug: 'tarsun',
-      legalName: 'Tarsun Enterprises',
-      gstin: null,
+      legalName: PILOT_BRANDING.legalName,
+      gstin: PILOT_BRANDING.gstin,
       stateCode: '27',
       plan: 'pilot',
     })
@@ -70,6 +71,11 @@ try {
     .update(users)
     .set({ username: PILOT_OWNER_USERNAME, passwordHash, passwordChangedAt: new Date() })
     .where(sql`${users.phone} = ${PILOT_OWNER_PHONE} AND ${users.username} IS NULL`)
+  // A database seeded before the letterhead arrived carries the placeholder name and no GSTIN.
+  await db
+    .update(tenants)
+    .set({ legalName: PILOT_BRANDING.legalName, gstin: PILOT_BRANDING.gstin })
+    .where(eq(tenants.slug, 'tarsun'))
   const [tenant] = await db.select().from(tenants).where(eq(tenants.slug, 'tarsun'))
   const [user] = await db.select().from(users).where(eq(users.phone, PILOT_OWNER_PHONE))
   if (tenant && user) {
@@ -79,7 +85,7 @@ try {
       .onConflictDoNothing()
     await bootstrapTenant(db, tenant.id)
     if (process.env.SEED_DEMO !== 'false') {
-      await seedDemo(db, tenant.id, { passwordHash, label: 'Tarsun Enterprises' })
+      await seedDemo(db, tenant.id, { passwordHash, label: 'Tarsun Enterprise' })
       // The other two distributors share ten of Tarsun's shops, so they seed after it.
       await seedExtraTenants(db, { passwordHash })
       // Module 13's console (founder decision 2026-09-05): the `dos.admin` super account, one

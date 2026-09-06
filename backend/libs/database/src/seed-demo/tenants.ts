@@ -2,7 +2,7 @@
  * The three distributors in the demo database (founder requirement, docs/22 §8 2026-09-04: "demo data
  * must cover three distributors, staff under each, shops linked to more than one distributor").
  *
- * - **Tarsun Enterprises** (Kalyan West) — the pilot. Seeded in full by `seed.ts`; its ids are
+ * - **Tarsun Enterprise** (Kalyan West) — the pilot. Seeded in full by `seed.ts`; its ids are
  *   unscoped, so every example in `/docs`, every spec and `pnpm smoke` keep quoting the same rows.
  * - **Sai Distributors** (Dombivli East) — 32 shops, of which the first ten are the SAME shops Tarsun
  *   sells to: one `retailer_identities` row, a `retailers` row and a `retailer_links` row per tenant.

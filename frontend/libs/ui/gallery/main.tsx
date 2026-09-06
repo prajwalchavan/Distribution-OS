@@ -11,7 +11,7 @@ import {
   type SizeName,
   type Series,
   type StatusFamily,
-} from '../src/index.js'
+} from '../src/shared.js'
 import {
   AgeingBuckets,
   Avatar,

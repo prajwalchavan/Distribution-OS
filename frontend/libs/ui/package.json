@@ -4,12 +4,22 @@
   "private": true,
   "description": "Distribution OS design system (layout A Ledger, docs/design/UX-00): semantic tokens, the English string catalogue and the UX-00 section 6 components for React DOM and React Native",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./src/index.web.ts",
+  "types": "./src/index.web.ts",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "react-native": "./src/index.native.ts",
+      "browser": "./src/index.web.ts",
+      "default": "./src/index.web.ts"
+    },
+    "./platform": {
+      "react-native": "./src/platform/index.native.ts",
+      "browser": "./src/platform/index.web.ts",
+      "default": "./src/platform/index.web.ts"
+    },
     "./web": "./src/web/index.ts",
-    "./native": "./src/native/index.ts"
+    "./native": "./src/native/index.ts",
+    "./tokens": "./src/tokens.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -21,19 +31,63 @@
     "@dos/domain": "link:../../../backend/libs/domain"
   },
   "peerDependencies": {
+    "expo-camera": "*",
+    "expo-crypto": "*",
+    "expo-document-picker": "*",
+    "expo-file-system": "*",
+    "expo-haptics": "*",
+    "expo-image-picker": "*",
+    "expo-location": "*",
+    "expo-print": "*",
+    "expo-secure-store": "*",
+    "expo-sharing": "*",
     "react": ">=19",
     "react-dom": ">=19",
     "react-native": ">=0.79",
+    "react-native-safe-area-context": ">=5",
     "react-native-svg": ">=15"
   },
   "peerDependenciesMeta": {
+    "expo-camera": {
+      "optional": true
+    },
+    "expo-document-picker": {
+      "optional": true
+    },
+    "expo-file-system": {
+      "optional": true
+    },
+    "expo-haptics": {
+      "optional": true
+    },
+    "expo-image-picker": {
+      "optional": true
+    },
+    "expo-location": {
+      "optional": true
+    },
+    "expo-print": {
+      "optional": true
+    },
+    "expo-secure-store": {
+      "optional": true
+    },
+    "expo-sharing": {
+      "optional": true
+    },
     "react-dom": {
       "optional": true
     },
     "react-native": {
       "optional": true
     },
+    "react-native-safe-area-context": {
+      "optional": true
+    },
     "react-native-svg": {
+      "optional": true
+    },
+    "expo-crypto": {
       "optional": true
     }
   },
@@ -44,9 +98,20 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "eslint": "catalog:",
+    "expo-camera": "catalog:",
+    "expo-crypto": "catalog:",
+    "expo-document-picker": "catalog:",
+    "expo-file-system": "catalog:",
+    "expo-haptics": "catalog:",
+    "expo-image-picker": "catalog:",
+    "expo-location": "catalog:",
+    "expo-print": "catalog:",
+    "expo-secure-store": "catalog:",
+    "expo-sharing": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:",
     "react-native-svg": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

@@ -25,6 +25,7 @@ import { seedDocint } from './docint.js'
 import { inDemoScope } from './ids.js'
 import { seedIncentives } from './incentives.js'
 import { seedIntegrations } from './integrations.js'
+import { seedPilotBranding } from './branding.js'
 import { seedNotifications } from './notifications.js'
 import { seedPeople, type PeopleResult, type PeopleRoster } from './people.js'
 import { seedPlatformGaps } from './platform-gaps.js'
@@ -196,6 +197,10 @@ export async function seedDemo(
     // Distribution OS staff account and one PENDING request against this distributor, so every
     // owner app has a decision to take and `tenancy.support.*` answers a real row.
     await seedPlatformSupport(db, tenantId, opts.passwordHash)
+    // The pilot's real letterhead (founder, 2026-09-06): name, address, GSTIN and logo, so every
+    // document and every app header shows Tarsun Enterprise rather than a placeholder. Only the
+    // pilot: the other two distributors keep the branding `seed-demo/tenants.ts` gives them.
+    if (!(opts.scope ?? '')) await seedPilotBranding(db, tenantId)
 
     if (opts.printSignIn ?? true) printSignInTable(tenantId, label, people)
     return { tenantId, label, people }

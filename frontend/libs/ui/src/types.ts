@@ -8,7 +8,13 @@
 import type { ReactNode } from 'react'
 
 import type { SeriesPoint, Series, CompareGroup, MixSlice } from './charts/geometry.js'
-import type { AgeingBucket, SizeName, StatusFamily } from './tokens.js'
+import type {
+  AgeingBucket,
+  DeskTypeName,
+  FieldTypeName,
+  SizeName,
+  StatusFamily,
+} from './tokens.js'
 
 /** Every component takes one. Test ids are the only string in the kit that is not translated. */
 export interface Testable {
@@ -477,6 +483,263 @@ export interface SparklineProps extends Testable {
   values: readonly number[]
   width?: number | undefined
   height?: number | undefined
+}
+
+// ---------------------------------------------------------------------------
+// Layout primitives (docs/08 section 0)
+//
+// A screen may not touch `View` or `div`, so structure has its own small vocabulary. These ten are
+// the WHOLE surface a screen composes with, next to the section 6 components above. Every value is a
+// token name, never a number a screen invented: `pad={4}` is `space.4`, `background="surface"` is
+// `bg.surface`. Nothing here can express a colour, a font or a shadow.
+// ---------------------------------------------------------------------------
+
+/** A step on the one 4 px scale (UX-00 section 5.1). `4` is the field gutter, `5` the desk padding. */
+export type SpaceStep = 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12
+
+export type SurfaceName = 'none' | 'ground' | 'surface' | 'raised' | 'sunken'
+export type RadiusName = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full'
+export type BorderEdge = 'none' | 'all' | 'top' | 'bottom' | 'left' | 'right'
+export type BorderTone = 'hairline' | 'faint' | 'strong'
+export type AlignName = 'start' | 'center' | 'end' | 'stretch'
+export type JustifyName = 'start' | 'center' | 'end' | 'between'
+
+/** The rectangle everything else is built from. */
+export interface BoxProps extends Testable {
+  children?: ReactNode | undefined
+  pad?: SpaceStep | undefined
+  padX?: SpaceStep | undefined
+  padY?: SpaceStep | undefined
+  /** Outer spacing. Prefer a parent `<Stack gap>`; this is for the odd single offset. */
+  marginTop?: SpaceStep | undefined
+  background?: SurfaceName | undefined
+  border?: BorderEdge | undefined
+  borderTone?: BorderTone | undefined
+  radius?: RadiusName | undefined
+  /** Takes the free space on the parent's main axis. */
+  grow?: boolean | undefined
+  width?: (number | 'full') | undefined
+  height?: number | undefined
+  minHeight?: number | undefined
+  maxWidth?: number | undefined
+  align?: AlignName | undefined
+  /** Centres the box in its parent — the reading-width column of the desk shell. */
+  center?: boolean | undefined
+}
+
+/** A vertical run with one gap. The default arrangement of every screen. */
+export interface StackProps extends BoxProps {
+  gap?: SpaceStep | undefined
+}
+
+/** A horizontal run. Wraps only when told to, so a figure never falls under its own label. */
+export interface RowProps extends StackProps {
+  justify?: JustifyName | undefined
+  wrap?: boolean | undefined
+}
+
+/**
+ * A scrolling region. `<Screen>` already scrolls; this is for the second scroller on a screen
+ * (a horizontal chip rail, a panel with its own overflow).
+ */
+export interface ScrollProps extends Testable {
+  children: ReactNode
+  horizontal?: boolean | undefined
+  grow?: boolean | undefined
+  pad?: SpaceStep | undefined
+  /** Fires once per approach to the end — the page-two hook of a long register. */
+  onEndReached?: (() => void) | undefined
+}
+
+/**
+ * A VIRTUALISED list: `FlatList` on native, a windowed DOM list on web. A distributor's shop list is
+ * tens of thousands of rows on a two-year-old phone (docs/20), so the kit has no unvirtualised
+ * alternative — `items` is the whole array and only what fits is ever mounted.
+ */
+export interface ListProps<Item> extends Testable {
+  items: readonly Item[]
+  /** Stable across a reorder: the row's own id, never the index. */
+  keyExtractor: (item: Item, index: number) => string
+  renderItem: (item: Item, index: number) => ReactNode
+  /** Row height in dp/px. The windowing maths needs it; rows that vary are clipped to it. */
+  itemHeight?: number | undefined
+  onEndReached?: (() => void) | undefined
+  separator?: boolean | undefined
+  header?: ReactNode | undefined
+  footer?: ReactNode | undefined
+  /** Rendered instead of the rows when `items` is empty — normally an `<EmptyState>`. */
+  empty?: ReactNode | undefined
+  /** Fills its parent and owns the scrolling (default). `false` renders inline in a page scroll. */
+  grow?: boolean | undefined
+}
+
+/** Anything tappable that is not a `<Button>`: a row, a card, a tab, a logo. */
+export interface PressableProps extends Testable {
+  onPress: () => void
+  children: ReactNode
+  disabled?: boolean | undefined
+  /** Spoken name when the children are not words. */
+  label?: string | undefined
+  /** Defaults to the app's touch floor from the theme; a screen never picks a smaller one. */
+  minHeight?: number | undefined
+  grow?: boolean | undefined
+  role?: ('button' | 'link' | 'tab' | 'row') | undefined
+}
+
+export interface ImgProps extends Testable {
+  /** A URL, a data URI, or a signed read URL from `files.signRead`. */
+  source: string
+  /** Required: a logo, a bill photograph and a delivery proof all mean something. */
+  alt: string
+  width?: number | undefined
+  height?: number | undefined
+  radius?: RadiusName | undefined
+  fit?: ('cover' | 'contain') | undefined
+}
+
+/**
+ * An expo-router destination. On web it renders a real `<a href>` — middle-click, copy link address
+ * and the browser's own back button all work; on a phone it pushes the route.
+ */
+export interface LinkProps extends Testable {
+  /** An already-resolved route: `/orders`, `/orders/0198f1c2-...`. */
+  href: string
+  children: ReactNode
+  /** Replace the current entry instead of pushing one (a sign-in that must not be returned to). */
+  replace?: boolean | undefined
+  /** `text` is an accent-coloured word; `plain` wraps whatever it is given. */
+  variant?: ('text' | 'plain') | undefined
+}
+
+/**
+ * The only place text styling happens. `field` and `desk` name a token on each scale, so one screen
+ * file reads correctly at 16 sp in a van and at 14 px on a desk (UX-00 section 4).
+ */
+export interface TxtContract extends Testable {
+  field: FieldTypeName
+  desk: DeskTypeName
+  /** A semantic colour from the theme. Never a hex literal (ESLint enforces it in an app). */
+  color?: string | undefined
+  /** Tabular figures and a capped font-scale multiplier. Every number sets it. */
+  numeric?: boolean | undefined
+  /** Clamp to N lines. A shop's name is one line; its address is two. */
+  numberOfLines?: number | undefined
+  /** Web semantics (`h1`, `label`); native maps `h1`–`h3` to the header accessibility role. */
+  as?: ('span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'label') | undefined
+  children: ReactNode
+}
+
+/**
+ * The frame of one screen: safe-area insets, the header, the scroll policy and the sticky bottom bar.
+ * A hard-coded `paddingTop` is a bug (UX-00 section 8.2).
+ */
+export interface ScreenProps extends Testable {
+  /** Desk: the page title. Phone: the header title. */
+  title?: string | undefined
+  /** The line ABOVE the title: "Station Road · stop 7 of 18". */
+  context?: string | undefined
+  /** Page-header actions (Export, Print). Right-aligned on desk, under the title on a phone. */
+  actions?: ReactNode | undefined
+  /** Status chips under the title — information only, never an action (UX-00 section 8.2). */
+  chips?: ReactNode | undefined
+  /** Default true. `false` when the screen's own `<List>` owns the scrolling. */
+  scroll?: boolean | undefined
+  /** The sticky bottom bar: the summary and the one primary action. */
+  bottomBar?: ReactNode | undefined
+  /** Constrain the content to the desk reading width (1200 px). Default true. */
+  readingWidth?: boolean | undefined
+  /** Padding around the content. Defaults to the desk padding / the field gutter. */
+  pad?: SpaceStep | undefined
+  children: ReactNode
+}
+
+// ---------------------------------------------------------------------------
+// The shell (UX-00 sections 8.1 and 8.2)
+// ---------------------------------------------------------------------------
+
+export type ViewportKind = 'phone' | 'desk'
+
+export interface Viewport {
+  width: number
+  height: number
+  /** `desk` at 1024 px and wider, `phone` below. An owner on a phone gets the phone shell. */
+  kind: ViewportKind
+  /** Desk under 1100 px: the rail is icons only (UX-00 section 8.1). */
+  railCollapsed: boolean
+}
+
+/** One destination. `permission` is a key from `PERMISSIONS` in `@dos/contracts`. */
+export interface NavItem {
+  href: string
+  /** <= 14 characters; it has to fit a 172 px rail and a phone tab. */
+  label: string
+  /** The app supplies the glyph; the kit ships no icon set. */
+  icon?: ReactNode | undefined
+  /** The active glyph, if it differs (a filled version on the phone tab bar). */
+  activeIcon?: ReactNode | undefined
+  /** `${METHOD} ${pattern}` or a role name — whatever the app's `can()` understands. */
+  permission?: string | undefined
+  /** A count on the item: approvals waiting, stops left. */
+  badge?: number | undefined
+}
+
+export interface NavSection {
+  /** UPPERCASE eyebrow above the group ("SETUP"). The first section is normally unnamed. */
+  title?: string | undefined
+  items: readonly NavItem[]
+  /**
+   * The phone tab bar is built from the section marked `primary` (at most four items, UX-00
+   * section 8.2); everything else moves into the overflow sheet.
+   */
+  primary?: boolean | undefined
+}
+
+export interface TenantChoice {
+  id: string
+  /** `branding.display_name`, else the legal name. */
+  name: string
+  /** The role this person holds THERE — it can differ per distributor. */
+  roleLabel: string
+}
+
+/**
+ * The tenant switcher of the header. One membership renders as a name, not a menu: there is nothing
+ * to switch to, and a dead control is worse than none.
+ */
+export interface TenantSwitcherProps extends Testable {
+  current: TenantChoice
+  choices: readonly TenantChoice[]
+  onSwitch: (tenantId: string) => void
+  /** True while the switch is in flight; the menu closes and the name stays put. */
+  busy?: boolean | undefined
+}
+
+export interface AccountMenu {
+  name: string
+  roleLabel: string
+  onSignOut: () => void
+  /** Change password, sessions, about. */
+  items?: readonly { id: string; label: string; onPress: () => void }[] | undefined
+}
+
+/**
+ * The shell. It is chosen by VIEWPORT, not by app (docs/08 section 0): the desk shell of UX-00
+ * section 8.1 at 1024 px and wider, the phone shell of section 8.2 below it.
+ */
+export interface AppShellProps extends Testable {
+  sections: readonly NavSection[]
+  /** The current route. The rail and the tab bar mark the item whose `href` prefixes it. */
+  activeHref: string
+  onNavigate: (href: string) => void
+  /** Hides the items this signed-in role may not reach. Default: everything is allowed. */
+  can?: ((item: NavItem) => boolean) | undefined
+  tenant?: TenantSwitcherProps | undefined
+  /** The app's `<ConnectionStrip>`; the shell places it (rail foot on desk, under the header on a phone). */
+  connection?: ReactNode | undefined
+  /** The header search box. The phone shell moves it into the overflow sheet. */
+  search?: ReactNode | undefined
+  account?: AccountMenu | undefined
+  children: ReactNode
 }
 
 export type { SeriesPoint, Series, CompareGroup, MixSlice }

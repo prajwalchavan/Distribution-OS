@@ -4,24 +4,48 @@ Seven apps, one per role, each talking to its own backend service. They stand on
 system, one API client, one offline library. This workspace installs and builds **separately** from
 `backend/`; the two are linked, not merged.
 
+**Every app is universal** — website + Android + iOS from ONE Expo codebase per role (founder,
+2026-09-06; docs/22 §8, docs/08 §0). A screen is written against the `@dos/ui` contract and Metro swaps
+the renderer per platform: a real DOM on the web, React Native views on a phone. The shell is chosen by
+VIEWPORT (desk rail ≥ 1024 px, phone tabs below), not by app.
+
 ```
 frontend/
   libs/config       tsconfig + eslint presets (deliberately a copy of the backend's, see below)
-  libs/ui           @dos/ui      — the design system: tokens, strings, the UX-00 §6 components (web + native)
+  libs/ui           @dos/ui      — the design system: tokens, strings, the UX-00 §6 components, the layout
+                                   primitives, AppShell, and @dos/ui/platform (camera, GPS, print, files, …)
   libs/api-client   @dos/api-client — the typed oRPC client, session, cache, React layer
   libs/offline      @dos/offline — the offline write path (a later slice; untouched by the kit)
-  owner-app         Vite web today, Expo later          -> owner-service    :3001
+  libs/app-template @dos/app-template — the skeleton every role app is generated from, and a running app itself
   admin-app         placeholder                          -> admin-service    :3007
-  (manager, sales, warehouse, delivery, retailer apps arrive one slice at a time)
+  (owner, manager, sales, warehouse, delivery, retailer apps are generated from the template, one slice at a time)
 ```
+
+## Making an app
+
+```bash
+cd frontend
+pnpm --filter @dos/app-template new owner    # -> frontend/owner-app, web 5173, api :3001
+pnpm install
+pnpm --filter @dos/owner-app web             # http://localhost:5173
+pnpm --filter @dos/owner-app ios             # the iOS simulator (development build)
+pnpm --filter @dos/owner-app android         # a device or emulator
+```
+
+Ports: owner 5173/:3001 · manager 5174/:3002 · sales 5175/:3003 · warehouse 5176/:3004 ·
+delivery 5177/:3005 · retailer 5178/:3006 · admin 5179/:3007.
 
 ## How the pieces fit
 
 ```
   a screen
-     |  imports @dos/ui (+ @dos/ui/web or /native), @dos/domain, @dos/contracts — nothing else
+     |  imports @dos/ui, @dos/api-client, @dos/domain, @dos/contracts — nothing else.
+     |  NEVER react-native, react-dom, @dos/ui/web or @dos/ui/native (ESLint refuses all four).
      v
-  @dos/ui ----------------- tokens, strings, money/qty, chart geometry, the components
+  @dos/ui ----------------- tokens, strings, money/qty, chart geometry, the components, the layout
+                            primitives, AppShell; Metro picks ./web or ./native per platform
+  @dos/ui/platform -------- storage, documents, camera, location, files, haptics, share, crypto
+                            (a .web.ts / .native.ts pair each, one signature)
   @dos/api-client --------- session + typed client + query cache
      |  types from @dos/contracts (link: ../../backend/libs/contracts)
      |  money / quantity / date maths from @dos/domain (link: ../../backend/libs/domain)
@@ -58,7 +82,7 @@ export PATH=/opt/homebrew/bin:$PATH; eval "$(fnm env)"; fnm use 24
 cd frontend && pnpm install
 pnpm lint && pnpm typecheck && pnpm build && pnpm test    # the CI frontend job
 
-pnpm --filter @dos/owner-app dev      # http://localhost:5173, proxying /api -> :3001 and /auth -> :3000
+pnpm --filter @dos/app-template web   # http://localhost:5170 — the skeleton, running
 pnpm --filter @dos/ui gallery         # http://localhost:5199 — every component, every state
 ```
 
@@ -77,14 +101,14 @@ username per role (owner `sunil.tarsun`, manager `vikas.kadam`, sales `rahul.des
 One base URL per app, plus the auth origin. Nothing else changes between the two deployment shapes
 (`docs/26` §7):
 
-| App                 | Split (one service per port)         | All-in-one (one port, path prefixes)        |
-| ------------------- | ------------------------------------ | ------------------------------------------- |
-| owner (Vite web)    | `VITE_API_URL=http://localhost:3001` | `VITE_API_URL=https://api.example.in/owner` |
-| the Expo apps       | `EXPO_PUBLIC_API_URL=…:300{2..6}`    | `EXPO_PUBLIC_API_URL=…/{manager,sales,…}`   |
-| every app's sign-in | `…_AUTH_URL=http://localhost:3000`   | `…_AUTH_URL=https://api.example.in/auth`    |
+| Variable                  | Split (one service per port)              | All-in-one (one port, path prefixes)          |
+| ------------------------- | ----------------------------------------- | --------------------------------------------- |
+| `EXPO_PUBLIC_API_URL`     | `http://127.0.0.1:300{1..7}`              | `https://api.example.in`                      |
+| `EXPO_PUBLIC_API_PREFIX`  | unset                                     | `/owner`, `/manager`, `/sales`, …             |
+| `EXPO_PUBLIC_AUTH_URL`    | `http://127.0.0.1:3000`                   | `https://api.example.in`                      |
 
-In dev the owner app needs neither: Vite proxies `/api` to :3001 and `/auth` to :3000, so the browser sees one
-origin and there is no CORS.
+Expo inlines every `EXPO_PUBLIC_*` variable at BUILD time, so nothing secret may be named there. In dev the
+services answer any localhost origin (`corsOptions()`), so there is no proxy to configure.
 
 ## The rules a reviewer checks
 
@@ -108,11 +132,16 @@ origin and there is no CORS.
 - `libs/config` duplicates ~60 lines of the backend presets **on purpose**: the two workspaces install
   separately, and a `link:` to the backend config would make the frontend lint with the backend's copy of
   typescript-eslint.
-- `react-native` and `react-native-svg` are **optional peers** of `@dos/ui`, present as devDependencies so the
-  native layer typechecks and tests here. When the Expo apps arrive they pin their own versions from the
-  template; the catalog's React versions are for the web builds.
-- The node linker is `hoisted` because Expo expects a flat `node_modules`; Vite therefore dedupes `react` and
-  `react-dom` explicitly.
+- **The Expo SDK decides `react`, `react-native` and every `expo-*` version** in the catalog — never the other
+  way round (docs/08 §0). Today: **Expo SDK 57.0.20 · React Native 0.86.3 · React 19.2.3 · expo-router 57.0.19**,
+  taken from `expo@57.0.20`'s own `bundledNativeModules.json`. To move SDK, read that file again.
+- `react-native`, `react-native-safe-area-context`, `react-native-svg` and the `expo-*` modules the platform
+  layer uses are **optional peers** of `@dos/ui`, present as devDependencies so the native half typechecks and
+  tests here without forcing a browser-only consumer to install Expo.
+- The node linker is `hoisted` because Expo expects a flat `node_modules`.
+- Metro does **not** rewrite a `./thing.js` specifier to `./thing.ts` the way `tsc` and Vite do, and the repo
+  writes relative imports Node's way because the backend emits real `.js`. Each app's `metro.config.js`
+  carries a `resolveRequest` that tries the extensionless form first; see the comment there.
 
 ## Where the design comes from
 

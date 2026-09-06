@@ -6,6 +6,7 @@ export {
   type SeedDemoResult,
 } from './seed-demo/index.js'
 export { seedExtraTenants, EXTRA_TENANTS, type TenantProfile } from './seed-demo/tenants.js'
+export { seedPilotBranding, PILOT_BRANDING, PILOT_ADDRESS_BLOCK } from './seed-demo/branding.js'
 /**
  * Module 13's console data (the `dos.admin` super account, a subscription per distributor, one live
  * and one lapsed support window). Runs ONCE for the whole database, after every distributor exists,

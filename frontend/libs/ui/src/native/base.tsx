@@ -4,10 +4,10 @@
  * The one difference from the DOM layer is unit handling: `tracking` is em in the tokens and pixels
  * in React Native, so it is multiplied by the size here — the same token produces the same picture.
  */
-import type { ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, Text, View, type TextStyle } from 'react-native'
 
 import { useTheme } from '../theme.js'
+import type { TxtContract } from '../types.js'
 import {
   fontFamily,
   typeDesk,
@@ -33,17 +33,13 @@ export function useTypeStyle(field: FieldTypeName, desk: DeskTypeName): TextStyl
   return typeStyle(density === 'desk' ? typeDesk[desk] : typeField[field])
 }
 
-export interface TxtProps {
-  field: FieldTypeName
-  desk: DeskTypeName
-  color?: string | undefined
-  children: ReactNode
+export interface TxtProps extends TxtContract {
   style?: TextStyle | undefined
-  testID?: string | undefined
-  numeric?: boolean | undefined
-  numberOfLines?: number | undefined
   accessibilityLabel?: string | undefined
 }
+
+/** `h1`–`h3` are the one piece of `as` that means something outside a DOM. */
+const HEADINGS: ReadonlySet<string> = new Set(['h1', 'h2', 'h3'])
 
 /**
  * The only place text styling happens on native. Numeric text carries `maxFontSizeMultiplier={1.3}`
@@ -59,6 +55,7 @@ export function Txt({
   numeric,
   numberOfLines,
   accessibilityLabel,
+  as,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
@@ -67,6 +64,7 @@ export function Txt({
       testID={testID}
       numberOfLines={numberOfLines}
       accessibilityLabel={accessibilityLabel}
+      accessibilityRole={as !== undefined && HEADINGS.has(as) ? 'header' : undefined}
       maxFontSizeMultiplier={numeric === true ? 1.3 : undefined}
       style={[
         base,

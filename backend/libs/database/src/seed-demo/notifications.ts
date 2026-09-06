@@ -238,7 +238,7 @@ export async function seedNotifications(
     return typeof v === 'string' && v.length > 0 ? v : null
   }
   const distributorName =
-    setting(TENANT_SETTING_KEYS.brandingDisplayName) ?? tenant?.legalName ?? 'Tarsun Enterprises'
+    setting(TENANT_SETTING_KEYS.brandingDisplayName) ?? tenant?.legalName ?? 'Tarsun Enterprise'
   const upiVpa = setting(TENANT_SETTING_KEYS.upiVpa)
   const links = await db
     .select({

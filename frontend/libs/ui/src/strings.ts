@@ -114,6 +114,12 @@ export const en = {
 
   // Tenant chrome (UX-00 section 11). The product's own mark never appears here.
   'tenant.logoAlt': '{name} logo',
+  'tenant.switch': 'Switch distributor',
+
+  // The shell (UX-00 sections 8.1 and 8.2).
+  'nav.sections': 'Sections',
+  'nav.more': 'More',
+  'account.signOut': 'Sign out',
 } as const
 
 export type StringKey = keyof typeof en

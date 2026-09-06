@@ -53,7 +53,81 @@ six-stop 6.6 km plan is TRIP-NEXT's and pilot-only — Sai and Kalyan get a one-
 (4) `docs/plans/00-coordination.md` still predates modules 12, 13 and 14: §2, §4, §6 and §8 name
 neither `ai` nor `admin` nor `sync-runtime`.
 
-**NEXT: the six apps, starting with the owner app on layout A Ledger.**
+**NEXT: the six apps, starting with the owner app on layout A Ledger.** The universal kit layer and the
+app template they are generated from are DONE — see the frontend slice below.
+
+---
+
+## FRONTEND SLICE 1 — the UNIVERSAL layer and the app template (2026-09-06)
+
+**`@dos/ui` is now the universal layer of docs/08 §0, and `frontend/libs/app-template` is a running Expo
+app the other seven are generated from.** Verified end to end: a throwaway `hello-app` generated from the
+template signed in as `sunil.tarsun` / `Dos@1234` against owner-service :3001 and drew `KpiStrip` +
+`Register` + `Button` from live `tenancy.me` and `tenancy.branding.get` — in a browser at 1400 px and
+1024 px (the UX-00 §8.1 rail), at 390 px (the §8.2 bottom tabs), and **on the iOS simulator from the same
+files** (Expo Go, SDK 57). `hello-app` was then deleted.
+
+**The Expo baseline the SDK decided** (from `expo@57.0.20`'s own `bundledNativeModules.json`, now the
+catalog in `frontend/pnpm-workspace.yaml` — never bump one of these by hand):
+
+| | |
+| --- | --- |
+| **Expo SDK** | **57.0.20** (current stable) |
+| **React Native** | **0.86.3** (New Architecture only) |
+| **React / React DOM** | **19.2.3** |
+| react-native-web | 0.21.2 |
+| expo-router | 57.0.19 |
+| safe-area-context · screens · gesture-handler | 5.7.0 · 4.26.0 · 2.32.0 |
+| react-native-svg | 15.15.4 |
+| babel-preset-expo · @babel/core | 57.0.10 · 7.29.7 |
+| TypeScript | 6.0.3 (unchanged) |
+
+`@tanstack/react-query` left the catalog (docs/08 §0: "No TanStack Query"); `zod` and `@orpc/openapi`
+joined it, because `@dos/contracts` is linked from `backend/libs` and imports them at runtime.
+
+**What was built.** `src/index.web.ts` / `src/index.native.ts` (the `exports` conditions Metro swaps on;
+the shared barrel is now `src/shared.ts`, see below) · the ten layout primitives on BOTH renderers
+(`Screen`, `Box`, `Stack`, `Row`, `Scroll`, `List` — a windowed DOM list / `FlatList` —, `Pressable`,
+`Img`, `Link`, `Txt`) with their prop types in `types.ts` · `AppShell` + `TenantSwitcher` + `useViewport()`
+on both, desk rail at ≥ 1024 px and phone tabs below · `@dos/ui/platform` — storage, documents, camera,
+location, files, haptics, share and **crypto**, each a `.web.ts` / `.native.ts` pair against one signature
+in `platform/types.ts` · `@dos/config/eslint/app` (react-native / react-dom / `@dos/ui/web` /
+`@dos/ui/native` and raw hex colours all unimportable, with messages pointing at docs/08 §0) ·
+`libs/app-template` with `new <role> [port]` · `.claude/launch.json` entries `app-template` :5170 and
+`<role>-app` :5173–:5179.
+
+**Two parity guarantees, both executable.** `libs/ui/src/parity.test.ts` reads the two barrels (it cannot
+import the native one in Node) and asserts name-for-name equality plus the platform pairs; `parity.types.ts`
+binds every primitive on both renderers to the ONE contract, so a matching name with the wrong props fails
+`pnpm typecheck`. Six web-only names are on a documented allow-list: the CSS generator has no native twin.
+
+**Four real defects the proof found, each fixed.**
+
+1. **A phone could not create a single row.** Hermes has no `crypto.getRandomValues`, `@dos/domain` is
+   dependency-free by rule, and every row in this product carries a client-generated UUIDv7 — so `boot()`
+   threw on the FIRST id. `@dos/ui/platform` now installs `expo-crypto`'s generator as a side effect of
+   being imported, before any screen can ask.
+2. **`@dos/api-client` crashed before its first request on a phone**: React Native has a `navigator` but no
+   `userAgent` on it, and `client.ts` called `.slice` on it unguarded.
+3. **A string in a `ReactNode` prop is legal on the web and fatal on native** — `KpiItem.value` threw "Text
+   strings must be rendered within a `<Text>` component". Both `KpiStrip`s wrap it now, so `value` means the
+   same thing on both renderers.
+4. **Density was deciding layout, and can no longer**: the same `desk` app opens on a 390 px phone, where a
+   four-column KPI strip put "Distributor" through a shredder. `useViewport()` (a `.web` / `.native` pair)
+   is what `AppShell` and `KpiStrip` read now; the strip is 2×2 on a phone as UX-00 §8.2 draws it.
+
+**Two structural things to know before the next slice.** Metro does NOT rewrite a `./thing.js` specifier to
+`./thing.ts` the way `tsc` and Vite do, and this repo writes Node-style specifiers because the backend emits
+real `.js` — so every app's `metro.config.js` carries a `resolveRequest` that tries the extensionless form
+first, and the kit's shared barrel was renamed `src/index.ts` → **`src/shared.ts`** (resolving `./index`
+from inside `index.web.ts` would find the platform variant, i.e. itself). And a generated app sits one
+directory shallower than the template, so the generator rewrites every `link:` path; copied verbatim they
+would point above the repo and every contract type would silently become `any`.
+
+**`frontend/owner-app` (the Vite skeleton) was DELETED**, as the brief allowed: the owner slice regenerates
+it from the template. `pnpm docs:readme` skips an app directory that does not exist, so `docs:readme:check`
+stays green.
+
 
 **MODULE `sync-runtime` IS DONE — the independent gate ran and is GREEN (2026-09-06 07:05 IST).** The
 delta-sync coverage + all-in-one slice (row 14 below) was verified end to end against the founder's own
@@ -791,7 +865,22 @@ Sign in first: `POST http://localhost:3000/auth/login` with `{"username":"sunil.
 | delivery  | http://localhost:3005/swagger | http://localhost:3005/docs | http://localhost:3005/docs/openapi.json | delivery            |
 | retailer  | http://localhost:3006/swagger | http://localhost:3006/docs | http://localhost:3006/docs/openapi.json | retailer            |
 
-Owner app: http://localhost:5173 (`cd frontend && pnpm --filter @dos/owner-app dev`) — sign in with a username and password.
+Apps (universal — website + Android + iOS from one Expo codebase each; docs/08 §0). Generate one from the
+skeleton first: `cd frontend && pnpm --filter @dos/app-template new <role>` then `pnpm install`.
+
+| App               | Web                    | Command (`cd frontend`)                       | Service |
+| ----------------- | ---------------------- | --------------------------------------------- | ------- |
+| app-template      | http://localhost:5170  | `pnpm --filter @dos/app-template web`          | :3001   |
+| owner             | http://localhost:5173  | `pnpm --filter @dos/owner-app web`             | :3001   |
+| manager           | http://localhost:5174  | `pnpm --filter @dos/manager-app web`           | :3002   |
+| sales             | http://localhost:5175  | `pnpm --filter @dos/sales-app web`             | :3003   |
+| warehouse         | http://localhost:5176  | `pnpm --filter @dos/warehouse-app web`         | :3004   |
+| delivery          | http://localhost:5177  | `pnpm --filter @dos/delivery-app web`          | :3005   |
+| retailer          | http://localhost:5178  | `pnpm --filter @dos/retailer-app web`          | :3006   |
+| admin             | http://localhost:5179  | `pnpm --filter @dos/admin-app web`             | :3007   |
+
+`… ios` and `… android` run the same app on a simulator or a device. The kit's gallery (every component,
+every state) is `pnpm --filter @dos/ui gallery` → http://localhost:5199.
 Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `dos` (steps in `docs/21-local-database-setup.md`).
 
 ### Demo sign-in (every password is `Dos@1234`), tenant Tarsun Enterprises

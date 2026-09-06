@@ -92,11 +92,29 @@
       "port": 3999
     },
     {
+      "name": "docs-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/bdc392e9-21d1-4d15-9ffa-7a88c7db4de9/scratchpad && /opt/homebrew/opt/postgresql@17/bin/psql --version >/dev/null 2>&1; python3 -m http.server 8765"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "app-template",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/app-template web"
+      ],
+      "port": 5170
+    },
+    {
       "name": "owner-app",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/owner-app dev"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/owner-app web"
       ],
       "port": 5173
     },
@@ -105,7 +123,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/manager-app web -- --port 5174"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/manager-app web"
       ],
       "port": 5174
     },
@@ -114,7 +132,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/sales-app web -- --port 5175"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/sales-app web"
       ],
       "port": 5175
     },
@@ -123,7 +141,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/warehouse-app web -- --port 5176"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/warehouse-app web"
       ],
       "port": 5176
     },
@@ -132,7 +150,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/delivery-app web -- --port 5177"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/delivery-app web"
       ],
       "port": 5177
     },
@@ -141,18 +159,18 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/retailer-app web -- --port 5178"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/retailer-app web"
       ],
       "port": 5178
     },
     {
-      "name": "docs-preview",
+      "name": "admin-app",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-lc",
-        "cd /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/bdc392e9-21d1-4d15-9ffa-7a88c7db4de9/scratchpad && /opt/homebrew/opt/postgresql@17/bin/psql --version >/dev/null 2>&1; python3 -m http.server 8765"
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/admin-app web"
       ],
-      "port": 8765
+      "port": 5179
     }
   ]
 }

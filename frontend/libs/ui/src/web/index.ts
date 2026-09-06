@@ -26,5 +26,21 @@ export {
 } from './feedback.js'
 export { CompareBars, Sparkline, StackedMix, TrendChart } from './charts.js'
 
+// The layout vocabulary of docs/08 §0 — the whole structural surface a screen may use.
+export {
+  Box,
+  Img,
+  Link,
+  List,
+  Pressable,
+  Row,
+  Screen,
+  Scroll,
+  Stack,
+  setRouterNavigate,
+} from './layout.js'
+export { AppShell, TenantSwitcher } from './shell.js'
+export { useViewport } from './viewport.js'
+
 // The contracts both renderers implement, re-exported so a screen needs one import.
 export type * from '../types.js'

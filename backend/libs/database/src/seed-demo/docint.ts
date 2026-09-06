@@ -162,7 +162,7 @@ function readingOf(
     header: {
       supplierName: supplier.name,
       supplierGstin: supplier.gstin,
-      buyerName: 'Tarsun Enterprises',
+      buyerName: 'Tarsun Enterprise',
       buyerGstin: null,
       invoiceNo: opts.invoiceNo,
       invoiceDate: opts.invoiceDate,

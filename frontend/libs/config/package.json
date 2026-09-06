@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     "./tsconfig/*": "./tsconfig/*",
-    "./eslint/base": "./eslint/base.js"
+    "./eslint/base": "./eslint/base.js",
+    "./eslint/app": "./eslint/app.js"
   },
   "files": [
     "tsconfig",

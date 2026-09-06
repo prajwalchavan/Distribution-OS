@@ -2,9 +2,10 @@
  * Web primitives every kit component is built from. Not exported to screens: a screen composes the
  * section 6 components, never these.
  */
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 
 import { useTheme } from '../theme.js'
+import type { TxtContract } from '../types.js'
 import {
   typeDesk,
   typeField,
@@ -29,15 +30,8 @@ export function useTypeStyle(field: FieldTypeName, desk: DeskTypeName): CSSPrope
   return typeStyle(density === 'desk' ? typeDesk[desk] : typeField[field])
 }
 
-export interface TxtProps {
-  field: FieldTypeName
-  desk: DeskTypeName
-  color?: string | undefined
-  children: ReactNode
+export interface TxtProps extends TxtContract {
   style?: CSSProperties | undefined
-  testID?: string | undefined
-  as?: ('span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'label') | undefined
-  numeric?: boolean | undefined
 }
 
 /** The only place text styling happens on web. */
@@ -50,15 +44,25 @@ export function Txt({
   testID,
   as = 'span',
   numeric,
+  numberOfLines,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
   const Tag = as
+  const clamp: CSSProperties =
+    numberOfLines === undefined
+      ? {}
+      : {
+          display: '-webkit-box',
+          WebkitBoxOrient: 'vertical',
+          WebkitLineClamp: numberOfLines,
+          overflow: 'hidden',
+        }
   return (
     <Tag
       data-testid={testID}
       className={numeric ? 'dos-num' : undefined}
-      style={{ color: color ?? colors.text.primary, margin: 0, ...base, ...style }}
+      style={{ color: color ?? colors.text.primary, margin: 0, ...base, ...clamp, ...style }}
     >
       {children}
     </Tag>
