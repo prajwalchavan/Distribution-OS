@@ -6,15 +6,18 @@
  * and the register below is the shops in that bucket. Every action here is the money desk's: send a
  * statement, write a debt off (owner only), rebuild the ageing after a correction.
  */
+import type { OutstandingListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   AgeingBuckets,
   Button,
   Chips,
   Dialog,
+  ListRow,
   Money,
   Register,
   RupeeInput,
+  Sheet,
   Screen,
   Stack,
   StatusChip,
@@ -32,6 +35,7 @@ import {
   Async,
   Columns,
   ExportButton,
+  Field,
   Half,
   PageTabs,
   Panel,
@@ -41,18 +45,6 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { rangeOf, shortDate, today, type RangeId } from '../../src/lib/dates'
-
-type Outstanding = {
-  retailerId: string
-  code: string | null
-  name: string
-  beatId: string | null
-  outstandingPaise: number
-  overduePaise: number
-  openBills: number
-  oldestDueDate: string | null
-  creditMode: string
-}
 
 const BUCKETS = ['b0_7', 'b8_15', 'b16_30', 'b31_60', 'b61_90', 'b90plus'] as const
 type BucketId = (typeof BUCKETS)[number]
@@ -65,7 +57,7 @@ const BUCKET_LABEL: Readonly<Record<BucketId, string>> = {
   b90plus: '90+',
 }
 
-export default function Outstanding(): React.JSX.Element {
+export default function OutstandingListItem(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
   const api = useApi()
@@ -77,6 +69,7 @@ export default function Outstanding(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'writeOff' | 'statement' | 'rebuild' | null>(null)
   const [amount, setAmount] = useState<number | null>(null)
+  const [billId, setBillId] = useState<string | null>(null)
   const [note, setNote] = useState('')
 
   const span = rangeOf(range)
@@ -130,7 +123,17 @@ export default function Outstanding(): React.JSX.Element {
     { invalidates: [['receivables'], ['reporting']] },
   )
 
-  const rows = (list.data?.items ?? []) as readonly Outstanding[]
+  const shop = useQuery(
+    ['receivables', 'outstanding', 'get', selected ?? 'none'],
+    () =>
+      api.api.receivables.outstanding.get({
+        retailerId: selected ?? '',
+        includeBills: true,
+      }),
+    { enabled: selected !== null },
+  )
+
+  const rows = list.data?.items ?? []
   const totals = list.data?.totals
   const current = rows.find((row) => row.retailerId === selected) ?? null
 
@@ -155,7 +158,7 @@ export default function Outstanding(): React.JSX.Element {
     },
   ]
 
-  const columns: readonly RegisterColumn<Outstanding>[] = [
+  const columns: readonly RegisterColumn<OutstandingListItem>[] = [
     textColumn('code', t('o10.shop'), (row) => `${row.code ?? ''} ${row.name}`.trim(), {
       priority: 'identity',
     }),
@@ -215,7 +218,7 @@ export default function Outstanding(): React.JSX.Element {
       <Stack gap={6}>
         <Columns>
           <Half>
-            <Panel title={t('o10.buckets')} testID="money-ladder">
+            <Panel testID="money-ladder">
               <Async state={[list]} rows={6}>
                 <AgeingBuckets
                   buckets={{
@@ -252,14 +255,10 @@ export default function Outstanding(): React.JSX.Element {
           <Half>
             <Panel
               title={t('o10.history')}
-              meta={t('app.range', { from: span.from, to: span.to })}
+              meta={t('app.range', { from: shortDate(span.from), to: shortDate(span.to) })}
               testID="money-history"
             >
-              <Async
-                state={[history]}
-                rows={4}
-                empty={(history.data?.points.length ?? 0) === 0}
-              >
+              <Async state={[history]} rows={4} empty={(history.data?.points.length ?? 0) === 0}>
                 <TrendChart series={trend} legend height={180} />
               </Async>
             </Panel>
@@ -267,12 +266,8 @@ export default function Outstanding(): React.JSX.Element {
         </Columns>
 
         <Panel
-          title={t('o10.title')}
-          meta={
-            totals === undefined
-              ? undefined
-              : t('app.rows', { count: totals.retailers })
-          }
+          title={t('o10.byShop')}
+          meta={totals === undefined ? undefined : t('app.rows', { count: totals.retailers })}
           actions={
             <Button
               label={t('o10.statements')}
@@ -309,20 +304,72 @@ export default function Outstanding(): React.JSX.Element {
               state="ready"
               totals={{
                 code: t('word.total'),
-                dues: (
-                  <Money value={totals?.outstandingPaise ?? 0} size="cell" symbol={false} />
-                ),
+                dues: <Money value={totals?.outstandingPaise ?? 0} size="cell" symbol={false} />,
                 overdue: <Money value={totals?.overduePaise ?? 0} size="cell" symbol={false} />,
               }}
             />
           </Async>
-          {current === null ? null : (
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {current.name}
-            </Txt>
-          )}
         </Panel>
       </Stack>
+
+      {/*
+        The drill-through UX-00 §9.0 asks for: a shop's row opens its own bills as a side panel over
+        this page, and a write-off is taken against ONE bill because that is the only thing the ledger
+        can settle. `writeOffs.create` is owner-only by the matrix, so this button exists on this app
+        and nowhere else.
+      */}
+      <Sheet
+        open={selected !== null}
+        onClose={() => {
+          setSelected(null)
+          setBillId(null)
+        }}
+        title={current?.name}
+        testID="money-shop-panel"
+      >
+        <Async state={[shop]} rows={6}>
+          {shop.data === undefined ? null : (
+            <Stack gap={4}>
+              <Field label={t('o10.dues')}>
+                <Money value={shop.data.outstandingPaise} size="moneyM" />
+              </Field>
+              <Field label={t('o10.overdue')}>
+                <Money value={shop.data.overduePaise} size="cell" tone="critical" />
+              </Field>
+              <Field label={t('o10.oldest')}>{shortDate(shop.data.oldestDueDate)}</Field>
+              <Panel title={t('o6.bills')}>
+                <Stack gap={2}>
+                  {shop.data.bills.map((bill) => (
+                    <ListRow
+                      key={bill.id}
+                      primary={bill.invoiceNo}
+                      secondary={shortDate(bill.dueDate)}
+                      trailingMoney={bill.openPaise}
+                      state={billId === bill.id ? 'selected' : 'default'}
+                      onPress={() => {
+                        setBillId(bill.id)
+                      }}
+                    />
+                  ))}
+                </Stack>
+              </Panel>
+              <Button
+                label={t('o10.writeOff')}
+                variant="destructive"
+                disabled={billId === null}
+                disabledReason={t('o6.bills')}
+                onPress={() => {
+                  setDialog('writeOff')
+                }}
+                testID="money-write-off"
+              />
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('o6.avgDaysToPay')}
+              </Txt>
+            </Stack>
+          )}
+        </Async>
+      </Sheet>
 
       <Dialog
         open={dialog !== null}
@@ -345,11 +392,7 @@ export default function Outstanding(): React.JSX.Element {
             ) : null}
             {dialog === 'writeOff' ? (
               <>
-                <RupeeInput
-                  label={t('o10.writeOffAmount')}
-                  value={amount}
-                  onChange={setAmount}
-                />
+                <RupeeInput label={t('o10.writeOffAmount')} value={amount} onChange={setAmount} />
                 <TextInput
                   label={t('o10.writeOffReason')}
                   value={note}
@@ -387,6 +430,10 @@ export default function Outstanding(): React.JSX.Element {
           if (dialog === 'statement')
             void statements
               .mutateAsync({ retailerIds: rows.slice(0, 200).map((row) => row.retailerId) })
+              .then(done, done)
+          if (dialog === 'writeOff' && billId !== null && amount !== null && amount > 0)
+            void writeOff
+              .mutateAsync({ invoiceId: billId, amountPaise: amount, note: note.trim() })
               .then(done, done)
         }}
         testID="money-dialog"

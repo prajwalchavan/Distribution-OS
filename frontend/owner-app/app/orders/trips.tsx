@@ -6,6 +6,7 @@
  * is the settlement preview — expected against counted, with the variance named — plus the trip's own
  * collections and expenses.
  */
+import type { Trip } from '@dos/contracts'
 import { useApi, useQuery } from '@dos/api-client/react'
 import {
   Money,
@@ -32,18 +33,6 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
-
-type Trip = {
-  id: string
-  tripNo: string
-  tripDate: string
-  vehicleRegNo: string | null
-  driverId: string | null
-  state: string
-  plannedStops: number
-  stopsCompleted: number
-  openingCashPaise: number
-}
 
 const TRIP_FAMILY: Readonly<Record<string, StatusFamily>> = {
   planned: 'neutral',
@@ -82,7 +71,7 @@ export default function Trips(): React.JSX.Element {
     { enabled: selected !== null },
   )
 
-  const rows = (trips.data?.items ?? []) as readonly Trip[]
+  const rows = trips.data?.items ?? []
   const preview = settlement.data
 
   const columns: readonly RegisterColumn<Trip>[] = [

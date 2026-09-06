@@ -5,7 +5,7 @@
  * the only arithmetic is on the ISO string's own UTC midnight — which is exactly what the backend's
  * own `windowDays()` does, so a window the app asks for is the window the register caps.
  */
-import { businessDate, financialYear } from '@dos/domain'
+import { businessDate, daysBetween, financialYear } from '@dos/domain'
 
 const DAY_MS = 86_400_000
 
@@ -106,6 +106,38 @@ export function rangeOf(id: RangeId, now: string = today()): DateRange {
     case 'fy':
       return { from: startOfFinancialYear(now), to: now }
   }
+}
+
+/** Inclusive calendar days in a window — the same arithmetic the contract's own `windowDays()` does. */
+export function windowDays(range: DateRange): number {
+  return daysBetween(range.from, range.to) + 1
+}
+
+/**
+ * The grain a window can actually be served at.
+ *
+ * `SERIES_POINT_CAPS` in `@dos/contracts` is day <= 92, week <= 53, month <= 24, and a wider ask is a
+ * 400 `window_too_wide` rather than a truncated chart. So the screen picks the grain instead of
+ * hard-coding `day` and discovering the cap in production: a financial year is 365 days, which is a
+ * week chart, not a day one.
+ */
+export function grainFor(range: DateRange): 'day' | 'week' | 'month' {
+  const days = windowDays(range)
+  if (days <= 92) return 'day'
+  if (days <= 53 * 7) return 'week'
+  return 'month'
+}
+
+/**
+ * A window narrowed to what a LIVE register will serve (`REGISTER_WINDOW_DAYS`: 31 for the per-line
+ * joins, 92 for the grouped reads). The register answers 400 above its cap — including at
+ * `exports.request` time — so the screen asks for the widest window that is actually allowed and the
+ * reader sees the range it got, never an error where a report should be.
+ */
+export function clampWindow(range: DateRange, maxDays: number): DateRange {
+  return windowDays(range) <= maxDays
+    ? range
+    : { from: shiftDays(range.to, -(maxDays - 1)), to: range.to }
 }
 
 /** The last N whole months, as a month-grain window ending in the current month. */

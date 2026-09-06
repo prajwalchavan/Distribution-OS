@@ -6,6 +6,7 @@
  * confirm, cancel, release held stock and reach the bills the order became. `↑ ↓` move, `Enter`
  * opens, `Esc` closes; every mutation carries one idempotency key per intent.
  */
+import type { Order } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
@@ -40,17 +41,6 @@ import {
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 
-type OrderRow = {
-  id: string
-  orderNo: string
-  retailerId: string
-  state: string
-  totalPaise: number
-  approvalFlags: readonly string[]
-  createdAt: string
-  submittedAt: string | null
-}
-
 const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
   submitted: 'ochre',
@@ -72,6 +62,7 @@ const STATES = [
   'delivered',
   'cancelled',
 ] as const
+type OrderState = (typeof STATES)[number]
 
 export default function Orders(): React.JSX.Element {
   const t = useStrings()
@@ -80,16 +71,16 @@ export default function Orders(): React.JSX.Element {
   const names = useNames()
 
   const [range, setRange] = useState<RangeId>('d30')
-  const [states, setStates] = useState<readonly string[]>([])
+  const [states, setStates] = useState<readonly OrderState[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
 
-  const window = rangeOf(range)
-  const list = useQuery(['orders', 'list', window.from, window.to, states.join(',')], () =>
+  const span = rangeOf(range)
+  const list = useQuery(['orders', 'list', span.from, span.to, states.join(',')], () =>
     api.api.orders.list({
-      from: window.from,
-      to: window.to,
+      from: span.from,
+      to: span.to,
       limit: 200,
       ...(states.length === 1 ? { state: states[0] } : {}),
       ...(states.length > 1 ? { states: [...states] } : {}),
@@ -135,19 +126,17 @@ export default function Orders(): React.JSX.Element {
     { invalidates: [['warehouse'], ['orders']] },
   )
 
-  const rows = (list.data?.items ?? []) as readonly OrderRow[]
+  const rows = list.data?.items ?? []
   const order = detail.data?.item
 
-  const columns: readonly RegisterColumn<OrderRow>[] = [
+  const columns: readonly RegisterColumn<Order>[] = [
     textColumn('orderNo', t('o5.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
     textColumn('shop', t('o5.shop'), (row) => names.retailer(row.retailerId)),
     {
       key: 'state',
       head: t('o5.state'),
       priority: 'chip',
-      cell: (row) => (
-        <StatusChip label={row.state} family={STATE_FAMILY[row.state] ?? 'neutral'} />
-      ),
+      cell: (row) => <StatusChip label={row.state} family={STATE_FAMILY[row.state] ?? 'neutral'} />,
     },
     moneyColumn('total', t('o5.value'), (row) => row.totalPaise),
     textColumn('flags', t('o5.flags'), (row) => row.approvalFlags.join(', ')),
@@ -198,7 +187,7 @@ export default function Orders(): React.JSX.Element {
           />
           <ExportButton
             register="dailySales"
-            filters={{ from: window.from, to: window.to }}
+            filters={{ from: span.from, to: span.to }}
             testID="orders-export"
           />
         </>
@@ -215,7 +204,9 @@ export default function Orders(): React.JSX.Element {
           }))}
           onToggle={(id) => {
             setStates((current) =>
-              current.includes(id) ? current.filter((s) => s !== id) : [...current, id],
+              current.includes(id as OrderState)
+                ? current.filter((s) => s !== id)
+                : [...current, id as OrderState],
             )
           }}
           onClear={
@@ -262,7 +253,7 @@ export default function Orders(): React.JSX.Element {
         onClose={() => {
           setSelected(null)
         }}
-        title={order === undefined ? undefined : t('o5.detail', { no: order.orderNo })}
+        title={order === undefined ? undefined : t('o5.detail', { no: order.orderNo ?? '' })}
         testID="order-panel"
       >
         <Async state={[detail]} rows={6}>

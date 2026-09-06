@@ -240,7 +240,7 @@ export function CompareBars({
         ))}
         {capped.map((g, i) => (
           <SvgText
-            key={g.label}
+            key={`${g.label}-${String(i)}`}
             x={plot.x + (plot.width / capped.length) * (i + 0.5)}
             y={height - 4}
             fill={labelColor}
@@ -291,9 +291,9 @@ export function StackedMix({
           backgroundColor: theme.colors.bg.surface,
         }}
       >
-        {segments.map((seg) => (
+        {segments.map((seg, index) => (
           <View
-            key={seg.label}
+            key={`${seg.label}-${String(index)}`}
             style={{
               width: `${seg.bps / 100}%`,
               backgroundColor: theme.colors.chart.mix[Math.min(seg.index, 4) as 0 | 1 | 2 | 3 | 4],
@@ -303,9 +303,9 @@ export function StackedMix({
       </View>
       {/* Labels live in the key line beneath, never on a segment (UX-00 3.4). */}
       <View style={{ marginTop: space[2], gap: space[1] }}>
-        {segments.map((seg) => (
+        {segments.map((seg, index) => (
           <View
-            key={seg.label}
+            key={`${seg.label}-${String(index)}`}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}
           >
             <View

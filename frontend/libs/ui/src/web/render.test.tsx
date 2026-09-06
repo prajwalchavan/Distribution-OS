@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import { ThemeProvider } from './ThemeProvider.js'
+import { CompareBars, StackedMix } from './charts.js'
+import { KpiStrip } from './list.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { TextInput } from './controls.js'
@@ -247,5 +249,53 @@ describe('the self-hosted typeface', () => {
     for (const file of ['Regular', 'Medium', 'SemiBold', 'Bold']) {
       expect(FONT_CSS).toContain(`IBMPlexSans-${file}.woff2`)
     }
+  })
+})
+
+
+/**
+ * Two rows of a chart can carry the SAME display name — two staff called "Demo Docs Staff", two beats
+ * a distributor named alike, two brands sharing a word. Keying a bar, a segment, a KPI column or an
+ * ageing rung by its label alone collapsed one into the other and React logged "Encountered two
+ * children with the same key" for every collision. These render both and count what comes out.
+ */
+describe('duplicate display labels', () => {
+  it('draws every bar of a CompareBars even when two groups share a name', () => {
+    const html = renderDesk(
+      <CompareBars
+        groups={[
+          { label: 'Demo Docs Staff', current: 10 },
+          { label: 'Demo Docs Staff', current: 20 },
+          { label: 'Vikas Kadam', current: 30 },
+        ]}
+      />,
+    )
+    expect(html.split('Demo Docs Staff').length - 1).toBe(2)
+  })
+
+  it('draws every segment of a StackedMix even when two share a name', () => {
+    const html = renderDesk(
+      <StackedMix
+        slices={[
+          { label: 'Campa', value: 100 },
+          { label: 'Campa', value: 50 },
+        ]}
+      />,
+    )
+    // Once in the bar's title, once in the key line, for each of the two slices.
+    expect(html.split('Campa').length - 1).toBeGreaterThanOrEqual(2)
+  })
+
+  it('draws every KPI column even when two share a label', () => {
+    const html = renderDesk(
+      <KpiStrip
+        items={[
+          { label: 'Outstanding', value: '1' },
+          { label: 'Outstanding', value: '2' },
+        ]}
+      />,
+    )
+    expect(html).toContain('>1<')
+    expect(html).toContain('>2<')
   })
 })

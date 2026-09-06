@@ -6,6 +6,7 @@
  * cancelled), record an e-way bill, and ask for an IRN. The PDF is the worker's, opened through
  * `@dos/ui/platform` so the same button prints in a browser and shares on a phone.
  */
+import type { GstSummaryRow, InvoiceListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
@@ -40,25 +41,6 @@ import {
 import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
-
-type Invoice = {
-  id: string
-  invoiceNo: string
-  invoiceDate: string
-  retailerId: string | null
-  buyerName: string
-  state: string
-  taxablePaise: number
-  cgstPaise: number
-  sgstPaise: number
-  igstPaise: number
-  cessPaise: number
-  totalPaise: number
-  amountDuePaise: number
-  dueDate: string | null
-  hasPdf: boolean
-  hasIrn: boolean
-}
 
 const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -122,10 +104,10 @@ export default function Billing(): React.JSX.Element {
     { invalidates: [['invoices']] },
   )
 
-  const rows = (list.data?.items ?? []) as readonly Invoice[]
+  const rows = list.data?.items ?? []
   const invoice = detail.data?.item
 
-  const columns: readonly RegisterColumn<Invoice>[] = [
+  const columns: readonly RegisterColumn<InvoiceListItem>[] = [
     textColumn('invoiceNo', t('o13.invoiceNo'), (row) => row.invoiceNo, { priority: 'identity' }),
     textColumn('date', t('o13.date'), (row) => longDate(row.invoiceDate)),
     textColumn('shop', t('o13.shop'), (row) => row.buyerName || names.retailer(row.retailerId)),
@@ -264,18 +246,22 @@ export default function Billing(): React.JSX.Element {
           <Register
             testID="gst-register"
             columns={[
-              textColumn('hsn', t('o13.hsn'), (row: GstRow) => row.hsnCode, {
+              textColumn('hsn', t('o13.hsn'), (row: GstSummaryRow) => row.hsnCode, {
                 priority: 'identity',
               }),
-              textColumn('rate', t('o13.rate'), (row: GstRow) => `${String(row.gstBps / 100)}%`),
-              textColumn('qty', t('o16.qty'), (row: GstRow) => row.qtyPcs),
-              moneyColumn('taxable', t('o13.taxable'), (row: GstRow) => row.taxablePaise),
-              moneyColumn('cgst', 'CGST ₹', (row: GstRow) => row.cgstPaise),
-              moneyColumn('sgst', 'SGST ₹', (row: GstRow) => row.sgstPaise),
-              moneyColumn('igst', 'IGST ₹', (row: GstRow) => row.igstPaise),
-              moneyColumn('total', t('o13.total'), (row: GstRow) => row.totalPaise),
+              textColumn(
+                'rate',
+                t('o13.rate'),
+                (row: GstSummaryRow) => `${String(row.gstBps / 100)}%`,
+              ),
+              textColumn('qty', t('o16.qty'), (row: GstSummaryRow) => row.qtyPcs),
+              moneyColumn('taxable', t('o13.taxable'), (row: GstSummaryRow) => row.taxablePaise),
+              moneyColumn('cgst', 'CGST ₹', (row: GstSummaryRow) => row.cgstPaise),
+              moneyColumn('sgst', 'SGST ₹', (row: GstSummaryRow) => row.sgstPaise),
+              moneyColumn('igst', 'IGST ₹', (row: GstSummaryRow) => row.igstPaise),
+              moneyColumn('total', t('o13.total'), (row: GstSummaryRow) => row.totalPaise),
             ]}
-            rows={(gst.data?.rows ?? []) as readonly GstRow[]}
+            rows={gst.data?.rows ?? []}
             rowKey={(row) => `${row.hsnCode}-${String(row.gstBps)}-${String(row.cessBps)}`}
             state="ready"
             totals={{
@@ -294,7 +280,7 @@ export default function Billing(): React.JSX.Element {
         onClose={() => {
           setSelected(null)
         }}
-        title={invoice?.invoiceNo}
+        title={invoice?.invoiceNo ?? undefined}
         testID="invoice-panel"
       >
         <Async state={[detail]} rows={6}>
@@ -416,22 +402,11 @@ export default function Billing(): React.JSX.Element {
           }
           if (dialog === 'cancel')
             void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, done)
-          else void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, done)
+          else
+            void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, done)
         }}
         testID="invoice-dialog"
       />
     </Screen>
   )
-}
-
-interface GstRow {
-  hsnCode: string
-  gstBps: number
-  cessBps: number
-  qtyPcs: number
-  taxablePaise: number
-  cgstPaise: number
-  sgstPaise: number
-  igstPaise: number
-  totalPaise: number
 }

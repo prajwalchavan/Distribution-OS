@@ -7,6 +7,7 @@
  * §0 already specifies for navigation. Nothing here is a placeholder: the positions, the staleness
  * and the stop counts are `delivery.vehicles.positions` live, and the tiles are the only thing missing.
  */
+import type { VehiclePosition } from '@dos/contracts'
 import { useApi, useQuery } from '@dos/api-client/react'
 import {
   Button,
@@ -24,21 +25,6 @@ import { share } from '@dos/ui/platform'
 import { Async, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 
-type Position = {
-  vehicleId: string
-  regNo: string
-  tripId: string | null
-  tripNo: string | null
-  tripState: string | null
-  driverId: string | null
-  lat: number | null
-  lng: number | null
-  recordedAt: string | null
-  stale: boolean
-  stopsDone: number
-  stopsPlanned: number
-}
-
 export default function LiveMap(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
@@ -52,9 +38,9 @@ export default function LiveMap(): React.JSX.Element {
     { staleTime: 30_000 },
   )
 
-  const rows = (positions.data?.items ?? []) as readonly Position[]
+  const rows = positions.data?.items ?? []
 
-  const columns: readonly RegisterColumn<Position>[] = [
+  const columns: readonly RegisterColumn<VehiclePosition>[] = [
     textColumn('vehicle', t('o4.vehicle'), (row) => row.regNo, { priority: 'identity' }),
     textColumn('driver', t('o4.driver'), (row) => names.staff(row.driverId)),
     textColumn('trip', t('o18.tripNo'), (row) => row.tripNo),

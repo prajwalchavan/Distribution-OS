@@ -36,6 +36,29 @@ describe('niceTicks', () => {
     }
   })
 
+  /**
+   * The fill-rate, on-time and POD-coverage charts are `unit: 'ratio'` — 0…1, not paise. Rounding a
+   * fractional step to the nearest integer made the axis read "0 0 1 1 1", and since the tick value
+   * is also its React key it logged a duplicate-key error for every collapsed tick.
+   */
+  it('keeps a fractional axis distinct — a ratio chart is not five integers', () => {
+    const ticks = niceTicks(0.9)
+    expect(new Set(ticks).size).toBe(ticks.length)
+    expect(ticks[0]).toBe(0)
+    expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(0.9)
+    for (const max of [0.12, 0.34, 0.5, 0.79, 0.9, 1]) {
+      const t = niceTicks(max)
+      expect(new Set(t).size).toBe(t.length)
+      expect(axisTop(max)).toBeGreaterThanOrEqual(max)
+    }
+  })
+
+  it('leaves a money axis integral — paise never grow a decimal point', () => {
+    for (const max of [7, 123, 45_678, 1_84_200_00]) {
+      for (const tick of niceTicks(max)) expect(Number.isInteger(tick)).toBe(true)
+    }
+  })
+
   it('answers a single zero tick for an empty chart instead of dividing by nothing', () => {
     expect(niceTicks(0)).toEqual([0])
     expect(axisTop(0)).toBe(1)

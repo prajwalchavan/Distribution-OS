@@ -252,7 +252,7 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
     >
       {items.map((item, i) => (
         <div
-          key={item.label}
+          key={`${item.label}-${String(i)}`}
           style={{
             padding: `${space[3]}px ${space[4]}px`,
             borderLeft: (wide ? i === 0 : i % 2 === 0)
@@ -311,11 +311,11 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
           </Txt>
         </div>
       ) : null}
-      {rows.map((row) => {
+      {rows.map((row, index) => {
         const tone = theme.colors.status[row.family]
         return (
           <div
-            key={row.label}
+            key={`${row.label}-${String(index)}`}
             style={{ display: 'flex', alignItems: 'center', gap: space[3], marginBottom: 6 }}
           >
             <span style={{ width: 56, flexShrink: 0 }}>

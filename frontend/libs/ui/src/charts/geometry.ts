@@ -65,7 +65,21 @@ export function niceTicks(max: number, count: number = chart.maxTicks): number[]
   // the highest point outside its own plot.
   const top = Math.ceil(max / step) * step
   const ticks: number[] = []
-  for (let i = 0; i * step <= top + step / 2; i++) ticks.push(Math.round(i * step))
+  /*
+   * Round to the STEP, not to the integer.
+   *
+   * Every chart in this product was money in paise until the first ratio one (fill rate, on-time
+   * rate, POD coverage — `unit: 'ratio'`, values 0…1). There `step` is fractional: a 0.9 maximum
+   * gives step 0.25 and ticks 0, 0.25, 0.5, 0.75, 1 — which `Math.round` collapsed to 0, 0, 1, 1, 1.
+   * The axis then printed "0 0 1 1 1" and React logged "Encountered two children with the same key"
+   * for every duplicate, because the tick value IS the key. Rounding to the step's own decimals keeps
+   * an integer axis integral (money and counts are unchanged) and a fractional one distinct.
+   */
+  const decimals = step >= 1 ? 0 : Math.min(10, Math.ceil(-Math.log10(step)) + 1)
+  const factor = 10 ** decimals
+  for (let i = 0; i * step <= top + step / 2; i++) {
+    ticks.push(Math.round(i * step * factor) / factor)
+  }
   return ticks
 }
 

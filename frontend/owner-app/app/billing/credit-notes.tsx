@@ -5,6 +5,7 @@
  * shows every note against its bill and its reason; a draft can be issued or cancelled, an issued one
  * only cancelled, and the panel says which because the state is the whole story.
  */
+import type { CreditNoteListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
@@ -30,19 +31,6 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
-
-type CreditNote = {
-  id: string
-  creditNoteNo: string
-  noteDate: string
-  invoiceId: string | null
-  invoiceNo: string | null
-  retailerId: string
-  reason: string
-  state: string
-  taxablePaise: number
-  totalPaise: number
-}
 
 const NOTE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -83,10 +71,10 @@ export default function CreditNotes(): React.JSX.Element {
     { invalidates: [['creditNotes'], ['receivables'], ['invoices']] },
   )
 
-  const rows = (list.data?.items ?? []) as readonly CreditNote[]
+  const rows = list.data?.items ?? []
   const note = detail.data?.item
 
-  const columns: readonly RegisterColumn<CreditNote>[] = [
+  const columns: readonly RegisterColumn<CreditNoteListItem>[] = [
     textColumn('no', t('o14.noteNo'), (row) => row.creditNoteNo, { priority: 'identity' }),
     textColumn('date', t('o13.date'), (row) => longDate(row.noteDate)),
     textColumn('shop', t('o13.shop'), (row) => names.retailer(row.retailerId)),
@@ -145,7 +133,7 @@ export default function CreditNotes(): React.JSX.Element {
         onClose={() => {
           setSelected(null)
         }}
-        title={note?.creditNoteNo}
+        title={note?.creditNoteNo ?? undefined}
         testID="credit-note-panel"
       >
         <Async state={[detail]} rows={5}>

@@ -271,7 +271,7 @@ export function CompareBars({
         ))}
         {capped.map((g, i) => (
           <text
-            key={g.label}
+            key={`${g.label}-${String(i)}`}
             x={plot.x + (plot.width / capped.length) * (i + 0.5)}
             y={height - 4}
             fill={labelColor}
@@ -336,9 +336,9 @@ export function StackedMix({
           overflow: 'hidden',
         }}
       >
-        {segments.map((seg) => (
+        {segments.map((seg, index) => (
           <div
-            key={seg.label}
+            key={`${seg.label}-${String(index)}`}
             title={seg.label}
             style={{
               width: `${seg.bps / 100}%`,
@@ -355,9 +355,9 @@ export function StackedMix({
           marginTop: space[2],
         }}
       >
-        {segments.map((seg) => (
+        {segments.map((seg, index) => (
           <span
-            key={seg.label}
+            key={`${seg.label}-${String(index)}`}
             style={{ display: 'inline-flex', alignItems: 'center', gap: space[2] }}
           >
             <span

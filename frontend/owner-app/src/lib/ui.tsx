@@ -24,14 +24,14 @@ import {
   type RegisterColumn,
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
-import { isAllowed, permissionFor } from '@dos/contracts'
-import type { PermissionRole, ReportExportFormat, ReportRegister } from '@dos/contracts'
+import { REGISTER_WINDOW_DAYS, isAllowed, permissionFor } from '@dos/contracts'
+import type { PermissionRole, Retailer, ReportExportFormat, ReportRegister } from '@dos/contracts'
 import { useRouter } from 'expo-router'
 import { useState, type ReactNode } from 'react'
 
 import { PAGE_TABS } from '../nav'
 import { absoluteUrl } from '../config'
-import { instantWithClock } from './dates'
+import { clampWindow, instantWithClock, type DateRange } from './dates'
 
 // ---------------------------------------------------------------------------
 // Panels and section furniture
@@ -295,6 +295,16 @@ export function AsOf({ at }: { at: string | number | null | undefined }): React.
 // Name lookups
 // ---------------------------------------------------------------------------
 
+/**
+ * `retailers.list` and `retailers.get` answer a UNION: a staff row carries `code`, `tier` and the
+ * credit block, a retailer-role row carries only the public shape. The owner always gets the staff
+ * row — but the type says "maybe", and the app narrows rather than casting, because the day someone
+ * mounts this screen behind another service the compiler is the only thing that will notice.
+ */
+export function staffRetailer<T extends { name: string }>(row: T): (T & Retailer) | null {
+  return 'code' in row ? (row as T & Retailer) : null
+}
+
 export interface Names {
   retailer: (id: string | null | undefined) => string
   staff: (id: string | null | undefined) => string
@@ -321,7 +331,7 @@ export function useNames(): Names {
     staleTime: 300_000,
     enabled: on,
   })
-  const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list(), {
+  const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list({}), {
     staleTime: 300_000,
     enabled: on,
   })
@@ -384,6 +394,21 @@ export function ExportButton({
   format?: ReportExportFormat
   testID?: string
 }): React.JSX.Element {
+  /*
+   * `exports.request` enforces the register's own window cap BEFORE it queues a job, so a "This FY"
+   * range against a 92-day register is a 400 rather than a report. The button narrows the window to
+   * what the register serves instead of failing — using the contract's own numbers, not a copy.
+   */
+  const cap = REGISTER_WINDOW_DAYS[register as keyof typeof REGISTER_WINDOW_DAYS] as
+    | number
+    | undefined
+  const windowed: Readonly<Record<string, unknown>> =
+    cap === undefined || typeof filters.from !== 'string' || typeof filters.to !== 'string'
+      ? filters
+      : {
+          ...filters,
+          ...clampWindow({ from: filters.from, to: filters.to } satisfies DateRange, cap),
+        }
   const t = useStrings()
   const api = useApi()
   const [url, setUrl] = useState<string | null>(null)
@@ -395,7 +420,7 @@ export function ExportButton({
         idempotencyKey: meta.idempotencyKey,
         register,
         format,
-        filters,
+        filters: windowed,
       }),
     {
       onSuccess: (result) => {
@@ -445,5 +470,7 @@ export function ExportButton({
 
 export function ReloadButton({ onPress }: { onPress: () => void }): React.JSX.Element {
   const t = useStrings()
-  return <Button label={t('app.reload')} variant="ghost" size="desk" onPress={onPress} testID="reload" />
+  return (
+    <Button label={t('app.reload')} variant="ghost" size="desk" onPress={onPress} testID="reload" />
+  )
 }

@@ -2,19 +2,20 @@
   "name": "@dos/owner-app",
   "version": "0.0.0",
   "private": true,
-  "description": "Distribution OS - Owner: one Expo codebase shipping as website, Android and iOS (docs/08 §0). Talks to its own service on :3001.",
+  "description": "Distribution OS - Owner: one Expo codebase shipping as website, Android and iOS (docs/08 \u00a70). Talks to its own service on :3001.",
   "main": "expo-router/entry",
   "scripts": {
-    "web": "expo start --web --port 5173",
+    "web": "node ./scripts/sync-fonts.mjs && expo start --web --port 5173",
     "start": "expo start",
     "ios": "expo run:ios",
     "android": "expo run:android",
     "native:prebuild": "expo prebuild",
-    "export:web": "expo export --platform web --output-dir dist",
-    "build": "expo export --platform web --output-dir dist",
+    "export:web": "node ./scripts/sync-fonts.mjs && expo export --platform web --output-dir dist",
+    "build": "node ./scripts/sync-fonts.mjs && expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "clean": "rm -rf dist .expo"
+    "clean": "rm -rf dist .expo",
+    "sync:fonts": "node ./scripts/sync-fonts.mjs"
   },
   "dependencies": {
     "@dos/api-client": "workspace:*",

@@ -168,7 +168,7 @@ export default function Today(): React.JSX.Element {
           <Half>
             <Panel
               title={t('o2.salesVsPrev')}
-              meta={t('app.range', { from: thirty.from, to: thirty.to })}
+              meta={t('app.range', { from: shortDate(thirty.from), to: shortDate(thirty.to) })}
               testID="today-trend"
             >
               <Async state={[sales]} rows={4} empty={(sales.data?.points.length ?? 0) === 0}>
@@ -182,7 +182,10 @@ export default function Today(): React.JSX.Element {
               </Async>
             </Panel>
 
-            <Panel title={t('o2.brandMix')} meta={t('app.range', { from: month.from, to: month.to })}>
+            <Panel
+              title={t('o2.brandMix')}
+              meta={t('app.range', { from: shortDate(month.from), to: shortDate(month.to) })}
+            >
               <Async state={[mix]} rows={2} empty={slices.length === 0}>
                 <StackedMix slices={slices} testID="today-mix" />
               </Async>
@@ -190,7 +193,7 @@ export default function Today(): React.JSX.Element {
           </Half>
 
           <Half>
-            <Panel title={t('o10.buckets')} testID="today-ageing">
+            <Panel testID="today-ageing">
               <Async state={[dashboard]} rows={6}>
                 <AgeingBuckets
                   buckets={{
@@ -285,4 +288,3 @@ export default function Today(): React.JSX.Element {
     </Screen>
   )
 }
-

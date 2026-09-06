@@ -36,6 +36,7 @@ import { APP, absoluteUrl } from '../src/config'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
 import { useHotkeys } from '../src/lib/keys'
+import { staffRetailer } from '../src/lib/ui'
 
 export default function RootLayout(): React.JSX.Element | null {
   const [client, setClient] = useState<ApiClient | null>(null)
@@ -306,10 +307,12 @@ function Chrome({
             <ListRow
               key={shop.id}
               primary={shop.name}
-              secondary={shop.code}
+              secondary={staffRetailer(shop)?.code}
               onPress={() => {
                 setQuery('')
-                router.push(`/shops?q=${encodeURIComponent(shop.code)}`)
+                router.push(
+                  `/shops?q=${encodeURIComponent(staffRetailer(shop)?.code ?? shop.name)}`,
+                )
               }}
             />
           ))}
