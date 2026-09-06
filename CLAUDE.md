@@ -60,7 +60,7 @@ pnpm --filter @dos/warehouse-service dev  # :3004  warehouse
 pnpm --filter @dos/delivery-service dev   # :3005  delivery
 pnpm --filter @dos/retailer-service dev   # :3006  retailer
 pnpm --filter @dos/worker dev             # pg-boss worker: outbox relay (registered handlers per event), retention sweep, PDF renderer (documents.pdf.render), docint pipeline
-cd ../frontend && pnpm --filter @dos/owner-app dev   # Vite on :5173; proxies /api -> :3001 (Expo apps: `pnpm --filter @dos/<role>-app web`)
+cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173 (each app has its own port 5173-5179); `expo run:ios` / `run:android` for devices
 ```
 
 `pnpm dev` in a workspace runs every `dev` task through turbo. Libraries (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) are consumed from `dist/`: after editing one, `pnpm --filter <pkg> build` (or keep `pnpm dev` running) or the services and the frontend will not see the change. Ports: `<NAME>_SERVICE_PORT` overrides a service's default; never set a global `PORT` in `.env`.
@@ -95,9 +95,13 @@ backend/worker                pg-boss consumers: outbox relay + handler registry
 backend/tools                 generate-readmes.mts, auth-keygen.mts, smoke-endpoints.mts (`pnpm smoke`).   backend/infra: Dockerfile, compose.
 frontend/                     pnpm workspace (hoisted linker for Expo): package.json, pnpm-workspace.yaml, turbo.json
 frontend/libs/config          tsconfig / eslint presets for the frontend (kept equal in versions to the backend's).
-frontend/libs/{ui,api-client,offline}   tokens + strings, typed oRPC client, offline queue (PowerSync later).
-frontend/<role>-app           owner (Vite web today, Expo later), manager, sales, warehouse, delivery, retailer:
-                              each its own package, README, and EXPO_PUBLIC_API_URL / VITE_API_URL of its service.
+frontend/libs/{ui,api-client,offline}   @dos/ui = A Ledger design system: ONE component contract (src/types.ts) implemented twice
+                              (src/web = React DOM, src/native = React Native) and resolved per platform by Metro (index.web.ts /
+                              index.native.ts) + layout primitives + AppShell + platform modules; typed oRPC client with session,
+                              refresh, cache hooks; our own delta-sync client (SQLite) — no PowerSync, no TanStack Query.
+frontend/<role>-app           owner, manager, sales, warehouse, delivery, retailer, admin: SEVEN UNIVERSAL Expo apps (expo-router),
+                              website + Android + iOS from one codebase each. Screens import ONLY @dos/ui (never react-native or
+                              react-dom; ESLint enforces). `pnpm --filter @dos/<role>-app web` serves the browser build; EXPO_PUBLIC_API_URL.
 docs/                         22 source of truth · 18 build log · 23 screen inventory + API gaps · 24 Confluence audit · 25 phase-2
                               enhancements · 26 environments, config and least-cost deployment · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
                               Confluence space, README maps page ids; docs/22 wins) · design/ (UX-00 design system on layout A Ledger,
@@ -127,7 +131,7 @@ docs/                         22 source of truth · 18 build log · 23 screen in
 - **Decorator metadata.** esbuild-based runners (tsx, vitest's default transform) never emit `design:paramtypes`, so Nest DI silently injects `undefined`. Core and the services run dev via `@swc-node/register` and tests via `unplugin-swc`; tsx is fine for decorator-free scripts (database migrate/seed, worker).
 - **Documents and files.** `@dos/core/documents` renders invoice / credit note / challan / receipt PDFs (own dependency-free renderer, white-labelled from `tenant_settings` branding keys) in the worker job `documents.pdf.render`, stores them under `tenant/{tenantId}/documents/…` and exposes `pdfObjectKey`; `modules/files` issues signed upload/read URLs over the object-storage platform with a per-domain role check. Never link a raw object key to a client.
 - **Roles beyond the seven.** `platform_admin` (module 13) is a global actor with no membership, accepted only by `admin-service`; support access to a tenant is a time-boxed, owner-approved, audited grant. Accountant = money desk + reads (no prices, schemes, credit limits, approvals, settings). Manager approves load-out from the manager app; the warehouse device waits for it.
-- **Owner app (web).** Hash router (`src/lib/router.tsx`) until nested layouts are needed; `useSession()` stores the sign-in state; `api` client from `src/lib/api.ts`; money via `<Money>`/`<RupeeInput>` (paise in, paise out). Vite dedupes React (Expo's copy will be hoisted alongside).
+- **Universal apps (decided 2026-09-06, docs/08 §0).** Every app is one Expo codebase for web + Android + iOS. Screens use only the `@dos/ui` contract; the desk shell or phone shell is chosen by viewport, not by app; platform differences live in `@dos/ui/platform` `.web.ts`/`.native.ts` pairs; the Expo SDK dictates the react/react-native versions in the frontend catalog. Money via `<Money>`/`<RupeeInput>` (paise in, paise out); `useSession()` from `@dos/api-client/react`.
 
 ## Things that look wrong but are intentional
 

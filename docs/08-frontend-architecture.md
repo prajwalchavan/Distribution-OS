@@ -2,6 +2,29 @@
 
 # Frontend architecture
 
+> **Superseded 2026-09-06 (founder decision, Fable as architect; docs/22 §8):** every one of the seven apps is **universal — website + Android + iOS from one codebase per role**. The table below (a Vite console, separate Expo projects, PowerSync, i18next/Hindi) is history; what stands is in §0 here and in docs/22.
+
+## 0. Universal apps (2026-09-06)
+
+**Shape.** `frontend/<role>-app` is an Expo app (expo-router, New Architecture, development builds). Its screens are written against the `@dos/ui` component **contract** (`frontend/libs/ui/src/types.ts`, one prop type per UX-00 §6 component) and never against a renderer. `@dos/ui` resolves per platform through Metro's platform extensions: `index.web.ts` re-exports `./web` (real DOM — HTML tables, CSS print, keyboard, text selection), `index.native.ts` re-exports `./native` (React Native views). One screen file therefore serves three targets; nothing is written twice above the component layer.
+
+**Layout primitives.** Because screens may not touch `View`/`div`, the kit exports a small layout vocabulary under the same contract: `Screen`, `Box`, `Stack`, `Row`, `Scroll`, `List` (virtualised), `Pressable`, `Img`, `Link`, `Txt`. That is the whole surface a screen may use for structure.
+
+**Shell.** `AppShell` renders the desk shell (UX-00 §8.1: left rail, header with tenant switcher, reading-width content) when the viewport is ≥ 1024 px and the phone shell (§8.2: bottom tabs, one-hand reach) below it. An owner on a phone gets the phone shell; a salesperson on a laptop gets the desk shell. Navigation config is data (sections, routes, permission) supplied by each app.
+
+**Platform modules.** `@dos/ui/platform` holds the few things that genuinely differ: `storage` (secure token store), `documents` (open/print a PDF), `camera` (scan a barcode, photograph a bill), `location` (trip tracking), `files` (pick/upload), `haptics`, `share`. Each is a `.web.ts` / `.native.ts` pair with one signature. A screen calls `platform.documents.open(url)` and never knows which one ran.
+
+**Offline.** `@dos/offline` (our own delta sync; docs/22 §8) uses `expo-sqlite` on native and its web build (OPFS/wa-sqlite) in the browser, behind one storage adapter; an in-memory adapter is the honest fallback and says so in `ConnectionStrip`.
+
+**Data.** `@dos/api-client` everywhere (typed oRPC client, session, refresh, cache hooks). No TanStack Query, no Zustand: the kit's hooks and React state are enough, and one fewer dependency in the bundle every field phone downloads.
+
+**Build and run.** Development: `pnpm --filter @dos/<role>-app web` (`expo start --web --port 51xx`) opens the app in the browser pane; `expo run:ios` on the simulator; `expo run:android` on the phone (dev build, not Expo Go). Hosting: `expo export --platform web` → static files on S3 + CloudFront; Android APK/AAB via `eas build --local` or Android Studio; iOS from the same code once the Apple account exists. Versions: the Expo SDK decides `react-native` and `react`; the frontend catalog follows the SDK, never the other way round.
+
+**Rules a reviewer can check.** (1) `grep -r "from 'react-native'" frontend/*-app/src` is empty, and so is `react-dom` — ESLint `no-restricted-imports` enforces it. (2) Every component in `@dos/ui/web` has a sibling in `@dos/ui/native` with the identical props (a test walks the contract). (3) `expo export --platform web` and `tsc` for native both pass for every app in CI. (4) Money, quantity and date helpers come from `@dos/domain`; the apps do no arithmetic on formatted strings.
+
+**Why this and not "React Native everywhere".** RN primitives on the web (react-native-web) give one component set but lose HTML tables, print stylesheets and keyboard behaviour that a distributor's owner and accountant use all day; the renderer swap keeps a real DOM on desk and real native views on phones for the same screen. The price is one contract to maintain in two places, which the kit already pays.
+
+
 | Concern                  | Decision                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Mobile                   | Expo SDK 57 (RN 0.86, New Architecture only, pinned), TypeScript, `expo-router`, EAS Build + Update with runtime-version gating, development builds from day one (Expo Go cannot run background location, op-sqlite or push)                                                                                                                                                       |
