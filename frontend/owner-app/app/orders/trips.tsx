@@ -33,6 +33,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const TRIP_FAMILY: Readonly<Record<string, StatusFamily>> = {
   planned: 'neutral',
@@ -46,6 +47,7 @@ const TRIP_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Trips(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [range, setRange] = useState<RangeId>('d30')
@@ -94,7 +96,9 @@ export default function Trips(): React.JSX.Element {
       key: 'state',
       head: t('o5.state'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.state} family={TRIP_FAMILY[row.state] ?? 'neutral'} />,
+      cell: (row) => (
+        <StatusChip label={word(row.state)} family={TRIP_FAMILY[row.state] ?? 'neutral'} />
+      ),
     },
     moneyColumn('opening', t('o11.amount'), (row) => row.openingCashPaise),
   ]

@@ -40,6 +40,7 @@ import {
 } from '../../src/lib/ui'
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
+import { useWord } from '../../src/lib/words'
 
 const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -66,6 +67,7 @@ type OrderState = (typeof STATES)[number]
 
 export default function Orders(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
   const names = useNames()
@@ -136,10 +138,12 @@ export default function Orders(): React.JSX.Element {
       key: 'state',
       head: t('o5.state'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.state} family={STATE_FAMILY[row.state] ?? 'neutral'} />,
+      cell: (row) => (
+        <StatusChip label={word(row.state)} family={STATE_FAMILY[row.state] ?? 'neutral'} />
+      ),
     },
     moneyColumn('total', t('o5.value'), (row) => row.totalPaise),
-    textColumn('flags', t('o5.flags'), (row) => row.approvalFlags.join(', ')),
+    textColumn('flags', t('o5.flags'), (row) => row.approvalFlags.map(word).join(', ')),
     textColumn('placed', t('o5.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -198,7 +202,7 @@ export default function Orders(): React.JSX.Element {
           testID="orders-states"
           items={STATES.map((state) => ({
             id: state,
-            label: state,
+            label: word(state),
             selected: states.includes(state),
           }))}
           onToggle={(id) => {
@@ -260,7 +264,10 @@ export default function Orders(): React.JSX.Element {
             <Stack gap={4}>
               <Field label={t('o5.shop')}>{names.retailer(order.retailerId)}</Field>
               <Field label={t('o5.state')}>
-                <StatusChip label={order.state} family={STATE_FAMILY[order.state] ?? 'neutral'} />
+                <StatusChip
+                  label={word(order.state)}
+                  family={STATE_FAMILY[order.state] ?? 'neutral'}
+                />
               </Field>
               <Field label={t('o5.terms')}>{order.paymentTerms}</Field>
               <Field label={t('o5.expected')}>{longDate(order.expectedDeliveryDate)}</Field>

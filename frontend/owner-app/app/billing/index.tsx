@@ -41,6 +41,7 @@ import {
 import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
+import { useWord } from '../../src/lib/words'
 
 const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -53,6 +54,7 @@ const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Billing(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
 
@@ -133,7 +135,7 @@ export default function Billing(): React.JSX.Element {
       head: t('o13.state'),
       priority: 'chip',
       cell: (row) => (
-        <StatusChip label={row.state} family={INVOICE_FAMILY[row.state] ?? 'neutral'} />
+        <StatusChip label={word(row.state)} family={INVOICE_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
   ]

@@ -221,7 +221,17 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
           ) : (
             <span />
           )}
-          <Button label={theme.t('action.close')} variant="ghost" onPress={onClose} size="desk" />
+          {/*
+            `size="desk"` only for the DESK side panel. A bottom sheet is a phone surface, so its
+            close button obeys the app's own floor (UX-00 section 5.2) exactly as every other control
+            on that sheet does — 32 px under a thumb was the smallest target in the kit.
+          */}
+          <Button
+            label={theme.t('action.close')}
+            variant="ghost"
+            onPress={onClose}
+            {...(desk ? { size: 'desk' as const } : {})}
+          />
         </div>
         {children}
       </div>
@@ -448,9 +458,22 @@ export function TenantLogo({
           {initialsOf(displayName)}
         </span>
       )}
+      {/*
+        `numberOfLines`, not `whiteSpace: nowrap`: a name the box cannot hold has to be CUT, not
+        pushed out of it. Nowrap with no shrink made the 172 px rail 185 px wide for a distributor
+        called "Sai Distributors, Dombivli" and painted the switcher's caret over the page. The
+        native half already clamped to one line; this is the same rule on the web half, and `title`
+        keeps the full name one hover away.
+      */}
       {withName ? (
-        <span style={{ minWidth: 0 }}>
-          <Txt field="title" desk="railTitle" as="div" style={{ whiteSpace: 'nowrap' }}>
+        <span style={{ minWidth: 0, flexShrink: 1 }} title={displayName}>
+          {/*
+            Two lines for the NAME, one for the subtitle. The rail is 172 px and "Tarsun Enterprise"
+            at railTitle 14/700 does not fit on one of them — clamping to one line would put the
+            distributor's own name (UX-00 §11: it IS the chrome) behind an ellipsis on the pilot's
+            very first screen. Two lines fit; a genuinely long name still stops at two.
+          */}
+          <Txt field="title" desk="railTitle" as="div" numberOfLines={2}>
             {displayName}
           </Txt>
           {subtitle ? (
@@ -459,7 +482,7 @@ export function TenantLogo({
               desk="meta"
               as="div"
               color={theme.colors.text.secondary}
-              style={{ whiteSpace: 'nowrap' }}
+              numberOfLines={1}
             >
               {subtitle}
             </Txt>

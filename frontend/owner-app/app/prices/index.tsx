@@ -25,6 +25,7 @@ import { useState } from 'react'
 
 import { Async, Field, Panel, moneyColumn, textColumn, useNames } from '../../src/lib/ui'
 import { longDate, today } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 type PriceListItem = {
   id: string
@@ -65,6 +66,7 @@ type View = 'lists' | 'schemes' | 'overrides' | 'quote'
 
 export default function Prices(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [view, setView] = useState<View>('lists')
@@ -119,7 +121,7 @@ export default function Prices(): React.JSX.Element {
             netPaise: result.totals.netPaise,
             rules: [...(first?.appliedRules ?? []), ...result.orderRules].map(
               (rule) =>
-                `${rule.kind}${rule.rewardKind === undefined ? '' : ` · ${rule.rewardKind}`}`,
+                `${word(rule.kind)}${rule.rewardKind === undefined ? '' : ` · ${word(rule.rewardKind)}`}`,
             ),
           })
         },
@@ -135,8 +137,13 @@ export default function Prices(): React.JSX.Element {
     }),
     moneyColumn('rate', t('o8.rate'), (row) => row.ratePaise),
     {
+      /*
+       * The head used to read "GST" and the chip "No", which together say the opposite of what the
+       * column means: this is whether the RATE BESIDE IT already has tax in it, not whether the item
+       * is taxed. It names the question now, so the answer is readable on its own.
+       */
       key: 'incl',
-      head: t('o5.tax'),
+      head: t('o8.gstIncluded'),
       priority: 'chip',
       cell: (row) => (
         <StatusChip label={row.inclusiveOfGst ? t('word.yes') : t('word.no')} family="neutral" />

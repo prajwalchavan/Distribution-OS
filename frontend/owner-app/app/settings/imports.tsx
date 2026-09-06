@@ -23,6 +23,7 @@ import { useState } from 'react'
 
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../../src/lib/ui'
 import { instantWithClock } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const IMPORT_FAMILY: Readonly<Record<string, StatusFamily>> = {
   queued: 'neutral',
@@ -37,6 +38,7 @@ const IMPORT_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Imports(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [selected, setSelected] = useState<string | null>(null)
@@ -83,8 +85,8 @@ export default function Imports(): React.JSX.Element {
 
   const columns: readonly RegisterColumn<ImportJob>[] = [
     textColumn('file', t('o21.file'), (row) => row.fileName, { priority: 'identity' }),
-    textColumn('source', t('o21.source'), (row) => row.source),
-    textColumn('target', t('o21.target'), (row) => row.target),
+    textColumn('source', t('o21.source'), (row) => word(row.source)),
+    textColumn('target', t('o21.target'), (row) => word(row.target)),
     textColumn('rows', t('o21.rows'), (row) => row.totalRows),
     textColumn('ok', t('o21.ok'), (row) => row.okRows),
     textColumn('errors', t('o21.errors'), (row) => row.errorRows),
@@ -94,7 +96,7 @@ export default function Imports(): React.JSX.Element {
       priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.status}
+          label={word(row.status)}
           family={IMPORT_FAMILY[row.status] ?? 'neutral'}
           solid={row.status === 'failed'}
         />
@@ -147,7 +149,10 @@ export default function Imports(): React.JSX.Element {
               <Field label={t('o21.source')}>{job.source}</Field>
               <Field label={t('o21.target')}>{job.target}</Field>
               <Field label={t('o21.status')}>
-                <StatusChip label={job.status} family={IMPORT_FAMILY[job.status] ?? 'neutral'} />
+                <StatusChip
+                  label={word(job.status)}
+                  family={IMPORT_FAMILY[job.status] ?? 'neutral'}
+                />
               </Field>
               <Field label={t('o21.rows')}>
                 {`${String(job.okRows)} / ${String(job.totalRows)}`}

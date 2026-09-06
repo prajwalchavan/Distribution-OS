@@ -5,6 +5,7 @@
  * this screen is a queue with a download beside every finished row. The Tally half is the ledger-name
  * map and the sync log — what this product calls an account against what Tally calls it.
  */
+import { parseReportExportKind } from '@dos/contracts'
 import type { ExportJob, TallyMapping } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
@@ -25,6 +26,7 @@ import { useState } from 'react'
 import { Async, PageTabs, textColumn, useNames } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { instantWithClock, rangeOf } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const JOB_FAMILY: Readonly<Record<string, StatusFamily>> = {
   queued: 'neutral',
@@ -36,6 +38,20 @@ const JOB_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Exports(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
+
+  /*
+   * `export_jobs.kind` is one string with two shapes. Reporting queues `report_<register>_<format>`
+   * (`report_gstSalesRegister_csv`), which humanises into the nonsense "Report gst sales register
+   * csv"; the other modules queue a flat kind (`tally_xml`, `claim_sheet`). The contract owns the
+   * split, so the screen asks it rather than parsing the underscores itself.
+   */
+  const exportKind = (kind: string): string => {
+    const report = parseReportExportKind(kind)
+    return report === null
+      ? word(kind)
+      : `${word(report.register)} · ${report.format.toUpperCase()}`
+  }
   const api = useApi()
   const names = useNames()
   const [view, setView] = useState<'exports' | 'tally'>('exports')
@@ -70,7 +86,7 @@ export default function Exports(): React.JSX.Element {
   }
 
   const jobColumns: readonly RegisterColumn<ExportJob>[] = [
-    textColumn('kind', t('o22.kind'), (row) => row.kind, { priority: 'identity' }),
+    textColumn('kind', t('o22.kind'), (row) => exportKind(row.kind), { priority: 'identity' }),
     textColumn('file', t('o21.file'), (row) => row.fileName),
     textColumn('rows', t('o22.rowCount'), (row) => row.rowCount),
     textColumn('by', t('o7.person'), (row) => names.staff(row.requestedBy)),
@@ -79,7 +95,9 @@ export default function Exports(): React.JSX.Element {
       key: 'status',
       head: t('o22.status'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.status} family={JOB_FAMILY[row.status] ?? 'neutral'} />,
+      cell: (row) => (
+        <StatusChip label={word(row.status)} family={JOB_FAMILY[row.status] ?? 'neutral'} />
+      ),
     },
     {
       key: 'download',
@@ -102,7 +120,9 @@ export default function Exports(): React.JSX.Element {
   ]
 
   const mappingColumns: readonly RegisterColumn<TallyMapping>[] = [
-    textColumn('entity', t('o22.register'), (row) => row.entityType, { priority: 'identity' }),
+    textColumn('entity', t('o22.register'), (row) => word(row.entityType), {
+      priority: 'identity',
+    }),
     textColumn('local', t('o12.account'), (row) => row.entityLabel),
     textColumn('tally', t('o22.tallyLedger'), (row) => row.tallyName),
   ]

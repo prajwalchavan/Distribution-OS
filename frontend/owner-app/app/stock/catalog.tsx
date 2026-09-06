@@ -9,6 +9,7 @@
 import type { TenantBrand, TenantProduct } from '@dos/contracts'
 import { useApi, useQuery } from '@dos/api-client/react'
 import {
+  Chips,
   Money,
   Register,
   Screen,
@@ -24,18 +25,28 @@ import {
 import { useState } from 'react'
 
 import { Async, PageTabs, moneyColumn, textColumn } from '../../src/lib/ui'
+import { useWord } from '../../src/lib/words'
 
 type View = 'items' | 'costs' | 'suppliers' | 'brands'
 
 export default function Catalog(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
   const [view, setView] = useState<View>('items')
   const [q, setQ] = useState('')
+  /*
+   * The tab is called "Listed items", and `listedOnly: false` made it anything but: the global
+   * catalog is curated across every distributor, so the first 300 rows this answered were 300
+   * variants NOBODY here sells — the pilot's own 29 SKUs did not appear at all, each row showing a
+   * blank brand, a blank MRP and "Active: No". Listed only is the default; the switch below is how a
+   * variant gets found in order to be listed in the first place.
+   */
+  const [listedOnly, setListedOnly] = useState(true)
 
-  const listings = useQuery(['tenantCatalog', 'list', q], () =>
-    api.api.tenantCatalog.list({ limit: 300, listedOnly: false, ...(q === '' ? {} : { q }) }),
+  const listings = useQuery(['tenantCatalog', 'list', q, listedOnly], () =>
+    api.api.tenantCatalog.list({ limit: 300, listedOnly, ...(q === '' ? {} : { q }) }),
   )
   const costs = useQuery(
     ['tenantCatalog', 'costs'],
@@ -51,6 +62,11 @@ export default function Catalog(): React.JSX.Element {
     enabled: view === 'brands',
   })
 
+  /**
+   * `tenantCatalog.costs` rows carry a `variantId` and no name (an API gap, docs/23 §8.17), so the
+   * screen joins them to the listing it already has. A cost row for a variant this distributor does
+   * not list — the only ones are left behind by smoke runs — keeps its short id rather than a lie.
+   */
   const nameOf = (variantId: string): string =>
     listings.data?.items.find((row) => row.variantId === variantId)?.name ?? variantId.slice(0, 8)
 
@@ -114,9 +130,9 @@ export default function Catalog(): React.JSX.Element {
 
   const brandColumns: readonly RegisterColumn<TenantBrand>[] = [
     textColumn('brand', t('o9.brand'), (row) => row.brandName, { priority: 'identity' }),
-    textColumn('mode', t('o9.packs'), (row) => row.fulfilmentMode),
-    textColumn('claims', t('o19.title'), (row) => row.claimChannel),
-    textColumn('force', t('o7.staff'), (row) => row.salesForce),
+    textColumn('mode', t('o9.packs'), (row) => word(row.fulfilmentMode)),
+    textColumn('claims', t('o19.title'), (row) => word(row.claimChannel)),
+    textColumn('force', t('o7.staff'), (row) => word(row.salesForce)),
   ]
 
   return (
@@ -141,13 +157,22 @@ export default function Catalog(): React.JSX.Element {
     >
       <Stack gap={4}>
         {view === 'items' ? (
-          <Search
-            testID="catalog-search"
-            value={q}
-            onChange={setQ}
-            placeholder={t('o9.search')}
-            state={q === '' ? 'idle' : listings.isFetching ? 'typing' : 'results'}
-          />
+          <Stack gap={3}>
+            <Search
+              testID="catalog-search"
+              value={q}
+              onChange={setQ}
+              placeholder={t('o9.search')}
+              state={q === '' ? 'idle' : listings.isFetching ? 'typing' : 'results'}
+            />
+            <Chips
+              testID="catalog-listed"
+              items={[{ id: 'listed', label: t('o9.listedOnly'), selected: listedOnly }]}
+              onToggle={() => {
+                setListedOnly((on) => !on)
+              }}
+            />
+          </Stack>
         ) : null}
 
         {view === 'costs' ? (

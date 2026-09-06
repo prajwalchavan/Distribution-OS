@@ -553,7 +553,23 @@ export function Screen(props: ScreenProps): React.JSX.Element {
               )}
             </div>
             {actions === undefined ? null : (
-              <div style={{ display: 'flex', gap: space[2], alignItems: 'center' }}>{actions}</div>
+              /*
+               * Wraps. A page header carries a range switch, an export and sometimes a third verb;
+               * on a 375 px phone (where UX-00 §8.2 puts them UNDER the title) an unwrapped row ran
+               * "Export CSV" and "Rebuild ageing" off the right edge of the money screen, where a
+               * page cannot be scrolled sideways to reach them.
+               */
+              <div
+                style={{
+                  display: 'flex',
+                  gap: space[2],
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  justifyContent: desk ? 'flex-end' : 'flex-start',
+                }}
+              >
+                {actions}
+              </div>
             )}
           </div>
           {chips === undefined ? null : (

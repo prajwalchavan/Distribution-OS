@@ -163,3 +163,49 @@ export function extendStrings(
 
 /** The default translator, for code outside a React tree (formatters, tests, sync messages). */
 export const t: Translator = createTranslator('en')
+
+// ---------------------------------------------------------------------------
+// Machine words
+// ---------------------------------------------------------------------------
+
+/**
+ * A service's own enum value, made readable: `settled_with_variance` -> "Settled with variance",
+ * `POST_FULFILLMENT` -> "Post fulfilment", `gstSalesRegister` -> "Gst sales register",
+ * `claims.line.add` -> "Claims line add".
+ *
+ * WHY THE KIT OWNS THIS. Every one of the seven apps renders states, kinds, reasons and modes that
+ * arrive as identifiers, and every one of them printed them verbatim to begin with — a `<StatusChip>`
+ * reading "settled_with_variance" and a Terms column reading "POST_FULFILLMENT" were both on the
+ * owner app's trips and shops registers. UX-00 section 12 asks for the trade's own word, and a
+ * database identifier is not one.
+ *
+ * This is the FALLBACK, not the answer: an app gives a value its own `word.<value>` key when the
+ * shop's word differs from the machine's ("POST_FULFILLMENT" is "Credit") or an initialism has to
+ * stay upright ("UPI", "GRN"). What this guarantees is the floor — a value nobody has written a word
+ * for yet still reaches the screen as words, so a status the backend adds tomorrow degrades into
+ * "Partly settled" rather than `partly_settled`.
+ */
+export function humaniseValue(value: string): string {
+  const spaced = value
+    // `gstSalesRegister` -> `gst Sales Register`, before the case is flattened.
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+  if (spaced === '') return ''
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+/**
+ * One enum value in the reader's language: an app's `word.<value>` key when it has one, the
+ * humanised identifier when it has not, and the em dash for nothing at all — so a register cell can
+ * hand a nullable column straight to it.
+ */
+export function wordFor(translate: Translator, value: string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return t('money.none')
+  const key = `word.${value}`
+  const found = translate(key)
+  // `createTranslator` returns the key itself when no catalogue has an entry for it.
+  return found === key ? humaniseValue(value) : found
+}

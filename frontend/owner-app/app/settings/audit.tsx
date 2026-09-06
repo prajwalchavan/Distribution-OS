@@ -24,9 +24,11 @@ import { useState } from 'react'
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../../src/lib/ui'
 import { instantWithClock, rangeOf, type RangeId } from '../../src/lib/dates'
 import { RangeSegments } from '../../src/lib/ui'
+import { useWord } from '../../src/lib/words'
 
 export default function Audit(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const { session } = useSession()
@@ -59,9 +61,9 @@ export default function Audit(): React.JSX.Element {
       priority: 'identity',
     }),
     textColumn('who', t('o25.who'), (row) => names.staff(row.actorId)),
-    textColumn('role', t('o7.role'), (row) => row.actorRole),
-    textColumn('action', t('o25.action'), (row) => row.action),
-    textColumn('entity', t('o25.entity'), (row) => row.entityType, { priority: 'chip' }),
+    textColumn('role', t('o7.role'), (row) => word(row.actorRole)),
+    textColumn('action', t('o25.action'), (row) => word(row.action)),
+    textColumn('entity', t('o25.entity'), (row) => word(row.entityType), { priority: 'chip' }),
   ]
 
   /** `auth.sessions` adds `current` to the stored session row; the contract says so, so we read it. */
@@ -71,7 +73,7 @@ export default function Audit(): React.JSX.Element {
     textColumn('device', t('o25.device'), (row) => row.deviceName ?? row.deviceId, {
       priority: 'identity',
     }),
-    textColumn('platform', t('o7.role'), (row) => row.platform),
+    textColumn('platform', t('o7.role'), (row) => word(row.platform)),
     textColumn('created', t('app.session'), (row) => instantWithClock(row.createdAt)),
     textColumn('last', t('o25.lastSeen'), (row) => instantWithClock(row.lastUsedAt)),
     {

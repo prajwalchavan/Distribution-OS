@@ -33,6 +33,7 @@ import {
   textColumn,
 } from '../../src/lib/ui'
 import { instantWithClock, longDate, rangeOf } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const STATUS_FAMILY: Readonly<Record<string, StatusFamily>> = {
   extracted: 'ochre',
@@ -43,8 +44,20 @@ const STATUS_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function DocumentsInbox(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const [selected, setSelected] = useState<string | null>(null)
+
+  /**
+   * How long this bill has been waiting. `ageMinutes` is a raw count and the register printed it as
+   * one — "1104 min" is a number nobody converts in their head while deciding what to open next.
+   */
+  const waiting = (minutes: number): string =>
+    minutes < 90
+      ? t('o26.minutes', { count: minutes })
+      : minutes < 48 * 60
+        ? t('o26.hours', { count: Math.round(minutes / 60) })
+        : t('o26.days', { count: Math.round(minutes / (60 * 24)) })
 
   const span = rangeOf('d30')
   const queue = useQuery(['docint', 'queue'], () => api.api.docint.queue.list({ limit: 100 }))
@@ -93,10 +106,10 @@ export default function DocumentsInbox(): React.JSX.Element {
       key: 'status',
       head: t('o16.status'),
       cell: (row) => (
-        <StatusChip label={row.status} family={STATUS_FAMILY[row.status] ?? 'neutral'} />
+        <StatusChip label={word(row.status)} family={STATUS_FAMILY[row.status] ?? 'neutral'} />
       ),
     },
-    textColumn('age', t('o26.age'), (row) => t('o26.minutes', { count: row.ageMinutes })),
+    textColumn('age', t('o26.age'), (row) => waiting(row.ageMinutes)),
   ]
 
   return (
@@ -107,9 +120,11 @@ export default function DocumentsInbox(): React.JSX.Element {
             <Panel title={t('o26.quality')} meta={t('app.range', { from: span.from, to: span.to })}>
               <Async state={[stats]} rows={3}>
                 <Stack gap={2}>
-                  <Field label={t('o26.document')}>{String(stats.data?.documents ?? 0)}</Field>
-                  <Field label={t('o26.lines')}>{String(stats.data?.editsPerTenLines ?? 0)}</Field>
-                  <Field label={t('o26.red')}>{String(stats.data?.failed ?? 0)}</Field>
+                  <Field label={t('o26.documents')}>{String(stats.data?.documents ?? 0)}</Field>
+                  <Field label={t('o26.editsPerTen')}>
+                    {String(stats.data?.editsPerTenLines ?? 0)}
+                  </Field>
+                  <Field label={t('o26.failed')}>{String(stats.data?.failed ?? 0)}</Field>
                 </Stack>
               </Async>
             </Panel>

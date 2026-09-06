@@ -377,7 +377,8 @@ export function TenantLogo({
       )}
       {withName ? (
         <View style={{ flexShrink: 1 }}>
-          <Txt field="title" desk="railTitle" numberOfLines={1}>
+          {/* Two lines for the name, one for the subtitle — see the web half for why. */}
+          <Txt field="title" desk="railTitle" numberOfLines={2}>
             {displayName}
           </Txt>
           {subtitle ? (

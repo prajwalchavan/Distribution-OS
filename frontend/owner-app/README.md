@@ -31,6 +31,7 @@ cd frontend && pnpm --filter @dos/owner-app ios   # the iOS simulator
 - Growth & performance (O2), Profit — owner only (O17), Incentives (O20), Exports & Tally (O22)
 - Prices & schemes with a what-if quote (O8), Beats & staff (O7)
 - Settings: branding, numbering, flags, policy, support access (O24); imports (O21); messages (O23); audit (O25)
+- Sign in (X1) and the forced password change (X2): until `mustChangePassword` clears, every route lands there and no chrome renders
 
 ## Endpoints this app uses
 

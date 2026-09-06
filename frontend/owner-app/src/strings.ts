@@ -21,7 +21,17 @@ export const strings = {
   'app.changePassword': 'Change password',
   'app.currentPassword': 'Current password',
   'app.newPassword': 'New password',
+  'app.repeatPassword': 'New password again',
   'app.passwordChanged': 'Password changed',
+  'app.passwordForced':
+    'This password was given to you by someone else. Set your own before you carry on.',
+  'app.passwordVoluntary': 'Choose a new password for this account.',
+  'app.passwordRule': 'At least 8 characters, with a letter and a digit',
+  'app.passwordMismatch': 'The two new passwords are not the same',
+  'app.passwordNeedsCurrent': 'Enter the password you signed in with',
+  'app.passwordRevokes': 'Your other devices will be signed out.',
+  'app.setPassword': 'Set password',
+  'app.passwordFailed': 'Could not change the password',
   'app.devices': 'Devices & sessions',
   'app.session': 'Signed in',
   'app.revoke': 'Sign out device',
@@ -266,6 +276,7 @@ export const strings = {
   'o9.minOrder': 'Min order',
   'o9.ownerOnly': 'Cost is visible to the back office only',
   'o9.search': 'Search the global catalog',
+  'o9.listedOnly': 'Only what I sell',
 
   // --- O10 Outstanding & ageing -----------------------------------------------------------------------
   'o10.tab': 'Outstanding',
@@ -419,6 +430,8 @@ export const strings = {
   'o26.waiting': 'Waiting in the inbox',
   'o26.empty': 'The inbox is clear',
   'o26.minutes': '{count} min',
+  'o26.hours': '{count} h',
+  'o26.days': '{count} d',
 
   // --- O2 Growth & performance ---------------------------------------------------------------------------------
   'o2.tab': 'Growth',
@@ -513,6 +526,8 @@ export const strings = {
   'o21.empty': 'No import started yet',
 
   // --- O22 Exports & Tally ----------------------------------------------------------------------------------------------
+  'o8.gstIncluded': 'Rate includes GST',
+  'o17.unnamedScheme': 'Scheme {ref}',
   'o22.tab': 'Exports',
   'o22.title': 'Exports & Tally',
   'o22.kind': 'Kind',
@@ -612,4 +627,113 @@ export const strings = {
   'word.no': 'No',
   'word.total': 'Total',
   'word.count': 'Count',
+
+  /*
+   * --- the services' own enum values, in the trade's words (`src/lib/words.ts`) -------------------
+   *
+   * `useWord()` looks a value up as `word.<value>`; a value with no key here is humanised
+   * (`partly_settled` -> "Partly settled"), so this list carries only the ones where the machine word
+   * and the shop's word differ, or where an initialism must stay upright (UPI, GST, POD, GRN).
+   * Values shared by two enums are spelled the way BOTH read correctly.
+   */
+
+  // order + trip + stop states
+  'word.partially_delivered': 'Part delivered',
+  'word.settled_with_variance': 'Settled, variance',
+  'word.return_undelivered': 'Returned to godown',
+
+  // approvals
+  'word.credit_limit': 'Over credit limit',
+  'word.below_floor': 'Below floor price',
+  'word.manual_price': 'Price changed by hand',
+  'word.scheme_override': 'Scheme overridden',
+  'word.trip_settlement': 'Trip cash variance',
+
+  // invoices and credit notes
+  'word.partially_paid': 'Part paid',
+  'word.written_off': 'Written off',
+  'word.short_delivery': 'Short delivered',
+  'word.return_saleable': 'Return, saleable',
+  'word.return_damaged': 'Return, damaged',
+  'word.rate_difference': 'Rate difference',
+  'word.scheme_settlement': 'Scheme settlement',
+  'word.brand_dms_import': 'Brand DMS import',
+  'word.b2b': 'B2B',
+  'word.B2B': 'B2B',
+  'word.b2c': 'B2C',
+  'word.B2C': 'B2C',
+
+  // money
+  'word.upi': 'UPI',
+  'word.bank_transfer': 'Bank transfer',
+  'word.on_account': 'On account',
+  'word.at_receipt_financial_cn': 'Credit note at receipt',
+  'word.on_invoice': 'On the invoice',
+  'word.PRE': 'Pays in advance',
+  'word.ON': 'Pays on delivery',
+  'word.POST_FULFILLMENT': 'Credit',
+  'word.indicate': 'Warn only',
+  'word.strict': 'Needs approval',
+  'word.stop': 'Blocked',
+
+  // stock and inbound
+  'word.grn': 'GRN',
+  'word.fefo_override': 'FEFO overridden',
+  'word.needs_review': 'Needs review',
+  'word.mrp': 'MRP',
+  'word.ptd': 'PTD',
+  'word.hsn': 'HSN',
+  'word.pod': 'POD',
+  'word.gps.live_map_read': 'GPS live map read',
+  'word.gps.trace_read': 'GPS trace read',
+  'word.gps.points_write': 'GPS points written',
+  'word.credit_only': 'Credit bills only',
+  'word.always': 'Every bill',
+  'word.never': 'Never',
+
+  // people
+  'word.salesperson': 'Salesperson',
+  'word.platform_admin': 'Distribution OS staff',
+  'word.must_change_password': 'Temporary password',
+
+  // imports and exports
+  'word.tradeezee': 'TradeEzee',
+  'word.fieldassist': 'FieldAssist',
+  'word.tally_xml': 'Tally XML',
+  'word.gstr1_json': 'GSTR-1 JSON',
+  'word.sales_register_xlsx': 'Sales register (Excel)',
+  'word.outstanding_xlsx': 'Outstanding (Excel)',
+  'word.eway_bill_json': 'E-way bill JSON',
+  'word.einvoice_json': 'E-invoice JSON',
+  'word.claim_sheet': 'Claim sheet',
+  'word.gstSalesRegister': 'GST sales register',
+  'word.gstPurchaseRegister': 'GST purchase register',
+  'word.dailySales': 'Daily sales',
+  'word.repProductivity': 'Rep productivity',
+  'word.schemeSpend': 'Scheme spend',
+  'word.stockValue': 'Stock value',
+  'word.fillRate': 'Fill rate',
+  'word.deliveryPerformance': 'Delivery performance',
+  'word.opening_outstanding': 'Opening outstanding',
+  'word.party_master': 'Shops',
+  'word.item_master': 'Items',
+  'word.sales_register': 'Sales register',
+  'word.brand_dms_invoices': 'Brand DMS bills',
+  'word.rolled_back': 'Rolled back',
+
+  // messages
+  'word.sms': 'SMS',
+  'word.in_app': 'In the app',
+  'word.pod_delivered': 'Delivery proof',
+  'word.payment_received': 'Payment received',
+  'word.order_confirmed': 'Order confirmed',
+  'word.invoice_issued': 'Bill issued',
+  'word.dues_reminder': 'Dues reminder',
+  'word.scheme_announcement': 'Scheme announcement',
+
+  // schemes and visits
+  'word.free_qty': 'Free goods',
+  'word.no_order': 'No order',
+  'word.not_found': 'Shop not found',
+  'word.payment_only': 'Payment only',
 } as const

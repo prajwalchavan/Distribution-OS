@@ -34,9 +34,11 @@ import {
   textColumn,
 } from '../../src/lib/ui'
 import { instantWithClock, clampWindow, monthsBack, shortDate } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 export default function Profit(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
 
@@ -77,17 +79,31 @@ export default function Profit(): React.JSX.Element {
     current: group.points.reduce((sum, point) => sum + point.value, 0),
   }))
 
+  /*
+   * `registers.schemeSpend` answers `schemeName: scheme?.name ?? row.ruleId` — an invoice line's
+   * `applied_rules` carries the RULE id, and a rule whose scheme row cannot be found leaves the raw
+   * uuid in the name. Printing 36 characters of hex in the identity column of a money register tells
+   * the reader nothing, so a name that IS its own id is shown as a short reference instead. (The join
+   * itself is a backend gap; see the slice report.)
+   */
+  const schemeLabel = (row: SchemeSpendRow): string =>
+    row.schemeName === row.schemeId
+      ? t('o17.unnamedScheme', { ref: row.schemeId.slice(0, 8) })
+      : row.schemeName
+
   const fundingSlices = Object.entries(
     (schemeSpend.data?.items ?? []).reduce<Record<string, number>>((acc, row) => {
       acc[row.fundingSource] = (acc[row.fundingSource] ?? 0) + row.amountPaise
       return acc
     }, {}),
-  ).map(([label, value]) => ({ label, value }))
+  ).map(([label, value]) => ({ label: word(label), value }))
 
   const spendColumns: readonly RegisterColumn<SchemeSpendRow>[] = [
-    textColumn('scheme', t('o8.scheme'), (row) => row.schemeName, { priority: 'identity' }),
+    textColumn('scheme', t('o8.scheme'), schemeLabel, { priority: 'identity' }),
     textColumn('brand', t('o17.brand'), (row) => row.brandName),
-    textColumn('funding', t('o17.fundedBy'), (row) => row.fundingSource, { priority: 'chip' }),
+    textColumn('funding', t('o17.fundedBy'), (row) => word(row.fundingSource), {
+      priority: 'chip',
+    }),
     moneyColumn('amount', t('o17.spend'), (row) => row.amountPaise),
     textColumn('invoices', t('o13.tab'), (row) => row.invoiceCount),
   ]

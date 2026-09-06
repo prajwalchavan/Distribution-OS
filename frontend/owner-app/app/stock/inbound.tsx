@@ -27,6 +27,7 @@ import { useState } from 'react'
 
 import { Async, PageTabs, moneyColumn, textColumn, useNames } from '../../src/lib/ui'
 import { instantWithClock, longDate } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const STATUS_FAMILY: Readonly<Record<string, StatusFamily>> = {
   extracted: 'ochre',
@@ -52,6 +53,7 @@ type View = 'bills' | 'grns' | 'pos' | 'issues'
 
 export default function Inbound(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [view, setView] = useState<View>('bills')
@@ -89,7 +91,7 @@ export default function Inbound(): React.JSX.Element {
     suppliers.data?.items.find((s) => s.id === id)?.name ?? id.slice(0, 8)
 
   const chip = (value: string): React.JSX.Element => (
-    <StatusChip label={value} family={STATUS_FAMILY[value] ?? 'neutral'} />
+    <StatusChip label={word(value)} family={STATUS_FAMILY[value] ?? 'neutral'} />
   )
 
   const billColumns: readonly RegisterColumn<SupplierInvoice>[] = [
@@ -116,7 +118,7 @@ export default function Inbound(): React.JSX.Element {
   ]
 
   const issueColumns: readonly RegisterColumn<Discrepancy>[] = [
-    textColumn('kind', t('o16.kind'), (row) => row.kind, { priority: 'identity' }),
+    textColumn('kind', t('o16.kind'), (row) => word(row.kind), { priority: 'identity' }),
     {
       key: 'qty',
       head: t('o16.qty'),

@@ -36,7 +36,7 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
     return (
       <div
         data-testid={testID}
-        style={{ display: 'flex', alignItems: 'center', gap: space[2] }}
+        style={{ display: 'flex', alignItems: 'center', gap: space[2], minWidth: 0 }}
         title={compact ? current.name : undefined}
       >
         <TenantLogo
@@ -49,8 +49,14 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
     )
   }
 
+  /*
+   * `minWidth: 0` all the way down, and `boxSizing: border-box` on the button: the rail is a fixed
+   * 172 px column and this control sits inside its 148 px content box. Without it the button sized
+   * itself to its content — 185 px for three memberships — and the caret was painted OUTSIDE the
+   * rail, on top of the page.
+   */
   return (
-    <div data-testid={testID} style={{ position: 'relative' }}>
+    <div data-testid={testID} style={{ position: 'relative', minWidth: 0 }}>
       <button
         type="button"
         onClick={() => {
@@ -73,6 +79,10 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
           font: 'inherit',
           color: 'inherit',
           minHeight: size.desk,
+          width: '100%',
+          minWidth: 0,
+          maxWidth: '100%',
+          boxSizing: 'border-box',
         }}
       >
         <TenantLogo
@@ -82,7 +92,7 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
           name={current.name}
         />
         {compact ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary}>
+          <Txt field="label" desk="meta" color={colors.text.secondary} style={{ flexShrink: 0 }}>
             ▾
           </Txt>
         )}
@@ -105,33 +115,16 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
           }}
         >
           {choices.map((choice) => (
-            <button
+            <MenuRow
               key={choice.id}
-              type="button"
-              role="menuitem"
-              onClick={() => {
+              label={choice.name}
+              secondary={choice.roleLabel}
+              selected={choice.id === current.id}
+              onPress={() => {
                 setOpen(false)
                 if (choice.id !== current.id) onSwitch(choice.id)
               }}
-              style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: `${space[2]}px ${space[3]}px`,
-                minHeight: 44,
-                background: choice.id === current.id ? colors.accent.tint : 'transparent',
-                border: 0,
-                cursor: 'pointer',
-                font: 'inherit',
-              }}
-            >
-              <Txt field="body" desk="body" as="div">
-                {choice.name}
-              </Txt>
-              <Txt field="label" desk="meta" color={colors.text.secondary} as="div">
-                {choice.roleLabel}
-              </Txt>
-            </button>
+            />
           ))}
         </div>
       ) : null}
@@ -411,7 +404,29 @@ function DeskShell({
   )
 }
 
-function MenuRow({ label, onPress }: { label: string; onPress: () => void }): React.JSX.Element {
+/**
+ * One row of a menu or of the phone "More" sheet.
+ *
+ * Its height is `theme.touchSize`, never a literal: UX-00 section 5.2 names four floors and says in
+ * the same sentence that "Material's 48 dp and Apple's 44 pt are below the floor and are not our
+ * minimum" — so a hard-coded 44 was, on a phone, the one control in the kit below its own floor
+ * (63 dp owner/manager, 69 field, 76 warehouse). `buildTheme` has already resolved the viewport into
+ * `touchSize`, so the same expression is 32 px on the laptop the app also opens on. The native
+ * renderer already read `touchSize`; this is the web half of the same contract. The label is a
+ * `<Txt>` so it carries `text.primary` rather than the browser's default black.
+ */
+export function MenuRow({
+  label,
+  secondary,
+  selected = false,
+  onPress,
+}: {
+  label: string
+  secondary?: string | undefined
+  selected?: boolean | undefined
+  onPress: () => void
+}): React.JSX.Element {
+  const { colors, touchSize } = useTheme()
   return (
     <button
       type="button"
@@ -422,14 +437,23 @@ function MenuRow({ label, onPress }: { label: string; onPress: () => void }): Re
         width: '100%',
         textAlign: 'left',
         padding: `${space[2]}px ${space[3]}px`,
-        minHeight: 44,
-        background: 'transparent',
+        minHeight: touchSize,
+        background: selected ? colors.accent.tint : 'transparent',
         border: 0,
         cursor: 'pointer',
         font: 'inherit',
+        // A `<button>` takes the UA's black, not the page's, unless it is told to inherit.
+        color: colors.text.primary,
       }}
     >
-      {label}
+      <Txt field="body" desk="body" as="div">
+        {label}
+      </Txt>
+      {secondary === undefined ? null : (
+        <Txt field="label" desk="meta" color={colors.text.secondary} as="div">
+          {secondary}
+        </Txt>
+      )}
     </button>
   )
 }

@@ -20,6 +20,16 @@ export interface QueryEntry<T = unknown> {
   readonly updatedAt: number
   /** True while a request is in flight, including a background revalidation of a cached value. */
   readonly fetching: boolean
+  /**
+   * How many times this key has been invalidated or cleared. It only ever goes up.
+   *
+   * `updatedAt` cannot carry that signal: a read that FAILED leaves `updatedAt` at 0, so "this entry
+   * is stale" was already true and `invalidate()` / `clear()` changed nothing a `useEffect` could
+   * depend on — the screen sat on an empty state and never asked the server again. Switching
+   * distributor is exactly that case (`clear()` after a 403), and it showed four em-dashes with zero
+   * requests in flight. A counter always changes, so the refetch always fires.
+   */
+  readonly generation: number
 }
 
 const EMPTY: QueryEntry = {
@@ -28,6 +38,7 @@ const EMPTY: QueryEntry = {
   error: undefined,
   updatedAt: 0,
   fetching: false,
+  generation: 0,
 }
 
 /** Stable, order-preserving serialisation. Objects inside a key are serialised by sorted field. */
@@ -49,6 +60,12 @@ export function serialiseKey(key: QueryKey): string {
 interface Slot {
   entry: QueryEntry
   inFlight: Promise<unknown> | null
+  /**
+   * The generation the in-flight request belongs to. A response from an older one is DROPPED: after
+   * `clear()` the answer in flight belongs to the distributor the user just left, and writing it
+   * into the slot would put one tenant's rows on another tenant's screen.
+   */
+  generation: number
   listeners: Set<() => void>
 }
 
@@ -65,10 +82,17 @@ export class QueryCache {
   #slot(hash: string): Slot {
     let slot = this.#slots.get(hash)
     if (!slot) {
-      slot = { entry: EMPTY, inFlight: null, listeners: new Set() }
+      slot = { entry: EMPTY, inFlight: null, generation: 0, listeners: new Set() }
       this.#slots.set(hash, slot)
     }
     return slot
+  }
+
+  /** Bumps the slot's generation, abandons anything in flight, and returns the new number. */
+  #bump(slot: Slot): number {
+    slot.generation += 1
+    slot.inFlight = null
+    return slot.generation
   }
 
   #emit(hash: string, entry: QueryEntry): void {
@@ -94,12 +118,14 @@ export class QueryCache {
   /** Writes a value straight into the cache (an optimistic update, or a list read filling detail rows). */
   setData<T>(key: QueryKey, data: T): void {
     const hash = serialiseKey(key)
+    const slot = this.#slot(hash)
     this.#emit(hash, {
       status: 'success',
       data,
       error: undefined,
       updatedAt: Date.now(),
       fetching: false,
+      generation: slot.generation,
     })
   }
 
@@ -116,37 +142,50 @@ export class QueryCache {
     if (!options.force && fresh) return slot.entry.data as T
     if (slot.inFlight) return slot.inFlight as Promise<T>
 
+    // The generation this request belongs to. If `clear()` or `invalidate()` moves the slot on while
+    // it is in flight, its answer is stale by definition and never reaches a screen.
+    const generation = slot.generation
+    const current = (): boolean => slot.generation === generation
+
     this.#emit(hash, {
       ...slot.entry,
       status: slot.entry.status === 'success' ? 'success' : 'loading',
       fetching: true,
+      generation,
     })
 
     const promise = run()
       .then((data) => {
-        this.#emit(hash, {
-          status: 'success',
-          data,
-          error: undefined,
-          updatedAt: Date.now(),
-          fetching: false,
-        })
+        if (current()) {
+          this.#emit(hash, {
+            status: 'success',
+            data,
+            error: undefined,
+            updatedAt: Date.now(),
+            fetching: false,
+            generation,
+          })
+        }
         return data
       })
       .catch((raw: unknown) => {
         const error = toApiError(raw)
-        this.#emit(hash, {
-          // A failed revalidation keeps the last good value on screen and shows its age.
-          status: slot.entry.data === undefined ? 'error' : 'success',
-          data: slot.entry.data,
-          error,
-          updatedAt: slot.entry.updatedAt,
-          fetching: false,
-        })
+        if (current()) {
+          this.#emit(hash, {
+            // A failed revalidation keeps the last good value on screen and shows its age.
+            status: slot.entry.data === undefined ? 'error' : 'success',
+            data: slot.entry.data,
+            error,
+            updatedAt: slot.entry.updatedAt,
+            fetching: false,
+            generation,
+          })
+        }
         throw error
       })
       .finally(() => {
-        slot.inFlight = null
+        // Only if nothing newer has taken the slot: a later `fetch()` must keep its own promise.
+        if (slot.inFlight === promise) slot.inFlight = null
       })
 
     slot.inFlight = promise
@@ -166,15 +205,18 @@ export class QueryCache {
         this.#slots.delete(hash)
         continue
       }
-      this.#emit(hash, { ...slot.entry, updatedAt: 0 })
+      this.#emit(hash, { ...slot.entry, updatedAt: 0, generation: this.#bump(slot) })
     }
   }
 
-  /** Everything goes: called on sign-out, so the next user never sees the last one's rows. */
+  /**
+   * Everything goes: called on sign-out and on switching distributor, so the next session never sees
+   * the last one's rows — neither from the cache nor from a request that was still in the air.
+   */
   clear(): void {
     for (const [hash, slot] of [...this.#slots]) {
       if (slot.listeners.size === 0) this.#slots.delete(hash)
-      else this.#emit(hash, EMPTY)
+      else this.#emit(hash, { ...EMPTY, generation: this.#bump(slot) })
     }
   }
 

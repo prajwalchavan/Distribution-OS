@@ -30,9 +30,11 @@ import { useRouter } from 'expo-router'
 
 import { AsOf, Async, Columns, Half, PageTabs, Panel, useNames } from '../src/lib/ui'
 import { instantWithClock, monthsBack, rangeOf, shortDate } from '../src/lib/dates'
+import { useWord } from '../src/lib/words'
 
 export default function Today(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
   const router = useRouter()
@@ -268,7 +270,7 @@ export default function Today(): React.JSX.Element {
                 <ListRow
                   key={row.id}
                   primary={row.what}
-                  secondary={row.kind}
+                  secondary={word(row.kind)}
                   trailingMoney={row.amount}
                   trailing={<StatusChip label={t('status.pending')} family="ochre" />}
                   onPress={() => {

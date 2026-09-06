@@ -14,8 +14,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "in.distributionos.template",
-      "edgeToEdgeEnabled": true
+      "package": "in.distributionos.template"
     },
     "web": {
       "bundler": "metro",

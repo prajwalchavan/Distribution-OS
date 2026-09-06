@@ -225,6 +225,7 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
   const theme = useTheme()
   const height = Math.max(sizeTokens[theme.touch], 40)
   const labelStyle = useTypeStyle('bodyStrong', 'nav')
+  const phone = theme.density !== 'desk'
   return (
     <div
       role="tablist"
@@ -233,6 +234,13 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
         display: 'flex',
         borderBottom: `1px solid ${theme.colors.border.hairline}`,
         background: theme.colors.bg.surface,
+        /*
+         * On a phone the row IS the width it is given: the tab strip normally sits inside the
+         * screen header's wrapping chip row, which shrinks a flex item to its content — so
+         * `flex:1 1 0` children divided up a shrink-to-fit box and "Orders" came out as "Ord…"
+         * with half the screen empty beside it.
+         */
+        ...(phone ? { width: '100%' } : {}),
       }}
     >
       {items.slice(0, 4).map((item) => {
@@ -243,12 +251,13 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
             role="tab"
             type="button"
             aria-selected={active}
+            title={item.label}
             onClick={() => {
               onChange(item.id)
             }}
             style={{
               height,
-              padding: `0 ${space[4]}px`,
+              padding: `0 ${phone ? space[2] : space[4]}px`,
               background: 'transparent',
               border: 0,
               borderBottom: `3px solid ${active ? theme.colors.accent.line : 'transparent'}`,
@@ -256,6 +265,21 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
               fontFamily: 'inherit',
               fontWeight: active ? 600 : 400,
               cursor: 'pointer',
+              /*
+               * On a phone the four tabs SHARE the width, as the native renderer has always done —
+               * the DOM half sized each one by its own label and hung them off the left, so
+               * "Outstanding · Receipts · Books · Claims" was 40 px wider than a 375 px screen and
+               * the fourth tab was unreachable. Desk keeps its hug-left row.
+               */
+              ...(phone
+                ? {
+                    flex: '1 1 0',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap' as const,
+                  }
+                : {}),
               ...labelStyle,
             }}
           >

@@ -32,6 +32,7 @@ import {
   textColumn,
 } from '../../src/lib/ui'
 import { longDate, today } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const CLAIM_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -46,6 +47,7 @@ const CLAIM_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function Claims(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -65,7 +67,7 @@ export default function Claims(): React.JSX.Element {
   const columns: readonly RegisterColumn<ClaimSummary>[] = [
     textColumn('no', t('o19.claimNo'), (row) => row.claimNo, { priority: 'identity' }),
     textColumn('supplier', t('o19.supplier'), (row) => row.supplierName ?? row.brandName),
-    textColumn('kind', t('o19.kind'), (row) => row.kind),
+    textColumn('kind', t('o19.kind'), (row) => word(row.kind)),
     textColumn(
       'period',
       t('o19.period'),
@@ -80,7 +82,7 @@ export default function Claims(): React.JSX.Element {
       priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.status}
+          label={word(row.status)}
           family={row.overdue ? 'brick' : (CLAIM_FAMILY[row.status] ?? 'neutral')}
           solid={row.overdue}
         />
@@ -161,7 +163,7 @@ export default function Claims(): React.JSX.Element {
               <Field label={t('o19.supplier')}>
                 {claim.supplierName ?? claim.brandName ?? '—'}
               </Field>
-              <Field label={t('o19.kind')}>{claim.kind}</Field>
+              <Field label={t('o19.kind')}>{word(claim.kind)}</Field>
               <Field label={t('o19.period')}>
                 {`${longDate(claim.periodFrom)} – ${longDate(claim.periodTo)}`}
               </Field>
@@ -173,7 +175,10 @@ export default function Claims(): React.JSX.Element {
               </Field>
               <Field label={t('o19.due')}>{longDate(claim.dueDate)}</Field>
               <Field label={t('o19.status')}>
-                <StatusChip label={claim.status} family={CLAIM_FAMILY[claim.status] ?? 'neutral'} />
+                <StatusChip
+                  label={word(claim.status)}
+                  family={CLAIM_FAMILY[claim.status] ?? 'neutral'}
+                />
               </Field>
             </Stack>
           )}

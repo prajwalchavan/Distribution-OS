@@ -75,6 +75,14 @@ function Shell(): React.JSX.Element {
   const pathname = usePathname()
   const router = useRouter()
   const onSignIn = pathname === '/sign-in'
+  const onChangePassword = pathname === '/change-password'
+  /**
+   * docs/23 §0 X2. A staff account is created with a TEMPORARY password — `tenancy.staff.create` and
+   * the platform console both set `must_change_password`, and a manager reads it out loud — so the
+   * service reports the flag and leaves the decision to the app. Until it is cleared, every route
+   * lands on the change-password screen; nothing else in the app renders.
+   */
+  const mustChangePassword = session?.user.mustChangePassword === true
 
   // UX-00 §11: the distributor's own name and logo are the chrome, everywhere except the console.
   const tenantBrand = useMemo(
@@ -125,9 +133,13 @@ function Shell(): React.JSX.Element {
       ? onSignIn
         ? null
         : '/sign-in'
-      : onSignIn
-        ? '/'
-        : null
+      : mustChangePassword
+        ? onChangePassword
+          ? null
+          : '/change-password'
+        : onSignIn
+          ? '/'
+          : null
 
   useEffect(() => {
     if (redirectTo !== null) router.replace(redirectTo)
@@ -143,8 +155,9 @@ function Shell(): React.JSX.Element {
     )
   }
 
-  // Signed out, or standing on the sign-in screen itself: the route, with no chrome around it.
-  if (session === null || onSignIn) {
+  // Signed out, on the sign-in screen, or holding a password somebody else chose: the route, with no
+  // chrome around it. A rail into an app this person may not use yet would be a lie.
+  if (session === null || onSignIn || mustChangePassword) {
     return (
       <ThemeProvider touch={APP.touch} density={APP.density} tenant={tenantBrand} strings={strings}>
         <Slot />

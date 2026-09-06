@@ -5,12 +5,15 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
+import { ThemeContextProvider } from '../theme.js'
 import { ThemeProvider } from './ThemeProvider.js'
 import { CompareBars, StackedMix } from './charts.js'
 import { KpiStrip } from './list.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
-import { TextInput } from './controls.js'
+import { TextInput, Tabs } from './controls.js'
+import { Sheet } from './feedback.js'
+import { MenuRow, TenantSwitcher } from './shell.js'
 import { FONT_CSS, FONT_URL } from './css.js'
 
 function renderDesk(node: React.ReactNode): string {
@@ -296,5 +299,107 @@ describe('duplicate display labels', () => {
     )
     expect(html).toContain('>1<')
     expect(html).toContain('>2<')
+  })
+})
+
+describe('the menus of the shell obey the touch floor (UX-00 §5.2)', () => {
+  /** `MenuRow` is the row of every menu, of the phone "More" sheet and of the account menu. */
+  function row(touch: 'phone' | 'field' | 'floor' | 'desk', viewport: 'desk' | 'phone'): string {
+    // The renderer-agnostic provider, because the WEB one reads the real viewport and overrides
+    // anything an app passes — which is exactly the contract (`docs/08 §0`), and unusable here.
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={touch} viewport={viewport}>
+        <MenuRow label="Sign out" onPress={() => undefined} />
+      </ThemeContextProvider>,
+    )
+  }
+
+  it('is 63 dp for an owner on a phone — never Apple’s 44', () => {
+    const html = row('phone', 'phone')
+    expect(html).toContain('min-height:63px')
+    expect(html).not.toContain('min-height:44px')
+  })
+
+  it('is 69 dp in a sales or retailer app and 76 dp in the warehouse app', () => {
+    expect(row('field', 'phone')).toContain('min-height:69px')
+    expect(row('floor', 'phone')).toContain('min-height:76px')
+  })
+
+  it('is the desk size on the laptop the same app opens on', () => {
+    expect(row('phone', 'desk')).toContain('min-height:32px')
+  })
+
+  it('paints its label in a token, not in the browser’s default black', () => {
+    const html = row('phone', 'phone')
+    expect(html).toContain('color:#1B1E1A')
+    expect(html).not.toContain('color:rgb(0, 0, 0)')
+  })
+
+  it('closes a bottom sheet with a control at the app floor, not a desk button', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider touch="floor" density="field">
+        <Sheet open onClose={() => undefined} title="More">
+          <span />
+        </Sheet>
+      </ThemeProvider>,
+    )
+    // 76 dp on a warehouse screen; the desk button is 32 and must not appear on a sheet.
+    expect(html).toContain('height:76px')
+  })
+})
+
+describe('<TenantLogo> inside a 172 px rail', () => {
+  it('clamps a long distributor name to one line instead of pushing the rail wider', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider touch="desk" density="desk">
+        <TenantSwitcher
+          current={{ id: 't2', name: 'Sai Distributors, Dombivli', roleLabel: 'owner' }}
+          choices={[{ id: 't2', name: 'Sai Distributors, Dombivli', roleLabel: 'owner' }]}
+          onSwitch={() => undefined}
+        />
+      </ThemeProvider>,
+    )
+    expect(html).toContain('-webkit-line-clamp:2')
+    expect(html).not.toContain('white-space:nowrap')
+  })
+
+  it('keeps the switcher inside the rail column when there is more than one distributor', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider touch="desk" density="desk">
+        <TenantSwitcher
+          current={{ id: 't1', name: 'Tarsun Enterprise', roleLabel: 'retailer' }}
+          choices={[
+            { id: 't1', name: 'Tarsun Enterprise', roleLabel: 'retailer' },
+            { id: 't2', name: 'Sai Distributors, Dombivli', roleLabel: 'retailer' },
+            { id: 't3', name: 'Kalyan Agencies', roleLabel: 'retailer' },
+          ]}
+          onSwitch={() => undefined}
+        />
+      </ThemeProvider>,
+    )
+    // Sized by its column, not by its content: without this the caret painted outside the rail.
+    expect(html).toContain('max-width:100%')
+    expect(html).toContain('box-sizing:border-box')
+  })
+})
+
+describe('<Tabs> at the two viewports', () => {
+  const items = [
+    { id: 'a', label: 'Outstanding' },
+    { id: 'b', label: 'Receipts' },
+    { id: 'c', label: 'Books' },
+    { id: 'd', label: 'Claims' },
+  ]
+
+  it('shares the width on a phone, so the fourth tab is on the screen', () => {
+    const html = renderField(<Tabs items={items} value="a" onChange={() => undefined} />)
+    // One `flex:1 1 0` per tab: the row can no longer be wider than the screen it is in.
+    expect(html.match(/flex:1 1 0/g)?.length).toBe(4)
+    expect(html).toContain('Claims')
+  })
+
+  it('leaves the desk row hugging the left, sized by its own labels', () => {
+    const html = renderDesk(<Tabs items={items} value="a" onChange={() => undefined} />)
+    expect(html).not.toContain('flex:1 1 0')
   })
 })

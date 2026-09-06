@@ -471,5 +471,5 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   underline: { textDecorationLine: 'underline' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], marginTop: space[2] },
-  actions: { flexDirection: 'row', gap: space[2], marginTop: space[2] },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2], marginTop: space[2] },
 })

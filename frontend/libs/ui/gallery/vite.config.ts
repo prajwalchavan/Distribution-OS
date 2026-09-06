@@ -12,6 +12,14 @@ import { defineConfig } from 'vite'
  */
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
+  /**
+   * `../assets`, so `/fonts/IBMPlexSans-*.woff2` — the paths `FONT_CSS` emits — resolve to the
+   * binaries in `assets/fonts`. Without it a dev server answers an unknown path with `index.html`,
+   * the browser downloads HTML, tries to parse it as a font and logs `OTS parsing error: invalid
+   * sfntVersion` four times per load — and the kit's own style guide, the page a component is
+   * reviewed on, renders in the platform UI face instead of the typeface it documents.
+   */
+  publicDir: fileURLToPath(new URL('../assets', import.meta.url)),
   plugins: [react()],
   resolve: { dedupe: ['react', 'react-dom'] },
   server: { port: 5199 },

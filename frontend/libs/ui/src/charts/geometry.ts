@@ -286,3 +286,44 @@ export function ladderFraction(value: number, max: number): number {
   if (max <= 0) return 0
   return Math.min(1, Math.max(0, value / max))
 }
+
+/** An ageing rung ("0-7", "90+") at the label scale. The floor, and the whole story for `<AgeingBuckets>`. */
+export const LADDER_LABEL_MIN = 56
+/** Beyond this the name is clipped: the TRACK is what a ladder is for, and it needs the room. */
+export const LADDER_LABEL_MAX = 160
+
+/**
+ * How wide the label column of one ladder should be.
+ *
+ * `<BarLadder>` was built for the six ageing buckets and its label column was 56 px, which is exactly
+ * "0-7" and nothing else. The claims screen puts a SUPPLIER on each rung, and "Alan's Food Products —
+ * Bhiwandi" wrapped onto four lines and shoved the track off its own row. The column is sized from
+ * the rungs it actually has — one ladder, one width, so the tracks still line up — and never grows
+ * past `LADDER_LABEL_MAX`; the renderers clamp each label to one line.
+ *
+ * ~6.2 px per character is the average advance of IBM Plex Sans at the 12/13 px label size; it only
+ * has to be close, since the result is clamped at both ends.
+ */
+export function ladderLabelWidth(rows: readonly { label: string }[]): number {
+  const longest = rows.reduce((n, row) => Math.max(n, row.label.length), 0)
+  return Math.min(LADDER_LABEL_MAX, Math.max(LADDER_LABEL_MIN, Math.ceil(longest * 6.2)))
+}
+
+/** Enough for `1,234.00` at the desk cell size. The floor of the value column. */
+export const LADDER_VALUE_MIN = 96
+
+/**
+ * How wide the FIGURE column of one ladder should be.
+ *
+ * It was 96 px whatever the density, and a phone sets the ladder's figures in `moneyM` — so the
+ * ageing panel's own "2,81,290.00" was wider than the column it was right-aligned in and ran off the
+ * right edge of a 375 px screen. The whole point of a rung is the number on it. Sized from the
+ * widest FORMATTED value in this ladder (they all print through the same formatter, so they line up)
+ * and never below the desk floor; the track flexes, so the row can no longer overflow its screen.
+ *
+ * `charWidth` is the advance of one tabular digit at the size the renderer is about to use.
+ */
+export function ladderValueWidth(formatted: readonly string[], charWidth: number): number {
+  const longest = formatted.reduce((n, text) => Math.max(n, text.length), 0)
+  return Math.max(LADDER_VALUE_MIN, Math.ceil(longest * charWidth))
+}

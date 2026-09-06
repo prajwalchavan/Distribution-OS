@@ -28,6 +28,7 @@ import { useState } from 'react'
 
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
+import { useWord } from '../src/lib/words'
 import { useRegisterKeys, useHotkeys } from '../src/lib/keys'
 
 /** One row of the merged queue, so both streams answer the same four questions. */
@@ -49,6 +50,7 @@ export default function Approvals(): React.JSX.Element {
   const colors = useColors()
   const api = useApi()
   const names = useNames()
+  const word = useWord()
 
   const [stream, setStream] = useState<'all' | 'approval' | 'bargain'>('all')
   const [selected, setSelected] = useState<string | null>(null)
@@ -159,7 +161,7 @@ export default function Approvals(): React.JSX.Element {
   )
 
   const columns: readonly RegisterColumn<Decision>[] = [
-    textColumn('kind', t('o3.kind'), (row) => row.kind, { priority: 'chip' }),
+    textColumn('kind', t('o3.kind'), (row) => word(row.kind), { priority: 'chip' }),
     textColumn('what', t('o3.what'), (row) => row.what, { priority: 'identity' }),
     textColumn('who', t('o7.person'), (row) => row.who),
     {
@@ -228,7 +230,7 @@ export default function Approvals(): React.JSX.Element {
         {current === null ? null : (
           <Stack gap={4}>
             <Field label={t('o3.kind')}>
-              <StatusChip label={current.kind} family="ochre" />
+              <StatusChip label={word(current.kind)} family="ochre" />
             </Field>
             <Field label={t('o7.person')}>{current.who}</Field>
             <Field label={t('o3.asked')}>{instantWithClock(current.askedAt)}</Field>
@@ -288,7 +290,7 @@ export default function Approvals(): React.JSX.Element {
           <Panel>
             <Stack gap={2}>
               <Txt field="body" desk="body">
-                {current?.kind ?? ''}
+                {word(current?.kind)}
               </Txt>
               <Money value={current?.amountPaise ?? null} size="moneyM" />
               {note.trim() === '' ? null : (

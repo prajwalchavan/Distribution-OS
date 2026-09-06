@@ -122,6 +122,30 @@ export interface UseQueryOptions {
   enabled?: boolean
 }
 
+/**
+ * Whether a read may go to a service at all.
+ *
+ * Every endpoint in this product needs a bearer token, so a read with nobody signed in can only ever
+ * be a 401. It happens on any deep link opened signed out: expo-router mounts the requested route
+ * BEFORE the root layout's redirect to `/sign-in` can run (the layout has to keep rendering its
+ * `<Slot/>` — that is the navigator the redirect itself needs), so the route's own `useQuery` calls
+ * fire first. Measured on the owner app: five 401s from one signed-out visit to `/`, each one an
+ * error state painted for a moment on a screen the reader is being taken off. At a lakh of devices
+ * that is a lakh of unauthenticated round trips per cold start.
+ *
+ * A session still holding a password somebody else chose is refused for the same reason: every app
+ * puts that person on the change-password screen and nothing else (docs/23 §0 X2), so the route they
+ * asked for mounts behind it and reads a register nobody will look at.
+ *
+ * `hydrating` is deliberately NOT a reason to wait: a restored session is a real session (the client
+ * refreshes the access token around the request), and holding every read until the refresh lands
+ * would make a returning user stare at a skeleton for a round trip.
+ */
+export function readsAllowed(state: SessionState, enabled: boolean): boolean {
+  if (!enabled || state.session === null) return false
+  return state.session.user.mustChangePassword !== true
+}
+
 export interface UseQueryResult<T> {
   data: T | undefined
   error: ApiError | undefined
@@ -144,9 +168,16 @@ export function useQuery<T>(
   run: () => Promise<T>,
   options: UseQueryOptions = {},
 ): UseQueryResult<T> {
-  const { cache } = useApiContext()
+  const { client, cache } = useApiContext()
   const { staleTime = 30_000, enabled = true } = options
   const hash = JSON.stringify(key)
+
+  const sessionState = useSyncExternalStore(
+    client.session.subscribe,
+    client.session.getSnapshot,
+    client.session.getSnapshot,
+  )
+  const mayRead = readsAllowed(sessionState, enabled)
 
   // `run` changes identity every render; the cache calls the LATEST one.
   const runRef = useRef(run)
@@ -162,16 +193,23 @@ export function useQuery<T>(
   )
   const getSnapshot = useCallback(() => cache.get<T>(keyRef.current), [cache, hash])
   const entry = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const invalidated = entry.updatedAt === 0
+  /**
+   * What makes this effect run again. NOT `updatedAt === 0` as a boolean: a read that failed leaves
+   * `updatedAt` at 0, so the flag was already true and a later `invalidate()` / `clear()` changed
+   * nothing — the screen kept its empty state and never asked the server again. `generation` only
+   * ever goes up, so every invalidation is a new value; `-1` while the entry holds a good value
+   * keeps a successful read from refetching on every render.
+   */
+  const stale = entry.updatedAt === 0 ? entry.generation : -1
 
   useEffect(() => {
-    if (!enabled) return
+    if (!mayRead) return
     void cache
       .fetch(keyRef.current, () => runRef.current(), { staleTime })
       .catch(() => {
         // The failure is already on the entry; a hook never rejects into a render.
       })
-  }, [cache, hash, enabled, staleTime, invalidated])
+  }, [cache, hash, mayRead, staleTime, stale])
 
   const refetch = useCallback(async (): Promise<T | undefined> => {
     try {
@@ -220,8 +258,40 @@ export interface UseMutationResult<TInput, TResult> {
 /**
  * One user intent = one `MutationMeta`. A retry of the SAME intent re-sends the same
  * `idempotencyKey`, so a double tap or a lost reply can never write a second row
- * (`UNIQUE(tenant_id, idempotency_key)`); `reset()` is what starts a new intent.
+ * (`UNIQUE(tenant_id, idempotency_key)`).
+ *
+ * **What identifies an intent is its INPUT.** A hook lives as long as the screen, and one screen
+ * writes over and over: an approvals queue decides row after row, a settings page saves change after
+ * change. Holding one key for the life of the hook made every write after the first a DIFFERENT
+ * payload under the SAME key, which the server correctly refuses — measured on the owner app's
+ * settings page as `POST /tenancy/settings → 409 Conflict` on the second save, and the same hook
+ * shape would have let the approvals queue decide exactly one row per page load. So a call whose
+ * input differs from the last one starts a new intent, and a call with the SAME input keeps the key
+ * it had — which is what makes a double tap and a retry after a lost reply safe. `reset()` still
+ * forces a new intent by hand (an export of the same range, asked for twice, on purpose).
  */
+
+/** Stable across key order, so `{a,b}` and `{b,a}` are one intent. */
+export function intentHash(input: unknown): string {
+  try {
+    return JSON.stringify(input, (_field, value: unknown) => {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const record = value as Record<string, unknown>
+        return Object.keys(record)
+          .sort()
+          .reduce<Record<string, unknown>>((acc, k) => {
+            acc[k] = record[k]
+            return acc
+          }, {})
+      }
+      return value
+    })
+  } catch {
+    // A value JSON cannot carry (a File, a cyclic object) is treated as its own intent every time.
+    return `unserialisable:${String(Date.now())}:${String(Math.random())}`
+  }
+}
+
 export function useMutation<TInput, TResult>(
   run: (input: TInput, meta: MutationMeta) => Promise<TResult>,
   options: UseMutationOptions<TInput, TResult> = {},
@@ -238,12 +308,27 @@ export function useMutation<TInput, TResult>(
   runRef.current = run
   const optionsRef = useRef(options)
   optionsRef.current = options
+  /** The input the current `meta` belongs to; `null` until this hook has been asked to write once. */
+  const intentRef = useRef<string | null>(null)
+  /** Read synchronously: `meta` from `useState` is a render behind two calls in the same tick. */
+  const metaRef = useRef(meta)
+  metaRef.current = meta
 
   const mutateAsync = useCallback(
     async (input: TInput): Promise<TResult> => {
+      const hash = intentHash(input)
+      let current = metaRef.current
+      if (intentRef.current !== null && intentRef.current !== hash) {
+        // A different payload is a different intent, and must not reuse a spent idempotency key.
+        current = newMutation()
+        metaRef.current = current
+        setMeta(current)
+      }
+      intentRef.current = hash
+
       setState((s) => ({ ...s, status: 'pending', error: undefined }))
       try {
-        const result = await runRef.current(input, meta)
+        const result = await runRef.current(input, current)
         setState({ status: 'success', error: undefined, data: result })
         for (const key of optionsRef.current.invalidates ?? []) cache.invalidate(key)
         optionsRef.current.onSuccess?.(result, input)
@@ -255,7 +340,7 @@ export function useMutation<TInput, TResult>(
         throw error
       }
     },
-    [cache, meta],
+    [cache],
   )
 
   const mutate = useCallback(
@@ -268,7 +353,10 @@ export function useMutation<TInput, TResult>(
   )
 
   const reset = useCallback((): void => {
-    setMeta(newMutation())
+    const next = newMutation()
+    metaRef.current = next
+    intentRef.current = null
+    setMeta(next)
     setState({ status: 'idle', error: undefined, data: undefined })
   }, [])
 

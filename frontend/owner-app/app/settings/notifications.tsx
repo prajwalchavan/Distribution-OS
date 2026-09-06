@@ -25,6 +25,7 @@ import { useState } from 'react'
 
 import { Async, PageTabs, moneyColumn, textColumn } from '../../src/lib/ui'
 import { instantWithClock, rangeOf } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const MESSAGE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   queued: 'neutral',
@@ -39,6 +40,7 @@ type View = 'messages' | 'templates' | 'inbound'
 
 export default function Notifications(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const [view, setView] = useState<View>('messages')
 
@@ -69,11 +71,11 @@ export default function Notifications(): React.JSX.Element {
   )
 
   const messageColumns: readonly RegisterColumn<Message>[] = [
-    textColumn('channel', t('o23.channel'), (row) => row.channel, { priority: 'detail' }),
+    textColumn('channel', t('o23.channel'), (row) => word(row.channel), { priority: 'detail' }),
     textColumn('to', t('o23.destination'), (row) => row.retailerName ?? row.destination, {
       priority: 'identity',
     }),
-    textColumn('template', t('o23.key'), (row) => row.templateKey),
+    textColumn('template', t('o23.key'), (row) => word(row.templateKey)),
     textColumn('body', t('o23.body'), (row) => row.body),
     moneyColumn('cost', t('o23.cost'), (row) => row.costPaise ?? null),
     {
@@ -82,7 +84,7 @@ export default function Notifications(): React.JSX.Element {
       priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.status}
+          label={word(row.status)}
           family={MESSAGE_FAMILY[row.status] ?? 'neutral'}
           solid={row.status === 'failed'}
         />
@@ -111,7 +113,7 @@ export default function Notifications(): React.JSX.Element {
 
   const templateColumns: readonly RegisterColumn<Template>[] = [
     textColumn('key', t('o23.key'), (row) => row.key, { priority: 'identity' }),
-    textColumn('channel', t('o23.channel'), (row) => row.channel),
+    textColumn('channel', t('o23.channel'), (row) => word(row.channel)),
     textColumn('locale', t('o24.stateCode'), (row) => row.locale),
     textColumn('body', t('o23.body'), (row) => row.body),
     {

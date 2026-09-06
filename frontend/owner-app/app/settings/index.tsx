@@ -32,11 +32,16 @@ import { useState } from 'react'
 import { Async, Columns, Field, Half, PageTabs, Panel, textColumn } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { instantWithClock } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 type View = 'business' | 'numbering' | 'flags' | 'support'
 
+/** `delivery.pod_required` as `tenant-bootstrap.ts` documents it: when a photo or signature is a must. */
+const POD_POLICIES = ['always', 'credit_only', 'never'] as const
+
 export default function Settings(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
   const { session } = useSession()
@@ -199,7 +204,7 @@ export default function Settings(): React.JSX.Element {
       priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.status}
+          label={word(row.status)}
           family={row.active ? 'moss' : row.status === 'requested' ? 'ochre' : 'neutral'}
         />
       ),
@@ -359,11 +364,24 @@ export default function Settings(): React.JSX.Element {
                     onChange={edit('delivery.geofence_metres')}
                     keyboard="decimal"
                   />
-                  <TextInput
-                    label={t('o24.pod')}
-                    value={valueOf('delivery.pod_required')}
-                    onChange={edit('delivery.pod_required')}
-                  />
+                  {/*
+                    * `delivery.pod_required` is one of three words the delivery service reads
+                    * (`always` / `credit_only` / `never`, tenant-bootstrap). A free-text box made
+                    * the owner type one of them exactly — and printed the machine word back at them
+                    * — so a typo would silently turn proof of delivery off for the whole
+                    * distributorship. Three buttons cannot be mistyped.
+                    */}
+                  <Stack gap={1}>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('o24.pod')}
+                    </Txt>
+                    <Segments
+                      testID="settings-pod"
+                      value={valueOf('delivery.pod_required') || 'credit_only'}
+                      onChange={edit('delivery.pod_required')}
+                      items={POD_POLICIES.map((id) => ({ id, label: word(id) }))}
+                    />
+                  </Stack>
                   <TextInput
                     label={t('o24.gpsRetention')}
                     value={valueOf('dpdp.gps_retention_days')}

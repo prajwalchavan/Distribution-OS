@@ -26,7 +26,7 @@ import type {
   RegisterProps,
   StatusChipProps,
 } from '../types.js'
-import { ladderFraction } from '../charts/geometry.js'
+import { ladderFraction, ladderLabelWidth, ladderValueWidth } from '../charts/geometry.js'
 import { Eyebrow, Txt, typeStyle, useTypeStyle } from './base.js'
 import { Money } from './money.js'
 import { Sparkline } from './charts.js'
@@ -292,6 +292,12 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
   const theme = useTheme()
   const max = Math.max(0, ...rows.map((r) => r.value))
   const format = formatValue ?? ((v: number) => formatMoney(v, { symbol: false }))
+  const labelWidth = ladderLabelWidth(rows)
+  // A phone sets these figures in `moneyM`; a desk in `cellMoney`. One tabular digit, per density.
+  const valueWidth = ladderValueWidth(
+    rows.map((row) => format(row.value)),
+    theme.density === 'desk' ? 8 : 11,
+  )
   return (
     <div data-testid={testID}>
       {title ? (
@@ -318,10 +324,18 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
             key={`${row.label}-${String(index)}`}
             style={{ display: 'flex', alignItems: 'center', gap: space[3], marginBottom: 6 }}
           >
-            <span style={{ width: 56, flexShrink: 0 }}>
+            {/*
+             * 56 px is exactly an ageing rung ("0-7", "90+"), which is what this component was first
+             * built for — but `<BarLadder>` is the general ladder and a rung can be a brand, a beat
+             * or a supplier. At 56 px "Alan's Food Products" wrapped onto four lines and pushed the
+             * track out of the row. The column grows to the widest LABEL IN THIS LADDER, capped, and
+             * every rung stays one line with the full name on `title`.
+             */}
+            <span style={{ width: labelWidth, flexShrink: 0 }}>
               <Txt
                 field="label"
                 desk="meta"
+                numberOfLines={1}
                 color={
                   theme.density === 'desk'
                     ? theme.colors.text.tertiary
@@ -352,7 +366,7 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
             <span
               className="dos-num"
               style={{
-                width: 96,
+                width: valueWidth,
                 textAlign: 'right',
                 flexShrink: 0,
                 fontWeight: 600,
@@ -436,7 +450,9 @@ export function Register<Row>({
                 color: theme.colors.accent.fg,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                minHeight: 24,
+                // 24 px is the DESK floor. The same register opens on a phone, where the floor is
+                // the app's own (UX-00 section 5.2) — this button was the exception.
+                minHeight: isDesk ? 24 : theme.touchSize,
               }}
             >
               {theme.t('register.clearFilters')}

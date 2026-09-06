@@ -24,12 +24,14 @@ import { useState } from 'react'
 
 import { Async, Panel, moneyColumn, textColumn } from '../../src/lib/ui'
 import { instantWithClock } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 type View = 'staff' | 'beats' | 'assignments' | 'bounds'
 
 export default function StaffScreen(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const [view, setView] = useState<View>('staff')
   const [selected, setSelected] = useState<StaffMember | null>(null)
@@ -75,7 +77,7 @@ export default function StaffScreen(): React.JSX.Element {
   const staffColumns: readonly RegisterColumn<StaffMember>[] = [
     textColumn('name', t('o7.person'), (row) => row.name, { priority: 'identity' }),
     textColumn('username', t('o7.username'), (row) => row.username),
-    textColumn('role', t('o7.role'), (row) => row.role),
+    textColumn('role', t('o7.role'), (row) => word(row.role)),
     textColumn('phone', t('o6.phone'), (row) => row.phone),
     textColumn('last', t('o7.lastLogin'), (row) => instantWithClock(row.lastLoginAt)),
     {
@@ -83,7 +85,10 @@ export default function StaffScreen(): React.JSX.Element {
       head: t('o7.status'),
       priority: 'chip',
       cell: (row) => (
-        <StatusChip label={row.status} family={row.status === 'active' ? 'moss' : 'neutral'} />
+        <StatusChip
+          label={word(row.status)}
+          family={row.status === 'active' ? 'moss' : 'neutral'}
+        />
       ),
     },
   ]

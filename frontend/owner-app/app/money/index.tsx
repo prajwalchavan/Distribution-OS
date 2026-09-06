@@ -45,6 +45,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { rangeOf, shortDate, today, type RangeId } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const BUCKETS = ['b0_7', 'b8_15', 'b16_30', 'b31_60', 'b61_90', 'b90plus'] as const
 type BucketId = (typeof BUCKETS)[number]
@@ -59,6 +60,7 @@ const BUCKET_LABEL: Readonly<Record<BucketId, string>> = {
 
 export default function OutstandingListItem(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = useApi()
   const names = useNames()
@@ -182,7 +184,7 @@ export default function OutstandingListItem(): React.JSX.Element {
       priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.creditMode}
+          label={word(row.creditMode)}
           family={row.creditMode === 'stop' ? 'brick' : 'neutral'}
         />
       ),

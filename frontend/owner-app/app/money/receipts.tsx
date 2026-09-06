@@ -36,6 +36,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { instantWithClock, rangeOf, type RangeId } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const STATUS_FAMILY: Readonly<Record<string, StatusFamily>> = {
   collected: 'ochre',
@@ -49,6 +50,7 @@ type Mode = (typeof MODES)[number]
 
 export default function Receipts(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
 
@@ -119,7 +121,7 @@ export default function Receipts(): React.JSX.Element {
   const columns: readonly RegisterColumn<Receipt>[] = [
     textColumn('no', t('o11.receiptNo'), (row) => row.receiptNo, { priority: 'identity' }),
     textColumn('shop', t('o11.shop'), (row) => names.retailer(row.retailerId)),
-    textColumn('mode', t('o11.mode'), (row) => row.mode),
+    textColumn('mode', t('o11.mode'), (row) => word(row.mode)),
     moneyColumn('amount', t('o11.amount'), (row) => row.amountPaise),
     moneyColumn('unallocated', t('o11.unallocated'), (row) => row.unallocatedPaise),
     {
@@ -127,7 +129,7 @@ export default function Receipts(): React.JSX.Element {
       head: t('o11.status'),
       priority: 'chip',
       cell: (row) => (
-        <StatusChip label={row.status} family={STATUS_FAMILY[row.status] ?? 'neutral'} />
+        <StatusChip label={word(row.status)} family={STATUS_FAMILY[row.status] ?? 'neutral'} />
       ),
     },
     textColumn('received', t('o11.received'), (row) => instantWithClock(row.receivedAt)),
@@ -157,7 +159,7 @@ export default function Receipts(): React.JSX.Element {
         <Chips
           testID="receipts-modes"
           items={[
-            ...MODES.map((id) => ({ id, label: id, selected: mode === id })),
+            ...MODES.map((id) => ({ id, label: word(id), selected: mode === id })),
             { id: 'unallocated', label: t('o11.onAccount'), selected: unallocatedOnly },
           ]}
           onToggle={(id) => {
@@ -211,7 +213,7 @@ export default function Receipts(): React.JSX.Element {
           {receipt === undefined ? null : (
             <Stack gap={4}>
               <Field label={t('o11.shop')}>{names.retailer(receipt.retailerId)}</Field>
-              <Field label={t('o11.mode')}>{receipt.mode}</Field>
+              <Field label={t('o11.mode')}>{word(receipt.mode)}</Field>
               <Field label={t('o11.amount')}>
                 <Money value={receipt.amountPaise} size="moneyM" />
               </Field>

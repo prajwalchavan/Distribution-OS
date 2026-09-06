@@ -12,6 +12,11 @@ import {
   plotArea,
   sparklinePath,
   xTickIndices,
+  ladderLabelWidth,
+  ladderValueWidth,
+  LADDER_LABEL_MIN,
+  LADDER_LABEL_MAX,
+  LADDER_VALUE_MIN,
   type SeriesPoint,
 } from './geometry.js'
 
@@ -210,5 +215,56 @@ describe('time', () => {
     expect(clockTime(morning)).toBe('9:40 am')
     expect(clockTime(evening)).toBe('6:05 pm')
     expect(clockTime(midnight)).toBe('12:07 am')
+  })
+})
+
+describe('ladderLabelWidth', () => {
+  it('leaves the ageing ladder exactly as it was: six short rungs, 56 px', () => {
+    expect(
+      ladderLabelWidth([
+        { label: '0-7' },
+        { label: '8-15' },
+        { label: '16-30' },
+        { label: '31-60' },
+        { label: '61-90' },
+        { label: '90+' },
+      ]),
+    ).toBe(LADDER_LABEL_MIN)
+  })
+
+  it('grows for a ladder whose rungs are names, so a supplier does not wrap onto four lines', () => {
+    const width = ladderLabelWidth([
+      { label: "Alan's Food Products — Bhiwandi" },
+      { label: 'MOM Foods — Bikaner' },
+    ])
+    expect(width).toBeGreaterThan(LADDER_LABEL_MIN)
+    expect(width).toBeLessThanOrEqual(LADDER_LABEL_MAX)
+  })
+
+  it('never lets one long name eat the track', () => {
+    expect(ladderLabelWidth([{ label: 'x'.repeat(200) }])).toBe(LADDER_LABEL_MAX)
+  })
+
+  it('is one width for the whole ladder, so every track starts at the same x', () => {
+    const rows = [{ label: 'Campa' }, { label: 'MOM Roasted Makhana Peri Peri' }]
+    expect(ladderLabelWidth(rows)).toBe(ladderLabelWidth([...rows].reverse()))
+  })
+})
+
+describe('ladderValueWidth', () => {
+  it('keeps the desk column exactly where it was for ordinary figures', () => {
+    expect(ladderValueWidth(['1,234.00', '17,071.46'], 8)).toBe(LADDER_VALUE_MIN)
+  })
+
+  it('widens for a lakh figure at the phone’s money size, so it stops running off a 375 px screen', () => {
+    // "2,81,290.00" in `moneyM`: 11 characters at ~11 px each.
+    const width = ladderValueWidth(['2,81,290.00', '17,071.46'], 11)
+    expect(width).toBeGreaterThan(LADDER_VALUE_MIN)
+    expect(width).toBeGreaterThanOrEqual('2,81,290.00'.length * 11)
+  })
+
+  it('is one width for the whole ladder, so the figures right-align to the same edge', () => {
+    const values = ['2,81,290.00', '229.12']
+    expect(ladderValueWidth(values, 11)).toBe(ladderValueWidth([...values].reverse(), 11))
   })
 })

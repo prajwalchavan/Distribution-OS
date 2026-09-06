@@ -32,9 +32,11 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { instantWithClock, longDate, rangeOf, type RangeId } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 export default function Books(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [view, setView] = useState<'trial' | 'day'>('trial')
@@ -60,7 +62,7 @@ export default function Books(): React.JSX.Element {
   const accountColumns: readonly RegisterColumn<Account>[] = [
     textColumn('code', t('o12.code'), (row) => row.code, { priority: 'identity' }),
     textColumn('name', t('o12.account'), (row) => row.name),
-    textColumn('kind', t('o12.kind'), (row) => row.kind, { priority: 'chip' }),
+    textColumn('kind', t('o12.kind'), (row) => word(row.kind), { priority: 'chip' }),
     moneyColumn('balance', t('o12.balance'), (row) => row.balancePaise),
   ]
 

@@ -40,9 +40,11 @@ import {
 } from '../../src/lib/ui'
 import { instantWithClock, longDate, today, shiftDays } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
+import { useWord } from '../../src/lib/words'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const params = useLocalSearchParams<{ q?: string }>()
@@ -154,7 +156,7 @@ export default function Shops(): React.JSX.Element {
       cell: (row) => <StatusChip label={row.tier} family="neutral" />,
     },
     moneyColumn('limit', t('o6.limit'), (row) => row.creditLimitPaise),
-    textColumn('terms', t('o6.terms'), (row) => row.paymentTerms),
+    textColumn('terms', t('o6.terms'), (row) => word(row.paymentTerms)),
     textColumn('phone', t('o6.phone'), (row) => row.phone),
   ]
 

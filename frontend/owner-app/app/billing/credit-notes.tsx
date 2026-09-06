@@ -31,6 +31,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
+import { useWord } from '../../src/lib/words'
 
 const NOTE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -41,6 +42,7 @@ const NOTE_FAMILY: Readonly<Record<string, StatusFamily>> = {
 
 export default function CreditNotes(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const api = useApi()
   const names = useNames()
   const [range, setRange] = useState<RangeId>('d90')
@@ -79,14 +81,16 @@ export default function CreditNotes(): React.JSX.Element {
     textColumn('date', t('o13.date'), (row) => longDate(row.noteDate)),
     textColumn('shop', t('o13.shop'), (row) => names.retailer(row.retailerId)),
     textColumn('against', t('o14.against'), (row) => row.invoiceNo),
-    textColumn('reason', t('o14.reason'), (row) => row.reason),
+    textColumn('reason', t('o14.reason'), (row) => word(row.reason)),
     moneyColumn('taxable', t('o13.taxable'), (row) => row.taxablePaise),
     moneyColumn('total', t('o13.total'), (row) => row.totalPaise),
     {
       key: 'state',
       head: t('o13.state'),
       priority: 'chip',
-      cell: (row) => <StatusChip label={row.state} family={NOTE_FAMILY[row.state] ?? 'neutral'} />,
+      cell: (row) => (
+        <StatusChip label={word(row.state)} family={NOTE_FAMILY[row.state] ?? 'neutral'} />
+      ),
     },
   ]
 
@@ -141,7 +145,7 @@ export default function CreditNotes(): React.JSX.Element {
             <Stack gap={4}>
               <Field label={t('o13.shop')}>{names.retailer(note.retailerId)}</Field>
               <Field label={t('o14.against')}>{note.invoiceNo ?? t('app.none')}</Field>
-              <Field label={t('o14.reason')}>{note.reason}</Field>
+              <Field label={t('o14.reason')}>{word(note.reason)}</Field>
               <Field label={t('o13.total')}>
                 <Money value={note.totalPaise} size="moneyM" />
               </Field>

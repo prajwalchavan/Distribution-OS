@@ -126,3 +126,76 @@ describe('QueryCache.clear', () => {
     expect(cache.lastUpdatedAt()).toBeNull()
   })
 })
+
+describe('QueryCache generations — the signal a screen can depend on', () => {
+  it('moves the generation on when a FAILED entry is cleared, so the screen refetches', async () => {
+    const cache = new QueryCache()
+    const keep = (): void => undefined
+    cache.subscribe(['tenancy', 'me'], keep)
+    await expect(
+      cache.fetch(['tenancy', 'me'], () =>
+        Promise.reject(
+          new ApiError({
+            kind: 'permission',
+            message: 'owner-service does not serve the retailer role',
+            status: 403,
+          }),
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ApiError)
+
+    // A failed read never set `updatedAt`, so "stale" was already true before the clear. Only the
+    // generation can tell the hook that something changed — switching distributor is this case.
+    const failed = cache.get(['tenancy', 'me'])
+    expect(failed.updatedAt).toBe(0)
+    cache.clear()
+    expect(cache.get(['tenancy', 'me']).updatedAt).toBe(0)
+    expect(cache.get(['tenancy', 'me']).generation).toBeGreaterThan(failed.generation)
+  })
+
+  it('moves the generation on when a failed entry is invalidated', async () => {
+    const cache = new QueryCache()
+    const keep = (): void => undefined
+    cache.subscribe(['orders', 1], keep)
+    await expect(
+      cache.fetch(['orders', 1], () =>
+        Promise.reject(new ApiError({ kind: 'network', message: 'No connection' })),
+      ),
+    ).rejects.toBeInstanceOf(ApiError)
+    const before = cache.get(['orders', 1]).generation
+    cache.invalidate(['orders'])
+    expect(cache.get(['orders', 1]).generation).toBe(before + 1)
+  })
+
+  it('drops the answer of a request that was in flight when the cache was cleared', async () => {
+    const cache = new QueryCache()
+    const keep = (): void => undefined
+    cache.subscribe(['tenancy', 'me'], keep)
+    let release: (value: string) => void = () => undefined
+    const slow = new Promise<string>((resolve) => {
+      release = resolve
+    })
+    const inFlight = cache.fetch(['tenancy', 'me'], () => slow)
+    cache.clear() // the user switched distributor while Tarsun's answer was still in the air
+    release('Tarsun Enterprise')
+    await inFlight
+    expect(cache.get(['tenancy', 'me']).data).toBeUndefined()
+  })
+
+  it('lets a fresh request replace one abandoned by a clear', async () => {
+    const cache = new QueryCache()
+    const keep = (): void => undefined
+    cache.subscribe(['tenancy', 'me'], keep)
+    let release: (value: string) => void = () => undefined
+    const slow = new Promise<string>((resolve) => {
+      release = resolve
+    })
+    const abandoned = cache.fetch(['tenancy', 'me'], () => slow)
+    cache.clear()
+    const next = await cache.fetch(['tenancy', 'me'], () => Promise.resolve('Sai Distributors'))
+    release('Tarsun Enterprise')
+    await abandoned
+    expect(next).toBe('Sai Distributors')
+    expect(cache.get(['tenancy', 'me']).data).toBe('Sai Distributors')
+  })
+})

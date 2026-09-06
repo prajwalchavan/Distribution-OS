@@ -315,6 +315,7 @@ export function Tabs({ items, value, onChange, testID }: TabsProps): React.JSX.E
             <Txt
               field="bodyStrong"
               desk="nav"
+              numberOfLines={1}
               color={active ? theme.colors.accent.fg : theme.colors.text.secondary}
             >
               {item.count === undefined ? item.label : `${item.label} ${item.count}`}

@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react'
 import { FlatList, Pressable, View } from 'react-native'
 
-import { ladderFraction } from '../charts/geometry.js'
+import { ladderFraction, ladderLabelWidth, ladderValueWidth } from '../charts/geometry.js'
 import { formatMoney } from '../money.js'
 import { useTheme } from '../theme.js'
 import { AGEING_BUCKETS, AGEING_LADDER, chart as chartTokens, radius, space } from '../tokens.js'
@@ -259,6 +259,11 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
   const theme = useTheme()
   const max = Math.max(0, ...rows.map((r) => r.value))
   const format = formatValue ?? ((v: number) => formatMoney(v, { symbol: false }))
+  const labelWidth = ladderLabelWidth(rows)
+  const valueWidth = ladderValueWidth(
+    rows.map((row) => format(row.value)),
+    theme.density === 'desk' ? 8 : 11,
+  )
   return (
     <View testID={testID}>
       {title ? (
@@ -284,8 +289,9 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
             key={`${row.label}-${String(index)}`}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: 6 }}
           >
-            <View style={{ width: 56 }}>
-              <Txt field="label" desk="meta" color={theme.colors.text.secondary}>
+            {/* Wide enough for the widest rung name in THIS ladder, capped; one line, always. */}
+            <View style={{ width: labelWidth }}>
+              <Txt field="label" desk="meta" numberOfLines={1} color={theme.colors.text.secondary}>
                 {row.label}
               </Txt>
             </View>
@@ -307,7 +313,12 @@ export function BarLadder({ rows, title, formatValue, testID }: BarLadderProps):
               />
             </View>
             {/* Every rung carries its number even at zero. */}
-            <Txt field="moneyM" desk="cellMoney" numeric style={{ width: 104, textAlign: 'right' }}>
+            <Txt
+              field="moneyM"
+              desk="cellMoney"
+              numeric
+              style={{ width: valueWidth, textAlign: 'right' }}
+            >
               {format(row.value)}
             </Txt>
           </View>
@@ -343,6 +354,8 @@ export function Register<Row>({
   selectedKey,
   state = 'ready',
   filters,
+  onClearFilters,
+  totals,
   asOf,
   errorMessage,
   emptyMessage,
@@ -361,11 +374,35 @@ export function Register<Row>({
   const chipCol = columns.find((c) => c.priority === 'chip')
   return (
     <View testID={testID}>
+      {/*
+        The filter row of the ONE contract: chips "with a one-tap clear" (types.ts). The clear was
+        rendered on the web half only, so `onClearFilters` was a prop a phone silently dropped — and
+        the tap target obeys the app's floor, not the 24 px the desk table uses.
+      */}
       {filters && filters.length > 0 ? (
-        <View style={{ flexDirection: 'row', gap: space[2], marginBottom: space[2] }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: space[2],
+            marginBottom: space[2],
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           {filters.map((f) => (
             <StatusChip key={f.id} label={f.label} family="neutral" />
           ))}
+          {onClearFilters ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClearFilters}
+              style={{ minHeight: theme.touchSize, justifyContent: 'center' }}
+            >
+              <Txt field="bodyStrong" desk="label" color={theme.colors.accent.fg}>
+                {theme.t('register.clearFilters')}
+              </Txt>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
       {state === 'partial' && asOf ? (
@@ -398,6 +435,43 @@ export function Register<Row>({
           }}
         />
       </Group>
+      {/*
+        The totals row. The web half draws a `<tfoot>`; the phone half dropped `totals` entirely, so
+        the one figure a register exists for — what the column adds up to — never reached a phone.
+        Same values, same keys, a rule above them (UX-00 section 5.3 "totals rule").
+      */}
+      {totals ? (
+        <View
+          style={{
+            marginTop: space[2],
+            paddingTop: space[2],
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.border.hairline,
+            gap: space[1],
+          }}
+        >
+          {columns
+            .filter((col) => totals[col.key] !== undefined && totals[col.key] !== null)
+            .map((col) => (
+              <View
+                key={col.key}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: space[3],
+                }}
+              >
+                <Txt field="label" desk="label" color={theme.colors.text.secondary}>
+                  {col.head}
+                </Txt>
+                <Txt field="moneyM" desk="cellMoney" numeric>
+                  {totals[col.key]}
+                </Txt>
+              </View>
+            ))}
+        </View>
+      ) : null}
     </View>
   )
 }
