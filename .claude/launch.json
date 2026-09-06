@@ -92,6 +92,15 @@
       "port": 3999
     },
     {
+      "name": "offline-harness",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd frontend && pnpm --filter @dos/offline harness"
+      ],
+      "port": 5198
+    },
+    {
       "name": "docs-preview",
       "runtimeExecutable": "bash",
       "runtimeArgs": [

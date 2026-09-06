@@ -25,6 +25,7 @@ import type {
   ImgProps,
   LinkProps,
   ListProps,
+  MapViewProps,
   MoneyProps,
   PressableProps,
   RowProps,
@@ -131,6 +132,10 @@ export type _Button = [
 export type _Money = [
   Implements<ComponentType<MoneyProps>, WebModule['Money']>,
   Implements<ComponentType<MoneyProps>, NativeModule['Money']>,
+]
+export type _MapView = [
+  Implements<ComponentType<MapViewProps>, WebModule['MapView']>,
+  Implements<ComponentType<MapViewProps>, NativeModule['MapView']>,
 ]
 export type _StatusChip = [
   Implements<ComponentType<StatusChipProps>, WebModule['StatusChip']>,

@@ -78,6 +78,14 @@ export const en = {
   'state.empty': 'Nothing here yet',
   'state.error': 'Could not load this',
 
+  // Map (UX-00 section 6.15). The attribution is a licence condition, not decoration.
+  'map.empty': 'Nothing to show on the map',
+  'map.unavailable': 'Map not available on this device',
+  'map.listFallback': 'Showing the same places as a list',
+  'map.attribution': 'Map data © OpenStreetMap contributors',
+  'map.openInMaps': 'Open in maps',
+  'map.loading': 'Loading the map',
+
   // Status vocabulary (UX-00 section 3.3). Colour is never the only channel: the word travels with it.
   'status.inStock': 'In stock',
   'status.low': 'Low · {cases} cs',

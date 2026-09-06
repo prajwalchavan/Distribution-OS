@@ -56,6 +56,9 @@ Created from the manifest at first start and re-created (drop + snapshot) when `
     rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
   - `_gps_buffer(ts TEXT, trip_id TEXT, lat REAL, lng REAL, accuracy_m REAL, speed_mps REAL, posted INTEGER)` — delivery only (§8).
   - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline.
+    Mirroring is BEST EFFORT: `sync.errors.list` is STAFF-only, the oRPC client exposes it to every app because the contract is
+    shared, and a shop's app is answered 403. A refusal is logged and the tray is not asked for again — it must never turn a
+    pull that has already committed into a failed sync (gate, 2026-09-06).
 
 Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screens filter by (`retailer_id`, `trip_id`, `beat_id`,
 `status`, `updated_at`). The manifest does not publish indexes; the client owns a small per-table index list.
@@ -71,7 +74,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 ## 5. Pull
 
 1. `sync.manifest({ knownSchemaVersion })` on app start, after sign-in, after a distributor switch, and once a day. On `changed`:
-   drop and re-create the data tables, clear the cursor.
+   drop and re-create the data tables, clear the cursor. The DISTRIBUTOR is compared by the client itself (`tenantId` in
+   `_sync_state`, `SyncEngineOptions.tenantId`): the manifest cannot say which tenant it answered for — its hash is over the
+   ROLE's tables — so a rep who works for two distributors gets an identical `schemaVersion` from both, and without the tenant in
+   the comparison the second one's delta lands on top of the first one's rows (gate, 2026-09-06).
 2. No cursor → **snapshot**: `sync.pull({ deviceId, limit: 500 })` in a loop while `hasMore`, always echoing the cursor the last
    response gave. Snapshots carry no tombstones.
 3. With a cursor → **delta**, same loop. For each response, in ONE transaction: apply every `deleted` id of every table first, then
@@ -125,9 +131,18 @@ the shared PDF (rendered by the worker) carries the legal one. A slip is never r
 
 ## 10. Status object and the honesty strip
 
+**Corrected at the gate, 2026-09-06.** `online` was written below as "the platform's flag AND a successful call inside
+the last 30 s". Built that way it lied and then broke the client: the foreground pull runs every **60** s, so a phone
+with a perfect connection spent half of every minute saying "Offline — saved on this phone", and because the poll was
+itself gated on `online`, the first time it went stale the poll stopped scheduling work — **one pull per launch, for
+ever**, on every read-only app (owner, manager, retailer). `online` is now *the radio is on AND the last call reached a
+service* — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
+already answers it from `lastPulledAt` ("Stock as of 9:40 am" past four hours, UX-00 §6.11). The poll is never gated on
+the state it produces: **the poll is the probe**.
+
 ```ts
 interface SyncStatus {
-  online: boolean                      // navigator.onLine / NetInfo AND a /health probe within 30 s
+  online: boolean                      // navigator.onLine / NetInfo AND the last call reached a service
   store: 'sqlite-native' | 'sqlite-web' | 'memory'
   lastPulledAt: string | null
   pulling: boolean

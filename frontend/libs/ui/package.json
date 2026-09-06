@@ -41,14 +41,19 @@
     "expo-print": "*",
     "expo-secure-store": "*",
     "expo-sharing": "*",
+    "maplibre-gl": "*",
     "react": ">=19",
     "react-dom": ">=19",
     "react-native": ">=0.79",
+    "react-native-maps": "*",
     "react-native-safe-area-context": ">=5",
     "react-native-svg": ">=15"
   },
   "peerDependenciesMeta": {
     "expo-camera": {
+      "optional": true
+    },
+    "expo-crypto": {
       "optional": true
     },
     "expo-document-picker": {
@@ -75,19 +80,22 @@
     "expo-sharing": {
       "optional": true
     },
+    "maplibre-gl": {
+      "optional": true
+    },
     "react-dom": {
       "optional": true
     },
     "react-native": {
       "optional": true
     },
+    "react-native-maps": {
+      "optional": true
+    },
     "react-native-safe-area-context": {
       "optional": true
     },
     "react-native-svg": {
-      "optional": true
-    },
-    "expo-crypto": {
       "optional": true
     }
   },
@@ -108,9 +116,11 @@
     "expo-print": "catalog:",
     "expo-secure-store": "catalog:",
     "expo-sharing": "catalog:",
+    "maplibre-gl": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
+    "react-native-maps": "catalog:",
     "react-native-safe-area-context": "catalog:",
     "react-native-svg": "catalog:",
     "typescript": "catalog:",

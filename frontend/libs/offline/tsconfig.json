@@ -1,4 +1,4 @@
 {
   "extends": "@dos/config/tsconfig/react-library.json",
-  "include": ["src"]
+  "include": ["src", "harness"]
 }

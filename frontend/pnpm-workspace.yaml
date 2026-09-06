@@ -66,7 +66,11 @@ catalog:
   expo-print: 57.0.1
   expo-document-picker: 57.0.1
   expo-file-system: 57.0.6
+  expo-sqlite: 57.0.2
   expo-web-browser: 57.0.2
+  # `react-native-maps` is the native half of the kit's <MapView> (docs/08 §0). Version from the same
+  # `bundledNativeModules.json`; the web half is `maplibre-gl`, which the SDK does not govern.
+  react-native-maps: 1.27.2
   '@expo/metro-runtime': 57.0.15
   babel-preset-expo: 57.0.10
   '@babel/core': 7.29.7
@@ -76,3 +80,14 @@ catalog:
   '@types/react-dom': 19.2.4
   vite: 8.2.2
   '@vitejs/plugin-react': 6.1.0
+
+  # --- web-only libraries (no Expo counterpart; not governed by the SDK) ------
+  # MapLibre GL JS draws <MapView> on the web over OpenStreetMap raster tiles (free, attributed).
+  # HELD AT 5.x ON PURPOSE (gate, 2026-09-06). 6.7.0 starts its tiling worker from a blob that
+  # `import`s the worker chunk as an ES module; in a bundled app (Vite dev, `vite build` and Metro
+  # alike) that worker never runs, and every worker-tiled source — which is EVERY geojson source —
+  # stays unloaded for ever without a single error event. Raster tiles come down on the main thread,
+  # so the map looked fine and drew a beautiful backdrop with NOT ONE PIN on it: 18 shops in the
+  # source, 0 tiled, 0 rendered, no console line. 5.24.0 renders all 18. Re-test with a real map
+  # before moving to 6.x again — the failure is silent, so a version bump alone will not show it.
+  maplibre-gl: 5.24.0

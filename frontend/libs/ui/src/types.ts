@@ -450,6 +450,59 @@ export interface SkeletonProps extends Testable {
 }
 
 // ---------------------------------------------------------------------------
+// 6.15 MapView — the owner's live map and the crew's road (docs/08 §0)
+// ---------------------------------------------------------------------------
+
+/**
+ * ONE contract, two engines: MapLibre GL JS over OpenStreetMap raster tiles on the web (free, and the
+ * attribution is not optional — it is rendered by the component itself), `react-native-maps` on a
+ * phone (Apple Maps on iOS, the Google Maps SDK on Android). Neither is a hard dependency: a build
+ * without the engine, or a browser with no WebGL, draws the SAME markers as a labelled list rather
+ * than a blank rectangle, and says why. A missing capability answers honestly; it never throws.
+ *
+ * Navigating TO a place is never in here: that is a URL hand-off to the phone's own map app
+ * (`platform.share` / a `geo:` link), which is what a driver already knows how to use.
+ */
+export interface MapPoint {
+  latitude: number
+  longitude: number
+}
+
+export interface MapMarker extends MapPoint {
+  id: string
+  /** The shop's or vehicle's own name — printed beside the pin on desk, in the callout on a phone. */
+  label: string
+  /** A second line: "3 of 11 stops · seen 6 min ago". */
+  detail?: string | undefined
+  /** Colour + word, never colour alone (UX-00 §3.4). The word belongs in `detail`. */
+  tone?: StatusFamily | undefined
+  /** Draws the pin larger and above the rest — the vehicle the reader tapped. */
+  selected?: boolean | undefined
+}
+
+/** A trip trace or a planned round, drawn as a line under the pins. */
+export interface MapPath {
+  id: string
+  points: readonly MapPoint[]
+  tone?: StatusFamily | undefined
+}
+
+export interface MapViewProps extends Testable {
+  markers?: readonly MapMarker[] | undefined
+  paths?: readonly MapPath[] | undefined
+  /** Defaults to the extent of the markers; with none, to the centre of the pilot's own district. */
+  center?: MapPoint | undefined
+  /** 1 (the subcontinent) to 18 (a lane). Ignored when the extent is computed from the markers. */
+  zoom?: number | undefined
+  height?: number | undefined
+  onSelectMarker?: ((id: string) => void) | undefined
+  /** Shown instead of the map when there is nothing to draw. */
+  emptyMessage?: string | undefined
+  /** Force the list rendering — what a screen does when the reader has asked for the register. */
+  listOnly?: boolean | undefined
+}
+
+// ---------------------------------------------------------------------------
 // 6.14 The chart set
 // ---------------------------------------------------------------------------
 

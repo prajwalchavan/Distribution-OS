@@ -13,10 +13,11 @@ import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { TextInput, Tabs } from './controls.js'
 import { ConnectionStrip, Sheet } from './feedback.js'
+import { MapView } from './map.js'
 import { MenuRow, TenantSwitcher } from './shell.js'
 import { Link } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
-import type { ConnectionState } from '../types.js'
+import type { ConnectionState, MapMarker } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
   return renderToStaticMarkup(
@@ -470,5 +471,73 @@ describe('<ConnectionStrip> never claims a read it has not had', () => {
 
   it('still names the clock time it went quiet when the read has failed', () => {
     expect(strip({ online: false, lastSyncedAt: null })).toContain('Offline since')
+  })
+})
+
+/**
+ * `<MapView>` (UX-00 §6.15). MapLibre needs a real canvas and a WebGL context, so what is asserted
+ * here is the half that must be true WITHOUT one — because that half is what a rep on an old Android
+ * browser, or a build made before the library was added, actually sees. A map that cannot draw is
+ * never a blank rectangle: it is the same places, named, with a line saying why.
+ */
+describe('<MapView> degrades to the same places, named', () => {
+  const vans: readonly MapMarker[] = [
+    {
+      id: 'v1',
+      label: 'MH 05 AB 1234',
+      detail: '3 of 11 stops · seen 6 min ago',
+      latitude: 19.2437,
+      longitude: 73.1355,
+      tone: 'moss',
+    },
+    {
+      id: 'v2',
+      label: 'MH 04 CD 9911',
+      detail: 'No signal since 4:20 pm',
+      latitude: 19.21,
+      longitude: 73.09,
+      tone: 'ochre',
+    },
+  ]
+
+  it('names every marker and its detail line', () => {
+    const html = renderDesk(<MapView markers={vans} listOnly />)
+    expect(html).toContain('MH 05 AB 1234')
+    expect(html).toContain('3 of 11 stops · seen 6 min ago')
+    expect(html).toContain('MH 04 CD 9911')
+  })
+
+  it('never paints a blank rectangle: the frame says what it is doing', () => {
+    // Before the library has loaded (and this static render never loads it) the frame is not silent.
+    const html = renderDesk(<MapView markers={vans} />)
+    expect(html).toContain('Loading the map')
+    expect(html).toContain('MH 05 AB 1234')
+  })
+
+  it('says the map is unavailable, in words, when the engine is not there', () => {
+    const html = renderDesk(<MapView markers={vans} listOnly />)
+    expect(html).toContain('Map not available on this device')
+    expect(html).toContain('Showing the same places as a list')
+  })
+
+  it('prints the OpenStreetMap attribution wherever tiles could be drawn', () => {
+    const html = renderDesk(<MapView markers={vans} />)
+    expect(html).toContain('Map data © OpenStreetMap contributors')
+  })
+
+  it('with nothing to draw says so, and hides the frame rather than unmounting it', () => {
+    /*
+     * Hidden, not absent. MapLibre attaches to a DOM node and the markers arrive from SQLite a tick
+     * after the first paint, so a frame that is conditionally RENDERED hands the map `null` on mount
+     * and the map is never built — which is how the live map came up empty on the harness.
+     */
+    const html = renderDesk(<MapView markers={[]} />)
+    expect(html).toContain('Nothing to show on the map')
+    expect(html).toContain('display:none')
+  })
+
+  it('gives each row the app touch floor, not a 21 dp target', () => {
+    const html = renderField(<MapView markers={vans} onSelectMarker={() => undefined} />)
+    expect(html).toContain('min-height:69px')
   })
 })

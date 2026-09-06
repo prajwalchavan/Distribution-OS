@@ -2,23 +2,50 @@
   "name": "@dos/offline",
   "version": "0.0.0",
   "private": true,
-  "description": "Offline-first primitives for the field apps: PowerSync schema, upload connector with idempotency keys, sync error surface",
+  "description": "Our own delta sync client (docs/27, no PowerSync): SQLite on the device behind three adapters, a local schema built from sync.manifest, the pull cursor loop, a restart-proof outbox with the original idempotency keys, the GPS buffer, and the React layer the screens read through",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./src/index.web.ts",
+  "types": "./src/index.web.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "react-native": "./src/index.native.ts",
+      "browser": "./src/index.web.ts",
+      "default": "./src/index.web.ts"
+    },
+    "./react": "./src/react.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "harness": "vite --config harness/vite.config.ts"
   },
   "dependencies": {
+    "@dos/contracts": "link:../../../backend/libs/contracts",
     "@dos/domain": "link:../../../backend/libs/domain"
   },
+  "peerDependencies": {
+    "expo-sqlite": "*",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "expo-sqlite": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@dos/api-client": "workspace:*",
     "@dos/config": "workspace:*",
+    "@dos/ui": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
     "eslint": "catalog:",
-    "typescript": "catalog:"
+    "expo-sqlite": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

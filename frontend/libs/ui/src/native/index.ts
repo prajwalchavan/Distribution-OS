@@ -24,6 +24,7 @@ export {
   initialsOf,
 } from './feedback.js'
 export { CompareBars, Sparkline, StackedMix, TrendChart } from './charts.js'
+export { MapView } from './map.js'
 
 // The layout vocabulary of docs/08 §0 — the whole structural surface a screen may use.
 export {
