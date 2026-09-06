@@ -34,7 +34,14 @@ import {
   moneyColumn,
   textColumn,
 } from '../../src/lib/ui'
-import { grainFor, monthsBack, rangeOf, shortDate, type RangeId } from '../../src/lib/dates'
+import {
+  instantWithClock,
+  grainFor,
+  monthsBack,
+  rangeOf,
+  shortDate,
+  type RangeId,
+} from '../../src/lib/dates'
 
 export default function Growth(): React.JSX.Element {
   const t = useStrings()
@@ -234,7 +241,7 @@ export default function Growth(): React.JSX.Element {
                   series={salesSeries}
                   legend={compare !== 'none'}
                   height={180}
-                  asOf={sales.data?.asOf}
+                  asOf={instantWithClock(sales.data?.asOf)}
                 />
               </Async>
             </Panel>
@@ -355,7 +362,7 @@ export default function Growth(): React.JSX.Element {
         </Panel>
 
         <Txt field="label" desk="meta">
-          {t('app.asOf', { when: sales.data?.asOf ?? '—' })}
+          {t('app.asOf', { when: instantWithClock(sales.data?.asOf) })}
         </Txt>
       </Stack>
     </Screen>

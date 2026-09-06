@@ -33,7 +33,7 @@ import {
   moneyColumn,
   textColumn,
 } from '../../src/lib/ui'
-import { clampWindow, monthsBack, shortDate } from '../../src/lib/dates'
+import { instantWithClock, clampWindow, monthsBack, shortDate } from '../../src/lib/dates'
 
 export default function Profit(): React.JSX.Element {
   const t = useStrings()
@@ -152,7 +152,7 @@ export default function Profit(): React.JSX.Element {
                     },
                   ]}
                   height={180}
-                  asOf={margin.data?.asOf}
+                  asOf={instantWithClock(margin.data?.asOf)}
                 />
               </Async>
             </Panel>

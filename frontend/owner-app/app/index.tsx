@@ -29,7 +29,7 @@ import {
 import { useRouter } from 'expo-router'
 
 import { AsOf, Async, Columns, Half, PageTabs, Panel, useNames } from '../src/lib/ui'
-import { monthsBack, rangeOf, shortDate } from '../src/lib/dates'
+import { instantWithClock, monthsBack, rangeOf, shortDate } from '../src/lib/dates'
 
 export default function Today(): React.JSX.Element {
   const t = useStrings()
@@ -176,7 +176,7 @@ export default function Today(): React.JSX.Element {
                   legend
                   height={180}
                   range={`${shortDate(thirty.from)} — ${shortDate(thirty.to)}`}
-                  asOf={sales.data?.asOf}
+                  asOf={instantWithClock(sales.data?.asOf)}
                 />
               </Async>
             </Panel>
