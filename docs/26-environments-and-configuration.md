@@ -98,9 +98,34 @@ Monthly during pilot: **~$36 compute + ~$2 storage/DNS + usage-based AI/WhatsApp
 | CI, error tracking, uptime | free tiers (GitHub Actions, Sentry, CloudWatch) | |
 | Subscription billing for tenants | manual invoices at pilot; Razorpay (per-transaction) later | |
 
-## 7. All-in-one deployment mode (to build, ~half a day)
+## 7. All-in-one deployment mode (BUILT 2026-09-06)
 
-The seven services and the worker are composed from the same libraries. A `DOS_MODE=all` entry point mounts every service on one Fastify instance under path prefixes (`/auth`, `/owner`, `/manager`, `/sales`, `/warehouse`, `/delivery`, `/retailer`, `/admin`) and runs the worker in-process, so a 2–4 GB VM hosts everything (~300 MB instead of ~1.2 GB for eight processes). Per-service containers stay the scale path (docs/20); the apps only change their base URL.
+The eight services and the worker are composed from the same libraries, so one process can carry all of them. `backend/all-in-one` (`pnpm --filter @dos/all-in-one dev`, port `ALL_IN_ONE_PORT`, default **3100**) mounts every service behind a path prefix and, with `DOS_MODE=all WORKER_INLINE=1`, starts the pg-boss worker in the same process. Per-service containers stay the scale path (docs/20); the apps only change their base URL.
+
+| Prefix | Service | Roles | | Prefix | Service | Roles |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/auth` | auth-service | every membership role | | `/warehouse` | warehouse-service | warehouse |
+| `/owner` | owner-service | owner | | `/delivery` | delivery-service | delivery |
+| `/manager` | manager-service | manager, accountant | | `/retailer` | retailer-service | retailer |
+| `/sales` | sales-service | salesperson | | `/admin` | admin-service | platform_admin |
+
+**What is and is not shared.** Each prefix is the real service: the same `ServiceDefinition` its own package exports (they all live in `backend/libs/core/src/service/definitions.ts`, and `backend/<name>-service/src/service.ts` re-exports one — so the two deployment shapes cannot drift into serving different modules), its own `SERVICE_INFO`, its own `TenantGuard` role gate, its own `/health`, `/docs`, `/swagger` under its prefix. There is no combined router and no union of roles: an owner token is refused at `/sales` exactly as it is on :3003. `GET /health` at the root lists what the process is carrying. Mechanically, each Nest app initialises a Fastify instance that never listens, and one Node HTTP server in front strips the prefix and calls that instance's router — not a Fastify plugin tree, because a Nest app registers its routes long after a parent instance would have sealed its plugin scope.
+
+**Memory (measured 2026-09-06, founder budget < 400 MB).** 377 MB RSS with all eight mounted, running from `dist/` on Node 24 (420 MB under the `@swc-node` dev transpiler, which holds the compiler in memory). Eight separate processes cost ~1.2 GB. The number is asserted in `libs/core/src/service/all-in-one.spec.ts` and recorded in docs/18.
+
+**Pools.** Eight services on one Postgres: unless `DATABASE_POOL_MAX` is set, all-in-one mode gives each service `floor(32 / services)` connections so the total stays well inside the local `max_connections = 100` with the worker's pool on top.
+
+**Frontend base URLs.** One environment variable per app, as always — only its value changes between the two shapes:
+
+| App | Split (one service per port) | All-in-one (one port, prefixes) |
+| --- | --- | --- |
+| owner (Vite web) | `VITE_API_URL=http://localhost:3001` | `VITE_API_URL=https://api.example.in/owner` |
+| manager / sales / warehouse / delivery / retailer (Expo) | `EXPO_PUBLIC_API_URL=http://localhost:300{2..6}` | `EXPO_PUBLIC_API_URL=https://api.example.in/{manager,sales,warehouse,delivery,retailer}` |
+| every app's sign-in | `…_AUTH_URL=http://localhost:3000` | `…_AUTH_URL=https://api.example.in/auth` |
+
+No app code changes: the client prefixes every route with its base URL already, and the routes under a prefix are the same routes the service serves on its own port. CORS is unchanged (`CORS_ORIGINS`), and there is exactly one origin to allow in this mode instead of eight.
+
+**Proof.** `pnpm smoke --base http://127.0.0.1:3100` walks every endpoint of every service through the prefixes and must end at 0 BROKEN, the same as `pnpm smoke` against the eight ports. Both were green on 2026-09-06 (1588 calls each).
 
 ## 8. Founder confirmations
 

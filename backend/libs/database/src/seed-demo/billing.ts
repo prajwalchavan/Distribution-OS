@@ -813,6 +813,18 @@ export async function seedBilling(
   // seed is a no-op even though the bill it would choose has moved: the second run finds the note
   // already there and stops. Deriving it from the bill instead would book a SECOND note under the same
   // `CN/900x` number, which the unique index refuses and which used to break the seed halfway through.
+  /**
+   * The two shops that sign in to the RETAILER APP (`seedTenants` links its demo shopkeepers to the
+   * first and the tenth shop of the network). They get first refusal on these two notes so the app —
+   * and `sync.pull`, which puts a shop's credit notes on its phone — has a real one to show. Without
+   * this the notes land wherever the biggest open bill happens to be, and the shop the founder signs
+   * in as sees an empty screen that is correct and useless.
+   */
+  const appShopIds = [
+    retailersRes.retailers[0]?.id ?? '',
+    retailersRes.retailers[9]?.id ?? '',
+  ] as const
+
   const extraNoteIds = ['return', 'rate'].map((key) => demoId('credit-note', `extra:${key}`))
   const alreadyBooked = new Set(
     (
@@ -837,7 +849,9 @@ export async function seedBilling(
          AND i.state IN ('issued', 'partially_paid')
          AND i.source = 'pack'
          AND NOT EXISTS (SELECT 1 FROM credit_notes c WHERE c.invoice_id = i.id)
-       ORDER BY (i.total_paise - COALESCE(a.allocated, 0)) DESC, i.id
+       ORDER BY (i.retailer_id = ${appShopIds[0] ?? ''}) DESC,
+                (i.retailer_id = ${appShopIds[1] ?? ''}) DESC,
+                (i.total_paise - COALESCE(a.allocated, 0)) DESC, i.id
        LIMIT 2`)
   ).rows as unknown as CreditSource[]
 

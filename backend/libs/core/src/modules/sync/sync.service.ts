@@ -18,8 +18,15 @@ import {
 } from '@dos/contracts'
 import { MAX_CLOCK_SKEW_MS, uuidv7 } from '@dos/domain'
 import { syncErrors, syncOps, withTenant, type ActorRole, type Db } from '@dos/db'
-import { currentTenant, DB, requireDb, requireRole, STAFF } from '../../platform/index.js'
-import { SyncRegistry, SyncRejection } from './sync.registry.js'
+import {
+  ANY_MEMBER,
+  currentTenant,
+  DB,
+  requireDb,
+  requireRole,
+  STAFF,
+} from '../../platform/index.js'
+import { SyncRegistry, SyncRejection, vetoIfStale } from './sync.registry.js'
 
 type In = z.infer<typeof SyncUploadInput>
 type Out = z.infer<typeof SyncUploadOutput>
@@ -113,7 +120,13 @@ export class SyncService {
         } else {
           try {
             // Savepoint so a rejected op leaves no partial writes but the sync_ops/sync_errors rows still commit.
-            await tx.transaction(async (inner) => handler(inner, op))
+            await tx.transaction(async (inner) => {
+              // The LWW veto, applied to every table by the uploader rather than remembered by each
+              // module's handler (sync.registry.ts `vetoIfStale`): an edit whose base is older than
+              // the server's row is refused `stale`, still 2xx, and the tray tells the user why.
+              await vetoIfStale(inner, op)
+              await handler(inner, op)
+            })
             outcome = { ok: true }
           } catch (error) {
             if (error instanceof SyncRejection) {
@@ -225,14 +238,12 @@ export class SyncService {
    * when the hash matches, and the shape of the answer is what tells it so.
    */
   manifest(input: ManifestIn): ManifestOut {
-    // The SAME gate `pull` uses, deliberately. `permissions.ts` grants both reads to ANY_MEMBER
-    // because the shop's app is meant to hold its bills and dues offline too, but the shop's read set
-    // is not registered yet (no module calls `registerPull` with `roles: ['retailer']`, and no service
-    // mounts the `sync` key for the retailer role). Answering a shopkeeper a manifest of the STAFF
-    // read set and then refusing its `pull` with 403 would be the worse failure: this way the day a
-    // service serves `sync` to the retailer role, both procedures fail the permission matrix together
-    // and the shop's read set has to be built rather than discovered in the field.
-    requireRole(STAFF)
+    // The SAME gate `pull` uses, and `permissions.ts` says ANY_MEMBER for both: the shop's app holds
+    // its own bills, orders and dues on the phone and opens them in a dead spot (docs/07 §0). What a
+    // shopkeeper receives is not decided here but three layers down — the 18 tables `sync-tables.ts`
+    // gives the `retailer` role, the module's own predicate, and RLS underneath both. `upload` and
+    // `errors.list` stay STAFF, so the shop carries no write queue.
+    requireRole(ANY_MEMBER)
     const ctx = currentTenant()
     const role = deviceRole(ctx.actorRole)
     const tables = this.registry.manifest(ctx.actorRole)
@@ -256,10 +267,11 @@ export class SyncService {
    * SAME cursor until it is false, then keep the cursor for the next delta.
    */
   async pull(input: PullIn): Promise<PullOut> {
-    requireRole(STAFF)
+    requireRole(ANY_MEMBER)
     const db = requireDb(this.db)
     const ctx = currentTenant()
-    const since = decodeCursor(input.since)
+    const sinceText = decodeCursor(input.since)
+    const since = sinceText ? new Date(sinceText) : null
     const registered = this.registry.pullTables(ctx.actorRole)
     const tables = input.tables ? input.tables.filter((t) => registered.includes(t)) : registered
     const startedAt = new Date()
@@ -267,19 +279,37 @@ export class SyncService {
     return withTenant(db, ctx, async (tx) => {
       const changes: PullOut['changes'] = []
       let hasMore = false
+      // How far a SATURATED table is complete. One cursor serves every table, so it may only move to
+      // the earliest of these — the point past which no table has been read yet. The empty string
+      // sorts before every timestamp and is what a table that cannot say reports.
+      const wm: { at: string | null } = { at: null }
+      const mark = (at: string | null | undefined): void => {
+        const value = at ?? ''
+        if (wm.at === null || value < wm.at) wm.at = value
+      }
       for (const table of tables) {
         const spec = this.registry.pull(table)
         if (!spec) continue
-        const result = await spec.handler(tx, { ctx, since, limit: perTable + 1 })
-        const rows = result.rows.slice(0, perTable)
-        if (result.rows.length > perTable) hasMore = true
-        if (rows.length > 0 || result.deleted.length > 0 || since === null)
-          changes.push({ table, rows, deleted: result.deleted })
+        const result = await spec.handler(tx, { ctx, since, sinceText, limit: perTable })
+        // The handler owns its own paging: it knows the table's key, and it may hand back a few rows
+        // MORE than the budget to finish a group that shares one `updated_at` (see `tablePull`), which
+        // is the only way a one-instant cursor can move at all. So nothing is sliced here.
+        if (result.hasMore) {
+          hasMore = true
+          mark(result.watermark)
+        }
+        if (result.rows.length > 0 || result.deleted.length > 0 || since === null)
+          changes.push({ table, rows: result.rows, deleted: result.deleted })
       }
-      // When a table still has more, the cursor stays where it was so the next pull continues from
-      // the same point; only a complete pull advances it.
-      const asOf = new Date(startedAt.getTime() - PULL_OVERLAP_MS)
-      const cursor = hasMore ? (input.since ?? encodeCursor(new Date(0))) : encodeCursor(asOf)
+      // A complete pass moves the cursor to the server clock minus the overlap. An INCOMPLETE one
+      // still has to move it, or the next call answers the same page and the device never finishes
+      // its read set: it moves to the earliest point EVERY table has finished. A table that filled
+      // its page mid-instant and could not finish that instant (see `TIE_COMPLETION_LIMIT`) reports
+      // no watermark, and then the cursor stays where it was — repeating a page is recoverable,
+      // stepping over a row is not.
+      const asOf = new Date(startedAt.getTime() - PULL_OVERLAP_MS).toISOString()
+      const forward = wm.at && wm.at > (sinceText ?? '') ? wm.at : sinceText
+      const cursor = hasMore ? encodeCursor(forward ?? EPOCH) : encodeCursor(asOf)
       return { changes, cursor, hasMore, asOf: startedAt.toISOString() }
     })
   }
@@ -327,17 +357,27 @@ function schemaHash(role: MembershipRole, tables: ManifestOut['tables']): string
     .slice(0, 16)
 }
 
-function encodeCursor(at: Date): string {
-  return Buffer.from(JSON.stringify({ v: 1, t: at.toISOString() })).toString('base64url')
+/** Before every row there is: what a pull answers when it cannot advance and has no floor to keep. */
+const EPOCH = '1970-01-01T00:00:00.000000Z'
+
+/**
+ * The cursor is base64url `{v:1,t:<instant>}`, where the instant is ISO-8601 UTC to the MICROsecond —
+ * the resolution the database stamps `updated_at` with. Millisecond precision (what `Date.toISOString`
+ * gives) is not enough: a bound truncated down re-reads every row inside that millisecond on every
+ * pull, and when a page is exactly those rows the device never gets past them. It is opaque to the
+ * device, which only ever stores it and sends it back.
+ */
+function encodeCursor(at: string): string {
+  return Buffer.from(JSON.stringify({ v: 1, t: at })).toString('base64url')
 }
 
-function decodeCursor(cursor: string | undefined): Date | null {
+function decodeCursor(cursor: string | undefined): string | null {
   if (!cursor) return null
   try {
     const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as { t?: string }
     const at = parsed.t ? new Date(parsed.t) : null
-    if (!at || Number.isNaN(at.getTime())) throw new Error('bad cursor')
-    return at
+    if (!parsed.t || !at || Number.isNaN(at.getTime())) throw new Error('bad cursor')
+    return parsed.t
   } catch {
     throw new ORPCError('BAD_REQUEST', { message: 'since is not a cursor this server issued' })
   }

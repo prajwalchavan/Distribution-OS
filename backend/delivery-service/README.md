@@ -19481,7 +19481,7 @@ curl "http://localhost:3005/sync/pull?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a
         }
       ],
       "deleted": [
-        "01a06d32-576c-75db-8145-4e6798adafc6"
+        "text"
       ]
     }
   ],

@@ -1,66 +1,12 @@
-import {
-  defineService,
-  TenancyModule,
-  CatalogModule,
-  TenantCatalogModule,
-  RetailersModule,
-  PricingModule,
-  InventoryModule,
-  OrdersModule,
-  ReceivablesModule,
-  BillingModule,
-  SyncModule,
-  NotificationsModule,
-  ReportingModule,
-  IncentivesModule,
-  AiModule,
-} from '@dos/core'
-
 /**
- * The salesperson app: beats, shops, catalog with sellable stock, quotes, orders, bargains, offline sync.
- * Purchase cost is never served here.
+ * The salesperson service (:3003) — the composition itself lives in `@dos/core` (`libs/core/src/service/definitions.ts`), and
+ * this package re-exports it as its own `service`.
  *
- * `ReceivablesModule` and `BillingModule` are mounted for READS ONLY (docs/23 §8.1, §8.2): the rep sees
- * a shop's dues, statement and credit check and the bills of the shops it serves. Every write in those
- * two contracts refuses the salesperson in PERMISSIONS — "never collects" (docs/17 §D4) — so mounting
- * the keys exposes no way to record a rupee. `files` is not here: a rep uploads nothing.
+ * WHY IT IS THERE AND NOT HERE. The founder's deployment decision (2026-09-05, docs/26 §7) is that a
+ * small installation runs ONE process with all eight services behind path prefixes (`runAll()`), and
+ * a large one runs eight processes. Both mount THIS object. Two copies of the module list — one in
+ * the package, one in the all-in-one runtime — would eventually serve different modules or different
+ * roles on the same URL, and nothing would notice. The package is still an independent, separately
+ * runnable service (docs/19): its port, README, spec and `main.ts` are its own.
  */
-export const service = defineService({
-  name: 'sales',
-  title: 'Sales service',
-  defaultPort: 3003,
-  roles: ['salesperson'],
-  modules: [
-    TenancyModule,
-    CatalogModule,
-    TenantCatalogModule,
-    RetailersModule,
-    PricingModule,
-    InventoryModule,
-    OrdersModule,
-    ReceivablesModule,
-    BillingModule,
-    SyncModule,
-    NotificationsModule,
-    ReportingModule,
-    IncentivesModule,
-    AiModule,
-  ],
-  contractKeys: [
-    'health',
-    'tenancy',
-    'catalog',
-    'tenantCatalog',
-    'retailers',
-    'pricing',
-    'inventory',
-    'orders',
-    'receivables',
-    'billing',
-    'sync',
-    'notifications',
-    'reporting',
-    'incentives',
-    'ai',
-  ],
-})
+export { salesServiceDefinition as service } from '@dos/core'

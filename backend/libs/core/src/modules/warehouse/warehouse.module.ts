@@ -1,8 +1,10 @@
 import { Inject, Module, Optional, type OnModuleInit } from '@nestjs/common'
+import { sql } from 'drizzle-orm'
+import { deliveryChallans, loadSheets, packConfirmations, pickLines, picklists } from '@dos/db'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
-import { SyncRegistry } from '../sync/index.js'
+import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
 import { LoadSheetsService } from './load-sheets.service.js'
 import { PackingService } from './packing.service.js'
@@ -41,5 +43,33 @@ export class WarehouseModule implements OnModuleInit {
   onModuleInit(): void {
     if (!this.registry) return
     this.registry.register('pick_lines', (tx, op) => applyPickLineSync(tx, op, this.picklists))
+    // THE PULL SIDE — the paperwork of the godown floor, and the two documents that leave with the van.
+    // Bounded to a month for the devices (docs/20: bounded work per request): a picker never scrolls
+    // back further, and the desk pulls the lot. `load_sheets` and `delivery_challans` are held by BOTH
+    // the warehouse phone that writes them and the crew that carries them — `sync-tables.ts` says so,
+    // and `pullRolesFor` reads it from there rather than repeating it here.
+    const recent = sql`created_at > now() - interval '30 days'`
+    const fieldOnly = (r: { ctx: { actorRole: string } }) =>
+      r.ctx.actorRole === 'warehouse' || r.ctx.actorRole === 'delivery' ? recent : undefined
+    this.registry.registerPull('picklists', tablePull(picklists, { extra: fieldOnly }))
+    this.registry.registerPull(
+      'pick_lines',
+      tablePull(pickLines, {
+        extra: (r) =>
+          fieldOnly(r)
+            ? sql`picklist_id in (select p.id from picklists p
+                 where p.tenant_id = ${r.ctx.tenantId} and p.created_at > now() - interval '30 days')`
+            : undefined,
+      }),
+    )
+    this.registry.registerPull(
+      'pack_confirmations',
+      tablePull(packConfirmations, { extra: fieldOnly }),
+    )
+    this.registry.registerPull('load_sheets', tablePull(loadSheets, { extra: fieldOnly }))
+    this.registry.registerPull(
+      'delivery_challans',
+      tablePull(deliveryChallans, { extra: fieldOnly }),
+    )
   }
 }

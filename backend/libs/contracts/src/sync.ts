@@ -202,7 +202,14 @@ export const SyncManifestOutput = z.object({
 export const SyncTableChangesSchema = z.object({
   table: z.string(),
   rows: z.array(z.record(z.string(), z.unknown())),
-  deleted: z.array(IdSchema),
+  /**
+   * The DEVICE KEY of each row to forget, which is the row's `id` for 35 of the 37 pull-able tables
+   * and its `primaryKey` parts joined by `:` for the two that have no `id` column at all
+   * (`stock_balances` = `lot_id:location_id`, `retailer_outstanding_summary` = `retailer_id`). It is
+   * therefore a string and not a uuid: the same value `sync_tombstones.row_id` holds, and the same
+   * `primaryKey` the manifest publishes for the table.
+   */
+  deleted: z.array(z.string().min(1).max(160)),
 })
 export type SyncTableChanges = z.infer<typeof SyncTableChangesSchema>
 

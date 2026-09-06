@@ -1,71 +1,12 @@
-import {
-  defineService,
-  TenancyModule,
-  CatalogModule,
-  TenantCatalogModule,
-  RetailersModule,
-  InventoryModule,
-  ProcurementModule,
-  OrdersModule,
-  BillingModule,
-  WarehouseModule,
-  SyncModule,
-  FilesModule,
-  DeliveryModule,
-  DocintModule,
-  NotificationsModule,
-  ReportingModule,
-  AiModule,
-} from '@dos/core'
-
 /**
- * The warehouse app: GRN gate counts, stock, the order queue, picking, packing and load-out.
+ * The warehouse service (:3004) — the composition itself lives in `@dos/core` (`libs/core/src/service/definitions.ts`), and
+ * this package re-exports it as its own `service`.
  *
- * `BillingModule` is mounted because `warehouse.packs.confirm` issues the invoice in the same
- * transaction as the pack (coordination §4 step 3) and the `billing` contract key lets the packer read
- * the bill it just produced. `receivables` is deliberately NOT here: the warehouse role never touches
- * money (coordination §6), and the module is pulled in only as billing's own dependency.
+ * WHY IT IS THERE AND NOT HERE. The founder's deployment decision (2026-09-05, docs/26 §7) is that a
+ * small installation runs ONE process with all eight services behind path prefixes (`runAll()`), and
+ * a large one runs eight processes. Both mount THIS object. Two copies of the module list — one in
+ * the package, one in the all-in-one runtime — would eventually serve different modules or different
+ * roles on the same URL, and nothing would notice. The package is still an independent, separately
+ * runnable service (docs/19): its port, README, spec and `main.ts` are its own.
  */
-export const service = defineService({
-  name: 'warehouse',
-  title: 'Warehouse service',
-  defaultPort: 3004,
-  roles: ['warehouse'],
-  modules: [
-    TenancyModule,
-    CatalogModule,
-    TenantCatalogModule,
-    RetailersModule,
-    InventoryModule,
-    ProcurementModule,
-    OrdersModule,
-    BillingModule,
-    WarehouseModule,
-    SyncModule,
-    FilesModule,
-    DeliveryModule,
-    DocintModule,
-    NotificationsModule,
-    ReportingModule,
-    AiModule,
-  ],
-  contractKeys: [
-    'health',
-    'tenancy',
-    'catalog',
-    'tenantCatalog',
-    'retailers',
-    'inventory',
-    'procurement',
-    'orders',
-    'billing',
-    'warehouse',
-    'sync',
-    'files',
-    'delivery',
-    'docint',
-    'notifications',
-    'reporting',
-    'ai',
-  ],
-})
+export { warehouseServiceDefinition as service } from '@dos/core'

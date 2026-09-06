@@ -1,79 +1,12 @@
-import {
-  defineService,
-  TenancyModule,
-  CatalogModule,
-  TenantCatalogModule,
-  RetailersModule,
-  PricingModule,
-  InventoryModule,
-  ProcurementModule,
-  OrdersModule,
-  ReceivablesModule,
-  BillingModule,
-  WarehouseModule,
-  SyncModule,
-  FilesModule,
-  DeliveryModule,
-  DocintModule,
-  IntegrationsModule,
-  ClaimsModule,
-  NotificationsModule,
-  ReportingModule,
-  IncentivesModule,
-  AiModule,
-} from '@dos/core'
-
-/** Everything the distributor owner does at the desk or on the phone: masters, costs, prices, staff, approvals, registers, settings. */
-export const service = defineService({
-  name: 'owner',
-  title: 'Owner service',
-  defaultPort: 3001,
-  roles: ['owner'],
-  modules: [
-    TenancyModule,
-    CatalogModule,
-    TenantCatalogModule,
-    RetailersModule,
-    PricingModule,
-    InventoryModule,
-    ProcurementModule,
-    OrdersModule,
-    ReceivablesModule,
-    BillingModule,
-    WarehouseModule,
-    SyncModule,
-    FilesModule,
-    DeliveryModule,
-    DocintModule,
-    IntegrationsModule,
-    ClaimsModule,
-    NotificationsModule,
-    ReportingModule,
-    IncentivesModule,
-    AiModule,
-  ],
-  contractKeys: [
-    'health',
-    'tenancy',
-    'catalog',
-    'tenantCatalog',
-    'retailers',
-    'pricing',
-    'inventory',
-    'procurement',
-    'orders',
-    'receivables',
-    'billing',
-    'warehouse',
-    'sync',
-    'files',
-    'delivery',
-    'docint',
-    'integrations',
-    'claims',
-    'notifications',
-    'reporting',
-    'incentives',
-    'ai',
-  ],
-})
+/**
+ * The owner service (:3001) — the composition itself lives in `@dos/core` (`libs/core/src/service/definitions.ts`), and
+ * this package re-exports it as its own `service`.
+ *
+ * WHY IT IS THERE AND NOT HERE. The founder's deployment decision (2026-09-05, docs/26 §7) is that a
+ * small installation runs ONE process with all eight services behind path prefixes (`runAll()`), and
+ * a large one runs eight processes. Both mount THIS object. Two copies of the module list — one in
+ * the package, one in the all-in-one runtime — would eventually serve different modules or different
+ * roles on the same URL, and nothing would notice. The package is still an independent, separately
+ * runnable service (docs/19): its port, README, spec and `main.ts` are its own.
+ */
+export { ownerServiceDefinition as service } from '@dos/core'

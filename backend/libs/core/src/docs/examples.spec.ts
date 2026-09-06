@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
@@ -563,22 +563,36 @@ describe('every POST, on every service that serves it', () => {
 })
 
 describeDb('doc examples against the demo database (DATABASE_URL)', () => {
+  /**
+   * ONE pool and ONE read for the whole file. `DocExamplesService.load()` is eighteen collectors and
+   * something like a hundred sequential round trips, and this block used to run six copies of it —
+   * one per test, each on a pool of its own — for a context that is a pure READ of the demo rows and
+   * is identical every time. Under `turbo run build typecheck lint test --force` the eight-way build
+   * saturates the machine, and a 30 s budget for six hundred round trips stopped being generous: the
+   * independent gate of 2026-09-06 timed out here twice, on a different test each time. One copy
+   * serves every test, exactly as one copy serves a running service (the service caches it too).
+   */
   const pool = createPool(url ?? '')
   const db = createDb(pool)
+  const examplesService = new DocExamplesService(db)
+  const context = (): Promise<Awaited<ReturnType<DocExamplesService['load']>>> =>
+    examplesService.load()
+
+  afterAll(async () => {
+    await pool.end()
+  })
 
   it('reads a tenant with shops, products and orders', async () => {
-    const ctx = await new DocExamplesService(db).load()
+    const ctx = await context()
     expect(ctx.tenantId).toBeTruthy()
     expect(ctx.retailerId).toBeTruthy()
     expect(ctx.variantId).toBeTruthy()
     expect(ctx.orderId).toBeTruthy()
     expect(describeExamples(ctx)).toContain(ctx.tenantId ?? '')
-    await pool.end()
   }, 30_000)
 
   it('builds examples that are real rows and still parse', async () => {
-    const pool2 = createPool(url ?? '')
-    const ctx = await new DocExamplesService(createDb(pool2)).load()
+    const ctx = await context()
     const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'] })
 
     const broken: string[] = []
@@ -601,13 +615,10 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
     expect(examples.get('orders.list')?.query.retailerId).toBe(ctx.retailerId)
     expect(examples.get('inventory.stock.balances')?.query.lotId).toBe(ctx.lotId)
     expect(examples.get('auth.login')?.body?.username).toBe(ctx.users?.owner?.username)
-    await pool2.end()
   }, 30_000)
 
   it('creates rows under ids and document numbers the database does not hold yet', async () => {
-    const pool3 = createPool(url ?? '')
-    const db = createDb(pool3)
-    const ctx = await new DocExamplesService(db).load()
+    const ctx = await context()
     // The spare lane: the service specs run alongside this one under turbo and spend the role lanes.
     const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'], lane: SPARE_LANE })
 
@@ -663,7 +674,6 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       expect(row.supplierId).toBe(pack?.supplierId)
       expect(row.variantId).toBe(pack?.variantId)
     }
-    await pool3.end()
   }, 30_000)
 
   /**
@@ -680,9 +690,7 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
    * a username and a phone are unique platform-wide, so a spent one is a 409 the id check misses.
    */
   it('gives every service lane an id, a document number and a login the database does not hold', async () => {
-    const pool6 = createPool(url ?? '')
-    const db = createDb(pool6)
-    const ctx = await new DocExamplesService(db).load()
+    const ctx = await context()
     for (let lane = 0; lane <= SPARE_LANE; lane++) {
       const laneExamples = buildExamples(PROCEDURES, ctx, { roles: ['owner'], lane })
       const invoice = laneExamples.get('procurement.supplierInvoices.create')?.body
@@ -715,7 +723,6 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       expect(held.logins, `lane ${lane}: ${String(staff?.username)}`).toEqual([])
       expect(held.orders, `lane ${lane}: order id`).toEqual([])
     }
-    await pool6.end()
   }, 60_000)
 
   // The wizard example re-stages a file that must EXIST in the object store: the key of a party
@@ -723,9 +730,7 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
   // A made-up key stages `failed` and every later step of the chain answers 409 (found by the gate
   // after `pnpm smoke --destructive` cancelled the seeded staged job).
   it('re-stages a party-master file that really parsed, never a made-up key', async () => {
-    const pool5 = createPool(url ?? '')
-    const db = createDb(pool5)
-    const ctx = await new DocExamplesService(db).load()
+    const ctx = await context()
     const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'] })
     const key = String(examples.get('integrations.imports.create')?.body?.sourceObjectKey)
     expect(key.startsWith(`tenant/${ctx.tenantId ?? ''}/import/`)).toBe(true)
@@ -737,13 +742,10 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
         .limit(1),
     )
     expect(parsed, key).toHaveLength(1)
-    await pool5.end()
   }, 30_000)
 
   it('gives the shopkeeper app a shop that is really linked to its sign-in', async () => {
-    const pool4 = createPool(url ?? '')
-    const db = createDb(pool4)
-    const ctx = await new DocExamplesService(db).load()
+    const ctx = await context()
     const examples = buildExamples(PROCEDURES, ctx, { roles: ['retailer'] })
     const retailerId = String(examples.get('orders.create')?.body?.retailerId)
     const userId = ctx.users?.retailer?.id
@@ -768,6 +770,5 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
     for (const path of ['orders.create', 'orders.repeatLast', 'pricing.quote']) {
       expect(examples.get(path)?.body?.retailerId, path).toBe(retailerId)
     }
-    await pool4.end()
   }, 30_000)
 })

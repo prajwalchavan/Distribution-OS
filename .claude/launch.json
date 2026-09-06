@@ -74,6 +74,15 @@
       "port": 3007
     },
     {
+      "name": "all-in-one",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        "export PATH=/opt/homebrew/bin:$PATH; eval \"$(fnm env)\"; fnm use 24 >/dev/null; cd backend && pnpm --filter @dos/all-in-one dev"
+      ],
+      "port": 3100
+    },
+    {
       "name": "worker",
       "runtimeExecutable": "bash",
       "runtimeArgs": [

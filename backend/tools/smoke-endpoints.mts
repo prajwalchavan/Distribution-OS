@@ -3,6 +3,8 @@
  *
  *   pnpm smoke                     every service, every operation (mutations included)
  *   pnpm smoke --service owner     one service
+ *   pnpm smoke --base http://127.0.0.1:3100   ALL-IN-ONE mode: one process, one port, every service
+ *                                  behind its own path prefix (/auth, /owner, ... — docs/26 §7)
  *   pnpm smoke --only GET          reads only, nothing is written
  *   pnpm smoke --destructive       also run cancel/delete/revoke/… (breaks shared demo state)
  *   pnpm smoke --verbose           print the request body of every call
@@ -35,6 +37,13 @@ function flagValue(name: string): string | undefined {
   return i >= 0 ? argv[i + 1] : undefined
 }
 const ONLY_SERVICE = flagValue('--service')
+/**
+ * ALL-IN-ONE MODE (founder 2026-09-05, docs/26 §7). With `--base http://127.0.0.1:3100` every service
+ * is reached at `<base>/<name>` on ONE port instead of at `localhost:<its port>`; without it, nothing
+ * changes. The same harness must pass both ways, because "the same services behind path prefixes" is
+ * exactly the claim the deployment mode makes, and a smoke run is the only thing that proves it.
+ */
+const BASE_URL = flagValue('--base')?.replace(/\/$/, '')
 const ONLY_METHOD = flagValue('--only')?.toUpperCase()
 const VERBOSE = argv.includes('--verbose')
 const DESTRUCTIVE = argv.includes('--destructive')
@@ -103,7 +112,10 @@ const SERVICES: readonly ServiceTarget[] = [
 const DEMO_PASSWORD = 'Dos@1234'
 /** The seeded console account (`seedPlatformConsole`); it holds no membership anywhere. */
 const PLATFORM_ADMIN_USERNAME = 'dos.admin'
-const AUTH_URL = 'http://localhost:3000'
+const AUTH_URL = BASE_URL ? `${BASE_URL}/auth` : 'http://localhost:3000'
+/** Where one service answers: its own port, or its prefix under the all-in-one base. */
+const baseUrlFor = (name: string, port: number): string =>
+  BASE_URL ? `${BASE_URL}/${name}` : `http://localhost:${String(port)}`
 /** One stable device per role, so re-running the harness reuses the same session row. */
 const deviceIdFor = (username: string) => stableUuid(`smoke-device:${username}`)
 
@@ -2285,7 +2297,7 @@ function readOperations(doc: {
 }
 
 async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]> {
-  const base = `http://localhost:${String(target.port)}`
+  const base = baseUrlFor(target.name, target.port)
   const session = await login(target.username, target.role === 'platform_admin')
   const authHeaders = {
     authorization: `Bearer ${session.accessToken}`,
@@ -2613,7 +2625,7 @@ async function sweepSmokeTrips(owner: LoginResult, fx: Fixtures): Promise<void> 
     authorization: `Bearer ${owner.accessToken}`,
     'content-type': 'application/json',
   }
-  const base = `http://localhost:${String(SERVICES.find((s) => s.name === 'owner')?.port ?? 3001)}`
+  const base = baseUrlFor('owner', SERVICES.find((s) => s.name === 'owner')?.port ?? 3001)
   const post = (path: string, body: Record<string, unknown>) =>
     callJson(`${base}${path}`, {
       method: 'POST',

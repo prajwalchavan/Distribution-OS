@@ -147,6 +147,10 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/credit-notes` | Credit notes (a shop sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/billing/gst-summary` | GSTR-1-shaped HSN or rate summary, credit notes reported separately | owner, manager, accountant |
 | GET | `/billing/sales-register` | Invoice-wise sales register with running totals | owner, manager, accountant |
+| POST | `/sync/upload` | Offline write batch (never 4xx; rejections are 2xx + sync_errors) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/errors` | Rejected offline writes for the "Needs attention" tray (own rows for field roles) | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/sync/manifest` | Tables, columns and schema version the device of this role should hold | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/sync/pull` | Delta download of the device read set since a cursor (never a cost column) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/files/upload-url` | Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/files/read-url` | A short-lived read URL for an object key this role may open | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/delivery/vehicles` | Vehicles of this distributor | owner, manager, accountant, warehouse, delivery |
@@ -15650,6 +15654,428 @@ curl "http://localhost:3006/billing/sales-register?from=2026-09-04&to=2026-09-04
 }
 ```
 
+### POST `/sync/upload`
+
+Offline write batch (never 4xx; rejections are 2xx + sync_errors) · contract `sync.upload`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `protocol` | integer | no |
+| `deviceId` | string | yes |
+| `ops` | object[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/sync/upload" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "protocol": 1,
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "ops": [
+    {
+      "opId": "op-000123",
+      "op": "PUT",
+      "table": "sales_orders",
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "data": {
+        "line1": "12 Station Road",
+        "city": "Kalyan West",
+        "pincode": "421301"
+      },
+      "baseUpdatedAt": "2026-09-04T10:30:00.000Z",
+      "clientTime": "text"
+    }
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "accepted": 1,
+  "replayed": 1,
+  "rejected": [
+    {
+      "opId": "op-000123",
+      "table": "sales_orders",
+      "rowId": "01a06de8-3cac-72d1-85d1-76dbdb3dbb96",
+      "code": "R-0001",
+      "messageHi": "Confirmed on phone with the shopkeeper",
+      "messageEn": "Confirmed on phone with the shopkeeper"
+    }
+  ],
+  "warnings": [
+    {
+      "opId": "op-000123",
+      "code": "R-0001",
+      "messageEn": "Confirmed on phone with the shopkeeper"
+    }
+  ],
+  "upgradeRequired": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /sync/upload",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/sync/errors`
+
+Rejected offline writes for the "Needs attention" tray (own rows for field roles) · contract `sync.errors.list`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `deviceId` | string | no |
+| `since` | datetime | no |
+| `unresolvedOnly` | boolean | string | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/sync/errors?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a4bb&since=2026-09-04T10%3A30%3A00.000Z&unresolvedOnly=true&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "opId": "op-000123",
+      "table": "sales_orders",
+      "rowId": "01a06de8-3cac-72d1-85d1-76dbdb3dbb96",
+      "code": "R-0001",
+      "messageHi": "Confirmed on phone with the shopkeeper",
+      "messageEn": "Confirmed on phone with the shopkeeper",
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "resolved": true,
+      "resolvedAt": null
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /sync/errors",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/sync/manifest`
+
+Tables, columns and schema version the device of this role should hold · contract `sync.manifest`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `knownSchemaVersion` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/sync/manifest?knownSchemaVersion=text" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "protocol": 1,
+  "schemaVersion": "text",
+  "changed": true,
+  "role": "owner",
+  "tables": [
+    {
+      "table": "sales_orders",
+      "primaryKey": [
+        "text"
+      ],
+      "columns": [
+        {
+          "name": "Sharma Kirana Store",
+          "type": "string",
+          "nullable": true
+        }
+      ],
+      "writable": true
+    }
+  ],
+  "asOf": "2026-09-04"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/sync/pull`
+
+Delta download of the device read set since a cursor (never a cost column) · contract `sync.pull`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `deviceId` | string | yes |
+| `since` | string | no |
+| `tables` | string[] | no |
+| `limit` | integer | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/sync/pull?deviceId=01a06d91-0ce4-73b4-8bda-89cbb975a4bb&since=text&limit=200" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "changes": [
+    {
+      "table": "sales_orders",
+      "rows": [
+        {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        }
+      ],
+      "deleted": [
+        "text"
+      ]
+    }
+  ],
+  "hasMore": true,
+  "asOf": "2026-09-04"
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/files/upload-url`
 
 Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import · contract `files.uploadUrl`
@@ -24476,6 +24902,10 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `billing.creditNotes.list` | – | – | – | – | – | – | ✓ |
 | `billing.registers.gstSummary` | – | – | – | – | – | – | – |
 | `billing.registers.salesRegister` | – | – | – | – | – | – | – |
+| `sync.upload` | – | – | – | – | – | – | – |
+| `sync.errors.list` | – | – | – | – | – | – | – |
+| `sync.manifest` | – | – | – | – | – | – | ✓ |
+| `sync.pull` | – | – | – | – | – | – | ✓ |
 | `files.uploadUrl` | – | – | – | – | – | – | – |
 | `files.readUrl` | – | – | – | – | – | – | ✓ |
 | `delivery.vehicles.list` | – | – | – | – | – | – | – |

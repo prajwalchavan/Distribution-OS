@@ -1,9 +1,11 @@
 import { Inject, Module, Optional, type OnModuleInit } from '@nestjs/common'
+import { sql } from 'drizzle-orm'
+import { deliveries, deliveryLines, tripStops, trips, vehicles } from '@dos/db'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
-import { SyncRegistry } from '../sync/index.js'
+import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
 import { WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
@@ -75,5 +77,39 @@ export class DeliveryModule implements OnModuleInit {
     this.registry.register('pod_evidence', (tx, op) => applyPodSync(tx, op, this.deliveries))
     this.registry.register('collections', (tx, op) => applyCollectionSync(tx, op, this.collections))
     this.registry.register('trip_expenses', (tx, op) => applyExpenseSync(tx, op, this.collections))
+    // THE PULL SIDE — the road as the crew's phone holds it. `trips_read` already narrows a delivery
+    // actor to the trips it is crew on, so the predicate here only bounds the AGE: a fortnight, which
+    // covers today's run and the week of settlements behind it without pulling a year of history onto
+    // a budget Android (docs/20). `trip_points` is not here and never will be: GPS bypasses the queue
+    // in both directions (ADR 0012), and a phone re-reading its own breadcrumbs is pure noise.
+    const recent = sql`created_at > now() - interval '14 days'`
+    const crewOnly = (r: { ctx: { actorRole: string } }) =>
+      r.ctx.actorRole === 'delivery' ? recent : undefined
+    const ofRecentTrips = (column: string, r: { ctx: { tenantId: string; actorRole: string } }) =>
+      crewOnly(r)
+        ? sql`${sql.identifier(column)} in (select t.id from trips t
+             where t.tenant_id = ${r.ctx.tenantId} and t.created_at > now() - interval '14 days')`
+        : undefined
+    this.registry.registerPull('vehicles', tablePull(vehicles))
+    this.registry.registerPull('trips', tablePull(trips, { extra: crewOnly }))
+    this.registry.registerPull(
+      'trip_stops',
+      tablePull(tripStops, { extra: (r) => ofRecentTrips('trip_id', r) }),
+    )
+    this.registry.registerPull(
+      'deliveries',
+      tablePull(deliveries, { extra: (r) => ofRecentTrips('trip_id', r) }),
+    )
+    this.registry.registerPull(
+      'delivery_lines',
+      tablePull(deliveryLines, {
+        extra: (r) =>
+          crewOnly(r)
+            ? sql`delivery_id in (select d.id from deliveries d
+                 join trips t on t.id = d.trip_id and t.tenant_id = d.tenant_id
+                 where d.tenant_id = ${r.ctx.tenantId} and t.created_at > now() - interval '14 days')`
+            : undefined,
+      }),
+    )
   }
 }

@@ -37,6 +37,9 @@ export async function createServiceApp(
       logger: options.logger ?? env.NODE_ENV !== 'test',
       bodyLimit: STORAGE_BODY_LIMIT_BYTES,
     }),
+    // `logger: false` silences Nest's own bootstrap logger as well as Fastify's: a spec, and
+    // all-in-one mode booting eight apps at once, would otherwise print eight full route tables.
+    options.logger === false ? { logger: false } : {},
   )
   registerStorageBodyParsers(app)
   app.enableCors(corsOptions(env))
