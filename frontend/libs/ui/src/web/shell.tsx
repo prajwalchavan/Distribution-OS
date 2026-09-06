@@ -132,10 +132,7 @@ function isActive(activeHref: string, href: string): boolean {
 
 export function AppShell(props: AppShellProps): React.JSX.Element {
   const viewport = useViewport()
-  const allowed = useCallback(
-    (item: NavItem) => (props.can ? props.can(item) : true),
-    [props.can],
-  )
+  const allowed = useCallback((item: NavItem) => (props.can ? props.can(item) : true), [props.can])
   const sections = useMemo(
     () =>
       props.sections
@@ -192,7 +189,15 @@ function DeskShell({
       >
         {tenant ? <TenantSwitcher {...tenant} /> : null}
         <div style={{ height: 1, background: colors.border.faint }} />
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: space[4] }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: space[4],
+          }}
+        >
           {sections.map((section, index) => (
             <div key={section.title ?? `section-${String(index)}`}>
               {section.title === undefined ? null : (
@@ -407,9 +412,7 @@ function PhoneShell({
           gap: space[2],
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {tenant ? <TenantSwitcher {...tenant} /> : null}
-        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>{tenant ? <TenantSwitcher {...tenant} /> : null}</div>
         <button
           type="button"
           aria-label={t('nav.more')}
@@ -489,9 +492,7 @@ function PhoneShell({
         }}
         title={t('nav.more')}
       >
-        {search === undefined ? null : (
-          <div style={{ marginBottom: space[3] }}>{search}</div>
-        )}
+        {search === undefined ? null : <div style={{ marginBottom: space[3] }}>{search}</div>}
         {overflow.map((item) => (
           <MenuRow
             key={item.href}

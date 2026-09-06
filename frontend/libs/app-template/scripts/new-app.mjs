@@ -33,8 +33,20 @@ const ROLES = {
     touch: 'floor',
     density: 'field',
   },
-  delivery: { title: 'Delivery', webPort: 5177, servicePort: 3005, touch: 'field', density: 'field' },
-  retailer: { title: 'Retailer', webPort: 5178, servicePort: 3006, touch: 'field', density: 'field' },
+  delivery: {
+    title: 'Delivery',
+    webPort: 5177,
+    servicePort: 3005,
+    touch: 'field',
+    density: 'field',
+  },
+  retailer: {
+    title: 'Retailer',
+    webPort: 5178,
+    servicePort: 3006,
+    touch: 'field',
+    density: 'field',
+  },
   admin: { title: 'Admin', webPort: 5179, servicePort: 3007, touch: 'phone', density: 'desk' },
 }
 

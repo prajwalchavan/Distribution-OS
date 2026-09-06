@@ -255,12 +255,10 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
           key={item.label}
           style={{
             padding: `${space[3]}px ${space[4]}px`,
-            borderLeft:
-              (wide ? i === 0 : i % 2 === 0)
-                ? undefined
-                : `1px solid ${theme.colors.border.faint}`,
-            borderTop:
-              !wide && i > 1 ? `1px solid ${theme.colors.border.faint}` : undefined,
+            borderLeft: (wide ? i === 0 : i % 2 === 0)
+              ? undefined
+              : `1px solid ${theme.colors.border.faint}`,
+            borderTop: !wide && i > 1 ? `1px solid ${theme.colors.border.faint}` : undefined,
             minWidth: 0,
           }}
         >

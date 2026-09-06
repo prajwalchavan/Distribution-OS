@@ -9,14 +9,7 @@
  * things a distributor's owner and accountant use all day — a real `<a href>` that can be
  * middle-clicked, a `<main>`/`<nav>` outline, keyboard focus, text selection, and a print stylesheet.
  */
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { useTheme } from '../theme.js'
 import { layout, radius as radii, space, type SemanticColors } from '../tokens.js'
@@ -573,7 +566,9 @@ export function Screen(props: ScreenProps): React.JSX.Element {
       {scroll ? (
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{body}</div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{body}</div>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          {body}
+        </div>
       )}
 
       {bottomBar === undefined ? null : (
@@ -600,4 +595,3 @@ export function Screen(props: ScreenProps): React.JSX.Element {
     </section>
   )
 }
-

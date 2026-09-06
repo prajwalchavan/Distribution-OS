@@ -201,8 +201,7 @@ export function Scroll(props: ScrollProps): React.JSX.Element {
               const axisOffset = props.horizontal === true ? contentOffset.x : contentOffset.y
               const axisLayout =
                 props.horizontal === true ? layoutMeasurement.width : layoutMeasurement.height
-              const axisContent =
-                props.horizontal === true ? contentSize.width : contentSize.height
+              const axisContent = props.horizontal === true ? contentSize.width : contentSize.height
               if (axisContent - axisOffset - axisLayout < axisLayout * 0.5) props.onEndReached?.()
             }
           : undefined
@@ -236,17 +235,18 @@ export function List<Item>(props: ListProps<Item>): React.JSX.Element {
   const { colors } = useTheme()
 
   const getItemLayout = useMemo(
-    () =>
-      (_data: ArrayLike<Item> | null | undefined, index: number) => ({
-        length: itemHeight,
-        offset: itemHeight * index,
-        index,
-      }),
+    () => (_data: ArrayLike<Item> | null | undefined, index: number) => ({
+      length: itemHeight,
+      offset: itemHeight * index,
+      index,
+    }),
     [itemHeight],
   )
 
   const Separator = useCallback(
-    () => <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border.faint }} />,
+    () => (
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border.faint }} />
+    ),
     [colors.border.faint],
   )
 
@@ -434,9 +434,7 @@ export function Screen(props: ScreenProps): React.JSX.Element {
               {title}
             </Txt>
           )}
-          {chips === undefined ? null : (
-            <View style={styles.chips}>{chips}</View>
-          )}
+          {chips === undefined ? null : <View style={styles.chips}>{chips}</View>}
           {actions === undefined ? null : <View style={styles.actions}>{actions}</View>}
         </View>
       ) : (

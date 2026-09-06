@@ -8,13 +8,7 @@
 import type { ReactNode } from 'react'
 
 import type { SeriesPoint, Series, CompareGroup, MixSlice } from './charts/geometry.js'
-import type {
-  AgeingBucket,
-  DeskTypeName,
-  FieldTypeName,
-  SizeName,
-  StatusFamily,
-} from './tokens.js'
+import type { AgeingBucket, DeskTypeName, FieldTypeName, SizeName, StatusFamily } from './tokens.js'
 
 /** Every component takes one. Test ids are the only string in the kit that is not translated. */
 export interface Testable {

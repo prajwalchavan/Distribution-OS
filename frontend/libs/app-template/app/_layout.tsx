@@ -17,7 +17,7 @@ import { Redirect, Slot, usePathname, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { boot } from '../src/api'
-import { APP } from '../src/config'
+import { APP, absoluteUrl } from '../src/config'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
 
@@ -75,7 +75,9 @@ function Shell(): React.JSX.Element {
   // UX-00 §11: the distributor's own name and logo are the chrome, everywhere except the console.
   const tenantBrand = useMemo(
     () =>
-      session ? { name: session.tenant.displayName, logoUrl: session.tenant.logoUrl } : null,
+      session
+        ? { name: session.tenant.displayName, logoUrl: absoluteUrl(session.tenant.logoUrl) }
+        : null,
     [session],
   )
 

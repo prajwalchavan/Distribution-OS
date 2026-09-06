@@ -126,7 +126,12 @@ would point above the repo and every contract type would silently become `any`.
 
 **`frontend/owner-app` (the Vite skeleton) was DELETED**, as the brief allowed: the owner slice regenerates
 it from the template. `pnpm docs:readme` skips an app directory that does not exist, so `docs:readme:check`
-stays green.
+stays green — but **the moment `frontend/<role>-app` exists again, the BACKEND's generator owns its
+README** (`backend/tools/generate-readmes.mts` has an entry for all seven), so the next slice must run
+`pnpm docs:readme` in `backend/` right after generating its app or the backend CI job fails on a stale
+file. Verified both ways: generated `owner-app` → `docs:readme:check` reported it stale; deleted it →
+green again. That generator's owner-app blurb still says "Web today (Vite)"; it is backend prose and was
+left for the owner slice to correct.
 
 
 **MODULE `sync-runtime` IS DONE — the independent gate ran and is GREEN (2026-09-06 07:05 IST).** The

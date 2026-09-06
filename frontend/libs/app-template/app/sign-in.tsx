@@ -8,16 +8,7 @@
  * has one possible answer.
  */
 import { useSession } from '@dos/api-client/react'
-import {
-  Button,
-  ErrorState,
-  Screen,
-  Stack,
-  TextInput,
-  Txt,
-  useColors,
-  useStrings,
-} from '@dos/ui'
+import { Button, ErrorState, Screen, Stack, TextInput, Txt, useColors, useStrings } from '@dos/ui'
 import { useState } from 'react'
 
 import { APP } from '../src/config'

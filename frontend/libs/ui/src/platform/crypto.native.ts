@@ -18,7 +18,9 @@ export const installCrypto: CryptoInstall = () => {
   }
   if (typeof scope.crypto?.getRandomValues === 'function') return true
   const generator = <T extends ArrayBufferView | null>(array: T): T =>
-    array === null ? array : (Crypto.getRandomValues(array as unknown as Uint8Array) as unknown as T)
+    array === null
+      ? array
+      : (Crypto.getRandomValues(array as unknown as Uint8Array) as unknown as T)
   if (scope.crypto) {
     scope.crypto.getRandomValues = generator
   } else {

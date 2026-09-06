@@ -209,9 +209,7 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
   const viewport = useViewport()
   const wide = theme.density === 'desk' && viewport.kind === 'desk'
   // RN types a percentage as the literal `${number}%`, so the division is named rather than inlined.
-  const columnWidth: `${number}%` = wide
-    ? `${100 / Math.max(1, items.length)}%`
-    : '50%'
+  const columnWidth: `${number}%` = wide ? `${100 / Math.max(1, items.length)}%` : '50%'
   const deltaTone = {
     positive: theme.colors.status.moss.fg,
     critical: theme.colors.status.brick.fg,

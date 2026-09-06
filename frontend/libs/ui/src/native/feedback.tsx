@@ -2,7 +2,7 @@
  * UX-00 sections 6.11, 6.12 and 6.13 for React Native: ConnectionStrip, Sheet, Dialog, Toast, Avatar,
  * TenantLogo, EmptyState, ErrorState, Skeleton.
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Image, Modal, Pressable, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
@@ -324,6 +324,11 @@ export function Avatar({ name, size = 40, testID }: AvatarProps): React.JSX.Elem
 
 const LOGO_BOX = { rail: 28, header: 32, card: 40 } as const
 
+/**
+ * A pre-signed logo URL lives 24 hours; a distributor whose window has closed, or whose object was
+ * never uploaded, must not get a broken-image glyph in the chrome of EVERY screen. A failed load
+ * falls back to the initials mark, which is the same thing an absent URL gets (UX-00 section 11).
+ */
 export function TenantLogo({
   size = 'header',
   name,
@@ -333,8 +338,10 @@ export function TenantLogo({
   testID,
 }: TenantLogoProps): React.JSX.Element {
   const theme = useTheme()
+  const [failed, setFailed] = useState(false)
   const displayName = name ?? theme.tenant?.name ?? ''
-  const url = logoUrl ?? theme.tenant?.logoUrl ?? null
+  const given = logoUrl ?? theme.tenant?.logoUrl ?? null
+  const url = failed ? null : given
   const box = LOGO_BOX[size]
   return (
     <View
@@ -346,6 +353,9 @@ export function TenantLogo({
           source={{ uri: url }}
           accessibilityLabel={theme.t('tenant.logoAlt', { name: displayName })}
           resizeMode="contain"
+          onError={() => {
+            setFailed(true)
+          }}
           style={{ width: box, height: box, borderRadius: radius.sm }}
         />
       ) : (

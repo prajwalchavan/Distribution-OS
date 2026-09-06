@@ -2,7 +2,7 @@
  * UX-00 sections 6.11, 6.12 and 6.13 for React DOM: ConnectionStrip, Sheet, Dialog, Toast, Avatar,
  * TenantLogo, EmptyState, ErrorState, Skeleton.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
@@ -382,6 +382,11 @@ const LOGO_BOX = { rail: 28, header: 32, card: 40 } as const
  * The distributor's mark. No logo means the initials box — square (`radius.sm`), because it is a
  * mark, not a person. Distribution OS's own mark never appears here (docs/22 section 9 item 10).
  */
+/**
+ * A pre-signed logo URL lives 24 hours; a distributor whose window has closed, or whose object was
+ * never uploaded, must not get a broken-image glyph in the chrome of EVERY screen. A failed load
+ * falls back to the initials mark, which is the same thing an absent URL gets (UX-00 section 11).
+ */
 export function TenantLogo({
   size = 'rail',
   name,
@@ -391,8 +396,10 @@ export function TenantLogo({
   testID,
 }: TenantLogoProps): React.JSX.Element {
   const theme = useTheme()
+  const [failed, setFailed] = useState(false)
   const displayName = name ?? theme.tenant?.name ?? ''
-  const url = logoUrl ?? theme.tenant?.logoUrl ?? null
+  const given = logoUrl ?? theme.tenant?.logoUrl ?? null
+  const url = failed ? null : given
   const box = LOGO_BOX[size]
   return (
     <span
@@ -403,7 +410,16 @@ export function TenantLogo({
         <img
           src={url}
           alt={theme.t('tenant.logoAlt', { name: displayName })}
-          style={{ width: box, height: box, objectFit: 'contain', borderRadius: radius.sm }}
+          onError={() => {
+            setFailed(true)
+          }}
+          style={{
+            width: box,
+            height: box,
+            objectFit: 'contain',
+            borderRadius: radius.sm,
+            flexShrink: 0,
+          }}
         />
       ) : (
         <span

@@ -1,7 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV", "PORT", "EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_AUTH_URL", "EXPO_PUBLIC_API_PREFIX"],
+  "globalEnv": [
+    "NODE_ENV",
+    "PORT",
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_AUTH_URL",
+    "EXPO_PUBLIC_API_PREFIX"
+  ],
   "globalDependencies": ["libs/config/tsconfig/base.json"],
   "tasks": {
     "build": {

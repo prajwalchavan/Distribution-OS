@@ -113,9 +113,7 @@ export default function Home(): React.JSX.Element {
           emptyMessage={t('app.noMemberships')}
         />
 
-        {memberships.length > 1 ? null : (
-          <EmptyState message={t('app.templateBody')} />
-        )}
+        {memberships.length > 1 ? null : <EmptyState message={t('app.templateBody')} />}
       </Stack>
     </Screen>
   )

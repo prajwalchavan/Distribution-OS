@@ -100,9 +100,7 @@ export const camera: PlatformCamera = {
     if (!Ctor) return null
     const file = await pickFile('image/*', true)
     if (!file) return null
-    const detector = new Ctor(
-      options?.formats ? { formats: [...options.formats] } : undefined,
-    )
+    const detector = new Ctor(options?.formats ? { formats: [...options.formats] } : undefined)
     const codes = await detector.detect(file)
     const first = codes[0]
     if (!first) return null

@@ -309,9 +309,7 @@ function PhoneShell({
           </Txt>
         </Pressable>
       </View>
-      {connection === undefined ? null : (
-        <View style={styles.connection}>{connection}</View>
-      )}
+      {connection === undefined ? null : <View style={styles.connection}>{connection}</View>}
 
       <View style={styles.grow}>{children}</View>
 

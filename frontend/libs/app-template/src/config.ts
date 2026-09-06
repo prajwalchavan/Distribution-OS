@@ -26,7 +26,20 @@ export const APP = {
  * Expo inlines every `EXPO_PUBLIC_*` variable at BUILD time, so these are the two knobs that point a
  * build at local, staging or production (`.env.example`). The fallbacks are the founder's Mac.
  */
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `http://127.0.0.1:${String(APP.servicePort)}`
+export const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? `http://127.0.0.1:${String(APP.servicePort)}`
 export const AUTH_URL = process.env.EXPO_PUBLIC_AUTH_URL ?? 'http://127.0.0.1:3000'
 /** All-in-one deployment (docs/26 section 7): every service behind one origin under its own prefix. */
 export const API_PREFIX = process.env.EXPO_PUBLIC_API_PREFIX
+
+/**
+ * `AuthTenant.logoUrl` and `tenancy.branding.get`'s `logoUrl` come back SERVICE-RELATIVE
+ * (`/storage/tenant/…?expires=…&signature=…`). A browser would resolve that against the APP's origin
+ * (`localhost:5173`), not the service's, and a phone has no origin to resolve it against at all — so
+ * every app absolutises it against its own `API_URL` before handing it to `<TenantLogo>`.
+ */
+export function absoluteUrl(url: string | null | undefined): string | null {
+  if (url === null || url === undefined || url === '') return null
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//')) return url
+  return `${API_URL.replace(/\/$/, '')}${url.startsWith('/') ? '' : '/'}${url}`
+}

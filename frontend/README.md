@@ -101,11 +101,11 @@ username per role (owner `sunil.tarsun`, manager `vikas.kadam`, sales `rahul.des
 One base URL per app, plus the auth origin. Nothing else changes between the two deployment shapes
 (`docs/26` §7):
 
-| Variable                  | Split (one service per port)              | All-in-one (one port, path prefixes)          |
-| ------------------------- | ----------------------------------------- | --------------------------------------------- |
-| `EXPO_PUBLIC_API_URL`     | `http://127.0.0.1:300{1..7}`              | `https://api.example.in`                      |
-| `EXPO_PUBLIC_API_PREFIX`  | unset                                     | `/owner`, `/manager`, `/sales`, …             |
-| `EXPO_PUBLIC_AUTH_URL`    | `http://127.0.0.1:3000`                   | `https://api.example.in`                      |
+| Variable                 | Split (one service per port) | All-in-one (one port, path prefixes) |
+| ------------------------ | ---------------------------- | ------------------------------------ |
+| `EXPO_PUBLIC_API_URL`    | `http://127.0.0.1:300{1..7}` | `https://api.example.in`             |
+| `EXPO_PUBLIC_API_PREFIX` | unset                        | `/owner`, `/manager`, `/sales`, …    |
+| `EXPO_PUBLIC_AUTH_URL`   | `http://127.0.0.1:3000`      | `https://api.example.in`             |
 
 Expo inlines every `EXPO_PUBLIC_*` variable at BUILD time, so nothing secret may be named there. In dev the
 services answer any localhost origin (`corsOptions()`), so there is no proxy to configure.

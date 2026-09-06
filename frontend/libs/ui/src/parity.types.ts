@@ -44,7 +44,8 @@ type NativeModule = typeof import('./native/index.js')
 type Implements<Expected, Actual extends Expected> = Actual
 
 /** The value exports of the two renderers, minus the documented renderer-private handful. */
-type WebOnly = 'BASE_CSS' | 'FONT_CSS' | 'buildStylesheet' | 'buildThemeVars' | 'cssVar' | 'cssVarName'
+type WebOnly =
+  'BASE_CSS' | 'FONT_CSS' | 'buildStylesheet' | 'buildThemeVars' | 'cssVar' | 'cssVarName'
 
 type MissingFromNative = Exclude<keyof WebModule, keyof NativeModule | WebOnly>
 type MissingFromWeb = Exclude<keyof NativeModule, keyof WebModule>
