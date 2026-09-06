@@ -15,6 +15,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react'
 
 import { createTranslator, type Locale, type StringParams, type Translator } from './strings.js'
 import { size, themes, type SemanticColors, type SizeName, type ThemeName } from './tokens.js'
+import type { ViewportKind } from './types.js'
 
 /** What the distributor supplies. `logoUrl` is a signed read URL; absent means the initials fallback. */
 export interface TenantBrand {
@@ -63,6 +64,11 @@ export interface ThemeProviderProps {
   /** `field` 69 · `floor` 76 · `phone` 63 · `desk` 32. The shell sets it once for the whole app. */
   touch?: SizeName | undefined
   density?: ('desk' | 'field') | undefined
+  /**
+   * Which shell is on screen. The renderer's `<ThemeProvider>` fills this in from `useViewport()`;
+   * an app never passes it. See `buildTheme` for the one thing it changes.
+   */
+  viewport?: ViewportKind | undefined
   tenant?: (TenantBrand | null) | undefined
   locale?: Locale | undefined
   /** App string namespaces, merged over the kit catalogue. */
@@ -82,7 +88,29 @@ const HEX = /^#[0-9a-fA-F]{6}$/
  */
 export function buildTheme(props: Omit<ThemeProviderProps, 'children'>): ThemeValue {
   const name: ThemeName = props.theme ?? 'light'
-  const touch: SizeName = props.touch ?? 'desk'
+  /*
+   * UX-00 section 5.2 names four floors and says each app's SHELL fixes which one applies — and
+   * since 2026-09-06 the shell is chosen by viewport, not by app (docs/08 section 0), so the floor
+   * has to follow it. The `phone` floor is written there as "the owner and manager PHONE surfaces";
+   * the same build opened on a laptop is the desk shell, where the same section says a button is
+   * 32 px. `field` (69) and `floor` (76) do NOT shrink: those are stated per SCREEN — "every tap
+   * target ... in sales, delivery and retailer", "on every warehouse screen" — glove-and-thumb
+   * floors that a big monitor does not repeal.
+   */
+  const declared: SizeName = props.touch ?? 'desk'
+  const touch: SizeName = declared === 'phone' && props.viewport === 'desk' ? 'desk' : declared
+  /*
+   * Density follows the viewport for the same reason, and UX-00 says so twice: section 2 ends "every
+   * desk screen is designed twice, on purpose, at BOTH densities", and section 8.2 is headed "the
+   * phone shell (sales, warehouse, delivery, retailer; AND THE DESK APPS' PHONE SURFACES)". So the
+   * owner app on a 375 px phone is a field surface — 16 sp body (UX-01 U8's floor, which 14 px desk
+   * text is under), grouped list cards, "never a table" (UX-02 R20) — from the same screen files.
+   * A field app does NOT become a desk one on a big monitor: section 2 gives field apps no table.
+   */
+  const declaredDensity: 'desk' | 'field' =
+    props.density ?? (declared === 'desk' ? 'desk' : 'field')
+  const density: 'desk' | 'field' =
+    declaredDensity === 'desk' && props.viewport === 'phone' ? 'field' : declaredDensity
   const base = themes[name]
   const tenant = props.tenant ?? null
   const tenantColor = tenant?.primary && HEX.test(tenant.primary) ? tenant.primary : null
@@ -95,7 +123,7 @@ export function buildTheme(props: Omit<ThemeProviderProps, 'children'>): ThemeVa
     name,
     touch,
     touchSize: size[touch],
-    density: props.density ?? (touch === 'desk' ? 'desk' : 'field'),
+    density,
     tenant,
     brand: tenantColor ?? base.accent.solid,
     locale: props.locale ?? 'en',
@@ -111,6 +139,7 @@ export function ThemeContextProvider({ children, ...rest }: ThemeProviderProps):
     [
       rest.theme,
       rest.touch,
+      rest.viewport,
       rest.density,
       rest.locale,
       rest.allowTenantAccent,

@@ -184,7 +184,14 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
                 padding: space[5],
                 overflowY: 'auto',
               }
-            : { padding: space[4], paddingBottom: space[6], maxHeight: '80vh', overflowY: 'auto' }
+            : {
+                paddingTop: space[4],
+                paddingLeft: space[4],
+                paddingRight: space[4],
+                paddingBottom: space[6],
+                maxHeight: '80vh',
+                overflowY: 'auto',
+              }
         }
       >
         {desk ? null : (

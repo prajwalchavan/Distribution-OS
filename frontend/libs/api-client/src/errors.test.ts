@@ -39,6 +39,59 @@ describe('toApiError', () => {
     expect(err.message).toBe('You do not have access to this.')
   })
 
+  /**
+   * What owner-service really answers a shopkeeper who signs into the wrong app. `ORPCError.message`
+   * carries the machine word from `error`; the sentence is in `body.message` and is the whole point.
+   */
+  it('prefers the service’s own sentence over the machine word beside it', () => {
+    const err = toApiError(
+      new ORPCError('FORBIDDEN', {
+        status: 403,
+        message: 'Forbidden',
+        data: {
+          body: {
+            message: 'owner-service does not serve the retailer role',
+            error: 'Forbidden',
+            statusCode: 403,
+          },
+          status: 403,
+        },
+      }),
+    )
+    expect(err.message).toBe('owner-service does not serve the retailer role')
+    expect(err.kind).toBe('permission')
+  })
+
+  it('shows the FIRST of a validation body’s messages, not the array', () => {
+    const err = toApiError(
+      new ORPCError('BAD_REQUEST', {
+        status: 400,
+        message: 'Bad Request',
+        data: { body: { message: ['quantity must be a positive integer'], error: 'Bad Request' } },
+      }),
+    )
+    expect(err.message).toBe('quantity must be a positive integer')
+  })
+
+  it('treats a message that is only the code, in ANY case, as no message at all', () => {
+    // `Forbidden` and `FORBIDDEN` are the same machine word (UX-00 §12 forbids both on screen).
+    expect(
+      toApiError(new ORPCError('FORBIDDEN', { status: 403, message: 'Forbidden' })).message,
+    ).toBe('You do not have access to this.')
+    expect(
+      toApiError(new ORPCError('BAD_REQUEST', { status: 400, message: 'Bad Request' })).message,
+    ).toBe('Check the highlighted field and try again.')
+    expect(
+      toApiError(
+        new ORPCError('FORBIDDEN', {
+          status: 403,
+          message: 'Forbidden',
+          data: { body: { message: 'Forbidden', error: 'Forbidden' } },
+        }),
+      ).message,
+    ).toBe('You do not have access to this.')
+  })
+
   it('turns a dead network into `network`, never a raw TypeError', () => {
     const err = toApiError(new TypeError('Failed to fetch'))
     expect(err).toBeInstanceOf(ApiError)

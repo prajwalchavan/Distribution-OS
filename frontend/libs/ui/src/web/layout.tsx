@@ -514,8 +514,16 @@ export function Screen(props: ScreenProps): React.JSX.Element {
         <header
           className="dos-no-print"
           style={{
-            padding: `${space[3]}px ${padding}px`,
-            paddingTop: `calc(${space[3]}px + env(safe-area-inset-top, 0px))`,
+            // Longhands only: React warns (and can paint the wrong box) when a shorthand and a
+            // longhand for the same value both change in a rerender, which is what a viewport
+            // change is now that one build serves desk and phone.
+            // `--dos-inset-top` is how a shell says "I already spent this edge" (the phone shell's
+            // header eats the notch). Unset — a screen that IS the window, like sign-in — it falls
+            // through to the real inset, so the notch is honoured exactly once.
+            paddingTop: `calc(${String(space[3])}px + var(--dos-inset-top, env(safe-area-inset-top, 0px)))`,
+            paddingBottom: space[3],
+            paddingLeft: padding,
+            paddingRight: padding,
             background: desk ? colors.bg.ground : colors.bg.surface,
             borderBottom: `1px solid ${colors.border.hairline}`,
           }}
@@ -577,8 +585,10 @@ export function Screen(props: ScreenProps): React.JSX.Element {
           style={{
             background: colors.bg.surface,
             borderTop: `1px solid ${colors.border.hairline}`,
-            padding: `${space[3]}px ${padding}px`,
-            paddingBottom: `calc(${space[3]}px + env(safe-area-inset-bottom, 0px))`,
+            paddingTop: space[3],
+            paddingBottom: `calc(${String(space[3])}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
+            paddingLeft: padding,
+            paddingRight: padding,
           }}
         >
           <div

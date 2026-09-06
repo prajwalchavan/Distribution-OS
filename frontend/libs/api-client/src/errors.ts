@@ -90,6 +90,39 @@ function isAbort(err: unknown): boolean {
   return err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')
 }
 
+/** `FORBIDDEN`, `Forbidden`, `Bad Request`, `BAD_REQUEST` — the same machine word, four spellings. */
+function sameWord(a: string, b: string): boolean {
+  const flat = (s: string): string => s.toLowerCase().replace(/[\s_-]+/g, '')
+  return flat(a) === flat(b)
+}
+
+/**
+ * The service's own sentence, when it sent one.
+ *
+ * A guard or a business rule in this product throws a Nest `HttpException`, whose JSON body is
+ * `{ message, error, statusCode }` — `message` is the sentence a distributor can act on ("owner-service
+ * does not serve the retailer role", "over the credit limit by ₹4,200") and `error` is the machine
+ * word ("Forbidden"). `ORPCError.message` picks up the machine word, so the sentence has to be read
+ * off the body or it is lost, and every 4xx in all seven apps reads "Forbidden".
+ */
+function serviceMessage(data: unknown, code: string): string | null {
+  if (typeof data !== 'object' || data === null) return null
+  const body = (data as { body?: unknown }).body
+  if (typeof body !== 'object' || body === null) return null
+  const message = (body as { message?: unknown }).message
+  // Nest sends an ARRAY of messages for a validation failure; the first is the one to show.
+  const text =
+    typeof message === 'string'
+      ? message
+      : Array.isArray(message) && typeof message[0] === 'string'
+        ? message[0]
+        : null
+  if (text === null) return null
+  const trimmed = text.trim()
+  if (trimmed === '' || sameWord(trimmed, code)) return null
+  return trimmed
+}
+
 /**
  * Normalises anything a call can throw. `ORPCError` carries the service's own message, which is
  * already written in business language by the backend, so it is preferred over the default.
@@ -101,17 +134,20 @@ export function toApiError(err: unknown): ApiError {
     const kind: ApiErrorKind =
       KIND_BY_STATUS[status] ?? (status >= 500 ? 'server' : status >= 400 ? 'business' : 'unknown')
     // `ORPCError` fills a missing message with the CODE ("FORBIDDEN"), which is exactly the machine
-    // string UX-00 section 12 forbids on screen — so a message equal to the code counts as absent.
+    // string UX-00 section 12 forbids on screen — so a message equal to the code counts as absent,
+    // whatever its case ("Forbidden" is the same word as "FORBIDDEN"). The sentence the service
+    // really wrote is in the body, and is preferred over both.
     const code = String(err.code)
+    const data = err.data as unknown
     const message = err.message.trim()
-    const usable = message !== '' && message !== code
+    const usable = message !== '' && !sameWord(message, code)
     return new ApiError({
       kind,
       status,
       // `ORPCError` types both of these loosely; they are only ever shown behind "Details".
       code,
-      data: err.data as unknown,
-      message: usable ? message : DEFAULT_MESSAGE[kind],
+      data,
+      message: serviceMessage(data, code) ?? (usable ? message : DEFAULT_MESSAGE[kind]),
       cause: err,
     })
   }

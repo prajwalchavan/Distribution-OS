@@ -10,6 +10,7 @@ import { useEffect, useMemo, type ReactNode } from 'react'
 import { ThemeContextProvider, buildTheme, type ThemeProviderProps } from '../theme.js'
 import { fontFamily } from '../tokens.js'
 import { buildStylesheet } from './css.js'
+import { useViewport } from './viewport.js'
 
 const injected = new Set<string>()
 
@@ -31,13 +32,18 @@ export interface WebThemeProviderProps extends ThemeProviderProps {
 export function ThemeProvider({
   children,
   className,
-  ...rest
+  ...props
 }: WebThemeProviderProps): React.JSX.Element {
+  // The touch floor follows the SHELL, and the shell follows the viewport (docs/08 §0, UX-00 §5.2):
+  // the same owner build is 63 dp on a phone and 32 px on the laptop it also opens on.
+  const viewport = useViewport().kind
+  const rest = { ...props, viewport }
   const theme = useMemo(
     () => buildTheme(rest),
     [
       rest.theme,
       rest.touch,
+      rest.viewport,
       rest.density,
       rest.locale,
       rest.allowTenantAccent,

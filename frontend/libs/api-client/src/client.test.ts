@@ -283,6 +283,71 @@ describe('the rest of the session', () => {
     expect(calls).toHaveLength(0)
     expect(c.session.getSnapshot().hydrating).toBe(false)
   })
+
+  /**
+   * The field rule of UX-00 section 12: "the session survives a phone call and a day without signal".
+   * Only the SERVER may end a session — a refresh that never arrived says nothing about the token.
+   */
+  it('KEEPS the session when the boot refresh cannot reach the service', async () => {
+    const storage = memoryTokenStorage(DEVICE)
+    const onSignOut = vi.fn()
+    stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('a1', 'r1'))
+      throw new TypeError('Failed to fetch')
+    })
+    const first = client(storage)
+    await first.signIn({ username: 'ganesh.more', password: 'Dos@1234' })
+
+    // The van drives into a dead spot and the driver reopens the app.
+    const reloaded = createApiClient({
+      apiUrl: 'http://api.test',
+      authUrl: 'http://auth.test',
+      storage,
+      onSignOut,
+    })
+    await reloaded.hydrate()
+
+    expect(reloaded.session.getSnapshot().hydrating).toBe(false)
+    expect(reloaded.session.getSnapshot().session).not.toBeNull()
+    expect(reloaded.session.refreshToken).toBe('r1')
+    expect(onSignOut).not.toHaveBeenCalled()
+  })
+
+  it('ENDS the session when the boot refresh is refused by the service', async () => {
+    const storage = memoryTokenStorage(DEVICE)
+    const onSignOut = vi.fn()
+    stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('a1', 'r1'))
+      return json({ code: 'UNAUTHORIZED', message: 'Session ended.' }, 401)
+    })
+    const first = client(storage)
+    await first.signIn({ username: 'ganesh.more', password: 'Dos@1234' })
+
+    const reloaded = createApiClient({
+      apiUrl: 'http://api.test',
+      authUrl: 'http://auth.test',
+      storage,
+      onSignOut,
+    })
+    await reloaded.hydrate()
+
+    expect(reloaded.session.getSnapshot().session).toBeNull()
+    expect(reloaded.session.refreshToken).toBeNull()
+    expect(onSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a lost signal as `network`, not as "Signed out", when the retry-refresh fails', async () => {
+    stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('a1', 'r1'))
+      if (call.path === '/auth/refresh') throw new TypeError('Failed to fetch')
+      return json({ code: 'UNAUTHORIZED', message: 'expired' }, 401)
+    })
+    const c = client()
+    await c.signIn({ username: 'ganesh.more', password: 'Dos@1234' })
+    await expect(c.api.health.ping()).rejects.toMatchObject({ kind: 'network' })
+    expect(c.session.getSnapshot().session).not.toBeNull()
+    expect(c.session.refreshToken).toBe('r1')
+  })
 })
 
 describe('all-in-one mode (docs/26 section 7)', () => {

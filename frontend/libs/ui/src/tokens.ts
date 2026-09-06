@@ -299,14 +299,23 @@ export const COLOR_NAMES: readonly string[] = Object.keys(flattenColors(lightCol
 // ---------------------------------------------------------------------------
 
 /**
- * IBM Plex Sans, self-hosted (founder, 2026-09-05). The fallbacks matter: until the binary is
- * installed in an app's `public/fonts`, the stack renders in the platform UI face at the same sizes.
- * UX-00 section 4.1 allows no second family and no monospace, so there is exactly one stack here.
+ * IBM Plex Sans, self-hosted (founder, 2026-09-05). UX-00 section 4.1 allows no second family and no
+ * monospace, so there is exactly one stack here.
+ *
+ * **The binaries are not in this repo yet** (UX-00 section 4.1 asks for the variable
+ * `IBMPlexSans[wdth,wght]` woff2 on the web and four static weights embedded through the `expo-font`
+ * plugin on a phone, about 240 KB). Until they are, `native` is `null` and the phone renders in the
+ * platform UI face at the same sizes — deliberately, because naming a family React Native cannot
+ * resolve is worse than naming none: on Android an unresolved family makes `fontWeight` stop
+ * working, so 400 and 700 come out identical. To turn the typeface on, drop the four TTFs in the
+ * app's `assets/fonts`, add the `expo-font` plugin entry that registers them as `IBMPlexSans`, set
+ * `native` below, and set `FONT_URL` in `web/css.ts`. Nothing else changes: the sizes, weights and
+ * digit advances are already Plex's.
  */
 export const fontFamily = {
   sans: "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-  /** React Native resolves a single family name, not a stack. */
-  native: 'IBMPlexSans',
+  /** React Native resolves a single family NAME, not a stack. `null` = the platform UI face. */
+  native: null as string | null,
 } as const
 
 /** One type token. `tracking` is em; `weight` is a numeric CSS/RN weight. */

@@ -10,6 +10,7 @@ import { View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { ThemeContextProvider, buildTheme, type ThemeProviderProps } from '../theme.js'
+import { useViewport } from './viewport.js'
 
 export interface NativeThemeProviderProps extends ThemeProviderProps {
   children: ReactNode
@@ -21,7 +22,10 @@ export interface NativeThemeProviderProps extends ThemeProviderProps {
  * 8.2 — a hard-coded `paddingTop` is a bug), and an app that forgot the wrapper would lay out
  * correctly in a simulator and wrongly on a notched phone.
  */
-export function ThemeProvider({ children, ...rest }: NativeThemeProviderProps): React.JSX.Element {
+export function ThemeProvider({ children, ...props }: NativeThemeProviderProps): React.JSX.Element {
+  // The touch floor follows the SHELL, and the shell follows the viewport (docs/08 §0, UX-00 §5.2):
+  // a tablet in landscape gets the rail and the desk floor from the same files.
+  const rest = { ...props, viewport: useViewport().kind }
   const theme = buildTheme(rest)
   return (
     <SafeAreaProvider>

@@ -5,8 +5,10 @@
  * tabs of section 8.2 on a phone — the same array, two shells, no second definition. Two navigation
  * levels maximum: this is level 1; a page's own tab row is level 2; there is no level 3.
  *
- * `permission` names what a role must hold to see the item; `can()` in the root layout answers it
- * against the signed-in membership, so a rail never shows a destination that would 403.
+ * `permission` is a contract procedure path; `can()` in `app/_layout.tsx` answers it against the
+ * signed-in role from the SAME `PERMISSIONS` matrix the service enforces, so a rail never shows a
+ * destination that would 403. `tenancy.settings.get` is STAFF, so a shopkeeper signed into a
+ * retailer app never sees Settings.
  */
 import type { NavSection } from '@dos/ui'
 
@@ -14,8 +16,8 @@ export const SECTIONS: readonly NavSection[] = [
   {
     primary: true,
     items: [
-      { href: '/', label: 'Today' },
-      { href: '/settings', label: 'Settings' },
+      { href: '/', label: 'Today', permission: 'tenancy.me' },
+      { href: '/settings', label: 'Settings', permission: 'tenancy.settings.get' },
     ],
   },
 ]

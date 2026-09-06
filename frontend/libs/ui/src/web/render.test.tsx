@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest'
 import { ThemeProvider } from './ThemeProvider.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
+import { TextInput } from './controls.js'
+import { FONT_CSS, FONT_URL } from './css.js'
 
 function renderDesk(node: React.ReactNode): string {
   return renderToStaticMarkup(
@@ -188,5 +190,44 @@ describe('status and ladders', () => {
       />,
     )
     expect(html.match(/₹/g)).toHaveLength(1)
+  })
+})
+
+describe('<TextInput> on a phone-sized browser', () => {
+  /**
+   * The same build IS the website on that phone (docs/08 §0), and a mobile browser capitalises and
+   * spell-corrects a text input exactly the way iOS does — which turns `sunil.tarsun` into
+   * `Sunil.tarsun` and a correct password into a failed sign-in.
+   */
+  it('does not capitalise, correct or spell-check by default', () => {
+    const html = renderDesk(
+      <TextInput label="Username" value="" onChange={() => undefined} testID="u" />,
+    )
+    expect(html).toContain('autoCapitalize="none"')
+    expect(html).toContain('autoCorrect="off"')
+    expect(html).toContain('spellCheck="false"')
+  })
+
+  it('still lets a prose field ask for capitals', () => {
+    const html = renderDesk(
+      <TextInput label="Shop name" value="" onChange={() => undefined} capitalize="words" />,
+    )
+    expect(html).toContain('autoCapitalize="words"')
+  })
+})
+
+describe('the self-hosted typeface', () => {
+  /**
+   * A `@font-face` whose `src` does not exist is not free: an Expo web server answers an unknown
+   * path with `index.html`, so every page of every app logs `OTS parsing error: invalid sfntVersion`
+   * for a face that was never going to load. The rule appears the moment `FONT_URL` names a file.
+   */
+  it('emits no @font-face while the app ships no binary', () => {
+    if (FONT_URL === null) {
+      expect(FONT_CSS).toBe('')
+    } else {
+      expect(FONT_CSS).toContain('@font-face')
+      expect(FONT_CSS).toContain(FONT_URL)
+    }
   })
 })

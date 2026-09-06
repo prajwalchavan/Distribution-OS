@@ -64,6 +64,16 @@ export interface TextInputProps extends Testable {
   secure?: boolean | undefined
   /** Never `type="number"` (UX-02 R21); this picks the on-screen keyboard only. */
   keyboard?: ('text' | 'decimal' | 'phone' | 'email') | undefined
+  /**
+   * Auto-capitalisation, **default `none`**.
+   *
+   * A phone capitalises the first letter of a text field unless it is told not to, and the fields
+   * in this product are identifiers far more often than prose: a username, a GSTIN, an HSN code, an
+   * invoice number, a vehicle number, a UPI reference. `sunil.tarsun` typed on an iPhone arrives as
+   * `Sunil.tarsun` and the sign-in fails with the right password. A field that really wants prose —
+   * a shop name, a note — asks for `words` or `sentences`.
+   */
+  capitalize?: ('none' | 'words' | 'sentences') | undefined
   onSubmit?: (() => void) | undefined
 }
 
@@ -706,6 +716,11 @@ export interface TenantSwitcherProps extends Testable {
   onSwitch: (tenantId: string) => void
   /** True while the switch is in flight; the menu closes and the name stays put. */
   busy?: boolean | undefined
+  /**
+   * The logo only, no name — what fits the 56 px collapsed rail of UX-00 section 8.1. The shell sets
+   * it; an app never does. Switching still works: the mark is the button.
+   */
+  compact?: boolean | undefined
 }
 
 export interface AccountMenu {

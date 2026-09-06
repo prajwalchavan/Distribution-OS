@@ -84,6 +84,7 @@ export function TextInput({
   maxLength,
   secure,
   keyboard = 'text',
+  capitalize = 'none',
   onSubmit,
   testID,
 }: TextInputProps): React.JSX.Element {
@@ -111,6 +112,11 @@ export function TextInput({
         data-state={resolved}
         type={secure ? 'password' : 'text'}
         inputMode={inputMode}
+        // The same build is the website on that phone (docs/08 §0), and a mobile browser
+        // auto-capitalises and spell-corrects a text input exactly the way iOS does.
+        autoCapitalize={capitalize}
+        autoCorrect="off"
+        spellCheck={false}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}

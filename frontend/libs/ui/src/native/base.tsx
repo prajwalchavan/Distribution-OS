@@ -24,7 +24,9 @@ export function typeStyle(token: TypeToken): TextStyle {
     lineHeight: token.line,
     fontWeight: String(token.weight) as TextStyle['fontWeight'],
     letterSpacing: token.tracking * token.size,
-    fontFamily: fontFamily.native,
+    // The key is OMITTED, not set to null, while no font is embedded: React Native given a family
+    // it cannot resolve stops honouring `fontWeight` on Android, so 400 and 700 render identically.
+    ...(fontFamily.native === null ? {} : { fontFamily: fontFamily.native }),
   }
 }
 

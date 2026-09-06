@@ -132,6 +132,20 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
 
   let refreshInFlight: Promise<void> | null = null
 
+  /**
+   * Only the SERVER may end a session.
+   *
+   * A refresh that comes back 401 (rejected, reused, expired) means the session is really gone and
+   * the token is worthless — clear it. A refresh that never reached a service (no signal, the phone
+   * in a basement, the godown's dead spot, a 502 at the load balancer) says nothing about the token,
+   * and clearing it there would sign a delivery boy out for the rest of his day and demand a password
+   * he cannot verify offline. UX-00 section 12: "the session survives a phone call and a day without
+   * signal".
+   */
+  function endsTheSession(err: ApiError): boolean {
+    return err.kind === 'auth'
+  }
+
   async function refreshNow(): Promise<void> {
     const refreshToken = session.refreshToken
     if (refreshToken === null) {
@@ -145,9 +159,10 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       session.applyTokens(pair)
     } catch (raw) {
       const err = toApiError(raw)
-      // A rejected or REUSED refresh token means the server already revoked the session.
-      session.clear()
-      options.onSignOut?.(err)
+      if (endsTheSession(err)) {
+        session.clear()
+        options.onSignOut?.(err)
+      }
       throw err
     }
   }
@@ -175,8 +190,11 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
         if (!isUnauthorized(err) || !retryable(opts.path)) throw toApiError(err)
         try {
           await ensureFreshAccessToken()
-        } catch {
-          throw toApiError(err)
+        } catch (refreshErr) {
+          // The refresh is what actually failed. If the signal died on the way, the screen must
+          // read "No connection", not "Signed out" — the session is still there, unreachable.
+          const failure = toApiError(refreshErr)
+          throw endsTheSession(failure) ? toApiError(err) : failure
         }
         try {
           return await opts.next()
@@ -283,7 +301,9 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       try {
         await ensureFreshAccessToken()
       } catch {
-        // `refreshNow` has already cleared the session and told `onSignOut`.
+        // A 401 has already cleared the session and told `onSignOut`. Anything else (no signal, a
+        // service that is down) leaves the restored snapshot in place: the app opens on its last
+        // known screen and every read says "No connection" until the signal is back.
       } finally {
         session.settleHydration()
       }

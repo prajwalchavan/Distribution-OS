@@ -126,6 +126,7 @@ export function TextInput({
   maxLength,
   secure,
   keyboard = 'text',
+  capitalize = 'none',
   onSubmit,
   testID,
 }: TextInputProps): React.JSX.Element {
@@ -162,6 +163,11 @@ export function TextInput({
         editable={resolved !== 'disabled' && resolved !== 'readonly'}
         secureTextEntry={secure}
         keyboardType={keyboardType}
+        // A username, a GSTIN or an invoice number is not a sentence: iOS capitalises and corrects
+        // a text field unless it is told not to, and both silently corrupt an identifier.
+        autoCapitalize={capitalize === 'none' ? 'none' : capitalize}
+        autoCorrect={false}
+        spellCheck={false}
         onSubmitEditing={onSubmit}
         style={[
           bodyStyle,

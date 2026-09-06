@@ -32,8 +32,16 @@ export default function Home(): React.JSX.Element {
   const api = useApi()
   const { session } = useSession()
 
-  const me = useQuery(['tenancy', 'me'], () => api.api.tenancy.me())
-  const branding = useQuery(['tenancy', 'branding'], () => api.api.tenancy.branding.get())
+  /*
+   * `enabled` is not decoration: a deep link opened while signed out mounts this screen for the one
+   * frame before the layout's redirect lands, and an unguarded read would spend that frame asking a
+   * service for a tenant with no token — a 401 in the log and a flash of "Signed out" on screen.
+   */
+  const signedIn = session !== null
+  const me = useQuery(['tenancy', 'me'], () => api.api.tenancy.me(), { enabled: signedIn })
+  const branding = useQuery(['tenancy', 'branding'], () => api.api.tenancy.branding.get(), {
+    enabled: signedIn,
+  })
 
   const memberships = session?.memberships ?? []
 

@@ -85,7 +85,7 @@ export const BASE_CSS = `
 .dos-input[data-state='readonly'] { border-color: transparent; padding-left: 0; }
 
 /* Rows and groups ------------------------------------------------------ */
-.dos-row { display: flex; align-items: center; width: 100%; background: var(--dos-bg-surface); border: 0; text-align: left; font-family: inherit; cursor: default; }
+.dos-row { display: flex; align-items: center; width: 100%; background: var(--dos-bg-surface); border: 0; text-align: left; font: inherit; cursor: default; }
 .dos-row[data-pressable='true'] { cursor: pointer; }
 .dos-row[data-pressable='true']:hover { background: var(--dos-bg-raised); }
 .dos-row[data-state='selected'] { background: var(--dos-accent-tint); }
@@ -124,19 +124,35 @@ export const BASE_CSS = `
 `
 
 /**
- * IBM Plex Sans, self-hosted (founder, 2026-09-05). The app serves the binaries from
- * `public/fonts`; until they are installed the stack falls back to the platform UI face at the same
- * sizes, so nothing shifts except the letterforms.
+ * Where an app serves the self-hosted IBM Plex Sans binary from (founder, 2026-09-05), or `null`
+ * while it ships none.
+ *
+ * It is `null` today because **the binaries are not in this repo yet**. A `@font-face` whose `src`
+ * does not exist is not free: an Expo web server answers an unknown path with `index.html`, so the
+ * browser downloads HTML, fails to parse it as a font and logs `OTS parsing error: invalid
+ * sfntVersion` on EVERY page of EVERY app — noise that hides the errors a reviewer is looking for,
+ * for a face that was never going to load. The stack in `fontFamily.sans` already falls through to
+ * the platform UI face at the same sizes, so nothing shifts except the letterforms.
+ *
+ * To turn the typeface on: put `IBMPlexSans[wdth,wght].woff2` (UX-00 section 4.1, OFL-1.1) in the
+ * app's `public/fonts/`, set this to its path, and set `fontFamily.native` in `tokens.ts` for the
+ * phone half.
  */
-export const FONT_CSS = `
+export const FONT_URL: string | null = null
+
+function fontFace(url: string): string {
+  return `
 @font-face {
   font-family: 'IBM Plex Sans';
-  src: url('/fonts/IBMPlexSans-Variable.woff2') format('woff2-variations');
+  src: url('${url}') format('woff2-variations');
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
 `
+}
+
+export const FONT_CSS: string = FONT_URL === null ? '' : fontFace(FONT_URL)
 
 /**
  * The complete sheet for one theme.

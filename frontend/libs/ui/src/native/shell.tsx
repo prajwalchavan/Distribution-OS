@@ -6,7 +6,7 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useStrings, useTheme } from '../theme.js'
 import { layout, space } from '../tokens.js'
@@ -22,14 +22,19 @@ import { useViewport } from './viewport.js'
 export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
   const { colors } = useTheme()
   const t = useStrings()
-  const { current, choices, onSwitch, busy = false, testID } = props
+  const { current, choices, onSwitch, busy = false, testID, compact = false } = props
   const [open, setOpen] = useState(false)
   const many = choices.length > 1
 
   if (!many) {
     return (
       <View testID={testID}>
-        <TenantLogo size="header" withName subtitle={current.roleLabel} name={current.name} />
+        <TenantLogo
+          size="header"
+          withName={!compact}
+          subtitle={current.roleLabel}
+          name={current.name}
+        />
       </View>
     )
   }
@@ -38,7 +43,7 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
     <View testID={testID}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('tenant.switch')}
+        accessibilityLabel={compact ? current.name : t('tenant.switch')}
         accessibilityState={{ expanded: open, disabled: busy }}
         disabled={busy}
         onPress={() => {
@@ -46,10 +51,17 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
         }}
         style={styles.switcher}
       >
-        <TenantLogo size="header" withName subtitle={current.roleLabel} name={current.name} />
-        <Txt field="label" desk="meta" color={colors.text.secondary}>
-          ▾
-        </Txt>
+        <TenantLogo
+          size="header"
+          withName={!compact}
+          subtitle={current.roleLabel}
+          name={current.name}
+        />
+        {compact ? null : (
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            ▾
+          </Txt>
+        )}
       </Pressable>
       <Sheet
         open={open}
@@ -135,13 +147,48 @@ export function AppShell(props: AppShellProps): React.JSX.Element {
     [props.sections, allowed],
   )
   return viewport.kind === 'desk' ? (
-    <DeskShell {...props} sections={sections} />
+    <DeskShell {...props} sections={sections} collapsed={viewport.railCollapsed} />
   ) : (
     <PhoneShell {...props} sections={sections} />
   )
 }
 
 // --- desk (a tablet in landscape) ------------------------------------------
+
+/**
+ * The shell has already spent the insets it consumes — the phone header eats `top`, the tab bar eats
+ * `bottom`, the desk rail eats both — so its CHILDREN must be told those edges are settled.
+ *
+ * Without this, `<Screen>` (which correctly adds `insets.top` when it IS the window, as on the
+ * sign-in screen) adds the notch a SECOND time and every screen inside the shell opens with an empty
+ * 59 pt band above its title on an iPhone 16 Pro. UX-00 section 8.2 asks for insets from the first
+ * frame, once.
+ */
+function SpentInsets({
+  top = false,
+  bottom = false,
+  children,
+}: {
+  top?: boolean
+  bottom?: boolean
+  children: React.ReactNode
+}): React.JSX.Element {
+  const insets = useSafeAreaInsets()
+  const value = useMemo(
+    () => ({
+      ...insets,
+      top: top ? 0 : insets.top,
+      bottom: bottom ? 0 : insets.bottom,
+    }),
+    [insets, top, bottom],
+  )
+  return <SafeAreaInsetsContext.Provider value={value}>{children}</SafeAreaInsetsContext.Provider>
+}
+
+/** The glyph a collapsed rail shows when the app supplied no icon: the label's own initial. */
+function initial(label: string): string {
+  return (label.trim()[0] ?? '·').toUpperCase()
+}
 
 function DeskShell({
   sections,
@@ -152,11 +199,14 @@ function DeskShell({
   account,
   children,
   testID,
-}: AppShellProps): React.JSX.Element {
+  collapsed,
+}: AppShellProps & { collapsed: boolean }): React.JSX.Element {
   const { colors } = useTheme()
   const t = useStrings()
   const insets = useSafeAreaInsets()
   const [menu, setMenu] = useState(false)
+  // UX-00 section 8.1: the rail is 56 dp of icons between 1024 and 1100 — a 9.7" iPad in landscape.
+  const railWidth = collapsed ? layout.railCollapsedWidth : layout.railWidth
 
   return (
     <View testID={testID} style={[styles.deskRoot, { backgroundColor: colors.bg.ground }]}>
@@ -164,6 +214,8 @@ function DeskShell({
         style={[
           styles.rail,
           {
+            width: railWidth,
+            paddingHorizontal: collapsed ? space[2] : space[3],
             backgroundColor: colors.bg.surface,
             borderRightColor: colors.border.hairline,
             paddingTop: insets.top + space[3],
@@ -171,24 +223,26 @@ function DeskShell({
           },
         ]}
       >
-        {tenant ? <TenantSwitcher {...tenant} /> : null}
+        {tenant ? <TenantSwitcher {...tenant} compact={collapsed} /> : null}
         <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border.faint }} />
         <ScrollView contentContainerStyle={styles.railList}>
           {sections.map((section, index) => (
             <View key={section.title ?? `section-${String(index)}`}>
-              {section.title === undefined ? null : <Eyebrow>{section.title}</Eyebrow>}
+              {section.title === undefined || collapsed ? null : <Eyebrow>{section.title}</Eyebrow>}
               {section.items.map((item) => {
                 const active = isActive(activeHref, item.href)
                 return (
                   <Pressable
                     key={item.href}
                     accessibilityRole="link"
+                    accessibilityLabel={collapsed ? item.label : undefined}
                     accessibilityState={{ selected: active }}
                     onPress={() => {
                       onNavigate(item.href)
                     }}
                     style={[
                       styles.railItem,
+                      collapsed ? styles.railItemCollapsed : null,
                       { backgroundColor: active ? colors.accent.tint : 'transparent' },
                     ]}
                   >
@@ -198,7 +252,11 @@ function DeskShell({
                       desk={active ? 'navActive' : 'nav'}
                       color={active ? colors.accent.fg : colors.text.primary}
                     >
-                      {item.label}
+                      {collapsed
+                        ? item.icon === undefined
+                          ? initial(item.label)
+                          : ''
+                        : item.label}
                     </Txt>
                   </Pressable>
                 )
@@ -210,23 +268,27 @@ function DeskShell({
         {account === undefined ? null : (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={collapsed ? account.name : undefined}
             onPress={() => {
               setMenu(true)
             }}
-            style={styles.account}
+            style={[styles.account, collapsed ? styles.railItemCollapsed : null]}
           >
             <Avatar name={account.name} size={32} />
-            <View>
-              <Txt field="label" desk="label">
-                {account.name}
-              </Txt>
-              <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {account.roleLabel}
-              </Txt>
-            </View>
+            {collapsed ? null : (
+              <View>
+                <Txt field="label" desk="label">
+                  {account.name}
+                </Txt>
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {account.roleLabel}
+                </Txt>
+              </View>
+            )}
           </Pressable>
         )}
       </View>
+      {/* The rail is BESIDE the content, so the content column still owns its own insets. */}
       <View style={styles.grow}>{children}</View>
       {account === undefined ? null : (
         <Sheet
@@ -311,7 +373,9 @@ function PhoneShell({
       </View>
       {connection === undefined ? null : <View style={styles.connection}>{connection}</View>}
 
-      <View style={styles.grow}>{children}</View>
+      <SpentInsets top bottom={tabs.length > 0}>
+        <View style={styles.grow}>{children}</View>
+      </SpentInsets>
 
       {tabs.length > 0 ? (
         <View
@@ -412,6 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[2],
     borderRadius: 6,
   },
+  railItemCollapsed: { justifyContent: 'center', paddingHorizontal: 0, gap: 0 },
   switcher: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   menuRow: { paddingHorizontal: space[3], paddingVertical: space[2], justifyContent: 'center' },
   account: { flexDirection: 'row', alignItems: 'center', gap: space[2] },

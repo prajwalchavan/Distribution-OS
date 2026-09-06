@@ -28,14 +28,23 @@ import { useViewport } from './viewport.js'
  */
 export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
   const { colors } = useTheme()
-  const { current, choices, onSwitch, busy = false, testID } = props
+  const { current, choices, onSwitch, busy = false, testID, compact = false } = props
   const [open, setOpen] = useState(false)
   const many = choices.length > 1
 
   if (!many) {
     return (
-      <div data-testid={testID} style={{ display: 'flex', alignItems: 'center', gap: space[2] }}>
-        <TenantLogo size="rail" withName subtitle={current.roleLabel} name={current.name} />
+      <div
+        data-testid={testID}
+        style={{ display: 'flex', alignItems: 'center', gap: space[2] }}
+        title={compact ? current.name : undefined}
+      >
+        <TenantLogo
+          size="rail"
+          withName={!compact}
+          subtitle={current.roleLabel}
+          name={current.name}
+        />
       </div>
     )
   }
@@ -49,6 +58,8 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
         }}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={compact ? current.name : undefined}
+        title={compact ? current.name : undefined}
         disabled={busy}
         style={{
           display: 'flex',
@@ -64,10 +75,17 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
           minHeight: size.desk,
         }}
       >
-        <TenantLogo size="rail" withName subtitle={current.roleLabel} name={current.name} />
-        <Txt field="label" desk="meta" color={colors.text.secondary}>
-          ▾
-        </Txt>
+        <TenantLogo
+          size="rail"
+          withName={!compact}
+          subtitle={current.roleLabel}
+          name={current.name}
+        />
+        {compact ? null : (
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            ▾
+          </Txt>
+        )}
       </button>
       {open ? (
         <div
@@ -149,6 +167,11 @@ export function AppShell(props: AppShellProps): React.JSX.Element {
 
 // --- desk (UX-00 section 8.1) ----------------------------------------------
 
+/** The glyph a collapsed rail shows when the app supplied no icon: the label's own initial. */
+function initial(label: string): string {
+  return (label.trim()[0] ?? '·').toUpperCase()
+}
+
 function DeskShell({
   sections,
   activeHref,
@@ -159,10 +182,13 @@ function DeskShell({
   account,
   children,
   testID,
+  collapsed,
 }: AppShellProps & { collapsed: boolean }): React.JSX.Element {
   const { colors } = useTheme()
   const t = useStrings()
   const [menu, setMenu] = useState(false)
+  // UX-00 section 8.1: "Rail collapses to 56 px icons below 1100 px".
+  const railWidth = collapsed ? layout.railCollapsedWidth : layout.railWidth
 
   return (
     <div
@@ -172,14 +198,15 @@ function DeskShell({
       <nav
         className="dos-no-print"
         aria-label={t('nav.sections')}
+        data-collapsed={collapsed ? 'true' : undefined}
         style={{
-          width: layout.railWidth,
-          flex: `0 0 ${layout.railWidth}px`,
+          width: railWidth,
+          flex: `0 0 ${String(railWidth)}px`,
           background: colors.bg.surface,
           borderRight: `1px solid ${colors.border.hairline}`,
           display: 'flex',
           flexDirection: 'column',
-          padding: space[3],
+          padding: collapsed ? space[2] : space[3],
           gap: space[3],
           position: 'sticky',
           top: 0,
@@ -187,7 +214,7 @@ function DeskShell({
           boxSizing: 'border-box',
         }}
       >
-        {tenant ? <TenantSwitcher {...tenant} /> : null}
+        {tenant ? <TenantSwitcher {...tenant} compact={collapsed} /> : null}
         <div style={{ height: 1, background: colors.border.faint }} />
         <div
           style={{
@@ -200,11 +227,17 @@ function DeskShell({
         >
           {sections.map((section, index) => (
             <div key={section.title ?? `section-${String(index)}`}>
-              {section.title === undefined ? null : (
+              {section.title === undefined || collapsed ? null : (
                 <div style={{ marginBottom: space[1] }}>
                   <Eyebrow>{section.title}</Eyebrow>
                 </div>
               )}
+              {/* A collapsed rail has no room for the group label; a rule keeps the grouping. */}
+              {section.title !== undefined && collapsed && index > 0 ? (
+                <div
+                  style={{ height: 1, background: colors.border.faint, margin: `${space[2]}px 0` }}
+                />
+              ) : null}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {section.items.map((item) => {
                   const active = isActive(activeHref, item.href)
@@ -213,6 +246,10 @@ function DeskShell({
                       <a
                         href={item.href}
                         aria-current={active ? 'page' : undefined}
+                        // Collapsed, the glyph carries the meaning: the word has to reach a screen
+                        // reader and a hover tooltip or the rail is unusable.
+                        aria-label={collapsed ? item.label : undefined}
+                        title={collapsed ? item.label : undefined}
                         onClick={(event) => {
                           if (event.metaKey || event.ctrlKey || event.shiftKey) return
                           event.preventDefault()
@@ -221,9 +258,11 @@ function DeskShell({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: collapsed ? 'center' : 'flex-start',
+                          position: 'relative',
                           gap: space[2],
-                          height: 32,
-                          padding: `0 ${String(space[2])}px`,
+                          height: collapsed ? 40 : 32,
+                          padding: collapsed ? 0 : `0 ${String(space[2])}px`,
                           borderRadius: 6,
                           textDecoration: 'none',
                           background: active ? colors.accent.tint : 'transparent',
@@ -232,11 +271,32 @@ function DeskShell({
                           transition: `background-color ${String(motion.duration.micro)}ms ${motion.easing.micro}`,
                         }}
                       >
-                        {item.icon}
-                        <span style={{ flex: 1, fontSize: 14, lineHeight: '20px' }}>
-                          {item.label}
-                        </span>
-                        {item.badge === undefined || item.badge === 0 ? null : (
+                        {item.icon ??
+                          (collapsed ? (
+                            <span style={{ fontSize: 14, lineHeight: '20px', fontWeight: 600 }}>
+                              {initial(item.label)}
+                            </span>
+                          ) : null)}
+                        {collapsed ? null : (
+                          <span style={{ flex: 1, fontSize: 14, lineHeight: '20px' }}>
+                            {item.label}
+                          </span>
+                        )}
+                        {item.badge === undefined || item.badge === 0 ? null : collapsed ? (
+                          // No room for the figure; a dot still says "something is waiting here".
+                          <span
+                            aria-hidden
+                            style={{
+                              position: 'absolute',
+                              top: 6,
+                              right: 8,
+                              width: 6,
+                              height: 6,
+                              borderRadius: 3,
+                              background: colors.accent.solid,
+                            }}
+                          />
+                        ) : (
                           <Txt field="label" desk="meta" numeric color={colors.text.secondary}>
                             {item.badge}
                           </Txt>
@@ -265,7 +325,14 @@ function DeskShell({
               background: colors.bg.surface,
             }}
           >
-            <div style={{ flex: 1, maxWidth: 420 }}>{search}</div>
+            {/*
+              The search box is capped at 420 px, but the SPACE beside it is not: capping the flex
+              child itself left the account menu stranded in the middle of a 1400 px header, and in
+              an app with no search box at all it sat 420 px from the rail with nothing beside it.
+            */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ maxWidth: 420 }}>{search}</div>
+            </div>
             {account === undefined ? null : (
               <div style={{ position: 'relative' }}>
                 <button
@@ -405,8 +472,10 @@ function PhoneShell({
         style={{
           background: colors.bg.surface,
           borderBottom: `1px solid ${colors.border.hairline}`,
-          padding: `${space[2]}px ${space[4]}px`,
           paddingTop: `calc(${String(space[2])}px + env(safe-area-inset-top, 0px))`,
+          paddingBottom: space[2],
+          paddingLeft: space[4],
+          paddingRight: space[4],
           display: 'flex',
           alignItems: 'center',
           gap: space[2],
@@ -435,7 +504,25 @@ function PhoneShell({
         <div style={{ padding: `0 ${String(space[4])}px` }}>{connection}</div>
       )}
 
-      <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      {/*
+        The header above has already spent the notch and the tab bar below spends the home
+        indicator, so the screens inside are told those edges are settled. Without it `<Screen>`
+        adds `env(safe-area-inset-top)` a SECOND time and every page inside the phone shell opens
+        with an empty band above its title on a notched phone. UX-00 section 8.2: insets from the
+        first frame, once.
+      */}
+      <main
+        style={
+          {
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            '--dos-inset-top': '0px',
+            ...(tabs.length > 0 ? { '--dos-inset-bottom': '0px' } : {}),
+          } as React.CSSProperties
+        }
+      >
         {children}
       </main>
 
