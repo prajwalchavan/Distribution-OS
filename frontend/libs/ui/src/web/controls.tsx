@@ -352,6 +352,16 @@ export function Segments({
   testID,
 }: SegmentsProps): React.JSX.Element {
   const theme = useTheme()
+  /*
+   * THE SEGMENT ITSELF IS THE TOUCH FLOOR, not the pill around it.
+   *
+   * The height token is the app's floor (UX-00 §5.2: 69 dp in sales, delivery and retailer), and the
+   * button used to be `height - 4` so that the 2 px inset on each side of the group kept the OUTER
+   * pill at exactly the floor. But the floor is about the thing a thumb has to hit, and that is the
+   * button: measured 65 dp on the sales app's My orders, Catalog, Visits, AI drafts and Inbox at
+   * 375 × 812 — five screens of a field app under the floor by 4 dp. The group is now floor + 4 and
+   * every segment is the floor.
+   */
   const height = sizeTokens[size ?? theme.touch]
   const labelStyle = useTypeStyle('bodyStrong', 'label')
   return (
@@ -378,8 +388,8 @@ export function Segments({
               onChange(item.id)
             }}
             style={{
-              height: height - 4,
-              minHeight: height - 4,
+              height,
+              minHeight: height,
               padding: `0 ${space[4]}px`,
               borderRadius: radius.sm - 2,
               border: active ? `1px solid ${theme.colors.border.faint}` : '1px solid transparent',

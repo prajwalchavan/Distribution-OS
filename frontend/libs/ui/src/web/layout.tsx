@@ -150,6 +150,17 @@ export function Stack(props: StackProps): React.JSX.Element {
         flexDirection: 'column',
         gap: px(props.gap),
         alignItems: props.align === undefined ? undefined : ALIGN[props.align],
+        /*
+         * `align` on a Stack or a Row aligns its CHILDREN — never itself.
+         *
+         * `boxStyle` maps `align` to `alignSelf`, which is right for a `<Box>` (it has no flex
+         * children to align) and wrong here: `<Row align="center">` inside a column then centred the
+         * ROW in its parent and shrank it to its content. Every list row in the sales app came out
+         * 161 px wide in a 343 px column with the money floating in the middle of the screen instead
+         * of at the right edge, and the "whole row is the tap target" rule of UX-00 §6.6 quietly
+         * stopped being true. `center` is the prop that moves a box in its parent, and it still does.
+         */
+        alignSelf: props.center === true ? undefined : 'stretch',
       }}
     >
       {props.children}
@@ -170,6 +181,8 @@ export function Row(props: RowProps): React.JSX.Element {
         alignItems: ALIGN[props.align ?? 'center'],
         justifyContent: props.justify === undefined ? undefined : JUSTIFY[props.justify],
         flexWrap: props.wrap === true ? 'wrap' : undefined,
+        // See `<Stack>`: `align` is for the children; `center` is the one that moves the box itself.
+        alignSelf: props.center === true ? undefined : 'stretch',
       }}
     >
       {props.children}
@@ -372,8 +385,29 @@ export function Pressable(props: PressableProps): React.JSX.Element {
         color: 'inherit',
         textAlign: 'left',
         cursor: disabled ? 'not-allowed' : 'pointer',
+        /*
+         * A COLUMN that stretches its child, exactly like the native half.
+         *
+         * `@dos/ui/native` renders this as an `RNPressable` with `justifyContent: 'center'` — a View,
+         * so `flexDirection: 'column'` and `alignItems: 'stretch'` by default, and its child fills the
+         * width. The web half said `flexDirection: row` (the CSS default for `display: flex`) with
+         * `alignItems: 'center'`, and a row-direction flex container does NOT stretch a child along
+         * the main axis: the child sizes to its content, and `alignSelf: 'stretch'` on that child is
+         * about the CROSS axis, so it cannot rescue it either.
+         *
+         * Measured on the sales app's `My orders` at 1440 px: the `<button>` was 1168 px wide and the
+         * row inside it 195 px, so the money column started at x = 304 on a short row and x = 708 on a
+         * row whose note ran long — no money column at all, and 973 px of every row was dead to the
+         * touch even though UX-00 §6.6 says the whole row is the tap target. It is the same defect on
+         * a phone, where it costs a rep the first tap of every order.
+         *
+         * `justifyContent: 'center'` keeps the vertical centring the old `alignItems: 'center'` gave a
+         * child shorter than `minHeight`.
+         */
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        justifyContent: 'center',
       }}
       data-role={role}
     >

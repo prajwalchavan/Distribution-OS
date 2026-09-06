@@ -884,3 +884,58 @@ describe('a role with no tray still syncs', () => {
     await engine.stop()
   })
 })
+
+// 16 -------------------------------------------------------------------------------------------------------------
+
+/**
+ * A stopped engine stops talking to the service.
+ *
+ * `stop()` clears the timers and closes the database, but a pull loop already inside `for(;;)` held
+ * the store it was handed and kept crawling to the last page. A cold read set is hundreds of pages
+ * (265 for a salesperson on the pilot data), so an engine replaced a second after it started — a
+ * token refresh, a distributor switch, the provider's own effect re-running — did the WHOLE crawl a
+ * second time in parallel: 530 `sync/pull` calls measured on one sign-in of the sales app. Twice the
+ * data on a phone that pays for it (UX-00 §8.3 budgets 10 MB a day), rows landing in a store nothing
+ * reads, and a signed-out app still calling the service.
+ */
+describe('16. a stopped engine stops pulling', () => {
+  it('leaves the loop at the next page instead of crawling the whole read set', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    // Every page says there is another one; only `stop()` can end this.
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [{ id: 'r1', name: 'Alan Stores' }], deleted: [] }],
+      cursor: 'c1',
+      hasMore: true,
+    })
+
+    const base = server.transport()
+    let pages = 0
+    const stops: Promise<void>[] = []
+    const engine = new SyncEngine({
+      transport: {
+        ...base,
+        pull: async (input) => {
+          pages += 1
+          // A real page costs a round trip; without a yield the loop runs to its 1000-page guard
+          // inside one microtask batch and `stop()` never gets a turn.
+          await new Promise((resolve) => setTimeout(resolve, 0))
+          if (pages === 3) stops.push(engine.stop())
+          return base.pull(input)
+        },
+      },
+      deviceId: 'device-1',
+      storeFactory: fixedStoreFactory(store),
+      pullIntervalMs: 0,
+      now,
+    })
+
+    await engine.start()
+    await Promise.all(stops)
+    const settled = pages
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(settled).toBeLessThan(10)
+    expect(pages).toBe(settled)
+  })
+})

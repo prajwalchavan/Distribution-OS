@@ -425,9 +425,10 @@ export function Segments({
              * segments collapsed and "7 days · 30 days · 90 days" rendered as an empty 2 px pill on
              * every phone.
              */
+            /* The segment IS the touch floor, not the pill around it — see the web half. */
             style={{
-              height: height - 4,
-              minHeight: height - 4,
+              height,
+              minHeight: height,
               paddingHorizontal: space[4],
               alignItems: 'center',
               justifyContent: 'center',

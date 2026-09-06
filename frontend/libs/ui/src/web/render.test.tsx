@@ -11,11 +11,12 @@ import { CompareBars, StackedMix } from './charts.js'
 import { KpiStrip } from './list.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
-import { TextInput, Tabs } from './controls.js'
+import { TextInput, Tabs, Segments } from './controls.js'
 import { ConnectionStrip, Sheet } from './feedback.js'
 import { MapView } from './map.js'
 import { MenuRow, TenantSwitcher } from './shell.js'
-import { Link } from './layout.js'
+import { Txt } from './base.js'
+import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
 import type { ConnectionState, MapMarker } from '../types.js'
 
@@ -539,5 +540,67 @@ describe('<MapView> degrades to the same places, named', () => {
   it('gives each row the app touch floor, not a 21 dp target', () => {
     const html = renderField(<MapView markers={vans} onSelectMarker={() => undefined} />)
     expect(html).toContain('min-height:69px')
+  })
+})
+
+/**
+ * A pressable list row is the whole row — on the web as well as on the phone.
+ *
+ * `@dos/ui/native` renders `<Pressable>` as an `RNPressable`, which is a View: column direction,
+ * `alignItems: 'stretch'`, so its child fills the width. The web half rendered a row-direction flex
+ * `<button>`, and a row-direction container does not stretch a child along the main axis — the child
+ * sized to its content. Measured on the sales app's `My orders` at 1440 px: a 1168 px button with a
+ * 195 px row inside it, the money starting at x = 304 on a short row and x = 708 on a long one, and
+ * 973 px of every row dead to the touch (UX-00 §6.6: the whole row is the tap target).
+ */
+describe('<Pressable> stretches its child like the native half does', () => {
+  it('is a stretching column, not a shrink-to-fit row', () => {
+    const html = renderField(
+      <Pressable onPress={() => undefined} role="row">
+        <Row justify="between">
+          <Txt field="bodyStrong" desk="cell">
+            Sai Baba Kirana
+          </Txt>
+          <Money value={26_982_00} />
+        </Row>
+      </Pressable>,
+    )
+    expect(html).toContain('flex-direction:column')
+    expect(html).toContain('align-items:stretch')
+    // The vertical centring the old `align-items:center` provided for a short child.
+    expect(html).toContain('justify-content:center')
+    expect(html).toContain('width:100%')
+  })
+
+  it('still carries the app touch floor', () => {
+    expect(renderField(<Pressable onPress={() => undefined}>x</Pressable>)).toContain(
+      'min-height:69px',
+    )
+  })
+})
+
+/**
+ * A segment is a tap target, so a segment is the app's touch floor.
+ *
+ * The button used to be `height - 4` so the group's 2 px inset kept the OUTER pill at the floor —
+ * but the floor is about the thing a thumb hits. Measured 65 dp against a 69 dp floor on five
+ * screens of the sales app at 375 × 812 (My orders, Catalog, Visits, AI drafts, Inbox).
+ */
+describe('<Segments> meets the app touch floor (UX-00 §5.2)', () => {
+  const items = [
+    { id: 'a', label: 'Travelling' },
+    { id: 'b', label: 'All' },
+    { id: 'c', label: 'Drafts' },
+  ]
+
+  it('gives each segment the field floor, not four less', () => {
+    const html = renderField(<Segments items={items} value="a" onChange={() => undefined} />)
+    expect(html).toContain('height:69px')
+    expect(html).not.toContain('height:65px')
+  })
+
+  it('and the desk size on a desk', () => {
+    const html = renderDesk(<Segments items={items} value="a" onChange={() => undefined} />)
+    expect(html).toContain('height:32px')
   })
 })

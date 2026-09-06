@@ -401,6 +401,19 @@ export class SyncEngine {
   private async pullLoop(store: SyncStore): Promise<void> {
     let guard = 0
     for (;;) {
+      /*
+       * A STOPPED ENGINE STOPS PULLING — this line, and the one in `flush`, are the whole of it.
+       *
+       * `stop()` clears the timers and closes the database, but a pull loop already inside its
+       * `for(;;)` holds the store it was handed and kept going to the last page. A cold read set is
+       * hundreds of pages (265 for a salesperson on the pilot data), so an engine replaced a second
+       * after it started — a token refresh, a distributor switch, or the provider's own effect
+       * re-running — crawled the WHOLE thing a second time in parallel: measured 530 `sync/pull`
+       * calls on one sign-in of the sales app where 265 is the read set. That is twice the data on a
+       * phone paying for it (UX-00 §8.3 budgets 10 MB a day) and a signed-out app still calling the
+       * service. Rows kept landing in a store nothing reads, so nothing on screen ever said so.
+       */
+      if (!this.started) return
       const since = await readState(store, 'cursor')
       const response = await this.call(() =>
         this.options.transport.pull({
@@ -593,6 +606,9 @@ export class SyncEngine {
     if (this.upgradeRequired) return
     let sent = false
     for (;;) {
+      // See `pullLoop`: a stopped engine stops talking to the service. The ops stay `queued` in the
+      // outbox, which is a table, so the engine that replaces this one sends them.
+      if (!this.started) return
       const batch = await this.claim(store)
       if (batch.length === 0) {
         // docs/27 §5, the pull schedule: "after every successful upload batch". What the server made

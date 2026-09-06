@@ -154,6 +154,9 @@ export function Stack(props: StackProps): React.JSX.Element {
           flexDirection: 'column',
           gap: px(props.gap),
           alignItems: props.align === undefined ? undefined : ALIGN[props.align],
+          // `align` aligns the CHILDREN; `boxStyle`'s `alignSelf` would shrink the box itself. The
+          // web half carries the whole story.
+          alignSelf: props.center === true ? undefined : 'stretch',
         },
       ]}
     >
@@ -175,6 +178,7 @@ export function Row(props: RowProps): React.JSX.Element {
           alignItems: ALIGN[props.align ?? 'center'],
           justifyContent: props.justify === undefined ? undefined : JUSTIFY[props.justify],
           flexWrap: props.wrap === true ? 'wrap' : undefined,
+          alignSelf: props.center === true ? undefined : 'stretch',
         },
       ]}
     >

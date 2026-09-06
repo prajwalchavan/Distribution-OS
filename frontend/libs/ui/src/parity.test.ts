@@ -296,3 +296,37 @@ describe('native sheet fits the screen', () => {
     )
   })
 })
+
+/**
+ * The phone shell has to BE the window, not merely be at least as tall as it.
+ *
+ * Expo's web template sets `body { overflow: hidden }` and `#root { height: 100% }`, so nothing
+ * outside the shell can scroll. The phone shell declared `min-height: 100dvh` and no height, which
+ * for a flex column means "grow with your content" — a shop card in the sales app came out 1942 px
+ * inside an 812 px window, `<main flex:1 minHeight:0>` had no bounded height to shrink into, and
+ * `<Screen>`'s own `overflow-y: auto` region never became a scroller. Everything past the first
+ * screenful was clipped by body's hidden overflow with no way to reach it, and the sticky bottom bar
+ * of UX-00 §8.2 went with it: "Place order" sat 1 155 px below the fold on the screen the pilot is
+ * decided on.
+ *
+ * The desk shell beside it always said `height: '100dvh'`. Both halves say it now, and this reads the
+ * source because a static render has no layout to measure.
+ */
+describe('both shells clamp themselves to the viewport (UX-00 §8.2)', () => {
+  const source = readFileSync(join(here, 'web', 'shell.tsx'), 'utf8')
+
+  function shellBody(name: string): string {
+    const start = source.indexOf(`function ${name}(`)
+    expect(start, `${name} is not declared in web/shell.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nfunction ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('the phone shell sets a height, not only a minimum', () => {
+    expect(shellBody('PhoneShell')).toContain("height: '100dvh'")
+  })
+
+  it('the desk shell still does', () => {
+    expect(shellBody('DeskShell')).toContain("height: '100dvh'")
+  })
+})

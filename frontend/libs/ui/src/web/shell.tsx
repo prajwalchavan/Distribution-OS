@@ -487,6 +487,22 @@ function PhoneShell({
       style={{
         display: 'flex',
         flexDirection: 'column',
+        /*
+         * `height`, not only `minHeight` — and the difference is a whole app.
+         *
+         * Expo's web template sets `body { overflow: hidden }` and `#root { height: 100% }`, so
+         * NOTHING outside this element scrolls. With `min-height` alone this column grew to its
+         * content (a shop card came out 1942 px tall inside an 812 px window), `<main flex:1
+         * minHeight:0>` had no bounded height to shrink into, so `<Screen>`'s own `overflow-y:auto`
+         * region never became a scroller — and everything past the first screenful was clipped by
+         * body's hidden overflow with no way to reach it. The sticky bottom bar of UX-00 §8.2 went
+         * with it: "Place order" sat 1 155 px below the fold on the one screen the pilot is decided
+         * on. Measured at 375 × 812 on the sales app's shop card.
+         *
+         * The desk shell beside this one already says `height: '100dvh'`; the phone shell said only
+         * `minHeight`, and the phone is the half of the product that is used standing up.
+         */
+        height: '100dvh',
         minHeight: '100dvh',
         background: colors.bg.ground,
       }}
