@@ -180,7 +180,6 @@ export default function Settings(): React.JSX.Element {
         <Button
           label={row.enabled ? t('o24.off') : t('o24.on')}
           variant="ghost"
-          size="desk"
           onPress={() => {
             setFlag.mutate({ flag: row.flag, enabled: !row.enabled })
           }}
@@ -213,7 +212,6 @@ export default function Settings(): React.JSX.Element {
           <Button
             label={t('o24.approveSupport')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               setGrantId(row.id)
               setGrantAction('approve')
@@ -223,7 +221,6 @@ export default function Settings(): React.JSX.Element {
           <Button
             label={t('o24.revokeSupport')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               setGrantId(row.id)
               setGrantAction('revoke')
@@ -244,7 +241,6 @@ export default function Settings(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as View)
@@ -261,7 +257,6 @@ export default function Settings(): React.JSX.Element {
             <Button
               label={t('app.save')}
               variant="primary"
-              size="desk"
               disabled={Object.keys(edits).length === 0}
               disabledReason={t('app.nothingChanged')}
               loading={save.status === 'pending'}

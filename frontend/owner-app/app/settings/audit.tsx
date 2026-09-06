@@ -85,7 +85,6 @@ export default function Audit(): React.JSX.Element {
           <Button
             label={t('app.revoke')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               revoke.mutate(row.id)
             }}
@@ -102,7 +101,6 @@ export default function Audit(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as 'audit' | 'sessions')

@@ -203,7 +203,6 @@ export default function Prices(): React.JSX.Element {
       title={t('o8.title')}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as View)
@@ -222,7 +221,6 @@ export default function Prices(): React.JSX.Element {
         {view === 'lists' ? (
           <>
             <Segments
-              size="desk"
               value={current?.id ?? ''}
               onChange={setListId}
               items={listRows.slice(0, 3).map((row) => ({
@@ -236,7 +234,6 @@ export default function Prices(): React.JSX.Element {
               value={q}
               onChange={setQ}
               placeholder={t('o9.search')}
-              size="desk"
               state={q === '' ? 'idle' : itemRows.length === 0 ? 'noResults' : 'results'}
             />
             <Async

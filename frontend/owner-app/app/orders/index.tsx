@@ -196,7 +196,6 @@ export default function Orders(): React.JSX.Element {
       <Stack gap={4}>
         <Chips
           testID="orders-states"
-          size="desk"
           items={STATES.map((state) => ({
             id: state,
             label: state,

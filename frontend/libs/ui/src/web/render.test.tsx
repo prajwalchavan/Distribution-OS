@@ -252,7 +252,6 @@ describe('the self-hosted typeface', () => {
   })
 })
 
-
 /**
  * Two rows of a chart can carry the SAME display name — two staff called "Demo Docs Staff", two beats
  * a distributor named alike, two brands sharing a word. Keying a bar, a segment, a KPI column or an

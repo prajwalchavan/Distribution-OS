@@ -20,7 +20,7 @@ import {
   Txt,
   useColors,
   useStrings,
-  useTheme,
+  useViewport,
   type RegisterColumn,
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
@@ -74,11 +74,20 @@ export function Panel({ title, meta, actions, children, testID }: PanelProps): R
   )
 }
 
-/** Two panels side by side on a desk viewport, stacked on a phone. */
+/**
+ * Two panels side by side on a desk viewport, one under the other on a phone.
+ *
+ * It switches on the VIEWPORT rather than wrapping a flex row: `<Half>` grows, so a wrapped row still
+ * fitted both halves on one line and shrank them — on a 375 px screen that clipped the ageing ladder's
+ * figures off the right edge. A phone gets a column, which is what UX-00 §8.2 draws.
+ */
 export function Columns({ children }: { children: ReactNode }): React.JSX.Element {
-  const { density } = useTheme()
+  const viewport = useViewport()
+  if (viewport.kind === 'phone') {
+    return <Stack gap={6}>{children}</Stack>
+  }
   return (
-    <Row gap={6} wrap={density === 'field'} align="stretch">
+    <Row gap={6} align="stretch">
       {children}
     </Row>
   )
@@ -220,7 +229,6 @@ export function RangeSegments({
   return (
     <Segments
       testID={testID}
-      size="desk"
       value={value}
       onChange={onChange}
       items={[
@@ -400,8 +408,7 @@ export function ExportButton({
    * what the register serves instead of failing — using the contract's own numbers, not a copy.
    */
   const cap = REGISTER_WINDOW_DAYS[register as keyof typeof REGISTER_WINDOW_DAYS] as
-    | number
-    | undefined
+    number | undefined
   const windowed: Readonly<Record<string, unknown>> =
     cap === undefined || typeof filters.from !== 'string' || typeof filters.to !== 'string'
       ? filters
@@ -443,7 +450,6 @@ export function ExportButton({
         testID={testID}
         label={t('app.exportReady')}
         variant="secondary"
-        size="desk"
         onPress={() => {
           const absolute = absoluteUrl(ready)
           if (absolute !== null) void documents.open(absolute)
@@ -457,7 +463,6 @@ export function ExportButton({
       testID={testID}
       label={request.status === 'pending' ? t('app.exportQueued') : t('app.export')}
       variant="secondary"
-      size="desk"
       loading={request.status === 'pending' || job.isFetching}
       onPress={() => {
         request.reset()
@@ -470,7 +475,5 @@ export function ExportButton({
 
 export function ReloadButton({ onPress }: { onPress: () => void }): React.JSX.Element {
   const t = useStrings()
-  return (
-    <Button label={t('app.reload')} variant="ghost" size="desk" onPress={onPress} testID="reload" />
-  )
+  return <Button label={t('app.reload')} variant="ghost" onPress={onPress} testID="reload" />
 }

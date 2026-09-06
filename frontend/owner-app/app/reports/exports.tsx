@@ -89,7 +89,6 @@ export default function Exports(): React.JSX.Element {
           <Button
             label={t('o22.download')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               open(row.id)
             }}
@@ -115,7 +114,6 @@ export default function Exports(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as 'exports' | 'tally')
@@ -129,7 +127,6 @@ export default function Exports(): React.JSX.Element {
           <Button
             label={t('o22.request')}
             variant="primary"
-            size="desk"
             loading={request.status === 'pending'}
             onPress={() => {
               request.reset()

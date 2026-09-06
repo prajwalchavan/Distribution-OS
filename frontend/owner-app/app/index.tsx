@@ -118,7 +118,6 @@ export default function Today(): React.JSX.Element {
         <Button
           label={t('o1.openApprovals')}
           variant="primary"
-          size="desk"
           onPress={() => {
             router.push('/approvals')
           }}
@@ -251,7 +250,6 @@ export default function Today(): React.JSX.Element {
             <Button
               label={t('o1.openApprovals')}
               variant="secondary"
-              size="desk"
               onPress={() => {
                 router.push('/approvals')
               }}

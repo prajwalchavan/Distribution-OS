@@ -184,7 +184,6 @@ export default function Billing(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as 'bills' | 'gst')

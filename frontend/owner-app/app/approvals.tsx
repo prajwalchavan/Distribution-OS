@@ -178,7 +178,6 @@ export default function Approvals(): React.JSX.Element {
       chips={<PageTabs group="/" active="/approvals" />}
       actions={
         <Segments
-          size="desk"
           value={stream}
           onChange={(id) => {
             setStream(id as 'all' | 'approval' | 'bargain')

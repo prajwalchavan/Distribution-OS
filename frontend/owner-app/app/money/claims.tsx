@@ -98,7 +98,8 @@ export default function Claims(): React.JSX.Element {
                 <BarLadder
                   title={t('o19.outstanding')}
                   rows={(ageing.data?.groups ?? []).slice(0, 8).map((group) => ({
-                    label: group.name,
+                    // A rung's label column is narrow; a supplier's legal name is not.
+                    label: group.name.length > 24 ? `${group.name.slice(0, 23)}…` : group.name,
                     value: group.outstandingPaise,
                     family: group.buckets.b90plus > 0 ? 'brick' : 'neutral',
                     solid: group.buckets.b90plus > 0,

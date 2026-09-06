@@ -413,6 +413,10 @@ export const strings = {
   'o26.qr': 'QR',
   'o26.review': 'Review document',
   'o26.quality': 'Reading quality',
+  'o26.documents': 'Documents read',
+  'o26.editsPerTen': 'Edits per ten lines',
+  'o26.failed': 'Failed to read',
+  'o26.waiting': 'Waiting in the inbox',
   'o26.empty': 'The inbox is clear',
   'o26.minutes': '{count} min',
 

@@ -81,7 +81,6 @@ export default function Books(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as 'trial' | 'day')

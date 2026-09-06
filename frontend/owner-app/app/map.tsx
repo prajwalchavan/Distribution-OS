@@ -78,7 +78,6 @@ export default function LiveMap(): React.JSX.Element {
           <Button
             label={t('o4.openInMaps')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               void share.share({
                 title: row.regNo,

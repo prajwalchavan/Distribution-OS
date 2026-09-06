@@ -117,7 +117,7 @@ export default function DocumentsInbox(): React.JSX.Element {
           <Half>
             <Panel title={t('o26.title')}>
               <Async state={[queue]} rows={2}>
-                <Field label={t('app.rows', { count: rows.length })}>
+                <Field label={t('o26.waiting')}>
                   <Money
                     value={rows.reduce((sum, row) => sum + (row.totalPaise ?? 0), 0)}
                     size="moneyM"

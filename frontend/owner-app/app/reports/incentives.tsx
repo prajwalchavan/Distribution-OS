@@ -135,7 +135,6 @@ export default function Incentives(): React.JSX.Element {
           <Button
             label={t('o20.approveStatement')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               approve.mutate(row.id)
             }}
@@ -154,7 +153,6 @@ export default function Incentives(): React.JSX.Element {
       chips={<PageTabs group="/reports" active="/reports/incentives" />}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as 'targets' | 'statements')

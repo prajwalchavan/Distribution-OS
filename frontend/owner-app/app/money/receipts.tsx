@@ -156,7 +156,6 @@ export default function Receipts(): React.JSX.Element {
       <Stack gap={4}>
         <Chips
           testID="receipts-modes"
-          size="desk"
           items={[
             ...MODES.map((id) => ({ id, label: id, selected: mode === id })),
             { id: 'unallocated', label: t('o11.onAccount'), selected: unallocatedOnly },

@@ -127,7 +127,6 @@ export default function StaffScreen(): React.JSX.Element {
       title={t('o7.title')}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as View)

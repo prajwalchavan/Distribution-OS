@@ -292,7 +292,6 @@ function Chrome({
           value={query}
           onChange={setQuery}
           placeholder={strings['app.search']}
-          size="desk"
           state={
             query.trim().length < 2
               ? 'idle'

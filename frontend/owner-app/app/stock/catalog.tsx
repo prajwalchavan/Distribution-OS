@@ -125,7 +125,6 @@ export default function Catalog(): React.JSX.Element {
       chips={<PageTabs group="/stock" active="/stock/catalog" />}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as View)
@@ -147,7 +146,6 @@ export default function Catalog(): React.JSX.Element {
             value={q}
             onChange={setQ}
             placeholder={t('o9.search')}
-            size="desk"
             state={q === '' ? 'idle' : listings.isFetching ? 'typing' : 'results'}
           />
         ) : null}

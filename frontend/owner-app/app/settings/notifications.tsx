@@ -97,7 +97,6 @@ export default function Notifications(): React.JSX.Element {
           <Button
             label={t('o23.resend')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               resend.mutate(row.id)
             }}
@@ -144,7 +143,6 @@ export default function Notifications(): React.JSX.Element {
           <Button
             label={t('o23.markHandled')}
             variant="ghost"
-            size="desk"
             onPress={() => {
               markHandled.mutate(row.id)
             }}
@@ -159,7 +157,6 @@ export default function Notifications(): React.JSX.Element {
       chips={<PageTabs group="/settings" active="/settings/notifications" />}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as View)

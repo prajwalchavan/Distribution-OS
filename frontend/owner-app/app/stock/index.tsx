@@ -170,7 +170,6 @@ export default function StockScreen(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={view}
             onChange={(id) => {
               setView(id as 'balances' | 'ledger')
@@ -215,7 +214,6 @@ export default function StockScreen(): React.JSX.Element {
 
         <Chips
           testID="stock-locations"
-          size="desk"
           items={[
             ...(locations.data?.items ?? []).map((loc) => ({
               id: loc.id,
@@ -327,7 +325,6 @@ export default function StockScreen(): React.JSX.Element {
       <Button
         label={t('o15.counts')}
         variant="ghost"
-        size="desk"
         onPress={() => {
           setView('ledger')
         }}

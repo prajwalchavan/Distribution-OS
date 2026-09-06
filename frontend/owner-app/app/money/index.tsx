@@ -205,7 +205,6 @@ export default function OutstandingListItem(): React.JSX.Element {
           <Button
             label={t('o10.rebuild')}
             variant="ghost"
-            size="desk"
             loading={rebuild.status === 'pending'}
             onPress={() => {
               setDialog('rebuild')
@@ -233,7 +232,6 @@ export default function OutstandingListItem(): React.JSX.Element {
               </Async>
               <Chips
                 testID="money-bucket-filter"
-                size="desk"
                 items={BUCKETS.map((id) => ({
                   id,
                   label: BUCKET_LABEL[id],
@@ -272,7 +270,6 @@ export default function OutstandingListItem(): React.JSX.Element {
             <Button
               label={t('o10.statements')}
               variant="secondary"
-              size="desk"
               disabled={rows.length === 0}
               disabledReason={t('o10.empty')}
               loading={statements.status === 'pending'}
@@ -284,7 +281,6 @@ export default function OutstandingListItem(): React.JSX.Element {
           }
         >
           <Chips
-            size="desk"
             items={[{ id: 'overdue', label: t('o10.overdue'), selected: overdueOnly }]}
             onToggle={() => {
               setOverdueOnly((v) => !v)

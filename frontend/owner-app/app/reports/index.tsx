@@ -99,7 +99,9 @@ export default function Growth(): React.JSX.Element {
    * "₹0.0" too. `reporting` says which unit every series is in; the screen reads it rather than
    * assuming.
    */
-  const formatFor = (unit: 'paise' | 'count' | 'ratio'): ((value: number) => string) | undefined => {
+  const formatFor = (
+    unit: 'paise' | 'count' | 'ratio',
+  ): ((value: number) => string) | undefined => {
     if (unit === 'count') return (value) => String(Math.round(value))
     if (unit === 'ratio') return (value) => `${String(Math.round(value * 100))}%`
     return undefined
@@ -188,7 +190,6 @@ export default function Growth(): React.JSX.Element {
       actions={
         <>
           <Segments
-            size="desk"
             value={range}
             onChange={(id) => {
               setRange(id as RangeId)
@@ -201,7 +202,6 @@ export default function Growth(): React.JSX.Element {
             testID="growth-range"
           />
           <Segments
-            size="desk"
             value={compare}
             onChange={(id) => {
               setCompare(id as 'none' | 'previousPeriod' | 'previousYear')

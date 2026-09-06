@@ -187,7 +187,6 @@ export default function Shops(): React.JSX.Element {
         {/* The beats are data, not a fixed list: one chip per beat this distributor actually runs. */}
         <Chips
           testID="shops-beat"
-          size="desk"
           items={(beats.data?.items ?? []).map((beat) => ({
             id: beat.id,
             label: beat.name,
@@ -210,7 +209,6 @@ export default function Shops(): React.JSX.Element {
           value={q}
           onChange={setQ}
           placeholder={t('app.search')}
-          size="desk"
           autoFocus
           state={
             q === ''

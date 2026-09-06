@@ -139,7 +139,6 @@ export default function Inbound(): React.JSX.Element {
       chips={<PageTabs group="/stock" active="/stock/inbound" />}
       actions={
         <Segments
-          size="desk"
           value={view}
           onChange={(id) => {
             setView(id as View)
