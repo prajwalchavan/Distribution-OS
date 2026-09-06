@@ -12,6 +12,8 @@
 
 **Shell.** `AppShell` renders the desk shell (UX-00 §8.1: left rail, header with tenant switcher, reading-width content) when the viewport is ≥ 1024 px and the phone shell (§8.2: bottom tabs, one-hand reach) below it. An owner on a phone gets the phone shell; a salesperson on a laptop gets the desk shell. Navigation config is data (sections, routes, permission) supplied by each app.
 
+**Permissions on the device.** A route declares the contract procedure(s) it needs; the shell computes whether the signed-in role may call them from `PERMISSIONS` in `@dos/contracts` (linked, so it is the same matrix the server enforces) and hides what the matrix refuses. The server still answers 403 if a hidden route is reached; the app never carries a second permission list.
+
 **Platform modules.** `@dos/ui/platform` holds the few things that genuinely differ: `storage` (secure token store), `documents` (open/print a PDF), `camera` (scan a barcode, photograph a bill), `location` (trip tracking), `files` (pick/upload), `haptics`, `share`. Each is a `.web.ts` / `.native.ts` pair with one signature. A screen calls `platform.documents.open(url)` and never knows which one ran.
 
 **Offline.** `@dos/offline` (our own delta sync; docs/22 §8) uses `expo-sqlite` on native and its web build (OPFS/wa-sqlite) in the browser, behind one storage adapter; an in-memory adapter is the honest fallback and says so in `ConnectionStrip`.
