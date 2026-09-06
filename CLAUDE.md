@@ -73,6 +73,8 @@ cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173
   Xcode 26 needs macOS 26 and this Mac runs 14.6.1), iOS 18.0 simulator runtime, so React Native 0.86 dev builds
   (`expo run:ios`) work as well as Expo Go. `xcode-select -p` already points at `/Applications/Xcode.app`; if it ever points
   at the Command Line Tools, only the founder can change it back (`sudo xcode-select -s`).
+  **Never open the iOS simulator panel in the Claude app** (founder, 2026-09-06): drive the simulator headlessly with
+  `xcrun simctl` and take screenshots with `xcrun simctl io booted screenshot <file>`.
   Android: SDK in `~/Library/Android/sdk`, JDK from Android Studio's bundled runtime, emulator `Pixel_7_API_36`.
   Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
   Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
