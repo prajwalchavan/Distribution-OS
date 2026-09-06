@@ -1,7 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm'
 import type { Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { clampBps, toBps } from './ai.internals.js'
+import { clampBps, toBps, variantLabelSql } from './ai.internals.js'
 import type { ParsedFragment } from './tokenise.js'
 
 /**
@@ -128,7 +128,7 @@ async function searchListing(tx: Db, phrase: string): Promise<ScoredRow[]> {
     with listing as (
       select
         v.id                                                as variant_id,
-        trim(coalesce(b.name, '') || ' ' || coalesce(p.name, '') || ' ' || v.name) as label,
+        ${variantLabelSql}                                  as label,
         tp.local_alias                                      as local_alias,
         coalesce(tp.case_size_override, v.default_case_size) as pack_size
       from tenant_products tp
@@ -227,7 +227,7 @@ export async function listingLabels(
   const result = await tx.execute(sql`
     select
       v.id as variant_id,
-      trim(coalesce(b.name, '') || ' ' || coalesce(p.name, '') || ' ' || v.name) as label,
+      ${variantLabelSql} as label,
       coalesce(tp.case_size_override, v.default_case_size) as pack_size,
       ${preferred}::int as bought
     from tenant_products tp

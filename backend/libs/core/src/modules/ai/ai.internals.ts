@@ -280,3 +280,42 @@ export function previewOf(text: string | null): string {
   const flat = (text ?? '').replace(/\s+/g, ' ').trim()
   return flat.length <= 120 ? flat : `${flat.slice(0, 119)}…`
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// the SKU's own name
+
+/** `product_variants.name` prefixed by its product, only when it does not already start with it. */
+const productAndVariant = sql`case
+      when coalesce(p.name, '') = '' or starts_with(lower(v.name), lower(p.name)) then v.name
+      else p.name || ' ' || v.name
+    end`
+
+/**
+ * `Brand Product Variant` as the ONE name a shopkeeper would recognise, for any query that has
+ * `brands b`, `products p` and `product_variants v` in scope.
+ *
+ * THE THREE OVERLAP IN THE CURATED CATALOG, on purpose (ADR 0005: one global, curated shelf). Brand
+ * `Campa`, product `Campa Cola`, variant `Campa Cola 1 L` is a real row, and so is brand `Balaji`,
+ * product `Balaji Chataka Pataka Wafers`, variant `Balaji Chataka Pataka Wafers 45 g`. A plain
+ * `b.name || ' ' || p.name || ' ' || v.name` therefore printed "Campa Campa Cola Campa Cola 1 L" on
+ * the godown's reorder list and on the review screen beside every candidate — which reads as a bug
+ * in exactly the screen that exists to explain a machine's guess to a human. Each part is prepended
+ * only when the name does not already begin with it, which is what `composeLabel()` in
+ * `@dos/db`'s `seed-demo/ai.ts` does for the labels the demo drafts store; the two must agree, or a
+ * seeded draft says one thing and the API renders another for the same variant.
+ *
+ * The matcher scores against this label as well, and pg_trgm collapses duplicate trigrams, so the
+ * duplication never moved a MATCH — it was the reading of it that was wrong, plus the candidate list
+ * this module hands the language model, where the repetition is pure noise in the prompt.
+ *
+ * Every other module shows `product_variants.name` alone, which already carries the brand for a
+ * curated row; `ai` is the only one that composes, because a `proposed` variant a distributor typed
+ * itself may carry nothing but the size.
+ */
+export const variantLabelSql = sql`btrim(
+    case
+      when coalesce(b.name, '') = '' or starts_with(lower(${productAndVariant}), lower(b.name))
+        then ${productAndVariant}
+      else b.name || ' ' || ${productAndVariant}
+    end
+  )`

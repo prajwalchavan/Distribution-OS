@@ -5,6 +5,13 @@ import { createHash } from 'node:crypto'
  * external codes, aliases and HSN rates are ONE curated catalog shared by every distributor
  * (ADR 0005), so their ids must be the same whichever tenant is being seeded. Everything else is
  * tenant data and gets the current demo scope mixed into its hash.
+ *
+ * `platform-user` and `platform-admin` are global for a different reason: a `platform_admin` holds no
+ * membership anywhere and belongs to NO distributor at all (module 13). `seedPlatformSupport` runs
+ * once per distributor — each one gets its own pending support request — but the person asking is the
+ * same person every time, and a scoped id would try to insert a second Distribution OS staff account
+ * on the same phone and username. The support GRANT stays tenant-scoped, because a request is against
+ * one distributorship. Root-scope ids are unchanged by this: the prefix is empty either way.
  */
 const GLOBAL_KINDS = new Set([
   'manufacturer',
@@ -15,6 +22,8 @@ const GLOBAL_KINDS = new Set([
   'external-code',
   'alias',
   'hsn-rate',
+  'platform-user',
+  'platform-admin',
 ])
 
 /**

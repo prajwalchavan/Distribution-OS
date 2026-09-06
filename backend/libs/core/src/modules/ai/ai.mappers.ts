@@ -12,7 +12,7 @@ import type {
 import type { aiForecasts } from '@dos/db'
 import { retailers, salesOrders, trips, type AiOrderDraftLine, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { clampBps, previewOf, type DraftRow } from './ai.internals.js'
+import { clampBps, previewOf, variantLabelSql, type DraftRow } from './ai.internals.js'
 import { lineStatus } from './intake.js'
 
 /**
@@ -65,7 +65,7 @@ export async function variantLabels(
   const result = await tx.execute(sql`
     select
       v.id as variant_id,
-      trim(coalesce(b.name, '') || ' ' || coalesce(p.name, '') || ' ' || v.name) as label,
+      ${variantLabelSql} as label,
       coalesce(tp.case_size_override, v.default_case_size) as pack_size
     from product_variants v
     join products p on p.id = v.product_id

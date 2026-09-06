@@ -6,7 +6,7 @@ import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, type Db } from './client.js'
 import { memberships, salesOrders, tenants, users } from './schema/index.js'
-import { seedDemo, seedExtraTenants } from './seed-demo.js'
+import { seedDemo, seedExtraTenants, seedPlatformConsole } from './seed-demo.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
@@ -48,6 +48,88 @@ async function rowCounts(db: Db): Promise<Record<string, number>> {
   return out
 }
 
+/**
+ * The AI demo data every distributor gets (module 12, docs/22 §8 2026-09-05), asserted from outside
+ * the seed: a draft in EVERY status the enum has — including one CONFIRMED into a real order of that
+ * same distributor, with the person who confirmed it named, which is the human-in-the-loop rule
+ * migration 0032 enforces — a reorder list with SKUs genuinely short of the contract's default 21-day
+ * cover, and one unapplied route plan for every trip that can still be planned.
+ */
+async function expectAiDemo(db: Db, tenantId: string, slug: string): Promise<void> {
+  const drafts = (
+    await db.execute(sql`
+      SELECT status::text AS status, count(*)::int AS n FROM ai_order_drafts
+       WHERE tenant_id = ${tenantId} GROUP BY 1 ORDER BY 1`)
+  ).rows as { status: string; n: number }[]
+  expect({ slug, statuses: drafts.map((r) => r.status).sort() }).toEqual({
+    slug,
+    statuses: ['confirmed', 'expired', 'needs_review', 'parsed', 'rejected'],
+  })
+
+  // The confirmed draft is joined to an order of this very distributor and names its reviewer.
+  const [confirmed] = (
+    await db.execute(sql`
+      SELECT d.reviewed_by IS NOT NULL AND d.reviewed_at IS NOT NULL AS reviewed,
+             o.id IS NOT NULL AS order_exists,
+             jsonb_array_length(d.parsed_lines)::int AS lines
+        FROM ai_order_drafts d
+        LEFT JOIN sales_orders o ON o.id = d.created_order_id AND o.tenant_id = d.tenant_id
+       WHERE d.tenant_id = ${tenantId} AND d.status = 'confirmed' LIMIT 1`)
+  ).rows as { reviewed: boolean; order_exists: boolean; lines: number }[]
+  expect({ slug, ...confirmed }).toEqual({
+    slug,
+    reviewed: true,
+    order_exists: true,
+    lines: confirmed?.lines ?? 0,
+  })
+  expect({ slug, hasLines: (confirmed?.lines ?? 0) > 0 }).toEqual({ slug, hasLines: true })
+
+  // One `needs_review` draft carries an ambiguous line WITH candidates — otherwise the review screen
+  // has a button nothing ever reaches.
+  const [ambiguous] = (
+    await db.execute(sql`
+      SELECT count(*)::int AS n FROM ai_order_drafts d, jsonb_array_elements(d.parsed_lines) AS line
+       WHERE d.tenant_id = ${tenantId} AND d.status = 'needs_review'
+         AND line->>'variantId' IS NULL AND jsonb_array_length(line->'candidates') > 0`)
+  ).rows as { n: number }[]
+  expect({ slug, ambiguousLines: (ambiguous?.n ?? 0) > 0 }).toEqual({ slug, ambiguousLines: true })
+
+  // The buyer's working list: rows, and a few of them genuinely short of cover.
+  const [forecasts] = (
+    await db.execute(sql`
+      SELECT count(*)::int AS n,
+             count(*) FILTER (WHERE days_cover IS NOT NULL AND days_cover < 21)::int AS below
+        FROM ai_forecasts WHERE tenant_id = ${tenantId}`)
+  ).rows as { n: number; below: number }[]
+  expect({ slug, any: (forecasts?.n ?? 0) > 0, below: (forecasts?.below ?? 0) >= 3 }).toEqual({
+    slug,
+    any: true,
+    below: true,
+  })
+
+  // Every trip that can still be planned — an open state AND a stop left to sequence, which is
+  // exactly what `ai.routing.plan` accepts — has one plan, and none of them has been applied.
+  const [plans] = (
+    await db.execute(sql`
+      SELECT count(*)::int AS plannable,
+             count(p.id)::int AS plans,
+             count(p.applied_at)::int AS applied
+        FROM trips t
+        LEFT JOIN route_plans p ON p.trip_id = t.id AND p.tenant_id = t.tenant_id
+       WHERE t.tenant_id = ${tenantId} AND t.state IN ('planned', 'loading', 'active')
+         AND EXISTS (
+           SELECT 1 FROM trip_stops s WHERE s.trip_id = t.id
+            AND s.state NOT IN ('delivered', 'partial', 'failed', 'skipped'))`)
+  ).rows as { plannable: number; plans: number; applied: number }[]
+  expect({ slug, ...plans }).toEqual({
+    slug,
+    plannable: plans?.plannable ?? 0,
+    plans: plans?.plannable ?? 0,
+    applied: 0,
+  })
+  expect({ slug, planned: (plans?.plannable ?? 0) > 0 }).toEqual({ slug, planned: true })
+}
+
 describeDb('demo seed on an empty database', () => {
   const run = uuidv7().slice(-8)
   const dbName = `dos_seedtest_${run}`
@@ -65,9 +147,12 @@ describeDb('demo seed on an empty database', () => {
     db = createDb(pool)
     const here = dirname(fileURLToPath(import.meta.url))
     await migrate(db, { migrationsFolder: resolve(here, '../migrations') })
+    // `tarsun` on purpose, in this spec's OWN throwaway database: it is the slug `pnpm db:seed`
+    // writes, the one `seedPlatformConsole` recognises as the paying pilot, and the spec exists to
+    // model that command rather than a near neighbour of it.
     await db
       .insert(tenants)
-      .values({ id: tenantId, slug: `seedtest-${run}`, legalName: 'Seed Test', stateCode: '27' })
+      .values({ id: tenantId, slug: 'tarsun', legalName: 'Seed Test', stateCode: '27' })
     await db.insert(users).values({
       id: ownerId,
       phone: `+9190000${run}`,
@@ -122,6 +207,22 @@ describeDb('demo seed on an empty database', () => {
     ).rows as { claim_no: string; shop: string | null }[]
     expect(sheetRows.map((r) => r.claim_no)).toEqual(['CLM-0001', 'CLM-0002'])
     expect(sheetRows.every((r) => typeof r.shop === 'string' && r.shop.length > 0)).toBe(true)
+
+    await expectAiDemo(db, tenantId, 'pilot')
+
+    // The owner's half of platform support access: a pending request the owner app can answer, filed
+    // by a Distribution OS staff account that holds NO membership anywhere.
+    const [support] = (
+      await db.execute(sql`
+        SELECT count(*)::int AS pending,
+               count(*) FILTER (WHERE pa.disabled_at IS NULL)::int AS from_active_admin,
+               count(m.id)::int AS requester_memberships
+          FROM support_grants g
+          JOIN platform_admins pa ON pa.user_id = g.admin_user_id
+          LEFT JOIN memberships m ON m.user_id = g.admin_user_id
+         WHERE g.tenant_id = ${tenantId} AND g.approved_at IS NULL AND g.revoked_at IS NULL`)
+    ).rows as { pending: number; from_active_admin: number; requester_memberships: number }[]
+    expect(support).toEqual({ pending: 1, from_active_admin: 1, requester_memberships: 0 })
 
     await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
     const second = await rowCounts(db)
@@ -184,7 +285,7 @@ describeDb('demo seed on an empty database', () => {
     const tenantRows = (
       await db.execute(sql`SELECT id, slug, legal_name FROM tenants ORDER BY slug`)
     ).rows as { id: string; slug: string; legal_name: string }[]
-    const pilotSlug = `seedtest-${run}`
+    const pilotSlug = 'tarsun'
     expect(tenantRows.map((t) => t.slug).sort()).toEqual(
       ['kalyan-agencies', 'sai-distributors', pilotSlug].sort(),
     )
@@ -287,6 +388,19 @@ describeDb('demo seed on an empty database', () => {
         slug: t.slug,
         tied: true,
       })
+
+      // The assistive surfaces are v1 for EVERY distributor, not a pilot-only extra (docs/22 §8,
+      // 2026-09-05), and so is the support request its owner has to answer.
+      await expectAiDemo(db, t.id, t.slug)
+      const [pending] = (
+        await db.execute(sql`
+          SELECT count(*)::int AS n FROM support_grants
+           WHERE tenant_id = ${t.id} AND approved_at IS NULL AND revoked_at IS NULL`)
+      ).rows as { n: number }[]
+      expect({ slug: t.slug, pendingSupport: pending?.n ?? 0 }).toEqual({
+        slug: t.slug,
+        pendingSupport: 1,
+      })
     }
 
     // No tenant's rows leaked into another: every tenant-scoped row of a shared shop belongs to the
@@ -306,4 +420,75 @@ describeDb('demo seed on an empty database', () => {
       .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
     expect(drift).toEqual([])
   }, 120_000)
+
+  /**
+   * Module 13's console data, the last thing `pnpm db:seed` writes: the `dos.admin` account every
+   * `/auth/platform/login` in the docs and in `pnpm smoke` uses, a subscription for every
+   * distributor, and support windows in all three states an owner and a console can see — one live
+   * and approved, one lapsed, one still waiting for an answer.
+   */
+  it('seeds the platform console: one administrator, a subscription per distributor, grants in every state', async () => {
+    await seedPlatformConsole(db, passwordHash)
+    const before = await rowCounts(db)
+
+    // A console account is NOT a membership role: it belongs to no distributor at all, which is why
+    // it signs in at `/auth/platform/login` and is refused by all six role services.
+    const [admin] = (
+      await db.execute(sql`
+        SELECT pa.role::text AS role,
+               pa.disabled_at IS NULL AS active,
+               (SELECT count(*)::int FROM memberships m WHERE m.user_id = u.id) AS memberships
+          FROM users u JOIN platform_admins pa ON pa.user_id = u.id
+         WHERE u.username = 'dos.admin'`)
+    ).rows as { role: string; active: boolean; memberships: number }[]
+    expect(admin).toEqual({ role: 'super', active: true, memberships: 0 })
+
+    // One subscription per distributor: the pilot pays, the other two are inside their free window.
+    const subs = (
+      await db.execute(sql`
+        SELECT t.slug AS slug, s.plan::text AS plan, s.status::text AS status,
+               s.price_paise_month::int AS price
+          FROM tenants t JOIN subscriptions s ON s.tenant_id = t.id ORDER BY t.slug`)
+    ).rows as { slug: string; plan: string; status: string; price: number }[]
+    expect(subs.map((s) => s.slug)).toEqual(['kalyan-agencies', 'sai-distributors', 'tarsun'])
+    expect(subs.find((s) => s.slug === 'tarsun')).toEqual({
+      slug: 'tarsun',
+      plan: 'pro',
+      status: 'active',
+      price: 499_900,
+    })
+    expect(subs.filter((s) => s.status === 'trial').length).toBe(2)
+    // Our price to a distributor is money, and it is OUR money: never a paise of their trade.
+    expect(subs.every((s) => s.price > 0)).toBe(true)
+
+    // The three states, all against the pilot, all approved by the pilot's OWN owner — the database
+    // refuses any other approver, and refuses the requester approving their own ask.
+    const [pilot] = (await db.execute(sql`SELECT id FROM tenants WHERE slug = 'tarsun'`)).rows as {
+      id: string
+    }[]
+    const [grants] = (
+      await db.execute(sql`
+        SELECT count(*) FILTER (
+                 WHERE g.approved_at IS NOT NULL AND g.revoked_at IS NULL AND g.expires_at > now()
+               )::int AS live,
+               count(*) FILTER (WHERE g.approved_at IS NOT NULL AND g.expires_at <= now())::int AS lapsed,
+               count(*) FILTER (WHERE g.approved_at IS NULL AND g.revoked_at IS NULL)::int AS pending,
+               count(*) FILTER (
+                 WHERE g.approved_by IS NOT NULL AND NOT EXISTS (
+                   SELECT 1 FROM memberships m
+                    WHERE m.user_id = g.approved_by AND m.tenant_id = g.tenant_id
+                      AND m.role = 'owner' AND m.status = 'active')
+               )::int AS approved_by_a_stranger
+          FROM support_grants g WHERE g.tenant_id = ${pilot?.id ?? ''}`)
+    ).rows as { live: number; lapsed: number; pending: number; approved_by_a_stranger: number }[]
+    expect(grants).toEqual({ live: 1, lapsed: 1, pending: 1, approved_by_a_stranger: 0 })
+
+    // …and the console seed adds nothing the second time either.
+    await seedPlatformConsole(db, passwordHash)
+    const after = await rowCounts(db)
+    const drift = Object.keys({ ...before, ...after })
+      .filter((table) => before[table] !== after[table])
+      .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
+    expect(drift).toEqual([])
+  }, 60_000)
 })

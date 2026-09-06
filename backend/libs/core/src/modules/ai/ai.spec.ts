@@ -8,6 +8,7 @@ import {
   beatAssignments,
   beats,
   bootstrapTenant,
+  brands,
   createDb,
   createPool,
   hsnRates,
@@ -37,6 +38,7 @@ import { DeliveryModule, TripsService } from '../delivery/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
 import { AiModule, parseInboundMessage, parseMessage, savingMetres } from './index.js'
+import { variantLabels } from './ai.mappers.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -165,6 +167,8 @@ describeDb('ai (DATABASE_URL)', () => {
   const shopB = uuidv7() // beat B — the rep on A must never see its drafts
   const shopC = uuidv7() // beat A, no login
 
+  const manufacturerId = uuidv7()
+  const colaProduct = uuidv7()
   const cola1L = uuidv7()
   const cola750 = uuidv7()
   const karare = uuidv7()
@@ -221,8 +225,6 @@ describeDb('ai (DATABASE_URL)', () => {
 
     // A small, realistic catalog: two sizes of the same cola (so "campa 1L" has a near-miss to beat),
     // a chips SKU and a makhana. The tenant sells cola in 12s though the maker prints 24 (docs/17 B).
-    const manufacturerId = uuidv7()
-    const colaProduct = uuidv7()
     const chipsProduct = uuidv7()
     const makhanaProduct = uuidv7()
     await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker ai ${run}` })
@@ -1286,5 +1288,87 @@ describeDb('ai (DATABASE_URL)', () => {
           .where(and(eq(aiOrderDrafts.id, draftHinglish), eq(aiOrderDrafts.tenantId, tenantId))),
       ),
     ).rejects.toThrow()
+  })
+  // -------------------------------------------------------------------------------------------------------------
+  // the name a human reads
+  //
+  // LAST IN THE FILE ON PURPOSE: the first case gives the fixture's cola product a brand, which every
+  // test above ran without. Nothing after it depends on the listing.
+
+  it('names a SKU once, however much its brand, product and variant repeat each other', async () => {
+    // The curated catalog really is shaped like this (ADR 0005, and `pnpm db:seed`): brand `Campa`,
+    // product `Campa Cola`, variant `Campa Cola 1 L`; brand `Balaji`, product `Balaji Ratlami Sev`,
+    // variant `Balaji Ratlami Sev 200 g`. Concatenating the three printed "Campa Campa Cola Campa
+    // Cola 1 L" on the godown's reorder list and beside every candidate on the review screen — every
+    // one of the pilot's 29 listed SKUs read that way.
+    const campa = uuidv7()
+    await db.insert(brands).values({ id: campa, manufacturerId, name: 'Campa' })
+    await db.update(products).set({ brandId: campa }).where(eq(products.id, colaProduct))
+
+    const draftId = uuidv7()
+    const res = await call<{ item: Draft }>(app, rep, 'POST', '/ai/intake/text', {
+      idempotencyKey: `ai-label-${run}`,
+      id: draftId,
+      source: 'text',
+      retailerId: shopA,
+      text: '2 case campa cola 1L',
+    })
+    expect(res.status).toBe(200)
+    const line = res.body.item.lines[0]
+    expect(line?.variantId).toBe(cola1L)
+    // The product name already begins with the brand, so the brand is said once: `Campa Cola 1 L`,
+    // never `Campa Campa Cola 1 L`.
+    expect(line?.variantName).toBe('Campa Cola 1 L')
+    for (const candidate of line?.candidates ?? [])
+      expect(candidate.variantName).not.toMatch(/Campa Campa/)
+
+    // And the same name on the godown's reorder list, which reads through the same helper.
+    const suggestions = await call<{ items: Suggestion[] }>(app, packer, 'GET', '/ai/forecast', {
+      limit: 100,
+    })
+    expect(suggestions.status).toBe(200)
+    const cola = suggestions.body.items.find((item) => item.variantId === cola1L)
+    expect(cola?.variantName).toBe('Campa Cola 1 L')
+    for (const item of suggestions.body.items) expect(item.variantName).not.toMatch(/Campa Campa/)
+  })
+
+  it('keeps a brand that the product name does not already carry', async () => {
+    // The other half of the rule: `MOM Makhana` is not a prefix of `MOM Roasted Makhana Peri Peri`,
+    // so dropping it would lose the one word a buyer searches by. Written under the OTHER tenant so
+    // this file's own listing — and every matcher assertion above — is untouched.
+    const brandId = uuidv7()
+    const productId = uuidv7()
+    const variantId = uuidv7()
+    const makerId = uuidv7()
+    await db.insert(manufacturers).values({ id: makerId, name: `Maker lbl ${run}` })
+    await db
+      .insert(brands)
+      .values({ id: brandId, manufacturerId: makerId, name: `MOM Makhana ${run}` })
+    await db.insert(products).values({
+      id: productId,
+      manufacturerId: makerId,
+      brandId,
+      name: `MOM Roasted Makhana Peri Peri ${run}`,
+      category: 'snacks',
+    })
+    await db.insert(productVariants).values({
+      id: variantId,
+      productId,
+      name: `MOM Roasted Makhana Peri Peri ${run} 60 g`,
+      netQty: 60,
+      netUnit: 'g',
+      defaultCaseSize: 30,
+      hsnCode: hsn,
+      mrpPaise: 9900,
+    })
+    await db.insert(tenantProducts).values({ id: uuidv7(), tenantId: otherTenantId, variantId })
+
+    const ctx: TenantContext = { tenantId: otherTenantId, actorId: ownerId, actorRole: 'owner' }
+    const labels = await tenantStorage.run(ctx, () =>
+      withTenant(db, ctx, (tx) => variantLabels(tx, [variantId])),
+    )
+    expect(labels.get(variantId)?.name).toBe(
+      `MOM Makhana ${run} MOM Roasted Makhana Peri Peri ${run} 60 g`,
+    )
   })
 })

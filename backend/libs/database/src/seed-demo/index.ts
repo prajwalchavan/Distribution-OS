@@ -6,8 +6,10 @@
  *
  * The database holds THREE of these (founder requirement, docs/22 §8 2026-09-04). The pilot tenant
  * (Tarsun Enterprises) seeds at the root id scope and gets every module's demo data; the other two
- * (`seed-demo/tenants.ts`) seed under their own scope and get the core order-to-cash month. What
- * separates them is `inDemoScope`: the same builders below, the same catalog, different ids.
+ * (`seed-demo/tenants.ts`) seed under their own scope and get the core order-to-cash month plus the
+ * surfaces that are v1 for EVERY distributor — the AI drafts, forecasts and route plans, and the
+ * support request its owner has to answer. What separates them is `inDemoScope`: the same builders
+ * below, the same catalog, different ids.
  */
 import { and, eq, ne, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
@@ -65,7 +67,9 @@ export interface SeedDemoOptions {
   /**
    * `full` (default) writes every module's demo data — the pilot, which `pnpm smoke` calls end to end.
    * `core` stops after reporting: a month of orders, invoices, receipts, trips, deliveries and the
-   * rollups over them, which is what the other distributors exist to prove.
+   * rollups over them, which is what the other distributors exist to prove. Whichever depth is asked
+   * for, the AI surfaces and the pending support request are written — they are v1 for every
+   * distributor, not a pilot extra (see the block below the `full` gate).
    */
   depth?: 'full' | 'core'
 }
@@ -176,15 +180,22 @@ export async function seedDemo(
       // wrote, so a rep's progress bar, the leaderboard and the payout register all agree
       // (docs/plans/incentives.md §6).
       await seedIncentives(db, tenantId, people)
-      // Module 12 (docs/22 §8, 2026-09-05): drafts off the inbound texts the notifications seed
-      // wrote, reorder suggestions read out of the stock ledger, and one unapplied route plan for
-      // the open trip. Last, because every one of those rows points at what the seeds above wrote.
-      await seedAi(db, tenantId, variants, retailersRes, stock, delivery, people)
-      // The owner's half of platform support access (module 13's console is the other half): one
-      // Distribution OS staff account and one PENDING request against this distributor, so the owner
-      // app has a decision to take and `tenancy.support.*` answers a real row.
-      await seedPlatformSupport(db, tenantId, opts.passwordHash)
     }
+
+    // EVERY distributor from here down, not only the pilot (founder requirement, docs/22 §8
+    // 2026-09-04: three distributors, and the assistive surfaces are v1 for all of them). Placed
+    // AFTER the `full` block rather than inside it so the pilot's order is unchanged: the AI seed
+    // prefers the shop's real `inbound_messages` row when the notifications seed has written one,
+    // and files the same sentence against the shop directly when it has not.
+    //
+    // Module 12 (docs/22 §8, 2026-09-05): a draft in every status, reorder suggestions read out of
+    // this distributor's own served orders, and one unapplied route plan per plannable trip. Late,
+    // because every one of those rows points at what the seeds above wrote.
+    await seedAi(db, tenantId, variants, retailersRes, stock, sales, people)
+    // The owner's half of platform support access (module 13's console is the other half): the
+    // Distribution OS staff account and one PENDING request against this distributor, so every
+    // owner app has a decision to take and `tenancy.support.*` answers a real row.
+    await seedPlatformSupport(db, tenantId, opts.passwordHash)
 
     if (opts.printSignIn ?? true) printSignInTable(tenantId, label, people)
     return { tenantId, label, people }

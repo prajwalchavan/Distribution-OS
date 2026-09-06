@@ -10,9 +10,14 @@
  *     requester with a real name, and so module 13's console has a first administrator to be.
  *   - its `platform_admins` row (`support` level: asks for access and answers tickets; it is not a
  *     `super`, so it cannot open another console account).
- *   - ONE support grant in the `requested` state against the pilot tenant: asked for four hours,
+ *   - ONE support grant in the `requested` state against THIS tenant: asked for four hours,
  *     read-only, with the reason our person actually typed. NOTHING IS APPROVED. The owner approving
  *     it is the demo.
+ *
+ * Runs once per distributor, so every owner app has a decision waiting. The two ids above are the
+ * SAME rows every time — `platform-user` and `platform-admin` are global kinds in `ids.ts`, because
+ * one person asked, from one Distribution OS — while the grant is scoped to the distributor it is
+ * against.
  *
  * The full console — subscriptions, onboarding, the platform audit trail — belongs to module 13 and is
  * deliberately not seeded here: this file writes only what the owner app needs to have a screen.
@@ -50,9 +55,10 @@ export async function seedPlatformSupport(
   tenantId: string,
   passwordHash: string,
 ): Promise<SupportSeedResult> {
-  // Global rows: the same person whichever distributor is being seeded, so the id is taken at the root
-  // scope. `demoId` namespaces non-global kinds by the demo scope, and a platform admin belongs to no
-  // distributor at all — but only the pilot seeds this file, so the scope is empty either way.
+  // Global rows: the same person whichever distributor is being seeded. `platform-user` and
+  // `platform-admin` are GLOBAL KINDS in `ids.ts`, so the demo scope is not mixed in — a platform
+  // administrator belongs to no distributor at all, and a scoped id would try to open a second
+  // Distribution OS staff account on the same phone and username for every extra distributor.
   const adminUserId = demoId('platform-user', 'support-1')
   await insertMany(db, users, [
     {
