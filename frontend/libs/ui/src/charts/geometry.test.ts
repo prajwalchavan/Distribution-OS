@@ -1,0 +1,191 @@
+import { describe, expect, it } from 'vitest'
+
+import { clockTime, relativeTime } from '../relative-time.js'
+import { t } from '../strings.js'
+import {
+  axisTop,
+  buildScales,
+  compareBarRects,
+  linePath,
+  mixSegments,
+  niceTicks,
+  plotArea,
+  sparklinePath,
+  xTickIndices,
+  type SeriesPoint,
+} from './geometry.js'
+
+const BOX = { width: 640, height: 160, top: 8, right: 8, bottom: 20, left: 44 }
+
+describe('niceTicks', () => {
+  it('always starts at zero — a money axis never begins part way up', () => {
+    for (const max of [1, 999, 1_84_200_00, 3_50_00_000_00]) {
+      expect(niceTicks(max)[0]).toBe(0)
+    }
+  })
+
+  it('never prints more than five ticks', () => {
+    for (const max of [7, 123, 45_678, 1_84_200_00]) {
+      expect(niceTicks(max).length).toBeLessThanOrEqual(6)
+    }
+  })
+
+  it('reaches at least the data', () => {
+    for (const max of [7, 123, 45_678, 1_84_200_00]) {
+      expect(axisTop(max)).toBeGreaterThanOrEqual(max)
+    }
+  })
+
+  it('answers a single zero tick for an empty chart instead of dividing by nothing', () => {
+    expect(niceTicks(0)).toEqual([0])
+    expect(axisTop(0)).toBe(1)
+  })
+})
+
+describe('scales and paths', () => {
+  const points: SeriesPoint[] = [
+    { x: '1 Sep', y: 0 },
+    { x: '2 Sep', y: 50 },
+    { x: '3 Sep', y: 100 },
+  ]
+
+  it('puts zero on the baseline and the top of the axis at the top of the plot', () => {
+    const plot = plotArea(BOX)
+    const scales = buildScales(plot, 3, 100)
+    expect(scales.y(0)).toBe(plot.y + plot.height)
+    expect(scales.y(100)).toBe(plot.y)
+  })
+
+  it('draws a path with two-decimal coordinates so both renderers emit the same string', () => {
+    const plot = plotArea(BOX)
+    const scales = buildScales(plot, points.length, 100)
+    const d = linePath(points, scales)
+    // The first point is zero, so the path starts on the baseline at the left edge of the plot.
+    expect(d.startsWith(`M${plot.x} ${plot.y + plot.height}`)).toBe(true)
+    expect(d.split('L')).toHaveLength(3)
+    expect(d).not.toMatch(/\d\.\d{3}/)
+  })
+
+  it('returns nothing to draw for an empty series rather than a broken path', () => {
+    expect(linePath([], buildScales(plotArea(BOX), 0, 1))).toBe('')
+    expect(sparklinePath([])).toBe('')
+    expect(sparklinePath([5])).toBe('')
+  })
+})
+
+describe('xTickIndices', () => {
+  const days = (n: number): SeriesPoint[] =>
+    Array.from({ length: n }, (_, i) => ({ x: `${i + 1} Sep`, y: i }))
+
+  it('labels every point when there are few of them', () => {
+    expect(xTickIndices(days(4))).toEqual([0, 1, 2, 3])
+  })
+
+  it('always keeps the first and the last point', () => {
+    const chosen = xTickIndices(days(31))
+    expect(chosen[0]).toBe(0)
+    expect(chosen[chosen.length - 1]).toBe(30)
+  })
+
+  it('never puts two labels close enough to print on top of each other', () => {
+    // The bug this locks: a month start one or two points from the end printed over the last label.
+    const monthCrossing: SeriesPoint[] = [
+      ...Array.from({ length: 28 }, (_, i) => ({ x: `${i + 4} Aug`, y: i })),
+      { x: '1 Sep', y: 28 },
+      { x: '2 Sep', y: 29 },
+      { x: '3 Sep', y: 30 },
+    ]
+    const chosen = xTickIndices(monthCrossing)
+    const minGap = Math.floor(monthCrossing.length / 7)
+    for (let i = 1; i < chosen.length; i++) {
+      expect((chosen[i] ?? 0) - (chosen[i - 1] ?? 0)).toBeGreaterThanOrEqual(minGap)
+    }
+    expect(chosen).toContain(30)
+  })
+
+  it('caps a 92-point day-grain chart at the label budget', () => {
+    expect(xTickIndices(days(92)).length).toBeLessThanOrEqual(6)
+  })
+})
+
+describe('mixSegments', () => {
+  it('keeps at most five segments and rolls the rest into Other', () => {
+    const segments = mixSegments(
+      [
+        { label: 'Too Yumm', value: 936 },
+        { label: 'Campa', value: 558 },
+        { label: 'MOM', value: 216 },
+        { label: 'Balaji', value: 60 },
+        { label: 'Masti Oye', value: 30 },
+        { label: 'Others', value: 20 },
+      ],
+      'Other',
+    )
+    expect(segments).toHaveLength(5)
+    expect(segments[4]?.label).toBe('Other')
+    expect(segments[4]?.value).toBe(50)
+  })
+
+  it('makes the printed percentages add up to exactly 100', () => {
+    const cases = [
+      [1, 1, 1],
+      [7, 11, 13],
+      [936, 558, 216, 60, 30],
+      [1, 1, 1, 1, 1, 1, 1],
+    ]
+    for (const values of cases) {
+      const segments = mixSegments(
+        values.map((value, i) => ({ label: `s${i}`, value })),
+        'Other',
+      )
+      expect(segments.reduce((sum, s) => sum + s.bps, 0)).toBe(10_000)
+    }
+  })
+
+  it('answers zero-width segments rather than dividing by nothing', () => {
+    const segments = mixSegments([{ label: 'a', value: 0 }], 'Other')
+    expect(segments[0]?.bps).toBe(0)
+  })
+})
+
+describe('compareBarRects', () => {
+  it('draws two bars per group when a previous period is given, one when it is not', () => {
+    const plot = plotArea(BOX)
+    expect(compareBarRects([{ label: 'Apr', current: 10, previous: 8 }], plot, 10)).toHaveLength(2)
+    expect(compareBarRects([{ label: 'Apr', current: 10 }], plot, 10)).toHaveLength(1)
+  })
+
+  it('sits every bar on the baseline and never above the plot', () => {
+    const plot = plotArea(BOX)
+    const rects = compareBarRects(
+      [
+        { label: 'Apr', current: 10, previous: 8 },
+        { label: 'May', current: 0, previous: 4 },
+      ],
+      plot,
+      10,
+    )
+    for (const rect of rects) {
+      expect(rect.y + rect.height).toBeCloseTo(plot.y + plot.height, 5)
+      expect(rect.y).toBeGreaterThanOrEqual(plot.y - 0.001)
+    }
+  })
+})
+
+describe('time', () => {
+  it('says "just now", minutes, then hours — and nothing beyond', () => {
+    const now = Date.parse('2026-09-06T10:00:00+05:30')
+    expect(relativeTime(now, now, t)).toBe('just now')
+    expect(relativeTime(now - 12 * 60_000, now, t)).toBe('12 min ago')
+    expect(relativeTime(now - 3 * 3_600_000, now, t)).toBe('3 h ago')
+  })
+
+  it('prints a clock time in lower-case am/pm for "Offline since" and "as of"', () => {
+    const morning = new Date(2026, 8, 6, 9, 40).getTime()
+    const evening = new Date(2026, 8, 6, 18, 5).getTime()
+    const midnight = new Date(2026, 8, 6, 0, 7).getTime()
+    expect(clockTime(morning)).toBe('9:40 am')
+    expect(clockTime(evening)).toBe('6:05 pm')
+    expect(clockTime(midnight)).toBe('12:07 am')
+  })
+})

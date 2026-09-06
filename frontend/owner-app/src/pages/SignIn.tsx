@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { login, ORPCError } from '../lib/api.js'
+import { login, ApiError } from '../lib/api.js'
 
 /** Username + password sign-in. Phone-OTP is a later enhancement; usernames come from `pnpm db:seed`. */
 export function SignIn() {
@@ -19,7 +19,7 @@ export function SignIn() {
     } catch (err) {
       // 401 (bad credentials), 423 (locked) and 403 (disabled/no membership) all carry a server
       // message meant for the sign-in screen (see backend/libs/contracts/src/auth.ts).
-      setError(err instanceof ORPCError ? err.message : 'Could not reach the server. Try again.')
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server. Try again.')
     } finally {
       setSubmitting(false)
     }

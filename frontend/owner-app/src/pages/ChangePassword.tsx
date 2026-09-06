@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { PasswordSchema } from '@dos/contracts'
-import { changePassword, ORPCError } from '../lib/api.js'
+import { changePassword, ApiError } from '../lib/api.js'
 
 /**
  * Forced after a temporary password (owner/manager set one via tenancy.staff.create/setPassword).
@@ -25,7 +25,7 @@ export function ChangePassword() {
     try {
       await changePassword(current, next)
     } catch (err) {
-      setError(err instanceof ORPCError ? err.message : 'Could not reach the server. Try again.')
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server. Try again.')
     } finally {
       setSubmitting(false)
     }
