@@ -52,7 +52,10 @@ export const BASE_CSS = `
 .dos-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   border: 1px solid transparent; border-radius: 8px; cursor: pointer;
-  font-family: inherit; font-variant-numeric: tabular-nums;
+  /* The 14 px floor of UX-00 section 4.3, so a dos-btn that forgets its inline type token still
+     clears it instead of falling through to the browser's 13.333 px default. Button sets its own
+     size inline and wins over this. */
+  font-family: inherit; font-size: 14px; line-height: 20px; font-variant-numeric: tabular-nums;
   transition: background-color 80ms cubic-bezier(0.2,0,0,1), transform 80ms cubic-bezier(0.2,0,0,1);
   text-align: center; white-space: nowrap; padding: 0 16px;
 }

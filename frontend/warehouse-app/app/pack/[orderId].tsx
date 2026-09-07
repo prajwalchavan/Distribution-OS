@@ -158,7 +158,7 @@ export default function PackOrder(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {t('w6.packages')} {String(packages ?? 1)}
             </Txt>
-            <Row gap={4} wrap>
+            <Row gap={8} wrap>
               <Button
                 label={t('w6.parkIt')}
                 variant="secondary"

@@ -88,21 +88,64 @@ export interface PickRow {
 
 const BOOL = (value: boolean | number | null | undefined): boolean => value === true || value === 1
 
-/** Every lot and variant the device holds, indexed once per render rather than per row. */
-function useCatalogIndex(): {
+/**
+ * The variants a screen actually names, read BY ID.
+ *
+ * NEVER `useTable('product_variants', { limit: N })`. `product_variants` is the GLOBAL curated
+ * catalogue (ADR 0005) — every manufacturer's every SKU, not this distributor's 29 listings — and it
+ * was read whole under a 5,000-row cap against **5,768 rows on the pilot's own database**. The 768
+ * that fell outside the window had no name, and the gate count printed "Item not on this phone yet"
+ * over "Too Yumm Makhana Himalayan Salt 20 g": measured on the Pixel 7, invisible on the web only
+ * because SQLite handed the pages back in a different order. It is the same page-one bug the
+ * `tenantCatalog.list({ limit: 500 })` version had, with a bigger number in front of it — and a
+ * bigger number is not a fix, because the catalogue is the one table here that grows without us.
+ *
+ * A screen needs a few dozen names, so it asks for those.
+ */
+function useVariantsByIds(ids: readonly string[]): {
   variants: Map<string, LocalVariant>
-  lots: Map<string, LocalLot>
   loading: boolean
 } {
-  const variants = useTable<LocalVariant>('product_variants', { limit: 5000 })
-  const lots = useTable<LocalLot>('stock_lots', { limit: 20000 })
+  // The id SET is the identity, not the array's: a screen rebuilds `ids` inline every render.
+  const key = useMemo(
+    () =>
+      [...new Set(ids)]
+        .filter((id) => id !== '')
+        .sort()
+        .join(','),
+    [ids],
+  )
+  const wanted = useMemo(() => (key === '' ? [] : key.split(',')), [key])
+  const query = useMemo(
+    () =>
+      wanted.length === 0
+        ? { where: '1 = 0', limit: 1 }
+        : {
+            where: `id IN (${wanted.map(() => '?').join(', ')})`,
+            params: wanted,
+            limit: wanted.length,
+          },
+    [wanted],
+  )
+  const { rows, loading } = useTable<LocalVariant>('product_variants', query)
   return useMemo(
     () => ({
-      variants: new Map(variants.rows.map((row) => [row.id, row])),
-      lots: new Map(lots.rows.map((row) => [row.id, row])),
-      loading: variants.loading || lots.loading,
+      variants: new Map(rows.map((row) => [row.id, row])),
+      loading: wanted.length > 0 && loading,
     }),
-    [variants.rows, lots.rows, variants.loading, lots.loading],
+    [rows, loading, wanted.length],
+  )
+}
+
+/**
+ * Every LOT this distributor holds. Unlike the catalogue this one is per tenant and small (51 rows
+ * on the pilot), so it is read whole — with a limit far above anything a godown can carry.
+ */
+function useLots(): { lots: Map<string, LocalLot>; loading: boolean } {
+  const { rows, loading } = useTable<LocalLot>('stock_lots', { limit: 50000 })
+  return useMemo(
+    () => ({ lots: new Map(rows.map((row) => [row.id, row])), loading }),
+    [rows, loading],
   )
 }
 
@@ -168,7 +211,21 @@ export function useLocalPickLines(
       [picklistId, orderId],
     ),
   )
-  const index = useCatalogIndex()
+  const { lots, loading: lotsLoading } = useLots()
+  const variantIds = useMemo(
+    () => [
+      ...lines.rows.map((line) => line.variant_id),
+      ...lines.rows.map((line) =>
+        line.lot_id === null ? '' : (lots.get(line.lot_id)?.variant_id ?? ''),
+      ),
+    ],
+    [lines.rows, lots],
+  )
+  const { variants, loading: variantsLoading } = useVariantsByIds(variantIds)
+  const index = useMemo(
+    () => ({ variants, lots, loading: variantsLoading || lotsLoading }),
+    [variants, lots, variantsLoading, lotsLoading],
+  )
 
   const rows = useMemo(() => {
     const built = lines.rows.map((line): PickRow => {
@@ -213,12 +270,41 @@ export function useLocalPickLines(
  * — the shapes are deliberately rate-free — so the name has to come from somewhere complete, and the
  * device's own copy is the only complete thing this role can read.
  */
-export function useVariantNames(): { names: Map<string, LocalVariant>; loading: boolean } {
-  const { rows, loading } = useTable<LocalVariant>('product_variants', { limit: 5000 })
-  return useMemo(
-    () => ({ names: new Map(rows.map((row) => [row.id, row])), loading }),
-    [rows, loading],
-  )
+export function useVariantNames(ids: readonly string[]): {
+  names: Map<string, LocalVariant>
+  loading: boolean
+} {
+  const { variants, loading } = useVariantsByIds(ids)
+  return useMemo(() => ({ names: variants, loading }), [variants, loading])
+}
+
+/**
+ * The pack a LOT is counted in, for the two screens that read `inventory.stock.balances`.
+ *
+ * `StockBalanceRow` carries `lotId`, `onHand` and `reserved` and **no case size at all** — the
+ * balance is pieces, full stop. The van check-in printed those pieces through `caseLine(pcs, 1)`,
+ * so 201 pieces of Balaji Chataka Pataka Wafers (`default_case_size` 48) read **"201 cs = 201 pc"**
+ * to the loader counting them back off the vehicle. A wrong unit on a physical count is the one
+ * error a check-in exists to catch.
+ *
+ * The device already holds `stock_lots` (their own `case_size`) and `product_variants`
+ * (`default_case_size`), both whole for this tenant, so the number comes from there — and answers
+ * `null` rather than guessing 1 while the read set is still arriving, which lets the caller say
+ * "201 pc" instead of a case count it cannot back up.
+ */
+export function useLotCaseSize(): { caseSizeOf: (lotId: string) => number | null } {
+  const { lots } = useLots()
+  const variantIds = useMemo(() => [...lots.values()].map((lot) => lot.variant_id), [lots])
+  const { variants } = useVariantsByIds(variantIds)
+  return useMemo(() => {
+    const caseSizeOf = (lotId: string): number | null => {
+      const lot = lots.get(lotId)
+      if (lot === undefined) return null
+      const size = lot.case_size ?? variants.get(lot.variant_id)?.default_case_size ?? null
+      return size !== null && size > 0 ? size : null
+    }
+    return { caseSizeOf }
+  }, [lots, variants])
 }
 
 /**

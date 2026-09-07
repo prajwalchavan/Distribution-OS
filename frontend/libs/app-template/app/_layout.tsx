@@ -17,6 +17,7 @@ import { isAllowed, permissionFor } from '@dos/contracts'
 import type { ApiClient } from '@dos/api-client'
 import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
+import { StatusBar } from 'expo-status-bar'
 import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -61,6 +62,18 @@ export default function RootLayout(): React.JSX.Element | null {
 
   return (
     <ApiProvider client={client}>
+      {/*
+       * DARK STATUS-BAR CONTENT, BECAUSE THE APP IS LIGHT.
+       *
+       * `userInterfaceStyle: "light"` in app.json tells the app which palette to draw; it does not
+       * tell ANDROID which colour to draw the clock, signal and battery in, and the default there is
+       * light-on-light. Measured on the Pixel 7 emulator: the whole status bar was white over the
+       * app's own #F2F2EF ground — a godown phone that cannot show the time or the signal strength,
+       * on the app whose promise is that it works on a bad connection. `expo-status-bar` was already
+       * a dependency of every app and used by none. iOS was already correct; on the web this renders
+       * nothing.
+       */}
+      <StatusBar style="dark" />
       <Shell />
     </ApiProvider>
   )

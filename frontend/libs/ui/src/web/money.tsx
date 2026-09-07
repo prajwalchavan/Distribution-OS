@@ -7,9 +7,10 @@
 import { useEffect, useState } from 'react'
 
 import { formatMoney, parseRupees, speakMoney, splitMoney, toEditableRupees } from '../money.js'
-import { availableLine, caseLine, qtyState, splitQty, stepByCase } from '../qty.js'
+import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
+  gap,
   radius,
   size as sizeTokens,
   space,
@@ -26,6 +27,7 @@ import type {
   RupeeInputProps,
 } from '../types.js'
 import { Txt, typeStyle, useTypeStyle } from './base.js'
+import { Button } from './controls.js'
 
 const FIELD_SIZE: Record<MoneySize, TypeToken> = {
   hero: typeField.hero,
@@ -257,6 +259,13 @@ export function NumberPad({
 }: NumberPadProps): React.JSX.Element {
   const theme = useTheme()
   const keyHeight = Math.max(sizeTokens.floor, 64)
+  /*
+   * UX-00 §5.2: adjacent targets sit ≥ 19 dp apart, ≥ 25 dp on every warehouse screen. A pad key is
+   * a target and a mis-tap here is a wrong figure written into a BLIND count — the gate count and
+   * the load-sheet carton count are the two screens in this product where nothing else on screen
+   * can contradict what the hand typed. Measured at 375 × 812 before this: 12 px.
+   */
+  const keyGap = theme.touch === 'floor' ? gap.warehouse : space[3]
   const digits = value === null ? '' : String(Math.abs(Math.trunc(value)))
   const press = (key: (typeof PAD_KEYS)[number]): void => {
     if (key === 'clear') return onChange(null)
@@ -273,12 +282,23 @@ export function NumberPad({
       <Txt field="label" desk="label" as="div" color={theme.colors.text.secondary}>
         {label}
       </Txt>
+      {/*
+       * `expected` follows `mode`, exactly as `value` does (NumberPadProps: "integer paise in
+       * `money` mode, an integer count in `count` mode"). It was always drawn through `<Money>`, so
+       * the van check-in's "expected on the vehicle" printed **₹2.01 for 201 pieces**.
+       */}
       {expected !== null && expected !== undefined ? (
         <div style={{ marginTop: space[2] }}>
           <Txt field="label" desk="label" as="div" color={theme.colors.text.secondary}>
             {expectedLabel ?? ''}
           </Txt>
-          <Money value={expected} size="moneyL" />
+          {mode === 'money' ? (
+            <Money value={expected} size="moneyL" />
+          ) : (
+            <Txt field="moneyL" desk="kpi" as="div" numeric>
+              {formatCount(expected)}
+            </Txt>
+          )}
         </div>
       ) : null}
       <div
@@ -287,7 +307,7 @@ export function NumberPad({
       >
         {mode === 'money' ? formatMoney(value ?? 0) : String(value ?? 0)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: space[3] }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: keyGap }}>
         {PAD_KEYS.map((key) => (
           <button
             key={key}
@@ -311,15 +331,23 @@ export function NumberPad({
           </button>
         ))}
       </div>
-      <div style={{ marginTop: space[4] }}>
-        <button
-          type="button"
-          className="dos-btn dos-btn-primary"
-          onClick={onDone}
-          style={{ height: sizeTokens.floor, width: '100%', borderRadius: radius.md }}
-        >
-          {doneLabel ?? theme.t('action.done')}
-        </button>
+      {/*
+       * The kit's own <Button>, not a hand-rolled one.
+       *
+       * This was a raw `<button className="dos-btn">` with no font size, so it fell through to the
+       * browser's UA default — measured 13.3333 px on "Damaged pieces" (gate count) and "Done"
+       * (load-sheet carton count), under the 14 px floor of UX-00 §4.3 and nowhere near the 16 sp
+       * `field.bodyStrong` its native twin has always used. One contract, two renderers, two
+       * different type sizes on the same button.
+       */}
+      <div style={{ marginTop: keyGap }}>
+        <Button
+          label={doneLabel ?? theme.t('action.done')}
+          variant="primary"
+          size="floor"
+          fullWidth
+          onPress={onDone}
+        />
       </div>
     </div>
   )

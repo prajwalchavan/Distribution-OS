@@ -28,12 +28,12 @@ import {
   useColors,
   useStrings,
 } from '@dos/ui'
-import { caseLine } from '@dos/ui'
 import { haptics } from '@dos/ui/platform'
 import { useState } from 'react'
 
 import type { StockBalanceRow } from '@dos/contracts'
-import { Async, DeskOnly, ExpiryChip, Panel, PageTabs } from '../../src/lib/ui'
+import { useLotCaseSize } from '../../src/lib/local'
+import { Async, DeskOnly, ExpiryChip, Panel, PageTabs, qtyLine } from '../../src/lib/ui'
 
 export default function VanCheckIn(): React.JSX.Element {
   const t = useStrings()
@@ -85,6 +85,12 @@ export default function VanCheckIn(): React.JSX.Element {
   )
 
   const rows = balances.data?.items ?? []
+  /*
+   * `StockBalanceRow` carries no case size (the balance is pieces), and this line used to be
+   * `caseLine(row.onHand, 1, t)` — so 201 pieces of a 48-piece case printed "201 cs = 201 pc" to
+   * the loader counting them back off the vehicle. The pack comes from the device's own lots.
+   */
+  const { caseSizeOf } = useLotCaseSize()
 
   return (
     <Screen title={t('w9.title')} context={session?.tenant.displayName} testID="w9-screen">
@@ -122,7 +128,7 @@ export default function VanCheckIn(): React.JSX.Element {
                     key={`${row.lotId}-${row.locationId}`}
                     testID={`w9-lot-${row.lotId}`}
                     primary={row.variantName}
-                    secondary={caseLine(row.onHand, 1, t)}
+                    secondary={qtyLine(row.onHand, caseSizeOf(row.lotId), t)}
                     trailing={<ExpiryChip expiryDate={row.expiryDate} />}
                     {...(row.batchNo === ''
                       ? {}

@@ -28,7 +28,7 @@ import {
 import type { CycleCountLine } from '@dos/contracts'
 import { haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { longDate } from '../../../src/lib/dates'
 import { useVariantNames } from '../../../src/lib/local'
@@ -49,9 +49,6 @@ export default function CycleCount(): React.JSX.Element {
     () => api.api.inventory.cycleCounts.get({ id: countId }),
     { enabled: signedIn && countId !== '' },
   )
-  /* The device's whole `product_variants`, not a page of a paging procedure — see `useVariantNames`. */
-  const { names, loading: namesLoading } = useVariantNames()
-
   const [counting, setCounting] = useState<CycleCountLine | null>(null)
   const [pieces, setPieces] = useState<number | null>(null)
   const [entered, setEntered] = useState<Record<string, number>>({})
@@ -59,6 +56,10 @@ export default function CycleCount(): React.JSX.Element {
 
   const item = count.data?.item ?? null
   const lines = item?.lines ?? []
+  /* The device's `product_variants`, asked for by the ids on this count — see `useVariantNames`. */
+  const { names, loading: namesLoading } = useVariantNames(
+    useMemo(() => lines.map((row) => row.variantId), [lines]),
+  )
   const open = item?.status === 'open'
 
   const save = useMutation(

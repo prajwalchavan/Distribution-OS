@@ -30,7 +30,7 @@ import {
 } from '@dos/ui'
 import { camera, haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { useVariantNames } from '../../src/lib/local'
 import { Async, DeskOnly, Panel, pl, workFamily } from '../../src/lib/ui'
@@ -58,15 +58,16 @@ export default function GateCount(): React.JSX.Element {
   const grn = useQuery(['grn', grnId], () => api.api.procurement.grns.get({ id: grnId }), {
     enabled: session !== null && grnId !== '',
   })
+  const lines = grn.data?.item.lines ?? []
   /*
    * `GrnLineSchema` carries `variantId` and no name — the shape is deliberately rate-free, so it
    * carries nothing a salesperson could not see either. The names (and the EANs the scanner needs)
-   * come from the DEVICE's own `product_variants`, which is the whole table for this tenant; see
+   * come from the DEVICE's own `product_variants`, asked for BY THE IDS ON THIS RECEIPT; see
    * `useVariantNames` for the page-one bug that made this a rule rather than a preference.
    */
-  const { names, loading: namesLoading } = useVariantNames()
-
-  const lines = grn.data?.item.lines ?? []
+  const { names, loading: namesLoading } = useVariantNames(
+    useMemo(() => lines.map((row) => row.variantId), [lines]),
+  )
   const status = grn.data?.item.status ?? 'counting'
   const countable = status === 'counting'
 
@@ -145,7 +146,7 @@ export default function GateCount(): React.JSX.Element {
          * is for a screen whose own `<List>` scrolls (ScreenProps); this one has no list.
          */
         bottomBar={
-          <Row gap={4} align="center">
+          <Row gap={8} align="center">
             <Box grow>
               <Button
                 label={t('w.openScanner')}

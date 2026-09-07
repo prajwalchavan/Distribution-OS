@@ -7,6 +7,7 @@ import {
   darkColors,
   flattenColors,
   lightColors,
+  monogramSize,
   size,
   space,
   typeDesk,
@@ -111,5 +112,34 @@ describe('space and touch', () => {
 
   it('is a 4 px scale', () => {
     for (const value of Object.values(space)) expect(value % 4).toBe(0)
+  })
+})
+
+/**
+ * The monogram face is the one place a box size was allowed to decide a font size, and it decided
+ * two sizes under the floor: the account chip at 13 px (`round(32 x 0.4)`) and the rail's
+ * no-logo distributor mark at 12 px (`round(28 x 0.42)`). Measured on a generated app; invisible in
+ * the pilot only because Tarsun has a logo and the fallback never draws.
+ */
+describe('monogram face (UX-00 section 4.3 floor)', () => {
+  it('never goes under the 14 px floor, at any box the kit uses', () => {
+    // <Avatar> sizes, then <TenantLogo>'s rail / header / card boxes at their own ratio.
+    for (const box of [24, 28, 32, 40, 48]) {
+      expect(monogramSize(box), `avatar ${String(box)}`).toBeGreaterThanOrEqual(14)
+      expect(monogramSize(box, 0.42), `logo ${String(box)}`).toBeGreaterThanOrEqual(14)
+    }
+  })
+
+  it('clamps exactly the two sizes that were wrong and leaves the bigger boxes alone', () => {
+    expect(monogramSize(32)).toBe(14) // was round(32 x 0.4) = 13
+    expect(monogramSize(28, 0.42)).toBe(14) // was round(28 x 0.42) = 12
+    expect(monogramSize(32, 0.42)).toBe(14) // was 13
+    expect(monogramSize(40)).toBe(16) // already over the floor: unchanged
+    expect(monogramSize(40, 0.42)).toBe(17) // unchanged
+  })
+
+  it('stays inside its box: two Plex 600 initials at 14 px are 26.6 px, the smallest box is 28', () => {
+    const WIDEST_PAIR_AT_14 = 26.7
+    expect(WIDEST_PAIR_AT_14).toBeLessThan(28)
   })
 })

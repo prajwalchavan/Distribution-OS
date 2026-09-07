@@ -169,7 +169,7 @@ export default function PickQueue(): React.JSX.Element {
                * measured 200% of the row and "Clear" was off the screen entirely. These are inline
                * text actions and size to their labels on both renderers.
                */
-              <Row gap={3}>
+              <Row gap={8}>
                 <Button
                   label={t('w4.selectAll')}
                   variant="ghost"

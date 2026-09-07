@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
-import { cssShadow, radius, size as sizeTokens, space } from '../tokens.js'
+import { cssShadow, monogramSize, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
   AvatarProps,
   ConnectionStripProps,
@@ -391,7 +391,7 @@ export function Avatar({ name, size = 40, testID }: AvatarProps): React.JSX.Elem
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 600,
-        fontSize: Math.round(size * 0.4),
+        fontSize: monogramSize(size),
         flexShrink: 0,
       }}
     >
@@ -458,7 +458,7 @@ export function TenantLogo({
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 600,
-            fontSize: Math.round(box * 0.42),
+            fontSize: monogramSize(box, 0.42),
             flexShrink: 0,
           }}
         >

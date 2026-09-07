@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useTheme } from '../theme.js'
-import { layout, radius as radii, space, type SemanticColors } from '../tokens.js'
+import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
 import type {
   BorderEdge,
   BorderTone,
@@ -387,7 +387,7 @@ export function setRouterNavigate(navigate: Navigate | null): void {
  * `insets.bottom` so the primary action is never under the home indicator.
  */
 export function Screen(props: ScreenProps): React.JSX.Element {
-  const { colors, density } = useTheme()
+  const { colors, density, touch } = useTheme()
   const insets = useSafeAreaInsets()
   const {
     title,
@@ -464,7 +464,8 @@ export function Screen(props: ScreenProps): React.JSX.Element {
             borderTopColor: colors.border.hairline,
             paddingHorizontal: padding,
             paddingTop: space[3],
-            paddingBottom: insets.bottom + space[3],
+            /* UX-00 §5.2, warehouse: 25 dp between the bar's buttons and the shell's tab bar. */
+            paddingBottom: insets.bottom + (touch === 'floor' ? gap.warehouse : space[3]),
           }}
         >
           {bottomBar}

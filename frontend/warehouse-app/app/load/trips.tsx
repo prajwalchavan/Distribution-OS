@@ -106,7 +106,7 @@ export default function Trips(): React.JSX.Element {
                       planned: trip.plannedStops,
                     })}`}
                   </Txt>
-                  <Row gap={4} wrap>
+                  <Row gap={8} wrap>
                     {trip.state === 'planned' ? (
                       <Button
                         label={t('w10.startLoading')}

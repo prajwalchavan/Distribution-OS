@@ -13,9 +13,11 @@
 import { useSession } from '@dos/api-client/react'
 import {
   Box,
+  caseLine,
   Chips,
   EmptyState,
   ErrorState,
+  formatCount,
   Row,
   Skeleton,
   Stack,
@@ -47,11 +49,25 @@ import { daysUntil, longDate } from './dates'
  * Same lakh/crore rule as `formatINR`, by hand, so a Hermes without full ICU behaves like the web.
  */
 export function count(value: number): string {
-  const sign = value < 0 ? '-' : ''
-  const whole = Math.abs(Math.trunc(value)).toString()
-  const last3 = whole.slice(-3)
-  const rest = whole.slice(0, -3)
-  return `${sign}${rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}` : last3}`
+  return formatCount(value)
+}
+
+/**
+ * A stock figure with its unit, for the two screens that read `inventory.stock.balances`.
+ *
+ * `StockBalanceRow` is pieces and carries no pack, so this app knows the case size only once the
+ * device holds the lot. Given it, the dual-unit line of UX-00 §4.5 rule 7 ("4 cs + 9 pc = 201 pc");
+ * without it, the pieces WITH THEIR UNIT — never a bare figure, and never "201 cs" for 201 pieces,
+ * which is what a hard-coded case size of 1 printed on the van check-in.
+ */
+export function qtyLine(
+  pieces: number,
+  caseSize: number | null,
+  t: (key: string, params?: Readonly<Record<string, string | number>>) => string,
+): string {
+  return caseSize === null || caseSize <= 1
+    ? t('w.pieces', { pieces: formatCount(pieces) })
+    : caseLine(pieces, caseSize, t)
 }
 
 /**
@@ -222,7 +238,7 @@ export function Async({
   if (failed?.error !== undefined) {
     return (
       <ErrorState
-        message={failed.error.message}
+        message={failed.error.kind === 'network' ? t('w.noConnectionRead') : failed.error.message}
         detail={failed.error.kind}
         actionLabel={failed.refetch === undefined ? undefined : t('action.retry')}
         onAction={failed.refetch}
@@ -258,10 +274,63 @@ export function LocalAsync({
   rows?: number
   children: ReactNode
 }): React.JSX.Element {
+  return (
+    <LocalAsyncBody
+      loading={loading}
+      hydrated={hydrated}
+      empty={empty}
+      emptyMessage={emptyMessage}
+      waitingMessage={waitingMessage}
+      rows={rows}
+    >
+      {children}
+    </LocalAsyncBody>
+  )
+}
+
+function LocalAsyncBody({
+  loading,
+  hydrated,
+  empty,
+  emptyMessage,
+  waitingMessage,
+  rows,
+  children,
+}: {
+  loading: boolean
+  hydrated: boolean
+  empty: boolean
+  emptyMessage: string
+  waitingMessage: string
+  rows: number
+  children: ReactNode
+}): React.JSX.Element {
+  const colors = useColors()
   if (loading) return <Skeleton rows={rows} />
-  if (!hydrated) return <EmptyState message={waitingMessage} />
-  if (empty) return <EmptyState message={emptyMessage} />
-  return <>{children}</>
+  /*
+   * A HALF-FULL DEVICE STILL HAS ROWS, AND HIDING THEM IS ITS OWN LIE.
+   *
+   * `hydrated` guards against presenting a partial read set as the whole truth. It used to do that
+   * by drawing "Still filling this phone from the server" INSTEAD of everything the device holds —
+   * so the picking sheet said "1 of 23 picked" in its header and its bottom bar, "22 lines not yet
+   * picked" on the disabled confirm, and drew **none of the 23 rows it had in hand** (measured on
+   * PICK-0011 at 1440 × 900 and at 375 × 812). On the web the store is the memory adapter, so the
+   * whole read set is re-pulled on every reload — about 70 s and 154 pages on the pilot's data —
+   * and for all of it the one screen a picker holds was blank over data it already had.
+   *
+   * The sentence stays; it goes ABOVE the rows instead of over them. "Nothing here" and "not
+   * everything is here yet" stay two different sentences, which is the whole point of the latch.
+   */
+  if (empty) return <EmptyState message={hydrated ? emptyMessage : waitingMessage} />
+  if (hydrated) return <>{children}</>
+  return (
+    <Stack gap={3}>
+      <Txt field="label" desk="meta" color={colors.text.secondary} testID="local-filling">
+        {waitingMessage}
+      </Txt>
+      {children}
+    </Stack>
+  )
 }
 
 // ---------------------------------------------------------------------------

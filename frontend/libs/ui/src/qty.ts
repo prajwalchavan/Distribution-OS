@@ -13,6 +13,23 @@ export interface CasesAndPieces {
   readonly pieces: number
 }
 
+/**
+ * A whole count, grouped the Indian way: `1,008` · `82,693` · `1,24,500`.
+ *
+ * UX-00 §4.5 rule 3 is "Indian grouping, always" and rule 1 is "every number is tabular".
+ * `formatMoney` already does it for paise; a piece count printed with `String(n)` does not, and the
+ * godown prints big ones. Done by hand rather than through `Intl` so a Hermes built without full
+ * ICU groups exactly as the browser does.
+ */
+export function formatCount(value: number): string {
+  const sign = value < 0 ? '-' : ''
+  const whole = Math.abs(Math.trunc(value)).toString()
+  if (whole.length <= 3) return `${sign}${whole}`
+  const last3 = whole.slice(-3)
+  const rest = whole.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',')
+  return `${sign}${rest},${last3}`
+}
+
 /** Split integer pieces into cases + loose pieces. `caseSize` must be a positive integer. */
 export function splitQty(pieces: number, caseSize: number): CasesAndPieces {
   const whole = Math.max(0, Math.trunc(pieces))

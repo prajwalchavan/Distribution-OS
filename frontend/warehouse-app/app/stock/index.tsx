@@ -36,7 +36,8 @@ import { haptics } from '@dos/ui/platform'
 import { useState } from 'react'
 
 import { instantWithClock } from '../../src/lib/dates'
-import { Async, ExpiryChip, PageTabs, Panel, count } from '../../src/lib/ui'
+import { useLotCaseSize } from '../../src/lib/local'
+import { Async, ExpiryChip, PageTabs, Panel, count, qtyLine } from '../../src/lib/ui'
 
 type AdjustmentReason = z.infer<typeof AdjustmentReasonSchema>
 
@@ -142,6 +143,7 @@ export default function Stock(): React.JSX.Element {
     },
   )
 
+  const { caseSizeOf } = useLotCaseSize()
   const term = q.trim().toLowerCase()
   const rows = (balances.data?.items ?? []).filter(
     (row) =>
@@ -223,22 +225,28 @@ export default function Stock(): React.JSX.Element {
                     <ExpiryChip expiryDate={row.expiryDate} />
                     <Money value={row.mrpPaise} size="cell" />
                   </Row>
+                  {/*
+                   * EVERY STOCK FIGURE CARRIES ITS UNIT. `inventory.stock.balances` is pieces and
+                   * says so nowhere in its shape, and these three read "On hand 41 · Held 41 ·
+                   * Free 0" — three bare numbers on a screen where a hand is deciding between
+                   * cartons and packets. The pack comes from the device's own lot (UX-00 §4.5 r7).
+                   */}
                   <Row gap={4} wrap align="center">
                     <Txt field="moneyM" desk="cell" numeric>
-                      {`${t('w8.onHand')} ${count(row.onHand)}`}
+                      {`${t('w8.onHand')} ${qtyLine(row.onHand, caseSizeOf(row.lotId), t)}`}
                     </Txt>
                     <StatusChip
-                      label={`${t('w8.reserved')} ${count(row.reserved)}`}
+                      label={`${t('w8.reserved')} ${t('w.pieces', { pieces: count(row.reserved) })}`}
                       family={row.reserved > 0 ? 'clay' : 'neutral'}
                       figure
                     />
                     <StatusChip
-                      label={`${t('w8.free')} ${count(row.onHand - row.reserved)}`}
+                      label={`${t('w8.free')} ${t('w.pieces', { pieces: count(row.onHand - row.reserved) })}`}
                       family={row.onHand - row.reserved > 0 ? 'moss' : 'brick'}
                       figure
                     />
                   </Row>
-                  <Row gap={4} wrap>
+                  <Row gap={8} wrap>
                     <Button
                       label={t('w8.adjust')}
                       variant="secondary"

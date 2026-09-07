@@ -9,10 +9,10 @@ import { ThemeContextProvider } from '../theme.js'
 import { ThemeProvider } from './ThemeProvider.js'
 import { CompareBars, StackedMix } from './charts.js'
 import { KpiStrip, ListRow } from './list.js'
-import { Money, QtyStepper, RupeeInput } from './money.js'
+import { Money, NumberPad, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
-import { TextInput, Tabs, Segments } from './controls.js'
-import { ConnectionStrip, Sheet } from './feedback.js'
+import { Chips, TextInput, Tabs, Segments } from './controls.js'
+import { Avatar, ConnectionStrip, Sheet, TenantLogo } from './feedback.js'
 import { MapView } from './map.js'
 import { MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
@@ -631,5 +631,129 @@ describe('<ListRow> meets the app touch floor (UX-00 §5.2)', () => {
 
   it('is the dense register row on a desk', () => {
     expect(renderDesk(<ListRow primary="INV/0037" />)).toContain('min-height:56px')
+  })
+})
+
+/**
+ * The monogram is the one place the kit let a BOX size decide a FONT size, and at the two smallest
+ * boxes it decided one under the 14 px floor of UX-00 section 4.3 — 13 px for the shell's account
+ * chip and 12 px for the rail's no-logo distributor mark. These render the components rather than
+ * the helper, so the clamp is proved where it is actually used.
+ */
+describe('monogram never renders under the type floor', () => {
+  it('<Avatar> at the header size is 14 px, not 13', () => {
+    const html = renderDesk(<Avatar name="Sunil Tarsun" size={32} />)
+    expect(html).toContain('font-size:14px')
+    expect(html).not.toContain('font-size:13px')
+  })
+
+  it('<Avatar> keeps its bigger row size', () => {
+    expect(renderDesk(<Avatar name="Sunil Tarsun" size={40} />)).toContain('font-size:16px')
+  })
+
+  it("<TenantLogo>'s no-logo mark in the 28 px rail is 14 px, not 12", () => {
+    const html = renderDesk(<TenantLogo size="rail" name="Sai Distributors" logoUrl={null} />)
+    expect(html).toContain('font-size:14px')
+    expect(html).not.toContain('font-size:12px')
+  })
+
+  it('draws the initials it is meant to draw', () => {
+    expect(renderDesk(<Avatar name="Sunil Tarsun" size={32} />)).toContain('ST')
+    expect(renderDesk(<TenantLogo size="rail" name="Sai Distributors" logoUrl={null} />)).toContain(
+      'SD',
+    )
+  })
+})
+
+function renderFloor(node: React.ReactNode): string {
+  return renderToStaticMarkup(
+    <ThemeProvider touch="floor" density="field">
+      {node}
+    </ThemeProvider>,
+  )
+}
+
+/**
+ * Three things this pad got wrong, all of them only visible on the warehouse app's two BLIND counts
+ * (the gate count and the load-sheet carton count), and all of them places where this renderer said
+ * something different from its native twin.
+ */
+describe('<NumberPad> on the web says what the native half says', () => {
+  const noop = (): void => undefined
+
+  it('its action carries a real type token, not the browser default 13.333 px', () => {
+    const html = renderFloor(
+      <NumberPad
+        label="Pieces received"
+        value={42}
+        mode="count"
+        onChange={noop}
+        onDone={noop}
+        doneLabel="Damaged pieces"
+      />,
+    )
+    expect(html).toContain('Damaged pieces')
+    expect(html).toContain('font-size:16px')
+  })
+
+  it('keys sit 25 dp apart at the warehouse floor and 12 px elsewhere (UX-00 §5.2)', () => {
+    expect(
+      renderFloor(
+        <NumberPad label="Pieces" value={null} mode="count" onChange={noop} onDone={noop} />,
+      ),
+    ).toContain('gap:25px')
+    expect(
+      renderField(<NumberPad label="Cash" value={null} onChange={noop} onDone={noop} />),
+    ).toContain('gap:12px')
+  })
+
+  it('an expected COUNT is a count, never money: 201 pieces is not ₹2.01', () => {
+    const counted = renderFloor(
+      <NumberPad
+        label="Pieces counted back"
+        value={null}
+        mode="count"
+        expected={201}
+        expectedLabel="Counted 0 · expected 201"
+        onChange={noop}
+        onDone={noop}
+      />,
+    )
+    expect(counted).toContain('201')
+    expect(counted).not.toContain('2.01')
+    // money mode is untouched
+    expect(
+      renderField(
+        <NumberPad
+          label="Cash"
+          value={null}
+          expected={20100}
+          expectedLabel="Owed"
+          onChange={noop}
+          onDone={noop}
+        />,
+      ),
+    ).toContain('aria-label="201 rupees"')
+  })
+})
+
+/** UX-00 §6.10: filter chips sit "≥ 19 dp apart (25 dp warehouse)" — on BOTH renderers. */
+describe('<Chips> keeps the gap UX-00 §6.10 names', () => {
+  const items = [
+    { id: 'a', label: 'Queues', selected: true },
+    { id: 'b', label: 'Capture' },
+  ]
+  it('25 px at the warehouse floor, where it used to be 9.5', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider touch="floor" density="field">
+        <Chips items={items} onToggle={() => undefined} />
+      </ThemeProvider>,
+    )
+    expect(html).toContain('gap:25px')
+    expect(html).not.toContain('gap:9.5px')
+  })
+
+  it('19 px everywhere else', () => {
+    expect(renderField(<Chips items={items} onToggle={() => undefined} />)).toContain('gap:19px')
   })
 })

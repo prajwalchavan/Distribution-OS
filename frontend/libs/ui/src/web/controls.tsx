@@ -301,10 +301,18 @@ export function Chips({ items, onToggle, size, onClear, testID }: ChipsProps): R
   const height = sizeTokens[size ?? theme.touch]
   const labelStyle = useTypeStyle('bodyStrong', 'label')
   const selected = items.filter((i) => i.selected).length
+  /*
+   * UX-00 §6.10: filter chips sit "≥ 19 dp apart (25 dp warehouse)". The native half has always
+   * read the rule that way; this half wrote `gap.adjacent / 2` and shipped **9.5 px** in all seven
+   * apps — measured at 375 px on the warehouse level-2 row (Queues · Capture · Stock · Counts ·
+   * Held): 10 px between chips a gloved thumb has to choose between, against a floor of 25. The two
+   * renderers of one contract must not disagree about a number a hand can feel.
+   */
+  const spacing = (size ?? theme.touch) === 'floor' ? gap.warehouse : gap.adjacent
   return (
     <div
       data-testid={testID}
-      style={{ display: 'flex', flexWrap: 'wrap', gap: gap.adjacent / 2, alignItems: 'center' }}
+      style={{ display: 'flex', flexWrap: 'wrap', gap: spacing, alignItems: 'center' }}
     >
       {items.map((item) => (
         <button

@@ -525,6 +525,27 @@ export const chart = {
   labelCharWidth: 7.3,
 } as const
 
+/**
+ * The face inside a monogram box: `<Avatar>`, and `<TenantLogo>`'s no-logo fallback mark.
+ *
+ * Both used to take a bare ratio of the box, which is the same mistake the chart labels above were
+ * fixed for. Measured on a generated app at 1440 px: the account chip's initials came out **13 px**
+ * (`round(32 × 0.4)`) and the rail's distributor mark **12 px** (`round(28 × 0.42)`) — two faces
+ * under the 14 px floor of UX-00 §4.3, which §14 q8 says `desk.eyebrow` is the ONE exception to.
+ *
+ * It hides in the pilot: Tarsun has a logo, so the rail draws an image and the fallback never
+ * renders. Every distributor who has not uploaded one gets the 12 px mark, in all seven apps.
+ *
+ * Clamped to the floor. Two IBM Plex Sans 600 initials at 14 px measure 26.6 px at the widest
+ * realistic pair ("WW", measured in the browser), so they still fit `rail`, the smallest box at
+ * 28 px.
+ */
+export const TYPE_FLOOR = 14
+
+export function monogramSize(box: number, ratio = 0.4): number {
+  return Math.max(TYPE_FLOOR, Math.round(box * ratio))
+}
+
 // ---------------------------------------------------------------------------
 // The whole token set, for a screen that wants one import
 // ---------------------------------------------------------------------------

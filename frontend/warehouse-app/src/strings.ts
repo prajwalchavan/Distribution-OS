@@ -106,6 +106,16 @@ export const strings = {
   'w.unknownItem': 'Item not on this phone yet',
   /** Not read yet, or not readable: never a zero (UX-00 section 6.13). */
   'w.unknown': '\u2014',
+  /*
+   * A READ that failed for want of a signal, said as a read.
+   *
+   * `@dos/api-client`'s default sentence for `kind: 'network'` is "No connection. This will send
+   * when the signal is back." — true of a queued WRITE and false of every panel on this screen,
+   * which was asking, not sending. With warehouse-service stopped, six panels of the home queue and
+   * three of the stock screen each promised to send something. `<Async>` is the read wrapper, so it
+   * says the read sentence; a write keeps the client's own.
+   */
+  'w.noConnectionRead': 'No connection. This is not the current picture.',
 
   // ---------------------------------------------------------------- the tray (offline writes)
   'tray.title': 'Waiting and refused',

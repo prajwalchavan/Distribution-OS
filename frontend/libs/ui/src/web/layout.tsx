@@ -12,7 +12,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { useTheme } from '../theme.js'
-import { layout, radius as radii, space, type SemanticColors } from '../tokens.js'
+import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
 import type {
   BorderEdge,
   BorderTone,
@@ -514,7 +514,7 @@ function useRouterNavigate(): Navigate | null {
  * actually needs; the native renderer reads the same idea from `react-native-safe-area-context`.
  */
 export function Screen(props: ScreenProps): React.JSX.Element {
-  const { colors, density } = useTheme()
+  const { colors, density, touch } = useTheme()
   const {
     title,
     context,
@@ -530,6 +530,7 @@ export function Screen(props: ScreenProps): React.JSX.Element {
   const desk = density === 'desk'
   const padding = px(pad) ?? (desk ? layout.deskPadding : layout.fieldGutter)
   const hasHeader = title !== undefined || context !== undefined || actions !== undefined
+  const barGap = touch === 'floor' ? gap.warehouse : space[3]
 
   const body = (
     <div
@@ -649,7 +650,13 @@ export function Screen(props: ScreenProps): React.JSX.Element {
             background: colors.bg.surface,
             borderTop: `1px solid ${colors.border.hairline}`,
             paddingTop: space[3],
-            paddingBottom: `calc(${String(space[3])}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
+            /*
+             * On a warehouse phone the bar's own buttons and the shell's tab bar are adjacent
+             * targets, and UX-00 §5.2 puts 25 dp between them there. Measured before this: the gate
+             * count's "Scan" sat 13 px above "Inbound". Only the 76 dp floor moves; every other
+             * app keeps the 12 px it was measured with.
+             */
+            paddingBottom: `calc(${String(barGap)}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
             paddingLeft: padding,
             paddingRight: padding,
           }}

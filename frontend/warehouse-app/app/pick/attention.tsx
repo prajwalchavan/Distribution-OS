@@ -117,7 +117,7 @@ export default function NeedsAttention(): React.JSX.Element {
                       entry.error.createdAt,
                     )}`}
                   </Txt>
-                  <Row gap={4} wrap>
+                  <Row gap={8} wrap>
                     <Button
                       label={t('tray.retry')}
                       variant="primary"

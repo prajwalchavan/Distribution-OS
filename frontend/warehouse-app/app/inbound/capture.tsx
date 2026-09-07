@@ -263,7 +263,7 @@ export default function Capture(): React.JSX.Element {
 
         <Panel title={pl(t, 'w.pagesN', pageCount)} testID="w2-pages">
           <Stack gap={3}>
-            <Row gap={3} wrap>
+            <Row gap={8} wrap>
               <Button
                 label={t('w2.takePhoto')}
                 variant="primary"

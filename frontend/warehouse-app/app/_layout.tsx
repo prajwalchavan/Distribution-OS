@@ -32,6 +32,7 @@ import { isAllowed, permissionFor } from '@dos/contracts'
 import type { ApiClient } from '@dos/api-client'
 import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
+import { StatusBar } from 'expo-status-bar'
 import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -76,6 +77,18 @@ export default function RootLayout(): React.JSX.Element | null {
 
   return (
     <ApiProvider client={client}>
+      {/*
+       * DARK STATUS-BAR CONTENT, BECAUSE THE APP IS LIGHT.
+       *
+       * `userInterfaceStyle: "light"` in app.json tells the app which palette to draw; it does not
+       * tell ANDROID which colour to draw the clock, signal and battery in, and the default there is
+       * light-on-light. Measured on the Pixel 7 emulator: the whole status bar was white over the
+       * app's own #F2F2EF ground — a godown phone that cannot show the time or the signal strength,
+       * on the app whose promise is that it works on a bad connection. `expo-status-bar` was already
+       * a dependency of every app and used by none. iOS was already correct; on the web this renders
+       * nothing.
+       */}
+      <StatusBar style="dark" />
       <Shell />
     </ApiProvider>
   )
@@ -222,9 +235,18 @@ function Shell(): React.JSX.Element {
 
   return (
     <ThemeProvider touch={APP.touch} density={APP.density} tenant={tenantBrand} strings={strings}>
+      {/*
+       * `!hydrating` is part of the switch, not decoration. A restored session is real the instant
+       * the snapshot is read, but the ACCESS token is never persisted (`src/api.ts`) — so starting
+       * the engine before the refresh lands sent `GET /sync/manifest` with no bearer and took a
+       * **401 on every single cold start**, one console error and one wasted round trip per launch,
+       * measured on all twenty routes. The client's own transparent refresh then retried it and the
+       * app worked, which is exactly why it went unnoticed. The provider stays MOUNTED through the
+       * refresh (see above); only its first call now waits for a token.
+       */}
       <Offline
         tenantId={session?.tenant.id ?? null}
-        enabled={session !== null && !mustChangePassword && !wrongRole}
+        enabled={session !== null && !hydrating && !mustChangePassword && !wrongRole}
       >
         {content}
       </Offline>

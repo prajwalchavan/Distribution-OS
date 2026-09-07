@@ -148,7 +148,7 @@ export default function PickingSheet(): React.JSX.Element {
           <Txt field="moneyM" desk="cell" numeric>
             {t('w5.progress', { picked, total: rows.length })}
           </Txt>
-          <Row gap={4} wrap>
+          <Row gap={8} wrap>
             <Box grow>
               <Button
                 label={t('w.openScanner')}

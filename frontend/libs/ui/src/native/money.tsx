@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { Modal, Pressable, TextInput as RNTextInput, View } from 'react-native'
 
 import { formatMoney, parseRupees, speakMoney, splitMoney, toEditableRupees } from '../money.js'
-import { availableLine, caseLine, qtyState, splitQty, stepByCase } from '../qty.js'
+import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
   gap,
@@ -139,6 +139,7 @@ export function NumberPad({
 }: NumberPadProps): React.JSX.Element {
   const theme = useTheme()
   const keyHeight = Math.max(sizeTokens.floor, 64)
+  const keyGap = theme.touch === 'floor' ? gap.warehouse : space[3]
   const digits = value === null ? '' : String(Math.abs(Math.trunc(value)))
 
   const press = (key: (typeof KEYS)[number]): void => {
@@ -160,13 +161,23 @@ export function NumberPad({
       <Txt field="label" desk="label" color={theme.colors.text.secondary}>
         {label}
       </Txt>
-      {/* The expected amount sits ABOVE the pad and is never pre-filled into it (UX-01 D6). */}
+      {/*
+       * The expected amount sits ABOVE the pad and is never pre-filled into it (UX-01 D6) — and it
+       * follows `mode`, exactly as `value` does. Drawn through `<Money>` in every mode, the van
+       * check-in's "expected on the vehicle" printed **Rs 2.01 for 201 pieces**.
+       */}
       {expected !== null && expected !== undefined ? (
         <View style={{ marginTop: space[2] }}>
           <Txt field="label" desk="label" color={theme.colors.text.secondary}>
             {expectedLabel ?? ''}
           </Txt>
-          <Money value={expected} size="moneyL" />
+          {mode === 'money' ? (
+            <Money value={expected} size="moneyL" />
+          ) : (
+            <Txt field="moneyL" desk="kpi" numeric>
+              {formatCount(expected)}
+            </Txt>
+          )}
         </View>
       ) : null}
       <Txt
@@ -177,33 +188,47 @@ export function NumberPad({
       >
         {mode === 'money' ? formatMoney(value ?? 0) : String(value ?? 0)}
       </Txt>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: gap.warehouse / 2 }}>
-        {KEYS.map((key) => (
-          <Pressable
-            key={key}
-            accessibilityRole="button"
-            accessibilityLabel={key}
-            onPress={() => {
-              press(key)
-            }}
-            style={{
-              width: '30%',
-              height: keyHeight,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: radius.sm,
-              borderWidth: 1,
-              borderColor: theme.colors.border.strong,
-              backgroundColor: theme.colors.bg.surface,
-            }}
-          >
-            <Txt field="title" desk="pageTitle" numeric>
-              {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
-            </Txt>
-          </Pressable>
+      {/*
+       * THREE ROWS OF THREE, LAID OUT WITH FLEX — never `width: '30%'` inside a wrapping row.
+       *
+       * UX-00 §5.2: adjacent targets sit >= 19 dp apart, >= 25 dp on every warehouse screen. A pad
+       * key is a target, and this pad is where the two BLIND counts of the product are typed. But
+       * three 30% keys plus two 25 dp gaps is wider than the box, so a wrapping row silently drops
+       * to TWO keys a line — measured on the Pixel 7: the gate count came out 1 2 / 3 4 / 5 6, a
+       * dialler nobody has ever used. Percentage widths and a pixel gap cannot both be right; the
+       * width is now whatever is left after the gaps.
+       */}
+      <View style={{ gap: keyGap }}>
+        {[0, 3, 6, 9].map((from) => (
+          <View key={from} style={{ flexDirection: 'row', gap: keyGap }}>
+            {KEYS.slice(from, from + 3).map((key) => (
+              <Pressable
+                key={key}
+                accessibilityRole="button"
+                accessibilityLabel={key}
+                onPress={() => {
+                  press(key)
+                }}
+                style={{
+                  flex: 1,
+                  height: keyHeight,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: radius.sm,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border.strong,
+                  backgroundColor: theme.colors.bg.surface,
+                }}
+              >
+                <Txt field="title" desk="pageTitle" numeric>
+                  {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
         ))}
       </View>
-      <View style={{ marginTop: space[4] }}>
+      <View style={{ marginTop: keyGap }}>
         <Button
           label={doneLabel ?? theme.t('action.done')}
           variant="primary"

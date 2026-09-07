@@ -4,6 +4,7 @@ import {
   availableLine,
   billLineQty,
   caseLine,
+  formatCount,
   joinQty,
   qtyState,
   splitQty,
@@ -134,5 +135,26 @@ describe('billLineQty', () => {
         packSizeAtEntry: 24,
       }),
     ).toBe('2 cs · 48 pc · 6 pc free')
+  })
+})
+
+/**
+ * The godown prints big counts — "65,414 of 82,693 picked", "On hand 1,008" — and `String(n)` does
+ * not group them. This lived hand-written in the warehouse app; it belongs beside `caseLine`, which
+ * is the other half of UX-00 §4.5 rule 7.
+ */
+describe('formatCount', () => {
+  it('groups the Indian way', () => {
+    expect(formatCount(0)).toBe('0')
+    expect(formatCount(999)).toBe('999')
+    expect(formatCount(1008)).toBe('1,008')
+    expect(formatCount(82693)).toBe('82,693')
+    expect(formatCount(124500)).toBe('1,24,500')
+    expect(formatCount(12345678)).toBe('1,23,45,678')
+  })
+
+  it('keeps a sign and truncates towards zero', () => {
+    expect(formatCount(-1008)).toBe('-1,008')
+    expect(formatCount(1008.9)).toBe('1,008')
   })
 })

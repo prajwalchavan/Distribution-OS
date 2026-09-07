@@ -7,7 +7,7 @@ import { Image, Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
-import { nativeShadow, radius, size as sizeTokens, space } from '../tokens.js'
+import { monogramSize, nativeShadow, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
   AvatarProps,
   ConnectionStripProps,
@@ -339,7 +339,7 @@ export function Avatar({ name, size = 40, testID }: AvatarProps): React.JSX.Elem
         justifyContent: 'center',
       }}
     >
-      <Txt field="bodyStrong" desk="label" style={{ fontSize: Math.round(size * 0.4) }}>
+      <Txt field="bodyStrong" desk="label" style={{ fontSize: monogramSize(size) }}>
         {initialsOf(name)}
       </Txt>
     </View>
@@ -394,7 +394,7 @@ export function TenantLogo({
             justifyContent: 'center',
           }}
         >
-          <Txt field="bodyStrong" desk="label" style={{ fontSize: Math.round(box * 0.42) }}>
+          <Txt field="bodyStrong" desk="label" style={{ fontSize: monogramSize(box, 0.42) }}>
             {initialsOf(displayName)}
           </Txt>
         </View>

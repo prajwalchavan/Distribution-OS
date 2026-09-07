@@ -149,7 +149,7 @@ export default function Me(): React.JSX.Element {
           </Async>
         </Panel>
 
-        <Row gap={4} wrap>
+        <Row gap={12} wrap justify="between">
           <Button
             label={t('app.changePassword')}
             variant="secondary"
