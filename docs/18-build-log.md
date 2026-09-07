@@ -1,5 +1,42 @@
 # Build log — where we are, what is next
 
+## RESUME HERE (updated 2026-09-07 22:05 IST, session 4) — FRONTEND CHAIN COMPLETE
+
+**ALL SEVEN APPS ARE BUILT AND GATED GREEN, and the backend was already complete.** owner, manager
+(with the accountant on it), sales, warehouse, delivery, retailer and admin — each one a single Expo
+codebase serving website + Android + iOS, each verified by an independent gate that ran the chain from
+the outside, walked every screen of its docs/23 section in a real browser at desk and phone widths
+measuring rather than eyeballing, drove it on the Pixel 7, and fixed what it found before reporting.
+Everything is committed and pushed to `origin/main`.
+
+**The end-to-end pass was NOT run, by founder decision (2026-09-07): Fable does the E2E test.** The
+F10 gate of `scratchpad/dos-frontend.js` was stopped after the admin app went green. The founder will
+open a Fable session and drive the E2E from there. Do not re-launch that gate without being asked.
+
+**What a next session should know before touching anything:**
+
+- `docs/28-running-it-locally.md` is new and is the practical guide: start Postgres, install, migrate,
+  seed, start the eight services and the worker, open any of the seven apps, sign in, run it on the
+  Pixel 7, and the table of what each failure mode actually means.
+- `docs/23-app-screens-and-api-gaps.md` §10 holds **fifteen backend gaps the gates found**, all of
+  them recorded rather than worked around because each changes a contract the other apps link. They
+  are meant to be done together, in ONE backend slice, now that no gate is running. The sharpest:
+  `collections` is not in `SYNC_PULL_TABLES` so no device can queue a doorstep collection;
+  `admin.users` has `disable` and no `enable`; `tenancy.me` answers 401 through a valid support pass;
+  several list endpoints page by `id` with no `orderBy`; and a bill cannot name the money that paid it.
+- Two data-quality items on the demo database, same slice: `pnpm smoke` leaves its calls behind in the
+  pilot tenant (hundreds of ₹1 receipts, ~400 pending approvals, a retailer override pricing Campa
+  Cola 200 ml at ₹100 against a ₹10 MRP), and the seed's gross margin for the current month is
+  negative — decide whether that is wrong data or a true story, then make the seed say it on purpose.
+- Two UX-00 questions are the founder's, raised by the warehouse gate: is the touch floor a HEIGHT or
+  a SIZE (§6.10 fixes chip height only, so a 68 × 76 chip is legal and still under 12 mm across), and
+  may the gate-count pad SCROLL on a phone (§6.3 calls it "the full-screen pad").
+- iOS is the one unproven target: every app boots and renders in Expo Go on the iPhone 16 Pro / 18.0
+  simulator, but `expo run:ios` fails on a simulator-SDK mismatch (build wants 18.2, runtime is 18.0)
+  and this Mac has no headless way to tap a simulator (`xcrun simctl` has no input verb;
+  `idb-companion` needs macOS 26 and this Mac is 14.6.1; the simulator panel is barred by the founder).
+  Android was walked instead and exercises the same native renderer.
+
 ## RESUME HERE (updated 2026-09-07 21:20 IST, session 4)
 
 **FRONTEND SLICE 8 `admin-app` GATED AND GREEN (2026-09-07 21:20 IST) — the seventh and last app. Web
@@ -85,8 +122,8 @@ the header, the register as cards in field density, "0 support requests waiting 
 "Showing 13" agreeing with the web. **iOS**: renders in Expo Go on the iPhone 16 Pro / iOS 18.0
 simulator, driven headlessly (`xcrun simctl openurl … exp://127.0.0.1:8081`, `xcrun simctl io booted
 screenshot`). `expo run:ios` is still an **environment** failure, unchanged from the six gates before
-this one and captured verbatim this time: `xcodebuild` error 70, *"Ineligible destinations … error:
-iOS 18.2 is not installed. To use with Xcode, first download and install the platform"* — Xcode 16.2
+this one and captured verbatim this time: `xcodebuild` error 70, _"Ineligible destinations … error:
+iOS 18.2 is not installed. To use with Xcode, first download and install the platform"_ — Xcode 16.2
 ships the 18.2 SDK and only the 18.0 runtime is installed. Not a code defect; recorded, not worked
 around.
 
@@ -123,7 +160,6 @@ window — owner-service :3001. Sign in **`dos.admin`** / `Dos@1234` (super) or 
 docs/23 §10 items 1–15 together (a contract change mid-chain would have broken a running gate).
 
 ---
-
 
 ## RESUME HERE (updated 2026-09-07 17:45 IST, session 4)
 
