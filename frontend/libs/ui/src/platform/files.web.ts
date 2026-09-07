@@ -58,4 +58,27 @@ export const files: PlatformFiles = {
     }
     if (file.uri.startsWith('blob:')) URL.revokeObjectURL(file.uri)
   },
+
+  /**
+   * A `blob:` / `data:` URI read back through `fetch`, then base64 by hand.
+   *
+   * `FileReader.readAsDataURL` would be shorter and is deliberately not used: it is callback-shaped,
+   * and the chunked loop below is what keeps a ~200 KB photo (UX-00 §8.2 compresses to that) from
+   * blowing the argument limit of `String.fromCharCode` — which is what a single spread does at
+   * around 100 000 bytes, as a `RangeError` on the one screen a driver uses at a shop door.
+   */
+  readBase64: async (file) => {
+    try {
+      const buffer = await fetch(file.uri).then(async (r) => r.arrayBuffer())
+      const bytes = new Uint8Array(buffer)
+      let binary = ''
+      const CHUNK = 0x8000
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + CHUNK)))
+      }
+      return btoa(binary)
+    } catch {
+      return null
+    }
+  },
 }

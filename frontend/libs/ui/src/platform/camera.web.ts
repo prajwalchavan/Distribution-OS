@@ -60,7 +60,25 @@ function pickFile(accept: string, capture: boolean): Promise<File | null> {
 
 /** Down to `maxWidth` and out as JPEG — the ~200 KB budget of UX-00 section 8.2. */
 async function compress(file: File, maxWidth: number): Promise<CapturedPhoto> {
-  const bitmap = await createImageBitmap(file)
+  /*
+   * `createImageBitmap` THROWS on anything it cannot decode — a HEIC from an iPhone in a browser
+   * that has no decoder for it, a truncated file, a `.jpg` that is not one. Unguarded, that
+   * rejection escaped `photograph()` and left the caller's `await` hanging as an
+   * "Uncaught (in promise) InvalidStateError: The source image could not be decoded", with NOTHING
+   * on screen — measured at a shop door on the delivery app's proof-of-delivery step, where the
+   * photo is mandatory and the driver simply saw the button do nothing.
+   *
+   * The platform layer's own rule (this folder's header) is that nothing throws for being
+   * unavailable: a file we cannot re-encode is handed back AS IT IS, at its original size, and the
+   * caller's size check decides. That is worse than a compressed photo and infinitely better than
+   * no photo and no sentence.
+   */
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(file)
+  } catch {
+    return { uri: URL.createObjectURL(file), mimeType: file.type, bytes: file.size }
+  }
   const scale = Math.min(1, maxWidth / bitmap.width)
   const width = Math.round(bitmap.width * scale)
   const height = Math.round(bitmap.height * scale)

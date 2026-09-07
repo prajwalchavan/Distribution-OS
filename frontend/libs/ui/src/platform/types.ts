@@ -160,6 +160,19 @@ export interface PlatformFiles {
     signedUrl: string,
     options?: { method?: 'PUT' | 'POST'; headers?: Readonly<Record<string, string>> },
   ) => Promise<void>
+  /**
+   * The bytes, base64 without a `data:` prefix — for the ONE case `upload` cannot serve.
+   *
+   * `files.uploadUrl` answers `inline: true` on the local object-storage driver (there is no bucket
+   * to PUT to), and the procedures that consume a key then take the bytes on the create call itself:
+   * `delivery.deliveries.record`'s `pod[].inline`, `delivery.expenses.record`'s `inline`. A screen
+   * cannot do this for itself — `fetch('blob:…')` reads a browser blob and React Native's `fetch`
+   * does NOT read a `file://` URI, it uploads an empty body — so the two-line difference lives here
+   * with the rest of them.
+   *
+   * `null` when the file cannot be read. Never throws for being unavailable.
+   */
+  readBase64: (file: PickedFile | CapturedPhoto) => Promise<string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -195,6 +208,25 @@ export interface PlatformShare {
 }
 
 // ---------------------------------------------------------------------------
+// links
+// ---------------------------------------------------------------------------
+
+/**
+ * Handing the job to an app the person already knows: the dialler, the map app, WhatsApp.
+ *
+ * UX-00 §6.15 is explicit that navigating TO a place is never drawn by us — a driver's own map app
+ * knows the lanes of Kalyan better than any pin we could render. `mapsUrl` exists because the scheme
+ * differs per platform (`geo:` on Android, Apple Maps on iOS, a universal link in a browser) and a
+ * screen must not carry that fork. `open` answers `false` where nothing handles the URL; it never
+ * throws for being unavailable.
+ */
+export interface PlatformLinks {
+  open: (url: string) => Promise<boolean>
+  mapsUrl: (latitude: number, longitude: number, label?: string) => string
+  readonly available: boolean
+}
+
+// ---------------------------------------------------------------------------
 // crypto
 // ---------------------------------------------------------------------------
 
@@ -225,4 +257,5 @@ export interface Platform {
   readonly files: PlatformFiles
   readonly haptics: PlatformHaptics
   readonly share: PlatformShare
+  readonly links: PlatformLinks
 }

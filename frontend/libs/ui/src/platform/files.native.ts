@@ -32,7 +32,10 @@ export const files: PlatformFiles = {
   },
 
   upload: async (file, signedUrl, options) => {
-    const bytes = new File(file.uri).bytes()
+    // `bytes()` is a PROMISE (`base64()` and `text()` too). Un-awaited it stringifies to
+    // "[object Promise]" and the bucket takes a 15-byte object with a 200 — the silent 0-byte
+    // upload this file's own header warns about, one `await` further along.
+    const bytes = await new File(file.uri).bytes()
     const response = await fetch(signedUrl, {
       method: options?.method ?? 'PUT',
       body: bytes as unknown as BodyInit,
@@ -40,6 +43,17 @@ export const files: PlatformFiles = {
     })
     if (!response.ok) {
       throw new Error(`Upload failed with ${String(response.status)}`)
+    }
+  },
+  /**
+   * The bytes as base64, straight from the filesystem — no `fetch`, because React Native's fetch does
+   * not read a `file://` URI (see the header). Used where `files.uploadUrl` answers `inline: true`.
+   */
+  readBase64: async (file) => {
+    try {
+      return await new File(file.uri).base64()
+    } catch {
+      return null
     }
   },
 }

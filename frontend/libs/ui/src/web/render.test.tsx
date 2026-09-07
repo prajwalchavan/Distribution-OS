@@ -14,7 +14,7 @@ import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { Chips, TextInput, Tabs, Segments } from './controls.js'
 import { Avatar, ConnectionStrip, Sheet, TenantLogo } from './feedback.js'
 import { MapView } from './map.js'
-import { MenuRow, TenantSwitcher } from './shell.js'
+import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
 import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
@@ -755,5 +755,56 @@ describe('<Chips> keeps the gap UX-00 §6.10 names', () => {
 
   it('19 px everywhere else', () => {
     expect(renderField(<Chips items={items} onToggle={() => undefined} />)).toContain('gap:19px')
+  })
+})
+
+/**
+ * UX-00 §8.2: sales and warehouse have a tab bar; delivery and retailer are single stacks and have
+ * none. An app declares "no tab bar" with a `primary` section that has no items, so the empty
+ * section has to survive the shell's own "drop what this role may not reach" filter.
+ */
+describe('<AppShell> — the no-tab-bar declaration', () => {
+  const sections = [
+    { primary: true, items: [] },
+    {
+      title: 'TRIP',
+      items: [
+        { href: '/', label: 'Today' },
+        { href: '/day', label: 'Day summary' },
+      ],
+    },
+  ]
+
+  it('keeps an empty primary section, so the phone shell draws no tabs', () => {
+    const html = renderField(
+      <AppShell sections={sections} activeHref="/" onNavigate={() => undefined}>
+        <span>road</span>
+      </AppShell>,
+    )
+    /*
+     * The static renderer has no window to measure, so this is the DESK rail — which is the point:
+     * the empty primary section SURVIVED (its own empty `<ul>` is rendered) instead of being
+     * dropped, and the destinations are still the TRIP section's. On a phone the same array makes
+     * `find(primary)` land on the empty one and no tab bar is drawn.
+     */
+    expect(html).toContain('<ul style="list-style:none;margin:0;padding:0"></ul>')
+    expect(html).toContain('Day summary')
+    expect(html).toContain('road')
+  })
+
+  it('still drops a NON-primary section the role may not reach', () => {
+    const html = renderField(
+      <AppShell
+        sections={[
+          { title: 'SETUP', items: [{ href: '/x', label: 'Settings', permission: 'no' }] },
+        ]}
+        can={() => false}
+        activeHref="/"
+        onNavigate={() => undefined}
+      >
+        <span>road</span>
+      </AppShell>,
+    )
+    expect(html).not.toContain('SETUP')
   })
 })

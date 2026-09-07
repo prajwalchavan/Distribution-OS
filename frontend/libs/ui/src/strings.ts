@@ -34,6 +34,8 @@ export const en = {
   'qty.case': 'cs',
   'qty.piece': 'pc',
   'qty.caseLine': '{cases} cs = {pieces} pc',
+  /* Below one case there is no dual unit to state; see `caseLine`. */
+  'qty.piecesOnly': '{pieces} pc',
   'qty.caseLineWithLoose': '{cases} cs + {loose} pc = {pieces} pc',
   'qty.available': '{cases} cs available',
   'qty.freeGoods': '{pieces} pc free',

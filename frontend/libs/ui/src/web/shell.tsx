@@ -148,7 +148,18 @@ export function AppShell(props: AppShellProps): React.JSX.Element {
     () =>
       props.sections
         .map((section) => ({ ...section, items: section.items.filter(allowed) }))
-        .filter((section) => section.items.length > 0),
+        /*
+         * A section with nothing left in it is dropped — EXCEPT a `primary` one, which is how an app
+         * says "this shell has no tab bar".
+         *
+         * UX-00 §8.2: "Delivery and retailer have no tab bar: single stacks opening on the next stop
+         * / the last bill." The way an app declares that is a `primary` section with no items, so
+         * `PhoneShell` finds it, `tabs` is empty and no bar is drawn. Dropping it made `find(primary)`
+         * fall through to `sections[0]`, and the delivery app — the one whose whole design is "one
+         * hand, the other has cash in it" — grew a four-tab bar nobody asked for, with its first four
+         * destinations in it. Measured on the crew's home screen.
+         */
+        .filter((section) => section.items.length > 0 || section.primary === true),
     [props.sections, allowed],
   )
   return viewport.kind === 'desk' ? (

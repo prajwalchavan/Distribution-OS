@@ -42,13 +42,22 @@ export function joinQty(cases: number, loose: number, caseSize: number): number 
   return toPieces(Math.max(0, Math.trunc(cases)), Math.max(0, Math.trunc(loose)), caseSize)
 }
 
-/** The line under a stepper: `2 cs = 48 pc`, or `2 cs + 6 pc = 54 pc` when loose pieces exist. */
+/**
+ * The line under a stepper: `2 cs = 48 pc`, or `2 cs + 6 pc = 54 pc` when loose pieces exist — and
+ * just `7 pc` when there is no whole case at all.
+ *
+ * UX-00 §4.5 rule 7 asks for the DUAL unit, and below one case there is no dual unit to state:
+ * "0 cs + 7 pc = 7 pc" is three numbers for one fact, two of them zero and one of them repeated.
+ * Measured on the delivery app's check-in, where the crew reads a dozen part-lots back to the godown
+ * line by line.
+ */
 export function caseLine(
   pieces: number,
   caseSize: number,
   translate: Translator = defaultT,
 ): string {
   const q = splitQty(pieces, caseSize)
+  if (q.cases === 0) return translate('qty.piecesOnly', { pieces: q.pieces })
   return q.loose === 0
     ? translate('qty.caseLine', { cases: q.cases, pieces: q.pieces })
     : translate('qty.caseLineWithLoose', { cases: q.cases, loose: q.loose, pieces: q.pieces })

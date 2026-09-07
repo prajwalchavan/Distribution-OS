@@ -41,6 +41,12 @@ describe('caseLine — dual unit, never toggled', () => {
     expect(caseLine(54, 24)).toBe('2 cs + 6 pc = 54 pc')
   })
 
+  /* Below one case there is no dual unit: "0 cs + 7 pc = 7 pc" is three numbers for one fact. */
+  it('reads the pieces alone when there is no whole case', () => {
+    expect(caseLine(7, 48)).toBe('7 pc')
+    expect(caseLine(0, 48)).toBe('0 pc')
+  })
+
   it('states availability in whole cases', () => {
     expect(availableLine(960, 24)).toBe('40 cs available')
     expect(availableLine(23, 24)).toBe('0 cs available')

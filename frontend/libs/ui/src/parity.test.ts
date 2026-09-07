@@ -148,6 +148,10 @@ describe('platform parity: @dos/ui/platform', () => {
       'documents',
       'files',
       'haptics',
+      // The dialler and the map app: UX-00 §6.15 says navigating TO a place is a URL hand-off to
+      // the phone's own map app, and the scheme differs per platform (`geo:` / Apple Maps / a
+      // universal link), so the fork lives here rather than in the delivery app's stop screen.
+      'links',
       'location',
       'share',
       'storage',
