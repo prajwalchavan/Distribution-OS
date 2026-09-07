@@ -923,3 +923,31 @@ MISSING items by module: receivables 5 · billing 3 · warehouse 2 · delivery 3
 claims 0 · notifications 1 · reporting 4 · incentives 0 · sync 3 · auth 3 (+1 field) · tenancy + files 10 · retailers 3 ·
 orders 2 · pricing 3 · catalog 3 · inventory 2 · procurement 2 — **51 items**, of which 8 are permission, wiring or decision
 items rather than new procedures.
+
+## 10. Backend gaps the frontend gates found (2026-09-07)
+
+These are not screen gaps: every one of them was found by an independent gate while walking a finished app against the live
+services on the founder's machine, and each is recorded here rather than fixed on the spot because it changes a contract the
+other six apps share. **Do them together, in one backend slice, after the frontend chain ends** — a contract change mid-chain
+would break the gate that is running.
+
+| #   | Where                                                                                                    | What the app has to do today                                                                             | What the backend should answer                                 |
+| --- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | `reporting.registers.schemeSpend`                                                                        | prints the scheme's raw id                                                                               | join the scheme name                                           |
+| 2   | `orders.approvals.list`                                                                                  | prints `requestedBy` as a uuid                                                                           | join the requesting user's name                                |
+| 3   | `receivables.receipts.list`                                                                              | prints `receivedBy` as a uuid                                                                            | join the receiving user's name                                 |
+| 4   | `tenantCatalog.costs`                                                                                    | prints variant ids                                                                                       | join the variant name                                          |
+| 5   | `procurement.grns.list`, `warehouse.picklists.list`, `warehouse.packs.list`, `warehouse.loadSheets.list` | the warehouse home strip prints "20+", "40+" — the page size, honestly labelled, because no total exists | a `total` on the list output so the godown sees its real queue |
+
+Two data-quality items on the demo database, same slice:
+
+- `pnpm smoke` leaves its calls behind in the pilot tenant (≈ 400 pending approvals and hundreds of ₹1 receipts), so every
+  approvals and money screen opens on noise. Either smoke writes to its own tenant or `pnpm db:seed` sweeps its rows.
+- the seed's gross margin for the current month is negative. Either the demo purchase costs are wrong or the owner dashboard
+  is right and the data is telling the truth about a badly-priced month; decide which, then make the seed say it on purpose.
+
+Two design questions the warehouse gate raised for the founder (UX-00, not backend):
+
+- is the touch floor a **height** or a **size**? §6.10 fixes filter-chip height only, so a 68 × 76 chip is legal and still under
+  12 mm across on a 375 px phone.
+- may the gate-count pad **scroll** on a phone? Everything is reachable, but §6.3 calls it "the full-screen pad".
