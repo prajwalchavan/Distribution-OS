@@ -33,7 +33,7 @@ import { useState } from 'react'
 import { Async, Columns, Field, Half, Note, Panel, subscriptionFamily } from '../../src/lib/ui'
 import { AskForAccess, InsidePanel } from '../../src/lib/support'
 import { SubscriptionEditor } from '../../src/lib/subscription'
-import { formatBytes, instantWithClock, longDate } from '../../src/lib/dates'
+import { daysFromToday, formatBytes, instantWithClock, longDate } from '../../src/lib/dates'
 import { stateName, useWord } from '../../src/lib/words'
 
 function count(value: number | null | undefined): string {
@@ -230,7 +230,20 @@ export default function Distributor(): React.JSX.Element {
                       <Field label={t('p5.period')}>
                         {`${longDate(item.subscription.currentPeriodStart)} — ${longDate(item.subscription.currentPeriodEnd)}`}
                       </Field>
-                      <Field label={t('p5.trialEnds')}>
+                      {/*
+                        PAST TENSE for a date that has passed. Two of the founder's three demo
+                        distributors carry a trial end of 25 Jan 2018 under a subscription still
+                        reading "On trial" (an old seed's arithmetic, recorded with the gate), and
+                        "Trial ends 25 Jan 2018" is a promise about a day eight years gone.
+                      */}
+                      <Field
+                        label={
+                          item.subscription.trialEndDate !== null &&
+                          daysFromToday(item.subscription.trialEndDate) < 0
+                            ? t('p5.trialEnded')
+                            : t('p5.trialEnds')
+                        }
+                      >
                         {item.subscription.trialEndDate === null
                           ? '—'
                           : longDate(item.subscription.trialEndDate)}

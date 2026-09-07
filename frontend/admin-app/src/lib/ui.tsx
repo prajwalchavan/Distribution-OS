@@ -413,3 +413,48 @@ export function AsOf({ at }: { at: string | number | null | undefined }): React.
     </Txt>
   )
 }
+
+/**
+ * A device NAME out of what the sign-in actually stored.
+ *
+ * `@dos/api-client` sends the browser's user agent as `deviceName` (120 characters of it, and it
+ * truncates mid-token), so the Account screen printed
+ * "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)
+ * HeadlessChrome/152.0.0.0 Safari/5" as the identity of a session — measured, on the one screen
+ * whose only question is which session to end. A sign-in that stored no name at all gets a sentence
+ * rather than a uuid; the times beside it are what tell two unnamed devices apart.
+ *
+ * The same function, word for word, is in the retailer, manager and sales apps' own settings
+ * screens; a shared home for it in `@dos/ui` is a tidy-up recorded with the gate, not a change to
+ * make to four green apps mid-chain.
+ */
+export function deviceLabel(name: string | null | undefined, unnamed: string): string {
+  const raw = (name ?? '').trim()
+  if (raw === '') return unnamed
+  if (!raw.startsWith('Mozilla/')) return raw
+  const browser = /\bEdg\//.test(raw)
+    ? 'Edge'
+    : /\bOPR\//.test(raw)
+      ? 'Opera'
+      : /\bChrome\//.test(raw)
+        ? 'Chrome'
+        : /\bFirefox\//.test(raw)
+          ? 'Firefox'
+          : /\bSafari\//.test(raw)
+            ? 'Safari'
+            : 'Browser'
+  const machine = /iPhone/.test(raw)
+    ? 'iPhone'
+    : /iPad/.test(raw)
+      ? 'iPad'
+      : /Android/.test(raw)
+        ? 'Android'
+        : /Macintosh|Mac OS X/.test(raw)
+          ? 'Mac'
+          : /Windows/.test(raw)
+            ? 'Windows'
+            : /Linux/.test(raw)
+              ? 'Linux'
+              : null
+  return machine === null ? browser : `${browser} on ${machine}`
+}

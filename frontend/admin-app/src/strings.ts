@@ -211,6 +211,7 @@ export const strings = {
   'p4.insideNextNo': 'next {no}',
   'p4.insideReadOnlyNote':
     'Read only: their service refuses a write from this window, and says so with a 403.',
+  'p4.insidePassCloses': 'This read pass closes',
   'p4.insideHandBack': 'Hand the window back',
   'p4.insideAudit': 'What we have read under this window',
   'p4.insideNoReads': 'Nothing read yet under this window',
@@ -237,6 +238,10 @@ export const strings = {
   'p5.failed': 'Could not save the subscription',
   'p5.periodStart': 'Period starts',
   'p5.periodEnd': 'Period ends',
+  'p5.dateFormat': 'Year, month, day — 2026-09-06',
+  'p5.dateOptional': 'Leave empty if there is no trial',
+  'p5.dateWrong': 'A date has to read 2026-09-06 — year, month, day',
+  'p5.trialEnded': 'Trial ended',
   'p5.ourPrice': 'This is OUR price to the distributor, never their price to a shop.',
 
   // --- P6 support access ---------------------------------------------------
@@ -280,6 +285,8 @@ export const strings = {
   'p6.deniedByOwner': 'Their owner said no',
   'p6.lapsed': 'Lapsed, no answer',
   'p6.handedBack': 'Handed back from the Distribution OS console.',
+  'p6.emptyOpen': 'No window is open right now',
+  'p6.emptyWaiting': 'Nobody’s owner is being waited on',
   'p6.lapsedNote':
     'A request can only be opened inside the hours it asked for, counted from when it was made. This one ran out; raise a new request.',
 
@@ -303,7 +310,7 @@ export const strings = {
   'p7.disable': 'Lock this login',
   'p7.disableTitle': 'Lock {name} out?',
   'p7.disableBody':
-    'This login stops working in every distributorship at once and every open session is ended. It does not remove them from any distributorship — that is their own owner’s to do.',
+    'This login stops working in every distributorship at once and every open session is ended. It does not remove them from any distributorship — that is their own owner’s to do. Nothing in this console puts it back.',
   'p7.disableReason': 'Why (goes into the audit trail)',
   'p7.disableNeedsReason': 'Say why. This locks them out everywhere.',
   'p7.disabled': 'Locked out',

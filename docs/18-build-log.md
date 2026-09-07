@@ -1,5 +1,130 @@
 # Build log — where we are, what is next
 
+## RESUME HERE (updated 2026-09-07 21:20 IST, session 4)
+
+**FRONTEND SLICE 8 `admin-app` GATED AND GREEN (2026-09-07 21:20 IST) — the seventh and last app. Web
+at both shells, a real `run:android` build signed in on the Pixel 7, iOS renders in Expo Go.** The
+independent pass ran the chain from the outside — `pnpm install` left the lockfile untouched (both
+workspaces), `lint` **11/11**, `typecheck` **11/11**, `build` **8/8**, `test` **3/3 · @dos/ui 196 ·
+@dos/api-client 67 · @dos/offline 38**, `format:check` clean in both workspaces, `docs:readme:check`
+clean, native-resolution `tsc --noEmit` (with `customConditions: ["react-native"]`) clean, and no
+`react-native` / `react-dom` / `@dos/ui/web` / `@dos/ui/native` import and no raw hex in any app file
+— then drove the console in a real headless Chrome against the founder's own database and the live
+auth :3000 / admin :3007 / owner :3001: **nine routes at 1440 × 900 and the same nine at 375 × 812,
+every screen measured rather than eyeballed**, ending with zero console errors, zero warnings, zero
+non-2xx, zero horizontal scroll, IBM Plex Sans the only family, minimum font 14 px on the phone and
+12 px on the desk (the `desk.eyebrow` token of UX-00 §4.3, the one sub-14 token, on strip labels and
+the rail's group heading), no cost / margin / landed word, no snake_case machine value, no uuid and
+no raw ISO date on any screen.
+
+**Eight defects found and fixed, three of them the same lie wearing three faces.**
+
+1. **THE CONSOLE'S WORK LIST POINTED AT 200 THINGS NOBODY COULD DO.** "Needs attention" read **"200+
+   support requests waiting for an owner"**; measured against the server, **not one of the two
+   hundred was still openable** — every one had run past the hours it asked for, and their owners get
+   409 `request_expired` if they try. A support window is counted from `requestedAt`, so a lapsed ask
+   still reads `status: 'requested'` on the wire for ever. The chip counts only asks somebody can
+   still answer (`askLapsed()`, the rule the distributorship panel already used) and now reads **0**.
+2. **THE SUPPORT REGISTER'S DEFAULT VIEW, HEADED "Open now", LISTED 100 ROWS OF WHICH ONE WAS OPEN.**
+   `openOnly` on the server means "not revoked AND (not approved OR not expired)" — which is every
+   unanswered ask ever made. The view filters by the server's own `active` flag and shows **13**, all
+   genuinely open. "Waiting for their owner" (the wire's `requested`) had the same hole from the
+   other side and showed 100 rows with nobody waiting; it now shows **0** and says "Nobody's owner is
+   being waited on". Lapsed asks live under "All", where their chip already says "Lapsed, no answer".
+   (Three segments, not four: `<Segments>` renders `items.slice(0, 3)` in both renderers, UX-00 §6.10.)
+3. **"Nothing waiting" OVER A DEAD CONNECTION.** With admin-service blocked, the Needs-attention panel
+   printed its all-clear line next to its own "No connection. This is not the current picture." Three
+   failed reads are three zeroes with nothing behind them, not an all-clear.
+4. **THE PANEL THAT PROVES SUPPORT ACCESS DID NOT CONTAIN THE READS IT HAD JUST MADE.** Opening the
+   pilot's window mints a five-minute pass, reads `tenancy.branding` + `tenancy.numbering` on **owner
+   service :3001** with `x-support-grant`, and writes one `platform_audit` row per call. Measured:
+   rows written at **20:05:43** under a list whose newest entry was **18:35** — because the mutation
+   had no `invalidates` at all. And once it did, it still raced them: `SupportAuditInterceptor` writes
+   its row AFTER the answer is on the wire (its own comment says a spec has to poll for it), so the
+   panel now asks again at 1.2 s and 4 s. Proved end to end: reads at **20:55** appear at the top of
+   "What we have read under this window" the moment the window opens.
+5. **TWO DIFFERENT CLOSING TIMES, BOTH LABELLED "Closes".** The chip said the window is open until
+   10:30 pm and the block under it said "Closes 8:10 pm" — the five-minute read pass. It reads "This
+   read pass closes" now.
+6. **THE ACCOUNT SCREEN NAMED A SESSION WITH A RAW USER AGENT.** `@dos/api-client` sends 120
+   characters of `navigator.userAgent` as `deviceName`, cut mid-token, and this app printed it:
+   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)
+   HeadlessChrome/152.0.0.0 Safari/5" as the identity of a device, on the one screen whose only
+   question is which session to end. It reads "Chrome on Mac" / "Safari on Mac" / "A device that gave
+   no name", the same `deviceLabel()` the retailer, manager and sales apps already carry.
+7. **THE SUBSCRIPTION EDITOR REFUSED TO SAVE AND GAVE A FIELD LABEL AS THE REASON.** Its three date
+   fields carried no helper of any kind, and typing "6 Sep 2026" left the Save button quiet with
+   **"Period starts"** as its whole explanation. Each field now carries the date back in words while
+   it is right ("6 Sep 2026") and the format while it is not, and the refusal is a sentence.
+   **And the editor threw away what was being typed:** the re-seed effect depended on the row OBJECT,
+   which `useQuery` re-parses from JSON on every refetch — so a background read while the sheet was
+   open put the server's values back over a half-typed price. It re-seeds on the row's **id**.
+8. **A PROMISE ABOUT A DAY EIGHT YEARS GONE.** "Trial ends 25 Jan 2018" on two of the three demo
+   distributorships (seed rot, recorded in docs/23 §10) reads "Trial ended" when the date has passed.
+   The platform kill switch also now says the truth about itself: nothing in the console puts a locked
+   login back.
+
+**What was proved, not assumed.** **Onboarding, the only procedure in the product that creates a
+distributorship**: legal name → handle derived (`frontgate-traders-333914`), GSTIN checked here before
+it is sent (a bad checksum is refused, a good one reads out **"The GSTIN says Karnataka"** and sets
+the state), then `POST /admin/tenants` **200** and a handover panel with the owner's username, the
+temporary password and the handle — the tenant, its chart of accounts, its owner login and a trial
+with a correct 2026-10-07 date, in one call. **Support access end to end**: pass minted on
+auth-service, two reads on **:3001** answered 200 as the owner, a write refused **403** ("this
+support window is read-only: the distributor approved a look, not a change"), the same pass refused
+**403** on :3007 itself, and one `platform_audit` row per call in the panel underneath. **Role
+boundary**: `sunil.tarsun` (a distributor's owner) is refused at `/auth/platform/login` with **403**,
+the screen says "This account is not a Distribution OS console account. Sign in at your distributor
+app instead.", and **not one request reaches :3007**. **Honesty**: with :3007 blocked and auth alive,
+every register reads "Not loaded" in its header and "No connection. This is not the current picture."
+in its body — never a stale count under a fresh-looking heading.
+
+**Android**: a real `expo run:android` debug build (`in.distributionos.admin`) on `Pixel_7_API_36`,
+signed in, walked to Platform, Distributors and Support access — the console's own mark and name in
+the header, the register as cards in field density, "0 support requests waiting for an owner" and
+"Showing 13" agreeing with the web. **iOS**: renders in Expo Go on the iPhone 16 Pro / iOS 18.0
+simulator, driven headlessly (`xcrun simctl openurl … exp://127.0.0.1:8081`, `xcrun simctl io booted
+screenshot`). `expo run:ios` is still an **environment** failure, unchanged from the six gates before
+this one and captured verbatim this time: `xcodebuild` error 70, *"Ineligible destinations … error:
+iOS 18.2 is not installed. To use with Xcode, first download and install the platform"* — Xcode 16.2
+ships the 18.2 SDK and only the 18.0 runtime is installed. Not a code defect; recorded, not worked
+around.
+
+**One thing the gate had to put back.** At **21:04:27** during this pass a single
+`admin.subscriptions.upsert` moved the PILOT's own subscription from `pro`/`active` to
+`starter`/`trialing` with a trial ending 2026-12-06. It came from a signed-in `dos.admin` session
+(the emulator and a browser tab were both live while the Android build was relaunching); nothing in
+the app writes without a press, proved by a cold `force-stop` + relaunch that wrote nothing. The row
+is **restored** — Pro · Active · ₹4,999.00 · 25 seats · no trial · "Pilot customer, Kalyan West." —
+and all three demo distributorships are `active`. Anyone driving the emulator by hand should know a
+tap on that sheet is a real write.
+
+**Backend gaps this gate found (recorded in docs/23 §10, items 11–15, not worked around).**
+
+(11) `admin.subscriptions.list` carries `tenantId` and no name and `tenants.list` has no `ids` filter,
+so the Subscriptions register reads the name one call per row — **104 requests to open the screen**.
+(12) `support.list`'s `openOnly` and `status` do not mean what a console reader means (defects 1–2).
+(13) `audit.list` carries `tenantSlug` but no `tenantName` and `actorRole` but no `actorName`, so the
+audit register names a handle and a level. (14) `admin.users` can disable a login and nothing in the
+product enables one. (15) `tenancy.me` through a valid support pass answers 401 "No active membership
+for this tenant". Plus a data item: two demo subscriptions carry a 2018 trial end an idempotent
+`db:seed` can never correct.
+
+**Local links.** Admin console <http://127.0.0.1:5179> (`pnpm --filter @dos/admin-app web` in
+`frontend/`) against auth-service :3000, admin-service :3007 and — only through an owner-approved
+window — owner-service :3001. Sign in **`dos.admin`** / `Dos@1234` (super) or **`dos.support`** /
+`Dos@1234` (asks for windows; holds no membership either). Retailer app
+<http://127.0.0.1:5178> (`ramesh.gupta`), delivery <http://127.0.0.1:5177> (`ganesh.more`), warehouse
+<http://127.0.0.1:5176> (`dinesh.patil`), sales <http://127.0.0.1:5175> (`rahul.deshmukh`), manager
+<http://127.0.0.1:5174> (`vikas.kadam`, `meena.joshi`), owner <http://127.0.0.1:5173>
+(`sunil.tarsun`) — every password `Dos@1234`.
+
+**NEXT: the final end-to-end gate across all seven apps**, then the one backend slice that closes
+docs/23 §10 items 1–15 together (a contract change mid-chain would have broken a running gate).
+
+---
+
+
 ## RESUME HERE (updated 2026-09-07 17:45 IST, session 4)
 
 **FRONTEND SLICE 7 `retailer-app` GATED AND GREEN (2026-09-07 17:45 IST) — web at both shells, a
@@ -1934,7 +2059,7 @@ skeleton first: `cd frontend && pnpm --filter @dos/app-template new <role>` then
 | warehouse    | http://localhost:5176 | `pnpm --filter @dos/warehouse-app web` | :3004   | `dinesh.patil`            | ✅ gated green (2026-09-07)                      |
 | delivery     | http://localhost:5177 | `pnpm --filter @dos/delivery-app web`  | :3005   | `ganesh.more`             | ✅ gated green (2026-09-07)                      |
 | retailer     | http://localhost:5178 | `pnpm --filter @dos/retailer-app web`  | :3006   | `ramesh.gupta`            | ✅ gated green (2026-09-07 17:45, web + Android) |
-| admin        | http://localhost:5179 | `pnpm --filter @dos/admin-app web`     | :3007   | `dos.admin`               | ⏳ placeholder package — NEXT                    |
+| admin        | http://localhost:5179 | `pnpm --filter @dos/admin-app web`     | :3007   | `dos.admin`               | ✅ gated green (2026-09-07 21:20, web + Android) |
 
 `… ios` and `… android` run the same app on a simulator or a device. The kit's gallery (every component,
 every state) is `pnpm --filter @dos/ui gallery` → http://localhost:5199.

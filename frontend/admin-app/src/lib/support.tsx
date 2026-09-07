@@ -33,7 +33,7 @@ import {
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
 import type { AdminSupportGrant, SupportScope } from '@dos/contracts'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Field, Note, Panel, askLapsed, grantFamily } from './ui'
 import { instantWithClock, untilInstant } from './dates'
@@ -235,15 +235,26 @@ export function InsidePanel({
    * 401 "No active membership for this tenant" through a perfectly valid pass. Recorded as an open
    * point; the pass is not the problem, the question is.
    */
-  const openWindow = useMutation(async (grantId: string) => {
-    const pass = await api.supportPass(grantId)
-    const inside = api.openTenant(pass.pass)
-    const [branding, numbering] = await Promise.all([
-      inside.tenancy.branding.get(),
-      inside.tenancy.numbering.list({}),
-    ])
-    return { pass, branding, numbering }
-  })
+  const openWindow = useMutation(
+    async (grantId: string) => {
+      const pass = await api.supportPass(grantId)
+      const inside = api.openTenant(pass.pass)
+      const [branding, numbering] = await Promise.all([
+        inside.tenancy.branding.get(),
+        inside.tenancy.numbering.list({}),
+      ])
+      return { pass, branding, numbering }
+    },
+    {
+      /*
+       * The two reads below write two `platform_audit` rows, and the panel under them exists to show
+       * exactly those rows. Without this the list served its 30-second cache and topped out at the
+       * PREVIOUS window's reads — measured: rows written at 20:05:43 under a list whose newest entry
+       * was 18:35, on a panel headed "What we have read under this window".
+       */
+      invalidates: [['admin', 'audit']],
+    },
+  )
 
   /**
    * What has been read under THIS window, from the platform's own audit trail.
@@ -264,6 +275,35 @@ export function InsidePanel({
       }),
     { enabled: live !== null },
   )
+
+  /*
+   * AND ONCE MORE, A MOMENT LATER.
+   *
+   * `SupportAuditInterceptor` writes its row AFTER the answer is on the wire — deliberately, and its
+   * own comment says a spec asserting on the row has to poll for it rather than assume it is there
+   * when the reply arrives. So the invalidation above, which fires the instant the two reads resolve,
+   * races the very rows it is fetching: measured, two rows written at 20:50:28 were still missing
+   * from a list refetched (200) at 20:50:28. This panel claims "Every call is in the audit trail", so
+   * it asks again once the row can have landed instead of showing a list that quietly proves it
+   * wrong.
+   */
+  const openedAt = openWindow.data?.pass.expiresAt
+  /*
+   * `reads` is a fresh object on every render and `reads.refetch` is NOT — `useQuery` memoises it on
+   * the key. Depending on the object would clear and re-arm these timers on every render, so they
+   * would never fire at all.
+   */
+  const refetchReads = reads.refetch
+  useEffect(() => {
+    if (openedAt === undefined) return
+    const timers = [
+      setTimeout(() => void refetchReads(), 1_200),
+      setTimeout(() => void refetchReads(), 4_000),
+    ]
+    return () => {
+      for (const timer of timers) clearTimeout(timer)
+    }
+  }, [openedAt, refetchReads])
 
   const revoke = useMutation(
     (grantId: string) =>
@@ -350,7 +390,15 @@ export function InsidePanel({
                     ))}
                   </Stack>
                 </Field>
-                <Field label={t('p6.expires')}>{instantWithClock(opened.pass.expiresAt)}</Field>
+                {/*
+                  NOT `p6.expires` ("Closes"). The five-minute PASS and the owner's WINDOW are two
+                  different clocks, and this block sits directly under a chip reading "A window is
+                  open until 10:30 pm" — measured, the same word then said 8:10 pm underneath it,
+                  and nothing on screen said which one shut when.
+                */}
+                <Field label={t('p4.insidePassCloses')}>
+                  {instantWithClock(opened.pass.expiresAt)}
+                </Field>
                 <Txt field="label" desk="meta" color={colors.text.secondary}>
                   {live.scope === 'read_only' ? t('p4.insideReadOnlyNote') : t('word.read_write')}
                 </Txt>

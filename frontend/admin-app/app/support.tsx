@@ -27,7 +27,7 @@ import {
   type RegisterColumn,
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
-import type { AdminSupportGrant, SupportGrantStatus } from '@dos/contracts'
+import type { AdminSupportGrant } from '@dos/contracts'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
@@ -46,7 +46,28 @@ import {
 import { instantWithClock, untilInstant } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
-type View = 'open' | 'all' | SupportGrantStatus
+/**
+ * The four faces this register has, and why three of them are read HERE and not on the wire.
+ *
+ * `admin.support.list` offers `openOnly` and `status`, and neither means what a console reader
+ * means. `openOnly()` on the server is "not revoked AND (not yet approved OR not yet expired)" —
+ * which is every ask nobody ever answered, for ever. Measured on the founder's database, the default
+ * view headed **"Open now" listed 100 rows of which exactly one was open**; the other 99 were asks
+ * that ran out of their own hours days ago. `status: 'requested'` has the same hole from the other
+ * side: a lapsed ask still reads `requested` on the wire and can never be opened again (the owner
+ * gets 409 `request_expired`), so a segment labelled "Waiting for their owner" showed 100 rows with
+ * nobody waiting on any of them.
+ *
+ * `active` (the server's own field: approved, unexpired, unrevoked) and `askLapsed()` (the window
+ * counted from `requestedAt`, the same rule the distributorship panel uses) are the two facts that
+ * decide it, so the page is fetched by the nearest wire filter and read by these. A filtered page is
+ * honest about itself: the header counts what is on screen.
+ *
+ * THREE views, not four: `<Segments>` renders `items.slice(0, 3)` in both renderers, because UX-00
+ * §6.10 draws a segmented control with two or three options. A lapsed ask is therefore read under
+ * "All", where its own chip says "Lapsed, no answer" and its panel says why.
+ */
+type View = 'open' | 'waiting' | 'all'
 
 export default function Support(): React.JSX.Element {
   const t = useStrings()
@@ -63,11 +84,17 @@ export default function Support(): React.JSX.Element {
     api.api.admin.support.list({
       limit: 100,
       ...(view === 'open' ? { openOnly: true } : {}),
-      ...(view === 'open' || view === 'all' ? {} : { status: view }),
+      ...(view === 'waiting' ? { status: 'requested' } : {}),
     }),
   )
 
-  const rows = grants.data?.items ?? []
+  const page = grants.data?.items ?? []
+  const rows =
+    view === 'open'
+      ? page.filter((row) => row.active)
+      : view === 'waiting'
+        ? page.filter((row) => row.status === 'requested' && !askLapsed(row))
+        : page
   const current = rows.find((row) => row.id === selected) ?? null
 
   const revoke = useMutation(
@@ -168,7 +195,7 @@ export default function Support(): React.JSX.Element {
           }}
           items={[
             { id: 'open', label: t('p6.onlyOpen') },
-            { id: 'requested', label: t('word.requested') },
+            { id: 'waiting', label: t('word.requested') },
             { id: 'all', label: t('app.all') },
           ]}
         />
@@ -181,7 +208,13 @@ export default function Support(): React.JSX.Element {
             frozen="tenant"
             state="ready"
             selectedKey={selected}
-            emptyMessage={t('p6.empty')}
+            emptyMessage={
+              view === 'open'
+                ? t('p6.emptyOpen')
+                : view === 'waiting'
+                  ? t('p6.emptyWaiting')
+                  : t('p6.empty')
+            }
             onSelect={(row) => {
               setSelected(row.id)
             }}

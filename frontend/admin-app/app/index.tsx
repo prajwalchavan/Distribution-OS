@@ -29,7 +29,7 @@ import {
   type Series,
 } from '@dos/ui'
 
-import { Async, Columns, Half, Note, Panel, ReloadButton } from '../src/lib/ui'
+import { Async, Columns, Half, Note, Panel, ReloadButton, askLapsed } from '../src/lib/ui'
 import { formatBytes, shortDate } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
@@ -41,16 +41,21 @@ function count(value: number | null | undefined): string {
 }
 
 /**
- * How many rows a paged list has, said honestly. A cursor list has no total, so a full page prints
- * "50+" rather than pretending 50 is the answer — the same rule the warehouse home strip settled on.
+ * How many rows of a paged list belong on the work list, said honestly.
+ *
+ * A cursor list has no total, so a page that came back FULL and still has a cursor prints "50+"
+ * rather than pretending 50 is the answer — the same rule the warehouse home strip settled on. When
+ * `keep` throws rows away the "+" goes with them: a page of 200 that yields 3 is 3, not "3+", and
+ * only a page where every row survived can have more behind it.
  */
-function pageCount(list: { items: readonly unknown[]; nextCursor: string | null } | undefined): {
-  label: string
-  value: number
-} {
+function pageCount<Row>(
+  list: { items: readonly Row[]; nextCursor: string | null } | undefined,
+  keep: (row: Row) => boolean = () => true,
+): { label: string; value: number } {
   if (list === undefined) return { label: '—', value: 0 }
-  const n = list.items.length
-  return { label: `${n.toLocaleString('en-IN')}${list.nextCursor === null ? '' : '+'}`, value: n }
+  const n = list.items.filter(keep).length
+  const more = list.nextCursor !== null && n === list.items.length
+  return { label: `${n.toLocaleString('en-IN')}${more ? '+' : ''}`, value: n }
 }
 
 export default function Platform(): React.JSX.Element {
@@ -122,8 +127,23 @@ export default function Platform(): React.JSX.Element {
 
   const due = pageCount(pastDue.data)
   const ending = pageCount(endingSoon.data)
-  const asked = pageCount(waiting.data)
-  const nothingWaiting = due.value + ending.value + asked.value === 0
+  /*
+   * ONLY the asks somebody can still answer. `status: 'requested'` is what the wire calls an ask
+   * nobody decided — including one whose own hours ran out days ago, which their owner can no longer
+   * open (409 `request_expired`). Measured on the founder's database: this chip read "200+ support
+   * requests waiting for an owner" and NOT ONE of the two hundred was still openable, on the panel
+   * whose whole job is to say what the console should do today. `askLapsed()` is the same rule the
+   * Support register and the distributorship panel read by.
+   */
+  const asked = pageCount(waiting.data, (row) => !askLapsed(row))
+  const readFailed =
+    pastDue.error !== undefined || endingSoon.error !== undefined || waiting.error !== undefined
+  /*
+   * "Nothing waiting" is a claim about the platform, and three failed reads are not that claim —
+   * they are three zeroes with nothing behind them. Measured with admin-service blocked: the panel
+   * said "Nothing waiting" over its own "No connection" message.
+   */
+  const nothingWaiting = !readFailed && due.value + ending.value + asked.value === 0
 
   return (
     <Screen

@@ -13,7 +13,7 @@ import { usePlatformApi, usePlatformSession, useMutation, useQuery } from '@dos/
 import { Button, Row, Screen, Stack, StatusChip, Txt, useColors, useStrings } from '@dos/ui'
 import { useRouter } from 'expo-router'
 
-import { Async, Field, Note, Panel } from '../src/lib/ui'
+import { Async, Field, Note, Panel, deviceLabel } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { APP } from '../src/config'
 
@@ -77,13 +77,15 @@ export default function Account(): React.JSX.Element {
                   <Stack gap={1} grow>
                     <Row gap={2} align="center" wrap>
                       {/*
-                        NOT the device id. `auth_sessions.device_name` is optional — a script, an
-                        API console or an older build signs in without one — and the id is a uuid,
-                        which is not a name a person can act on. The times below tell two unnamed
-                        devices apart, which is the actual question on this screen.
+                        NOT the device id, and NOT the raw user agent either. `device_name` is
+                        optional — a script, an API console or an older build signs in without one —
+                        and what a BROWSER stores is 120 characters of `Mozilla/5.0 (Macintosh; …`,
+                        cut mid-token. Neither is a name a person can act on; `deviceLabel()` reads
+                        "Chrome on Mac" out of it, and the times below tell two unnamed devices
+                        apart, which is the actual question on this screen.
                       */}
                       <Txt field="bodyStrong" desk="body" numberOfLines={1}>
-                        {device.deviceName ?? t('p9.unnamedDevice')}
+                        {deviceLabel(device.deviceName, t('p9.unnamedDevice'))}
                       </Txt>
                       {device.current ? (
                         <StatusChip label={t('p9.thisDevice')} family="moss" />

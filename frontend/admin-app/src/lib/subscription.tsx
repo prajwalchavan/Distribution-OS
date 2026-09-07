@@ -26,10 +26,10 @@ import {
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
 import type { BillingInterval, Subscription, SubscriptionStatus, TenantPlan } from '@dos/contracts'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Note } from './ui'
-import { shiftDays, today } from './dates'
+import { longDate, shiftDays, today } from './dates'
 
 const PLANS: readonly TenantPlan[] = ['pilot', 'starter', 'growth', 'standard', 'pro']
 const STATUSES: readonly SubscriptionStatus[] = [
@@ -76,22 +76,33 @@ export function SubscriptionEditor({
 
   /*
    * The sheet is mounted for the life of the page and opened per row, so the row it is editing can
-   * change under it. Re-seeding on open — never on every render — is what keeps a half-typed price
-   * from being thrown away while the sheet is still up.
+   * change under it — and re-seeding on OPEN, never on every render, is what keeps a half-typed
+   * price from being thrown away while the sheet is still up.
+   *
+   * Which is why the trigger is the row's ID and not the row OBJECT. `useQuery` hands back a value
+   * parsed from JSON, so every refetch — the 30-second staleness, any invalidation this screen or
+   * another mutation fires — is a NEW object for the same subscription. With `current` in the deps
+   * the effect ran on each of those and put the server's values back over whatever the console had
+   * typed, mid-edit, with the sheet open. The id changes only when the sheet is genuinely pointed at
+   * a different subscription, which is the one moment re-seeding is right.
    */
+  const rowId = current?.id ?? null
+  const seed = useRef(current)
+  seed.current = current
   useEffect(() => {
     if (!open) return
-    setId(current?.id ?? uuidv7())
-    setPlan(current?.plan ?? 'starter')
-    setStatus(current?.status ?? 'trialing')
-    setAmountPaise(current?.amountPaise ?? 0)
-    setInterval(current?.billingInterval ?? 'monthly')
-    setSeats(current?.seats === null || current?.seats === undefined ? '' : String(current.seats))
-    setPeriodStart(current?.currentPeriodStart ?? today())
-    setPeriodEnd(current?.currentPeriodEnd ?? shiftDays(today(), 30))
-    setTrialEnd(current?.trialEndDate ?? '')
-    setNote(current?.note ?? '')
-  }, [open, current])
+    const row = seed.current
+    setId(row?.id ?? uuidv7())
+    setPlan(row?.plan ?? 'starter')
+    setStatus(row?.status ?? 'trialing')
+    setAmountPaise(row?.amountPaise ?? 0)
+    setInterval(row?.billingInterval ?? 'monthly')
+    setSeats(row?.seats === null || row?.seats === undefined ? '' : String(row.seats))
+    setPeriodStart(row?.currentPeriodStart ?? today())
+    setPeriodEnd(row?.currentPeriodEnd ?? shiftDays(today(), 30))
+    setTrialEnd(row?.trialEndDate ?? '')
+    setNote(row?.note ?? '')
+  }, [open, rowId])
 
   const save = useMutation(
     (_input: string, meta) =>
@@ -123,12 +134,26 @@ export function SubscriptionEditor({
   )
 
   const dateLooksWrong = (value: string): boolean => !/^\d{4}-\d{2}-\d{2}$/.test(value)
+  /*
+   * A field carries the date back in WORDS while it is right, and the format while it is not — the
+   * three date fields had no helper at all, and a console typing "6 Sep 2026" got a Save button that
+   * had gone quiet with the field's own LABEL as its reason ("Period starts", measured). A reason a
+   * button is refusing is a sentence, and a date on this screen reads "6 Sep 2026" everywhere else.
+   */
+  const dateHelp = (value: string, optional = false): string =>
+    value.trim() === ''
+      ? optional
+        ? t('p5.dateOptional')
+        : t('p5.dateFormat')
+      : dateLooksWrong(value)
+        ? t('p5.dateFormat')
+        : longDate(value)
   const problem =
-    dateLooksWrong(periodStart) || dateLooksWrong(periodEnd)
-      ? t('p5.periodStart')
-      : trialEnd.trim() !== '' && dateLooksWrong(trialEnd)
-        ? t('p5.trialEnds')
-        : null
+    dateLooksWrong(periodStart) ||
+    dateLooksWrong(periodEnd) ||
+    (trialEnd.trim() !== '' && dateLooksWrong(trialEnd))
+      ? t('p5.dateWrong')
+      : null
 
   return (
     <Sheet
@@ -203,6 +228,7 @@ export function SubscriptionEditor({
           label={t('p5.periodStart')}
           value={periodStart}
           onChange={setPeriodStart}
+          helper={dateHelp(periodStart)}
           maxLength={10}
           testID="subscription-period-start"
         />
@@ -210,6 +236,7 @@ export function SubscriptionEditor({
           label={t('p5.periodEnd')}
           value={periodEnd}
           onChange={setPeriodEnd}
+          helper={dateHelp(periodEnd)}
           maxLength={10}
           testID="subscription-period-end"
         />
@@ -217,6 +244,7 @@ export function SubscriptionEditor({
           label={t('p5.trialEnds')}
           value={trialEnd}
           onChange={setTrialEnd}
+          helper={dateHelp(trialEnd, true)}
           maxLength={10}
           testID="subscription-trial-end"
         />
