@@ -435,7 +435,21 @@ export function TenantLogo({
   const theme = useTheme()
   const [failed, setFailed] = useState(false)
   const displayName = name ?? theme.tenant?.name ?? ''
-  const given = logoUrl ?? theme.tenant?.logoUrl ?? null
+  /*
+   * THE THEME'S LOGO BELONGS TO THE THEME'S TENANT, AND TO NOBODY ELSE.
+   *
+   * `logoUrl` defaults to the tenant on the theme, which is right for the CHROME — the header is the
+   * open distributor. It is wrong the moment a caller names a DIFFERENT distributor: the retailer
+   * app's home screen draws one card per linked distributor, and a shop that buys from three saw the
+   * OPEN distributor's mark over the other two's names (measured on the pilot data: Tarsun's lorry
+   * above "Sai Distributors, Dombivli" and "Kalyan Agencies", both of which have no logo of their
+   * own). That is the white-label rule inverted on the one screen built for it (docs/22 §9 item 10).
+   *
+   * So the theme is inherited only when this mark IS the theme's tenant: no `name` given, or the
+   * same name. A card for someone else with no logo falls back to its own initials.
+   */
+  const ownsTheme = name === undefined || name === theme.tenant?.name
+  const given = logoUrl ?? (ownsTheme ? (theme.tenant?.logoUrl ?? null) : null)
   const url = failed ? null : given
   const box = LOGO_BOX[size]
   return (

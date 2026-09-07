@@ -685,6 +685,39 @@ describe('monogram never renders under the type floor', () => {
       'SD',
     )
   })
+
+  /*
+   * The retailer app's home screen draws one card per linked distributor (docs/23 §6.1 R2), and only
+   * the OPEN one is the theme's tenant. Inheriting the theme's logo for the others put Tarsun's mark
+   * over "Sai Distributors, Dombivli" — the white-label rule inverted on the screen built for it.
+   */
+  it('never wears another distributor’s logo on a card that names someone else', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider
+        touch="field"
+        density="field"
+        tenant={{ name: 'Tarsun Enterprise', logoUrl: 'https://example.test/tarsun.png' }}
+      >
+        <TenantLogo size="card" name="Sai Distributors, Dombivli" logoUrl={null} withName />
+      </ThemeProvider>,
+    )
+    expect(html).not.toContain('tarsun.png')
+    expect(html).toContain('SD')
+    expect(html).toContain('Sai Distributors, Dombivli')
+  })
+
+  it('still inherits the theme’s logo for the open distributor’s own chrome', () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider
+        touch="field"
+        density="field"
+        tenant={{ name: 'Tarsun Enterprise', logoUrl: 'https://example.test/tarsun.png' }}
+      >
+        <TenantLogo size="header" />
+      </ThemeProvider>,
+    )
+    expect(html).toContain('tarsun.png')
+  })
 })
 
 function renderFloor(node: React.ReactNode): string {

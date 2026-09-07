@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Distribution OS - Retailer",
+    "slug": "dos-retailer",
+    "scheme": "dos-retailer",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#F2F2EF",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "in.distributionos.retailer",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "in.distributionos.retailer"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
