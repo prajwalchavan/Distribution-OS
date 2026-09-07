@@ -10,7 +10,7 @@ Distribution OS: a multi-tenant SaaS for Indian FMCG distributors (manufacturer 
 
 ## Session resume protocol
 
-**Standing instruction (founder, 2026-09-05): keep developing until a hard blocker.** When a background module finishes, the same turn verifies it, records it in the build log, and launches the next module. A turn must not end with nothing running while work remains.
+**Standing instruction (founder, 2026-09-05): keep developing until a hard blocker.** When a background module finishes, the same turn verifies it, records it in the build log, and launches the next module. A turn must not end with nothing running while work remains. **Push, do not only commit (founder, 2026-09-07):** the moment an app's gate is green and the build log is updated, commit the snapshot AND `git push origin main`, so the remote always holds every finished piece.
 
 **Autonomy (founder, 2026-09-06).** Restart anything that stops — the workflow chain, a service, the worker, an emulator — and install whatever the build needs, without asking; say in one line afterwards what was restarted or installed. Still ask for: anything needing the founder's password (`sudo`, an Apple ID sign-in), anything destructive, and product or architecture decisions.
 

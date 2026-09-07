@@ -250,6 +250,7 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | 2026-09-05 | **Typeface: IBM Plex Sans** for all seven apps (tabular digits at every weight, ₹ glyph, Devanagari sibling with the same digit advance for when Hindi arrives). The last open design token is closed. |
 | 2026-09-05 | **Languages: English only for the pilot.** Hindi (and Marathi if the market asks) comes before the second customer. The strings module keeps its locale structure from day one so adding a language is a translation job, never a rewrite. |
 | 2026-09-05 | **AI keys: stub drivers for now.** docint and the `ai` module run on the deterministic engine; `ANTHROPIC_API_KEY` is added to `backend/.env` whenever the founder wants a real bill photo read. Nothing in the build waits on it. |
+| 2026-09-07 | **Every finished app is pushed, not just committed.** The moment an app's gate is green and the build log is updated, the snapshot is committed AND `git push origin main` runs; the same for the backend, which is already fully pushed. The founder wants the remote to always hold every completed piece, so a dead laptop costs nothing. | frontend chain: commit + push per app slice; CLAUDE.md session protocol |
 
 ## 9. Non-negotiables (never list)
 
@@ -299,3 +300,4 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 | 2026-09-06 | §2 device column, §8 and §9: every app is website + Android + iOS from one Expo codebase with a renderer swap at the `@dos/ui` boundary (Fable, as architect). docs/08 carries the design; the frontend chain restarts on it | Founder: "support website, application on Android, iOS for all … keep from now on" |
 | 2026-09-06 | §8: offline client design (docs/27) and the platform decisions table (docs/08 §0) — architect session before handing the build to Opus | Founder: "complete all pending works of Fable before notifying me to switch" |
 | 2026-09-06 | §8: autonomy grant recorded | Founder: "if anything in background is stopped … restart it on your own … install anything … blocker you can fix it" |
+| 2026-09-07 | §8: every completed app is pushed to `origin/main` as soon as its gate is green, not only committed | Founder: "make sure to push code of all done BE and FE to git / After Each App is done push it" |
