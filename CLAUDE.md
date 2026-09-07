@@ -10,7 +10,11 @@ Distribution OS: a multi-tenant SaaS for Indian FMCG distributors (manufacturer 
 
 ## Session resume protocol
 
-**Standing instruction (founder, 2026-09-05): keep developing until a hard blocker.** When a background module finishes, the same turn verifies it, records it in the build log, and launches the next module. A turn must not end with nothing running while backend modules remain.
+**Standing instruction (founder, 2026-09-05): keep developing until a hard blocker.** When a background module finishes, the same turn verifies it, records it in the build log, and launches the next module. A turn must not end with nothing running while work remains.
+
+**Autonomy (founder, 2026-09-06).** Restart anything that stops — the workflow chain, a service, the worker, an emulator — and install whatever the build needs, without asking; say in one line afterwards what was restarted or installed. Still ask for: anything needing the founder's password (`sudo`, an Apple ID sign-in), anything destructive, and product or architecture decisions.
+
+**Where the build is (2026-09-07).** The backend is COMPLETE and verified: 23 modules, eight services, 139 tables, 34 migrations, ~2 400 tests, `pnpm smoke` 1 588 calls with 0 broken. The frontend is mid-chain: the kit, the universal layer, the offline client, and the owner, manager, sales and warehouse apps are green; delivery, retailer and admin remain, then a final end-to-end gate. The chain is a background Workflow (`scratchpad/dos-frontend.js`, resumed with its run id); each slice is implement → independent gate, and the gate walks every screen in a browser, on the Android emulator and headlessly on iOS.
 
 The founder works in sessions that end when tokens run out. Every session: (1) read `docs/22-source-of-truth.md`, then `docs/18-build-log.md` "RESUME HERE" and do exactly that first; (2) work one module at a time to "stable" = backend procedures + DB-backed spec + service wiring (`backend/<role>-service/src/service.ts`) + regenerated READMEs (`pnpm docs:readme`) + app screen + demo data + scale rules (`docs/20`) + build-log row; (3) delegate mechanical slices to Sonnet subagents with the brief pattern in `docs/16` (they never edit `contract.ts` / `index.ts` / `app.module.ts` permanently — the main session wires); (4) before the session ends, update the build log's RESUME HERE and status table, run `pnpm format`, and `git commit` the snapshot (if the tool refuses to commit, `git add -A` and hand the founder the one-line `git commit … && git push origin main` command); (5) end the reply with the local links from the build log and the sign-in ids. The product requirement right now (founder, 2026-09-04): **backend first, production grade on the local database** — our own username + password auth service issuing tokens (OTP later), a per-endpoint permission matrix, every endpoint of every service built and tested, demo data for **three distributors, staff under each, and shops linked to more than one distributor**; then the six apps one at a time, each against its own service; built for lakhs of users from day one (docs/20); deployment later.
 
@@ -60,8 +64,16 @@ pnpm --filter @dos/warehouse-service dev  # :3004  warehouse
 pnpm --filter @dos/delivery-service dev   # :3005  delivery
 pnpm --filter @dos/retailer-service dev   # :3006  retailer
 pnpm --filter @dos/worker dev             # pg-boss worker: outbox relay (registered handlers per event), retention sweep, PDF renderer (documents.pdf.render), docint pipeline
-cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173 (each app has its own port 5173-5179); `expo run:ios` / `run:android` for devices
+cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173; manager 5174, sales 5175, warehouse 5176, delivery 5177,
+                                                    # retailer 5178, admin 5179. `expo run:ios` / `expo run:android` build the device app
+                                                    # (the emulator is `Pixel_7_API_36`); `pnpm --filter @dos/<role>-app export:web` for a static build
 ```
+
+Frontend checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (kit + client + offline specs), `pnpm build` (every app runs
+`expo export --platform web`), `pnpm format:check` — all from inside `frontend/`. `pnpm --filter @dos/ui test` alone is the fastest
+loop while working on a component. A screen change needs no rebuild of the kit; a kit change does (`pnpm --filter @dos/ui build`)
+only for the packages that consume `dist/`, which today is nothing in the frontend — the apps consume its `src` through the
+platform-resolved entry points.
 
 `pnpm dev` in a workspace runs every `dev` task through turbo. Libraries (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) are consumed from `dist/`: after editing one, `pnpm --filter <pkg> build` (or keep `pnpm dev` running) or the services and the frontend will not see the change. Ports: `<NAME>_SERVICE_PORT` overrides a service's default; never set a global `PORT` in `.env`.
 
@@ -75,7 +87,6 @@ cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173
   at the Command Line Tools, only the founder can change it back (`sudo xcode-select -s`).
   **Never open the iOS simulator panel in the Claude app** (founder, 2026-09-06): drive the simulator headlessly with
   `xcrun simctl` and take screenshots with `xcrun simctl io booted screenshot <file>`.
-  Android: SDK in `~/Library/Android/sdk`, JDK from Android Studio's bundled runtime, emulator `Pixel_7_API_36`.
   Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
   Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
   (API 36 arm64). Any shell that builds or runs Android needs:
@@ -112,13 +123,17 @@ frontend/libs/{ui,api-client,offline}   @dos/ui = A Ledger design system: ONE co
                               (src/web = React DOM, src/native = React Native) and resolved per platform by Metro (index.web.ts /
                               index.native.ts) + layout primitives + AppShell + platform modules; typed oRPC client with session,
                               refresh, cache hooks; our own delta-sync client (SQLite) — no PowerSync, no TanStack Query.
+frontend/libs/app-template    the skeleton every app is generated from (expo-router app/, metro/babel/tsconfig/eslint, the font sync
+                              script, `new-app.mjs`). Change the shape of an app here, not in seven places.
 frontend/<role>-app           owner, manager, sales, warehouse, delivery, retailer, admin: SEVEN UNIVERSAL Expo apps (expo-router),
                               website + Android + iOS from one codebase each. Screens import ONLY @dos/ui (never react-native or
-                              react-dom; ESLint enforces). `pnpm --filter @dos/<role>-app web` serves the browser build; EXPO_PUBLIC_API_URL.
+                              react-dom; ESLint enforces). `pnpm --filter @dos/<role>-app web` serves the browser build; each app
+                              carries its own EXPO_PUBLIC_API_URL, strings namespace and navigation data.
 docs/                         22 source of truth · 18 build log · 23 screen inventory + API gaps · 24 Confluence audit · 25 phase-2
                               enhancements · 26 environments, config and least-cost deployment · 27 offline sync client design (binding for @dos/offline) · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
                               Confluence space, README maps page ids; docs/22 wins) · design/ (UX-00 design system on layout A Ledger,
-                              layout-options.html) · adr/, domain/, research/, blueprint 00–21.
+                              layout-options.html) · adr/, domain/, research/, blueprint 00–21. docs/08 §0 is the universal-app architecture;
+                              docs/27 is binding for the offline client.
 ```
 
 - Backend modules talk only through exported application services or outbox events, never another module's tables (`eslint-plugin-boundaries` enforces the `index.ts` entry point). Cross-module FKs in the schema point only downstream: tenancy → platform/identity → catalog → tenant-catalog → retailers → pricing → inventory → orders → procurement → warehouse → billing → receivables → delivery → docint → claims → notifications → reporting → integrations → incentives; an upstream reference is a plain `text` id with a comment.
@@ -144,7 +159,9 @@ docs/                         22 source of truth · 18 build log · 23 screen in
 - **Decorator metadata.** esbuild-based runners (tsx, vitest's default transform) never emit `design:paramtypes`, so Nest DI silently injects `undefined`. Core and the services run dev via `@swc-node/register` and tests via `unplugin-swc`; tsx is fine for decorator-free scripts (database migrate/seed, worker).
 - **Documents and files.** `@dos/core/documents` renders invoice / credit note / challan / receipt PDFs (own dependency-free renderer, white-labelled from `tenant_settings` branding keys) in the worker job `documents.pdf.render`, stores them under `tenant/{tenantId}/documents/…` and exposes `pdfObjectKey`; `modules/files` issues signed upload/read URLs over the object-storage platform with a per-domain role check. Never link a raw object key to a client.
 - **Roles beyond the seven.** `platform_admin` (module 13) is a global actor with no membership, accepted only by `admin-service`; support access to a tenant is a time-boxed, owner-approved, audited grant. Accountant = money desk + reads (no prices, schemes, credit limits, approvals, settings). Manager approves load-out from the manager app; the warehouse device waits for it.
-- **Universal apps (decided 2026-09-06, docs/08 §0).** Every app is one Expo codebase for web + Android + iOS. Screens use only the `@dos/ui` contract; the desk shell or phone shell is chosen by viewport, not by app; platform differences live in `@dos/ui/platform` `.web.ts`/`.native.ts` pairs; the Expo SDK dictates the react/react-native versions in the frontend catalog. Money via `<Money>`/`<RupeeInput>` (paise in, paise out); `useSession()` from `@dos/api-client/react`.
+- **Universal apps (decided 2026-09-06, docs/08 §0).** Every app is one Expo codebase (expo-router) for web + Android + iOS. A screen imports ONLY `@dos/ui` and never `react-native` or `react-dom` — ESLint fails the build otherwise — and Metro picks the renderer through the package's own entry points (`src/index.web.ts` → `./web`, a real DOM with HTML tables and print; `src/index.native.ts` → `./native`). The layout vocabulary a screen may use is fixed: `Screen`, `Box`, `Stack`, `Row`, `Scroll`, `List`, `Pressable`, `Img`, `Link`, `Txt`. `AppShell` renders the desk rail at ≥ 1024 px and the phone tabs below, from the same navigation data, so the shell follows the VIEWPORT, not the app. Anything genuinely platform-specific lives in `@dos/ui/platform` as a `.web.ts` / `.native.ts` pair behind one signature (storage, documents/print, camera, location, files, haptics, share, crypto). The Expo SDK dictates the react / react-native versions in the frontend catalog; never pin those by hand. New app: `pnpm --filter @dos/app-template new <role> <port>`.
+- **Frontend data flow.** `@dos/api-client` is the only caller of the backend: a typed oRPC client over `@dos/contracts` with the access token in memory, the refresh token in `platform.storage`, one transparent refresh per 401, a 20 s deadline on every request, typed errors, and a UUIDv7 `id` + `idempotencyKey` per mutation keyed on the INPUT (a different payload starts a new intent, the same payload keeps its key). Its React layer gives `<ApiProvider>`, `useSession()`, `useQuery()` and `useMutation()` — there is no TanStack Query and no Zustand. `@dos/offline` (docs/27) is the device half for the field apps: SQLite tables built from `sync.manifest`, a cursor pull that applies tombstones before rows, an outbox that replays FIFO with the original `opId`, LWW with the server's veto, and a status object that `<ConnectionStrip>` renders honestly (including "not saved on this browser" when it falls back to the memory adapter). Screens never write SQL and never call `sync.*` directly.
+- **Permissions on the device.** A route declares the contract procedures it needs; the shell hides what `PERMISSIONS` (the same matrix the server enforces, linked from `@dos/contracts`) refuses for the signed-in role. The server still answers 403 — the app never carries a second permission list.
 
 ## Things that look wrong but are intentional
 
