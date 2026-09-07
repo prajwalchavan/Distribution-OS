@@ -156,7 +156,13 @@ export default function StopScreen(): React.JSX.Element {
   return (
     <Screen
       title={shop?.name ?? t('d3.title')}
-      context={`${t('d.stopOf', { index: stop.sequence, total: siblings.rows.length })}${
+      /*
+       * "Stop 3 of 6", never "Stop 3 of 3": how many stops the trip has is the TRIP's own figure.
+       * Counting the sibling rows counts what has landed on the phone so far, which during the first
+       * pull is a smaller number — and "of 3" on a six-stop day is a driver being told they are
+       * nearly finished.
+       */
+      context={`${t('d.stopOf', { index: stop.sequence, total: Math.max(trip?.planned_stops ?? 0, siblings.rows.length) })}${
         trip?.trip_no === null || trip?.trip_no === undefined ? '' : ` · ${trip.trip_no}`
       }`}
       chips={

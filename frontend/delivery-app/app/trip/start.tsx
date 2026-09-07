@@ -38,8 +38,8 @@ import { useState } from 'react'
 import { GPS_NOTICE_VERSION } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { deviceId } from '../../src/api'
-import { pickCurrentTrip, useLocalTrips } from '../../src/lib/local'
-import { Async, Field, Panel } from '../../src/lib/ui'
+import { pickCurrentTrip, useHydrated, useLocalTrips } from '../../src/lib/local'
+import { Async, Field, FillingNote, Panel } from '../../src/lib/ui'
 
 export default function StartTrip(): React.JSX.Element {
   const t = useStrings()
@@ -59,6 +59,7 @@ export default function StartTrip(): React.JSX.Element {
    */
   const params = useLocalSearchParams<{ tripId?: string }>()
   const asked = typeof params.tripId === 'string' ? params.tripId : null
+  const hydrated = useHydrated()
   const local = useLocalTrips()
   const localTrip = local.rows.find((one) => one.id === asked) ?? pickCurrentTrip(local.rows)
   const tripId = localTrip?.id ?? null
@@ -146,7 +147,16 @@ export default function StartTrip(): React.JSX.Element {
   const odometerKm = odometer.trim() === '' ? null : Number.parseInt(odometer.trim(), 10)
   const odometerBad = odometer.trim() !== '' && (odometerKm === null || Number.isNaN(odometerKm))
   const state = detail?.state ?? localTrip?.state ?? 'planned'
-  const canDepart = granted && state === 'loading'
+  /*
+   * A GUESSED TRIP IS NEVER DEPARTED. With no `tripId` in the route this screen picks the trip out of
+   * whatever the device holds, and until the first pull finishes that is a subset — measured in the
+   * gate: `/` named TRIP-NEXT and this screen named TRIP-ACTIVE, with a live "Start the trip" under
+   * it. `depart` dispatches every undispatched bill on the trip and turns tracking on; it is not a
+   * thing to do to the wrong trip. Departing needs a signal anyway, so waiting for the pull that the
+   * same signal is already running costs a driver nothing.
+   */
+  const provisional = !hydrated && asked === null
+  const canDepart = granted && state === 'loading' && !provisional
 
   return (
     <Screen
@@ -171,9 +181,11 @@ export default function StartTrip(): React.JSX.Element {
           disabledReason={
             !granted
               ? t('d2.consentNeeded')
-              : state !== 'loading'
-                ? t('d2.mustLoadFirst')
-                : t('d.unknown')
+              : provisional
+                ? t('d.waitForFill')
+                : state !== 'loading'
+                  ? t('d2.mustLoadFirst')
+                  : t('d.unknown')
           }
           onPress={() => {
             setConfirming(true)
@@ -183,6 +195,8 @@ export default function StartTrip(): React.JSX.Element {
       testID="d2-screen"
     >
       <Stack gap={6}>
+        <FillingNote hydrated={!provisional} testID="d2-provisional" />
+
         <Async state={[trip, consent]} rows={4}>
           <Panel title={t('d2.consentTitle')} testID="d2-consent">
             <Stack gap={4}>

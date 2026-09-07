@@ -75,7 +75,17 @@ export default function VanSale(): React.JSX.Element {
     () => api.api.delivery.trips.get({ id: localTrip?.id ?? '' }),
     { enabled: signedIn && localTrip !== null },
   )
-  const allowed = trip.data?.item.vanSalesAllowed ?? bool(localTrip?.van_sales_enabled)
+  /*
+   * "SWITCHED OFF" AND "NOT KNOWN YET" ARE DIFFERENT SENTENCES. Falling back to `bool(undefined)`
+   * turned a trip that had simply not reached the device into a definite refusal: measured in the
+   * gate, this screen said "Van sales are switched off for this trip" for the whole first pull, over
+   * a trip whose `van_sales_enabled` is true and a feature flag that is on. `null` is the third
+   * answer — the screen waits and says it is waiting instead of telling a crew they may not sell.
+   */
+  const allowed: boolean | null =
+    trip.data?.item.vanSalesAllowed ??
+    (localTrip === null ? null : bool(localTrip.van_sales_enabled))
+  const unknown = allowed === null
   const vehicleLocationId = trip.data?.item.vehicleLocationId ?? null
 
   const stock = useQuery(
@@ -190,8 +200,8 @@ export default function VanSale(): React.JSX.Element {
         <Row gap={2} wrap>
           <StatusChip
             testID="d6-allowed"
-            label={allowed ? t('d1.vanSale') : t('d6.off')}
-            family={allowed ? 'moss' : 'neutral'}
+            label={unknown ? t('d.filling') : allowed === true ? t('d1.vanSale') : t('d6.off')}
+            family={unknown ? 'ochre' : allowed === true ? 'moss' : 'neutral'}
           />
           {trip.data?.item.vehicleRegNo === undefined ? null : (
             <StatusChip label={trip.data.item.vehicleRegNo} family="neutral" />
@@ -213,9 +223,15 @@ export default function VanSale(): React.JSX.Element {
             size="floor"
             fullWidth
             loading={create.status === 'pending'}
-            disabled={!allowed || lines.length === 0 || !status.online}
+            disabled={allowed !== true || lines.length === 0 || !status.online}
             disabledReason={
-              !allowed ? t('d6.off') : !status.online ? t('d6.online') : t('d6.needsLine')
+              unknown
+                ? t('d6.unknown')
+                : allowed === false
+                  ? t('d6.off')
+                  : !status.online
+                    ? t('d6.online')
+                    : t('d6.needsLine')
             }
             onPress={() => {
               setError(null)

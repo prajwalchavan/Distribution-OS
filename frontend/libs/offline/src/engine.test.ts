@@ -58,6 +58,44 @@ beforeEach(() => {
   clock = Date.parse('2026-09-06T06:00:00.000Z')
 })
 
+// 0 --------------------------------------------------------------------------------------------------------------
+
+describe('0. a device that already holds its rows answers on the first launch', () => {
+  /*
+   * The delivery gate's Pixel 7 case. `queryTable` answers `[]` for a table whose SHAPE it does not
+   * know yet, the shapes arrive with `restoreManifest`, and `useTable` re-runs only when a table
+   * CHANGES — so a screen that mounted before the engine was ready asked once, got nothing, and kept
+   * nothing. On a full store whose delta pull brings nothing new, no change ever comes: the delivery
+   * home screen said "Nothing is on the road yet" over a SQLite file holding an active trip, on
+   * every cold start. Becoming able to answer is itself the change.
+   */
+  it('emits a change for every table it can now answer for, the moment it is ready', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [{ id: 'r1', name: 'Alan Stores' }], deleted: [] }],
+      cursor: 'c1',
+    })
+    const first = engineOn(store, server)
+    await first.start()
+    await first.stop()
+
+    // Second launch: the store is full and the server has nothing new to send.
+    server.pulls = []
+    server.queuePull({ changes: [], cursor: 'c2' })
+    const second = engineOn(store, server)
+    const seen: string[][] = []
+    second.onTables((tables) => {
+      seen.push([...tables].sort())
+    })
+    await second.start()
+
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen[0]).toContain('retailers')
+    expect(await second.queryTable('retailers')).toHaveLength(1)
+  })
+})
+
 // 1 --------------------------------------------------------------------------------------------------------------
 
 describe('1. the manifest decides whether the device may keep what it holds', () => {

@@ -48,7 +48,7 @@ import {
   useLocalVehicle,
   type LocalStop,
 } from '../src/lib/local'
-import { LocalAsync, Panel, StopChip, pl } from '../src/lib/ui'
+import { FillingNote, LocalAsync, Panel, StopChip, pl } from '../src/lib/ui'
 
 interface LocalLoadSheet {
   id: string
@@ -95,6 +95,12 @@ export default function TodaysTrip(): React.JSX.Element {
 
   const next = nextOpenStop(stops.rows)
   const done = stops.rows.filter((stop) => isStopTerminal(stop.state)).length
+  /*
+   * HOW MANY STOPS THE TRIP HAS is the trip's own figure, never how many have landed on the phone.
+   * `trips.planned_stops` arrives with the trip row; the stops arrive after it, page by page, so
+   * counting the rows printed "0 of 1 stops done" over a six-stop trip for as long as the pull ran.
+   */
+  const totalStops = Math.max(trip?.planned_stops ?? 0, stops.rows.length)
   /** What the crew still has to ask for at the doors that are not finished. */
   const toCollectPaise = stops.rows
     .filter((stop) => !isStopTerminal(stop.state))
@@ -155,8 +161,8 @@ export default function TodaysTrip(): React.JSX.Element {
           />
           <StatusChip
             testID="d1-stops"
-            label={t('d.stopsN', { done, total: stops.rows.length })}
-            family={done === stops.rows.length && stops.rows.length > 0 ? 'moss' : 'neutral'}
+            label={t('d.stopsN', { done, total: totalStops })}
+            family={done === totalStops && totalStops > 0 ? 'moss' : 'neutral'}
             figure
           />
           <StatusChip
@@ -218,6 +224,8 @@ export default function TodaysTrip(): React.JSX.Element {
       testID="d1-screen"
     >
       <Stack gap={6}>
+        <FillingNote hydrated={hydrated} testID="d1-provisional" />
+
         <KpiStrip
           testID="d1-kpis"
           items={[
@@ -230,7 +238,7 @@ export default function TodaysTrip(): React.JSX.Element {
               label: t('d1.openingCash'),
               value: <Money value={trip.opening_cash_paise} size="moneyM" />,
             },
-            { label: t('d8.stops'), value: `${String(done)} / ${String(stops.rows.length)}` },
+            { label: t('d8.stops'), value: `${String(done)} / ${String(totalStops)}` },
           ]}
         />
 
@@ -242,7 +250,7 @@ export default function TodaysTrip(): React.JSX.Element {
                 primary={shopName(next)}
                 secondary={
                   addressLine(shops.get(next.retailer_id)?.address) ??
-                  t('d.stopOf', { index: next.sequence, total: stops.rows.length })
+                  t('d.stopOf', { index: next.sequence, total: totalStops })
                 }
                 trailingMoney={next.planned_collection_paise}
                 trailingSize="moneyL"
@@ -257,7 +265,7 @@ export default function TodaysTrip(): React.JSX.Element {
 
         <Panel
           title={t('d1.stops')}
-          meta={t('d.stopsN', { done, total: stops.rows.length })}
+          meta={t('d.stopsN', { done, total: totalStops })}
           testID="d1-stop-list"
         >
           <LocalAsync
@@ -368,16 +376,30 @@ export default function TodaysTrip(): React.JSX.Element {
                 />
               )}
             </Row>
-            {tracking?.state === 'denied' ? (
-              <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {/*
+              Refused, switched off at the phone, or failed for any other reason: the same honest
+              sentence, because a driver's next action is the same in all three and the trip carries
+              on either way. 'error' used to be reachable only from a rejection nobody caught.
+            */}
+            {tracking?.state === 'denied' ||
+            tracking?.state === 'error' ||
+            tracking?.state === 'unavailable' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="d1-tracking-off">
                 {t('d1.trackingDenied')}
               </Txt>
             ) : null}
-            {tracking !== null && !tracking.canTrackInBackground ? (
+            {/*
+              WHAT THIS BUILD ACTUALLY DOES, on both platforms. The old sentence was shown on the web
+              only and ended "The phone app does not" — a promise about the phone that nothing in this
+              repo keeps: there is no `expo-task-manager` background task and no
+              `ACCESS_BACKGROUND_LOCATION`, so the watch on a phone lives exactly as long as the app
+              is open. Each platform now says its own true thing.
+            */}
+            {tracking === null ? null : (
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="d1-tracking-web">
-                {t('d1.trackingWeb')}
+                {tracking.canTrackInBackground ? t('d1.trackingForeground') : t('d1.trackingWeb')}
               </Txt>
-            ) : null}
+            )}
           </Stack>
         </Panel>
 

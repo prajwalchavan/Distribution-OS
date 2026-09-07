@@ -37,9 +37,9 @@ import { useState } from 'react'
 
 import { deviceId } from '../src/api'
 import { instantWithClock } from '../src/lib/dates'
-import { pickCurrentTrip, useLocalTrips } from '../src/lib/local'
+import { pickCurrentTrip, useHydrated, useLocalTrips } from '../src/lib/local'
 import { captureProof, storeProof, type CapturedProof } from '../src/lib/proof'
-import { Async, Panel } from '../src/lib/ui'
+import { Async, FillingNote, Panel } from '../src/lib/ui'
 
 /** `TripExpenseKindSchema`. `other` needs a note — the server refuses it without one. */
 const KINDS = ['diesel', 'toll', 'parking', 'loading', 'food', 'repair', 'other'] as const
@@ -53,9 +53,18 @@ export default function Expenses(): React.JSX.Element {
   const signedIn = session !== null
   const status = useSyncStatus()
 
+  const hydrated = useHydrated()
   const local = useLocalTrips()
   const trip = pickCurrentTrip(local.rows)
   const tripId = trip?.id ?? null
+  /*
+   * WHICH TRIP THE DIESEL GOES ON is a guess until the device has finished filling: measured in the
+   * gate, this screen named TRIP-ACTIVE while the home screen named TRIP-NEXT, so a pump receipt
+   * typed in the first twenty seconds would have been posted against yesterday's trip and would have
+   * shortened today's expected cash by the same amount. The screen says so and waits; it already
+   * needs a signal, and the pull runs on that same signal.
+   */
+  const provisional = !hydrated
 
   const list = useQuery(
     ['expenses', tripId],
@@ -198,15 +207,17 @@ export default function Expenses(): React.JSX.Element {
             size="floor"
             fullWidth
             loading={busy || record.status === 'pending'}
-            disabled={amountBad || needsNote || tripId === null || !status.online}
+            disabled={amountBad || needsNote || tripId === null || !status.online || provisional}
             disabledReason={
               !status.online
                 ? t('d7.online')
-                : tripId === null
-                  ? t('d1.noTrip')
-                  : needsNote
-                    ? t('d7.needsNote')
-                    : t('d7.amount')
+                : provisional
+                  ? t('d.waitForFill')
+                  : tripId === null
+                    ? t('d1.noTrip')
+                    : needsNote
+                      ? t('d7.needsNote')
+                      : t('d7.amount')
             }
             onPress={commit}
           />
@@ -215,6 +226,8 @@ export default function Expenses(): React.JSX.Element {
       testID="d7-screen"
     >
       <Stack gap={6}>
+        <FillingNote hydrated={hydrated} testID="d7-provisional" />
+
         {status.online ? null : (
           <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d7-offline">
             {t('d7.online')}

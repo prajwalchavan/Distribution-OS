@@ -153,9 +153,23 @@ function Shell(): React.JSX.Element {
   const navigationState = useRootNavigationState()
   const navigatorReady = navigationState?.key !== undefined
 
+  /*
+   * AND MOVE OUT OF THE COMMIT. `navigatorReady` says the navigator EXISTS; it does not say React has
+   * finished committing the tree it belongs to, and on a phone `router.replace` inside that commit
+   * still answers "Can't perform a React state update on a component that hasn't mounted yet",
+   * naming expo-router's own `<ContextNavigator/>` — measured on the Pixel 7 in the delivery gate,
+   * on the launch where the session restores a frame after `hydrating` clears and the redirect fires
+   * twice. A zero timer is exactly what the message asks for: do the work after the mount.
+   */
   useEffect(() => {
-    if (navigatorReady && redirectTo !== null) router.replace(redirectTo)
-  }, [navigatorReady, redirectTo, router])
+    if (!navigatorReady || redirectTo === null || redirectTo === pathname) return
+    const move = setTimeout(() => {
+      router.replace(redirectTo)
+    }, 0)
+    return () => {
+      clearTimeout(move)
+    }
+  }, [navigatorReady, redirectTo, router, pathname])
 
   /**
    * ONE `<OfflineProvider>`, ABOVE the gate — not inside it. `hydrating` flips true whenever the
@@ -199,21 +213,16 @@ function Shell(): React.JSX.Element {
         onSignOut: () => {
           void signOut()
         },
+        /*
+         * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY.
+         *
+         * This app has no tab bar, so `AppShell` puts BOTH the nav sections and these account items
+         * into one ⋯ sheet — and "Me" and "Trip history" are already destinations in `SECTIONS`.
+         * Measured on the Pixel 7: the sheet read Today · Day summary · Expenses · Attention · Trip
+         * history · Me · **Me** · **Your trips** · Change your password — the same two screens twice,
+         * under two different names, on this app's only way of getting around.
+         */
         items: [
-          {
-            id: 'me',
-            label: strings['d12.title'],
-            onPress: () => {
-              router.push('/settings')
-            },
-          },
-          {
-            id: 'trips',
-            label: strings['d11.title'],
-            onPress: () => {
-              router.push('/trips')
-            },
-          },
           {
             id: 'change-password',
             label: strings['app.changePassword'],

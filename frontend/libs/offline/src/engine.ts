@@ -153,6 +153,19 @@ export class SyncEngine {
     await this.refreshCounts()
     this.ready = true
     this.emitStatus()
+    /*
+     * TELL EVERY MOUNTED READ THAT THE DEVICE IS OPEN FOR BUSINESS.
+     *
+     * `queryTable` answers `[]` for a table whose SHAPE it does not know yet (line ~826), and the
+     * shapes only exist after `restoreManifest`. A screen that mounted first therefore ran its one
+     * query against an engine with no shapes, got nothing, and — because `useTable` re-runs only on
+     * a table CHANGE — kept nothing for as long as it stayed mounted. On a device whose store is
+     * already full and whose delta pull has nothing new to bring, no change ever comes: measured on
+     * the Pixel 7, the delivery app's home screen said "Nothing is on the road yet" over a SQLite
+     * file holding TRIP-NEXT as `active`, on every cold start, for ever. This is the one moment the
+     * device gains the ability to answer, so it says so.
+     */
+    this.bus.emit([...this.shapes.keys(), OUTBOX_CHANNEL])
     await this.sync('start')
     this.schedulePoll()
   }

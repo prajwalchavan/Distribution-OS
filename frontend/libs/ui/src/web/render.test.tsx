@@ -473,6 +473,28 @@ describe('<ConnectionStrip> never claims a read it has not had', () => {
   it('still names the clock time it went quiet when the read has failed', () => {
     expect(strip({ online: false, lastSyncedAt: null })).toContain('Offline since')
   })
+
+  /*
+   * Being offline is exactly when "what is this phone still holding?" matters. The offline branch
+   * used to win outright and drop the count: a driver who recorded an arrival at a shop door with no
+   * signal saw only "Offline since 12:01 pm" (delivery gate, 2026-09-07).
+   */
+  it('names what is waiting WHILE offline, not only once the signal is back', () => {
+    const html = strip({ online: false, lastSyncedAt: 1_757_000_000_000, pendingWrites: 3 })
+    expect(html).toContain('Offline since')
+    expect(html).toContain('3 waiting to send')
+  })
+
+  it('puts a refusal ahead of a queue, offline as well as online', () => {
+    const html = strip({
+      online: false,
+      lastSyncedAt: 1_757_000_000_000,
+      pendingWrites: 3,
+      needsAttention: 1,
+    })
+    expect(html).toContain('1 need attention')
+    expect(html).not.toContain('waiting to send')
+  })
 })
 
 /**

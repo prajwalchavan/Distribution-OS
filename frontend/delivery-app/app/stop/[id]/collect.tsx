@@ -211,9 +211,19 @@ export default function Collect(): React.JSX.Element {
       }
       bottomBar={
         <Stack gap={2}>
+          {/*
+            NAME THE FIGURE BY WHAT IT IS. This is the office's plan for THIS DOOR when the stop has
+            one, and the shop's whole outstanding only when it does not — and the chip at the top of
+            the same screen already says what the shop owes. Labelling ₹9,399 "The shop owes" beside
+            a chip reading "Owes ₹68,203.00" is one screen giving a shopkeeper two answers to the
+            same question, at the moment money changes hands.
+          */}
           <Row justify="between" align="center" gap={3}>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('d5.expected')}
+              {stop?.planned_collection_paise === null ||
+              stop?.planned_collection_paise === undefined
+                ? t('d5.expected')
+                : t('d5.expectedHere')}
             </Txt>
             <Money value={expectedPaise} size="moneyM" testID="d5-expected" />
           </Row>

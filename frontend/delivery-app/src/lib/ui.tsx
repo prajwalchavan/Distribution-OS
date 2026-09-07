@@ -227,6 +227,39 @@ export function LocalAsync({
   )
 }
 
+/**
+ * The sentence a screen that NAMES A TRIP must carry until the device has finished one pull.
+ *
+ * `useHydrated()` is a fact about the DEVICE, not about a list: until it is true the read set is
+ * arriving table by table, and `pickCurrentTrip` is therefore a guess over whatever has landed. It is
+ * a guess with consequences — measured in this app's gate, `/` named TRIP-NEXT while `/trip/start`
+ * and `/expenses` named TRIP-ACTIVE for the twenty seconds the first pull took, and the start screen
+ * put a "Start the trip" button under the wrong one. Screens that decide WHICH TRIP now say so, above
+ * the content and never over it (the warehouse gate's rule), and the two screens that would WRITE
+ * against that guess wait for the pull rather than post an expense or a departure to another trip.
+ */
+export function FillingNote({
+  hydrated,
+  testID,
+}: {
+  hydrated: boolean
+  testID?: string
+}): React.JSX.Element | null {
+  const t = useStrings()
+  const colors = useColors()
+  if (hydrated) return null
+  return (
+    <Txt
+      field="label"
+      desk="meta"
+      color={colors.status.ochre.fg}
+      testID={testID ?? 'trip-provisional'}
+    >
+      {t('d.tripProvisional')}
+    </Txt>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Permissions and identity
 // ---------------------------------------------------------------------------

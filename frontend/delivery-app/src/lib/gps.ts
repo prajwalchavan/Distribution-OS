@@ -151,13 +151,36 @@ export function useTripTracking({
     stateRef.current = 'starting'
     publish()
 
+    /*
+     * EVERY WAY LOCATION CAN FAIL ENDS ON THIS SCREEN, NOT IN A RED BOX.
+     *
+     * `requestPermission` and `watch` both reject on a real phone — the OS location service off, a
+     * missing manifest permission, Play Services' own "unsatisfied device settings" — and this block
+     * had no catch, so the rejection escaped as an unhandled promise. Measured on the Pixel 7:
+     * "Uncaught (in promise) Error: Location request failed due to unsatisfied device settings"
+     * painted over a driver's home screen, twice, with the tracking chip still saying "starting".
+     * A trip must survive a phone with location switched off: D1 already has a sentence for it
+     * ("The trip still works; the office cannot see it"), and this is what puts the screen there.
+     */
     void (async () => {
       if (!platformLocation.canTrackInBackground && typeof navigator === 'undefined') {
         stateRef.current = 'unavailable'
         publish()
         return
       }
-      const permission = await platformLocation.requestPermission({ background: true })
+      /*
+       * THE FOREGROUND GRANT, BECAUSE THAT IS WHAT THIS BUILD USES.
+       *
+       * Nothing in this repo registers an `expo-task-manager` background task, so the watch below
+       * lives exactly as long as the app is open. Asking for "all the time" was therefore asking a
+       * driver for a power the app cannot use — and on Android it does not even reach the driver:
+       * `ACCESS_BACKGROUND_LOCATION` is not in the manifest, so `requestBackgroundPermissionsAsync`
+       * REJECTS, and the rejection escaped this async block. Measured on the Pixel 7 with a trip
+       * already active: a red "Uncaught (in promise) … You need to add `ACCESS_BACKGROUND_LOCATION`
+       * to the AndroidManifest" over the home screen, and no tracking at all. The screen says, on
+       * both platforms, what this build really does.
+       */
+      const permission = await platformLocation.requestPermission()
       if (!live) return
       if (!permission.granted) {
         stateRef.current = 'denied'
@@ -186,7 +209,11 @@ export function useTripTracking({
         { distanceMetres: DISTANCE_METRES, intervalMs: INTERVAL_MS },
       )
       if (!live) stop?.()
-    })()
+    })().catch(() => {
+      if (!live) return
+      stateRef.current = 'error'
+      publish()
+    })
 
     const timer = setInterval(() => {
       void flush(true)

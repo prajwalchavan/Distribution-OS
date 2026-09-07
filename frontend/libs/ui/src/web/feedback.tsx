@@ -43,13 +43,26 @@ export function ConnectionStrip({
   let message: string
   let tone: string = theme.colors.text.secondary
   if (!state.online) {
-    // "Offline since 10:42" — a clock time, not "2 h ago" (UX-00 3.3).
-    message = theme.t('connection.offline', {
-      when:
-        state.lastSyncedAt === null || state.lastSyncedAt === undefined
-          ? clockTime(now)
-          : clockTime(state.lastSyncedAt),
-    })
+    /*
+     * "Offline since 10:42" — a clock time, not "2 h ago" (UX-00 3.3) — AND what the device is still
+     * holding, because being offline is exactly when that matters. The offline branch used to win
+     * outright and drop the count: measured in the delivery gate, a driver who recorded an arrival
+     * at a shop door with no signal saw a strip that said only "Offline since 12:01 pm", on the one
+     * screen that is meant to tell them the phone is still carrying their work. Both facts, one line.
+     */
+    const when =
+      state.lastSyncedAt === null || state.lastSyncedAt === undefined
+        ? clockTime(now)
+        : clockTime(state.lastSyncedAt)
+    if (attention > 0) {
+      message = theme.t('connection.offlineAttention', { when, count: attention })
+      tone = theme.colors.status.brick.fg
+    } else if (pending > 0) {
+      message = theme.t('connection.offlineWaiting', { when, count: pending })
+      tone = theme.colors.status.ochre.fg
+    } else {
+      message = theme.t('connection.offline', { when })
+    }
   } else if (attention > 0) {
     message = theme.t('connection.attention', { count: attention })
     tone = theme.colors.status.brick.fg

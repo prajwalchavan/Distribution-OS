@@ -400,9 +400,14 @@ export default function AtTheDoor(): React.JSX.Element {
       context={`${shop?.name ?? t('d3.title')} · ${longDate(invoice.invoice_date)}`}
       chips={
         <Row gap={2} wrap>
+          {/*
+            THE OUTCOME OF THE TAP, NOT A STATE ALREADY RECORDED. A bare moss "Delivered" at the top
+            of a bill nobody has recorded yet reads as done — on the screen whose whole purpose is to
+            record it. The chip names the tense; `d4-already` below still carries the recorded one.
+          */}
           <StatusChip
             testID="d4-outcome"
-            label={wordFor(t, outcome)}
+            label={t('d4.willRecord', { outcome: wordFor(t, outcome) })}
             family={outcome === 'delivered' ? 'moss' : outcome === 'partial' ? 'ochre' : 'brick'}
             solid={outcome === 'failed'}
           />

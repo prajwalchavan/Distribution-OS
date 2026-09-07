@@ -33,12 +33,22 @@ export const location: PlatformLocation = {
         background: false,
       }
     }
-    // Android and iOS both insist the foreground grant lands first.
-    const background = await Location.requestBackgroundPermissionsAsync()
-    return {
-      granted: foreground.granted,
-      canAskAgain: foreground.canAskAgain,
-      background: background.granted,
+    /*
+     * Android and iOS both insist the foreground grant lands first — and Android also insists the
+     * app DECLARED `ACCESS_BACKGROUND_LOCATION`, throwing when it did not. A caller asking for a
+     * power the build never declared should get "no", not an unhandled rejection escaping into the
+     * screen: measured on the Pixel 7, "Uncaught (in promise) … You need to add
+     * `ACCESS_BACKGROUND_LOCATION` to the AndroidManifest" over the delivery home screen.
+     */
+    try {
+      const background = await Location.requestBackgroundPermissionsAsync()
+      return {
+        granted: foreground.granted,
+        canAskAgain: foreground.canAskAgain,
+        background: background.granted,
+      }
+    } catch {
+      return { granted: foreground.granted, canAskAgain: foreground.canAskAgain, background: false }
     }
   },
 

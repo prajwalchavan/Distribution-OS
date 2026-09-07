@@ -4,7 +4,7 @@
  * Integer paise in, integer paise out; integer pieces in, integer pieces out. No float crosses this
  * boundary and no component here does arithmetic on a formatted string.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { formatMoney, parseRupees, speakMoney, splitMoney, toEditableRupees } from '../money.js'
 import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
@@ -133,6 +133,7 @@ export function RupeeInput({
   const bodyStyle = useTypeStyle('moneyM', 'body')
   const [text, setText] = useState(() => toEditableRupees(value))
   const [focused, setFocused] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   // A value changed from outside (a quote, a re-price) while the field is not being typed in.
   useEffect(() => {
@@ -165,7 +166,22 @@ export function RupeeInput({
           <Money value={expected} size="moneyL" />
         </div>
       ) : null}
+      {/*
+        THE WHOLE CONTROL IS THE TOUCH TARGET, not just the input inside it. The wrapper is the app's
+        touch floor (69 / 76 dp); the `<input>` sits inside its 1 px border, so measured on a phone
+        it is 67 dp and a thumb landing on the top or bottom edge of a money field focused nothing.
+        The rupee sign is part of the field to a driver, so it is part of the field to the browser.
+      */}
       <div
+        onMouseDown={(event) => {
+          if (
+            event.target === event.currentTarget ||
+            (event.target as HTMLElement).tagName === 'SPAN'
+          ) {
+            event.preventDefault()
+            inputRef.current?.focus()
+          }
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -180,6 +196,7 @@ export function RupeeInput({
           {theme.t('money.rupeeSymbol')}
         </span>
         <input
+          ref={inputRef}
           data-testid={testID}
           className="dos-num"
           type="text"

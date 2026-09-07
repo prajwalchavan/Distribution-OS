@@ -67,6 +67,8 @@ export const en = {
   'connection.synced': 'Updated {when}',
   'connection.waiting': '{count} waiting to send',
   'connection.offline': 'Offline since {when}',
+  'connection.offlineWaiting': 'Offline since {when} · {count} waiting to send',
+  'connection.offlineAttention': 'Offline since {when} · {count} need attention',
   'connection.stale': 'Stock as of {when}',
   'connection.attention': '{count} need attention',
   'connection.justNow': 'just now',

@@ -73,6 +73,9 @@ export const strings = {
   'd.stopsN': '{done} of {total} stops done',
   'd.stopOf': 'Stop {index} of {total}',
   'd.filling': 'Still filling this phone from the office.',
+  'd.tripProvisional':
+    'Still filling this phone from the office — this may not be the whole trip yet.',
+  'd.waitForFill': 'Wait for the phone to finish filling before recording this',
   'd.nothingHere': 'Nothing here yet',
   'd.retry': 'Try again',
   'd.call': 'Call',
@@ -110,9 +113,11 @@ export const strings = {
   'd1.tracking': 'Location is on for this trip',
   'd1.trackingOff': 'Location is off',
   'd1.trackingHeld': '{count} points held on this phone',
-  'd1.trackingWeb': 'A browser tab stops sending when it is hidden. The phone app does not.',
+  'd1.trackingWeb': 'A browser tab stops sending when it is hidden — keep this tab open.',
+  'd1.trackingForeground':
+    'The office sees the vehicle while this app is open. It stops when you switch away.',
   'd1.trackingDenied':
-    'This phone refused location. The trip still works; the office cannot see it.',
+    'This phone is not sharing location. The trip still works; the office cannot see it.',
   'd1.tripState': 'Trip is {state}',
   'd1.otherTrips': 'Your other trips',
   'd1.plannedFor': 'Planned for {date}',
@@ -199,12 +204,14 @@ export const strings = {
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
   'd4.mismatch': 'Dropped plus taken back must equal what is on the bill',
+  'd4.willRecord': 'Will be recorded as {outcome}',
   'd4.alreadyDone': 'This bill is already recorded as {outcome}',
   'd4.failedRecord': 'Could not record the delivery',
 
   // --- D5 collect ---------------------------------------------------------------------------------
   'd5.title': 'Take money',
   'd5.expected': 'The shop owes',
+  'd5.expectedHere': 'Owed on the bills here',
   'd5.expectedLabel': 'Owed on the bills here',
   'd5.amount': 'Amount taken',
   'd5.mode': 'How it was paid',
@@ -239,6 +246,7 @@ export const strings = {
   // --- D6 van sale ---------------------------------------------------------------------------------
   'd6.title': 'Sell from the van',
   'd6.off': 'Van sales are switched off for this trip',
+  'd6.unknown': 'This trip is not on the phone yet, so whether van sales are on is not known',
   'd6.stock': 'What is on the van',
   'd6.pick': 'Add to the sale',
   'd6.lines': 'This sale',
@@ -287,6 +295,9 @@ export const strings = {
     'Stops you have not finished are recorded as not delivered and their bills go back to the office. The goods stay on the van until the godown counts them.',
   'd8.returned': 'Vehicle checked in',
   'd8.handOver': 'Hand {amount} to the cashier',
+  'd8.handedOver': 'The office expected {amount} from this trip',
+  'd8.uncounted':
+    'This phone also holds {amount} in receipts the office has not counted into this trip yet. The cash part is already in the figure above.',
   'd8.deskSettles':
     'The cashier counts the money and the godown counts the van. The trip closes at the office, not here.',
   'd8.pending':
@@ -329,6 +340,8 @@ export const strings = {
   'd11.onTime': 'Delivered on the first attempt',
   'd11.window': 'Last 30 days',
   'd11.stops': '{done} of {total} done',
+  'd11.thisTrip': 'The trip you are on',
+  'd11.notThisPhone': 'Not on this phone — read from the office',
 
   // --- D12 me --------------------------------------------------------------------------------------
   'd12.title': 'Me',

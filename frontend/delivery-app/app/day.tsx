@@ -38,7 +38,7 @@ import {
 } from '@dos/ui'
 import { paise } from '@dos/domain'
 import { haptics } from '@dos/ui/platform'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../src/api'
@@ -53,7 +53,7 @@ import {
   useLocalTripReceipts,
   useLocalTrips,
 } from '../src/lib/local'
-import { Async, DeskOnly, Field, LocalAsync, Panel } from '../src/lib/ui'
+import { Async, DeskOnly, Field, FillingNote, LocalAsync, Panel } from '../src/lib/ui'
 
 export default function DaySummary(): React.JSX.Element {
   const t = useStrings()
@@ -65,9 +65,21 @@ export default function DaySummary(): React.JSX.Element {
   const status = useSyncStatus()
   const hydrated = useHydrated()
 
+  /*
+   * WHICH TRIP. With no `tripId` this is today's — the open trip the device holds. D11's history rows
+   * name one, and a settled trip is not in `useLocalTrips` (open states only) and may not be on the
+   * phone at all, so the office's own `trips.get` fills the screen in that case. `settlementPreview`
+   * answers for a settled trip exactly as it does for an open one, which is what makes a crew member
+   * able to look back at what they handed over.
+   */
+  const params = useLocalSearchParams<{ tripId?: string }>()
+  const asked = typeof params.tripId === 'string' && params.tripId !== '' ? params.tripId : null
   const local = useLocalTrips()
-  const trip = pickCurrentTrip(local.rows)
-  const tripId = trip?.id ?? null
+  const trip =
+    asked === null
+      ? pickCurrentTrip(local.rows)
+      : (local.rows.find((one) => one.id === asked) ?? null)
+  const tripId = asked ?? trip?.id ?? null
   const stops = useLocalStops(tripId)
   const receipts = useLocalTripReceipts(tripId)
   /*
@@ -78,6 +90,15 @@ export default function DaySummary(): React.JSX.Element {
   const { byId: shops } = useLocalRetailers(
     useMemo(() => stops.rows.map((stop) => stop.retailer_id), [stops.rows]),
   )
+
+  const detail = useQuery(
+    ['trip', tripId],
+    () => api.api.delivery.trips.get({ id: tripId ?? '' }),
+    {
+      enabled: signedIn && tripId !== null && trip === null,
+    },
+  )
+  const remote = detail.data?.item ?? null
 
   const preview = useQuery(
     ['settlement', tripId],
@@ -111,19 +132,75 @@ export default function DaySummary(): React.JSX.Element {
   )
 
   const figures = preview.data
-  /** What the device alone can account for: the float plus the cash it holds receipts for. */
-  const deviceCashPaise =
-    (trip?.opening_cash_paise ?? 0) +
-    receipts.rows
-      .filter((row) => row.mode === 'cash')
-      .reduce((sum, row) => sum + row.amount_paise, 0)
-  const doneStops = stops.rows.filter((stop) => isStopTerminal(stop.state)).length
+  const doneStops =
+    stops.rows.length > 0
+      ? stops.rows.filter((stop) => isStopTerminal(stop.state)).length
+      : (remote?.stopsCompleted ?? 0)
+  const totalStops = Math.max(trip?.planned_stops ?? remote?.plannedStops ?? 0, stops.rows.length)
+  const tripNo = trip?.trip_no ?? remote?.tripNo ?? null
+  const tripDate = trip?.trip_date ?? remote?.tripDate ?? null
+  const tripState = trip?.state ?? remote?.state ?? null
+  /*
+   * WHAT THE PHONE HOLDS THAT THE OFFICE HAS NOT COUNTED.
+   *
+   * `settlementPreview` adds up `collections`; a doorstep receipt taken with no signal goes back as a
+   * `receipts` op (docs/23 §5.4 — `collections` is not a writable sync table), so it reaches
+   * receivables correctly and writes NO collections row, and the preview never sees it. Measured in
+   * the gate on TRIP-NEXT: the office said cash ₹5,000 and this phone held receipts for ₹7,500 on the
+   * same trip, and the screen told the driver to hand over ₹11,070 — ₹2,500 less than the money in
+   * their hand, with nothing on screen saying why. The difference is stated and the hand-over figure
+   * carries the cash half of it; the backend half (a `collections` sync handler that a device may
+   * actually reach) is in this slice's open points.
+   */
+  /*
+   * The stop list of a trip this phone does not hold (a settled one opened from D11) comes from the
+   * office, in the same shape, so one list renders both. `retailerName` rides on `TripStopDetail`,
+   * which is why a past trip does not need the retailer rows on the device as well.
+   */
+  const stopRows =
+    stops.rows.length > 0
+      ? stops.rows.map((stop) => ({
+          id: stop.id,
+          sequence: stop.sequence,
+          name: shops.get(stop.retailer_id)?.name ?? t('d.unknown'),
+          secondary:
+            stop.failure_reason === null
+              ? (addressLine(shops.get(stop.retailer_id)?.address) ?? undefined)
+              : wordFor(t, stop.failure_reason),
+          money: stop.planned_collection_paise,
+          state: stop.state,
+          onDevice: true,
+        }))
+      : (remote?.stops ?? []).map((stop) => ({
+          id: stop.id,
+          sequence: stop.sequence,
+          name: stop.retailerName,
+          secondary: stop.failureReason === null ? undefined : wordFor(t, stop.failureReason),
+          money: stop.plannedCollectionPaise,
+          state: stop.state,
+          onDevice: false,
+        }))
+
+  const deviceCashPaise = receipts.rows
+    .filter((row) => row.mode === 'cash')
+    .reduce((sum, row) => sum + row.amount_paise, 0)
+  const deviceAllPaise = receipts.rows.reduce((sum, row) => sum + row.amount_paise, 0)
+  const countedAllPaise =
+    figures === undefined
+      ? 0
+      : figures.cashCollectedPaise + figures.upiCollectedPaise + figures.chequeCollectedPaise
+  const uncountedCashPaise =
+    figures === undefined ? 0 : Math.max(0, deviceCashPaise - figures.cashCollectedPaise)
+  const uncountedAllPaise =
+    figures === undefined ? 0 : Math.max(0, deviceAllPaise - countedAllPaise)
+  const handOverPaise =
+    figures === undefined ? null : figures.expectedCashPaise + uncountedCashPaise
 
   const odometerKm = odometer.trim() === '' ? null : Number.parseInt(odometer.trim(), 10)
   const odometerBad = odometer.trim() !== '' && (odometerKm === null || Number.isNaN(odometerKm))
-  const onTheRoad = trip?.state === 'active'
+  const onTheRoad = tripState === 'active'
 
-  if (trip === null) {
+  if (tripId === null) {
     return (
       <Screen title={t('d8.title')} testID="d8-screen">
         <Txt field="body" desk="body" testID="d8-no-trip">
@@ -136,12 +213,15 @@ export default function DaySummary(): React.JSX.Element {
   return (
     <Screen
       title={t('d8.title')}
-      context={`${trip.trip_no ?? t('d.trip')} · ${longDate(trip.trip_date)}`}
+      context={`${tripNo ?? t('d.trip')} · ${tripDate === null ? t('d.unknown') : longDate(tripDate)}`}
       chips={
         <Row gap={2} wrap>
-          <StatusChip label={wordFor(t, trip.state)} family={onTheRoad ? 'moss' : 'ochre'} />
           <StatusChip
-            label={t('d.stopsN', { done: doneStops, total: stops.rows.length })}
+            label={tripState === null ? t('d.unknown') : wordFor(t, tripState)}
+            family={onTheRoad ? 'moss' : 'ochre'}
+          />
+          <StatusChip
+            label={t('d.stopsN', { done: doneStops, total: totalStops })}
             family="neutral"
             figure
           />
@@ -155,7 +235,10 @@ export default function DaySummary(): React.JSX.Element {
             </Txt>
             <Money
               testID="d8-expected"
-              value={figures?.expectedCashPaise ?? (status.online ? null : deviceCashPaise)}
+              value={
+                handOverPaise ??
+                (status.online ? null : deviceCashPaise + (trip?.opening_cash_paise ?? 0))
+              }
               size="moneyL"
             />
           </Row>
@@ -179,6 +262,8 @@ export default function DaySummary(): React.JSX.Element {
       testID="d8-screen"
     >
       <Stack gap={6}>
+        <FillingNote hydrated={hydrated || asked !== null} testID="d8-provisional" />
+
         <KpiStrip
           testID="d8-kpis"
           items={[
@@ -227,9 +312,21 @@ export default function DaySummary(): React.JSX.Element {
                   <Money value={figures?.expensesPaise ?? null} size="moneyM" />
                 </Field>
               </Row>
+              {/*
+                A trip that is already closed is HISTORY, not an instruction. D11's rows open this
+                screen for a settled trip, and "Hand ₹20,085.10 to the cashier" on a trip that was
+                settled four days ago is a job nobody has.
+              */}
               <Txt field="bodyStrong" desk="cell" testID="d8-hand-over">
-                {t('d8.handOver', { amount: formatINR(paise(figures?.expectedCashPaise ?? 0)) })}
+                {t(onTheRoad ? 'd8.handOver' : 'd8.handedOver', {
+                  amount: formatINR(paise(handOverPaise ?? 0)),
+                })}
               </Txt>
+              {uncountedAllPaise === 0 ? null : (
+                <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
+                  {t('d8.uncounted', { amount: formatINR(paise(uncountedAllPaise)) })}
+                </Txt>
+              )}
               <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
             </Stack>
           </Async>
@@ -247,78 +344,85 @@ export default function DaySummary(): React.JSX.Element {
           testID="d8-stops"
         >
           <LocalAsync
-            loading={stops.loading}
-            hydrated={hydrated}
-            empty={stops.rows.length === 0}
+            loading={stops.loading && stopRows.length === 0}
+            hydrated={hydrated || asked !== null}
+            empty={stopRows.length === 0}
             emptyMessage={t('d3.noBills')}
             waitingMessage={t('d.filling')}
           >
             <Group>
-              {stops.rows.map((stop) => (
+              {stopRows.map((stop) => (
                 <ListRow
                   key={stop.id}
                   testID={`d8-stop-${stop.id}`}
-                  primary={`${String(stop.sequence)}. ${
-                    shops.get(stop.retailer_id)?.name ?? t('d.unknown')
-                  }`}
-                  secondary={
-                    stop.failure_reason === null
-                      ? (addressLine(shops.get(stop.retailer_id)?.address) ?? undefined)
-                      : wordFor(t, stop.failure_reason)
-                  }
-                  trailingMoney={stop.planned_collection_paise}
+                  primary={`${String(stop.sequence)}. ${stop.name}`}
+                  {...(stop.secondary === undefined ? {} : { secondary: stop.secondary })}
+                  trailingMoney={stop.money}
                   trailing={<StatusChip label={wordFor(t, stop.state)} family="neutral" />}
-                  onPress={() => {
-                    router.push(`/stop/${stop.id}`)
-                  }}
+                  {...(stop.onDevice
+                    ? {
+                        onPress: () => {
+                          router.push(`/stop/${stop.id}`)
+                        },
+                      }
+                    : {})}
                 />
               ))}
             </Group>
           </LocalAsync>
         </Panel>
 
-        <Panel title={t('d8.vanStock')} meta={t('d8.vanStockNote')} testID="d8-van-stock">
-          <Async
-            state={preview}
-            empty={(figures?.expectedVanStock.length ?? 0) === 0}
-            emptyMessage={t('d.nothingHere')}
-          >
-            <Group>
-              {(figures?.expectedVanStock ?? []).map((lot) => (
-                <ListRow
-                  key={lot.lotId}
-                  testID={`d8-lot-${lot.lotId}`}
-                  primary={lot.variantName}
-                  /*
-                   * `caseLine` picks between "4 cs = 192 pc" and "4 cs + 9 pc = 201 pc" itself. The
-                   * screen used to force the second form, so a lot with no whole case read
-                   * "0 cs + 7 pc = 7 pc" — three numbers for one, on a count the godown reads back.
-                   */
-                  secondary={
-                    lot.caseSize === null || lot.caseSize <= 1
-                      ? t('d.pieces', { pieces: formatCount(lot.expectedPcs) })
-                      : caseLine(lot.expectedPcs, lot.caseSize, t)
-                  }
-                  {...(lot.batchNo === null
-                    ? {}
-                    : { trailing: <StatusChip label={lot.batchNo} family="neutral" /> })}
-                />
-              ))}
-            </Group>
-          </Async>
-        </Panel>
+        {/*
+          `expectedVanStock` is what the vehicle is holding NOW, which for a trip that came back days
+          ago is not "still on the van" — the godown counted it in when the trip closed. Both this
+          panel and the odometer belong to the check-in, so both belong to a trip still on the road.
+        */}
+        {!onTheRoad ? null : (
+          <>
+            <Panel title={t('d8.vanStock')} meta={t('d8.vanStockNote')} testID="d8-van-stock">
+              <Async
+                state={preview}
+                empty={(figures?.expectedVanStock.length ?? 0) === 0}
+                emptyMessage={t('d.nothingHere')}
+              >
+                <Group>
+                  {(figures?.expectedVanStock ?? []).map((lot) => (
+                    <ListRow
+                      key={lot.lotId}
+                      testID={`d8-lot-${lot.lotId}`}
+                      primary={lot.variantName}
+                      /*
+                       * `caseLine` picks between "4 cs = 192 pc" and "4 cs + 9 pc = 201 pc" itself. The
+                       * screen used to force the second form, so a lot with no whole case read
+                       * "0 cs + 7 pc = 7 pc" — three numbers for one, on a count the godown reads back.
+                       */
+                      secondary={
+                        lot.caseSize === null || lot.caseSize <= 1
+                          ? t('d.pieces', { pieces: formatCount(lot.expectedPcs) })
+                          : caseLine(lot.expectedPcs, lot.caseSize, t)
+                      }
+                      {...(lot.batchNo === null
+                        ? {}
+                        : { trailing: <StatusChip label={lot.batchNo} family="neutral" /> })}
+                    />
+                  ))}
+                </Group>
+              </Async>
+            </Panel>
 
-        <Panel title={t('d2.odometer')} testID="d8-odometer">
-          <TextInput
-            testID="d8-odometer-input"
-            label={t('d8.odometer')}
-            value={odometer}
-            onChange={setOdometer}
-            keyboard="decimal"
-            maxLength={8}
-            {...(odometerBad ? { error: t('d8.odometer') } : {})}
-          />
-        </Panel>
+            <Panel title={t('d2.odometer')} testID="d8-odometer">
+              <TextInput
+                testID="d8-odometer-input"
+                label={t('d8.odometer')}
+                value={odometer}
+                onChange={setOdometer}
+                keyboard="decimal"
+                maxLength={8}
+                {...(odometerBad ? { error: t('d8.odometer') } : {})}
+              />
+            </Panel>
+          </>
+        )}
 
         {status.pending === 0 ? null : (
           <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-pending">
