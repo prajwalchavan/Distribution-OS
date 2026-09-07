@@ -2,7 +2,7 @@
 
 # Admin console (`@dos/admin-app`)
 
-Distribution OS's OWN console, not a distributor's app: onboard a distributor (tenant, chart of accounts, first owner login, trial), keep its plan and subscription state, ask a distributor's owner for time-boxed support access and hand it back, look up a global sign-in identity across every distributor it belongs to, and read the platform's counts and audit trail. This is the one surface in the product where "Distribution OS" is the brand on screen, because the reader is our own staff — everywhere else the distributor's own name and logo show (docs/22 §9 item 10). Sign in with username + password at auth-service :3000, but at POST /auth/platform/login, not /auth/login: a console account holds no membership, so there is no distributor to pick. Placeholder package for now — the frontend is built after the backend chain.
+Distribution OS's OWN console, not a distributor's app: onboard a distributor (tenant, chart of accounts, first owner login, trial), keep its plan and subscription state, ask a distributor's owner for time-boxed support access and hand it back, look up a global sign-in identity across every distributor it belongs to, and read the platform's counts and audit trail. This is the one surface in the product where "Distribution OS" is the brand on screen, because the reader is our own staff — everywhere else the distributor's own name and logo show (docs/22 §9 item 10). Sign in with username + password at auth-service :3000, but at POST /auth/platform/login, not /auth/login: a console account holds no membership, so there is no distributor to pick. ONE Expo codebase shipping as website + Android + iOS (docs/08 §0), desk-first: the rail at 1024 px and wider, the phone shell below it, the same screens.
 
 Talks to the **Admin console service** on port 3007 (`EXPO_PUBLIC_API_URL / VITE_API_URL=http://localhost:3007; VITE_AUTH_URL=http://localhost:3000`). Runs on its own: start the service, then the app.
 
@@ -15,17 +15,20 @@ Signs in against **auth-service** (port 3000) with username + password and gets 
 ```bash
 pnpm --filter @dos/auth-service dev    # :3000, sign-in
 pnpm --filter @dos/admin-service dev   # :3007
+cd frontend && pnpm --filter @dos/admin-app web   # http://localhost:5179
 ```
 
 ## Screens
 
+- Platform: tenants by status and plan, active users, work per day, storage
 - Distributors: list with plan, subscription state and size
 - Onboard a distributor: tenant, first owner login, trial
-- One distributor: subscription, support grants, storage
-- Plans and subscription state
-- Support access: ask, watch, hand back
-- Users: one identity across every distributor
-- Platform metrics and the audit trail
+- One distributor: subscription, suspension, support window, storage
+- Subscriptions: plan, seats, price, trial and renewal dates, past due
+- Support access: ask, watch the owner decide, open the window, hand it back
+- People: one identity across every distributor
+- Audit trail: every platform action, and every read under a support window
+- Account: this console login and the devices signed in as it
 
 ## Endpoints this app uses
 

@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Distribution OS - Admin",
+    "slug": "dos-admin",
+    "scheme": "dos-admin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#F2F2EF",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "in.distributionos.admin",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "in.distributionos.admin"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Photograph a supplier bill or scan a barcode."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Photograph a supplier bill or delivery proof."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Share your position while a delivery trip is running."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

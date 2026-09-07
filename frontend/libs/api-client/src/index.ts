@@ -22,6 +22,13 @@ export {
 } from './client.js'
 
 export {
+  createPlatformClient,
+  type CreatePlatformClientOptions,
+  type PlatformApiClient,
+  type PlatformSignInOptions,
+} from './platform-client.js'
+
+export {
   ApiError,
   ORPCError,
   defaultMessageFor,
@@ -39,7 +46,16 @@ export {
   type QueryStatus,
 } from './cache.js'
 
-export { SessionStore, type Session, type SessionState } from './session.js'
+export {
+  PlatformSessionStore,
+  SessionStore,
+  type PlatformSession,
+  type PlatformSessionState,
+  type Session,
+  type SessionSnapshotLike,
+  type SessionState,
+  type SessionStoreLike,
+} from './session.js'
 
 export {
   memoryTokenStorage,

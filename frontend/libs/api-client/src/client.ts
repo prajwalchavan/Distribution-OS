@@ -23,6 +23,7 @@ import {
 } from '@dos/contracts'
 
 import { ApiError, ORPCError, toApiError } from './errors.js'
+import { DEFAULT_REQUEST_TIMEOUT_MS, fetchWithDeadline, join } from './link.js'
 import { SessionStore, type Session, type SessionState } from './session.js'
 import { memoryTokenStorage, webTokenStorage, type TokenStorage } from './storage.js'
 
@@ -34,9 +35,6 @@ export type AuthRouter = ContractRouterClient<typeof authContract>
  * `refresh`, `logout`, `switchTenant` and `jwks` authenticate through the body (or not at all);
  * retrying `refresh` on its own 401 would loop.
  */
-/** A request that has gone unanswered this long is a dead spot, not a slow service. */
-const DEFAULT_REQUEST_TIMEOUT_MS = 20_000
-
 const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
   'me',
   'sessions',
@@ -117,11 +115,6 @@ export interface ApiClient {
   hydrate: () => Promise<void>
   /** One id + one idempotency key per user intent. */
   newMutation: () => MutationMeta
-}
-
-function join(base: string, prefix: string | undefined): string {
-  if (!prefix) return base.replace(/\/$/, '')
-  return `${base.replace(/\/$/, '')}/${prefix.replace(/^\//, '').replace(/\/$/, '')}`
 }
 
 function defaultStorage(): TokenStorage {
@@ -216,23 +209,13 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     }
   }
 
-  /**
-   * `fetch` with a deadline. The caller's own signal still wins (the query cache abandons a read when
-   * the distributor is switched), so the two are combined rather than replaced.
-   */
-  const timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
-  const fetchWithDeadline = (request: Request, init: RequestInit): Promise<Response> => {
-    if (timeoutMs <= 0) return fetch(request, init)
-    const deadline = AbortSignal.timeout(timeoutMs)
-    const signal =
-      typeof AbortSignal.any === 'function' ? AbortSignal.any([request.signal, deadline]) : deadline
-    return fetch(request, { ...init, signal })
-  }
+  /** `link.ts`: the deadline, shared with the platform console's client so the two cannot drift. */
+  const deadline = fetchWithDeadline(options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS)
 
   const authLink = new OpenAPILink(authContract, {
     url: join(options.authUrl, options.authPrefix),
     headers,
-    fetch: fetchWithDeadline,
+    fetch: deadline,
     interceptors: [interceptor((path) => AUTH_RETRY_PATHS.has(path[0] ?? ''))],
   })
   const authClient: AuthRouter = createORPCClient<AuthRouter>(authLink)
@@ -240,7 +223,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   const apiLink = new OpenAPILink(contract, {
     url: join(options.apiUrl, options.prefix),
     headers,
-    fetch: fetchWithDeadline,
+    fetch: deadline,
     interceptors: [interceptor(() => true)],
   })
   const apiClient: ApiRouter = createORPCClient<ApiRouter>(apiLink)

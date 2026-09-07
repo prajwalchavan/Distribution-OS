@@ -18,17 +18,32 @@ import {
 import { QueryCache, type QueryEntry, type QueryKey } from '../cache.js'
 import { toApiError, type ApiError } from '../errors.js'
 import { newMutation, type ApiClient, type MutationMeta, type SignInOptions } from '../client.js'
-import type { Session, SessionState } from '../session.js'
+import type { PlatformApiClient, PlatformSignInOptions } from '../platform-client.js'
+import type {
+  PlatformSession,
+  PlatformSessionState,
+  Session,
+  SessionSnapshotLike,
+  SessionState,
+  SessionStoreLike,
+} from '../session.js'
+
+/**
+ * Either client: the six apps' tenant client, or the platform console's. The React layer needs no
+ * more of them than a session to subscribe to and a boot-time `hydrate()`, so one provider and one
+ * query cache serve both. `useApi()` and `usePlatformApi()` name which one this app built.
+ */
+export type AnyApiClient = ApiClient | PlatformApiClient
 
 interface ApiContextValue {
-  client: ApiClient
+  client: AnyApiClient
   cache: QueryCache
 }
 
 const ApiContext = createContext<ApiContextValue | null>(null)
 
 export interface ApiProviderProps {
-  client: ApiClient
+  client: AnyApiClient
   /** Share one cache across the tree. A second one is only ever wanted in a test. */
   cache?: QueryCache
   /** Exchange a surviving refresh token for a live access token on mount. Default true. */
@@ -58,9 +73,19 @@ function useApiContext(): ApiContextValue {
   return ctx
 }
 
-/** The client. `useApi().api.orders.list({...})` is the whole calling convention. */
+/**
+ * The client. `useApi().api.orders.list({...})` is the whole calling convention.
+ *
+ * The cast is the one place the two client shapes meet: an app builds ONE of them in `src/api.ts`
+ * and every screen in that app reads the one it built. A console screen calls `usePlatformApi()`.
+ */
 export function useApi(): ApiClient {
-  return useApiContext().client
+  return useApiContext().client as ApiClient
+}
+
+/** The platform console's client (`frontend/admin-app`): no tenant, `admin.*`, the support pass. */
+export function usePlatformApi(): PlatformApiClient {
+  return useApiContext().client as PlatformApiClient
 }
 
 export function useQueryCache(): QueryCache {
@@ -82,7 +107,8 @@ export interface UseSession extends SessionState {
 
 /** The signed-in user and the four things a screen does with a session. */
 export function useSession(): UseSession {
-  const { client, cache } = useApiContext()
+  const cache = useQueryCache()
+  const client = useApi()
   const state = useSyncExternalStore(
     client.session.subscribe,
     client.session.getSnapshot,
@@ -108,6 +134,38 @@ export function useSession(): UseSession {
     switchDistributor,
     changePassword: client.changePassword,
     hasManyDistributors: (state.session?.memberships.length ?? 0) > 1,
+  }
+}
+
+export interface UsePlatformSession extends PlatformSessionState {
+  signIn: (options: PlatformSignInOptions) => Promise<PlatformSession>
+  signOut: () => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+}
+
+/**
+ * The console's session (`frontend/admin-app`). There is no `switchDistributor` and no
+ * `hasManyDistributors`: a `platform_admin` belongs to no distributor, and a dead control that
+ * offered to switch to one would be a lie about what this account can reach.
+ */
+export function usePlatformSession(): UsePlatformSession {
+  const cache = useQueryCache()
+  const client = usePlatformApi()
+  const state = useSyncExternalStore(
+    client.session.subscribe,
+    client.session.getSnapshot,
+    client.session.getSnapshot,
+  )
+  const signOut = useCallback(async (): Promise<void> => {
+    await client.signOut()
+    // The next person at this console never sees the last one's rows.
+    cache.clear()
+  }, [client, cache])
+  return {
+    ...state,
+    signIn: client.signIn,
+    signOut,
+    changePassword: client.changePassword,
   }
 }
 
@@ -141,7 +199,7 @@ export interface UseQueryOptions {
  * refreshes the access token around the request), and holding every read until the refresh lands
  * would make a returning user stare at a skeleton for a round trip.
  */
-export function readsAllowed(state: SessionState, enabled: boolean): boolean {
+export function readsAllowed(state: SessionSnapshotLike, enabled: boolean): boolean {
   if (!enabled || state.session === null) return false
   return state.session.user.mustChangePassword !== true
 }
@@ -172,11 +230,13 @@ export function useQuery<T>(
   const { staleTime = 30_000, enabled = true } = options
   const hash = JSON.stringify(key)
 
-  const sessionState = useSyncExternalStore(
-    client.session.subscribe,
-    client.session.getSnapshot,
-    client.session.getSnapshot,
-  )
+  /*
+   * Read the store through the narrow shape both kinds of session satisfy (`SessionSnapshotLike`):
+   * all this hook asks is "is someone signed in, and are they still holding a password somebody
+   * else chose". A union of two `getSnapshot` signatures is not callable, which is what this widens.
+   */
+  const store: SessionStoreLike = client.session
+  const sessionState = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
   const mayRead = readsAllowed(sessionState, enabled)
 
   // `run` changes identity every render; the cache calls the LATEST one.
@@ -364,4 +424,13 @@ export function useMutation<TInput, TResult>(
 }
 
 export { QueryCache }
-export type { QueryKey, QueryEntry, Session, SessionState, ApiError, MutationMeta }
+export type {
+  QueryKey,
+  QueryEntry,
+  PlatformSession,
+  PlatformSessionState,
+  Session,
+  SessionState,
+  ApiError,
+  MutationMeta,
+}
