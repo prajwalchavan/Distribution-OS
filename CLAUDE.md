@@ -89,10 +89,11 @@ platform-resolved entry points.
   `xcrun simctl` and take screenshots with `xcrun simctl io booted screenshot <file>`.
   Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
   Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
-  (API 36 arm64). Any shell that builds or runs Android needs:
+  (API 36 arm64) — **boot it with `-memory 3072`**: at the default 2 GB it thrashes on a dev bundle this size and throws
+  ANR dialogs that swallow `adb` input (delivery gate, 2026-09-07). Any shell that builds or runs Android needs:
   `export ANDROID_HOME=$HOME/Library/Android/sdk; export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home";
-  export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"`. Boot it with
-  `emulator -avd Pixel_7_API_36 -no-snapshot-save` and check with `adb devices`.
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"`. Boot it with
+  `emulator -avd Pixel_7_API_36 -memory 3072 -no-snapshot-save` and check with `adb devices`.
 - Tests that need a database (`describeDb` in specs, `backend/libs/database/src/rls.test.ts`) run whenever `DATABASE_URL` resolves, which with `.env` present is always; they create their own fixtures with a unique run suffix, so the dev database accumulates test rows (harmless; `pnpm db:seed` data is separate).
 - Sign-in everywhere is username + password against the auth service on :3000 (demo users from `pnpm db:seed`, e.g. `sunil.tarsun` / `Dos@1234`; `docs/18-build-log.md` lists one per role). Omit `tenantId` on login unless the user belongs to more than one distributor.
 
