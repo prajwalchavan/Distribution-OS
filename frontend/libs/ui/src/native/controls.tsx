@@ -64,7 +64,17 @@ export function Button({
   const labelColor = off ? theme.colors.text.disabled : (labelColors[variant] ?? '')
 
   return (
-    <View style={fullWidth ? { width: '100%' } : undefined}>
+    /*
+     * `flexShrink: 1` is the whole of web/native parity for a row of buttons.
+     *
+     * The web half is a `<div style={{width:'100%'}}>`, and a CSS flex item shrinks by default, so
+     * `<Row gap={3}><Button/><Button/></Row>` gives each half the row. React Native's default is
+     * `flexShrink: 0`, so the same two children measured 200% of the row and the second one was
+     * clipped off the screen — proved on the iPhone 16 Pro: the fulfilment queue's "Select all"
+     * was cut mid-word at the right edge and "Clear" could not be reached at all, while the web at
+     * 375 px drew both. `minWidth: 0` lets the label ellipsise rather than force the row wider.
+     */
+    <View style={fullWidth ? { width: '100%', flexShrink: 1, minWidth: 0 } : undefined}>
       <Pressable
         testID={testID}
         accessibilityRole="button"

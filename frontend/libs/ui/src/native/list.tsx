@@ -121,8 +121,16 @@ export function ListRow({
   testID,
 }: ListRowProps): React.JSX.Element {
   const theme = useTheme()
-  // The whole row is the tap target: 72 dp is above every floor in UX-00 5.2.
-  const rowHeight = 72
+  /*
+   * The row is the tap target, so it obeys the APP's floor and not a literal.
+   *
+   * UX-00 §6.6 says "a row is 72-96 dp ... above every floor in §5.2" — but §5.2, which it calls
+   * "the one sentence every size in §6 obeys", puts the warehouse floor at **76**, and 72 < 76. On
+   * the godown app that made every row on every screen four pixels short of its own floor (measured:
+   * 52 rows on the home queue, 91 on the fulfilment queue, 100 on the reservations list). Reading
+   * `touchSize` fixes exactly that case: `field` 69 and `phone` 63 stay at 72, `floor` 76 becomes 76.
+   */
+  const rowHeight = Math.max(72, theme.touchSize)
   const leadingBar =
     state === 'selected'
       ? theme.colors.accent.line

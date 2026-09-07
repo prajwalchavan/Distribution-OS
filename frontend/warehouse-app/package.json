@@ -1,12 +1,11 @@
 {
-  "name": "@dos/app-template",
+  "name": "@dos/warehouse-app",
   "version": "0.0.0",
   "private": true,
-  "description": "The universal-app skeleton every Distribution OS role app is generated from (docs/08 \u00a70): one Expo codebase that ships as website + Android + iOS, screens written only against the @dos/ui contract.",
+  "description": "Distribution OS - Warehouse: one Expo codebase shipping as website, Android and iOS (docs/08 \u00a70). Talks to its own service on :3004.",
   "main": "expo-router/entry",
   "scripts": {
-    "new": "node ./scripts/new-app.mjs",
-    "web": "node ./scripts/sync-fonts.mjs && expo start --web --port ${PORT:-5170}",
+    "web": "node ./scripts/sync-fonts.mjs && expo start --web --port 5176",
     "start": "expo start",
     "ios": "expo run:ios",
     "android": "expo run:android",
@@ -20,8 +19,8 @@
   },
   "dependencies": {
     "@dos/api-client": "workspace:*",
-    "@dos/contracts": "link:../../../backend/libs/contracts",
-    "@dos/domain": "link:../../../backend/libs/domain",
+    "@dos/contracts": "link:../../backend/libs/contracts",
+    "@dos/domain": "link:../../backend/libs/domain",
     "@dos/offline": "workspace:*",
     "@dos/ui": "workspace:*",
     "@expo/metro-runtime": "catalog:",

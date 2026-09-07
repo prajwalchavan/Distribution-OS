@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { ThemeContextProvider } from '../theme.js'
 import { ThemeProvider } from './ThemeProvider.js'
 import { CompareBars, StackedMix } from './charts.js'
-import { KpiStrip } from './list.js'
+import { KpiStrip, ListRow } from './list.js'
 import { Money, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { TextInput, Tabs, Segments } from './controls.js'
@@ -602,5 +602,34 @@ describe('<Segments> meets the app touch floor (UX-00 §5.2)', () => {
   it('and the desk size on a desk', () => {
     const html = renderDesk(<Segments items={items} value="a" onChange={() => undefined} />)
     expect(html).toContain('height:32px')
+  })
+})
+
+/**
+ * A row is the tap target, so a row is the app's floor.
+ *
+ * UX-00 §6.6 claims 72 dp is "above every floor in §5.2"; §5.2 puts the warehouse at 76 and calls
+ * itself "the one sentence every size in §6 obeys". Measured on the godown app before this: every
+ * row of every screen at 72 px against its own 76 dp floor.
+ */
+describe('<ListRow> meets the app touch floor (UX-00 §5.2)', () => {
+  function renderFloor(node: React.ReactNode): string {
+    return renderToStaticMarkup(
+      <ThemeProvider touch="floor" density="field">
+        {node}
+      </ThemeProvider>,
+    )
+  }
+
+  it('is 76 px in the godown, where the floor is 76', () => {
+    expect(renderFloor(<ListRow primary="Receipt at Godown" />)).toContain('min-height:76px')
+  })
+
+  it('stays 72 px where the floor is lower (sales, retailer, owner phone)', () => {
+    expect(renderField(<ListRow primary="Shree Ganesh Kirana" />)).toContain('min-height:72px')
+  })
+
+  it('is the dense register row on a desk', () => {
+    expect(renderDesk(<ListRow primary="INV/0037" />)).toContain('min-height:56px')
   })
 })
