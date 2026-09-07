@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
-import { cssShadow, monogramSize, radius, size as sizeTokens, space } from '../tokens.js'
+import { cssShadow, monogramSize, radius, size as sizeTokens, space, typeDesk } from '../tokens.js'
 import type {
   AvatarProps,
   ConnectionStripProps,
@@ -18,7 +18,7 @@ import type {
   TenantLogoProps,
   ToastProps,
 } from '../types.js'
-import { Txt } from './base.js'
+import { Txt, typeStyle } from './base.js'
 import { Button } from './controls.js'
 
 // ---------------------------------------------------------------------------
@@ -506,8 +506,22 @@ export function TenantLogo({
             at railTitle 14/700 does not fit on one of them — clamping to one line would put the
             distributor's own name (UX-00 §11: it IS the chrome) behind an ellipsis on the pilot's
             very first screen. Two lines fit; a genuinely long name still stops at two.
+
+            THE RAIL IS DESK FURNITURE AND TAKES THE DESK TOKEN IN EVERY DENSITY. `<Txt>` picks its
+            scale by the app's DENSITY, and the four field-density apps (sales, warehouse, delivery,
+            retailer) also open on a laptop, where they draw this same 172 px rail. There the name
+            came out at `field.title` — 20/26/700 — needing 95 px in an 88 px box that is
+            `overflow: hidden` with no ellipsis, so the pilot's own rail head read "Tarsun
+            Enterpris" with the last letter cut through the middle. UX-00 §8.1 sets this line at
+            `desk.railTitle` (14/18/700); at that size the name wraps to two lines and fits whole.
           */}
-          <Txt field="title" desk="railTitle" as="div" numberOfLines={2}>
+          <Txt
+            field="title"
+            desk="railTitle"
+            as="div"
+            numberOfLines={2}
+            {...(size === 'rail' ? { style: typeStyle(typeDesk.railTitle) } : {})}
+          >
             {displayName}
           </Txt>
           {subtitle ? (

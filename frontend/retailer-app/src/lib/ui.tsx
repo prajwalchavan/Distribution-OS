@@ -340,7 +340,14 @@ export function ReloadButton({ onPress }: { onPress: () => void }): React.JSX.El
   return <Button label={t('app.reload')} variant="ghost" onPress={onPress} testID="reload" />
 }
 
-/** A plain text cell. Paise never come through here — a figure goes through `<Money>`. */
+/**
+ * A plain text cell. Paise never come through here — a figure goes through `<Money>`.
+ *
+ * `priority` defaults to `detail`, and a `field`-density `<Register>` DRAWS NO DETAIL COLUMN: it
+ * keeps the identity, one value and one chip and drops the rest. In this app — `field` at every
+ * width — a detail column is therefore invisible, which is how the account screen came to list
+ * forty-one devices with no date on any of them. Any register in this app names its priorities.
+ */
 export function textColumn<T>(
   key: string,
   head: string,

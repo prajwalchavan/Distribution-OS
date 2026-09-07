@@ -17,20 +17,19 @@ import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react
 import {
   Button,
   Dialog,
-  Register,
+  Group,
   Screen,
   Stack,
   StatusChip,
   Txt,
   useColors,
   useStrings,
-  type RegisterColumn,
 } from '@dos/ui'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { instantWithClock } from '../src/lib/dates'
-import { Async, Field, Panel, textColumn } from '../src/lib/ui'
+import { Async, Field, Panel, TwoLine } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
 
 /** `auth.sessions` adds `current` to the stored session row; the contract says so, so we read it. */
@@ -91,22 +90,6 @@ export default function Account(): React.JSX.Element {
 
   const rows = (sessions.data?.items ?? []) as readonly SessionRow[]
 
-  const columns: readonly RegisterColumn<SessionRow>[] = [
-    textColumn('device', t('x4.device'), (row) => deviceLabel(row.deviceName, t('x4.unnamed')), {
-      priority: 'identity',
-    }),
-    textColumn('platform', t('x4.platform'), (row) => word(row.platform)),
-    textColumn('created', t('x4.signedInAt'), (row) => instantWithClock(row.createdAt)),
-    textColumn('last', t('x4.lastSeen'), (row) => instantWithClock(row.lastUsedAt)),
-    {
-      key: 'current',
-      head: t('x4.thisDevice'),
-      priority: 'chip',
-      cell: (row) =>
-        row.current ? <StatusChip label={t('x4.thisDevice')} family="moss" /> : <></>,
-    },
-  ]
-
   return (
     <Screen title={t('x4.title')} context={session?.tenant.displayName} testID="x4-screen">
       <Stack gap={6}>
@@ -132,21 +115,50 @@ export default function Account(): React.JSX.Element {
             empty={rows.length === 0}
             emptyMessage={t('x4.noDevices')}
           >
-            <Register
-              testID="x4-sessions"
-              columns={columns}
-              rows={rows}
-              rowKey={(row) => row.id}
-              frozen="device"
-              onSelect={(row) => {
-                if (!row.current) setRevoking(row.id)
-              }}
-              state="ready"
-              totals={{ device: t('app.rows', { count: rows.length }) }}
-            />
+            {/*
+              ROWS, NOT A REGISTER.
+
+              `<Register>` in `field` density draws the identity column, one `value` column and one
+              `chip` column and DROPS every `detail` column (UX-00 §6.7 — the phone rendering). This
+              app is `field` density at every width, so the four columns that say WHICH device a row
+              is — its kind, when it signed in, when it was last used — were never drawn. Measured on
+              the founder's own account: forty-one rows reading "Safari on Mac", "Safari on Mac",
+              "Unnamed device" … with no date anywhere, on the one screen whose only question is
+              which of them to sign out. It is the same defect the statement had.
+            */}
+            <Group>
+              {rows.map((row) => (
+                <TwoLine
+                  key={row.id}
+                  primary={deviceLabel(row.deviceName, t('x4.unnamed'))}
+                  secondary={t('x4.seenLine', {
+                    platform: word(row.platform),
+                    signedIn: instantWithClock(row.createdAt),
+                    lastSeen: instantWithClock(row.lastUsedAt),
+                  })}
+                  trailing={
+                    row.current ? (
+                      <StatusChip label={t('x4.thisDevice')} family="moss" />
+                    ) : (
+                      <Txt field="label" desk="meta" color={colors.text.secondary}>
+                        {t('x4.revoke')}
+                      </Txt>
+                    )
+                  }
+                  {...(row.current
+                    ? {}
+                    : {
+                        onPress: () => {
+                          setRevoking(row.id)
+                        },
+                      })}
+                  testID={`x4-session-${row.id}`}
+                />
+              ))}
+            </Group>
           </Async>
           <Txt field="label" desk="meta" color={colors.text.secondary}>
-            {t('x4.revokeBody')}
+            {`${t('x4.deviceCount', { count: rows.length })} · ${t('x4.revokeBody')}`}
           </Txt>
         </Panel>
       </Stack>

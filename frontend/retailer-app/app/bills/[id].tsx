@@ -35,7 +35,7 @@ import { documents } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { instantWithClock, longDate } from '../../src/lib/dates'
-import { addressLine, useMyShop } from '../../src/lib/shop'
+import { addressLine } from '../../src/lib/shop'
 import { Async, Field, Panel, billFamily } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
 
@@ -50,7 +50,6 @@ export default function BillDetail(): React.JSX.Element {
   const distributor = session?.tenant.displayName ?? ''
   const params = useLocalSearchParams<{ id: string }>()
   const billId = typeof params.id === 'string' ? params.id : null
-  const my = useMyShop()
 
   const invoice = useQuery(
     ['invoice', billId],
@@ -63,11 +62,6 @@ export default function BillDetail(): React.JSX.Element {
     ['invoice-pdf', billId],
     () => api.api.billing.invoices.pdf({ id: billId ?? '', copy: 'original', format: 'a4' }),
     { enabled: signedIn && billId !== null },
-  )
-  const receipts = useQuery(
-    ['receipts', my.retailerId],
-    () => api.api.receivables.receipts.list({ retailerId: my.retailerId ?? '', limit: 25 }),
-    { enabled: signedIn && my.retailerId !== null },
   )
   const deliveries = useQuery(
     ['deliveries', billId],
@@ -226,31 +220,53 @@ export default function BillDetail(): React.JSX.Element {
                 )}
               </Panel>
 
-              {/* --- what has been paid --------------------------------------------------------- */}
+              {/*
+                --- what has been paid ON THIS BILL --------------------------------------------
+
+                THE ONLY MONEY THIS PANEL MAY NAME IS THE MONEY THAT PAID THIS BILL.
+
+                It used to list `receipts.list({ retailerId })` — the shop's last eight receipts,
+                whatever they were against. Measured on the founder's data, INV/0031 (₹13,554, paid
+                in full on 27 August) showed eight receipts under "WHAT YOU HAVE PAID", not one of
+                which touched it: five ₹1 receipts from 5 September, a −₹13,554 reversal, a −₹40 and
+                a +₹40 — adding to MINUS ₹13,549 — while the receipt that actually paid the bill was
+                not on the list at all. A bill screen that prints somebody else's payments as if
+                they were this bill's is worse than a bill screen that prints none.
+
+                The figures below are the invoice's own: `totalPaise − amountDuePaise` is what has
+                been settled against it (receipts, credit notes and write-offs alike). The receipts
+                themselves, each with the bills it went against, live one tap away. Naming which
+                receipt paid which bill needs an `invoiceId` filter on `receipts.list` (or the
+                allocations on `invoices.get`); neither is in the contract — recorded as a gap.
+              */}
               <Panel title={t('r4.receipts')} testID="r4-receipts">
-                <Async state={[receipts]} rows={2}>
-                  {(receipts.data?.items ?? []).length === 0 ? (
+                <Stack gap={3}>
+                  {bill.totalPaise - bill.amountDuePaise <= 0 ? (
                     <Txt field="body" desk="body" color={colors.text.secondary}>
                       {t('r4.noReceipts')}
                     </Txt>
                   ) : (
-                    <Group>
-                      {(receipts.data?.items ?? []).slice(0, 8).map((receipt) => (
-                        <ListRow
-                          key={receipt.id}
-                          primary={t('r13.no', { no: receipt.receiptNo ?? '—' })}
-                          secondary={`${t('r13.mode', {
-                            mode: word(receipt.mode),
-                          })} · ${instantWithClock(receipt.receivedAt)}`}
-                          trailingMoney={receipt.amountPaise}
-                          onPress={() => {
-                            router.push('/receipts')
-                          }}
-                        />
-                      ))}
-                    </Group>
+                    <Line
+                      label={t('r4.paidOnThisBill')}
+                      value={bill.totalPaise - bill.amountDuePaise}
+                      strong
+                    />
                   )}
-                </Async>
+                  {bill.amountDuePaise > 0 ? (
+                    <Line label={t('r4.stillOnThisBill')} value={bill.amountDuePaise} />
+                  ) : null}
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('r4.receiptsElsewhere', { name: distributor })}
+                  </Txt>
+                  <Button
+                    label={t('r4.seeReceipts')}
+                    variant="secondary"
+                    onPress={() => {
+                      router.push('/receipts')
+                    }}
+                    testID="r4-see-receipts"
+                  />
+                </Stack>
               </Panel>
 
               {/* --- proof of delivery ----------------------------------------------------------- */}

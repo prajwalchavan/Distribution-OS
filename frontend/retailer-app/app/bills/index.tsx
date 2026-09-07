@@ -34,7 +34,18 @@ export default function Bills(): React.JSX.Element {
       }),
     { enabled: session !== null },
   )
-  const rows = bills.data?.items ?? []
+  /*
+   * NEWEST BILL FIRST.
+   *
+   * `billing.invoices.list` pages by `id DESC` and takes no `orderBy` (docs/23 §10). An id is a date
+   * only for rows this product issued itself; a seeded, imported or back-dated bill sorts anywhere.
+   * Measured on the founder's data, "My bills" opened 27 Aug · 26 Aug · 28 Aug · 5 Sep — a shop
+   * looking for the bill it was handed this morning could not find it. The page is ordered by the
+   * date printed on the bill, which is the only date a shopkeeper has ever seen.
+   */
+  const rows = [...(bills.data?.items ?? [])].sort(
+    (a, b) => b.invoiceDate.localeCompare(a.invoiceDate) || b.id.localeCompare(a.id),
+  )
 
   return (
     <Screen title={t('r4.title')} context={session?.tenant.displayName} testID="r4-screen">

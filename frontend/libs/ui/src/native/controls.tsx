@@ -439,6 +439,8 @@ export function Segments({
             style={{
               height,
               minHeight: height,
+              /* Both axes: "All" measured 54 dp wide against a 69 dp floor — see the web half. */
+              minWidth: height,
               paddingHorizontal: space[4],
               alignItems: 'center',
               justifyContent: 'center',

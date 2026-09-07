@@ -391,6 +391,36 @@ describe('<TenantLogo> inside a 172 px rail', () => {
     expect(html).toContain('max-width:100%')
     expect(html).toContain('box-sizing:border-box')
   })
+
+  it('sets the rail name at desk.railTitle even in a field-density app', () => {
+    // The four field apps also open on a laptop, where they draw this same 172 px rail. At
+    // field.title (20 px) "Tarsun Enterprise" needs 95 px in an 88 px clipped box and the pilot's
+    // own name lost its last letter. UX-00 §8.1 fixes this line at 14/18/700.
+    const html = renderField(<TenantLogo size="rail" name="Tarsun Enterprise" withName />)
+    expect(html).toContain('font-size:14px')
+    expect(html).not.toContain('font-size:20px')
+  })
+
+  it('leaves the phone header and the card mark on the field scale', () => {
+    expect(renderField(<TenantLogo size="header" name="Tarsun Enterprise" withName />)).toContain(
+      'font-size:20px',
+    )
+  })
+
+  it('gives the phone switcher the app’s own touch floor, not the desk 32', () => {
+    const html = renderField(
+      <TenantSwitcher
+        current={{ id: 't1', name: 'Tarsun Enterprise', roleLabel: 'retailer' }}
+        choices={[
+          { id: 't1', name: 'Tarsun Enterprise', roleLabel: 'retailer' },
+          { id: 't2', name: 'Kalyan Agencies', roleLabel: 'retailer' },
+        ]}
+        onSwitch={() => undefined}
+      />,
+    )
+    // 69 dp for a field app; it measured 52 dp on every screen of the shop's app.
+    expect(html).toContain('min-height:69px')
+  })
 })
 
 describe('<Tabs> at the two viewports', () => {
@@ -861,5 +891,22 @@ describe('<AppShell> — the no-tab-bar declaration', () => {
       </AppShell>,
     )
     expect(html).not.toContain('SETUP')
+  })
+})
+
+describe('<Segments> at the field floor', () => {
+  it('gives a short segment the floor in BOTH axes', () => {
+    const html = renderField(
+      <Segments
+        items={[
+          { id: 'all', label: 'All' },
+          { id: 'open', label: 'Still to pay' },
+        ]}
+        value="all"
+        onChange={() => undefined}
+      />,
+    )
+    // "All" is 54 dp wide when it is sized by its own word; the floor is 69.
+    expect(html).toContain('min-width:69px')
   })
 })

@@ -22,6 +22,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   billLineQty,
   formatMoney,
@@ -47,8 +48,11 @@ export default function OrderDetail(): React.JSX.Element {
   const router = useRouter()
   const { session } = useSession()
   const signedIn = session !== null
-  const params = useLocalSearchParams<{ id: string }>()
+  const params = useLocalSearchParams<{ id: string; placed?: string }>()
   const orderId = typeof params.id === 'string' ? params.id : null
+  /** The order editor lands here with `?placed=1` — the confirmation belongs on this screen. */
+  const justPlaced = params.placed === '1'
+  const [confirmed, setConfirmed] = useState(justPlaced)
   const my = useMyShop()
   const names = useItemNames()
 
@@ -165,7 +169,11 @@ export default function OrderDetail(): React.JSX.Element {
               {/* --- what was ordered --------------------------------------------------------- */}
               <Panel
                 title={t('r8.lines')}
-                meta={t('r8.itemsCount', { count: detail.lines.length })}
+                meta={
+                  detail.lines.length === 1
+                    ? t('r8.itemsCountOne')
+                    : t('r8.itemsCount', { count: detail.lines.length })
+                }
                 testID="r8-lines"
               >
                 <Group>
@@ -182,8 +190,18 @@ export default function OrderDetail(): React.JSX.Element {
                 </Group>
               </Panel>
 
-              {detail.note === null || detail.note === '' ? null : (
-                <Field label={t('r8.notes')}>{detail.note}</Field>
+              {/*
+                A NOTE THE SHOP DID NOT WRITE IS NOT A NOTE.
+
+                `orders.repeatLast` stores `Repeat of <the previous order's uuid>` on the new draft,
+                so a two-tap reorder showed the shopkeeper "Your note: Repeat of
+                fd62e4e0-f68c-7e07-bfa2-6478bed9282f". A database id is never a sentence a shop
+                reads. (The server writing the order NUMBER there is recorded as a backend gap.)
+              */}
+              {noteOf(detail.note) === null ? null : (
+                <Field label={t('r8.notes')}>
+                  {noteOf(detail.note) === REPEAT ? t('r8.repeatNote') : noteOf(detail.note)}
+                </Field>
               )}
 
               {/* --- where it has got to ------------------------------------------------------- */}
@@ -309,6 +327,30 @@ export default function OrderDetail(): React.JSX.Element {
         }}
         testID="r8-cancel-dialog"
       />
+      <Toast
+        open={confirmed}
+        message={t('r8.placedToast', {
+          no: detail?.orderNo ?? '',
+          name: session?.tenant.displayName ?? '',
+        })}
+        onDismiss={() => {
+          setConfirmed(false)
+        }}
+        testID="r8-placed"
+      />
     </Screen>
   )
+}
+
+/**
+ * The note as the shop should read it, or null when there is nothing to show.
+ *
+ * `REPEAT` is the marker `orders.repeatLast` leaves behind; the screen prints its own sentence for
+ * it rather than the uuid the server stored.
+ */
+const REPEAT = 'repeat'
+function noteOf(note: string | null): string | null {
+  const raw = (note ?? '').trim()
+  if (raw === '') return null
+  return /^Repeat of [0-9a-f-]{36}$/i.test(raw) ? REPEAT : raw
 }

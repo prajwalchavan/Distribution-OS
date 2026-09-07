@@ -94,9 +94,18 @@ export default function Home(): React.JSX.Element {
   const recentOrders = [...(orders.data?.items ?? [])]
     .sort((a, b) => (b.submittedAt ?? b.createdAt).localeCompare(a.submittedAt ?? a.createdAt))
     .slice(0, 5)
+  /*
+   * "LAST BILL" MEANS THE MOST RECENT BILL, WHICH IS NOT THE FIRST ROW OF PAGE ONE.
+   *
+   * `billing.invoices.list` pages by `id DESC` and carries no `orderBy` (an API gap, docs/23 §10):
+   * for seeded and imported rows an id is not a date, so `limit: 1` answered whichever bill happened
+   * to sort highest. Measured on the founder's data: the home screen named INV/0031 of 27 Aug as
+   * this shop's last bill while its actual last bill was INV/9125 of 5 Sep. The page is read and the
+   * newest INVOICE DATE picked here, which is also right for a bill entered late or back-dated.
+   */
   const lastBill = useQuery(
     ['invoices', 'last'],
-    () => api.api.billing.invoices.list({ limit: 1 }),
+    () => api.api.billing.invoices.list({ limit: 50 }),
     { enabled: signedIn },
   )
   const stops = useQuery(
@@ -125,7 +134,9 @@ export default function Home(): React.JSX.Element {
   )
 
   const summary = dues.data
-  const bill = lastBill.data?.items[0]
+  const bill = [...(lastBill.data?.items ?? [])].sort(
+    (a, b) => b.invoiceDate.localeCompare(a.invoiceDate) || b.id.localeCompare(a.id),
+  )[0]
   const coming = (stops.data?.items ?? []).filter((stop) => OPEN_STOPS.has(stop.state))
   const memberships = session?.memberships ?? []
   const openTenantId = session?.tenant.id ?? ''

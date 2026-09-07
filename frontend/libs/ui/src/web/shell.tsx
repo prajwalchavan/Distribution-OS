@@ -27,10 +27,18 @@ import { useViewport } from './viewport.js'
  * shopkeeper who buys from three distributors gets a menu, a distributor's own staff never do.
  */
 export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
-  const { colors } = useTheme()
+  const { colors, touchSize } = useTheme()
   const { current, choices, onSwitch, busy = false, testID, compact = false } = props
   const [open, setOpen] = useState(false)
   const many = choices.length > 1
+  /*
+   * THE MARK IS SIZED BY THE SHELL IT IS IN, NOT BY THE APP.
+   *
+   * UX-00 §11 gives two boxes: 28 px in the desk rail, 32 dp in the phone header — and §8.1 vs §8.2
+   * give them two type sizes with them. The same build is both (docs/08 §0), so this reads the
+   * viewport rather than the density, which is what put a 28 px rail mark in every phone header.
+   */
+  const railHead = useViewport().kind === 'desk'
 
   if (!many) {
     return (
@@ -40,7 +48,7 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
         title={compact ? current.name : undefined}
       >
         <TenantLogo
-          size="rail"
+          size={railHead ? 'rail' : 'header'}
           withName={!compact}
           subtitle={current.roleLabel}
           name={current.name}
@@ -78,7 +86,16 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
           cursor: busy ? 'progress' : 'pointer',
           font: 'inherit',
           color: 'inherit',
-          minHeight: size.desk,
+          /*
+           * `theme.touchSize`, never a literal — the same rule `<MenuRow>` states below.
+           *
+           * A hard-coded `size.desk` (32) let this control size itself to its content, and on a
+           * phone that is 52 dp: measured on every screen of the retailer app, whose whole spine IS
+           * this switcher (a shop that buys from three distributors changes it constantly), against
+           * a 69 dp floor. `buildTheme` resolves the viewport, so this is still 32 px on the desk
+           * rail and 63 / 69 / 76 on the phone shells of the apps that declare those floors.
+           */
+          minHeight: touchSize,
           width: '100%',
           minWidth: 0,
           maxWidth: '100%',
@@ -86,7 +103,7 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
         }}
       >
         <TenantLogo
-          size="rail"
+          size={railHead ? 'rail' : 'header'}
           withName={!compact}
           subtitle={current.roleLabel}
           name={current.name}

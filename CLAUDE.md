@@ -87,11 +87,15 @@ platform-resolved entry points.
   at the Command Line Tools, only the founder can change it back (`sudo xcode-select -s`).
   **Never open the iOS simulator panel in the Claude app** (founder, 2026-09-06): drive the simulator headlessly with
   `xcrun simctl` and take screenshots with `xcrun simctl io booted screenshot <file>`.
-  Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is Android
-  Studio's bundled one at `/Applications/Android Studio.app/Contents/jbr/Contents/Home`, and the virtual device is `Pixel_7_API_36`
+  Android: the SDK lives in `~/Library/Android/sdk` (command-line tools only, no Android Studio project needed), the JDK is
+  **Homebrew's `openjdk@21`** (installed 2026-09-07 by the retailer gate), and the virtual device is `Pixel_7_API_36`
   (API 36 arm64) — **boot it with `-memory 3072`**: at the default 2 GB it thrashes on a dev bundle this size and throws
-  ANR dialogs that swallow `adb` input (delivery gate, 2026-09-07). Any shell that builds or runs Android needs:
-  `export ANDROID_HOME=$HOME/Library/Android/sdk; export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home";
+  ANR dialogs that swallow `adb` input (delivery gate, 2026-09-07). **Do NOT use Android Studio's bundled jbr any more**: it is
+  now JDK 25, whose "WARNING: A restricted method in java.lang.System has been called" is written to stderr, and AGP's
+  `GeneratePrefabPackages.reportErrors` turns any stderr line into a build failure — `:react-native-worklets:configureCMakeDebug`
+  then fails on a clean tree with that warning as its entire message (retailer gate, 2026-09-07). Any shell that builds or runs
+  Android needs:
+  `export ANDROID_HOME=$HOME/Library/Android/sdk; export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home;
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"`. Boot it with
   `emulator -avd Pixel_7_API_36 -memory 3072 -no-snapshot-save` and check with `adb devices`.
 - Tests that need a database (`describeDb` in specs, `backend/libs/database/src/rls.test.ts`) run whenever `DATABASE_URL` resolves, which with `.env` present is always; they create their own fixtures with a unique run suffix, so the dev database accumulates test rows (harmless; `pnpm db:seed` data is separate).

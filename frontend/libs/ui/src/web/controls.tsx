@@ -398,6 +398,12 @@ export function Segments({
             style={{
               height,
               minHeight: height,
+              /*
+               * BOTH AXES, not only the height. UX-00 §5.2 sizes a tap target, and a segment sized
+               * by its own label is as narrow as its word: measured 54 dp for "All" on the shop's
+               * My orders and My bills, against a 69 dp floor.
+               */
+              minWidth: height,
               padding: `0 ${space[4]}px`,
               borderRadius: radius.sm - 2,
               border: active ? `1px solid ${theme.colors.border.faint}` : '1px solid transparent',

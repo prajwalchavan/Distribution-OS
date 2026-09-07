@@ -52,7 +52,17 @@ export default function Inbox(): React.JSX.Element {
     { invalidates: [['messages'], ['notifications']] },
   )
 
-  const rows = messages.data?.items ?? []
+  /*
+   * NEWEST MESSAGE FIRST.
+   *
+   * `notifications.messages.list` pages by `id DESC` and takes no `orderBy` (docs/23 §10). Measured
+   * on the founder's data the inbox opened 26 Aug · 27 Aug · 26 Aug · 28 Aug · 23 Aug …, with this
+   * morning's WhatsApp messages twelve rows down — on the one screen this app exists to be the
+   * detail view of. It is ordered here by when the distributor actually sent it.
+   */
+  const rows = [...(messages.data?.items ?? [])].sort((a, b) =>
+    (b.sentAt ?? b.createdAt).localeCompare(a.sentAt ?? a.createdAt),
+  )
   const unread = messages.data?.unreadCount ?? 0
 
   return (

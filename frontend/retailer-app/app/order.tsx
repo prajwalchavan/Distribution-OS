@@ -222,6 +222,16 @@ export default function PlaceOrder(): React.JSX.Element {
   }, [listQuote.data])
 
   // --- writing ---------------------------------------------------------------------------------
+  /*
+   * `['order']` IS ON EVERY ONE OF THESE, AND THAT IS NOT A DETAIL.
+   *
+   * The cache invalidates by key PREFIX, and this screen reads the repeat draft under `['order', id]`
+   * while `/orders/[id]` reads the very same key. `['orders']` does not prefix `['order', id]` — a
+   * different first element — so after "Place order" the detail screen this one navigates to served
+   * the cached DRAFT for its 30-second freshness window. Measured: `setLines` 200, `submit` 200, and
+   * the shop landed on a screen headed "Not sent yet" with a live "Send this order" button under an
+   * order the distributor had already accepted.
+   */
   const create = useMutation(
     (input: { retailerId: string; lines: readonly DraftLine[]; note: string }, meta) =>
       api.api.orders.create({
@@ -237,23 +247,26 @@ export default function PlaceOrder(): React.JSX.Element {
           enteredUnit: line.enteredUnit,
         })),
       }),
+    { invalidates: [['orders'], ['order']] },
   )
-  const replace = useMutation((input: { orderId: string; lines: readonly DraftLine[] }, meta) =>
-    api.api.orders.setLines({
-      id: input.orderId,
-      idempotencyKey: meta.idempotencyKey,
-      lines: input.lines.map((line) => ({
-        id: line.id,
-        variantId: line.variantId,
-        enteredQty: line.enteredQty,
-        enteredUnit: line.enteredUnit,
-      })),
-    }),
+  const replace = useMutation(
+    (input: { orderId: string; lines: readonly DraftLine[] }, meta) =>
+      api.api.orders.setLines({
+        id: input.orderId,
+        idempotencyKey: meta.idempotencyKey,
+        lines: input.lines.map((line) => ({
+          id: line.id,
+          variantId: line.variantId,
+          enteredQty: line.enteredQty,
+          enteredUnit: line.enteredUnit,
+        })),
+      }),
+    { invalidates: [['orders'], ['order']] },
   )
   const submit = useMutation(
     (input: { orderId: string }, meta) =>
       api.api.orders.submit({ id: input.orderId, idempotencyKey: meta.idempotencyKey }),
-    { invalidates: [['orders'], ['outstanding']] },
+    { invalidates: [['orders'], ['order'], ['outstanding']] },
   )
   const ask = useMutation(
     (input: { retailerId: string; variantId: string; ratePaise: number; qtyPcs: number }, meta) =>
@@ -284,8 +297,12 @@ export default function PlaceOrder(): React.JSX.Element {
           (done) => {
             setLines([])
             setNote('')
-            router.replace(`/orders/${done.item.id}`)
-            setToast(t('r7.placedBody', { no: done.item.orderNo ?? '', name: distributor }))
+            /*
+             * The confirmation belongs to the screen the shop ends up on. A `setToast` after a
+             * `router.replace` sets state on a screen that is being unmounted: nothing was ever
+             * drawn, and the shop's only sign that its order went was a number in a title.
+             */
+            router.replace(`/orders/${done.item.id}?placed=1`)
           },
           (error: unknown) => {
             setFailure(error instanceof Error ? error.message : t('r7.failed'))
@@ -391,7 +408,9 @@ export default function PlaceOrder(): React.JSX.Element {
               {chosen.length === 0 ? null : (
                 <Panel
                   title={t('r7.chosen')}
-                  meta={t('r7.lines', { count: chosen.length })}
+                  meta={
+                    chosen.length === 1 ? t('r7.linesOne') : t('r7.lines', { count: chosen.length })
+                  }
                   actions={
                     <Button
                       label={t('r7.clear')}
@@ -457,14 +476,24 @@ export default function PlaceOrder(): React.JSX.Element {
                 </Panel>
               )}
 
-              <TextInput
-                label={t('r7.note')}
-                value={note}
-                onChange={setNote}
-                capitalize="sentences"
-                maxLength={500}
-                testID="r7-note"
-              />
+              {/*
+                THE SCREEN OPENS ON THE PRICE LIST, NOT ON AN EMPTY BOX.
+
+                With nothing chosen the two panels above render nothing, so this note floated to the
+                top and a shop opening "Place an order" on a phone spent its first screen on
+                "Anything to tell them" and a text box (UX-00 §8.2: open on the most likely next
+                action). There is nothing to say about an order that does not exist yet.
+              */}
+              {chosen.length === 0 ? null : (
+                <TextInput
+                  label={t('r7.note')}
+                  value={note}
+                  onChange={setNote}
+                  capitalize="sentences"
+                  maxLength={500}
+                  testID="r7-note"
+                />
+              )}
 
               {/* --- the price list ---------------------------------------------------------- */}
               <Panel title={t('r7.catalog')} testID="r7-catalog">
@@ -703,7 +732,12 @@ function OrderRow({
           )}
         </Stack>
         <Stack gap={1} align="end">
-          <Money value={quoted?.lineNetPaise ?? null} size="moneyM" />
+          {/*
+            A row that is not in the order has no line total, and `<Money value={null}>` draws an em
+            dash — which on a phone sits at the top right of the row and reads like a control next to
+            the stepper's own "−". The row already says "Not ordered".
+          */}
+          {pieces > 0 ? <Money value={quoted?.lineNetPaise ?? null} size="moneyM" /> : null}
           {scheme === undefined ? null : <StatusChip label={scheme} family="clay" figure />}
         </Stack>
       </Row>

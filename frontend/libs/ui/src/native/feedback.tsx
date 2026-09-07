@@ -7,7 +7,14 @@ import { Image, Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
-import { monogramSize, nativeShadow, radius, size as sizeTokens, space } from '../tokens.js'
+import {
+  monogramSize,
+  nativeShadow,
+  radius,
+  size as sizeTokens,
+  space,
+  typeDesk,
+} from '../tokens.js'
 import type {
   AvatarProps,
   ConnectionStripProps,
@@ -19,7 +26,7 @@ import type {
   TenantLogoProps,
   ToastProps,
 } from '../types.js'
-import { Txt } from './base.js'
+import { Txt, typeStyle } from './base.js'
 import { Button } from './controls.js'
 
 const STALE_MS = 4 * 60 * 60 * 1000
@@ -428,8 +435,17 @@ export function TenantLogo({
       )}
       {withName ? (
         <View style={{ flexShrink: 1 }}>
-          {/* Two lines for the name, one for the subtitle — see the web half for why. */}
-          <Txt field="title" desk="railTitle" numberOfLines={2}>
+          {/*
+            Two lines for the name, one for the subtitle — and the RAIL takes the desk token in
+            every density, because the rail is desk furniture that a field app also draws on a
+            laptop. See the web half for the measurement.
+          */}
+          <Txt
+            field="title"
+            desk="railTitle"
+            numberOfLines={2}
+            {...(size === 'rail' ? { style: typeStyle(typeDesk.railTitle) } : {})}
+          >
             {displayName}
           </Txt>
           {subtitle ? (

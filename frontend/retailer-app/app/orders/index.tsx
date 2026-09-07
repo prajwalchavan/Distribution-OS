@@ -38,7 +38,16 @@ export default function MyOrders(): React.JSX.Element {
       }),
     { enabled: session !== null },
   )
-  const rows = orders.data?.items ?? []
+  /*
+   * NEWEST ORDER FIRST, AND A DRAFT WAS NEVER "PLACED".
+   *
+   * `orders.list` pages by `id DESC` and takes no `orderBy` (docs/23 §10), so on the founder's data
+   * this list opened 4 Sep · 5 Sep · 5 Sep · 6 Sep · 5 Sep — the shop's own last order was six rows
+   * down. It is ordered here by the moment the order was sent (or started, for one that never was).
+   */
+  const rows = [...(orders.data?.items ?? [])].sort((a, b) =>
+    (b.submittedAt ?? b.createdAt).localeCompare(a.submittedAt ?? a.createdAt),
+  )
 
   return (
     <Screen title={t('r8.title')} context={session?.tenant.displayName} testID="r8-screen">
@@ -66,7 +75,7 @@ export default function MyOrders(): React.JSX.Element {
                   primary={
                     order.orderNo === null ? t('r8.draft') : t('r8.orderNo', { no: order.orderNo })
                   }
-                  secondary={`${t('r8.placedOn', {
+                  secondary={`${t(order.submittedAt === null ? 'r8.startedOn' : 'r8.placedOn', {
                     date: longDate((order.submittedAt ?? order.createdAt).slice(0, 10)),
                   })} · ${word(order.source)}`}
                   trailingMoney={order.totalPaise}

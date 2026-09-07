@@ -20,17 +20,19 @@ import { useViewport } from './viewport.js'
 // ---------------------------------------------------------------------------
 
 export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
-  const { colors } = useTheme()
+  const { colors, touchSize } = useTheme()
   const t = useStrings()
   const { current, choices, onSwitch, busy = false, testID, compact = false } = props
   const [open, setOpen] = useState(false)
   const many = choices.length > 1
+  /* 28 px in the desk rail, 32 dp in the phone header (UX-00 §11) — see the web half. */
+  const railHead = useViewport().kind === 'desk'
 
   if (!many) {
     return (
       <View testID={testID}>
         <TenantLogo
-          size="header"
+          size={railHead ? 'rail' : 'header'}
           withName={!compact}
           subtitle={current.roleLabel}
           name={current.name}
@@ -49,10 +51,12 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
         onPress={() => {
           setOpen(true)
         }}
-        style={styles.switcher}
+        /* `theme.touchSize`, never a literal — see the web half: on a phone the content alone is
+           52 dp, under every floor UX-00 §5.2 names. */
+        style={[styles.switcher, { minHeight: touchSize }]}
       >
         <TenantLogo
-          size="header"
+          size={railHead ? 'rail' : 'header'}
           withName={!compact}
           subtitle={current.roleLabel}
           name={current.name}
