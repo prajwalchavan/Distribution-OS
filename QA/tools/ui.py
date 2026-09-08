@@ -4,8 +4,14 @@ clickable node with that text (falls back to any node); `ui.py has-edit` -> exit
 `ui.py texts` -> the visible texts. Reads the dump through adb; prints "x y"."""
 import re, subprocess, sys
 def dump():
-    subprocess.run(['adb', 'shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], capture_output=True)
-    return subprocess.run(['adb', 'shell', 'cat', '/sdcard/ui.xml'], capture_output=True, text=True).stdout
+    # uiautomator occasionally answers "could not get idle state" mid-animation; retry rather than report an empty screen
+    for _ in range(4):
+        subprocess.run(['adb', 'shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], capture_output=True, timeout=30)
+        out = subprocess.run(['adb', 'shell', 'cat', '/sdcard/ui.xml'], capture_output=True, text=True, timeout=30).stdout
+        if '<hierarchy' in out: return out
+        subprocess.run(['adb', 'shell', 'rm', '-f', '/sdcard/ui.xml'], capture_output=True)
+    return ''
+
 def centre(node):
     m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
     x1, y1, x2, y2 = map(int, m.groups()); return f'{(x1+x2)//2} {(y1+y2)//2}'

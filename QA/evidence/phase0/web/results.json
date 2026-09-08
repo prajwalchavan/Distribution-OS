@@ -12,7 +12,7 @@
     "landedUrl": "http://localhost:5173/",
     "leftSignIn": true,
     "title": "Distribution OS - Owner",
-    "bodyText": "Tarsun Enterprise owner Today 397 Orders Money Shops Billing Stock Reports SETUP Prices Staff Settings Updated just now ST Sunil Tarsun owner Today Open approvals Today Approvals Live map INVOICED TODAY ₹235.00 COLLECTED TODAY ₹7,500.00 2 trips active OUTSTANDING ₹4,70,414.46 ₹3,08,280.18 overdue ORDERS TODAY 5 0 stops delivered as of 7 Sep, 9:26 pm Sales vs the period before 9 Aug — 7 Sep ₹0 ₹50k",
+    "bodyText": "Tarsun Enterprise owner Today 2 Orders Money Shops Billing Stock Reports SETUP Prices Staff Settings Updated just now ST Sunil Tarsun owner Today Open approvals Today Approvals Live map INVOICED TODAY ₹0.00 COLLECTED TODAY ₹0.00 2 trips active OUTSTANDING ₹2,74,808.00 ₹1,97,824.72 overdue ORDERS TODAY 73 0 stops delivered as of 8 Sep, 6:30 am Sales vs the period before 10 Aug — 8 Sep ₹0 ₹50k ₹1L ₹",
     "status": "SIGNED_IN"
   },
   {
@@ -28,7 +28,7 @@
     "landedUrl": "http://localhost:5174/",
     "leftSignIn": true,
     "title": "Distribution OS - Manager",
-    "bodyText": "Tarsun Enterprise manager Today Orders 100 Fulfilment Billing 100 Inbound Money Registers Shops Stock SETUP Prices Messages Updated just now VK Vikas Kadam manager Today Open the queue INVOICED TODAY ₹235.00 COLLECTED TODAY ₹7,500.00 2 trips active MONEY OWED ₹4,70,414.46 ₹3,08,280.18 overdue ORDERS TO CONFIRM 100+ 100 bills to issue as of 7 Sep, 9:26 pm What is waiting Orders to confirm more than",
+    "bodyText": "Tarsun Enterprise manager Today Orders 2 Fulfilment Billing 2 Inbound Money Registers Shops Stock SETUP Prices Messages Updated just now VK Vikas Kadam manager Today Open the queue INVOICED TODAY ₹0.00 COLLECTED TODAY ₹0.00 2 trips active MONEY OWED ₹2,74,808.00 ₹1,97,824.72 overdue ORDERS TO CONFIRM 2 2 bills to issue as of 8 Sep, 6:30 am What is waiting Orders to confirm 2 rows ₹45,098.00 2 Bill",
     "status": "SIGNED_IN"
   },
   {
@@ -44,7 +44,7 @@
     "landedUrl": "http://localhost:5174/",
     "leftSignIn": true,
     "title": "Distribution OS - Manager",
-    "bodyText": "Tarsun Enterprise accountant Today Orders 100 Billing 100 Inbound Money Registers Shops Stock SETUP Messages Updated just now MJ Meena Joshi accountant Today Open the queue INVOICED TODAY ₹235.00 COLLECTED TODAY ₹7,500.00 2 trips active MONEY OWED ₹4,70,414.46 ₹3,08,280.18 overdue ORDERS TO CONFIRM 100+ 100 bills to issue as of 7 Sep, 9:26 pm What is waiting Orders to confirm more than 100 rows 10",
+    "bodyText": "Tarsun Enterprise accountant Today Orders 2 Billing 2 Inbound Money Registers Shops Stock SETUP Messages Updated just now MJ Meena Joshi accountant Today Open the queue INVOICED TODAY ₹0.00 COLLECTED TODAY ₹0.00 2 trips active MONEY OWED ₹2,74,808.00 ₹1,97,824.72 overdue ORDERS TO CONFIRM 2 2 bills to issue as of 8 Sep, 6:30 am What is waiting Orders to confirm 2 rows ₹45,098.00 2 Bills to issue 2",
     "status": "SIGNED_IN"
   },
   {
@@ -60,7 +60,7 @@
     "landedUrl": "http://localhost:5175/",
     "leftSignIn": true,
     "title": "Distribution OS - Sales",
-    "bodyText": "Tarsun Enterprise salesperson Beat Orders Shops Me SETUP Settings Updated just now D( Demo Docs Staff (edited) salesperson Kalyan West Market Today's beat Shops: 9 Visited: 0 Ordered: 0 ✓ Kalyan West Market Station Road Balaji Stores Kalyan West · your last order 4 Sep — To visit Sai Baba Kirana Kalyan West · your last order 4 Sep ₹26,982.00 To visit Vitthal Traders Kalyan West · your last order 4",
+    "bodyText": "Tarsun Enterprise salesperson Beat Orders Shops Me SETUP Settings Updated just now RD Rahul Deshmukh salesperson Station Road Today's beat Shops: 9 Visited: 0 Ordered: 8 ✓ Station Road Kalyan West Market Shree Ganesh Kirana Kalyan West · your last order 8 Sep — Ordered Om Sai Provision Store Kalyan West · your last order 8 Sep ₹31,200.00 Ordered Mahalaxmi General Stores Kalyan West · your last ord",
     "status": "SIGNED_IN"
   },
   {
@@ -76,7 +76,7 @@
     "landedUrl": "http://localhost:5176/",
     "leftSignIn": true,
     "title": "Distribution OS - Warehouse",
-    "bodyText": "Tarsun Enterprise warehouse Inbound Pick Pack Load SETUP Settings Updated just now DP Dinesh Patil warehouse Tarsun Enterprise Inbound ✓ Queues Capture Stock Counts Held BILLS TO COUNT 20+ WAVES OPEN 40+ PACKED, NO BILL 11 SHEETS WAITING 20+ GATE COUNTS WAITING 20+ lines Receipt at Godown 5 Sep, 10:32 pm counting Receipt at Godown 5 Sep, 8:35 pm counting Receipt at Godown 6 Sep, 7:25 am counting R",
+    "bodyText": "Tarsun Enterprise warehouse Inbound Pick Pack Load SETUP Settings Updated just now DP Dinesh Patil warehouse Tarsun Enterprise Inbound ✓ Queues Capture Stock Counts Held BILLS TO COUNT 0 WAVES OPEN 1 PACKED, NO BILL 0 SHEETS WAITING 2 GATE COUNTS WAITING 0 lines Nothing at the gate WAVES ON THE FLOOR 1 being picked · 0 waiting to start PICK-0011 0 of 4164 pc picked picking PACKED WITHOUT A BILL Ev",
     "status": "SIGNED_IN"
   },
   {
@@ -92,7 +92,7 @@
     "landedUrl": "http://localhost:5177/",
     "leftSignIn": true,
     "title": "Distribution OS - Delivery",
-    "bodyText": "Tarsun Enterprise delivery TRIP Today Day summary Expenses Attention Trip history Me Updated just now GM Ganesh More delivery TRIP-ACTIVE · 4 Sep 2026 Today's trip On the road 2 of 3 stops done MH-05-AB-1234 Still filling this phone from the office — this may not be the whole trip yet. STILL TO COLLECT ₹23,457.00 COLLECTED TODAY ₹0.00 FLOAT AT START ₹5,000.00 STOPS 2 / 3 Next stop Navjeevan Stores",
+    "bodyText": "Tarsun Enterprise delivery TRIP Today Day summary Expenses Attention Trip history Me Updated just now GM Ganesh More delivery TRIP-ACTIVE · 4 Sep 2026 Today's trip On the road 1 of 2 stops done MH-05-AB-1234 STILL TO COLLECT ₹23,457.00 COLLECTED TODAY ₹12,592.00 FLOAT AT START ₹5,000.00 STOPS 1 / 2 Next stop Navjeevan Stores Navjeevan Stores Building, Kalyan West, Kalyan, 421301 ₹23,457.00 At the ",
     "status": "SIGNED_IN"
   },
   {
@@ -108,7 +108,7 @@
     "landedUrl": "http://localhost:5178/",
     "leftSignIn": true,
     "title": "Distribution OS - Retailer",
-    "bodyText": "Tarsun Enterprise retailer ▾ SHOP Home Place order My orders Offers MONEY Money due My bills Receipts Statement Returns YOU Messages My shop My account Updated just now RG Ramesh Gupta retailer Tarsun Enterprise Home YOUR DISTRIBUTORS Open a distributor to see what is owed there. Tarsun Enterprise You are looking at Tarsun Enterprise You owe ₹1,901.00 SD Sai Distributors, Dombivli Open Sai Distrib",
+    "bodyText": "Tarsun Enterprise retailer ▾ SHOP Home Place order My orders Offers MONEY Money due My bills Receipts Statement Returns YOU Messages My shop My account Updated just now RG Ramesh Gupta retailer Tarsun Enterprise Home YOUR DISTRIBUTORS Open a distributor to see what is owed there. Tarsun Enterprise You are looking at Tarsun Enterprise You owe ₹0.00 SD Sai Distributors, Dombivli Open Sai Distributor",
     "status": "SIGNED_IN"
   },
   {
@@ -124,7 +124,7 @@
     "landedUrl": "http://localhost:5179/",
     "leftSignIn": true,
     "title": "Distribution OS - Admin",
-    "bodyText": "DO Distribution OS Platform Platform Distributors Subscriptions Support DIRECTORY People Audit trail Account RO Rohit Nair (Distribution OS) Distribution OS staff last 30 days Platform Reload DISTRIBUTORSHIPS 6,811 WORKING 6,811 SUSPENDED 0 PEOPLE SIGNED IN THIS WEEK 1,188 FILES STORED 13 MB 7,365 files Counts only. Not one rupee of a distributor’s own trade is readable from this console. Needs at",
+    "bodyText": "DO Distribution OS Platform Platform Distributors Subscriptions Support DIRECTORY People Audit trail Account RO Rohit Nair (Distribution OS) Distribution OS staff last 30 days Platform Reload DISTRIBUTORSHIPS 3 WORKING 3 SUSPENDED 0 PEOPLE SIGNED IN THIS WEEK 8 FILES STORED 0 B 0 files Counts only. Not one rupee of a distributor’s own trade is readable from this console. Needs attention 0 past due",
     "status": "SIGNED_IN"
   }
 ]
