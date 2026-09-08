@@ -178,3 +178,7 @@ docs/                         22 source of truth · 18 build log · 28 running i
 - `Dockerfile` has not been built here (no Docker); CI is the first place it runs.
 - The `describeDb` specs run against the dev database by default; that is deliberate (local-first), not a leak.
 - `frontend/libs/config` duplicates ~60 lines of the backend presets on purpose: the two workspaces install separately, and a `link:` to the backend config would make the frontend lint with the backend's copy of typescript-eslint.
+
+## QA
+
+QA: read QA/CHARTER.md + QA/STATE.md before any QA task. One phase per session.

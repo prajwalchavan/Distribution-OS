@@ -1,0 +1,16 @@
+{
+  "name": "dos-qa-tools",
+  "private": true,
+  "type": "module",
+  "description": "QA harness for Distribution OS: Playwright walkthroughs, API clients, reconciliation. Separate from the product workspaces on purpose.",
+  "scripts": {
+    "login-all": "node login-all.mjs"
+  },
+  "devDependencies": {
+    "appium-xcuitest-driver": "^12.10.0",
+    "playwright": "1.58.2"
+  },
+  "dependencies": {
+    "appium": "^3.7.0"
+  }
+}
