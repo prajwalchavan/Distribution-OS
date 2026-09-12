@@ -1398,6 +1398,209 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(res.body.rejected[0]?.messageEn).toMatch(/is cancelled; it is no longer being picked/)
   })
 
+  // DOS-042: a wave closes only when every SHORT line has had every lot row it was asked on recorded.
+  // Each test holds 12 pcs (one case) on its OWN 10-pc lot plus 2 pcs from the next lot, so the order
+  // line gets two asking rows. The expiries strictly descend from test to test (A > B > C), so FEFO
+  // takes each test's own lot first even if an earlier one stopped part-way; rows are found by lot,
+  // never by index.
+  type Dos042Line = PickLineBody & { pickedAt: string | null }
+  type Dos042Sheet = Omit<PicklistBody, 'lines'> & {
+    completedAt: string | null
+    lines: Dos042Line[]
+  }
+
+  async function dos042Wave(tag: 'A' | 'B' | 'C', expiryDate: string) {
+    const inventory = app.get(InventoryService)
+    const lotId = await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `DOS042-${tag}-${run}`,
+        mrpPaise: 2000,
+        expiryDate,
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 10,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-dos042-${tag}`,
+        },
+      ])
+      return lot.id
+    })
+    const orderId = await placeOrder([{ variantId: variantB, cases: 1 }], `dos042-${tag}`)
+    const waved = await wave([orderId], `dos042-${tag}`)
+    expect(waved.res.status).toBe(200)
+    const own = waved.res.body.item.lines.find((l) => l.lotId === lotId)
+    const orderLine = own?.orderLineId ?? ''
+    const rows = waved.res.body.item.lines.filter((l) => l.orderLineId === orderLine)
+    const other = rows.find((l) => l.lotId !== lotId)
+    // the precondition the defect needs: ONE order line asked on TWO lots
+    expect(rows).toHaveLength(2)
+    expect(own?.requestedQtyPcs).toBe(10)
+    expect(other?.requestedQtyPcs).toBe(2)
+    expect(other?.lotId).not.toBeNull()
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `start-dos042-${tag}-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    return {
+      picklistId: waved.id,
+      orderLineId: orderLine,
+      own: { id: own?.id ?? '', lotId },
+      other: { id: other?.id ?? '', lotId: other?.lotId ?? '' },
+    }
+  }
+
+  it('DOS-042: a short on one lot does not close the wave while another lot row of the same line is untouched (picklists.pick)', async () => {
+    const w = await dos042Wave('A', '2027-03-31')
+
+    const shorted = await call<{ item: Dos042Sheet }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-a-short-${run}`,
+        lines: [
+          {
+            id: w.own.id,
+            orderLineId: w.orderLineId,
+            lotId: w.own.lotId,
+            pickedQtyPcs: 5,
+            shortReason: 'Not on the rack',
+          },
+        ],
+      },
+    )
+    expect(shorted.status).toBe(200)
+    // 5 of 12 with a reason, but the 2-pc row on the other lot has not been walked yet
+    expect(shorted.body.item.status).toBe('picking')
+    expect(shorted.body.item.completedAt).toBeNull()
+
+    const rest = await call<{ item: Dos042Sheet }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-a-rest-${run}`,
+        lines: [
+          { id: w.other.id, orderLineId: w.orderLineId, lotId: w.other.lotId, pickedQtyPcs: 2 },
+        ],
+      },
+    )
+    expect(rest.status).toBe(200)
+    expect(rest.body.item.status).toBe('picked')
+    expect(rest.body.item.completedAt).not.toBeNull()
+  })
+
+  it('DOS-042: the device can still short the untouched lot row, and the wave closes only once every lot row of the short line is recorded (sync upload)', async () => {
+    const w = await dos042Wave('B', '2027-03-30')
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const upload = (
+      opId: string,
+      row: { id: string; lotId: string },
+      pickedQtyPcs: number,
+      shortReason: string,
+    ) => ({
+      protocol: 1,
+      deviceId: `dev-dos042-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: row.id,
+          data: {
+            picklist_id: w.picklistId,
+            order_line_id: w.orderLineId,
+            lot_id: row.lotId,
+            picked_qty_pcs: pickedQtyPcs,
+            short_reason: shortReason,
+          },
+        },
+      ],
+    })
+    const sheetNow = async (): Promise<Dos042Sheet> =>
+      (
+        await call<{ item: Dos042Sheet }>(
+          app,
+          packer,
+          'GET',
+          `/warehouse/picklists/${w.picklistId}`,
+        )
+      ).body.item
+
+    const first = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos042-b-short-${run}`, w.own, 5, 'Not on the rack'),
+    )
+    expect(first.status).toBe(200)
+    expect(first.body.rejected).toEqual([])
+    expect(first.body.accepted).toBe(1)
+    expect((await sheetNow()).status).toBe('picking')
+
+    // the picker shorts the row nobody had touched: accepted, not picklist_closed
+    const last = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos042-b-held-${run}`, w.other, 0, 'Batch held back'),
+    )
+    expect(last.status).toBe(200)
+    expect(last.body.rejected).toEqual([])
+    expect(last.body.accepted).toBe(1)
+    const closed = await sheetNow()
+    expect(closed.status).toBe('picked')
+    expect(closed.completedAt).not.toBeNull()
+    const stored = (
+      await db.execute(
+        sql`select picked_qty_pcs, short_reason, picked_at from pick_lines where id = ${w.other.id}`,
+      )
+    ).rows as { picked_qty_pcs: number; short_reason: string | null; picked_at: Date | null }[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+    expect(stored[0]?.short_reason).toBe('Batch held back')
+    expect(stored[0]?.picked_at).not.toBeNull()
+  })
+
+  it('DOS-042 guard: a line picked in full through split rows alone (new ids, as the manager app records it) still closes the wave', async () => {
+    const w = await dos042Wave('C', '2027-03-29')
+
+    // exactly what manager-app/app/fulfilment/pack.tsx (M20) sends: every counted row under a NEW id
+    const res = await call<{ item: Dos042Sheet }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-c-${run}`,
+        lines: [
+          { id: uuidv7(), orderLineId: w.orderLineId, lotId: w.own.lotId, pickedQtyPcs: 10 },
+          { id: uuidv7(), orderLineId: w.orderLineId, lotId: w.other.lotId, pickedQtyPcs: 2 },
+        ],
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.item.status).toBe('picked')
+    const rows = res.body.item.lines.filter((l) => l.orderLineId === w.orderLineId)
+    expect(rows).toHaveLength(4)
+    // the wave's own asking rows were never stamped: the full count alone closes the line
+    expect(rows.find((l) => l.id === w.own.id)?.pickedAt).toBeNull()
+    expect(rows.find((l) => l.id === w.other.id)?.pickedAt).toBeNull()
+  })
+
   // ---------------------------------------------------------------------------------------------------------------
   // roles: refused at the API AND at the database, so RLS is the guarantee
 

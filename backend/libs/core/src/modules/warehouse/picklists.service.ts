@@ -514,8 +514,10 @@ export class PicklistsService {
    *  - Σ picked per order line may never exceed Σ requested (400) — over-picking is a counting mistake,
    *    not a business decision;
    *  - a later-expiry lot is recorded with `fefo_override` and a WARNING, never a refusal;
-   *  - a short line with a reason is complete; a short line without one leaves the sheet `picking`,
-   *    because the picker has not finished walking the rack yet.
+   *  - a fully picked line is complete whichever rows carried the pieces; a short line is complete only
+   *    once it has a reason AND every lot row the wave asked it on has been recorded (picked or shorted),
+   *    so a short on one lot never explains a lot row nobody walked to (DOS-042). Until then the sheet
+   *    stays `picking`, because the picker has not finished walking the rack yet.
    */
   async applyPicks(
     tx: Db,
@@ -778,16 +780,33 @@ export class PicklistsService {
     }
   }
 
-  /** `picked` once every order line is either fully picked or explained; otherwise still `picking`. */
+  /**
+   * `picked` once every order line is done; otherwise still `picking`.
+   *
+   *  - A FULLY picked line is done whichever rows carried the pieces: a split recorded under a new id
+   *    (the manager app records every pick that way) leaves the wave's own rows unstamped and has no
+   *    missing pieces.
+   *  - A SHORT line is done only when it picked something, has a reason, and every lot row the wave
+   *    asked it on (`requestedQtyPcs > 0`) has been recorded, picked or shorted (`pickedAt` set). A short
+   *    on one lot must not explain a lot row nobody touched (DOS-042): the wave would close and the
+   *    device, which accepts picks only on `picking`, could no longer record that row.
+   */
   private async refreshCompletion(
     tx: Db,
     sheet: PicklistRow,
     working: Map<string, PickLineRow>,
   ): Promise<void> {
-    const totals = [...this.perLineTotals(working).values()]
+    const unrecorded = new Set<string>()
+    for (const row of working.values())
+      if (row.requestedQtyPcs > 0 && row.pickedAt === null) unrecorded.add(row.orderLineId)
+    const totals = [...this.perLineTotals(working)]
     const done =
       totals.length > 0 &&
-      totals.every((t) => t.picked >= t.requested || (t.picked > 0 && t.shortReason !== null))
+      totals.every(
+        ([orderLineId, t]) =>
+          t.picked >= t.requested ||
+          (t.picked > 0 && t.shortReason !== null && !unrecorded.has(orderLineId)),
+      )
     if (!done || sheet.status === 'picked') return
     await this.updatePicklist(tx, sheet.id, { status: 'picked', completedAt: new Date() })
   }
