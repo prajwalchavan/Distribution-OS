@@ -1,0 +1,17 @@
+=== SO-0885 lines ===
+ line_no |                name                 | entered_qty | entered_unit | qty_pcs |         list         |         rate         |          disc          | gst_bps |          tax           |         total         
+---------+-------------------------------------+-------------+--------------+---------+----------------------+----------------------+------------------------+---------+------------------------+-----------------------
+       1 | Sunbake Bourbon Cream 60 g          |           2 | case         |     192 |   7.5400000000000000 |   7.5400000000000000 |    43.4300000000000000 |    1800 |   252.7700000000000000 | 1657.0200000000000000
+       2 | Godavari Cow Ghee 200 ml            |           1 | case         |      24 | 134.5600000000000000 | 134.5600000000000000 |   193.7700000000000000 |    1200 |   364.2800000000000000 | 3399.9500000000000000
+       3 | Godavari Full Cream UHT Milk 500 ml |           1 | case         |      24 |  33.2400000000000000 |  33.2400000000000000 | 0.00000000000000000000 |       0 | 0.00000000000000000000 |  797.7600000000000000
+(3 rows)
+
+=== reservations ===
+---------------+--------------------------+-----------+----------+------------------------------ id tenant_id order_line_id variant_id lot_id location_id qty state created_at updated_at Indexes: "reservations_pkey" "reservations_order_line_idx" "reservations_state_idx" Foreign-key "reservations_location_id_locations_id_fk" "reservations_lot_id_stock_lots_id_fk" 
+ERROR:  column r.order_id does not exist
+LINE 1: select r.* from reservations r where r.order_id=(select id f...
+                                             ^
+ name | qty | state | has_lot 
+------+-----+-------+---------
+(0 rows)
+

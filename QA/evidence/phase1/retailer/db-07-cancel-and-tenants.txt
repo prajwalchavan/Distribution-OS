@@ -1,0 +1,20 @@
+=== SO-0886 after cancel ===
+ order_no |   state   |      cancel_reason      |         cancelled_at          |       total        
+----------+-----------+-------------------------+-------------------------------+--------------------
+ SO-0886  | cancelled | Ordered by mistake — QA | 2026-09-12 18:48:49.621+05:30 | 10119.000000000000
+(1 row)
+
+=== Sai / Kalyan open bills for Shree Ganesh ===
+       slug       | open_bills | last_bill 
+------------------+------------+-----------
+ kalyan-agencies  |          9 | KA/0163
+ sai-distributors |          7 | SAI/0419
+(2 rows)
+
+             List of relations
+ Schema |       Name       | Type  | Owner 
+--------+------------------+-------+-------
+ public | inbound_messages | table | dos
+ public | messages         | table | dos
+(2 rows)
+

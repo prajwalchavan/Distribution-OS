@@ -193,3 +193,19 @@ Notes from the Sales walk (2026-09-12):
   cancelled by the DOS-073 probe, shop R-9025 "Kalyan QA Kirana", a pending bargain (₹13.00 Balaji Masala Masti), one visit. The Tier C
   rate of Neelam Neem Soap was set to 27.50 for DOS-082 and restored to 26.08.
 - Sync-pull evidence method: `grep '"url":"/sync/pull' sales-service.log` bucketed per minute; decode `since=` with base64 → `{"v":1,"t":…}`.
+
+Notes from the Retailer walk (2026-09-12):
+- `pw.mjs` drives the LAST page of the shared context. A click that opens a new tab (the bill's "Open the bill") makes that popup
+  the page every later command uses; closing "the other pages" then closes the real app tab. Close the popup itself and re-`login`
+  if the app tab is gone (its refresh token has rotated meanwhile → 401 on /auth/refresh → sign-in page).
+- A password change revokes every other session: the Android app dropped to the sign-in form ~15 min later when its access token
+  expired. Re-sign-in on the form without re-running `android-login.sh`: `ui.py edit 1` / `edit 2` give the field centres,
+  `ui.py text "Sign in" | tail -1` the button.
+- On the retailer order screen the Pixel's `uiautomator` bounds for the steppers are inverted ([586,615][615,518]) like DOS-077;
+  tap the "+" from a fresh `screencap` (first row at ≈(600,1386) on the unscrolled Bourbon search, 1080×2400 frame). Any swipe
+  scrolls the list, so re-screenshot before each pixel tap.
+- The RN LogBox toast at the bottom (y≈2209) swallows every tap on the primary button underneath; tap the toast to open the viewer,
+  Back, then the × at (996,2209). `adb logcat -d | grep ReactNativeJS` has the full error text (uiautomator truncates it).
+- `pw-net.mjs` and the retailer service log are the fastest way to see relative vs absolute URLs coming back from the API (DOS-099).
+- A retailer API token: `POST /auth/login {username, password, deviceId:<uuid>}` on :3000; the login reply carries `tenant` (the
+  first membership) — no `tenantId` is needed for a three-tenant user, the service picks the first.

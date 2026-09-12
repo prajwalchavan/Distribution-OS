@@ -1,0 +1,41 @@
+=== orders of this shop with Godavari Table Butter 500 g ===
+ order_no |   state   |    source    | created_at | qty_pcs 
+----------+-----------+--------------+------------+---------
+          | draft     | retailer_app | 2026-09-12 |      40
+ SO-0844  | delivered | retailer_app | 2026-09-09 |      12
+ SO-0450  | delivered | salesperson  | 2026-07-30 |      40
+(3 rows)
+
+=== the shop's last orders by created_at ===
+ order_no |   state   |    source    |            created_at            |         submitted_at          
+----------+-----------+--------------+----------------------------------+-------------------------------
+          | draft     | retailer_app | 2026-09-12 18:47:27.049604+05:30 | 
+ SO-0885  | submitted | retailer_app | 2026-09-12 18:43:32.623706+05:30 | 2026-09-12 18:43:32.811+05:30
+ SO-0882  | submitted | salesperson  | 2026-09-12 17:56:57.638716+05:30 | 2026-09-12 17:56:57.708+05:30
+ SO-0879  | submitted | salesperson  | 2026-09-12 17:40:11.728765+05:30 | 2026-09-12 17:40:11.865+05:30
+ SO-0873  | confirmed | retailer_app | 2026-09-12 09:44:00+05:30        | 2026-09-12 10:00:00+05:30
+ SO-0847  | delivered | salesperson  | 2026-09-10 09:44:00+05:30        | 2026-09-10 10:00:00+05:30
+(6 rows)
+
+=== draft created by Order again ===
+                  id                  | order_no | state |    source    |       total        |            created_at            
+--------------------------------------+----------+-------+--------------+--------------------+----------------------------------
+ 01a095c3-f9fa-7566-9fc5-7a0990de94ac |          | draft | retailer_app | 10119.000000000000 | 2026-09-12 18:47:27.049604+05:30
+(1 row)
+
+=== lines of SO-0873 and SO-0885 (what should repeat) ===
+ order_no |                name                 | qty_pcs 
+----------+-------------------------------------+---------
+ SO-0847  | Godavari Cow Ghee 500 ml            |       7
+ SO-0847  | Campa Cola 750 ml                   |      72
+ SO-0847  | Campa Lemon 500 ml                  |      22
+ SO-0847  | Campa Cola 500 ml                   |      22
+ SO-0873  | Neelam Herbal Toothpaste 200 g      |      72
+ SO-0873  | Neelam Sandal Soap 3 x 100 g pack   |      48
+ SO-0873  | Campa Lemon 750 ml                  |      24
+ SO-0873  | Campa Cola 750 ml                   |      18
+ SO-0885  | Sunbake Bourbon Cream 60 g          |     192
+ SO-0885  | Godavari Cow Ghee 200 ml            |      24
+ SO-0885  | Godavari Full Cream UHT Milk 500 ml |      24
+(11 rows)
+

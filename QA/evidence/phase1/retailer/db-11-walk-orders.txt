@@ -1,0 +1,7 @@
+ order_no |   state   |    source    |      cancel_reason      |         total         
+----------+-----------+--------------+-------------------------+-----------------------
+ SO-0885  | submitted | retailer_app |                         | 5855.0000000000000000
+ SO-0886  | cancelled | retailer_app | Ordered by mistake — QA |    10119.000000000000
+ SO-0887  | cancelled | retailer_app | QA-Android-test         |  854.0000000000000000
+(3 rows)
+

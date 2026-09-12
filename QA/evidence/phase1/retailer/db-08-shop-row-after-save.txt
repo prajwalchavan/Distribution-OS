@@ -1,0 +1,5 @@
+   alt_phone   |                                                                          address                                                                          | gst_reg_type | gstin | owner_name  |            updated_at            
+---------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------+--------------+-------+-------------+----------------------------------
+ +919892000099 | {"area": "Station Road, Kalyan West", "city": "Kalyan", "line1": "Shop 3, Station Road", "pincode": "421301", "landmark": "Opp. Kalyan station, QA edit"} | unregistered |       | Jayesh Shah | 2026-09-12 18:50:17.133402+05:30
+(1 row)
+

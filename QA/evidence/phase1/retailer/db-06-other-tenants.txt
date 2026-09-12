@@ -1,0 +1,3 @@
+ERROR:  relation "notification_messages" does not exist
+LINE 1: ...o.retailer_id=r.id) orders, (select count(*) from notificati...
+                                                             ^

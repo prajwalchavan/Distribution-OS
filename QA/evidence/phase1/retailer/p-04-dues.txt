@@ -1,0 +1,67 @@
+Tarsun Enterprise
+retailer
+▾
+⋯
+Updated just now
+Tarsun Enterprise
+Money you owe
+Money due
+My bills
+Receipts
+Statement
+YOU OWE
+₹35,843.00
+PAST ITS DATE
+₹35,843.00
+MONEY WITH THEM
+₹0.00
+OLDEST BILL DUE
+6 Aug
+Money owed, by age
+₹
+0–7
+5,472.00
+8–15
+3,311.00
+16–30
+13,123.00
+31–60
+13,937.00
+61–90
+0.00
+90+
+0.00
+BILL BY BILL, OLDEST FIRST
+INV/0433
+Due 6 Aug 2026 · 37 days late
+₹4,561.00
+₹4,561.00 left of ₹10,119.00
+Pay this bill
+INV/0468
+Due 10 Aug 2026 · 33 days late
+₹9,376.00
+₹9,376.00 left of ₹9,947.00
+Pay this bill
+INV/0587
+Due 24 Aug 2026 · 19 days late
+₹6,253.00
+₹6,253.00 left of ₹6,253.00
+Pay this bill
+INV/0617
+Due 27 Aug 2026 · 16 days late
+₹6,870.00
+₹6,870.00 left of ₹7,004.00
+Pay this bill
+INV/0680
+Due 3 Sep 2026 · 9 days late
+₹3,311.00
+₹3,311.00 left of ₹3,526.00
+Pay this bill
+INV/0753
+Due 10 Sep 2026 · 2 days late
+₹5,472.00
+₹5,472.00 left of ₹5,472.00
+Pay this bill
+You owe
+₹35,843.00
+Pay everything

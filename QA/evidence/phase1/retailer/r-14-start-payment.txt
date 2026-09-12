@@ -1,0 +1,53 @@
+Tarsun Enterprise
+retailer
+▾
+SHOP
+Home
+Place order
+My orders
+Offers
+MONEY
+Money due
+My bills
+Receipts
+Statement
+Returns
+YOU
+Messages
+My shop
+My account
+Updated just now
+RG
+Ramesh Gupta
+retailer
+Tarsun Enterprise
+Pay
+Paying M/s. Tarsun Enterprise
+₹35,843.00
+Open a UPI app
+upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5472.00&tr=INV-0753&cu=INR
+Quote this reference: PAY-13c1dede2871
+Good until 12 Sep, 7:16 pm
+The money shows here once Tarsun Enterprise has matched it. Keep the reference.
+This covers 6 bills
+INV/0433
+Due 6 Aug 2026 · ₹10,119.00
+₹4,561.00
+INV/0468
+Due 10 Aug 2026 · ₹9,947.00
+₹9,376.00
+INV/0587
+Due 24 Aug 2026 · ₹6,253.00
+₹6,253.00
+INV/0617
+Due 27 Aug 2026 · ₹7,004.00
+₹6,870.00
+INV/0680
+Due 3 Sep 2026 · ₹3,526.00
+₹3,311.00
+INV/0753
+Due 10 Sep 2026 · ₹5,472.00
+₹5,472.00
+How much are you paying
+₹35,843.00
+Start the payment

@@ -1,0 +1,46 @@
+=== SO-0885 header ===
+ order_no |   state   |    source    |          sub          |         disc         |         tax          | ro |         total         |  approval_flags  |         submitted_at          | by_ramesh | salesperson_id 
+----------+-----------+--------------+-----------------------+----------------------+----------------------+----+-----------------------+------------------+-------------------------------+-----------+----------------
+ SO-0885  | submitted | retailer_app | 5474.8800000000000000 | 237.2000000000000000 | 617.0500000000000000 | 27 | 5855.0000000000000000 | ["credit_limit"] | 2026-09-12 18:43:32.811+05:30 | t         | 
+(1 row)
+
+=== approvals for SO-0885 ===
+     kind     | status  |                               payload                                |            created_at            
+--------------+---------+----------------------------------------------------------------------+----------------------------------
+ credit_limit | pending | {"flag": "credit_limit", "orderNo": "SO-0885", "totalPaise": 585500} | 2026-09-12 18:43:32.805715+05:30
+(1 row)
+
+=== approvals for SO-0879 (rep's, same shop) ===
+     kind     | status  |                                payload                                
+--------------+---------+-----------------------------------------------------------------------
+ credit_limit | pending | {"flag": "credit_limit", "orderNo": "SO-0879", "totalPaise": 3203000}
+(1 row)
+
+=== lines ===
+--------------------+--------------------------+-----------+----------+----------------------- id tenant_id order_id line_no variant_id entered_qty entered_unit pack_size_at_entry qty_pcs free_qty_pcs picked_qty_pcs delivered_qty_pcs list_rate_paise rate_paise discount_bps discount_paise gst_bps tax_paise line_total_paise applied_rules price_locked created_at updated_at Indexes: "sales_order_lines_pkey" "sales_order_lines_order_idx" "sales_order_lines_updated_idx" 
+ERROR:  column l.tax_bps does not exist
+LINE 1: ...te_paise/100.0 rate, l.discount_paise/100.0 disc, l.tax_bps,...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "l.gst_bps".
+=== reservations for SO-0885 ===
+           List of relations
+ Schema |     Name     | Type  | Owner 
+--------+--------------+-------+-------
+ public | reservations | table | dos
+(1 row)
+
+=== stock proof: cheese slices / whitener / UHT ===
+                name                 | on_hand | reserved | lot_rows 
+-------------------------------------+---------+----------+----------
+ Godavari Cheese Slices 200 g        |       7 |        0 |        1
+ Godavari Dairy Whitener 200 g       |     360 |        0 |       13
+ Godavari Dairy Whitener 500 g       |       0 |        0 |        1
+ Godavari Full Cream UHT Milk 500 ml |     249 |        0 |        6
+ Godavari Toned UHT Milk 500 ml      |     144 |        0 |        8
+(5 rows)
+
+ sellable_rows | variants 
+---------------+----------
+           793 |      166
+(1 row)
+

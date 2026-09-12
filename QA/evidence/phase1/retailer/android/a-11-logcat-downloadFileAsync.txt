@@ -1,0 +1,8 @@
+09-12 18:57:37.525 24474 24474 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+09-12 18:57:37.526 24474 24474 I AconfigPackage: android.permission.flags is mapped to system
+09-12 18:57:42.957 24490 24490 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+09-12 18:57:42.958 24490 24490 I AconfigPackage: android.permission.flags is mapped to system
+09-12 18:57:49.617 24513 24513 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+09-12 18:57:49.618 24513 24513 I AconfigPackage: android.permission.flags is mapped to system
+09-12 18:55:50.390 23521 23638 E ReactNativeJS: [Error: Uncaught (in promise, id: 0) Error: Call to function 'FileSystem.downloadFileAsync' has been rejected.
+09-12 18:55:50.390 23521 23638 E ReactNativeJS: → Caused by: java.lang.IllegalArgumentException: URI is not absolute]

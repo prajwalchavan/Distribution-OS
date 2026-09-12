@@ -1,0 +1,6 @@
+ERROR:  relation "lots" does not exist
+LINE 1: ...ed, count(*) lot_rows from stock_balances sb join lots l on ...
+                                                             ^
+ERROR:  relation "lots" does not exist
+LINE 1: ....variant_id) variants from stock_balances sb join lots l on ...
+                                                             ^

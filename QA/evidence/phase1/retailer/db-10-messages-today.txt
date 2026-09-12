@@ -1,0 +1,5 @@
+  template_key   | channel  | status | ref_type |                                                         payload                                                          |            created_at            
+-----------------+----------+--------+----------+--------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ order_cancelled | whatsapp | sent   | order    | {"body": "Your order SO-0886 of ₹10,119.00 has been cancelled. Call us if this is a mistake. — Tarsun Enterprise", "orde | 2026-09-12 18:49:16.556224+05:30
+(1 row)
+

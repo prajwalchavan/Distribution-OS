@@ -1,0 +1,4 @@
+19:01:29 req-c8 REQ POST /pricing/quote port 62630
+19:01:29 req-c8 RES 200 ms 85.70316600054502
+19:01:40 req-cb REQ POST /pricing/quote port 62630
+19:01:40 req-cb RES 200 ms 44.22308299690485
