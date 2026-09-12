@@ -1,0 +1,20 @@
+name | hsn_code | gst_bps | cess_bps
+Annapurna Chakki Fresh Atta 5 kg | 1101 | 500 | 0
+Annapurna Sunflower Refined Oil 1 L pouch | 1512 | 500 | 0
+Balaji Masala Masti Wafers 45 g | 2106 | 1200 | 0
+Balaji Masala Masti Wafers 45 g | 2106 | 1800 | 0
+Campa Cola 750 ml | 2202 | 1200 | 0
+Campa Cola 750 ml | 2202 | 1800 | 0
+Campa Cola 750 ml | 2202 | 2800 | 1200
+Chamak Dishwash Gel 750 ml | 3402 | 1800 | 0
+Godavari Cow Ghee 1 L | 0405 | 1200 | 0
+Godavari Cow Ghee 200 ml | 0405 | 1200 | 0
+Konkan Aloo Bhujia 200 g | 2106 | 1200 | 0
+Konkan Aloo Bhujia 200 g | 2106 | 1800 | 0
+MOM Roasted Makhana Peri Peri 60 g | 2008 | 500 | 0
+Neelam Rose Soap 100 g | 3401 | 1800 | 0
+Sunbake Glucose 110 g | 1905 | 1800 | 0
+Sunbake Glucose 110 g | 1905 | 1800 | 0
+Too Yumm Karare 60 g | 1905 | 1800 | 0
+Too Yumm Karare 60 g | 1905 | 1800 | 0
+(18 rows)

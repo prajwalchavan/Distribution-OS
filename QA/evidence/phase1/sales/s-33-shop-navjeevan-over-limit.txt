@@ -1,0 +1,90 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Kalyan West Market · R-0016
+Navjeevan Super Bazar
+Owes ₹2,68,111
+Limit ₹2,00,000
+Overdue ₹1,00,399
+Shop
+Orders15
+Bills6
+How old the dues are
+as of 12 Sep
+Money owed, by age
+₹
+0–7
+1,67,712.00
+8–15
+0.00
+16–30
+1,00,399.00
+31–60
+0.00
+61–90
+0.00
+90+
+0.00
+Credit
+Credit limit
+₹2,00,000.00
+Credit days
+21
+Open bills
+6
+Terms
+Pay after delivery
+The office checks the credit (Warn at the limit) when the order is submitted, not here.
+Schemes this shop is in
+Live today. The price screen applies them.
+Godavari Ghee — 6% exclusive
+29 Aug to 28 Sep
+Line discount
+Rajwadi sodas — 1.5% cash discount
+13 Aug to 27 Oct
+Cash discount
+MOM Makhana — slab scheme
+14 Jul to 21 Sep
+Line discount
+Sunbake Glucose — 12+1 free
+14 Jun to 24 Sep
+Free goods
+Balaji — 4% off on 3+ cases
+14 Jun to 21 Sep
+Line discount
+Too Yumm — 2% cash discount
+22 Aug to 11 Nov
+Cash discount
+How this shop buys
+Orders, 30 days
+5
+Value, 30 days
+₹2,01,870.00
+Days to pay
+44
+Risk of losing
+0%
+Contact
+Owner
+Hitesh Jain
+Phone
++919702022997
+GSTIN
+27HCEPJ6082L1Z2
+Tier
+A
+Address
+Shop 32, Subhash Chowk, Bazarpeth, Kalyan West, Kalyan, 421301
+Record a visit
+Your last order 4 Sep
+₹47,010.00
+Take order

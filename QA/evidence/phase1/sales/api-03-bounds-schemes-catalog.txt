@@ -1,0 +1,20 @@
+=== GET /pricing/bounds ===
+{"items":[{"id":"114fafbb-2766-7f65-afde-8b740f268305","userId":"8760e17e-4830-7395-a946-1e02fffa1ad7","brandId":null,"maxDiscountBps":300,"maxOrderDiscountPaise":null}]}
+=== GET /pricing/schemes?on=today count ===
+14 schemes
+ - Godavari Ghee — 6% exclusive | active True | bps/val 600
+ - Rajwadi sodas — 1.5% cash discount | active True | bps/val 150
+ - MOM Makhana — slab scheme | active True | bps/val 200
+ - Sunbake Glucose — 12+1 free | active True | bps/val 1
+ - Balaji — 4% off on 3+ cases | active True | bps/val 400
+ - Too Yumm — 2% cash discount | active True | bps/val 200
+ - Order value — 2% off on bills over ₹25,000 | active True | bps/val 200
+ - Godavari UHT milk — 2% off on 3+ cases | active True | bps/val 200
+ - Campa 750 ml / 1 L — a bottle free per case | active True | bps/val 1
+ - Konkan Crunch — launch offer 10% | active True | bps/val 1000
+ - Campa 1 L / 2 L — 3% off on 5+ cases | active True | bps/val 300
+ - Sunbake creams — slab discount | active True | bps/val 300
+ - Annapurna Atta — ₹15 off per case on 2+ | active True | bps/val 1500
+ - Rajwadi sodas — 5% off on 4+ cases | active True | bps/val 500
+=== GET /tenant-catalog?limit=5 (does the rep see cost fields?) ===
+{"message":"Cannot GET /tenant-catalog?limit=2","error":"Not Found","statusCode":404}

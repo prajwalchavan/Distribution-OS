@@ -1,0 +1,120 @@
+ GET   /health/ping  | public 
+ GET   /tenancy/me  | ALL 
+ GET   /tenancy/staff  | owner, manager, accountant 
+ POST   /tenancy/staff  | owner, manager 
+ POST   /tenancy/staff/update  | owner, manager 
+ POST   /tenancy/staff/set-password  | owner, manager 
+ POST   /tenancy/staff/set-status  | owner, manager 
+ GET   /tenancy/branding  | ALL 
+ GET   /tenancy/settings  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /tenancy/settings  | owner 
+ GET   /tenancy/numbering-series  | owner 
+ POST   /tenancy/numbering-series  | owner 
+ GET   /tenancy/feature-flags  | ALL 
+ POST   /tenancy/feature-flags  | owner 
+ POST   /tenancy/tenant  | owner 
+ GET   /tenancy/audit  | owner, manager, accountant 
+ GET   /tenancy/support-grants  | owner 
+ POST   /tenancy/support-grants/{id}/approve  | owner 
+ POST   /tenancy/support-grants/{id}/revoke  | owner 
+ GET   /catalog/variants  | ALL 
+ GET   /catalog/manufacturers  | ALL 
+ POST   /catalog/proposals  | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET   /tenant-catalog/products  | ALL 
+ POST   /tenant-catalog/products  | owner, manager 
+ GET   /tenant-catalog/suppliers  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /tenant-catalog/suppliers  | owner, manager 
+ GET   /tenant-catalog/costs  | owner, manager, accountant 
+ POST   /tenant-catalog/costs  | owner, manager 
+ GET   /tenant-catalog/rep-authorisations  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /tenant-catalog/rep-authorisations  | owner, manager 
+ GET   /tenant-catalog/brands  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /tenant-catalog/brands  | owner, manager 
+ GET   /tenant-catalog/pack-configs  | owner, manager, accountant, warehouse 
+ POST   /tenant-catalog/pack-configs  | owner, manager 
+ GET   /retailers  | ALL 
+ GET   /retailers/{id}  | ALL 
+ POST   /retailers  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /retailers/{id}/credit  | owner, manager 
+ POST   /retailers/{id}/link  | owner, manager 
+ POST   /retailers/me  | retailer 
+ GET   /beats  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /beats  | owner, manager 
+ POST   /beats/{id}/assign  | owner, manager 
+ GET   /beats/assignments  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /visits  | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET   /visits  | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET   /pricing/price-lists  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /pricing/price-lists  | owner, manager 
+ POST   /pricing/price-lists/{priceListId}/items  | owner, manager 
+ GET   /pricing/overrides  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /pricing/overrides  | owner, manager 
+ GET   /pricing/schemes  | ALL 
+ POST   /pricing/schemes  | owner, manager 
+ POST   /pricing/quote  | ALL 
+ POST   /pricing/bargains  | ALL 
+ POST   /pricing/bargains/{id}/decide  | owner, manager 
+ GET   /pricing/bargains  | ALL 
+ POST   /pricing/bounds  | owner 
+ GET   /pricing/bounds  | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET   /inventory/locations  | owner, manager, accountant, salesperson, warehouse, delivery 
+ POST   /inventory/locations  | owner, manager, accountant, warehouse 
+ GET   /inventory/sellable  | ALL 
+ GET   /inventory/balances  | owner, manager, accountant, warehouse, delivery 
+ POST   /inventory/adjustments  | owner, manager, accountant, warehouse 
+ POST   /inventory/transfers  | owner, manager, accountant, warehouse 
+ GET   /inventory/ledger  | owner, manager, accountant, warehouse, delivery 
+ POST   /inventory/lots  | owner, manager, accountant, warehouse 
+ POST   /inventory/cycle-counts  | owner, manager, warehouse 
+ POST   /inventory/cycle-counts/{id}/count  | owner, manager, warehouse 
+ POST   /inventory/cycle-counts/{id}/post  | owner, manager, accountant 
+ GET   /inventory/cycle-counts  | owner, manager, accountant, warehouse, delivery 
+ GET   /inventory/cycle-counts/{id}  | owner, manager, accountant, warehouse, delivery 
+ POST   /orders  | ALL 
+ POST   /orders/{id}/lines  | ALL 
+ POST   /orders/repeat-last  | ALL 
+ POST   /orders/{id}/submit  | ALL 
+ POST   /orders/{id}/confirm  | owner, manager 
+ POST   /orders/{id}/cancel  | ALL 
+ GET   /orders/{id}  | ALL 
+ GET   /orders  | ALL 
+ GET   /approvals  | owner, manager, accountant 
+ POST   /approvals/{id}/decide  | owner, manager 
+ POST   /receipts  | owner, manager, accountant, delivery 
+ GET   /receipts  | owner, manager, accountant, delivery, retailer 
+ GET   /receipts/{id}  | owner, manager, accountant, delivery, retailer 
+ GET   /receipts/{id}/document  | owner, manager, accountant, delivery, retailer 
+ POST   /receipts/{id}/reverse  | owner, manager, accountant 
+ POST   /receipts/deposit  | owner, manager, accountant 
+ POST   /receipts/{id}/bounce  | owner, manager, accountant 
+ POST   /receivables/payments/initiate  | retailer 
+ POST   /allocations  | owner, manager, accountant 
+ POST   /allocations/{id}/remove  | owner, manager, accountant 
+ GET   /receivables/outstanding/{retailerId}  | owner, manager, accountant, salesperson, delivery, retailer 
+ GET   /receivables/outstanding  | owner, manager, accountant 
+ GET   /receivables/credit-check  | owner, manager, accountant, salesperson, delivery 
+ GET   /receivables/ledger/{retailerId}  | owner, manager, accountant, salesperson, delivery, retailer 
+ POST   /receivables/statements  | owner, manager, accountant 
+ POST   /receivables/write-offs  | owner, manager, accountant 
+ GET   /receivables/cash-discounts  | owner, manager, accountant 
+ GET   /receivables/accounts  | owner, manager, accountant 
+ GET   /receivables/journal  | owner, manager, accountant 
+ POST   /receivables/ageing/rebuild  | owner 
+ GET   /receivables/ageing/history  | owner, manager, accountant 
+ GET   /billing/queue  | owner, manager, accountant, warehouse 
+ POST   /warehouse/packs/{packId}/invoice  | owner, manager, accountant, warehouse 
+ POST   /invoices/van-sale  | owner, manager, delivery 
+ POST   /invoices/brand-dms  | owner, manager, accountant 
+ POST   /invoices/{id}/cancel  | owner, manager 
+ GET   /invoices/{id}  | ALL 
+ GET   /invoices  | ALL 
+ GET   /invoices/{id}/upi-qr  | owner, manager, accountant, delivery, retailer 
+ GET   /invoices/{id}/pdf  | ALL 
+ POST   /invoices/{id}/eway-bill  | owner, manager, accountant, warehouse 
+ POST   /invoices/{id}/irn  | owner, manager, accountant 
+ POST   /credit-notes  | owner, manager, accountant, delivery 
+ POST   /credit-notes/{id}/issue  | owner, manager, accountant, delivery 
+ POST   /credit-notes/{id}/cancel  | owner, manager, accountant 
+ GET   /credit-notes/{id}  | ALL 
+ GET   /credit-notes  | ALL 
+ GET   /billing/gst-summary  | owner, manager, accountant 

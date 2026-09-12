@@ -1,0 +1,17 @@
+=== SO-0870 after the cross-rep cancel probe ===
+order_no | state | owner_rep | shop | beat | cancelled_at | cancel_reason | total
+SO-0870 | cancelled | amit.pawar | Nutan Kirana Stores | Birla College Road | 2026-09-12 17:49:26.674+05:30 | QA probe: rep cancelling another reps confirmed order | 7361.0000000000000000
+(1 row)
+=== is that shop on any of Rahul's beats? ===
+on_rahul_beat
+f
+(1 row)
+=== audit / events for it ===
+table_name
+audit_log
+outbox_events
+platform_audit
+(3 rows)
+ERROR:  relation "outbox" does not exist
+LINE 1: select event_type, created_at from outbox where aggregate_id...
+                                           ^

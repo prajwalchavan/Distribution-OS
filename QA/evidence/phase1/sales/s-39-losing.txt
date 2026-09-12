@@ -1,0 +1,27 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Losing
+At risk: 3
+Shops
+Losing
+Catalog
+Shops on your beats that have gone quiet, worst first.
+Yadav General Store
+Khadakpada · Last order 11 Jul · orders in 30 days: 0
+55% risk
+Iyer Provision Store
+Khadakpada · Last order 9 Sep · orders in 30 days: 1
+30% risk
+Patil General Store
+Kalyan West Market · Last order 12 Sep · orders in 30 days: 1
+30% risk

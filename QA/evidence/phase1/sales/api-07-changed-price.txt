@@ -1,0 +1,24 @@
+=== step 1: build draft with Neelam Neem Soap 1 cs (tier C 26.08) ===
+LINE: Neelam Neem Soap 100 g | 1 cs · 9 cs available | ₹1,877.76 | Items 1 · 1 cs ₹1,877.76
+[url] http://localhost:5175/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36
+[console errors] Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[failed requests] 401 GET http://127.0.0.1:3003/sync/manifest
+=== step 2: office changes the Tier C rate 26.08 → 27.50 ===
+rate_paise
+2750
+(1 row)
+UPDATE 1
+=== step 3: rep places the order (device still shows the old rate?) ===
+device line before place: Neelam Neem Soap 100 g | 1 cs · 9 cs available | ₹1,877.76
+after place: Neelam Neem Soap 100 g | 1 cs · 9 cs available | ₹1,980.00 | Items 1 · 1 cs ₹1,980.00
+POSTS: 200 3003/orders orderNo=null listRate/rate=2750/2750 total=233600 ; 200 3003/orders/01a09595-b752-7035-8033-778cfeb4fe10/submit orderNo=SO-0882" listRate/rate=2750/2750 total=233600
+[url] http://localhost:5175/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36
+=== step 4: server order line ===
+order_no | state | list_rate_paise | rate_paise | qty_pcs | total_paise
+SO-0882 | submitted | 2750 | 2750 | 72 | 233600
+(1 row)
+=== step 5: restore the rate ===
+rate_paise
+2608
+(1 row)
+UPDATE 1

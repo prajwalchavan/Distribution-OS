@@ -1,0 +1,25 @@
+=== orders created in the last 8 min (offline web order expected: Om Sai, Balaji 1 cs) ===
+id | order_no | state | source | shop | total | created_at | submitted_at | lines
+01a09595-b752-7035-8033-778cfeb4fe10 | SO-0882 | submitted | salesperson | Shree Ganesh Kirana | 2336.0000000000000000 | 17:56:57.638716 | 17:56:57.708 | 1
+01a09598-954f-7333-b0b1-bdac0006de22 |  | draft | salesperson | Om Sai Provision Store | 780.0000000000000000 | 18:00:09.096215 |  | 1
+(2 rows)
+=== sync_ops for the web device (last 10) ===
+string_agg
+tenant_id, device_id, op_id, outcome, created_at
+(1 row)
+ERROR:  column "table_name" does not exist
+LINE 1: select op_id, table_name, op, outcome->>'status' status, lef...
+                      ^
+=== sync_ops for the web device (last 6) ===
+op_id | outcome | created_at
+01a09598-a4dc-75d2-8a22-7afbc2f81739 | {"ok": true} | 18:00:09.1395
+01a09598-a4c9-723e-b215-0915d806206a | {"ok": true} | 18:00:09.096215
+(2 rows)
+=== sync_errors for that device ===
+count
+0
+(1 row)
+=== stock reserved for SO-0883 (Balaji Masala Masti at Godown) ===
+sum
+48
+(1 row)

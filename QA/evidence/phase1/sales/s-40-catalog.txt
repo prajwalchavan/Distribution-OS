@@ -1,0 +1,256 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Catalog
+Items: 171
+Deals: 14
+Shops
+Losing
+Catalog
+All
+Deals
+In stock
+Campa Cola 1 L
+Campa · 24 pc case
+₹50.00
+18 cs available
+Campa Cola 2 L
+Campa · 24 pc case
+₹90.00
+8 cs available
+Campa Cola 200 ml
+Campa · 48 pc case
+₹10.00
+1 cs available
+Campa Cola 500 ml
+Campa · 24 pc case
+₹20.00
+9 cs available
+Campa Cola 750 ml
+Campa · 24 pc case
+₹40.00
+154 cs available
+Campa Lemon 1 L
+Campa · 24 pc case
+₹50.00
+4 cs available
+Campa Lemon 2 L
+Campa · 24 pc case
+₹90.00
+9 cs available
+Campa Lemon 200 ml
+Campa · 48 pc case
+₹10.00
+1 cs available
+Campa Lemon 500 ml
+Campa · 24 pc case
+₹20.00
+2 cs available
+Campa Lemon 750 ml
+Campa · 24 pc case
+₹40.00
+1 cs available
+Campa Orange 1 L
+Campa · 24 pc case
+₹50.00
+0 cs available
+Campa Orange 2 L
+Campa · 24 pc case
+₹90.00
+10 cs available
+Campa Orange 200 ml
+Campa · 48 pc case
+₹10.00
+3 cs available
+Campa Orange 500 ml
+Campa · 24 pc case
+₹20.00
+4 cs available
+Campa Orange 750 ml
+Campa · 24 pc case
+₹40.00
+18 cs available
+Independence Packaged Drinking Water 1 L
+Independence · 24 pc case
+₹20.00
+10 cs available
+Rajwadi Aamras Mango Drink 1 L
+Rajwadi · 12 pc case
+₹70.00
+8 cs available
+Rajwadi Aamras Mango Drink 200 ml
+Rajwadi · 27 pc case
+₹12.00
+3 cs available
+Rajwadi Aamras Mango Drink 600 ml
+Rajwadi · 24 pc case
+₹40.00
+9 cs available
+Rajwadi Apple Nectar 1 L
+Rajwadi · 12 pc case
+₹80.00
+Rajwadi Jeera Masala Soda 1.25 L
+Rajwadi · 12 pc case
+₹60.00
+10 cs available
+Rajwadi Jeera Masala Soda 250 ml
+Rajwadi · 48 pc case
+₹15.00
+10 cs available
+Rajwadi Jeera Masala Soda 500 ml
+Rajwadi · 24 pc case
+₹30.00
+0 cs available
+Rajwadi Josh Energy Drink 250 ml
+Rajwadi · 24 pc case
+₹50.00
+Rajwadi Lemon Soda 1.25 L
+Rajwadi · 12 pc case
+₹60.00
+2 cs available
+Rajwadi Lemon Soda 250 ml
+Rajwadi · 48 pc case
+₹15.00
+9 cs available
+Rajwadi Lemon Soda 500 ml
+Rajwadi · 24 pc case
+₹30.00
+7 cs available
+Rajwadi Soda Water 750 ml
+Rajwadi · 24 pc case
+₹20.00
+Sunbake Bourbon Cream 120 g
+Sunbake · 60 pc case
+₹20.00
+0 cs available
+Sunbake Bourbon Cream 300 g
+Sunbake · 30 pc case
+₹50.00
+2 cs available
+Sunbake Bourbon Cream 60 g
+Sunbake · 96 pc case
+₹10.00
+10 cs available
+Sunbake Butter Cookies 200 g
+Sunbake · 36 pc case
+₹50.00
+7 cs available
+Sunbake Butter Cookies 75 g
+Sunbake · 72 pc case
+₹20.00
+5 cs available
+Sunbake Choco Chip Cookies 120 g
+Sunbake · 48 pc case
+₹30.00
+Sunbake Choco Chip Cookies 40 g
+Sunbake · 120 pc case
+₹10.00
+8 cs available
+Sunbake Digestive Hi-Fibre 100 g
+Sunbake · 72 pc case
+₹30.00
+10 cs available
+Sunbake Digestive Hi-Fibre 250 g
+Sunbake · 36 pc case
+₹70.00
+Sunbake Elaichi Cream 120 g
+Sunbake · 60 pc case
+₹20.00
+3 cs available
+Sunbake Elaichi Cream 60 g
+Sunbake · 96 pc case
+₹10.00
+10 cs available
+Sunbake Glucose 110 g
+Sunbake · 72 pc case
+₹20.00
+17 cs available
+Sunbake Glucose 250 g
+Sunbake · 48 pc case
+₹45.00
+6 cs available
+Sunbake Glucose 32 g
+Sunbake · 144 pc case
+₹5.00
+10 cs available
+Sunbake Glucose 55 g
+Sunbake · 120 pc case
+₹10.00
+13 cs available
+Sunbake Kaju Pista Cookies 200 g
+Sunbake · 36 pc case
+₹60.00
+0 cs available
+Sunbake Kaju Pista Cookies 75 g
+Sunbake · 72 pc case
+₹25.00
+3 cs available
+Sunbake Marie Light 150 g
+Sunbake · 60 pc case
+₹30.00
+15 cs available
+Sunbake Marie Light 300 g
+Sunbake · 36 pc case
+₹55.00
+5 cs available
+Sunbake Marie Light 75 g
+Sunbake · 96 pc case
+₹15.00
+2 cs available
+Sunbake Orange Cream 120 g
+Sunbake · 60 pc case
+₹20.00
+Sunbake Salted Cracker 200 g
+Sunbake · 36 pc case
+₹40.00
+6 cs available
+Sunbake Salted Cracker 60 g
+Sunbake · 96 pc case
+₹10.00
+0 cs available
+Masti Oye Classic Salted 30 g
+Masti Oye · 48 pc case
+₹10.00
+5 cs available
+Masti Oye Peri Peri Twist 30 g
+Masti Oye · 48 pc case
+₹10.00
+13 cs available
+Masti Oye Tomato Twist 30 g
+Masti Oye · 48 pc case
+₹10.00
+4 cs available
+Too Yumm Karare 60 g
+Too Yumm · 48 pc case
+₹20.00
+16 cs available
+Too Yumm Multigrain Chips 60 g
+Too Yumm · 48 pc case
+₹20.00
+8 cs available
+Too Yumm Veggie Stix 70 g
+Too Yumm · 48 pc case
+₹20.00
+8 cs available
+Balaji Chataka Pataka Wafers 45 g
+Balaji · 48 pc case
+₹20.00
+6 cs available
+Balaji Masala Masti Wafers 45 g
+Balaji · 48 pc case
+₹20.00
+17 cs available
+Balaji Ratlami Sev 200 g
+Balaji · 30 pc case
+₹80.00
+4 cs available
+The figure is the printed MRP, not what the shop pays.

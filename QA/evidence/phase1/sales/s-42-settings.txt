@@ -1,0 +1,27 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+My account
+Name
+Rahul Deshmukh
+Role
+Salesperson
+Change your password
+Devices signed in
+Browser on Mac
+This device
+Unnamed device
+Unnamed device
+Unnamed device
+Unnamed device
+Browser on Mac
+That device will have to sign in again with a password.

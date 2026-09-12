@@ -1,0 +1,65 @@
+=== Tier C rates for the test SKUs ===
+name | variant_id | cs | mrp | rate_c | incl | status | listed | avail
+Annapurna Sunflower Refined Oil 1 L pouch | 934dd63c-a112-7fb7-91a1-376a90bf5fcf | 12 | 135 | 119.7400000000000000 | f | active | t | 242
+Annapurna Sunflower Refined Oil 5 L jar | 86eba598-c585-7e38-a790-d43515e028b3 | 4 | 660 | 584.1500000000000000 | f | active | t | 40
+Balaji Masala Masti Wafers 45 g | a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d | 48 | 20 | 14.5900000000000000 | f | active | t | 924
+Chamak Dishwash Gel 750 ml | a4d86cbe-4dde-7eba-9fa3-a634b39205b6 | 12 | 129 | 90.8200000000000000 | f | active | t | 0
+Chamak Floor Cleaner 2 L | b6e26b21-4083-7714-960a-467ef989e504 | 6 | 285 | 204.0300000000000000 | f | active | t | 2
+Chamak Glass Cleaner 500 ml | 1c3586ee-fac5-75bf-83e5-eb28c63dc730 | 24 | 95 | 67.6900000000000000 | f | discontinued | f | 0
+MOM Roasted Makhana Himalayan Salt 12 g | 2cc4e8aa-ea1b-7352-bae2-76a024f71798 | 90 | 10 | 8.0800000000000000 | f | active | t | 732
+MOM Roasted Makhana Peri Peri 60 g | 85a4986d-0605-7950-84b3-7b9b34752804 | 48 | 50 | 39.9400000000000000 | f | active | t | 492
+Neelam Neem Soap 100 g | dc0efb0f-1df8-7031-8d68-feec02a3e082 | 72 | 38 | 26.0800000000000000 | f | active | t | 761
+Neelam Rose Soap 100 g | 1f4fa659-76ff-7359-9058-c225d06faf6e | 72 | 42 | 29.3600000000000000 | f | active | t | 737
+Neelam Rose Soap 3 x 100 g pack | 70be2aa5-66b5-7f7c-9ba4-fb32d2d8904c | 24 | 120 | 83.6800000000000000 | f | active | t | 240
+Neelam Sandal Soap 100 g | 8549cf4f-2489-772a-9691-7eeda70e8bdc | 72 | 42 | 28.7600000000000000 | f | active | t | 1404
+Neelam Sandal Soap 3 x 100 g pack | b2d454f5-d090-7ac6-ae6c-27bb31ca257f | 24 | 120 | 82.7700000000000000 | f | active | t | 246
+Sunbake Glucose 110 g | 40163e3b-6b81-78a0-bb58-369c22235acc | 72 | 20 | 15.1700000000000000 | f | active | t | 1414
+Sunbake Glucose 250 g | 766c1eb1-c66d-7cd1-a122-23bd0a2bd4e7 | 48 | 45 | 33.8900000000000000 | f | active | t | 852
+Sunbake Glucose 32 g | c67a8c31-c125-7d98-9010-8277027eff37 | 144 | 5 | 3.7400000000000000 | f | active | t | 1440
+Sunbake Glucose 55 g | af45e021-a167-7d3f-a8f0-60ab037214cb | 120 | 10 | 7.4800000000000000 | f | active | t | 2280
+Too Yumm Karare 60 g | 55c85997-7ee5-716d-a2da-df040f154496 | 48 | 20 | 14.6800000000000000 | f | active | t | 1020
+Too Yumm Makhana Himalayan Salt 20 g | 58afb7ca-da10-7dec-a6c3-791732c66266 | 90 | 25 | 19.9700000000000000 | f | active | t | 959
+Too Yumm Multigrain Chips 60 g | 75002403-fdc3-7c6b-9792-87ddd32462dc | 48 | 20 | 14.4900000000000000 | f | active | t | 505
+Too Yumm Veggie Stix 70 g | 155388ef-a619-7ec9-b4b2-aa269c717b02 | 48 | 20 | 14.5200000000000000 | f | active | t | 430
+(21 rows)
+=== scheme applicability + scope (LIVE) ===
+name | scope | applicability | slabs
+Rajwadi sodas — 1.5% cash discount | {"brandIds": ["4e99e3bb-8f1e-75f6-91c8-5d3dfc1b7243"]} | {} | 
+Too Yumm — 2% cash discount | {"brandIds": ["e9eb5384-a2a4-702a-a192-e4f90f46feb3"]} | {} | 
+Campa 750 ml / 1 L — a bottle free per case | {"variantIds": ["f71bf137-50de-7182-a0d9-c83f1a613a57", "99b2404c-4f7f-75c7-98f3-2d36ca78de54", "607a16c3-da8c-7f06-b5b7-619de2776557", "f086f3e3-3697-7439-98d9-f20c231c110a", "1acdea86-6981-76ae-b796-5b4c0e089fae", "40a5c276-2a66-7bd8-9f8f-ad947a318fa6"]} | {} | 
+Sunbake Glucose — 12+1 free | {"variantIds": ["40163e3b-6b81-78a0-bb58-369c22235acc", "766c1eb1-c66d-7cd1-a122-23bd0a2bd4e7"]} | {} | 
+Konkan Crunch — launch offer 10% | {"brandIds": ["59edd38f-1eec-791b-8eee-1fb9d6e0e7f9"]} | {} | 
+Annapurna Atta — ₹15 off per case on 2+ | {"variantIds": ["954d6f48-5a19-7d32-842f-66d604d8acf2", "36c64a80-fd35-727f-9bd6-17b72b298908", "ba7c82c0-d5f2-72ca-8730-fedf4a24ac1b"]} | {} | 
+Annapurna oils — 4% on 4+ cases (withdrawn) | {"variantIds": ["934dd63c-a112-7fb7-91a1-376a90bf5fcf", "86eba598-c585-7e38-a790-d43515e028b3", "a18ee641-3af5-71df-8728-b25d4122bebb", "0bd68e4c-6cc3-7b1a-b804-927340d00b78"]} | {} | 
+Balaji — 4% off on 3+ cases | {"brandIds": ["ebfe6f6d-f39b-7af2-9a5b-cde3902eacc9"]} | {} | 
+Campa 1 L / 2 L — 3% off on 5+ cases | {"variantIds": ["f086f3e3-3697-7439-98d9-f20c231c110a", "1acdea86-6981-76ae-b796-5b4c0e089fae", "40a5c276-2a66-7bd8-9f8f-ad947a318fa6", "346f1104-b9ad-72bd-bcd0-b6fa55a9eae4", "b7a018cb-ddc6-7739-a19d-3dad14a2e303", "0e79d150-f91d-71ef-bbf5-c79a1911a5bb"]} | {} | 
+Godavari Ghee — 6% exclusive | {"variantIds": ["5d753cbd-df89-7009-b820-fb0b481129ca", "7df1cb3d-63e5-74e6-98eb-2c64a7d758c9", "b96583f9-a6dc-7901-9d34-add5f76879ae"]} | {} | 
+Godavari UHT milk — 2% off on 3+ cases | {"variantIds": ["3150e053-7238-7f84-8858-1c111db96569", "3a4ace01-4dc5-71d6-bdd3-84cc49f25c54", "01e9bd5b-bcea-7439-a974-5cfd04585764", "90a812c6-cb5c-7494-a048-340d95c2642e"]} | {} | 
+MOM Makhana — slab scheme | {"brandIds": ["64596676-0022-79e3-8675-5dc24b6bd967"]} | {} | [{"min": 2, "value": 200}, {"min": 4, "value": 400}]
+Rajwadi sodas — 5% off on 4+ cases | {"brandIds": ["4e99e3bb-8f1e-75f6-91c8-5d3dfc1b7243"]} | {} | 
+Sunbake creams — slab discount | {"variantIds": ["054a1a8b-473f-7056-a62b-db00c8ecc442", "bca3e78a-cc89-7c0b-97c2-30d5df916894", "717a18fe-3e46-7713-860d-20bc2b59ff4b", "582159a3-1655-75ac-8a3d-6ff45d0cb592", "c0c2e5d8-e3d7-7133-a451-42f7e81e9591", "e48dbdd8-0207-787c-b13a-c292d2a27dab"]} | {} | [{"min": 2, "value": 300}, {"min": 4, "value": 500}, {"min": 6, "value": 800}]
+Order value — 2% off on bills over ₹25,000 | {"all": true} | {} | 
+(15 rows)
+=== R-0001 overrides ===
+count
+0
+(1 row)
+=== visit row ===
+id | outcome | reason | lat | lng | started_at | ended_at
+01a09577-2dff-72c3-9f39-f1e0544b19ee | ordered |  |  |  | 2026-09-12 17:26:07.925+05:30 | 
+(1 row)
+name | cs | mrp | rate_c | avail | other_lists_differ
+Annapurna Chakki Fresh Atta 1 kg | 10 | 55 | 48.8300000000000000 | 100 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Annapurna Chakki Fresh Atta 10 kg | 3 | 495 | 438.1100000000000000 | 42 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Annapurna Chakki Fresh Atta 5 kg | 5 | 255 | 226.6600000000000000 | 95 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Godavari Cow Ghee 1 L | 8 | 770 | 625.9100000000000000 | 85 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Godavari Cow Ghee 200 ml | 24 | 165 | 134.5600000000000000 | 240 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Godavari Cow Ghee 500 ml | 12 | 395 | 318.9800000000000000 | 245 | Default Price List,Tier A Price List,Tier B Price List,Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Jeera Masala Soda 1.25 L | 12 | 60 | 33.6900000000000000 | 130 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Jeera Masala Soda 250 ml | 48 | 15 | 8.6200000000000000 | 521 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Jeera Masala Soda 500 ml | 24 | 30 | 16.9900000000000000 | 390 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Lemon Soda 1.25 L | 12 | 60 | 34.3300000000000000 | 120 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Lemon Soda 250 ml | 48 | 15 | 8.5200000000000000 | 480 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Lemon Soda 500 ml | 24 | 30 | 17.2500000000000000 | 240 | Default Price List,Tier A Price List,Tier B Price List
+Rajwadi Soda Water 750 ml | 24 | 20 | 13.4600000000000000 | 0 | Default Price List,Tier A Price List,Tier B Price List
+(13 rows)

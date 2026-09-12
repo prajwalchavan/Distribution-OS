@@ -1,0 +1,22 @@
+=== ids for permission probes ===
+k | id | order_no
+amit order | 6d53cb37-98d9-7675-bdce-c1f3ea4f1adc | SO-0870
+(1 row)
+k | id | name
+sai retailer | 291a0126-5a92-7b83-a0d9-072af9dafd15 | Swami Samarth Stores
+(1 row)
+k | id | order_no
+sai order | 49191f82-771e-7ec6-957b-3d56ad3d0f94 | 
+(1 row)
+k | id | invoice_no
+tarsun invoice of R-0001 | 089d9946-35e9-7234-b231-e5742d2ee974 | INV/0817
+(1 row)
+k | id | username
+amit user | efde1e76-9785-7827-aff2-6f56ecd33588 | amit.pawar
+(1 row)
+k | id | outcome
+rahul visit | 01a09577-2dff-72c3-9f39-f1e0544b19ee | ordered
+(1 row)
+k | id | outcome
+amit visit | 84e56538-3d0e-73a3-b4af-40cf73009f6a | no_order
+(1 row)

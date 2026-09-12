@@ -1,0 +1,23 @@
+=== seeded invoices that contain a Too Yumm line: header cash discount ===
+invoice_no | invoice_date | taxable | cash_discount_bps | cash_discount_until | tooyumm_taxable
+SAI/0440 | 2026-09-12 | 41824.990000000000 | 250 | 2026-09-19 | 5441.5900000000000000
+SAI/0430 | 2026-09-11 | 24393.500000000000 | 200 | 2026-09-18 | 4027.5600000000000000
+SAI/0428 | 2026-09-11 | 4836.2400000000000000 | 0 |  | 4836.2400000000000000
+SAI/0435 | 2026-09-11 | 92284.240000000000 | 250 | 2026-09-18 | 672.6700000000000000
+SAI/0427 | 2026-09-10 | 33042.630000000000 | 200 | 2026-09-17 | 672.6700000000000000
+(5 rows)
+=== invoices since 22 Aug WITHOUT Too Yumm/Rajwadi: cash_discount_bps distribution ===
+cash_discount_bps | count
+0 | 251
+200 | 169
+250 | 23
+(3 rows)
+=== duplicate scheme names (seed hygiene) ===
+name | count | array_agg
+Annapurna Atta — ₹15 off per case on 2+ | 2 | {kalyan-agencies,tarsun}
+Annapurna oils — 4% on 4+ cases (withdrawn) | 2 | {kalyan-agencies,tarsun}
+Balaji Monsoon Bonanza — 2 pkts free per 2 cases (expired) | 3 | {kalyan-agencies,sai-distributors,tarsun}
+Balaji — 4% off on 3+ cases | 3 | {kalyan-agencies,sai-distributors,tarsun}
+Campa 1 L / 2 L — 3% off on 5+ cases | 3 | {kalyan-agencies,sai-distributors,tarsun}
+Campa 2 L — festive 2 bottles free per 2 cases (expired) | 3 | {kalyan-agencies,sai-distributors,tarsun}
+Campa 750 ml / 1 L — a bottle free per case | 3 | {kalyan-agencies,sai-distributors,tarsun}

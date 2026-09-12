@@ -1,0 +1,60 @@
+=== schemes tarsun (active/expired/future) ===
+name | trigger_kind | trigger_min | trigger_unit | reward_kind | reward_value | valid_from | valid_to | active | stackable | final | priority | st
+Campa 2 L — festive 2 bottles free per 2 cases (expired) | qty | 2 | case | free_qty | 2 | 2026-05-15 | 2026-07-14 | t | t | f | 10 | EXPIRED
+Balaji Monsoon Bonanza — 2 pkts free per 2 cases (expired) | qty | 2 | case | free_qty | 2 | 2026-06-09 | 2026-08-08 | t | t | f | 10 | EXPIRED
+Order value — 2% off on bills over ₹25,000 | value | 2500000 | inr | order_pct | 200 | 2026-06-14 | 2026-09-21 | t | t | f | 30 | LIVE
+Campa 750 ml / 1 L — a bottle free per case | qty | 24 | pcs | free_qty | 1 | 2026-06-14 | 2026-09-21 | t | t | f | 10 | LIVE
+Sunbake Glucose — 12+1 free | qty | 12 | pcs | free_qty | 1 | 2026-06-14 | 2026-09-24 | t | t | f | 10 | LIVE
+Annapurna Atta — ₹15 off per case on 2+ | qty | 2 | case | net_scheme_amount | 1500 | 2026-06-14 | 2026-10-07 | t | t | f | 20 | LIVE
+Sunbake creams — slab discount | qty | 2 | case | line_pct | 300 | 2026-06-14 | 2026-09-14 | t | t | f | 20 | LIVE
+Balaji — 4% off on 3+ cases | qty | 3 | case | line_pct | 400 | 2026-06-14 | 2026-09-21 | t | t | f | 20 | LIVE
+Campa 1 L / 2 L — 3% off on 5+ cases | qty | 5 | case | line_pct | 300 | 2026-06-19 | 2026-10-02 | t | t | f | 20 | LIVE
+Godavari UHT milk — 2% off on 3+ cases | qty | 3 | case | line_pct | 200 | 2026-06-19 | 2026-10-12 | t | t | f | 20 | LIVE
+Rajwadi sodas — 5% off on 4+ cases | qty | 4 | case | line_pct | 500 | 2026-06-24 | 2026-09-27 | t | t | f | 20 | LIVE
+Neelam soaps — 12+1 free | qty | 12 | pcs | free_qty | 1 | 2026-07-04 | 2026-08-18 | t | t | f | 10 | EXPIRED
+Chamak — 3% off on Chamak bills over ₹4,000 | value | 400000 | inr | order_pct | 300 | 2026-07-09 | 2026-08-23 | t | t | f | 30 | EXPIRED
+MOM Makhana — slab scheme | qty | 2 | case | line_pct | 200 | 2026-07-14 | 2026-09-21 | t | t | f | 20 | LIVE
+Rajwadi sodas — 1.5% cash discount | value | 0 | inr | cash_discount_pct | 150 | 2026-08-13 | 2026-10-27 | t | t | f | 5 | LIVE
+Too Yumm — 2% cash discount | value | 0 | inr | cash_discount_pct | 200 | 2026-08-22 | 2026-11-11 | t | t | f | 5 | LIVE
+Godavari Ghee — 6% exclusive | qty | 1 | case | line_pct | 600 | 2026-08-29 | 2026-09-28 | t | f | t | 20 | LIVE
+Annapurna oils — 4% on 4+ cases (withdrawn) | qty | 4 | case | line_pct | 400 | 2026-09-02 | 2026-10-02 | f | t | f | 20 | LIVE
+Konkan Crunch — launch offer 10% | value | 0 | inr | line_pct | 1000 | 2026-09-05 | 2026-09-19 | t | t | f | 15 | LIVE
+(19 rows)
+=== variant status counts ===
+status | count
+discontinued | 3
+proposed | 2
+active | 169
+(3 rows)
+=== discontinued / unlisted in tarsun catalog ===
+name | status | listed | min_order_qty | order_increment | max_per_order | case_size_override | default_case_size | mrp
+Chamak Glass Cleaner 500 ml | discontinued | f | 1 | 1 |  |  | 24 | 95
+Godavari Kesar Shrikhand 200 g | proposed | t | 1 | 1 |  |  | 24 | 65
+Konkan Ratlami Sev 180 g | proposed | t | 1 | 1 |  |  | 36 | 45
+Rajwadi Apple Nectar 200 ml | discontinued | f | 1 | 1 |  |  | 27 | 15
+Sunbake Orange Cream 60 g | discontinued | f | 1 | 1 |  |  | 96 | 10
+(5 rows)
+=== stock tables ===
+table_name
+price_list_items
+price_lists
+retailer_price_overrides
+sellable_stock
+stock_balances
+stock_ledger
+stock_lots
+visits
+(8 rows)
+=== sellable stock view sample (tarsun) — zero/low stock ===
+column_name
+tenant_id
+variant_id
+location_id
+lot_id
+batch_no
+mrp_paise
+expiry_date
+on_hand
+reserved
+available
+(10 rows)

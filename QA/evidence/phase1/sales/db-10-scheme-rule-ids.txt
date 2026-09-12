@@ -1,0 +1,23 @@
+=== rule 663ad71e ===
+id | name | reward_kind | reward_value | trigger_kind | trigger_min | scope | priority
+663ad71e-b613-7b5b-b391-865481c48dcb | Too Yumm — 2% cash discount | cash_discount_pct | 200 | value | 0 | {"brandIds": ["e9eb5384-a2a4-702a-a192-e4f90f46feb3"]} | 5
+(1 row)
+=== order-value scheme row ===
+id | name | reward_kind | reward_value | trigger_kind | trigger_min | trigger_unit | scope
+6ac23a1a-ce35-76d2-a002-3a7888fc1c65 | Order value — 2% off on bills over ₹25,000 | order_pct | 200 | value | 2500000 | inr | {"all": true}
+0962f5d5-9fa9-723b-a3e5-76ac394dc602 | Order value — 2% off on bills over ₹25,000 | order_pct | 200 | value | 2500000 | inr | {"all": true}
+47daabfb-6822-7f6b-88d6-550b75644600 | Order value — 2% off on bills over ₹25,000 | order_pct | 200 | value | 2500000 | inr | {"all": true}
+(3 rows)
+=== Too Yumm cash scheme ===
+id | name | reward_kind | reward_value | scope
+663ad71e-b613-7b5b-b391-865481c48dcb | Too Yumm — 2% cash discount | cash_discount_pct | 200 | {"brandIds": ["e9eb5384-a2a4-702a-a192-e4f90f46feb3"]}
+598c4a93-ac60-7c3a-aa02-ec3b04237c6d | Too Yumm — 2% cash discount | cash_discount_pct | 200 | {"brandIds": ["e9eb5384-a2a4-702a-a192-e4f90f46feb3"]}
+(2 rows)
+=== SO-0880 (Patil) header ===
+order_no | state | approval_flags | total
+SO-0880 | submitted | ["credit_limit"] | 1283.0000000000000000
+(1 row)
+=== Patil credit facts ===
+credit_mode | lim | credit_days | outs | overdue | oldest_due_date
+stop | 150000 | 14 | 60421 | 60421 | 2026-07-17
+(1 row)

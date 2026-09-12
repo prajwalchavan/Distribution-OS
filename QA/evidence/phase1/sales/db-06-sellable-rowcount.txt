@@ -1,0 +1,10 @@
+=== sellable_stock rows (tarsun) ===
+rows_total | rows_avail | variants | variants_avail
+807 | 807 | 166 | 166
+(1 row)
+=== how many variants would be fully covered by the first 500 rows in the API's order? (api order = ?) ===
+kind | count
+warehouse | 759
+vehicle | 6
+damaged | 42
+(3 rows)

@@ -1,0 +1,50 @@
+=== header ===
+order_no | state | source | payment_terms | pricing_date_mode | sub | disc | tax | round_off_paise | total | approval_flags | submitted_at | confirmed_at | note
+SO-0879 | submitted | salesperson | POST_FULFILLMENT | order | 29534.120000000000 | 794.4200000000000000 | 3290.5000000000000000 | -20 | 32030.000000000000 | ["credit_limit"] | 2026-09-12 17:40:11.865+05:30 |  | 
+(1 row)
+=== line columns ===
+string_agg
+id, tenant_id, order_id, line_no, variant_id, entered_qty, entered_unit, pack_size_at_entry, qty_pcs, free_qty_pcs, picked_qty_pcs, delivered_qty_pcs, list_rate_paise, rate_paise, discount_bps, discount_paise, gst_bps, tax_paise, line_total_paise, applied_rules, price_locked, created_at, updated_at
+(1 row)
+=== lines ===
+ERROR:  column l.qty_pieces does not exist
+LINE 1: select pv.name, l.qty_pieces, l.case_size, l.rate_paise/100....
+                        ^
+HINT:  Perhaps you meant to reference the column "l.qty_pcs".
+=== approvals ===
+string_agg
+id, tenant_id, kind, order_id, entity_type, entity_id, requested_by, status, payload, decided_by, decided_at, decision_note, created_at, updated_at
+(1 row)
+ERROR:  column "state" does not exist
+LINE 1: select kind, state, reason, created_at from approvals where ...
+                     ^
+HINT:  Perhaps you meant to reference the column "approvals.status".
+=== lines ===
+line_no | name | entered_qty | entered_unit | qty_pcs | free | list | rate | discount_bps | disc | gst_bps | tax | total | rules
+1 | Sunbake Glucose 110 g | 1 | case | 72 | 6 | 15.1700000000000000 | 15.1700000000000000 | 0 | 0.00000000000000000000 | 1800 | 196.6000000000000000 | 1288.8400000000000000 | [{"kind": "scheme", "ruleId": "50a41744-772e-7b93-81e2-f11fba3f98ef", "freeQty": 6, "version": 1, "rewardKind": "free_qty", "freeVariantId": "40163e3b-6b81
+2 | Balaji Masala Masti Wafers 45 g | 3 | case | 144 | 0 | 14.5900000000000000 | 14.5900000000000000 | 400 | 84.0400000000000000 | 1800 | 363.0500000000000000 | 2379.9700000000000000 | [{"kind": "scheme", "ruleId": "5df0af82-ef25-7621-b927-44fb02080704", "version": 1, "rewardKind": "line_pct", "amountPaise": 8404}]
+3 | Neelam Rose Soap 100 g | 1 | case | 72 | 0 | 29.3600000000000000 | 29.3600000000000000 | 0 | 0.00000000000000000000 | 1800 | 380.5100000000000000 | 2494.4300000000000000 | []
+4 | Annapurna Sunflower Refined Oil 1 L pouch | 4 | case | 48 | 0 | 119.7400000000000000 | 119.7400000000000000 | 0 | 0.00000000000000000000 | 500 | 287.3800000000000000 | 6034.9000000000000000 | []
+5 | Godavari Cow Ghee 200 ml | 1 | case | 24 | 0 | 134.5600000000000000 | 134.5600000000000000 | 600 | 193.7700000000000000 | 1200 | 364.2800000000000000 | 3399.9500000000000000 | [{"kind": "scheme", "ruleId": "2891ee90-f755-7416-a628-e0604f4f9600", "version": 1, "rewardKind": "line_pct", "amountPaise": 19377}]
+6 | Godavari Cow Ghee 1 L | 1 | case | 8 | 0 | 625.9100000000000000 | 625.9100000000000000 | 600 | 300.4400000000000000 | 1200 | 564.8200000000000000 | 5271.6600000000000000 | [{"kind": "scheme", "ruleId": "2891ee90-f755-7416-a628-e0604f4f9600", "version": 1, "rewardKind": "line_pct", "amountPaise": 30044}]
+7 | Konkan Aloo Bhujia 200 g | 1 | case | 36 | 0 | 34.5800000000000000 | 34.5800000000000000 | 1000 | 124.4900000000000000 | 1800 | 201.6700000000000000 | 1322.0600000000000000 | [{"kind": "scheme", "ruleId": "a110249f-dd52-7011-b9ee-c203bff76302", "version": 1, "rewardKind": "line_pct", "amountPaise": 12449}]
+8 | Too Yumm Karare 60 g | 1 | case | 48 | 0 | 14.6800000000000000 | 14.6800000000000000 | 0 | 0.00000000000000000000 | 1800 | 126.8400000000000000 | 831.4800000000000000 | []
+9 | MOM Roasted Makhana Peri Peri 60 g | 2 | case | 96 | 0 | 39.9400000000000000 | 39.9400000000000000 | 200 | 76.6800000000000000 | 500 | 187.8800000000000000 | 3945.4400000000000000 | [{"kind": "scheme", "ruleId": "465f1a99-0c3e-786d-85bf-9932081e6032", "version": 1, "rewardKind": "line_pct", "amountPaise": 7668}]
+10 | Chamak Dishwash Gel 750 ml | 1 | case | 12 | 0 | 90.8200000000000000 | 90.8200000000000000 | 0 | 0.00000000000000000000 | 1800 | 196.1700000000000000 | 1286.0100000000000000 | []
+11 | Annapurna Chakki Fresh Atta 5 kg | 2 | case | 10 | 0 | 226.6600000000000000 | 226.6600000000000000 | 66 | 15.0000000000000000 | 500 | 112.5800000000000000 | 2364.1800000000000000 | [{"kind": "scheme", "ruleId": "e4e5d9b7-e692-786c-9c7e-f9fdc168e572", "version": 1, "rewardKind": "net_scheme_amount", "amountPaise": 1500}]
+12 | Campa Cola 750 ml | 2 | case | 48 | 2 | 22.9700000000000000 | 22.9700000000000000 | 0 | 0.00000000000000000000 | 2800 | 308.7200000000000000 | 1411.2800000000000000 | [{"kind": "scheme", "ruleId": "8c91c558-a161-77d0-9857-b3c99e4a8a85", "freeQty": 2, "version": 1, "rewardKind": "free_qty", "freeVariantId": "f71bf137-50de-71
+(12 rows)
+=== approvals ===
+kind | status | by_rahul | payload | created_at
+credit_limit | pending | t | {"flag": "credit_limit", "orderNo": "SO-0879", "totalPaise": 3203000} | 2026-09-12 17:40:11.860232+05:30
+(1 row)
+=== hsn 2202 rows ===
+hsn_code | description | gst_bps | cess_bps | effective_from | effective_to
+1905 | Extruded / expanded savoury snacks | 1800 | 0 | 2017-07-01 | 
+1905 | Biscuits, sweet | 1800 | 0 | 2017-07-01 | 
+2106 | Namkeen, bhujia, wafers, mixture | 1800 | 0 | 2017-07-01 | 
+2106 | Namkeen, pre-packed and labelled | 1200 | 0 | 2017-07-01 | 
+2202 | Fruit pulp / fruit juice based drinks | 1200 | 0 | 2017-07-01 | 
+2202 | Packaged drinking water (Independence) | 1800 | 0 | 2017-07-01 | 
+2202 | Aerated waters, containing added sugar (Campa) | 2800 | 1200 | 2017-07-01 | 
+(7 rows)

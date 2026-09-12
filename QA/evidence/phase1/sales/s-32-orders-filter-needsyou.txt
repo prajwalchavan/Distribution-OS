@@ -1,0 +1,24 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Needs you
+Waiting: 0
+Refused: 0
+Orders
+Needs you
+Signal is good. Anything waiting goes on its own.
+The office refused these
+Fix what it says, then try again — or throw the write away.
+Nothing has been refused
+Waiting to send
+Nothing is wrong with these; they go as soon as there is a signal.
+Nothing is waiting

@@ -1,0 +1,39 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+The office sets the terms
+New shop
+The shop
+Shop name
+Owner name
+Phone
+Ten digits. The office links it to the shop’s own sign-in later.
+Where it is
+Building or street
+Area
+City
+PIN code
+Beat
+Station Road
+Kalyan West Market
+Khadakpada
+Pin this spot
+No position
+Tax
+A registered shop gets a tax invoice; an unregistered one a bill of supply.
+✓ Not registered
+Regular
+Composition
+The office links the shop’s own sign-in to this record later.
+Credit limit and tier are set by the office
+Add shop
+A name and a phone are needed

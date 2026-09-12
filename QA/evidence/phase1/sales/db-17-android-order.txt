@@ -1,0 +1,3 @@
+order_no | state | source | name | total | created_at | lines
+SO-0884 | confirmed | salesperson | Laxmi Narayan Stores | 303.0000000000000000 | 18:06:23.043066 | Campa Cola 500 ml x24
+(1 row)

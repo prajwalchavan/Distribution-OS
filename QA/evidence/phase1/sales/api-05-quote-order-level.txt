@@ -1,0 +1,32 @@
+== B: 10 lines, no ghee, subtotal ~27.6k ==
+ header: {"pricingDate": "2026-09-12", "orderRules": [{"ruleId": "663ad71e-b613-7b5b-b391-865481c48dcb", "version": 1, "kind": "scheme", "rewardKind": "cash_discount_pct", "amountPaise": 47870}], "cashDiscountBps": 200, "cashDiscountPaise": 47870, "totals": {"grossPaise": 2409548, "discountPaise": 16072, "bargainPaise": 0, "netPaise": 2393476}}
+   40163e3b qty 72 rate 1517 disc 0 free 6 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('free_qty', None, 6)]
+   a47e1049 qty 144 rate 1459 disc 8404 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('line_pct', 8404, None)]
+   1f4fa659 qty 72 rate 2936 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   934dd63c qty 48 rate 11974 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   55c85997 qty 48 rate 1468 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   85a4986d qty 96 rate 3994 disc 7668 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('line_pct', 7668, None)]
+   a4d86cbe qty 12 rate 9082 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   f71bf137 qty 48 rate 2297 disc 0 free 2 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('free_qty', None, 2)]
+   b2d454f5 qty 48 rate 8277 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   86eba598 qty 4 rate 58415 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+== C: B + ghee 200 ml (exclusive) ==
+ header: {"pricingDate": "2026-09-12", "orderRules": [{"ruleId": "663ad71e-b613-7b5b-b391-865481c48dcb", "version": 1, "kind": "scheme", "rewardKind": "cash_discount_pct", "amountPaise": 53941}], "cashDiscountBps": 200, "cashDiscountPaise": 53941, "totals": {"grossPaise": 2732492, "discountPaise": 35449, "bargainPaise": 0, "netPaise": 2697043}}
+   40163e3b qty 72 rate 1517 disc 0 free 6 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('free_qty', None, 6)]
+   a47e1049 qty 144 rate 1459 disc 8404 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('line_pct', 8404, None)]
+   1f4fa659 qty 72 rate 2936 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   934dd63c qty 48 rate 11974 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   55c85997 qty 48 rate 1468 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   85a4986d qty 96 rate 3994 disc 7668 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('line_pct', 7668, None)]
+   a4d86cbe qty 12 rate 9082 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   f71bf137 qty 48 rate 2297 disc 0 free 2 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('free_qty', None, 2)]
+   b2d454f5 qty 48 rate 8277 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   86eba598 qty 4 rate 58415 disc 0 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules []
+   5d753cbd qty 24 rate 13456 disc 19377 free 0 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('line_pct', 19377, None)]
+== D: single Campa Cola 750 ml 2 cs (cess check) ==
+ header: {"pricingDate": "2026-09-12", "orderRules": [], "cashDiscountBps": 0, "cashDiscountPaise": 0, "totals": {"grossPaise": 110256, "discountPaise": 0, "bargainPaise": 0, "netPaise": 110256}}
+   f71bf137 qty 48 rate 2297 disc 0 free 2 cess None keys ['caseSize', 'listRatePaise', 'grossPaise', 'bargainPaise', 'freeQtyPcs', 'freeItems', 'lineNetPaise'] rules [('free_qty', None, 2)]
+== E: no exclusive, NO Too Yumm, gross > 25k ==
+ header: {"pricingDate": "2026-09-12", "orderRules": [], "cashDiscountBps": 0, "cashDiscountPaise": 0, "totals": {"grossPaise": 2733932, "discountPaise": 16072, "bargainPaise": 0, "netPaise": 2717860}}
+== F: E + Too Yumm 1 cs (cash discount scope check) ==
+ header: {"pricingDate": "2026-09-12", "orderRules": [{"ruleId": "663ad71e-b613-7b5b-b391-865481c48dcb", "version": 1, "kind": "scheme", "rewardKind": "cash_discount_pct", "amountPaise": 55766}], "cashDiscountBps": 200, "cashDiscountPaise": 55766, "totals": {"grossPaise": 2804396, "discountPaise": 16072, "bargainPaise": 0, "netPaise": 2788324}}

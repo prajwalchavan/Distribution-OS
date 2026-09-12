@@ -1,0 +1,47 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Station Road · R-0001
+Shree Ganesh Kirana
+Owes ₹35,843
+Limit ₹50,000
+Overdue ₹35,843
+Shop
+Orders25
+Bills6
+INV/0433
+Due 6 Aug 2026 · 37 days
+₹4,561.00
+of ₹10,119
+INV/0468
+Due 10 Aug 2026 · 33 days
+₹9,376.00
+of ₹9,947
+INV/0587
+Due 24 Aug 2026 · 19 days
+₹6,253.00
+of ₹6,253
+INV/0617
+Due 27 Aug 2026 · 16 days
+₹6,870.00
+of ₹7,004
+INV/0680
+Due 3 Sep 2026 · 9 days
+₹3,311.00
+of ₹3,526
+INV/0753
+Due 10 Sep 2026 · 2 days
+₹5,472.00
+of ₹5,472
+Your last order 12 Sep
+₹12,837.00
+Take order

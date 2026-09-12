@@ -1,0 +1,137 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Shops
+Shops: 30
+Shops
+Losing
+Catalog
+Ambika Provision Store
+R-0009 · Station Road · Station Road, Kalyan West
+₹23,995.00
+C
+Balaji Wholesale Stores
+R-0010 · Station Road · Station Road, Kalyan West
+₹7,20,804.00
+A
+Bhosale Traders
+R-0023 · Khadakpada · Khadakpada, Kalyan West
+₹74,287.00
+B
+Chavan Kirana Stores
+R-0024 · Khadakpada · Khadakpada, Kalyan West
+₹21,892.00
+C
+Deshmukh Kirana
+R-0017 · Kalyan West Market · Bazarpeth, Kalyan West
+₹24,365.00
+C
+Ekvira Kirana
+R-0014 · Kalyan West Market · Bazarpeth, Kalyan West
+₹39,728.00
+C
+Ganesh General Store
+R-0007 · Station Road · Station Road, Kalyan West
+₹94,373.00
+B
+Ganpati General Stores
+R-0015 · Kalyan West Market · Bazarpeth, Kalyan West
+₹78,831.00
+B
+Gupta Kirana Stores
+R-0027 · Khadakpada · Khadakpada, Kalyan West
+₹90,266.00
+B
+Iyer Provision Store
+R-0029 · Khadakpada · Khadakpada, Kalyan West
+—
+D
+Jai Bhavani Stores
+R-0005 · Station Road · Station Road, Kalyan West
+₹11,511.00
+C
+Joshi Kirana Stores
+R-0020 · Kalyan West Market · Bazarpeth, Kalyan West
+₹1,20,754.00
+B
+Kadam Stores
+R-0021 · Khadakpada · Khadakpada, Kalyan West
+₹30,216.00
+C
+Krishna Kirana Stores
+R-0008 · Station Road · Station Road, Kalyan West
+—
+D
+Laxmi Narayan Stores
+R-0013 · Kalyan West Market · Bazarpeth, Kalyan West
+₹1,37,886.00
+B
+Mahalaxmi General Stores
+R-0003 · Station Road · Station Road, Kalyan West
+₹36,259.00
+C
+Mishra Provision Store
+R-0026 · Khadakpada · Khadakpada, Kalyan West
+₹10,385.00
+C
+More Provision Store
+R-0019 · Kalyan West Market · Bazarpeth, Kalyan West
+₹15,794.00
+C
+Navjeevan Super Bazar
+R-0016 · Kalyan West Market · Bazarpeth, Kalyan West
+₹2,68,111.00
+A
+Om Sai Provision Store
+R-0002 · Station Road · Station Road, Kalyan West
+₹69,862.50
+B
+Patil General Store
+R-0018 · Kalyan West Market · Bazarpeth, Kalyan West
+₹60,421.50
+B
+Pawar General Store
+R-0022 · Khadakpada · Khadakpada, Kalyan West
+₹8,199.00
+C
+Reddy Traders
+R-0030 · Khadakpada · Khadakpada, Kalyan West
+₹9,474.00
+C
+Sai Baba Kirana
+R-0011 · Kalyan West Market · Bazarpeth, Kalyan West
+₹1,43,930.00
+B
+Sai Krupa Super Bazar
+R-0004 · Station Road · Station Road, Kalyan West
+₹2,06,709.00
+A
+Shivshakti Traders
+R-0006 · Station Road · Station Road, Kalyan West
+₹22,834.00
+C
+Shree Ganesh Kirana
+R-0001 · Station Road · Station Road, Kalyan West
+₹35,843.00
+C
+Singh General Store
+R-0028 · Khadakpada · Khadakpada, Kalyan West
+₹17,372.00
+C
+Vitthal Traders
+R-0012 · Kalyan West Market · Bazarpeth, Kalyan West
+₹26,439.00
+C
+Yadav General Store
+R-0025 · Khadakpada · Khadakpada, Kalyan West
+₹28,485.00
+C

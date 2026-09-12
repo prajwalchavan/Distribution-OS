@@ -1,0 +1,33 @@
+=== sellable stock per location for the Campa variants ===
+name | location | kind | on_hand | reserved | available | lots | min_exp
+Campa Cola 1 L | Damaged / expiry bin | damaged | 1 | 0 | 1 | 1 | 2027-05-04
+Campa Cola 1 L | Godown | warehouse | 457 | 0 | 457 | 14 | 2027-02-23
+Campa Cola 1 L | Vehicle MH-05-AB-1234 | vehicle | 24 | 0 | 24 | 1 | 2027-06-06
+Campa Cola 200 ml | Godown | warehouse | 480 | 0 | 480 | 6 | 2027-02-23
+Campa Cola 750 ml | Damaged / expiry bin | damaged | 8 | 0 | 8 | 1 | 2027-04-27
+Campa Cola 750 ml | Godown | warehouse | 9709 | 0 | 9709 | 10 | 2027-02-09
+Campa Cola 750 ml | Vehicle MH-05-AB-1234 | vehicle | 48 | 0 | 48 | 1 | 2027-05-19
+Campa Lemon 750 ml | Godown | warehouse | 468 | 0 | 468 | 10 | 2027-02-23
+Campa Lemon 750 ml | Vehicle MH-05-AB-1234 | vehicle | 24 | 0 | 24 | 1 | 2027-06-06
+Campa Orange 1 L | Godown | warehouse | 249 | 0 | 249 | 9 | 2027-03-02
+Chamak Floor Cleaner 2 L | Godown | warehouse | 2 | 0 | 2 | 1 | 2028-06-03
+(11 rows)
+=== locations ===
+string_agg
+id, tenant_id, kind, name, vehicle_id, negative_allowed, active, created_at, updated_at
+(1 row)
+id | name | kind | active
+01a0947d-7a96-723f-952d-338dd284a1b4 | Godown | warehouse | t
+01a0947d-7a97-7466-8ce4-06501d6672dd | Damaged / expiry bin | damaged | t
+01a0947d-7a97-7467-b2a4-9f76014448cf | In transit | in_transit | t
+3bbe6b52-7dd7-7540-aad6-94ff815e8d8b | Vehicle MH-05-AB-1234 | vehicle | t
+7e8fe8ac-a7b5-7531-8def-b362624790ba | Vehicle MH-05-CD-5678 | vehicle | t
+2c7b4801-3f88-77d1-8a25-7e903891f265 | Vehicle MH-05-EF-9012 | vehicle | t
+(6 rows)
+=== stock_balances for Campa Orange 1 L ===
+string_agg
+tenant_id, lot_id, location_id, on_hand, reserved, negative_allowed, version, updated_at
+(1 row)
+ERROR:  column sb.variant_id does not exist
+LINE 1: ... sb join locations l on l.id=sb.location_id where sb.variant...
+                                                             ^

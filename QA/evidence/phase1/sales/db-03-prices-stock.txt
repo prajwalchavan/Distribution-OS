@@ -1,0 +1,73 @@
+=== R-0001 open invoices ===
+invoice_no | invoice_date | due_date | total | state | days_past_due
+INV/0433 | 2026-07-30 | 2026-08-06 | 10119 | partially_paid | 37
+INV/0468 | 2026-08-03 | 2026-08-10 | 9947 | partially_paid | 33
+INV/0587 | 2026-08-17 | 2026-08-24 | 6253 | issued | 19
+INV/0617 | 2026-08-20 | 2026-08-27 | 7004 | partially_paid | 16
+INV/0680 | 2026-08-27 | 2026-09-03 | 3526 | partially_paid | 9
+INV/0753 | 2026-09-03 | 2026-09-10 | 5472 | issued | 2
+(6 rows)
+=== price lists tarsun ===
+string_agg
+id, tenant_id, name, tier, is_default, valid_from, valid_to, active, created_at, updated_at
+(1 row)
+string_agg
+id, tenant_id, price_list_id, variant_id, rate_paise, inclusive_of_gst, created_at, updated_at
+(1 row)
+id | name | tier | active | valid_from | valid_to | items
+2245a710-5188-7549-be0c-2ff17b72f4c8 | Default Price List |  | t |  |  | 174
+dadf04c4-a30a-7f49-b243-91fa1e8c5c25 | Tier A Price List | A | t |  |  | 174
+2ab57b81-ba56-7090-a858-0768304703b1 | Tier B Price List | B | t |  |  | 174
+04740a6c-ea04-74ad-974b-0655b00b726c | Tier C Price List | C | t |  |  | 174
+(4 rows)
+=== scheme SKUs: price + stock (tarsun, tier C list) ===
+name | variant_id | cs | mrp | status | listed | avail | on_hand
+Annapurna Filtered Groundnut Oil 1 L | a18ee641-3af5-71df-8728-b25d4122bebb | 12 | 210 | active | t | 120 | 120
+Annapurna Filtered Groundnut Oil 5 L | 0bd68e4c-6cc3-7b1a-b804-927340d00b78 | 4 | 1035 | active | t | 40 | 40
+Annapurna Sunflower Refined Oil 1 L pouch | 934dd63c-a112-7fb7-91a1-376a90bf5fcf | 12 | 135 | active | t | 242 | 242
+Annapurna Sunflower Refined Oil 5 L jar | 86eba598-c585-7e38-a790-d43515e028b3 | 4 | 660 | active | t | 40 | 40
+Balaji Chataka Pataka Wafers 45 g | 1e08c003-4f1d-7b87-944a-6c885703abff | 48 | 20 | active | t | 508 | 508
+Balaji Masala Masti Wafers 45 g | a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d | 48 | 20 | active | t | 924 | 924
+Balaji Ratlami Sev 200 g | a511570f-7223-7254-8239-0d987515a582 | 30 | 80 | active | t | 314 | 314
+Balaji Simply Salted Wafers 45 g | 30f38ab4-2bfa-7be9-90de-a3acb99f7f68 | 48 | 20 | active | t | 960 | 960
+Campa Cola 1 L | f086f3e3-3697-7439-98d9-f20c231c110a | 24 | 50 | active | t | 482 | 482
+Campa Cola 2 L | 346f1104-b9ad-72bd-bcd0-b6fa55a9eae4 | 24 | 90 | active | t | 240 | 240
+Campa Cola 200 ml | 2f5b8e5c-5f83-74b4-9e05-f6f0e6ad0d98 | 48 | 10 | active | t | 480 | 480
+Campa Cola 500 ml | 4cf8c0aa-3028-7155-957a-80108bf2a8fb | 24 | 20 | active | t | 240 | 240
+Campa Cola 750 ml | f71bf137-50de-7182-a0d9-c83f1a613a57 | 24 | 40 | active | t | 9765 | 9765
+Campa Lemon 1 L | 40a5c276-2a66-7bd8-9f8f-ad947a318fa6 | 24 | 50 | active | t | 126 | 126
+Campa Lemon 2 L | 0e79d150-f91d-71ef-bbf5-c79a1911a5bb | 24 | 90 | active | t | 240 | 240
+Campa Lemon 200 ml | b2794ad9-bf63-78c4-82aa-258e993940e7 | 48 | 10 | active | t | 300 | 300
+Campa Lemon 500 ml | 7fb60299-b3c3-76da-b866-22a743304abb | 24 | 20 | active | t | 258 | 258
+Campa Lemon 750 ml | 607a16c3-da8c-7f06-b5b7-619de2776557 | 24 | 40 | active | t | 492 | 492
+Campa Orange 1 L | 1acdea86-6981-76ae-b796-5b4c0e089fae | 24 | 50 | active | t | 249 | 249
+Campa Orange 2 L | b7a018cb-ddc6-7739-a19d-3dad14a2e303 | 24 | 90 | active | t | 240 | 240
+Campa Orange 200 ml | 16a677fa-495b-726f-b0f5-14982583f47a | 48 | 10 | active | t | 300 | 300
+Campa Orange 500 ml | 1a229a14-aa80-7662-b0e1-2722b7c48149 | 24 | 20 | active | t | 252 | 252
+Campa Orange 750 ml | 99b2404c-4f7f-75c7-98f3-2d36ca78de54 | 24 | 40 | active | t | 473 | 477
+Chamak Detergent Bar 125 g | a9a1888f-4f84-78c5-aa66-06be7e0377bf | 72 | 10 | active | t | 738 | 738
+Chamak Detergent Bar 250 g | 00991e15-fd1e-7637-a093-bfec3e357a26 | 48 | 20 | active | t | 486 | 486
+Chamak Detergent Powder 1 kg | 1038644f-b882-722e-a378-84b408278042 | 12 | 105 | active | t | 216 | 218
+Chamak Detergent Powder 4 kg | 4d837185-e918-7ad2-a90a-69a279fb1af4 | 4 | 399 | active | t | 42 | 42
+Chamak Detergent Powder 500 g | e764cf09-5df7-7388-a5d0-6bf574fc0a97 | 24 | 55 | active | t | 246 | 246
+Chamak Dishwash Bar 145 g | 52b699ca-9711-706b-bc2b-2326516b6c14 | 60 | 15 | active | t | 600 | 600
+Chamak Dishwash Bar 300 g | 5370bbc0-2819-7d3f-af0d-4e596dcfaf2a | 36 | 30 | active | t | 360 | 360
+Chamak Dishwash Gel 225 ml | d5a8972d-1a4b-7a74-a022-0e99b453e549 | 36 | 45 | active | t | 360 | 360
+Chamak Dishwash Gel 750 ml | a4d86cbe-4dde-7eba-9fa3-a634b39205b6 | 12 | 129 | active | t | 0 | 0
+Chamak Floor Cleaner 1 L | 13e56211-7295-7b43-a4a0-fd984118a9ea | 12 | 155 | active | t | 120 | 120
+Chamak Floor Cleaner 2 L | b6e26b21-4083-7714-960a-467ef989e504 | 6 | 285 | active | t | 2 | 2
+Chamak Floor Cleaner 500 ml | d0422ed4-69f5-7d5f-9865-5e59fccb2f85 | 24 | 85 | active | t | 240 | 240
+Chamak Glass Cleaner 500 ml | 1c3586ee-fac5-75bf-83e5-eb28c63dc730 | 24 | 95 | discontinued | f | 0 | 0
+Chamak Toilet Cleaner 1 L | 73d16428-9411-76ca-a6d9-9db1340157bf | 12 | 165 | active | t | 120 | 120
+Chamak Toilet Cleaner 500 ml | 24d1837b-4ad7-7ca8-b1a3-4d14e17b514f | 24 | 89 | active | t | 240 | 240
+Chamak White Phenyl 1 L | 9f6b1eef-78c7-74e2-b1c5-13028b45c3f1 | 12 | 75 | active | t | 120 | 120
+=== listed variants with ZERO available ===
+name | id | avail
+Annapurna Garam Masala 50 g | be2f1d1d-0a9f-70a2-88c2-d7913822c235 | 0
+Chamak Dishwash Gel 750 ml | a4d86cbe-4dde-7eba-9fa3-a634b39205b6 | 0
+Godavari Dairy Whitener 500 g | 11356d48-7b70-7f7c-ac45-d2c894e5ef36 | 0
+Konkan Farsan Mix 400 g | 1c127a29-8c7d-7423-9309-a843be818fae | 0
+Neelam Tooth Brush 2+1 pack | 5f360724-a903-7cf9-8d18-590689edb74a | 0
+Rajwadi Soda Water 750 ml | a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4 | 0
+Sunbake Choco Chip Cookies 120 g | 5e6a0969-c072-7ede-ac4a-69f079d70101 | 0
+(7 rows)

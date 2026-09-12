@@ -1,0 +1,23 @@
+GET /tenant-catalog/costs?limit=2  → 403  {"message":"the salesperson role may not call GET /tenant-catalog/costs","error":"Forbidden","statusCode":403}
+GET /tenant-catalog/pack-configs?limit=2  → 403  {"message":"the salesperson role may not call GET /tenant-catalog/pack-configs","error":"Forbidden","statusCode":403}
+GET /tenancy/staff  → 403  {"message":"the salesperson role may not call GET /tenancy/staff","error":"Forbidden","statusCode":403}
+GET /tenancy/audit?limit=2  → 403  {"message":"the salesperson role may not call GET /tenancy/audit","error":"Forbidden","statusCode":403}
+GET /pricing/overrides?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36  → 200  {"items":[],"nextCursor":null}
+POST /retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36/credit [body] → 403  {"message":"the salesperson role may not call POST /retailers/:id/credit","error":"Forbidden","statusCode":403}
+GET /orders/6d53cb37-98d9-7675-bdce-c1f3ea4f1adc  → 200  {"item":{"id":"6d53cb37-98d9-7675-bdce-c1f3ea4f1adc","orderNo":"SO-0870","retailerId":"aa635bbd-742a-728c-a53f-5882bdb1d147","state":"confirmed","source":"sales
+GET /orders?salespersonId=efde1e76-9785-7827-aff2-6f56ecd33588&limit=2  → 200  {"items":[{"id":"feffeb75-9358-722b-9651-15c8484f3d94","orderNo":"SO-0117","retailerId":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"delivered","source":"sal
+GET /orders/49191f82-771e-7ec6-957b-3d56ad3d0f94  → 404  {"defined":false,"code":"NOT_FOUND","status":404,"message":"order 49191f82-771e-7ec6-957b-3d56ad3d0f94 not found"}
+GET /retailers/291a0126-5a92-7b83-a0d9-072af9dafd15  → 404  {"defined":false,"code":"NOT_FOUND","status":404,"message":"retailer not found"}
+GET /retailers?limit=1  → 200  {"items":[{"id":"06cf7ea6-f74a-76d8-a747-248696740a46","name":"Khan General Store","ownerName":"Nasreen Khan","phone":"+918976068981","altPhone":null,"address":
+GET /visits?userId=efde1e76-9785-7827-aff2-6f56ecd33588&limit=2  → 200  {"items":[{"id":"84e56538-3d0e-73a3-b4af-40cf73009f6a","retailerId":"4d2290b9-f557-761e-93e5-b0f1d36b839c","userId":"efde1e76-9785-7827-aff2-6f56ecd33588","beat
+GET /visits/84e56538-3d0e-73a3-b4af-40cf73009f6a  → 404  {"message":"Cannot GET /visits/84e56538-3d0e-73a3-b4af-40cf73009f6a","error":"Not Found","statusCode":404}
+GET /billing/invoices/089d9946-35e9-7234-b231-e5742d2ee974  → 404  {"message":"Cannot GET /billing/invoices/089d9946-35e9-7234-b231-e5742d2ee974","error":"Not Found","statusCode":404}
+GET /billing/invoices/089d9946-35e9-7234-b231-e5742d2ee974/pdf  → 404  {"message":"Cannot GET /billing/invoices/089d9946-35e9-7234-b231-e5742d2ee974/pdf","error":"Not Found","statusCode":404}
+GET /receivables/outstanding/34191c43-f0bc-70ab-a39d-fcbe8f94ae36  → 200  {"retailerId":"34191c43-f0bc-70ab-a39d-fcbe8f94ae36","outstandingPaise":3584300,"overduePaise":3584300,"unallocatedCreditPaise":0,"openBills":6,"oldestDueDate":
+GET /receivables/receipts?limit=1  → 404  {"message":"Cannot GET /receivables/receipts?limit=1","error":"Not Found","statusCode":404}
+GET /warehouse/waves?limit=1  → 404  {"message":"Cannot GET /warehouse/waves?limit=1","error":"Not Found","statusCode":404}
+GET /procurement/grns?limit=1  → 403  {"message":"the salesperson role may not call GET /procurement/grns","error":"Forbidden","statusCode":403}
+POST /beats [body] → 403  {"message":"the salesperson role may not call POST /beats","error":"Forbidden","statusCode":403}
+POST /orders/6d53cb37-98d9-7675-bdce-c1f3ea4f1adc/cancel [body] → 200  {"item":{"id":"6d53cb37-98d9-7675-bdce-c1f3ea4f1adc","orderNo":"SO-0870","retailerId":"aa635bbd-742a-728c-a53f-5882bdb1d147","state":"cancelled","source":"sales
+GET /pricing/bargains?limit=3  → 200  {"items":[{"id":"011d0c51-293c-7e9b-bf53-b5b035898d9c","retailerId":"d7f09885-489b-73cb-ab29-169334b5eca5","variantId":"4454fb4a-3e82-718d-bf36-ad3c09f84c2a","o
+GET /sync/manifest  → 200  {"protocol":1,"schemaVersion":"36957a3c3b8da665","changed":true,"role":"salesperson","tables":[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name"

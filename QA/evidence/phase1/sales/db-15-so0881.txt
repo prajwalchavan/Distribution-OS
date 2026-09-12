@@ -1,0 +1,17 @@
+=== SO-0881 (Navjeevan, indicate/over limit) ===
+order_no | state | approval_flags | total | confirmed_at | has_location
+SO-0881 | confirmed | [] | 1270.0000000000000000 | 2026-09-12 17:52:04.102+05:30 | t
+(1 row)
+kind | status
+(0 rows)
+=== any record of the credit warning? (notifications/audit) ===
+string_agg
+id, tenant_id, actor_id, actor_role, action, entity_type, entity_id, before, after, device_id, occurred_at
+(1 row)
+ERROR:  column "details" does not exist
+LINE 1: select action, entity_type, left(details::text,200) from aud...
+                                         ^
+=== reservation for SO-0881 (stock_balances reserved on Sunbake Glucose 110 g)? ===
+name | reserved
+Godown | 78
+(1 row)

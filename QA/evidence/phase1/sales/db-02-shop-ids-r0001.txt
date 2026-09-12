@@ -1,0 +1,16 @@
+=== invoice columns ===
+string_agg
+id, tenant_id, invoice_no, series_code, fy, invoice_date, order_id, retailer_id, source, external_invoice_no, state, supply_type, seller_gstin, buyer_gstin, buyer_name, buyer_address, place_of_supply_state, buyer_fssai, seller_fssai, is_inter_state, subtotal_paise, discount_paise, taxable_paise, cgst_paise, sgst_paise, igst_paise, cess_paise, round_off_paise, total_paise, cash_discount_bps, cash_discount_until, due_date, irn, ack_no, ack_date, signed_qr, eway_bill_no, eway_bill_valid_until, transport_mode, vehicle_no, upi_qr_payload, pdf_object_key, issued_by, issued_at, cancelled_at, cancel_reason, created_at, updated_at
+(1 row)
+=== R-0001 open invoices ===
+ERROR:  column i.payment_state does not exist
+LINE 1: ...nvoice_date, i.due_date, i.total_paise/100 total, i.payment_...
+                                                             ^
+=== R-0001 orders today ===
+order_no | state | source | created_at | total | rep
+SO-0873 | confirmed | retailer_app | 09:44:00 | 12837 | rahul.deshmukh
+(1 row)
+=== visits columns ===
+string_agg
+id, tenant_id, retailer_id, user_id, beat_id, started_at, ended_at, outcome, reason, lat, lng, note, created_at, updated_at
+(1 row)

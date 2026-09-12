@@ -1,0 +1,18 @@
+=== invoice_lines columns ===
+string_agg
+id, tenant_id, invoice_id, line_no, order_line_id, variant_id, lot_id, description, hsn_code, batch_no, expiry_date, mrp_paise, qty_pcs, free_qty_pcs, entered_qty, entered_unit, pack_size_at_entry, case_size, rate_paise, discount_bps, discount_paise, taxable_paise, gst_bps, cgst_paise, sgst_paise, igst_paise, cess_bps, cess_paise, line_total_paise, applied_rules, created_at, updated_at
+(1 row)
+=== a seeded invoice line for Campa Cola 750 ml: gst + cess ===
+ERROR:  column il.tax_paise does not exist
+LINE 1: ...l.rate_paise/100.0 rate, il.gst_bps, il.cess_bps, il.tax_pai...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "il.mrp_paise" or the column "il.rate_paise".
+=== invoices with cess > 0 ===
+with_cess | total
+1253 | 1501
+(1 row)
+invoice_no | qty_pcs | rate | taxable | gst_bps | cess_bps | gst | cess | total
+INV/0836 | 24 | 22.9700000000000000 | 551.2800000000000000 | 2800 | 1200 | 154.3600000000000000 | 66.1500000000000000 | 771.7900000000000000
+INV/0837 | 24 | 22.9700000000000000 | 551.2800000000000000 | 2800 | 1200 | 154.3600000000000000 | 66.1500000000000000 | 771.7900000000000000
+INV/0838 | 168 | 22.5100000000000000 | 3706.0500000000000000 | 2800 | 1200 | 1037.7000000000000000 | 444.7300000000000000 | 5188.4800000000000000
+(3 rows)

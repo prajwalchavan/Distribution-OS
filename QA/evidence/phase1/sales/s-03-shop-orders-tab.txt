@@ -1,0 +1,123 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Station Road · R-0001
+Shree Ganesh Kirana
+Owes ₹35,843
+Limit ₹50,000
+Overdue ₹35,843
+Shop
+Orders25
+Bills6
+SO-0873
+12 Sep · Confirmed
+₹12,837.00
+Confirmed
+SO-0847
+10 Sep · Delivered
+₹5,511.00
+Delivered
+SO-0844
+9 Sep · Delivered
+₹12,180.00
+Delivered
+SO-0830
+8 Sep · Delivered
+₹5,279.00
+Delivered
+SO-0781
+3 Sep · Delivered
+₹5,472.00
+Delivered
+SO-0751
+31 Aug · Delivered
+₹10,137.00
+Delivered
+SO-0727
+28 Aug · Delivered
+₹3,819.00
+Delivered
+SO-0703
+27 Aug · Partially delivered
+₹3,526.00
+Partially delivered
+SO-0669
+22 Aug · Delivered
+₹12,561.00
+Delivered
+SO-0639
+20 Aug · Delivered
+₹7,004.00
+Delivered
+SO-0547
+10 Aug · Delivered
+₹5,204.00
+Delivered
+SO-0513
+6 Aug · Delivered
+₹11,605.00
+Delivered
+SO-0499
+5 Aug · Delivered
+₹7,650.00
+Delivered
+SO-0486
+3 Aug · Delivered
+₹9,947.00
+Delivered
+SO-0419
+27 Jul · Partially delivered
+₹12,097.00
+Partially delivered
+SO-0378
+22 Jul · Delivered
+₹5,451.00
+Delivered
+SO-0351
+20 Jul · Delivered
+₹11,987.00
+Delivered
+SO-0347
+18 Jul · Delivered
+₹3,732.00
+Delivered
+SO-0310
+16 Jul · Cancelled
+₹1,977.00
+Cancelled
+SO-0296
+14 Jul · Delivered
+₹3,125.00
+Delivered
+SO-0221
+7 Jul · Delivered
+₹10,553.00
+Delivered
+SO-0149
+30 Jun · Delivered
+₹2,134.00
+Delivered
+SO-0102
+26 Jun · Delivered
+₹3,226.00
+Delivered
+SO-0037
+19 Jun · Delivered
+₹11,963.00
+Delivered
+SO-0008
+15 Jun · Delivered
+₹5,242.00
+Delivered
+Your last order 12 Sep
+₹12,837.00
+Take order

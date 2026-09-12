@@ -1,0 +1,623 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+My visits
+Visits: 200
+Ordered: 103
+Me
+Visits
+Drafts
+Inbox
+All
+No order
+Ordered
+Shree Ganesh Kirana
+12 Sep, 5:26 pm
+Ordered
+Reddy Traders
+12 Sep, 12:44 pm · Waiting for the last bill to clear before ordering
+No order
+Singh General Store
+12 Sep, 12:29 pm · Collected against the last bill, nothing new needed
+Payment only
+Gupta Kirana Stores
+12 Sep, 12:16 pm
+Ordered
+Mishra Provision Store
+12 Sep, 11:52 am · Owner not available, staff could not decide
+No order
+Chavan Kirana Stores
+12 Sep, 11:29 am · Enough stock already, will order next visit
+No order
+Bhosale Traders
+12 Sep, 11:11 am
+Ordered
+Pawar General Store
+12 Sep, 10:42 am
+Ordered
+Kadam Stores
+12 Sep, 10:19 am
+Ordered
+Joshi Kirana Stores
+11 Sep, 12:04 pm
+Ordered
+More Provision Store
+11 Sep, 11:47 am
+Not found
+Patil General Store
+11 Sep, 11:31 am · Account stopped; asked for the old dues, no order taken
+No order
+Deshmukh Kirana
+11 Sep, 11:11 am · Shelf full of a competitor’s scheme stock this week
+No order
+Ganpati General Stores
+11 Sep, 10:57 am · Shelf full of a competitor’s scheme stock this week
+No order
+Ekvira Kirana
+11 Sep, 10:30 am · Shelf full of a competitor’s scheme stock this week
+No order
+Vitthal Traders
+11 Sep, 10:19 am · Enough stock already, will order next visit
+No order
+Balaji Wholesale Stores
+10 Sep, 1:12 pm
+Ordered
+Ambika Provision Store
+10 Sep, 12:48 pm · Waiting for the last bill to clear before ordering
+No order
+Krishna Kirana Stores
+10 Sep, 12:30 pm · Collected against the last bill, nothing new needed
+Payment only
+Ganesh General Store
+10 Sep, 12:20 pm · Owner not available, staff could not decide
+No order
+Jai Bhavani Stores
+10 Sep, 12:04 pm
+Ordered
+Sai Krupa Super Bazar
+10 Sep, 11:37 am · Enough stock already, will order next visit
+No order
+Mahalaxmi General Stores
+10 Sep, 11:04 am
+Ordered
+Om Sai Provision Store
+10 Sep, 10:45 am · Waiting for the last bill to clear before ordering
+No order
+Shree Ganesh Kirana
+10 Sep, 10:23 am
+Ordered
+Reddy Traders
+9 Sep, 12:59 pm
+Ordered
+Iyer Provision Store
+9 Sep, 12:40 pm
+Ordered
+Singh General Store
+9 Sep, 12:10 pm · Shutter down
+Shut
+Yadav General Store
+9 Sep, 11:53 am · Account stopped; asked for the old dues, no order taken
+No order
+Chavan Kirana Stores
+9 Sep, 11:23 am
+Ordered
+Bhosale Traders
+9 Sep, 11:02 am · Owner not available, staff could not decide
+No order
+Pawar General Store
+9 Sep, 10:35 am
+Ordered
+Kadam Stores
+9 Sep, 10:07 am · Shelf full of a competitor’s scheme stock this week
+No order
+Joshi Kirana Stores
+8 Sep, 12:39 pm · Owner not available, staff could not decide
+No order
+More Provision Store
+8 Sep, 12:22 pm · Owner not available, staff could not decide
+No order
+Deshmukh Kirana
+8 Sep, 11:51 am
+Ordered
+Navjeevan Super Bazar
+8 Sep, 11:31 am · Shutter down
+Shut
+Ganpati General Stores
+8 Sep, 11:11 am
+Ordered
+Ekvira Kirana
+8 Sep, 10:43 am
+Ordered
+Vitthal Traders
+8 Sep, 10:29 am
+Ordered
+Sai Baba Kirana
+8 Sep, 10:10 am
+Ordered
+Balaji Wholesale Stores
+7 Sep, 12:53 pm
+Ordered
+Ambika Provision Store
+7 Sep, 12:34 pm
+Ordered
+Krishna Kirana Stores
+7 Sep, 12:14 pm · Owner not available, staff could not decide
+No order
+Ganesh General Store
+7 Sep, 11:47 am
+Ordered
+Shivshakti Traders
+7 Sep, 11:33 am
+Not found
+Jai Bhavani Stores
+7 Sep, 11:09 am · Shelf full of a competitor’s scheme stock this week
+No order
+Sai Krupa Super Bazar
+7 Sep, 10:49 am · Shelf full of a competitor’s scheme stock this week
+No order
+Om Sai Provision Store
+7 Sep, 10:22 am · Owner not available, staff could not decide
+No order
+Iyer Provision Store
+5 Sep, 12:06 pm · Owner not available, staff could not decide
+No order
+Singh General Store
+5 Sep, 11:53 am
+Ordered
+Gupta Kirana Stores
+5 Sep, 11:32 am
+Ordered
+Mishra Provision Store
+5 Sep, 11:10 am
+Ordered
+Chavan Kirana Stores
+5 Sep, 10:50 am
+Ordered
+Bhosale Traders
+5 Sep, 10:32 am · Enough stock already, will order next visit
+No order
+Kadam Stores
+5 Sep, 10:03 am · Enough stock already, will order next visit
+No order
+Joshi Kirana Stores
+4 Sep, 12:28 pm · Shelf full of a competitor’s scheme stock this week
+No order
+More Provision Store
+4 Sep, 12:04 pm
+Ordered
+Deshmukh Kirana
+4 Sep, 11:45 am · Enough stock already, will order next visit
+No order
+Navjeevan Super Bazar
+4 Sep, 11:18 am
+Ordered
+Ganpati General Stores
+4 Sep, 10:53 am
+Ordered
+Ekvira Kirana
+4 Sep, 10:34 am
+Ordered
+Vitthal Traders
+4 Sep, 10:08 am
+Ordered
+Balaji Wholesale Stores
+3 Sep, 1:14 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Ambika Provision Store
+3 Sep, 12:59 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Krishna Kirana Stores
+3 Sep, 12:42 pm · Waiting for the last bill to clear before ordering
+No order
+Shivshakti Traders
+3 Sep, 12:09 pm
+Ordered
+Jai Bhavani Stores
+3 Sep, 11:53 am · Shelf full of a competitor’s scheme stock this week
+No order
+Sai Krupa Super Bazar
+3 Sep, 11:26 am
+Ordered
+Mahalaxmi General Stores
+3 Sep, 11:16 am · Waiting for the last bill to clear before ordering
+No order
+Om Sai Provision Store
+3 Sep, 10:52 am · Owner not available, staff could not decide
+No order
+Shree Ganesh Kirana
+3 Sep, 10:19 am
+Ordered
+Reddy Traders
+2 Sep, 12:30 pm
+Ordered
+Iyer Provision Store
+2 Sep, 12:12 pm · Enough stock already, will order next visit
+No order
+Singh General Store
+2 Sep, 11:47 am · Owner not available, staff could not decide
+No order
+Mishra Provision Store
+2 Sep, 11:35 am
+Ordered
+Chavan Kirana Stores
+2 Sep, 11:10 am · Owner not available, staff could not decide
+No order
+Bhosale Traders
+2 Sep, 10:59 am
+Ordered
+Pawar General Store
+2 Sep, 10:28 am
+Ordered
+Kadam Stores
+2 Sep, 10:01 am · Waiting for the last bill to clear before ordering
+No order
+Joshi Kirana Stores
+1 Sep, 12:50 pm
+Ordered
+More Provision Store
+1 Sep, 12:16 pm · Collected against the last bill, nothing new needed
+Payment only
+Deshmukh Kirana
+1 Sep, 11:45 am
+Ordered
+Navjeevan Super Bazar
+1 Sep, 11:15 am
+Ordered
+Ekvira Kirana
+1 Sep, 10:53 am · Enough stock already, will order next visit
+No order
+Vitthal Traders
+1 Sep, 10:30 am
+Ordered
+Sai Baba Kirana
+1 Sep, 10:14 am · Enough stock already, will order next visit
+No order
+Balaji Wholesale Stores
+31 Aug, 12:30 pm · Waiting for the last bill to clear before ordering
+No order
+Ambika Provision Store
+31 Aug, 12:14 pm
+Ordered
+Krishna Kirana Stores
+31 Aug, 11:53 am
+Ordered
+Shivshakti Traders
+31 Aug, 11:32 am
+Ordered
+Jai Bhavani Stores
+31 Aug, 11:11 am · Owner not available, staff could not decide
+No order
+Mahalaxmi General Stores
+31 Aug, 10:59 am · Shelf full of a competitor’s scheme stock this week
+No order
+Om Sai Provision Store
+31 Aug, 10:44 am
+Ordered
+Shree Ganesh Kirana
+31 Aug, 10:17 am · Waiting for the last bill to clear before ordering
+No order
+Reddy Traders
+29 Aug, 12:19 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Iyer Provision Store
+29 Aug, 11:47 am · Waiting for the last bill to clear before ordering
+No order
+Singh General Store
+29 Aug, 11:26 am
+Ordered
+Gupta Kirana Stores
+29 Aug, 11:06 am · Waiting for the last bill to clear before ordering
+No order
+Chavan Kirana Stores
+29 Aug, 10:47 am · Collected against the last bill, nothing new needed
+Payment only
+Kadam Stores
+29 Aug, 10:20 am · Collected against the last bill, nothing new needed
+Payment only
+Joshi Kirana Stores
+28 Aug, 11:55 am
+Ordered
+Deshmukh Kirana
+28 Aug, 11:41 am · Shutter down
+Shut
+Navjeevan Super Bazar
+28 Aug, 11:25 am
+Ordered
+Ekvira Kirana
+28 Aug, 10:58 am · Collected against the last bill, nothing new needed
+Payment only
+Vitthal Traders
+28 Aug, 10:46 am
+Ordered
+Sai Baba Kirana
+28 Aug, 10:17 am
+Ordered
+Balaji Wholesale Stores
+27 Aug, 12:59 pm · Waiting for the last bill to clear before ordering
+No order
+Ambika Provision Store
+27 Aug, 12:37 pm
+Ordered
+Krishna Kirana Stores
+27 Aug, 12:24 pm
+Ordered
+Ganesh General Store
+27 Aug, 12:02 pm · Enough stock already, will order next visit
+No order
+Shivshakti Traders
+27 Aug, 11:33 am · Owner not available, staff could not decide
+No order
+Jai Bhavani Stores
+27 Aug, 11:20 am
+Ordered
+Mahalaxmi General Stores
+27 Aug, 11:04 am
+Ordered
+Om Sai Provision Store
+27 Aug, 10:40 am
+Ordered
+Shree Ganesh Kirana
+27 Aug, 10:22 am
+Ordered
+Reddy Traders
+26 Aug, 1:47 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Iyer Provision Store
+26 Aug, 1:16 pm · Enough stock already, will order next visit
+No order
+Singh General Store
+26 Aug, 12:49 pm · Waiting for the last bill to clear before ordering
+No order
+Gupta Kirana Stores
+26 Aug, 12:27 pm
+Ordered
+Mishra Provision Store
+26 Aug, 12:05 pm
+Ordered
+Yadav General Store
+26 Aug, 11:44 am · Account stopped; asked for the old dues, no order taken
+No order
+Chavan Kirana Stores
+26 Aug, 11:22 am
+Ordered
+Bhosale Traders
+26 Aug, 11:01 am · Collected against the last bill, nothing new needed
+Payment only
+Pawar General Store
+26 Aug, 10:40 am
+Ordered
+Kadam Stores
+26 Aug, 10:18 am
+Ordered
+Joshi Kirana Stores
+25 Aug, 12:51 pm · Enough stock already, will order next visit
+No order
+More Provision Store
+25 Aug, 12:24 pm
+Ordered
+Deshmukh Kirana
+25 Aug, 12:08 pm
+Ordered
+Navjeevan Super Bazar
+25 Aug, 11:44 am
+Ordered
+Ganpati General Stores
+25 Aug, 11:22 am
+Ordered
+Ekvira Kirana
+25 Aug, 10:57 am
+Ordered
+Vitthal Traders
+25 Aug, 10:31 am · Waiting for the last bill to clear before ordering
+No order
+Sai Baba Kirana
+25 Aug, 10:19 am · Owner not available, staff could not decide
+No order
+More Provision Store
+21 Aug, 11:54 am · Waiting for the last bill to clear before ordering
+No order
+Navjeevan Super Bazar
+21 Aug, 11:32 am · Owner not available, staff could not decide
+No order
+Ganpati General Stores
+21 Aug, 11:02 am · Shelf full of a competitor’s scheme stock this week
+No order
+Ekvira Kirana
+21 Aug, 10:45 am · Collected against the last bill, nothing new needed
+Payment only
+Sai Baba Kirana
+21 Aug, 10:21 am · Enough stock already, will order next visit
+No order
+Balaji Wholesale Stores
+20 Aug, 1:43 pm
+Ordered
+Ambika Provision Store
+20 Aug, 1:15 pm · Waiting for the last bill to clear before ordering
+No order
+Krishna Kirana Stores
+20 Aug, 12:54 pm · Enough stock already, will order next visit
+No order
+Ganesh General Store
+20 Aug, 12:24 pm · Collected against the last bill, nothing new needed
+Payment only
+Shivshakti Traders
+20 Aug, 11:52 am · Owner not available, staff could not decide
+No order
+Jai Bhavani Stores
+20 Aug, 11:31 am
+Ordered
+Sai Krupa Super Bazar
+20 Aug, 11:01 am · Shelf full of a competitor’s scheme stock this week
+No order
+Mahalaxmi General Stores
+20 Aug, 10:48 am · Enough stock already, will order next visit
+No order
+Om Sai Provision Store
+20 Aug, 10:35 am
+Ordered
+Shree Ganesh Kirana
+20 Aug, 10:19 am
+Ordered
+Reddy Traders
+19 Aug, 12:50 pm
+Ordered
+Iyer Provision Store
+19 Aug, 12:28 pm · Waiting for the last bill to clear before ordering
+No order
+Singh General Store
+19 Aug, 12:05 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Gupta Kirana Stores
+19 Aug, 11:50 am
+Ordered
+Mishra Provision Store
+19 Aug, 11:36 am
+Ordered
+Bhosale Traders
+19 Aug, 11:17 am
+Ordered
+Pawar General Store
+19 Aug, 10:51 am
+Ordered
+Kadam Stores
+19 Aug, 10:21 am · Owner not available, staff could not decide
+No order
+Joshi Kirana Stores
+18 Aug, 12:13 pm
+Ordered
+Deshmukh Kirana
+18 Aug, 11:49 am
+Ordered
+Navjeevan Super Bazar
+18 Aug, 11:31 am · Shutter down
+Shut
+Ekvira Kirana
+18 Aug, 11:05 am
+Ordered
+Vitthal Traders
+18 Aug, 10:42 am
+Ordered
+Sai Baba Kirana
+18 Aug, 10:12 am
+Ordered
+Reddy Traders
+15 Aug, 12:25 pm · Owner not available, staff could not decide
+No order
+Singh General Store
+15 Aug, 12:10 pm · Enough stock already, will order next visit
+No order
+Gupta Kirana Stores
+15 Aug, 11:45 am · Shelf full of a competitor’s scheme stock this week
+No order
+Mishra Provision Store
+15 Aug, 11:27 am
+Ordered
+Chavan Kirana Stores
+15 Aug, 10:58 am
+Ordered
+Pawar General Store
+15 Aug, 10:39 am
+Ordered
+Kadam Stores
+15 Aug, 10:25 am
+Ordered
+Joshi Kirana Stores
+14 Aug, 12:07 pm
+Ordered
+More Provision Store
+14 Aug, 11:53 am
+Ordered
+Deshmukh Kirana
+14 Aug, 11:25 am
+Ordered
+Ganpati General Stores
+14 Aug, 11:05 am
+Ordered
+Ekvira Kirana
+14 Aug, 10:38 am
+Ordered
+Vitthal Traders
+14 Aug, 10:13 am · Waiting for the last bill to clear before ordering
+No order
+Balaji Wholesale Stores
+13 Aug, 12:22 pm · Owner not available, staff could not decide
+No order
+Ambika Provision Store
+13 Aug, 12:02 pm
+Ordered
+Krishna Kirana Stores
+13 Aug, 11:35 am
+Ordered
+Ganesh General Store
+13 Aug, 11:11 am
+Ordered
+Sai Krupa Super Bazar
+13 Aug, 10:51 am
+Ordered
+Mahalaxmi General Stores
+13 Aug, 10:33 am · Enough stock already, will order next visit
+No order
+Om Sai Provision Store
+13 Aug, 10:17 am
+Ordered
+Shree Ganesh Kirana
+13 Aug, 10:00 am · Waiting for the last bill to clear before ordering
+No order
+Reddy Traders
+12 Aug, 1:15 pm
+Ordered
+Iyer Provision Store
+12 Aug, 12:56 pm · Shelf full of a competitor’s scheme stock this week
+No order
+Singh General Store
+12 Aug, 12:38 pm · Waiting for the last bill to clear before ordering
+No order
+Gupta Kirana Stores
+12 Aug, 12:10 pm
+Ordered
+Mishra Provision Store
+12 Aug, 11:45 am
+Not found
+Chavan Kirana Stores
+12 Aug, 11:25 am
+Ordered
+Bhosale Traders
+12 Aug, 11:11 am · Waiting for the last bill to clear before ordering
+No order
+Pawar General Store
+12 Aug, 10:41 am · Collected against the last bill, nothing new needed
+Payment only
+Kadam Stores
+12 Aug, 10:09 am
+Ordered
+Joshi Kirana Stores
+11 Aug, 1:02 pm · Shelf full of a competitor’s scheme stock this week
+No order
+More Provision Store
+11 Aug, 12:44 pm
+Ordered
+Deshmukh Kirana
+11 Aug, 12:16 pm
+Ordered
+Navjeevan Super Bazar
+11 Aug, 11:43 am · Collected against the last bill, nothing new needed
+Payment only
+Ganpati General Stores
+11 Aug, 11:22 am
+Ordered
+Ekvira Kirana
+11 Aug, 11:01 am
+Ordered
+Laxmi Narayan Stores
+11 Aug, 10:47 am · Waiting for the last bill to clear before ordering
+No order
+Record a visit from the shop card, where you are standing.

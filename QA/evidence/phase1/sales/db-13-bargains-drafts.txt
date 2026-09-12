@@ -1,0 +1,28 @@
+=== bargain rows today ===
+string_agg
+id, tenant_id, retailer_id, variant_id, order_id, requested_by, list_rate_paise, asked_rate_paise, approved_rate_paise, status, evaluated_basis, decided_by, decided_at, expires_at, note, created_at, updated_at
+(1 row)
+id | status | list_rate_paise | asked_rate_paise | approved_rate_paise | order_id | created_at
+1221ccf5-aa42-7f60-9557-2eedce569b87 | requested | 2309 | 2228 |  |  | 11:15:00
+011d0c51-293c-7e9b-bf53-b5b035898d9c | requested | 4102 | 3958 |  |  | 11:15:00
+01a0958d-43c5-7376-89a6-a70daf4f29e7 | auto_approved | 1459 | 1430 | 1430 | 01a0958d-4353-7580-8375-75ba9663eea6 | 17:48:32.957433
+01a0958e-2b8b-75cf-91ea-4f6ea3349040 | requested | 1459 | 1300 |  | 01a0958d-4353-7580-8375-75ba9663eea6 | 17:48:37.590332
+(4 rows)
+=== draft order created for the bargain ===
+id | order_no | state | total | created_at | lines
+(0 rows)
+=== all Rahul orders today (state) ===
+order_no | state | source | total | created_at
+SO-0878 | packed | salesperson | 11300.000000000000 | 09:43:00
+SO-0877 | picking | salesperson | 17531.000000000000 | 09:43:00
+SO-0867 | confirmed | salesperson | 5367.0000000000000000 | 09:44:00
+SO-0873 | confirmed | retailer_app | 12837.000000000000 | 09:44:00
+SO-0874 | picking | salesperson | 7690.0000000000000000 | 09:45:00
+SO-0871 | packed | salesperson | 12707.000000000000 | 09:45:00
+SO-0868 | confirmed | salesperson | 17736.000000000000 | 09:45:00
+SO-0875 | packed | retailer_app | 101531.000000000000 | 09:50:00
+ | draft | salesperson | 1472.0000000000000000 | 12:50:47.38
+ | draft | salesperson | 1598.0000000000000000 | 12:50:47.38
+SO-0879 | submitted | salesperson | 32030.000000000000 | 17:40:11.728765
+SO-0880 | cancelled | salesperson | 1283.0000000000000000 | 17:45:06.82606
+(12 rows)

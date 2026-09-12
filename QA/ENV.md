@@ -174,3 +174,22 @@ Notes from the Delivery walk (2026-09-12):
   to its invoice before delivery.
 - Seed hygiene found here: the RCPT numbering series was left at 696 while receipts up to RCPT-0699 exist, so the first four app receipts of
   the day collided (DOS-059). Not fixed (founder: no more seed work) — fix together with the unique index when DOS-059 is approved.
+
+Notes from the Sales walk (2026-09-12):
+- **Android `keyevent 4` (Back) is in-app navigation, not "close keyboard"**: on the order screen it went back to the shop card, then
+  the beat, then OUT of the sales app into the previously fronted delivery app, where the rest of a scripted walk tapped blindly (all
+  misses — nothing changed, log `android-sales-walk2.log`). Close the soft keyboard with `keyevent 111` (ESC) as `android-login.sh`
+  does; bring the app back with `adb shell am start -n in.distributionos.sales/.MainActivity`.
+- On the Pixel the order-entry catalog rows have collapsed bounds (`[467,710][675,184]`), so `ui.py text "Add a case"` returns
+  coordinates that hit nothing; tap from a screenshot instead (DOS-077). The soft keyboard stays up after `input text` and covers the
+  list — the first walk's "Add a case" taps hit the keyboard.
+- Web: the order screen's "Pieces" is a +1 button, not an input; `input[type=text]` on that page is the "Note for the office" field.
+  The `.dos-backdrop` dialogs here: visit (`check-in`), bargain (`ask-bargain`), cancel; the tab buttons ("Orders25", "Bills6") need
+  `locator('button', { hasText: /^Orders\s*25$/ })`, not getByRole.
+- `pw.mjs do` runs as an ES module — `require` is undefined; collect captures in memory and print them, or write with `fs` imported.
+- The sales token expires after 15 min like the others (`POST /auth/login` with a UUID deviceId); each API login adds an
+  "Unnamed device" row to the rep's Settings device list — expect four such rows from this walk.
+- `pnpm smoke`-free, but this walk left: SO-0879 (credit hold pending), SO-0881/0883/0884 confirmed, SO-0880 cancelled, SO-0870 (Amit's)
+  cancelled by the DOS-073 probe, shop R-9025 "Kalyan QA Kirana", a pending bargain (₹13.00 Balaji Masala Masti), one visit. The Tier C
+  rate of Neelam Neem Soap was set to 27.50 for DOS-082 and restored to 26.08.
+- Sync-pull evidence method: `grep '"url":"/sync/pull' sales-service.log` bucketed per minute; decode `since=` with base64 → `{"v":1,"t":…}`.

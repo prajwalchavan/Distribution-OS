@@ -1,0 +1,90 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Kalyan West Market · R-0018
+Patil General Store
+Owes ₹60,422
+Limit ₹1,50,000
+Overdue ₹60,422
+Shop
+Orders10
+Bills8
+How old the dues are
+as of 12 Sep
+Money owed, by age
+₹
+0–7
+0.00
+8–15
+0.00
+16–30
+20,147.50
+31–60
+40,274.00
+61–90
+0.00
+90+
+0.00
+Credit
+Credit limit
+₹1,50,000.00
+Credit days
+14
+Open bills
+8
+Terms
+Pay after delivery
+The office checks the credit (Stop at the limit) when the order is submitted, not here.
+Schemes this shop is in
+Live today. The price screen applies them.
+Godavari Ghee — 6% exclusive
+29 Aug to 28 Sep
+Line discount
+Rajwadi sodas — 1.5% cash discount
+13 Aug to 27 Oct
+Cash discount
+MOM Makhana — slab scheme
+14 Jul to 21 Sep
+Line discount
+Sunbake Glucose — 12+1 free
+14 Jun to 24 Sep
+Free goods
+Balaji — 4% off on 3+ cases
+14 Jun to 21 Sep
+Line discount
+Too Yumm — 2% cash discount
+22 Aug to 11 Nov
+Cash discount
+How this shop buys
+Orders, 30 days
+1
+Value, 30 days
+₹5,367.00
+Days to pay
+17
+Risk of losing
+30%
+Contact
+Owner
+Santosh Patil
+Phone
++919821026123
+GSTIN
+27WPNPP6055Y1ZU
+Tier
+B
+Address
+Shop 8, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301
+Record a visit
+Your last order 12 Sep
+₹5,367.00
+Take order
