@@ -176,7 +176,7 @@ describe('priceOrder', () => {
           scope: { all: true },
           triggerKind: 'value',
           triggerUnit: 'inr',
-          triggerMin: 30,
+          triggerMin: 3_000, // ₹30 in paise; the order is ₹30.03
           rewardKind: 'order_pct',
           rewardValue: 333,
         }),
@@ -210,7 +210,7 @@ describe('priceOrder', () => {
             scope: { all: true },
             triggerKind: 'value',
             triggerUnit: 'inr',
-            triggerMin: 500,
+            triggerMin: 50_000, // ₹500 in paise; the order is ₹340
             rewardKind: 'order_pct',
             rewardValue: 500,
           }),
@@ -219,6 +219,80 @@ describe('priceOrder', () => {
     )
     expect(r.totals.discountPaise).toBe(0)
     expect(r.orderRules).toEqual([])
+  })
+
+  it("DOS-075: an inr trigger is paise — '2% off on bills over ₹25,000' (triggerMin 2_500_000) fires at exactly ₹25,000.00 and not at ₹24,990.00", () => {
+    // Stored the way the seed, POST /pricing/schemes and every app store it: paise of gross in-scope value.
+    const over25k = scheme({
+      id: 's-order-25k',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 2_500_000,
+      rewardKind: 'order_pct',
+      rewardValue: 200,
+      priority: 30,
+    })
+    const share = {
+      ruleId: 's-order-25k',
+      version: 1,
+      kind: 'scheme',
+      rewardKind: 'order_pct',
+      amountPaise: 50_000,
+    }
+    const at = priceOrder(
+      order({
+        lines: [{ lineId: 'l1', variantId: V1, qtyPcs: 2_500, caseSize: 12 }],
+        schemes: [over25k],
+      }),
+    )
+    expect(at.totals.grossPaise).toBe(fromRupees('25000.00'))
+    expect(at.orderRules).toEqual([share])
+    expect(at.totals.discountPaise).toBe(50_000)
+    expect(line(at, 'l1').appliedRules).toEqual([share])
+
+    const below = priceOrder(
+      order({
+        lines: [{ lineId: 'l1', variantId: V1, qtyPcs: 2_499, caseSize: 12 }],
+        schemes: [over25k],
+      }),
+    )
+    expect(below.totals.grossPaise).toBe(fromRupees('24990.00'))
+    expect(below.orderRules).toEqual([])
+    expect(below.totals.discountPaise).toBe(0)
+  })
+
+  it('DOS-075: a line-level inr threshold is paise too — a 10% line_pct over ₹240 (triggerMin 24_000) fires on 24 pcs at ₹10 and not on 23', () => {
+    const over240 = scheme({
+      id: 's-line-240',
+      scope: { variantIds: [V1] },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 24_000,
+      rewardKind: 'line_pct',
+      rewardValue: 1000,
+    })
+    const at = priceOrder(order({ schemes: [over240] }))
+    expect(line(at, 'l1').grossPaise).toBe(fromRupees('240'))
+    expect(line(at, 'l1').discountPaise).toBe(2_400)
+    expect(line(at, 'l1').appliedRules).toEqual([
+      {
+        ruleId: 's-line-240',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'line_pct',
+        amountPaise: 2_400,
+      },
+    ])
+
+    const base = order({ schemes: [over240] })
+    const below = priceOrder({
+      ...base,
+      lines: base.lines.map((l) => (l.lineId === 'l1' ? { ...l, qtyPcs: 23 } : l)),
+    })
+    expect(line(below, 'l1').grossPaise).toBe(fromRupees('230'))
+    expect(line(below, 'l1').discountPaise).toBe(0)
+    expect(line(below, 'l1').appliedRules).toEqual([])
   })
 
   it('reports cash discount as conditional without deducting it', () => {

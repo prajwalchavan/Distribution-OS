@@ -37,6 +37,7 @@ export interface SchemeScope {
  * scheme whose free_qty / net_scheme_amount reward repeats for every multiple of `triggerMin` (a "12 + 1").
  */
 export interface SchemeSlab {
+  /** Same unit as the scheme's `triggerMin`: pieces, whole cases, or paise for `inr`. */
   min: number
   value: number
   freeVariantId?: string | undefined
@@ -57,8 +58,9 @@ export interface SchemeRule {
   scope: SchemeScope
   /** `qty` / `value`: measured per line. `mix`: measured over every in-scope line together (assortment). */
   triggerKind: SchemeTriggerKind
+  /** Pieces (`pcs`), whole cases (`case`) or PAISE of gross in-scope line value (`inr`: 2_500_000 = ₹25,000). */
   triggerMin: number
-  /** `pcs` | `case` (whole cases of the line's case size) | `inr` (rupees of gross line value). */
+  /** `pcs` | `case` (whole cases of the line's case size) | `inr` (paise of gross in-scope line value). */
   triggerUnit: SchemeTriggerUnit
   slabs?: readonly SchemeSlab[] | null | undefined
   rewardKind: SchemeRewardKind
@@ -460,7 +462,7 @@ function measure(unit: SchemeTriggerUnit, lines: readonly LineState[]): number {
     case 'case':
       return lines.reduce((n, l) => n + Math.floor(l.input.qtyPcs / l.input.caseSize), 0)
     case 'inr':
-      return lines.reduce((n, l) => n + l.gross, 0) / 100
+      return lines.reduce((n, l) => n + l.gross, 0)
   }
 }
 
