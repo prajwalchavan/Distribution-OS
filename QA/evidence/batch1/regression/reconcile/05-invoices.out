@@ -1,0 +1,83 @@
+-- run at: 2026-09-13 01:50:31 +0530  db: dos_qa  file: 05-invoices.sql
+#### CHECK 05 - invoices. Line (billing/invoices.service.ts): gross = rate_paise x qty_pcs; taxable = gross - discount; line_total = taxable + cgst + sgst + igst + cess.
+#### Header: subtotal = SUM(gross); discount, taxable, cgst, sgst, igst, cess = SUM(lines); total = taxable + taxes + round_off (one rounding per bill). source import = opening balance, no lines.
+#### Payment state (receivables/allocation.ts): allocated <= 0 -> issued; 0 < allocated < total -> partially_paid; allocated >= total -> paid; written_off via its own event.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:31.068189+05:30
+(1 row)
+
+== 05a. header vs lines per tenant and source (non-draft, source <> import)
+       slug       |      source      | invoices | without_lines | subtotal_ne_sum_rate_x_qty | discount_ne_lines | taxable_ne_lines | gst_ne_lines | total_ne_parts | round_off_over_50 | total_not_whole_rupee | subtotal_minus_discount_ne_taxable | lines_taxable_ne_rate_qty_disc | lines_total_ne_parts | inter_state_with_cgst_sgst | intra_state_with_igst 
+------------------+------------------+----------+---------------+----------------------------+-------------------+------------------+--------------+----------------+-------------------+-----------------------+------------------------------------+--------------------------------+----------------------+----------------------------+-----------------------
+ a-0bb6e38a       | pack             |        2 |             0 |                          2 |                 0 |                2 |            0 |              2 |                 0 |                     0 |                                  0 |                              0 |                    2 |                          0 |                     0
+ kalyan-agencies  | pack             |      177 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ kalyan-agencies  | van_sale         |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ kalyan-agencies  | brand_dms_import |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ sai-distributors | pack             |      444 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ sai-distributors | van_sale         |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ sai-distributors | brand_dms_import |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ tarsun           | pack             |      846 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ tarsun           | van_sale         |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+ tarsun           | brand_dms_import |        1 |             0 |                          0 |                 0 |                0 |            0 |              0 |                 0 |                     0 |                                  0 |                              0 |                    0 |                          0 |                     0
+(10 rows)
+
+== 05a2. opening-balance bills (source import): no lines expected; total = subtotal - discount + taxes + round_off
+       slug       | invoices | with_lines | total_ne_parts | non_positive_total 
+------------------+----------+------------+----------------+--------------------
+ kalyan-agencies  |       10 |          0 |              0 |                  0
+ sai-distributors |       10 |          0 |              0 |                  0
+ tarsun           |       10 |          0 |              0 |                  0
+(3 rows)
+
+== 05b. examples of header <> lines (up to 10, newest first)
+    slug    | invoice_no  | source | state  |            created_at            | subtotal_paise | lines_gross | discount_paise | lines_disc | taxable_paise | lines_taxable | header_taxes | lines_taxes | round_off_paise | total_paise 
+------------+-------------+--------+--------+----------------------------------+----------------+-------------+----------------+------------+---------------+---------------+--------------+-------------+-----------------+-------------
+ a-0bb6e38a | T0bb6e38a/1 | pack   | issued | 2026-09-12 20:36:15.750503+05:30 |              0 |       96000 |              0 |          0 |             0 |         96000 |            0 |           0 |               0 |      118000
+ a-0bb6e38a | T0bb6e38a/2 | pack   | issued | 2026-09-12 20:36:15.750503+05:30 |              0 |      200000 |              0 |          0 |             0 |        200000 |            0 |           0 |               0 |      250000
+(2 rows)
+
+== 05c. payment state vs allocations (receipts + credit notes + write-offs), per tenant and state
+       slug       |     state      | invoices |   total   | allocated | issued_with_money_applied | partially_paid_inconsistent | paid_but_short | written_off_not_closed | written_off_without_write_off | over_allocated | net_negative_allocation | cancelled_with_allocations | cancelled_without_number | without_number 
+------------------+----------------+----------+-----------+-----------+---------------------------+-----------------------------+----------------+------------------------+-------------------------------+----------------+-------------------------+----------------------------+--------------------------+----------------
+ a-0bb6e38a       | issued         |        2 |    368000 |    141000 |                         2 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ kalyan-agencies  | issued         |       72 |  73453750 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ kalyan-agencies  | partially_paid |       17 |  54256100 |  25540100 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ kalyan-agencies  | paid           |       97 |  87777800 |  87777800 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ kalyan-agencies  | written_off    |        2 |    222000 |    222000 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ kalyan-agencies  | cancelled      |        1 |    232700 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ sai-distributors | issued         |      168 | 286818500 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ sai-distributors | partially_paid |       49 | 130383600 |  51613200 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ sai-distributors | paid           |      236 | 380841000 | 380841000 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ sai-distributors | written_off    |        2 |    206600 |    206600 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ sai-distributors | cancelled      |        1 |    232700 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ tarsun           | issued         |      212 | 343486700 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ tarsun           | partially_paid |       69 | 155591300 |  59248900 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ tarsun           | paid           |      574 | 902703800 | 902703800 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ tarsun           | written_off    |        2 |    204700 |    204700 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+ tarsun           | cancelled      |        1 |    232700 |         0 |                         0 |                           0 |              0 |                      0 |                             0 |              0 |                       0 |                          0 |                        0 |              0
+(16 rows)
+
+== 05d. examples of payment-state breaks (up to 10)
+    slug    | invoice_no  | state  | total_paise | allocated | allocation_rows |            updated_at            
+------------+-------------+--------+-------------+-----------+-----------------+----------------------------------
+ a-0bb6e38a | T0bb6e38a/2 | issued |      250000 |     90000 |               1 | 2026-09-12 20:36:15.760504+05:30
+ a-0bb6e38a | T0bb6e38a/1 | issued |      118000 |     51000 |               2 | 2026-09-12 20:36:15.753088+05:30
+(2 rows)
+
+== 05e. cancelled bills: keep their number, carry no allocations, restock reversal and journal reversal present
+       slug       | invoice_no |   state   |       cancelled_at        |               cancel_reason                | allocations | cancel_entries | restocked_pcs | billed_pcs_with_lot 
+------------------+------------+-----------+---------------------------+--------------------------------------------+-------------+----------------+---------------+---------------------
+ kalyan-agencies  | KA/9002    | cancelled | 2026-09-10 19:30:00+05:30 | Retailer refused the load before dispatch. |           0 |              1 |            72 |                  72
+ sai-distributors | SAI/9002   | cancelled | 2026-09-10 19:30:00+05:30 | Retailer refused the load before dispatch. |           0 |              1 |            72 |                  72
+ tarsun           | INV/9002   | cancelled | 2026-09-10 19:30:00+05:30 | Retailer refused the load before dispatch. |           0 |              1 |            72 |                  72
+(3 rows)
+
+== 05f. duplicate invoice numbers per (tenant, series, fy)
+ duplicate_number_groups 
+-------------------------
+                       0
+(1 row)
+
+COMMIT

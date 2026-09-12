@@ -1,0 +1,86 @@
+-- run at: 2026-09-13 01:50:21 +0530  db: dos_qa  file: 06-receipts.sql
+#### CHECK 06 - receipts. Identity (receivables.mappers toReceipt): amount + cash_discount = SUM(allocations) + unallocated, 0 <= unallocated.
+#### A reversal (bounce / cancel) is a second receipt with negative amount and negative mirror allocations.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:21.764951+05:30
+(1 row)
+
+== 06a. per tenant, sign and status: amount, cash discount, allocated, unallocated; over-allocated receipts
+       slug       |   kind   |  status   | receipts |  amount   | cash_discount | allocated | unallocated | over_allocated | reversal_mirrors_exceed | without_number 
+------------------+----------+-----------+----------+-----------+---------------+-----------+-------------+----------------+-------------------------+----------------
+ a-0bb6e38a       | receipt  | collected |        3 |    165000 |             0 |    140000 |       25000 |              0 |                       0 |              0
+ kalyan-agencies  | receipt  | collected |      122 | 109316940 |        431260 | 106611000 |     3137200 |              0 |                       0 |              0
+ kalyan-agencies  | receipt  | deposited |        5 |   9197500 |             0 |   6339000 |     2858500 |              0 |                       0 |              0
+ kalyan-agencies  | receipt  | bounced   |        2 |   3153000 |             0 |   3153000 |           0 |              0 |                       0 |              0
+ kalyan-agencies  | receipt  | cancelled |        1 |    200000 |             0 |         0 |      200000 |              0 |                       0 |              0
+ kalyan-agencies  | reversal | cancelled |        3 |  -3353000 |             0 |  -3153000 |     -200000 |              0 |                       0 |              0
+ sai-distributors | receipt  | collected |      283 | 408549150 |       1684850 | 401049900 |     9184100 |              0 |                       0 |              0
+ sai-distributors | receipt  | deposited |       18 |  29158360 |         97740 |  29206100 |       50000 |              0 |                       0 |              0
+ sai-distributors | receipt  | bounced   |        3 |   5980500 |             0 |   5980500 |           0 |              0 |                       0 |              0
+ sai-distributors | receipt  | cancelled |        1 |    200000 |             0 |         0 |      200000 |              0 |                       0 |              0
+ sai-distributors | reversal | cancelled |        4 |  -6180500 |             0 |  -5980500 |     -200000 |              0 |                       0 |              0
+ tarsun           | receipt  | collected |      660 | 867136952 |       2185848 | 865814800 |     3508000 |              0 |                       0 |              0
+ tarsun           | receipt  | deposited |       66 |  93618312 |         34488 |  93652800 |           0 |              0 |                       0 |              0
+ tarsun           | receipt  | bounced   |        3 |  10956000 |             0 |  10956000 |           0 |              0 |                       0 |              0
+ tarsun           | receipt  | cancelled |        1 |    200000 |             0 |         0 |      200000 |              0 |                       0 |              0
+ tarsun           | reversal | cancelled |        4 | -11156000 |             0 | -10956000 |     -200000 |              0 |                       0 |              0
+(16 rows)
+
+== 06b. reversals: each bounced/cancelled original has exactly one reversal of the opposite amount and cash discount, and original + mirror allocations net every bill to zero
+       slug       |  status   |  mode  | originals | not_exactly_one_reversal | reversal_amount_wrong | allocations_not_netting 
+------------------+-----------+--------+-----------+--------------------------+-----------------------+-------------------------
+ kalyan-agencies  | bounced   | cheque |         2 |                        0 |                     0 |                       0
+ kalyan-agencies  | cancelled | cash   |         1 |                        0 |                     0 |                       0
+ sai-distributors | bounced   | cheque |         3 |                        0 |                     0 |                       0
+ sai-distributors | cancelled | cash   |         1 |                        0 |                     0 |                       0
+ tarsun           | bounced   | cheque |         3 |                        0 |                     0 |                       0
+ tarsun           | cancelled | cash   |         1 |                        0 |                     0 |                       0
+(6 rows)
+
+ reversals_whose_original_is_still_live 
+----------------------------------------
+                                      0
+(1 row)
+
+== 06c. VIOLATION: allocation to another tenant's or another retailer's bill (receipt, credit note, write-off); allocation rows whose tenant differs from the bill
+ allocations | allocation_tenant_ne_invoice_tenant | receipt_other_tenant | receipt_other_retailer | credit_note_other_tenant | credit_note_other_retailer | credit_note_applied_to_another_bill | write_off_mismatch 
+-------------+-------------------------------------+----------------------+------------------------+--------------------------+----------------------------+-------------------------------------+--------------------
+        1283 |                                   0 |                    0 |                      0 |                        0 |                          0 |                                   0 |                  0
+(1 row)
+
+ slug | allocation_id | receipt_no | receipt_retailer | invoice_no | invoice_retailer | amount_paise 
+------+---------------+------------+------------------+------------+------------------+--------------
+(0 rows)
+
+== 06d. KNOWN DOS-032 / DOS-059: duplicate receipt numbers per tenant (baseline: 4 pairs in tarsun, RCPT-0696..0699)
+  slug  | duplicated_numbers | receipts_involved 
+--------+--------------------+-------------------
+ tarsun |                  4 |                 8
+(1 row)
+
+  slug  | receipt_no | n |                                    receipts                                    
+--------+------------+---+--------------------------------------------------------------------------------
+ tarsun | RCPT-0696  | 2 | 12 Sep 12:50 cash 699000p daeb39ba | 12 Sep 14:17 cash 918200p 01a094cb
+ tarsun | RCPT-0697  | 2 | 12 Sep 12:50 bank_transfer 2875908p de04cd91 | 12 Sep 14:27 cash 100p 01a094d9
+ tarsun | RCPT-0698  | 2 | 12 Sep 12:50 cash 9899272p 3db84c22 | 12 Sep 16:05 cash 785600p 01a0952f
+ tarsun | RCPT-0699  | 2 | 12 Sep 12:50 upi 7178010p f4d57bda | 12 Sep 16:29 upi 475600p 01a09545
+(4 rows)
+
+       slug       | series_code |   fy    | next_no | highest_issued 
+------------------+-------------+---------+---------+----------------
+ a-0bb6e38a       | RCPT        | 2026-27 |       1 |              2
+ kalyan-agencies  | RCPT        | 2026-27 |     102 |           9004
+ qa-probe-support | RCPT        | 2026-27 |       1 |               
+ sai-distributors | RCPT        | 2026-27 |     277 |           9004
+ tarsun           | RCPT        | 2026-27 |     702 |           9004
+(5 rows)
+
+== 06e. trip collections tie to their receipts: same tenant, shop, amount, trip
+ collections | no_receipt | other_tenant | other_retailer | amount_differs | trip_differs 
+-------------+------------+--------------+----------------+----------------+--------------
+         112 |          3 |            0 |              0 |              0 |            0
+(1 row)
+
+COMMIT

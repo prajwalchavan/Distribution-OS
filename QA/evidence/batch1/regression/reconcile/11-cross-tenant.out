@@ -1,0 +1,91 @@
+-- run at: 2026-09-13 01:50:31 +0530  db: dos_qa  file: 11-cross-tenant.sql
+#### CHECK 11 - cross-tenant integrity: child.tenant_id must equal parent.tenant_id; plain-id references must resolve. Every tenant, fixtures included.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:31.136098+05:30
+(1 row)
+
+== 11a. per relation: rows with a reference, references that do not resolve (plain ids only; FK columns cannot dangle), tenant mismatches
+                           relation                           | checked | dangling | tenant_mismatch | examples 
+--------------------------------------------------------------+---------+----------+-----------------+----------
+ collections.receipt_id -> receipts (plain id)                |     112 |        3 |               0 | 
+ allocations.credit_note_id -> credit_notes                   |     134 |        0 |               0 | 
+ allocations.invoice_id -> invoices                           |    1283 |        0 |               0 | 
+ allocations.receipt_id -> receipts                           |    1142 |        0 |               0 | 
+ allocations.write_off_id -> write_offs                       |       7 |        0 |               0 | 
+ approvals.order_id -> sales_orders                           |      47 |        0 |               0 | 
+ cash_discount_conditions.invoice_id -> invoices              |     615 |        0 |               0 | 
+ collections.trip_id -> trips                                 |     112 |        0 |               0 | 
+ credit_note_lines.credit_note_id -> credit_notes             |     135 |        0 |               0 | 
+ credit_note_lines.invoice_line_id -> invoice_lines           |     135 |        0 |               0 | 
+ credit_notes.delivery_id -> deliveries (plain id)            |       2 |        0 |               0 | 
+ credit_notes.invoice_id -> invoices                          |     135 |        0 |               0 | 
+ credit_notes.retailer_id -> retailers                        |     135 |        0 |               0 | 
+ deliveries.invoice_id -> invoices                            |    1512 |        0 |               0 | 
+ deliveries.order_id -> sales_orders                          |    1510 |        0 |               0 | 
+ deliveries.stop_id -> trip_stops                             |    1512 |        0 |               0 | 
+ deliveries.trip_id -> trips                                  |    1512 |        0 |               0 | 
+ delivery_challans.load_sheet_id -> load_sheets               |     174 |        0 |               0 | 
+ delivery_lines.delivery_id -> deliveries                     |    6088 |        0 |               0 | 
+ delivery_lines.invoice_line_id -> invoice_lines              |    6088 |        0 |               0 | 
+ invoice_lines.invoice_id -> invoices                         |    6209 |        0 |               0 | 
+ invoice_lines.lot_id -> stock_lots                           |    6204 |        0 |               0 | 
+ invoice_lines.order_line_id -> sales_order_lines (plain id)  |    6204 |        0 |               0 | 
+ invoices.order_id -> sales_orders                            |    1470 |        0 |               0 | 
+ invoices.retailer_id -> retailers                            |    1505 |        0 |               0 | 
+ journal_lines.account_id -> accounts                         |   12709 |        0 |               0 | 
+ journal_lines.entry_id -> journal_entries                    |   12709 |        0 |               0 | 
+ load_sheets.from_location_id -> locations                    |     178 |        0 |               0 | 
+ load_sheets.order_ids[] -> sales_orders (plain ids)          |    1513 |        0 |               0 | 
+ load_sheets.to_location_id -> locations                      |     178 |        0 |               0 | 
+ load_sheets.trip_id -> trips (plain id)                      |     175 |        0 |               0 | 
+ order_state_transitions.order_id -> sales_orders             |    8981 |        0 |               0 | 
+ pack_confirmations.invoice_id -> invoices (plain id)         |    1455 |        0 |               0 | 
+ pack_confirmations.order_id -> sales_orders                  |    1456 |        0 |               0 | 
+ pick_lines.order_line_id -> sales_order_lines                |    6248 |        0 |               0 | 
+ pick_lines.picklist_id -> picklists                          |    6248 |        0 |               0 | 
+ receipts.retailer_id -> retailers                            |    1179 |        0 |               0 | 
+ receipts.reverses_receipt_id -> receipts                     |      11 |        0 |               0 | 
+ receipts.trip_id -> trips (plain id)                         |     121 |        0 |               0 | 
+ reservations.location_id -> locations                        |      66 |        0 |               0 | 
+ reservations.lot_id -> stock_lots                            |      66 |        0 |               0 | 
+ reservations.order_line_id -> sales_order_lines (plain id)   |      66 |        0 |               0 | 
+ retailer_outstanding_summary.retailer_id -> retailers        |     126 |        0 |               0 | 
+ sales_order_lines.order_id -> sales_orders                   |    6527 |        0 |               0 | 
+ sales_orders.retailer_id -> retailers                        |    1563 |        0 |               0 | 
+ stock_balances.location_id -> locations                      |    2167 |        0 |               0 | 
+ stock_balances.lot_id -> stock_lots                          |    2167 |        0 |               0 | 
+ stock_ledger.location_id -> locations                        |    8592 |        0 |               0 | 
+ stock_ledger.lot_id -> stock_lots                            |    8592 |        0 |               0 | 
+ stock_ledger.ref_id (credit_note) -> credit_notes (plain id) |     118 |        0 |               0 | 
+ stock_ledger.ref_id (grn) -> grns (plain id)                 |    1441 |        0 |               0 | 
+ stock_ledger.ref_id (invoice_cancel) -> invoices (plain id)  |       3 |        0 |               0 | 
+ stock_ledger.ref_id (load_sheet) -> load_sheets (plain id)   |       0 |        0 |               0 | 
+ stock_ledger.ref_id (pack) -> sales_orders (plain id)        |    6189 |        0 |               0 | 
+ trip_stops.retailer_id -> retailers                          |    1513 |        0 |               0 | 
+ trip_stops.trip_id -> trips                                  |    1513 |        0 |               0 | 
+ trips.vehicle_id -> vehicles                                 |     181 |        0 |               0 | 
+ vehicles.location_id -> locations                            |      12 |        0 |               0 | 
+ write_offs.invoice_id -> invoices                            |       7 |        0 |               0 | 
+ write_offs.journal_entry_id -> journal_entries               |       6 |        0 |               0 | 
+(60 rows)
+
+== 11b. same-shop and same-document consistency (a bill, its order, its credit notes, its delivery and its trip stop must name one shop)
+                             rule                              | checked | violations |                examples                
+---------------------------------------------------------------+---------+------------+----------------------------------------
+ delivery order = its bill order                               |    1510 |          1 | {01a09627-9277-778c-b486-160e1699fc76}
+ collection shop = its receipt shop                            |     109 |          0 | 
+ credit note line belongs to the credit note's bill            |     135 |          0 | 
+ credit note shop = its bill shop                              |     135 |          0 | 
+ delivery line belongs to the delivery's bill                  |    6088 |          0 | 
+ delivery shop = its bill shop                                 |    1512 |          0 | 
+ delivery shop = its trip stop shop, delivery trip = stop trip |    1512 |          0 | 
+ invoice line order line belongs to the bill's order           |    6204 |          0 | 
+ invoice shop = its order shop                                 |    1470 |          0 | 
+ pack confirmation invoice belongs to the packed order         |    1455 |          0 | 
+ pick line order line belongs to the pick line order           |    6248 |          0 | 
+ write-off shop = its bill shop                                |       7 |          0 | 
+(12 rows)
+
+COMMIT

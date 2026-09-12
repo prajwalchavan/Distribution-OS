@@ -1,0 +1,47 @@
+-- run at: 2026-09-13 01:50:22 +0530  db: dos_qa  file: 10-orders.sql
+#### CHECK 10 - orders. Pricing (orders/pricing-lines.ts): line_total = taxable + tax; header subtotal = SUM(gross), discount = SUM(line discount), tax = SUM(line tax), total = round(subtotal - discount + tax) with round_off.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:22.609565+05:30
+(1 row)
+
+== 10a. header vs lines per tenant
+       slug       | orders | without_lines | non_draft_without_lines | tax_ne_lines | discount_ne_lines | taxable_ne_lines | total_ne_parts | round_off_over_50 | total_not_whole_rupee 
+------------------+--------+---------------+-------------------------+--------------+-------------------+------------------+----------------+-------------------+-----------------------
+ a-0bb6e38a       |      1 |             0 |                       0 |            0 |                 0 |                0 |              0 |                 0 |                     0
+ kalyan-agencies  |    193 |             0 |                       0 |            0 |                 0 |                0 |              0 |                 0 |                     0
+ sai-distributors |    464 |             0 |                       0 |            0 |                 0 |                0 |              0 |                 0 |                     0
+ tarsun           |    905 |             0 |                       0 |            0 |                 0 |                0 |              0 |                 0 |                     0
+(4 rows)
+
+== 10b. examples of header <> lines (up to 10)
+ slug | order_no | state | created_at | subtotal_paise | discount_paise | tax_paise | round_off_paise | total_paise | lines | lines_taxable | lines_discount | lines_tax 
+------+----------+-------+------------+----------------+----------------+-----------+-----------------+-------------+-------+---------------+----------------+-----------
+(0 rows)
+
+== 10c. state reachable through order_state_transitions: chain starts at draft, each from_state = previous to_state, each edge exists in orderMachine, last to_state = sales_orders.state
+   ordering: occurred_at, then from_state enum order, then id
+       slug       | orders | non_draft_without_transitions | chain_not_starting_at_draft | chain_broken | illegal_edge | last_transition_ne_state |                 examples                  
+------------------+--------+-------------------------------+-----------------------------+--------------+--------------+--------------------------+-------------------------------------------
+ a-0bb6e38a       |      1 |                             1 |                           0 |            0 |            0 |                        0 | {01a09627}
+ kalyan-agencies  |    193 |                             6 |                           0 |            0 |            0 |                        0 | {SO-9003,SO-9006,SO-9005,SO-9002,SO-9004}
+ sai-distributors |    464 |                             6 |                           0 |            0 |            0 |                        0 | {SO-9004,SO-9003,SO-9001,SO-9002,SO-9006}
+ tarsun           |    905 |                             6 |                           0 |            0 |            0 |                        0 | {SO-9004,SO-9005,SO-9002,SO-9003,SO-9006}
+(4 rows)
+
+== 10d. transitions whose tenant differs from the order, or that point at a missing order
+ transitions | without_order | other_tenant 
+-------------+---------------+--------------
+        8981 |             0 |            0
+(1 row)
+
+== 10e. KNOWN DOS-115: the probe cancels SO-0889 and SO-0891 (tarsun) - state, cancel transition actor, reservations by state, holds still on the balance
+ order_no |   state   |         cancelled_at          |                        cancel_reason                         |                                           transitions                                           | lines | pending | voided | posted | voided_pcs 
+----------+-----------+-------------------------------+--------------------------------------------------------------+-------------------------------------------------------------------------------------------------+-------+---------+--------+--------+------------
+ SO-0889  | cancelled | 2026-09-13 01:09:55.858+05:30 | QA probe: warehouse cancels an order it has no business with | submit by 8760e17e at 01:08:09, confirm by 8760e17e at 01:08:09, cancel by 5b6fbe87 at 01:09:55 |     1 |       0 |      1 |      0 |          6
+ SO-0891  | cancelled | 2026-09-13 01:09:55.914+05:30 | QA probe: delivery cancels an order it has no business with  | submit by 8760e17e at 01:09:55, confirm by 8760e17e at 01:09:55, cancel by 7b2db500 at 01:09:55 |     1 |       0 |      2 |      0 |          6
+ SO-0893  | confirmed |                               |                                                              | submit by 7b2db500 at 01:14:26, confirm by 7b2db500 at 01:14:26                                 |     1 |       1 |      0 |      0 |          0
+(3 rows)
+
+COMMIT

@@ -1,0 +1,105 @@
+-- run at: 2026-09-13 01:50:22 +0530  db: dos_qa  file: 09-returns-credit-notes.sql
+#### CHECK 09 - returns and credit notes (fix DOS-058, known DOS-116)
+#### Restocking reasons (billing/credit-notes.service.ts): short_delivery, return_saleable, return_damaged, cancellation. Line saleable=true -> sale_return_saleable into the van / ship-from location; false -> sale_return_damaged into the damaged bin. Ledger key credit-note:<note>:<line>.
+BEGIN
+           snapshot_at           
+---------------------------------
+ 2026-09-13 01:50:22.57012+05:30
+(1 row)
+
+== 09a. restocking credit-note lines (note not draft, invoice line has a lot, qty > 0) vs their own ledger row (by key; seeded rows fall back to note + lot)
+       slug       | saleable |     reason      | lines | no_ledger_row | matched_by_lot_only | nonsaleable_to_damaged_bin_ok | nonsaleable_went_elsewhere | saleable_restock_ok | saleable_went_elsewhere | qty_ne_line 
+------------------+----------+-----------------+-------+---------------+---------------------+-------------------------------+----------------------------+---------------------+-------------------------+-------------
+ kalyan-agencies  | f        | return_damaged  |     2 |             0 |                   2 |                             2 |                          0 |                   0 |                       0 |           0
+ kalyan-agencies  | t        | short_delivery  |     7 |             0 |                   7 |                             0 |                          0 |                   7 |                       0 |           0
+ kalyan-agencies  | t        | return_saleable |     3 |             0 |                   2 |                             0 |                          0 |                   3 |                       0 |           0
+ sai-distributors | f        | return_damaged  |     4 |             0 |                   4 |                             4 |                          0 |                   0 |                       0 |           0
+ sai-distributors | t        | short_delivery  |    38 |             0 |                  38 |                             0 |                          0 |                  38 |                       0 |           0
+ sai-distributors | t        | return_saleable |     4 |             0 |                   3 |                             0 |                          0 |                   4 |                       0 |           0
+ tarsun           | f        | return_damaged  |     6 |             0 |                   4 |                             6 |                          0 |                   0 |                       0 |           0
+ tarsun           | t        | short_delivery  |    48 |             0 |                  48 |                             0 |                          0 |                  48 |                       0 |           0
+ tarsun           | t        | return_saleable |     5 |             0 |                   3 |                             0 |                          0 |                   5 |                       0 |           0
+ tarsun           | t        | return_damaged  |     1 |             0 |                   0 |                             0 |                          0 |                   1 |                       0 |           0
+(10 rows)
+
+== 09b. every sale_return_* ledger row back to its credit-note line: saleable restock only from a saleable line, damaged-bin row only from a non-saleable line
+       slug       |        reason        |  ref_type   | ledger_rows | no_line_by_key | saleable_restock_from_nonsaleable_line | damaged_row_from_saleable_line | saleable_row_outside_selling_location | damaged_row_outside_damaged_bin | non_positive_qty 
+------------------+----------------------+-------------+-------------+----------------+----------------------------------------+--------------------------------+---------------------------------------+---------------------------------+------------------
+ kalyan-agencies  | sale_return_saleable | credit_note |          10 |              9 |                                      0 |                              0 |                                     0 |                               0 |                0
+ kalyan-agencies  | sale_return_damaged  | credit_note |           2 |              2 |                                      0 |                              0 |                                     0 |                               0 |                0
+ sai-distributors | sale_return_saleable | credit_note |          42 |             41 |                                      0 |                              0 |                                     0 |                               0 |                0
+ sai-distributors | sale_return_damaged  | credit_note |           4 |              4 |                                      0 |                              0 |                                     0 |                               0 |                0
+ tarsun           | sale_return_saleable | credit_note |          54 |             51 |                                      0 |                              0 |                                     0 |                               0 |                0
+ tarsun           | sale_return_damaged  | credit_note |           6 |              4 |                                      0 |                              0 |                                     0 |                               0 |                0
+(6 rows)
+
+== 09b2. sale_return_* rows with no credit-note line by key: are they seed rows (created at seed time) or product rows?
+       slug       |        reason        | rows | created_after_seed |                                                                                                                            example_keys                                                                                                                             
+------------------+----------------------+------+--------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ kalyan-agencies  | sale_return_saleable |    9 |                  0 | {credit-note:1bc04eda-a5c8-7ad8-9bc3-42ddfadf4d52:7c9abf99-d06a-7104-9cf9-2116684601a2,credit-note:2d0aaf5a-bee1-73df-8b6b-8d885b3875df:1d9a8c63-8ebd-79ad-882c-128599f60fdf,credit-note:a6b69d27-2dbe-788e-8684-621e423bf47c:fa1e25b6-346e-7498-a3ec-f6c6e06695bf}
+ kalyan-agencies  | sale_return_damaged  |    2 |                  0 | {credit-note:b34d03e4-1ce8-700a-8424-848a05e9e1e6:a5ea4111-35ad-7db0-afc6-7536fa765b0d,credit-note:50121fe6-0966-7278-9053-8b24a6b45a22:46b68f1b-6a7c-71a3-a1e7-f9fca360c99f}
+ sai-distributors | sale_return_saleable |   41 |                  0 | {credit-note:5162c785-85b1-7e21-a0c7-bfb824414814:d02387a0-ea6a-72a5-a896-1b55236921b2,credit-note:c7a7cf0a-4e07-7cb1-a903-dd22d23bdcb4:d3fd5d80-85a9-7456-9373-76447b90a643,credit-note:5fb26e3e-3edf-768b-81f3-f224da479ebd:daa46e1e-1530-7cfa-874f-9b65377ce348}
+ sai-distributors | sale_return_damaged  |    4 |                  0 | {credit-note:eb5d9b02-3d1f-76f1-a510-fda36331be93:7cbc5c41-3ddb-7dda-b369-b6c08bfebfbe,credit-note:0e0c8a18-db0c-7619-946d-207c0d1e01fe:91c19ca9-e78a-790a-8dff-3916bba55a44,credit-note:efc82e8e-9412-761e-b984-a70fb26884a3:4a4d62b0-9dea-75a6-b083-26f271e2978a}
+ tarsun           | sale_return_saleable |   51 |                  0 | {credit-note:2f185859-9489-7777-8e04-212bfddcb0c5:9833a418-85d0-708f-b696-5500b3e4dca4,credit-note:3f3277ba-69a3-742a-880c-ea5289f1016a:331be64d-bc36-7bbb-9d4d-74a0d55b4b6f,credit-note:86cb5eee-e3e9-7f75-b405-be0fdb76887d:715c9894-e8a8-78ae-ab56-6285c5e084c2}
+ tarsun           | sale_return_damaged  |    4 |                  0 | {credit-note:7b707b5b-c9fb-7409-a38f-4746f0e5b443:6e8341c7-18c1-7d1b-ac40-de44776e7a17,credit-note:3663f205-b239-7525-8718-ea150a0aa5c0:c997cdd5-75a3-7496-8b4b-1f1dd826594d,credit-note:0d6ffb1e-c9b9-7d9d-a24f-64bef8e3dd64:14c9066b-e3e7-7a7b-8b3b-6c79d518a8b7}
+(6 rows)
+
+== 09c. KNOWN DOS-116 / DOS-058: damaged or expired returns that went into saleable stock
+   (i) credit notes with reason return_damaged whose line is saleable or whose ledger row is sale_return_saleable
+  slug  | credit_note_no |     reason     | from_doorstep |            created_at            | qty_pcs | saleable |    ledger_reason     | location |   kind    
+--------+----------------+----------------+---------------+----------------------------------+---------+----------+----------------------+----------+-----------
+ tarsun | CN/9005        | return_damaged | f             | 2026-09-13 01:16:57.109195+05:30 |       2 | t        | sale_return_saleable | Godown   | warehouse
+(1 row)
+
+   (ii) doorstep delivery lines coded damaged/expired that were returned as saleable (DOS-058 path), before and after the merge
+  slug  | reason  | returned_saleable | lines | pcs | since_merge |         examples          
+--------+---------+-------------------+-------+-----+-------------+---------------------------
+ tarsun | damaged | f                 |     1 |  72 |           1 | {"01a09725 13 Sep 01:13"}
+ tarsun | damaged | t                 |     1 |  24 |           0 | {"01a09532 12 Sep 16:09"}
+(2 rows)
+
+   (iii) credit notes raised from those doorstep lines and where their pieces went
+  slug  | credit_note_no |     reason      |            created_at            | doorstep_reason | returned_saleable | returned_qty_pcs |              ledger              
+--------+----------------+-----------------+----------------------------------+-----------------+-------------------+------------------+----------------------------------
+ tarsun | CN/9003        | return_saleable | 2026-09-12 16:09:00.560234+05:30 | damaged         | t                 |               24 | sale_return_saleable 24 @vehicle
+ tarsun | CN/9004        | return_damaged  | 2026-09-13 01:13:13.840484+05:30 | damaged         | f                 |               72 | sale_return_damaged 72 @damaged
+(2 rows)
+
+== 09d. credit-note header = sum of lines; total = taxable + taxes + round-off; |round-off| <= 50
+       slug       |      reason       | notes | without_lines | taxable_ne_lines | tax_ne_lines | total_ne_parts | line_totals_ne_header_before_rounding | round_off_over_50 |    examples     
+------------------+-------------------+-------+---------------+------------------+--------------+----------------+---------------------------------------+-------------------+-----------------
+ a-0bb6e38a       | short_delivery    |     1 |             0 |                0 |            0 |              1 |                                     0 |                 0 | {CN-0bb6e38a-1}
+ kalyan-agencies  | short_delivery    |     7 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ kalyan-agencies  | return_saleable   |     3 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ kalyan-agencies  | return_damaged    |     2 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ kalyan-agencies  | rate_difference   |     3 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ sai-distributors | short_delivery    |    38 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ sai-distributors | return_saleable   |     4 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ sai-distributors | return_damaged    |     4 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ sai-distributors | rate_difference   |     4 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ sai-distributors | scheme_settlement |     2 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ tarsun           | short_delivery    |    48 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ tarsun           | return_saleable   |     5 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ tarsun           | return_damaged    |     7 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ tarsun           | rate_difference   |     5 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+ tarsun           | scheme_settlement |     2 |             0 |                0 |            0 |              0 |                                     0 |                 0 | 
+(15 rows)
+
+== 09e. over-credit: pieces credited on an invoice line above the pieces billed on it; credit value on a bill above the bill total
+       slug       | invoice_lines_credited | pieces_credited_above_billed | examples 
+------------------+------------------------+------------------------------+----------
+ a-0bb6e38a       |                      1 |                            0 | 
+ kalyan-agencies  |                     15 |                            0 | 
+ sai-distributors |                     52 |                            0 | 
+ tarsun           |                     66 |                            0 | 
+(4 rows)
+
+       slug       | bills_with_credit | credit_above_bill_total | examples 
+------------------+-------------------+-------------------------+----------
+ a-0bb6e38a       |                 1 |                       0 | 
+ kalyan-agencies  |                15 |                       0 | 
+ sai-distributors |                52 |                       0 | 
+ tarsun           |                66 |                       0 | 
+(4 rows)
+
+COMMIT

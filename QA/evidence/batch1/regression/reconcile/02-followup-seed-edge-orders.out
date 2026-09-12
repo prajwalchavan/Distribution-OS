@@ -1,0 +1,80 @@
+-- run at: 2026-09-13 01:53:31 +0530  db: dos_qa  file: 02-followup-seed-edge-orders.sql
+#### FOLLOW-UP to 02e / 10c / 12a / 12c / 11b: the SO-9001..SO-9006 orders and the other rows that break checks, who wrote them and when
+BEGIN
+           snapshot_at           
+---------------------------------
+ 2026-09-13 01:53:31.47965+05:30
+(1 row)
+
+== f02a. SO-90xx orders: header, transitions, pack confirmation, invoices, deliveries, load sheets, pack ledger rows
+       slug       | order_no |   source    |   state   |        created_at         | transitions | packs |        invoices         | deliveries | sheets | pack_rows 
+------------------+----------+-------------+-----------+---------------------------+-------------+-------+-------------------------+------------+--------+-----------
+ kalyan-agencies  | SO-9001  | salesperson | packed    | 2026-09-10 09:45:00+05:30 |           0 |     0 | KA/9002 pack cancelled  |          0 |      0 |         0
+ kalyan-agencies  | SO-9002  | van_sale    | delivered | 2026-09-11 11:00:00+05:30 |           0 |     0 | KA/9003 van_sale paid   |          0 |      0 |         0
+ kalyan-agencies  | SO-9003  | van_sale    | confirmed | 2026-09-12 09:30:00+05:30 |           0 |     0 |                         |          0 |      0 |         0
+ kalyan-agencies  | SO-9004  | phone       | delivered | 2026-09-02 10:20:00+05:30 |           0 |     0 | KA/9001 pack paid       |          0 |      0 |         0
+ kalyan-agencies  | SO-9005  | phone       | delivered | 2026-08-19 10:20:00+05:30 |           0 |     0 | KA/9005 pack paid       |          0 |      0 |         0
+ kalyan-agencies  | SO-9006  | phone       | delivered | 2026-08-05 10:20:00+05:30 |           0 |     0 | KA/9006 pack paid       |          0 |      0 |         0
+ sai-distributors | SO-9001  | salesperson | packed    | 2026-09-10 09:45:00+05:30 |           0 |     0 | SAI/9002 pack cancelled |          0 |      0 |         0
+ sai-distributors | SO-9002  | van_sale    | delivered | 2026-09-11 11:00:00+05:30 |           0 |     0 | SAI/9003 van_sale paid  |          0 |      0 |         0
+ sai-distributors | SO-9003  | van_sale    | confirmed | 2026-09-12 09:30:00+05:30 |           0 |     0 |                         |          0 |      0 |         0
+ sai-distributors | SO-9004  | phone       | delivered | 2026-08-29 10:20:00+05:30 |           0 |     0 | SAI/9001 pack paid      |          0 |      0 |         0
+ sai-distributors | SO-9005  | phone       | delivered | 2026-08-11 10:20:00+05:30 |           0 |     0 | SAI/9005 pack paid      |          0 |      0 |         0
+ sai-distributors | SO-9006  | phone       | delivered | 2026-07-24 10:20:00+05:30 |           0 |     0 | SAI/9006 pack paid      |          0 |      0 |         0
+ tarsun           | SO-9001  | salesperson | packed    | 2026-09-10 09:45:00+05:30 |           0 |     0 | INV/9002 pack cancelled |          0 |      0 |         0
+ tarsun           | SO-9002  | van_sale    | delivered | 2026-09-11 11:00:00+05:30 |           0 |     0 | INV/9003 van_sale paid  |          0 |      0 |         0
+ tarsun           | SO-9003  | van_sale    | confirmed | 2026-09-12 09:30:00+05:30 |           0 |     0 |                         |          0 |      0 |         0
+ tarsun           | SO-9004  | phone       | delivered | 2026-08-22 10:20:00+05:30 |           0 |     0 | INV/9001 pack paid      |          0 |      0 |         0
+ tarsun           | SO-9005  | phone       | delivered | 2026-07-25 10:20:00+05:30 |           0 |     0 | INV/9005 pack paid      |          0 |      0 |         0
+ tarsun           | SO-9006  | phone       | delivered | 2026-06-27 10:20:00+05:30 |           0 |     0 | INV/9006 pack paid      |          0 |      0 |         0
+(18 rows)
+
+== f02b. SO-9004..9006: pack sale pieces vs billed pieces per lot
+       slug       | order_no |   lot    | sale_pcs | billed_pcs |   invoices    
+------------------+----------+----------+----------+------------+---------------
+ kalyan-agencies  | SO-9004  | e1320c24 |          |        180 | KA/9001:paid
+ kalyan-agencies  | SO-9005  | 7a4c1c27 |          |         30 | KA/9005:paid
+ kalyan-agencies  | SO-9006  | d18346f2 |          |        528 | KA/9006:paid
+ sai-distributors | SO-9004  | 98cabbc9 |          |        240 | SAI/9001:paid
+ sai-distributors | SO-9005  | 567ca5d8 |          |        220 | SAI/9005:paid
+ sai-distributors | SO-9006  | 98cabbc9 |          |        288 | SAI/9006:paid
+ tarsun           | SO-9004  | 3efe9c7a |          |        432 | INV/9001:paid
+ tarsun           | SO-9005  | c4698e9f |          |        960 | INV/9005:paid
+ tarsun           | SO-9006  | 2791e4e8 |          |        132 | INV/9006:paid
+(9 rows)
+
+== f02c. delivered orders with no pack confirmation (12a): which orders, when created
+       slug       | order_no |  source  |   state   |        created_at         |     invoices      
+------------------+----------+----------+-----------+---------------------------+-------------------
+ kalyan-agencies  | SO-9002  | van_sale | delivered | 2026-09-11 11:00:00+05:30 | KA/9003 van_sale
+ kalyan-agencies  | SO-9004  | phone    | delivered | 2026-09-02 10:20:00+05:30 | KA/9001 pack
+ kalyan-agencies  | SO-9005  | phone    | delivered | 2026-08-19 10:20:00+05:30 | KA/9005 pack
+ kalyan-agencies  | SO-9006  | phone    | delivered | 2026-08-05 10:20:00+05:30 | KA/9006 pack
+ sai-distributors | SO-9002  | van_sale | delivered | 2026-09-11 11:00:00+05:30 | SAI/9003 van_sale
+ sai-distributors | SO-9004  | phone    | delivered | 2026-08-29 10:20:00+05:30 | SAI/9001 pack
+ sai-distributors | SO-9005  | phone    | delivered | 2026-08-11 10:20:00+05:30 | SAI/9005 pack
+ sai-distributors | SO-9006  | phone    | delivered | 2026-07-24 10:20:00+05:30 | SAI/9006 pack
+ tarsun           | SO-9002  | van_sale | delivered | 2026-09-11 11:00:00+05:30 | INV/9003 van_sale
+ tarsun           | SO-9004  | phone    | delivered | 2026-08-22 10:20:00+05:30 | INV/9001 pack
+ tarsun           | SO-9005  | phone    | delivered | 2026-07-25 10:20:00+05:30 | INV/9005 pack
+ tarsun           | SO-9006  | phone    | delivered | 2026-06-27 10:20:00+05:30 | INV/9006 pack
+(12 rows)
+
+== f02d. were any of these written after the seed finished (2026-09-12 12:52 IST)?
+ so90xx_orders | created_after_seed 
+---------------+--------------------
+            18 |                  0
+(1 row)
+
+ invoices_90xx | created_after_seed 
+---------------+--------------------
+            14 |                  2
+(1 row)
+
+== f02e. the delivery whose order differs from its bill order (11b)
+    slug    |                  id                  |               order_id               | bill_order_id | invoice_no  |            created_at            
+------------+--------------------------------------+--------------------------------------+---------------+-------------+----------------------------------
+ a-0bb6e38a | 01a09627-9277-778c-b486-160e1699fc76 | 01a09627-9277-7771-b544-a4c778a4b6f5 |               | T0bb6e38a/1 | 2026-09-12 20:36:16.697062+05:30
+(1 row)
+
+COMMIT

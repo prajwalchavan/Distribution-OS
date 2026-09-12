@@ -1,0 +1,66 @@
+-- run at: 2026-09-13 01:50:18 +0530  db: dos_qa  file: 01-stock-ledger-vs-balances.sql
+#### CHECK 01 - stock_ledger vs stock_balances, every tenant, one REPEATABLE READ READ ONLY snapshot
+BEGIN
+           snapshot_at           |       snapshot_ist        
+---------------------------------+---------------------------
+ 2026-09-13 01:50:18.19006+05:30 | 2026-09-13 01:50:18.19006
+(1 row)
+
+== 01a. per tenant: (lot, location) pairs, on_hand <> SUM(qty_delta), ledger pairs with no balance row, non-zero balance rows with no ledger
+       slug       | pairs | on_hand_ne_ledger | ledger_without_balance_row | balance_nonzero_without_ledger | ledger_total_pcs | on_hand_total_pcs 
+------------------+-------+-------------------+----------------------------+--------------------------------+------------------+-------------------
+ a-0bb6e38a       |     2 |                 2 |                          1 |                              1 |               24 |               120
+ kalyan-agencies  |   236 |                 0 |                          0 |                              0 |            19313 |             19313
+ sai-distributors |   612 |                 0 |                          0 |                              0 |            47084 |             47084
+ tarsun           |  1318 |                 0 |                          0 |                              0 |            77824 |             77824
+(4 rows)
+
+== 01b. examples of on_hand <> SUM(qty_delta) (up to 10)
+    slug    |                lot_id                | location | ledger_sum | on_hand 
+------------+--------------------------------------+----------+------------+---------
+ a-0bb6e38a | 01a09627-9277-7769-89c6-6b7a9d38e7b3 | Godown   |            |     120
+ a-0bb6e38a | 01a09627-b28c-73da-b329-c1b5ef7db19a | Godown   |         24 |        
+(2 rows)
+
+== 01c. negative on_hand by tenant and location kind (selling locations must never be negative; the damaged bin may be)
+ slug | kind | location_allows_negative | balance_allows_negative | negative_rows | most_negative | example_lots 
+------+------+--------------------------+-------------------------+---------------+---------------+--------------
+(0 rows)
+
+ negative_on_hand_at_selling_locations 
+---------------------------------------
+                                     0
+(1 row)
+
+== 01d. balance rows flagged negative_allowed at a selling location (the non-negative CHECK then protects nothing)
+ slug | kind | rows 
+------+------+------
+(0 rows)
+
+== 01e. duplicate (tenant_id, idempotency_key) in stock_ledger, and the guarantees that should make it impossible
+ duplicate_key_groups 
+----------------------
+                    0
+(1 row)
+
+          indexname           |                                                     indexdef                                                     
+------------------------------+------------------------------------------------------------------------------------------------------------------
+ stock_ledger_pkey            | CREATE UNIQUE INDEX stock_ledger_pkey ON public.stock_ledger USING btree (id)
+ stock_ledger_idempotency_idx | CREATE UNIQUE INDEX stock_ledger_idempotency_idx ON public.stock_ledger USING btree (tenant_id, idempotency_key)
+(2 rows)
+
+          tgname          
+--------------------------
+ stock_ledger_append_only
+(1 row)
+
+== 01f. activity context: ledger rows per tenant, rows written since the batch-1 merge (2026-09-13 00:51:23 IST)
+       slug       | rows | since_merge |              latest              
+------------------+------+-------------+----------------------------------
+ a-0bb6e38a       |    1 |           0 | 2026-09-12 20:36:19.149231+05:30
+ kalyan-agencies  |  951 |           0 | 2026-09-12 12:51:03.473515+05:30
+ sai-distributors | 2680 |           0 | 2026-09-12 12:51:01.262434+05:30
+ tarsun           | 4960 |           7 | 2026-09-13 01:27:40.160416+05:30
+(4 rows)
+
+COMMIT

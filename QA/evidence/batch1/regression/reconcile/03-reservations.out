@@ -1,0 +1,68 @@
+-- run at: 2026-09-13 01:50:21 +0530  db: dos_qa  file: 03-reservations.sql
+#### CHECK 03 - reservations. Model: reservations(order_line_id, lot_id, location_id, qty, state pending|posted|voided).
+#### A pending row adds qty to stock_balances.reserved for (lot, location); pack posts it (posted, reserved given back, sale row written); cancel / line edit voids it (reserved given back).
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:21.616667+05:30
+(1 row)
+
+== 03a. rows by tenant and state
+  slug  |  state  | rows | pcs  | without_lot 
+--------+---------+------+------+-------------
+ tarsun | pending |   58 | 1044 |           0
+ tarsun | posted  |    5 |   54 |           0
+ tarsun | voided  |    3 |   12 |           0
+(3 rows)
+
+== 03b. VIOLATION: pending reservation on a cancelled or closed order
+ slug | order_no | state | reservation_id | qty | lot_id | updated_at 
+------+----------+-------+----------------+-----+--------+------------
+(0 rows)
+
+== 03c. reservation state x order state (pending on packed-or-later = a hold pack never closed; pending with no order line = orphan hold)
+  slug  | reservation_state | order_state | rows | pcs 
+--------+-------------------+-------------+------+-----
+ tarsun | pending           | confirmed   |   45 | 942
+ tarsun | pending           | picking     |   13 | 102
+ tarsun | posted            | packed      |    5 |  54
+ tarsun | voided            | cancelled   |    3 |  12
+(4 rows)
+
+== 03d. stock_balances.reserved vs SUM(pending reservations) per (tenant, lot, location)
+       slug       | pairs_with_holds | reserved_ne_pending | reserved_total | pending_total 
+------------------+------------------+---------------------+----------------+---------------
+ a-0bb6e38a       |                0 |                   0 |              0 |              
+ kalyan-agencies  |                0 |                   0 |              0 |              
+ sai-distributors |                0 |                   0 |              0 |              
+ tarsun           |               56 |                   0 |           1044 |          1044
+(4 rows)
+
+== 03e. examples reserved <> pending (up to 10)
+ slug | lot_id | location | on_hand | reserved | pending_pcs 
+------+--------+----------+---------+----------+-------------
+(0 rows)
+
+== 03f. reserved > on_hand at a selling location (holds exceed the pieces on the rack)
+ reserved_gt_on_hand 
+---------------------
+                   0
+(1 row)
+
+ slug | location | lot_id | on_hand | reserved 
+------+----------+--------+---------+----------
+(0 rows)
+
+== 03g. context: open orders (confirmed / picking) and how many hold at least one pending reservation (seeded orders were never reserved)
+       slug       |   state   | orders | with_pending_hold | created_after_seed 
+------------------+-----------+--------+-------------------+--------------------
+ a-0bb6e38a       | confirmed |      1 |                 0 |                  1
+ kalyan-agencies  | confirmed |      3 |                 0 |                  0
+ kalyan-agencies  | picking   |      1 |                 0 |                  0
+ sai-distributors | confirmed |      3 |                 0 |                  0
+ sai-distributors | picking   |      1 |                 0 |                  0
+ tarsun           | confirmed |      8 |                 6 |                  4
+ tarsun           | picking   |      5 |                 2 |                  2
+(7 rows)
+
+COMMIT

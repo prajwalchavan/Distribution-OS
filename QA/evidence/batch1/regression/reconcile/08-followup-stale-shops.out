@@ -1,0 +1,61 @@
+-- run at: 2026-09-13 01:58:35 +0530  db: dos_qa  file: 08-followup-stale-shops.sql
+#### FOLLOW-UP to 08: shops whose stored dues row is dated before today, and how far their overdue has drifted from live
+BEGIN
+           snapshot_at            | business_date_ist 
+----------------------------------+-------------------
+ 2026-09-13 01:58:35.430766+05:30 | 2026-09-13
+(1 row)
+
+       slug       | summary_rows | rows_dated_before_today | shops_overdue_drifted | total_drift_paise 
+------------------+--------------+-------------------------+-----------------------+-------------------
+ kalyan-agencies  |           24 |                      24 |                     3 |            810900
+ sai-distributors |           40 |                      40 |                     7 |          10958500
+ tarsun           |           60 |                      56 |                     8 |          10192100
+(3 rows)
+
+== top 8 shops by drift
+       slug       |          shop           |   as_of    | stored_overdue | live_overdue_today |  drift  |   bills_that_fell_due   
+------------------+-------------------------+------------+----------------+--------------------+---------+-------------------------
+ sai-distributors | Balaji Wholesale Stores | 2026-09-12 |       42430600 |           47471500 | 5040900 | SAI/0299 due 2026-09-12
+ tarsun           | Sahyadri Super Bazar    | 2026-09-12 |       25453800 |           30300000 | 4846200 | INV/0643 due 2026-09-12
+ sai-distributors | Sadguru Super Bazar     | 2026-09-12 |       18435900 |           21786500 | 3350600 | SAI/0300 due 2026-09-12
+ tarsun           | Gurukrupa Provision     | 2026-09-12 |        5242600 |            7549400 | 2306800 | INV/0707 due 2026-09-12
+ sai-distributors | Suvarna Kirana Stores   | 2026-09-12 |        2553300 |            3517800 |  964500 | SAI/0397 due 2026-09-12
+ tarsun           | Chavan Kirana Stores    | 2026-09-12 |         749000 |            1685300 |  936300 | INV/0778 due 2026-09-12
+ tarsun           | Karve Provision         | 2026-09-12 |        1908600 |            2661600 |  753000 | INV/0780 due 2026-09-12
+ tarsun           | Deshmukh Kirana         | 2026-09-12 |        1169200 |            1780500 |  611300 | INV/0777 due 2026-09-12
+(8 rows)
+
+== ageing_snapshots: latest as_of per tenant (the ageing history the owner trend reads)
+       slug       | latest_snapshot | rows_on_latest 
+------------------+-----------------+----------------
+ kalyan-agencies  | 2026-09-12      |             22
+ sai-distributors | 2026-09-12      |             38
+ tarsun           | 2026-09-12      |             55
+(3 rows)
+
+== invoice and credit-note numbers the product issued after the seed (numbering continuity)
+  slug  |     doc     |  number  |     source      |            created_at            
+--------+-------------+----------+-----------------+----------------------------------
+ tarsun | credit_note | CN/9003  | return_saleable | 2026-09-12 16:09:00.560234+05:30
+ tarsun | credit_note | CN/9004  | return_damaged  | 2026-09-13 01:13:13.840484+05:30
+ tarsun | credit_note | CN/9005  | return_damaged  | 2026-09-13 01:16:57.109195+05:30
+ tarsun | credit_note | CN/9006  | return_damaged  | 2026-09-13 01:16:57.304067+05:30
+ tarsun | invoice     | INV/9007 | pack            | 2026-09-13 01:16:56.825702+05:30
+ tarsun | invoice     | INV/9008 | pack            | 2026-09-13 01:27:40.160416+05:30
+(6 rows)
+
+       slug       | highest_regular_invoice | lowest_9xxx 
+------------------+-------------------------+-------------
+ kalyan-agencies  |                     173 |        9001
+ sai-distributors |                     440 |        9001
+ tarsun           |                     840 |        9001
+(3 rows)
+
+== shops the 09:00 IST dues reminder (worker/src/jobs/notifications.ts, overdue_paise > 0) would skip: stored overdue 0, live overdue today > 0
+       slug       | shops_skipped | live_overdue_paise |          examples          
+------------------+---------------+--------------------+----------------------------
+ sai-distributors |             1 |             416300 | {"Ayre Road Super Market"}
+(1 row)
+
+COMMIT

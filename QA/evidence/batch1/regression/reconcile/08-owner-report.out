@@ -1,0 +1,145 @@
+-- run at: 2026-09-13 01:50:22 +0530  db: dos_qa  file: 08-owner-report.sql
+#### CHECK 08 - owner report (owner_summary, fix DOS-001) vs live
+BEGIN
+           snapshot_at            | business_date_ist 
+----------------------------------+-------------------
+ 2026-09-13 01:50:22.532179+05:30 | 2026-09-13
+(1 row)
+
+== 08a. owner_summary rows: written when, which detail keys are stored
+       slug       |         tenant_seeded_at         |             as_of             | as_of_business_date |                                             detail_keys                                              | has_ageingb90plus | has_ageingb90plus_capital_p | rewritten_after_seed 
+------------------+----------------------------------+-------------------------------+---------------------+------------------------------------------------------------------------------------------------------+-------------------+-----------------------------+----------------------
+ tarsun           | 2026-09-12 12:50:46.466192+05:30 | 2026-09-13 01:45:25.042+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+ sai-distributors | 2026-09-12 12:50:55.906602+05:30 | 2026-09-13 01:45:33.034+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+ kalyan-agencies  | 2026-09-12 12:51:01.512114+05:30 | 2026-09-13 01:45:35.035+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+ qa-probe-support | 2026-09-12 19:26:19.988125+05:30 | 2026-09-13 01:45:31.034+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+ b-0bb6e38a       | 2026-09-12 20:36:11.746832+05:30 | 2026-09-13 01:45:29.036+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+ a-0bb6e38a       | 2026-09-12 20:36:11.746832+05:30 | 2026-09-13 01:45:27.029+05:30 | 2026-09-13          | ageingB0_7, ageingB16_30, ageingB31_60, ageingB61_90, ageingB8_15, ageingB90plus, cashInTransitPaise | t                 | f                           | t
+(6 rows)
+
+== 08b. worker job history (pg-boss) and schedules
+             name              |   state   | jobs |          first_created           |          last_completed          
+-------------------------------+-----------+------+----------------------------------+----------------------------------
+ __pgboss__send-it             | completed | 2018 | 2026-09-12 12:52:26.322018+05:30 | 2026-09-13 01:50:21.622975+05:30
+ exports.render                | completed |    8 | 2026-09-12 12:52:33.511094+05:30 | 2026-09-12 12:52:41.059758+05:30
+ imports.run                   | completed |    2 | 2026-09-12 20:38:12.748704+05:30 | 2026-09-12 20:38:16.750098+05:30
+ incentives.achievements.sweep | completed |   10 | 2026-09-12 12:53:31.301461+05:30 | 2026-09-12 21:53:13.345457+05:30
+ integrations.sweep            | created   |    1 | 2026-09-13 01:50:21.62044+05:30  | 
+ integrations.sweep            | completed |  650 | 2026-09-12 12:52:31.496333+05:30 | 2026-09-13 01:49:23.355109+05:30
+ notifications.dispatch        | created   |    1 | 2026-09-13 01:50:21.620485+05:30 | 
+ notifications.dispatch        | completed |  650 | 2026-09-12 12:52:31.496133+05:30 | 2026-09-13 01:49:23.256267+05:30
+ outbox-relay                  | created   |    1 | 2026-09-13 01:50:21.620465+05:30 | 
+ outbox-relay                  | completed |  650 | 2026-09-12 12:52:31.496251+05:30 | 2026-09-13 01:49:23.351678+05:30
+ reporting.rollup.schedule     | completed |   44 | 2026-09-12 13:00:26.367644+05:30 | 2026-09-13 01:45:23.012756+05:30
+ reporting.rollup.tenant       | completed |  176 | 2026-09-12 13:00:27.592954+05:30 | 2026-09-13 01:45:35.036947+05:30
+ retention                     | completed |   11 | 2026-09-12 13:47:08.730991+05:30 | 2026-09-13 01:47:23.118565+05:30
+(13 rows)
+
+             name              | key |     cron     |   timezone   | data |        options         |            created_on            |            updated_on            
+-------------------------------+-----+--------------+--------------+------+------------------------+----------------------------------+----------------------------------
+ notifications.dispatch        |     | * * * * *    | UTC          |      | {}                     | 2026-09-12 12:51:27.025153+05:30 | 2026-09-13 00:57:50.652942+05:30
+ notifications.deliveryToday   |     | 0 7 * * *    | Asia/Kolkata |      | {"tz": "Asia/Kolkata"} | 2026-09-12 12:51:27.313438+05:30 | 2026-09-13 00:57:50.668574+05:30
+ notifications.duesReminder    |     | 0 9 * * *    | Asia/Kolkata |      | {"tz": "Asia/Kolkata"} | 2026-09-12 12:51:27.317386+05:30 | 2026-09-13 00:57:50.702112+05:30
+ reporting.rollup.schedule     |     | */15 * * * * | UTC          |      | {}                     | 2026-09-12 12:51:27.321946+05:30 | 2026-09-13 00:57:50.748559+05:30
+ reporting.rollup.finalize     |     | 50 18 * * *  | UTC          |      | {}                     | 2026-09-12 12:51:27.324413+05:30 | 2026-09-13 00:57:50.765195+05:30
+ incentives.achievements.sweep |     | 23 * * * *   | UTC          |      | {}                     | 2026-09-12 12:51:27.395458+05:30 | 2026-09-13 00:57:50.776894+05:30
+ ai.forecast.sweep             |     | 10 22 * * *  | UTC          |      | {}                     | 2026-09-12 12:51:27.398898+05:30 | 2026-09-13 00:57:50.819407+05:30
+ integrations.sweep            |     | * * * * *    | UTC          |      | {}                     | 2026-09-12 12:51:27.401414+05:30 | 2026-09-13 00:57:50.823223+05:30
+ outbox-relay                  |     | * * * * *    | UTC          |      | {}                     | 2026-09-12 12:51:27.402911+05:30 | 2026-09-13 00:57:50.872572+05:30
+ retention                     |     | 17 * * * *   | UTC          |      | {}                     | 2026-09-12 12:51:27.414805+05:30 | 2026-09-13 00:57:50.929459+05:30
+(10 rows)
+
+== 08c. owner_summary tiles vs live (expanded). live_* recomputed now from documents; *_after_as_of counts the activity that legitimately moves a number after the rollup ran
+Expanded display is on.
+-[ RECORD 1 ]-------------------+---------------------------------
+slug                            | tarsun
+as_of                           | 2026-09-13 01:45:25.042+05:30
+report_business_date            | 2026-09-13
+report_today_invoiced           | 66700
+live_invoiced_on_report_date    | 66700
+live_invoiced_created_by_as_of  | 66700
+report_today_collected          | 285300
+live_collected_on_report_date   | 285300
+live_collected_created_by_as_of | 285300
+report_outstanding              | 439829100
+rollup_outstanding_now          | 439829100
+live_outstanding_now            | 439829100
+report_overdue                  | 267781800
+rollup_overdue_now              | 267781800
+live_overdue_at_report_date     | 277973900
+report_90plus                   | 2596200
+rollup_90plus_now               | 2596200
+live_90plus_at_report_date      | 2596200
+report_bucket_sum               | 439829100
+invoices_touched_after_as_of    | 0
+receipts_after_as_of            | 0
+allocations_after_as_of         | 0
+credit_notes_after_as_of        | 0
+rollup_latest_update            | 2026-09-13 01:27:40.358533+05:30
+-[ RECORD 2 ]-------------------+---------------------------------
+slug                            | sai-distributors
+as_of                           | 2026-09-13 01:45:33.034+05:30
+report_business_date            | 2026-09-13
+report_today_invoiced           | 0
+live_invoiced_on_report_date    | 0
+live_invoiced_created_by_as_of  | 0
+report_today_collected          | 0
+live_collected_on_report_date   | 0
+live_collected_created_by_as_of | 0
+report_outstanding              | 365588900
+rollup_outstanding_now          | 365588900
+live_outstanding_now            | 365588900
+report_overdue                  | 212409300
+rollup_overdue_now              | 212409300
+live_overdue_at_report_date     | 223367800
+report_90plus                   | 2460200
+rollup_90plus_now               | 2460200
+live_90plus_at_report_date      | 2460200
+report_bucket_sum               | 365588900
+invoices_touched_after_as_of    | 0
+receipts_after_as_of            | 0
+allocations_after_as_of         | 0
+credit_notes_after_as_of        | 0
+rollup_latest_update            | 2026-09-12 12:51:00.689098+05:30
+-[ RECORD 3 ]-------------------+---------------------------------
+slug                            | kalyan-agencies
+as_of                           | 2026-09-13 01:45:35.035+05:30
+report_business_date            | 2026-09-13
+report_today_invoiced           | 0
+live_invoiced_on_report_date    | 0
+live_invoiced_created_by_as_of  | 0
+report_today_collected          | 0
+live_collected_on_report_date   | 0
+live_collected_created_by_as_of | 0
+report_outstanding              | 102169750
+rollup_outstanding_now          | 102169750
+live_outstanding_now            | 102169750
+report_overdue                  | 52716850
+rollup_overdue_now              | 52716850
+live_overdue_at_report_date     | 53527750
+report_90plus                   | 2595350
+rollup_90plus_now               | 2595350
+live_90plus_at_report_date      | 2595350
+report_bucket_sum               | 102169750
+invoices_touched_after_as_of    | 0
+receipts_after_as_of            | 0
+allocations_after_as_of         | 0
+credit_notes_after_as_of        | 0
+rollup_latest_update            | 2026-09-12 12:51:03.559493+05:30
+
+Expanded display is off.
+== 08d. daily_tenant_stats (the revenue and collections register behind the report) vs live, last three business days
+       slug       |    day     |           computed_at            | stored_invoiced | live_invoiced | invoices_changed_after_compute | stored_collected | live_collected | receipts_changed_after_compute | stored_outstanding 
+------------------+------------+----------------------------------+-----------------+---------------+--------------------------------+------------------+----------------+--------------------------------+--------------------
+ kalyan-agencies  | 2026-09-11 | 2026-09-12 12:51:03.667263+05:30 |         6475100 |       6475100 |                              0 |          8510500 |        8510500 |                              0 |          119121950
+ kalyan-agencies  | 2026-09-12 | 2026-09-12 22:45:25.442+05:30    |          909600 |        909600 |                              0 |         17726784 |       17726784 |                              0 |          102169750
+ kalyan-agencies  | 2026-09-13 | 2026-09-13 01:45:35.011+05:30    |               0 |             0 |                              0 |                0 |              0 |                              0 |          102169750
+ sai-distributors | 2026-09-11 | 2026-09-12 12:51:00.986112+05:30 |        24929300 |      24929300 |                              0 |         27242074 |       27242074 |                              0 |          390650500
+ sai-distributors | 2026-09-12 | 2026-09-12 22:45:23.444+05:30    |         8027300 |       8027300 |                              0 |         34636142 |       34636142 |                              0 |          365588900
+ sai-distributors | 2026-09-13 | 2026-09-13 01:45:33.009+05:30    |               0 |             0 |                              0 |                0 |              0 |                              0 |          365588900
+ tarsun           | 2026-09-11 | 2026-09-12 12:50:54.993832+05:30 |        18101000 |      18101000 |                              5 |         25188700 |       25188700 |                              0 |          472821900
+ tarsun           | 2026-09-12 | 2026-09-12 22:45:15.47+05:30     |        15014700 |      15014700 |                              0 |         47158867 |       47158867 |                              0 |          442437400
+ tarsun           | 2026-09-13 | 2026-09-13 01:45:25.013+05:30    |           66700 |         66700 |                              0 |           285300 |         285300 |                              0 |          439829100
+(9 rows)
+
+COMMIT

@@ -1,0 +1,63 @@
+-- run at: 2026-09-13 01:50:22 +0530  db: dos_qa  file: 07-outstanding.sql
+#### CHECK 07 - retailer outstanding three ways, and ageing buckets
+   A books     = SUM(journal_lines on account AR, party_type retailer, party_id = shop)
+   B documents = invoices (not draft/cancelled) - receipts (amount + cash discount, reversals negative) - credit notes (issued/applied) - write-offs
+   C product   = retailer_outstanding_summary.outstanding_paise - unallocated_credit_paise (identity stated in receivables/outstanding.ts)
+   L live      = open bills now: SUM(max(total - allocations, 0)) over invoices in issued/partially_paid (the product's own definition)
+BEGIN
+           snapshot_at            | business_date_ist 
+----------------------------------+-------------------
+ 2026-09-13 01:50:22.414915+05:30 | 2026-09-13
+(1 row)
+
+== 07a. per tenant: shops with money, and how many disagree on each comparison
+       slug       | shops_with_money | books_ne_documents | books_ne_product_identity | books_ne_identity_after_unallocated_cn | money_but_no_summary_row | stored_outstanding_ne_live | stored_unallocated_ne_live | stored_open_bills_ne_live |  a_books  | b_documents | c_product | s_outstanding | l_open_gross | l_unallocated_receipts | l_unallocated_cn 
+------------------+------------------+--------------------+---------------------------+----------------------------------------+--------------------------+----------------------------+----------------------------+---------------------------+-----------+-------------+-----------+---------------+--------------+------------------------+------------------
+ a-0bb6e38a       |                2 |                  2 |                         2 |                                      2 |                        0 |                          0 |                          1 |                         0 |    -80000 |      197500 |    227000 |        227000 |       227000 |                  25000 |             4500
+ b-0bb6e38a       |                0 |                  0 |                         0 |                                      0 |                        0 |                          0 |                          0 |                         0 |         0 |           0 |           |               |            0 |                      0 |                0
+ kalyan-agencies  |               22 |                  0 |                         0 |                                      0 |                        0 |                          0 |                          0 |                         0 |  96174050 |    96174050 |  96174050 |     102169750 |    102169750 |                5995700 |                0
+ sai-distributors |               38 |                  0 |                         0 |                                      0 |                        0 |                          0 |                          0 |                         0 | 356354800 |   356354800 | 356354800 |     365588900 |    365588900 |                9234100 |                0
+ tarsun           |               55 |                  0 |                         0 |                                      0 |                        0 |                          0 |                          0 |                         0 | 436321100 |   436321100 | 436321100 |     439829100 |    439829100 |                3508000 |                0
+(5 rows)
+
+== 07b. examples: shops where any comparison disagrees (up to 15)
+    slug    | shop_id  |    shop    | a_books | b_documents | c_product | s_outstanding | l_open_gross | s_unallocated | l_unallocated_receipts | l_unallocated_credit_notes | s_open_bills | l_open_bills | has_summary |            updated_at            
+------------+----------+------------+---------+-------------+-----------+---------------+--------------+---------------+------------------------+----------------------------+--------------+--------------+-------------+----------------------------------
+ a-0bb6e38a | 01a09627 | Other shop |       0 |      160000 |    160000 |        160000 |       160000 |             0 |                      0 |                          0 |            1 |            1 | t           | 2026-09-12 20:36:16.294684+05:30
+ a-0bb6e38a | 01a09627 | Shop A     |  -80000 |       37500 |     67000 |         67000 |        67000 |             0 |                  25000 |                       4500 |            1 |            1 | t           | 2026-09-12 20:36:16.272172+05:30
+(2 rows)
+
+== 07c. ageing: stored buckets sum to stored outstanding; stored buckets and overdue vs a live recompute AS OF each row's own as_of; rows not refreshed today
+       slug       | summary_rows | stored_buckets_ne_stored_outstanding | stored_buckets_ne_live_at_as_of | stored_overdue_ne_live_at_as_of | rows_as_of_before_today | oldest_as_of | newest_as_of | stored_90plus | live_90plus_at_as_of | live_90plus_today | stored_outstanding 
+------------------+--------------+--------------------------------------+---------------------------------+---------------------------------+-------------------------+--------------+--------------+---------------+----------------------+-------------------+--------------------
+ a-0bb6e38a       |            2 |                                    2 |                               2 |                               1 |                       2 | 2026-09-04   | 2026-09-04   |             0 |                    0 |                 0 |             227000
+ kalyan-agencies  |           24 |                                    0 |                               0 |                               0 |                      24 | 2026-09-12   | 2026-09-12   |       2595350 |              2595350 |           2595350 |          102169750
+ sai-distributors |           40 |                                    0 |                               0 |                               0 |                      40 | 2026-09-12   | 2026-09-12   |       2460200 |              2460200 |           2460200 |          365588900
+ tarsun           |           60 |                                    0 |                               0 |                               0 |                      56 | 2026-09-12   | 2026-09-13   |       2596200 |              2596200 |           2596200 |          439829100
+(4 rows)
+
+== 07d. examples: stored buckets <> stored outstanding, or stored buckets <> live at as_of (up to 10)
+    slug    | shop_id  |   as_of    |            updated_at            | outstanding_paise |    stored     |   live_at_as_of    
+------------+----------+------------+----------------------------------+-------------------+---------------+--------------------
+ a-0bb6e38a | 01a09627 | 2026-09-04 | 2026-09-12 20:36:16.294684+05:30 |            160000 | {0,0,0,0,0,0} | {160000,0,0,0,0,0}
+ a-0bb6e38a | 01a09627 | 2026-09-04 | 2026-09-12 20:36:16.272172+05:30 |             67000 | {0,0,0,0,0,0} | {67000,0,0,0,0,0}
+(2 rows)
+
+== 07e. ageing_snapshots, latest as_of per tenant: buckets sum to outstanding; legacy bucket_60_plus = 61_90 + 90_plus
+       slug       |   as_of    | rows | buckets_ne_outstanding | legacy_60plus_wrong 
+------------------+------------+------+------------------------+---------------------
+ kalyan-agencies  | 2026-09-12 |   22 |                      0 |                   0
+ sai-distributors | 2026-09-12 |   38 |                      0 |                   0
+ tarsun           | 2026-09-12 |   55 |                      0 |                   0
+(3 rows)
+
+== 07f. retailer links per tenant (outstanding is per tenant shop; every active link points at one of these shops)
+       slug       | links | active_links | link_to_missing_shop | link_to_other_tenant_shop 
+------------------+-------+--------------+----------------------+---------------------------
+ a-0bb6e38a       |     4 |            3 |                    0 |                         0
+ kalyan-agencies  |    10 |           10 |                    0 |                         0
+ sai-distributors |    17 |           17 |                    0 |                         0
+ tarsun           |    24 |           23 |                    0 |                         0
+(4 rows)
+
+COMMIT

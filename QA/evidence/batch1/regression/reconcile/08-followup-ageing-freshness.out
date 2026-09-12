@@ -1,0 +1,84 @@
+-- run at: 2026-09-13 01:54:09 +0530  db: dos_qa  file: 08-followup-ageing-freshness.sql
+#### FOLLOW-UP to 07c / 08c: the dues rollup behind the owner report, freshness after midnight IST
+BEGIN
+           snapshot_at            | business_date_ist 
+----------------------------------+-------------------
+ 2026-09-13 01:54:09.768707+05:30 | 2026-09-13
+(1 row)
+
+== f08a. retailer_outstanding_summary rows by as_of per tenant
+       slug       |   as_of    | rows |          latest_update           
+------------------+------------+------+----------------------------------
+ kalyan-agencies  | 2026-09-12 |   24 | 2026-09-12 12:51:03.559493+05:30
+ sai-distributors | 2026-09-12 |   40 | 2026-09-12 12:51:00.689098+05:30
+ tarsun           | 2026-09-12 |   56 | 2026-09-12 16:29:09.306746+05:30
+ tarsun           | 2026-09-13 |    4 | 2026-09-13 01:27:40.358533+05:30
+(4 rows)
+
+== f08b. owner report ageing + overdue vs live recompute as of today (expanded)
+Expanded display is on.
+-[ RECORD 1 ]---------------+------------------------------
+slug                        | tarsun
+as_of                       | 2026-09-13 01:45:25.042+05:30
+report_overdue              | 267781800
+live_overdue_today          | 277973900
+overdue_understated_by      | 10192100
+open_on_bills_due_yesterday | 11747000
+report_b0_7                 | 230343000
+live_b0_7                   | 217897600
+report_b8_15                | 68668850
+live_b8_15                  | 71282150
+report_b16_30               | 79901750
+live_b16_30                 | 89733850
+report_b31_60               | 49299000
+live_b31_60                 | 49299000
+report_b61_90               | 9020300
+live_b61_90                 | 9020300
+report_b90plus              | 2596200
+live_b90plus                | 2596200
+-[ RECORD 2 ]---------------+------------------------------
+slug                        | sai-distributors
+as_of                       | 2026-09-13 01:45:33.034+05:30
+report_overdue              | 212409300
+live_overdue_today          | 223367800
+overdue_understated_by      | 10958500
+open_on_bills_due_yesterday | 10958500
+report_b0_7                 | 203513000
+live_b0_7                   | 195703800
+report_b8_15                | 62300600
+live_b8_15                  | 59166200
+report_b16_30               | 75024400
+live_b16_30                 | 85198500
+report_b31_60               | 19603050
+live_b31_60                 | 20372550
+report_b61_90               | 2687650
+live_b61_90                 | 2687650
+report_b90plus              | 2460200
+live_b90plus                | 2460200
+-[ RECORD 3 ]---------------+------------------------------
+slug                        | kalyan-agencies
+as_of                       | 2026-09-13 01:45:35.035+05:30
+report_overdue              | 52716850
+live_overdue_today          | 53527750
+overdue_understated_by      | 810900
+open_on_bills_due_yesterday | 810900
+report_b0_7                 | 66104350
+live_b0_7                   | 63066200
+report_b8_15                | 7672100
+live_b8_15                  | 10071350
+report_b16_30               | 16329300
+live_b16_30                 | 16968200
+report_b31_60               | 6437800
+live_b31_60                 | 6437800
+report_b61_90               | 3030850
+live_b61_90                 | 3030850
+report_b90plus              | 2595350
+live_b90plus                | 2595350
+
+Expanded display is off.
+== f08c. pg-boss: any ageing / finalize job ever created
+ name | state | count 
+------+-------+-------
+(0 rows)
+
+COMMIT

@@ -1,0 +1,79 @@
+-- run at: 2026-09-13 01:50:21 +0530  db: dos_qa  file: 04-journals.sql
+#### CHECK 04 - journals (ADR 0004). journal_lines.amount_paise is signed: debit +, credit -. An entry balances when SUM = 0.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:21.645236+05:30
+(1 row)
+
+== 04a. per tenant: entries, lines, unbalanced entries, headers with no lines (not DB-enforced by design, migration 0007 note 4)
+       slug       | entries | lines | unbalanced_entries | entries_without_lines 
+------------------+---------+-------+--------------------+-----------------------
+ a-0bb6e38a       |       3 |     6 |                  0 |                     0
+ kalyan-agencies  |     353 |  1524 |                  0 |                     0
+ sai-distributors |     855 |  3822 |                  0 |                     0
+ tarsun           |    1766 |  7357 |                  0 |                     0
+(4 rows)
+
+== 04b. examples of unbalanced entries or entries without lines (up to 10)
+ slug | id | ref_type | ref_id | posted_at | total | lines 
+------+----+----------+--------+-----------+-------+-------
+(0 rows)
+
+== 04c. orphan and cross-tenant lines
+ lines | lines_without_entry | line_tenant_ne_entry_tenant | lines_without_account | account_of_other_tenant 
+-------+---------------------+-----------------------------+-----------------------+-------------------------
+ 12709 |                   0 |                           0 |                     0 |                       0
+(1 row)
+
+== 04d. duplicate idempotency keys; documents posted more than once under the same ref_type
+ dup_idempotency_groups 
+------------------------
+                      0
+(1 row)
+
+       slug       | ref_type | refs_with_more_than_one_entry 
+------------------+----------+-------------------------------
+ sai-distributors | claim    |                             1
+ tarsun           | claim    |                             3
+(2 rows)
+
+== 04e. trial balance per tenant (all lines must net to 0) and AR lines without a retailer party
+       slug       | trial_balance_paise | ar_lines | ar_lines_without_retailer_party 
+------------------+---------------------+----------+---------------------------------
+ a-0bb6e38a       |                   0 |        3 |                               1
+ kalyan-agencies  |                   0 |      340 |                               0
+ sai-distributors |                   0 |      820 |                               0
+ tarsun           |                   0 |     1662 |                               0
+(4 rows)
+
+== 04f. document tie-out: every money document has exactly one posting whose AR amount equals the document
+   invoice (not draft): ref invoice (source import: ref opening), AR = +total | cancelled invoice: ref invoice_cancel, AR = -total
+   credit note (issued/applied): AR = -total | receipt: ref receipt (reversal: receipt_reversal), AR = -(amount + cash discount) | write-off: AR = -amount
+       slug       |       doc        | documents | missing_entry | more_than_one_entry | ar_amount_ne_document |                         examples                          
+------------------+------------------+-----------+---------------+---------------------+-----------------------+-----------------------------------------------------------
+ a-0bb6e38a       | credit_note      |         1 |             1 |                   0 |                     0 | {CN-0bb6e38a-1}
+ a-0bb6e38a       | invoice          |         2 |             2 |                   0 |                     0 | {T0bb6e38a/1,T0bb6e38a/2}
+ a-0bb6e38a       | receipt          |         3 |             3 |                   0 |                     0 | {RCPT-0bb6e38a-D,RCPT-0bb6e38a-2,RCPT-0bb6e38a-1}
+ a-0bb6e38a       | writeoff         |         1 |             1 |                   0 |                     0 | {01a09627-a6f4-74d8-8bed-1e68e445a2f0}
+ kalyan-agencies  | credit_note      |        15 |             0 |                   0 |                     0 | 
+ kalyan-agencies  | invoice          |       189 |             0 |                   0 |                     0 | 
+ kalyan-agencies  | invoice_cancel   |         1 |             0 |                   0 |                     0 | 
+ kalyan-agencies  | receipt          |       130 |             0 |                   0 |                     0 | 
+ kalyan-agencies  | receipt_reversal |         3 |             3 |                   0 |                     0 | {RCPT-0056-R,RCPT-CHQ-0005-R,RCPT-ERR-0001-R}
+ kalyan-agencies  | writeoff         |         2 |             0 |                   0 |                     0 | 
+ sai-distributors | credit_note      |        52 |             0 |                   0 |                     0 | 
+ sai-distributors | invoice          |       456 |             0 |                   0 |                     0 | 
+ sai-distributors | invoice_cancel   |         1 |             0 |                   0 |                     0 | 
+ sai-distributors | receipt          |       305 |             0 |                   0 |                     0 | 
+ sai-distributors | receipt_reversal |         4 |             4 |                   0 |                     0 | {RCPT-0207-R,RCPT-ERR-0001-R,RCPT-CHQ-0005-R,RCPT-0131-R}
+ sai-distributors | writeoff         |         2 |             0 |                   0 |                     0 | 
+ tarsun           | credit_note      |        67 |             0 |                   0 |                     0 | 
+ tarsun           | invoice          |       858 |             0 |                   0 |                     0 | 
+ tarsun           | invoice_cancel   |         1 |             0 |                   0 |                     0 | 
+ tarsun           | receipt          |       730 |             0 |                   0 |                     0 | 
+ tarsun           | receipt_reversal |         4 |             4 |                   0 |                     0 | {RCPT-ERR-0001-R,RCPT-0073-R,RCPT-CHQ-0005-R,RCPT-0278-R}
+ tarsun           | writeoff         |         2 |             0 |                   0 |                     0 | 
+(22 rows)
+
+COMMIT

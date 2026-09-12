@@ -1,0 +1,38 @@
+-- run at: 2026-09-13 01:53:41 +0530  db: dos_qa  file: 04-followup-reversal-postings.sql
+#### FOLLOW-UP to 04f: receipt reversals with no receipt_reversal entry - where were they posted, and by whom (seed or product)?
+BEGIN
+           snapshot_at           
+---------------------------------
+ 2026-09-13 01:53:41.40342+05:30
+(1 row)
+
+       slug       |   receipt_no    | amount_paise | cash_discount_paise |            created_at            |  original_no  | original_status | entries_on_reversal_id | entries_on_original_id 
+------------------+-----------------+--------------+---------------------+----------------------------------+---------------+-----------------+------------------------+------------------------
+ kalyan-agencies  | RCPT-0056-R     |      -891700 |                   0 | 2026-09-05 21:30:00+05:30        | RCPT-0056     | bounced         | receipt AR=891700      | receipt AR=-891700
+ kalyan-agencies  | RCPT-CHQ-0005-R |     -2261300 |                   0 | 2026-09-12 12:51:03.482467+05:30 | RCPT-CHQ-0005 | bounced         | receipt AR=2261300     | receipt AR=-2261300
+ kalyan-agencies  | RCPT-ERR-0001-R |      -200000 |                   0 | 2026-09-12 12:51:03.482467+05:30 | RCPT-ERR-0001 | cancelled       | receipt AR=200000      | receipt AR=-200000
+ sai-distributors | RCPT-0131-R     |     -1774900 |                   0 | 2026-08-29 21:30:00+05:30        | RCPT-0131     | bounced         | receipt AR=1774900     | receipt AR=-1774900
+ sai-distributors | RCPT-0207-R     |     -1331500 |                   0 | 2026-09-09 21:30:00+05:30        | RCPT-0207     | bounced         | receipt AR=1331500     | receipt AR=-1331500
+ sai-distributors | RCPT-CHQ-0005-R |     -2874100 |                   0 | 2026-09-12 12:51:00.598312+05:30 | RCPT-CHQ-0005 | bounced         | receipt AR=2874100     | receipt AR=-2874100
+ sai-distributors | RCPT-ERR-0001-R |      -200000 |                   0 | 2026-09-12 12:51:00.598312+05:30 | RCPT-ERR-0001 | cancelled       | receipt AR=200000      | receipt AR=-200000
+ tarsun           | RCPT-0073-R     |     -1472000 |                   0 | 2026-07-18 21:30:00+05:30        | RCPT-0073     | bounced         | receipt AR=1472000     | receipt AR=-1472000
+ tarsun           | RCPT-0278-R     |     -6659000 |                   0 | 2026-08-12 21:30:00+05:30        | RCPT-0278     | bounced         | receipt AR=6659000     | receipt AR=-6659000
+ tarsun           | RCPT-CHQ-0005-R |     -2825000 |                   0 | 2026-09-12 12:50:54.211942+05:30 | RCPT-CHQ-0005 | bounced         | receipt AR=2825000     | receipt AR=-2825000
+ tarsun           | RCPT-ERR-0001-R |      -200000 |                   0 | 2026-09-12 12:50:54.211942+05:30 | RCPT-ERR-0001 | cancelled       | receipt AR=200000      | receipt AR=-200000
+(11 rows)
+
+ reversals | created_after_seed 
+-----------+--------------------
+        11 |                  0
+(1 row)
+
+== f04b. claims posted more than once (04d): ref types and AR effect
+       slug       |                ref_id                | entries |                                                                   narrations                                                                    | ar_effect 
+------------------+--------------------------------------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------+-----------
+ sai-distributors | 0f76db43-b7b9-72c0-a43f-a6b13cae2ad5 |       2 | Claim CLM-0003 on the brand (scheme, 2026-07-01 to 2026-07-31) | Claim CLM-0003 rejected: Wholesale billing not covered by the scheme circular. |         0
+ tarsun           | 082ddf82-e678-7ff8-bb71-4edece0bd525 |       2 | Claim CLM-0013 on the brand (scheme, 2026-07-01 to 2026-07-31) | Claim CLM-0013 rejected: Wholesale billing not covered by the scheme circular. |         0
+ tarsun           | 092b3590-f227-7a62-8cee-1e484810bbf7 |       2 | Claim CLM-0003 on the brand (scheme, 2026-06-01 to 2026-06-30) | Claim CLM-0003 rejected: Wholesale billing not covered by the scheme circular. |         0
+ tarsun           | 627b0098-7024-7e10-89d8-41a4d37f2cea |       2 | Claim CLM-0008 on the brand (scheme, 2026-07-01 to 2026-07-31) | Claim CLM-0008 rejected: Wholesale billing not covered by the scheme circular. |         0
+(4 rows)
+
+COMMIT

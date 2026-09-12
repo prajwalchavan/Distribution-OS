@@ -1,0 +1,111 @@
+-- run at: 2026-09-13 01:50:18 +0530  db: dos_qa  file: 02-loadout-once.sql
+#### CHECK 02 - load-out moved stock once (fix DOS-039). Pack books the sale (ref_type pack, reason sale); load-out may move ONLY counted van stock (ref_type load_sheet, transfer_out/transfer_in).
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:50:18.263409+05:30
+(1 row)
+
+== 02a. load sheets by tenant and status; confirmed since the batch-1 merge; sheets carrying van stock; ledger rows with ref_type load_sheet
+       slug       |  status   | sheets | confirmed_since_merge | with_van_stock | load_sheet_ledger_rows_in_tenant 
+------------------+-----------+--------+-----------------------+----------------+----------------------------------
+ a-0bb6e38a       | confirmed |      3 |                     0 |              0 |                                0
+ kalyan-agencies  | draft     |      1 |                     0 |              0 |                                0
+ kalyan-agencies  | confirmed |     38 |                     0 |              0 |                                0
+ sai-distributors | draft     |      1 |                     0 |              0 |                                0
+ sai-distributors | confirmed |     52 |                     0 |              0 |                                0
+ tarsun           | confirmed |     83 |                     1 |              0 |                                0
+(6 rows)
+
+== 02b. VIOLATION: a load_sheet ledger row on a lot that one of the sheet's own orders already took as sale at pack
+ slug | sheet_id | lot_id | reason | qty_delta | order_id | pack_sale_pcs 
+------+----------+--------+--------+-----------+----------+---------------
+(0 rows)
+
+== 02c. load_sheet transfer_out per (sheet, lot) vs the sheet van_stock for that lot; transfer_in must mirror transfer_out (sheets with ledger rows, or confirmed since the merge)
+ slug | sheet_id | lot_id | out_pcs | in_pcs | van_pcs 
+------+----------+--------+---------+--------+---------
+(0 rows)
+
+== 02d. the DOS-039 sheet 374f2089 (confirmed after the merge): header
+  slug  |                  id                  |  status   |         confirmed_at          | expected_packages | counted_packages | van_stock | challan_no |               trip_id                | approved 
+--------+--------------------------------------+-----------+-------------------------------+-------------------+------------------+-----------+------------+--------------------------------------+----------
+ tarsun | 374f2089-b8fd-720e-907c-8380307948ab | confirmed | 2026-09-13 01:07:22.333+05:30 |                38 |               35 | []        | DC-0083    | 72649337-4c50-7033-a988-ca5cf4406f9c | t
+(1 row)
+
+== 02d2. its orders: state, pack sale pieces (and at which location kind), billed pieces (qty + free) on the live pack invoice, other ledger rows naming the order, its invoices or the sheet
+ order_no |   state    | pack_sale_pcs | pack_location_kinds | billed_pcs |    invoices     | other_ledger_rows 
+----------+------------+---------------+---------------------+------------+-----------------+-------------------
+ SO-0869  | dispatched |           151 | warehouse           |        151 | INV/0836 issued |                 0
+ SO-0871  | dispatched |           209 | warehouse           |        209 | INV/0837 issued |                 0
+ SO-0875  | dispatched |          4283 | warehouse           |       4283 | INV/0838 paid   |                 0
+ SO-0876  | dispatched |           880 | warehouse           |        880 | INV/0839 issued |                 0
+ SO-0878  | dispatched |           403 | warehouse           |        403 | INV/0840 issued |                 0
+(5 rows)
+
+== 02d3. its orders' transitions since the merge
+ order_no | from_state |  to_state  |  event   |           occurred_at            
+----------+------------+------------+----------+----------------------------------
+ SO-0869  | packed     | dispatched | dispatch | 2026-09-13 01:07:22.316638+05:30
+ SO-0871  | packed     | dispatched | dispatch | 2026-09-13 01:07:22.316638+05:30
+ SO-0875  | packed     | dispatched | dispatch | 2026-09-13 01:07:22.316638+05:30
+ SO-0876  | packed     | dispatched | dispatch | 2026-09-13 01:07:22.316638+05:30
+ SO-0878  | packed     | dispatched | dispatch | 2026-09-13 01:07:22.316638+05:30
+(5 rows)
+
+== 02e. every order in dispatched or later: pieces out as sale at pack vs billed pieces (qty + free) on its live pack invoice, per lot
+       slug       | orders_in_scope | orders_with_pack_or_bill_lines | order_lot_rows | lot_rows_sale_ne_billed | orders_sale_ne_billed | sale_pcs | billed_pcs |      example_orders       
+------------------+-----------------+--------------------------------+----------------+-------------------------+-----------------------+----------+------------+---------------------------
+ kalyan-agencies  |             174 |                            173 |            679 |                       3 |                     3 |    70337 |      71075 | {SO-9004,SO-9005,SO-9006}
+ sai-distributors |             440 |                            439 |           1967 |                       3 |                     3 |   306951 |     307699 | {SO-9004,SO-9005,SO-9006}
+ tarsun           |             840 |                            839 |           3517 |                       3 |                     3 |   462584 |     464108 | {SO-9004,SO-9005,SO-9006}
+(3 rows)
+
+== 02f. pack sale rows posted anywhere but a warehouse location
+       slug       |   kind    | rows |   pcs   
+------------------+-----------+------+---------
+ kalyan-agencies  | warehouse |  684 |  -70743
+ sai-distributors | warehouse | 1978 | -310240
+ tarsun           | warehouse | 3527 | -463431
+(3 rows)
+
+== 02g. VIOLATION: a second godown deduction for a dispatched-or-later order - negative rows at a warehouse location, other than its pack sale, naming the order, its invoices, or a load sheet carrying it
+ slug | ref_type | reason | rows | pcs | example_ledger_ids 
+------+----------+--------+------+-----+--------------------
+(0 rows)
+
+            metric            | value 
+------------------------------+-------
+ second_godown_deduction_rows |     0
+(1 row)
+
+== 02h. context: other movement families that touch vehicles (seeded van_load pairs, sale on van-sale invoices)
+       slug       |    reason    | ref_type |   kind    | rows | pcs  
+------------------+--------------+----------+-----------+------+------
+ kalyan-agencies  | sale         | invoice  | warehouse |    1 |  -72
+ kalyan-agencies  | sale         | invoice  | vehicle   |    1 |  -18
+ kalyan-agencies  | van_load     | manual   | warehouse |    1 |  -18
+ kalyan-agencies  | van_load     | manual   | vehicle   |    1 |   18
+ kalyan-agencies  | van_load     | trip     | warehouse |    6 | -192
+ kalyan-agencies  | van_load     | trip     | vehicle   |    6 |  192
+ sai-distributors | sale         | invoice  | warehouse |    1 |  -72
+ sai-distributors | sale         | invoice  | vehicle   |    1 |  -18
+ sai-distributors | transfer_out | manual   | warehouse |   25 | -518
+ sai-distributors | transfer_in  | manual   | damaged   |   25 |  518
+ sai-distributors | van_load     | manual   | warehouse |    1 |  -18
+ sai-distributors | van_load     | manual   | vehicle   |    1 |   18
+ sai-distributors | van_load     | trip     | warehouse |    6 | -192
+ sai-distributors | van_load     | trip     | vehicle   |    6 |  192
+ tarsun           | sale         | invoice  | warehouse |    1 |  -72
+ tarsun           | sale         | invoice  | vehicle   |    1 |  -18
+ tarsun           | transfer_out | manual   | warehouse |   29 | -371
+ tarsun           | transfer_out | transfer | warehouse |    1 |   -1
+ tarsun           | transfer_in  | manual   | damaged   |   29 |  371
+ tarsun           | transfer_in  | transfer | damaged   |    1 |    1
+ tarsun           | van_load     | manual   | warehouse |    1 |  -18
+ tarsun           | van_load     | manual   | vehicle   |    1 |   18
+ tarsun           | van_load     | trip     | warehouse |    6 | -192
+ tarsun           | van_load     | trip     | vehicle   |    6 |  192
+(24 rows)
+
+COMMIT

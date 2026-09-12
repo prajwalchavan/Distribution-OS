@@ -1,0 +1,33 @@
+-- run at: 2026-09-13 01:53:54 +0530  db: dos_qa  file: 06-followup-collections-and-series.sql
+#### FOLLOW-UP to 06e / 11a: trip collections whose receipt_id resolves to no receipt; RCPT series headroom
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:53:54.860199+05:30
+(1 row)
+
+== f06a. the dangling collections
+    slug    | collection | receipt_id | mode | amount_paise |           collected_at           |     trip_no     | trip_state |    shop    | receipts_same_trip_shop_amount | journal_entries_on_receipt_id | allocations_on_receipt_id 
+------------+------------+------------+------+--------------+----------------------------------+-----------------+------------+------------+--------------------------------+-------------------------------+---------------------------
+ a-0bb6e38a | 01a09627   | 01a09627   | cash |       118000 | 2026-09-12 20:36:17.242999+05:30 | TRIP-A-0bb6e38a | active     | Shop A     |                                |                             0 |                         0
+ a-0bb6e38a | 01a09627   | 01a09627   | upi  |        90000 | 2026-09-12 20:36:17.242999+05:30 | TRIP-B-0bb6e38a | active     | Other shop |                                |                             0 |                         0
+ a-0bb6e38a | 01a09627   | 01a09627   | cash |        10000 | 2026-09-12 20:36:22.477133+05:30 | TRIP-C-0bb6e38a | closing    | Other shop |                                |                             0 |                         0
+(3 rows)
+
+== f06b. those trips: cash per collections vs cash per receipts vs the settlement
+    slug    |     trip_no     |  state  | trip_date  | collections_cash | receipts_cash | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | expenses_paise | opening_cash_paise |            settled_at            
+------------+-----------------+---------+------------+------------------+---------------+---------------------+------------------------+---------------------+----------------+--------------------+----------------------------------
+ a-0bb6e38a | TRIP-A-0bb6e38a | active  | 2026-09-04 |           118000 |             0 |                     |                        |                     |                |             500000 | 
+ a-0bb6e38a | TRIP-B-0bb6e38a | active  | 2026-09-04 |                0 |             0 |                     |                        |                     |                |                  0 | 
+ a-0bb6e38a | TRIP-C-0bb6e38a | closing | 2026-09-03 |            10000 |             0 |              300000 |                 255000 |              -45000 |          30000 |                  0 | 2026-09-12 20:36:22.623844+05:30
+(3 rows)
+
+== f06c. RCPT series: next_no, highest regular number below 9000, numbers at or above 9000 and when they were written
+       slug       | next_no | highest_below_9000 |                                          numbers_9xxx                                          
+------------------+---------+--------------------+------------------------------------------------------------------------------------------------
+ kalyan-agencies  |     102 |                105 | RCPT-9001 12 Sep 12:51, RCPT-9002 12 Sep 12:51, RCPT-9003 12 Sep 12:51, RCPT-9004 12 Sep 12:51
+ sai-distributors |     277 |                280 | RCPT-9001 12 Sep 12:51, RCPT-9002 12 Sep 12:51, RCPT-9003 12 Sep 12:51, RCPT-9004 12 Sep 12:51
+ tarsun           |     702 |                701 | RCPT-9001 12 Sep 12:50, RCPT-9002 12 Sep 12:50, RCPT-9003 12 Sep 12:50, RCPT-9004 12 Sep 12:50
+(3 rows)
+
+COMMIT

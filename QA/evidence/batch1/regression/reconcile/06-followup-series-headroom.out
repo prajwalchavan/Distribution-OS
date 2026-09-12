@@ -1,0 +1,51 @@
+-- run at: 2026-09-13 01:55:53 +0530  db: dos_qa  file: 06-followup-series-headroom.sql
+#### FOLLOW-UP to 06d: every numbering series in the pilot tenants - documents already numbered at or past the counter (below the 9000 fixture range).
+#### The next issues from such a series collide: receipts get a duplicate number (no unique index, DOS-032/059); invoices, credit notes and challans hit their unique index and the issuing transaction fails.
+BEGIN
+           snapshot_at            
+----------------------------------
+ 2026-09-13 01:55:53.640851+05:30
+(1 row)
+
+       slug       | series_code |   fy    | next_no | numbered_at_or_past_counter |                  numbers                  
+------------------+-------------+---------+---------+-----------------------------+-------------------------------------------
+ kalyan-agencies  | CLAIM       | 2026-27 |       7 |                           0 | 
+ kalyan-agencies  | CN          | 2026-27 |    9003 |                           0 | 
+ kalyan-agencies  | DC          | 2026-27 |      39 |                           0 | 
+ kalyan-agencies  | EXT         | 2026-27 |       1 |                           1 | {GK/26-27/01187}
+ kalyan-agencies  | GRN         | 2026-27 |      23 |                           0 | 
+ kalyan-agencies  | INV         | 2026-27 |    9007 |                           0 | 
+ kalyan-agencies  | PICK        | 2026-27 |      40 |                           0 | 
+ kalyan-agencies  | PO          | 2026-27 |       1 |                           0 | 
+ kalyan-agencies  | RCPT        | 2026-27 |     102 |                           4 | {RCPT-0102,RCPT-0103,RCPT-0104,RCPT-0105}
+ kalyan-agencies  | RET         | 2026-27 |      25 |                           0 | 
+ kalyan-agencies  | SO          | 2026-27 |     185 |                           0 | 
+ kalyan-agencies  | TRIP        | 2026-27 |       1 |                           0 | 
+ sai-distributors | CLAIM       | 2026-27 |      13 |                           0 | 
+ sai-distributors | CN          | 2026-27 |    9003 |                           0 | 
+ sai-distributors | DC          | 2026-27 |      53 |                           0 | 
+ sai-distributors | EXT         | 2026-27 |       1 |                           1 | {TY/26-27/00412}
+ sai-distributors | GRN         | 2026-27 |      63 |                           0 | 
+ sai-distributors | INV         | 2026-27 |    9007 |                           0 | 
+ sai-distributors | PICK        | 2026-27 |      53 |                           0 | 
+ sai-distributors | PO          | 2026-27 |       1 |                           0 | 
+ sai-distributors | RCPT        | 2026-27 |     277 |                           4 | {RCPT-0277,RCPT-0278,RCPT-0279,RCPT-0280}
+ sai-distributors | RET         | 2026-27 |      41 |                           0 | 
+ sai-distributors | SO          | 2026-27 |     456 |                           0 | 
+ sai-distributors | TRIP        | 2026-27 |       1 |                           0 | 
+ tarsun           | CLAIM       | 2026-27 |      25 |                           0 | 
+ tarsun           | CN          | 2026-27 |    9007 |                           0 | 
+ tarsun           | DC          | 2026-27 |      84 |                           0 | 
+ tarsun           | EXT         | 2026-27 |       1 |                           1 | {TY/26-27/00412}
+ tarsun           | GRN         | 2026-27 |     129 |                           0 | 
+ tarsun           | INV         | 2026-27 |    9009 |                           0 | 
+ tarsun           | PICK        | 2026-27 |      84 |                           0 | 
+ tarsun           | PO          | 2026-27 |       1 |                           0 | 
+ tarsun           | RCPT        | 2026-27 |     702 |                           0 | 
+ tarsun           | RET         | 2026-27 |      61 |                           0 | 
+ tarsun           | RET         | ALL     |    9026 |                           0 | 
+ tarsun           | SO          | 2026-27 |     898 |                           0 | 
+ tarsun           | TRIP        | 2026-27 |       1 |                           0 | 
+(37 rows)
+
+COMMIT

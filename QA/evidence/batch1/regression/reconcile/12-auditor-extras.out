@@ -1,0 +1,103 @@
+-- run at: 2026-09-13 01:50:31 +0530  db: dos_qa  file: 12-auditor-extras.sql
+#### CHECK 12 - three more things a distributor's auditor checks: goods out without a bill, bills paid with money that is not real, dispatches whose vehicle never left
+BEGIN
+           snapshot_at           
+---------------------------------
+ 2026-09-13 01:50:31.28317+05:30
+(1 row)
+
+== 12a. goods out without a bill: orders packed or later with no live (non-cancelled) invoice or no pack confirmation; deliveries recorded against a cancelled bill; delivered orders with no delivery record
+       slug       |        state        |    source    | orders | without_live_invoice | without_pack_confirmation | delivered_without_delivery_record | examples_without_invoice 
+------------------+---------------------+--------------+--------+----------------------+---------------------------+-----------------------------------+--------------------------
+ kalyan-agencies  | packed              | salesperson  |      1 |                    1 |                         1 |                                 0 | {SO-9001}
+ kalyan-agencies  | packed              | retailer_app |      3 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | dispatched          | salesperson  |      1 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | dispatched          | retailer_app |      1 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | dispatched          | van_sale     |      1 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | dispatched          | whatsapp     |      1 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | delivered           | salesperson  |    104 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | delivered           | retailer_app |     20 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | delivered           | van_sale     |     27 |                    0 |                         1 |                                 1 | 
+ kalyan-agencies  | delivered           | phone        |      6 |                    0 |                         3 |                                 3 | 
+ kalyan-agencies  | delivered           | whatsapp     |      6 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | partially_delivered | salesperson  |      5 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | partially_delivered | retailer_app |      1 |                    0 |                         0 |                                 0 | 
+ kalyan-agencies  | partially_delivered | van_sale     |      1 |                    0 |                         0 |                                 0 | 
+ sai-distributors | packed              | salesperson  |      3 |                    1 |                         1 |                                 0 | {SO-9001}
+ sai-distributors | packed              | retailer_app |      1 |                    0 |                         0 |                                 0 | 
+ sai-distributors | packed              | van_sale     |      1 |                    0 |                         0 |                                 0 | 
+ sai-distributors | dispatched          | salesperson  |      6 |                    0 |                         0 |                                 0 | 
+ sai-distributors | dispatched          | phone        |      1 |                    0 |                         0 |                                 0 | 
+ sai-distributors | delivered           | salesperson  |    314 |                    0 |                         0 |                                 0 | 
+ sai-distributors | delivered           | retailer_app |     22 |                    0 |                         0 |                                 0 | 
+ sai-distributors | delivered           | van_sale     |     37 |                    0 |                         1 |                                 1 | 
+ sai-distributors | delivered           | phone        |     13 |                    0 |                         3 |                                 3 | 
+ sai-distributors | delivered           | whatsapp     |      9 |                    0 |                         0 |                                 0 | 
+ sai-distributors | partially_delivered | salesperson  |     30 |                    0 |                         0 |                                 0 | 
+ sai-distributors | partially_delivered | retailer_app |      5 |                    0 |                         0 |                                 0 | 
+ sai-distributors | partially_delivered | van_sale     |      1 |                    0 |                         0 |                                 0 | 
+ sai-distributors | partially_delivered | phone        |      2 |                    0 |                         0 |                                 0 | 
+ tarsun           | packed              | salesperson  |      6 |                    1 |                         1 |                                 0 | {SO-9001}
+ tarsun           | packed              | van_sale     |      1 |                    0 |                         0 |                                 0 | 
+ tarsun           | dispatched          | salesperson  |      4 |                    0 |                         0 |                                 0 | 
+ tarsun           | dispatched          | retailer_app |      1 |                    0 |                         0 |                                 0 | 
+ tarsun           | delivered           | salesperson  |    670 |                    0 |                         0 |                                 0 | 
+ tarsun           | delivered           | retailer_app |     36 |                    0 |                         0 |                                 0 | 
+ tarsun           | delivered           | van_sale     |     47 |                    0 |                         1 |                                 1 | 
+ tarsun           | delivered           | phone        |     18 |                    0 |                         3 |                                 3 | 
+ tarsun           | delivered           | whatsapp     |     14 |                    0 |                         0 |                                 0 | 
+ tarsun           | partially_delivered | salesperson  |     38 |                    0 |                         0 |                                 0 | 
+ tarsun           | partially_delivered | retailer_app |      2 |                    0 |                         0 |                                 0 | 
+ tarsun           | partially_delivered | van_sale     |      6 |                    0 |                         0 |                                 0 | 
+ tarsun           | partially_delivered | phone        |      1 |                    0 |                         0 |                                 0 | 
+ tarsun           | partially_delivered | whatsapp     |      3 |                    0 |                         0 |                                 0 | 
+(42 rows)
+
+ slug | deliveries_on_cancelled_bills | examples 
+------+-------------------------------+----------
+(0 rows)
+
+       slug       | pack_invoices_without_pack_confirmation |               examples                
+------------------+-----------------------------------------+---------------------------------------
+ a-0bb6e38a       |                                       2 | {T0bb6e38a/1,T0bb6e38a/2}
+ kalyan-agencies  |                                       4 | {KA/9006,KA/9002,KA/9001,KA/9005}
+ sai-distributors |                                       4 | {SAI/9002,SAI/9001,SAI/9005,SAI/9006}
+ tarsun           |                                       4 | {INV/9002,INV/9001,INV/9005,INV/9006}
+(4 rows)
+
+== 12b. bills whose paid / partially-paid state rests on money that is not real: allocations from live receipts (collected/deposited) + credit notes + write-offs vs what the state claims
+       slug       |     state      | bills | paid_short_of_real_money | paid_with_no_real_money | part_paid_with_no_real_money | bounced_or_cancelled_money_still_applied | examples 
+------------------+----------------+-------+--------------------------+-------------------------+------------------------------+------------------------------------------+----------
+ kalyan-agencies  | partially_paid |    17 |                        0 |                       0 |                            0 |                                        0 | 
+ kalyan-agencies  | paid           |    97 |                        0 |                       0 |                            0 |                                        0 | 
+ sai-distributors | partially_paid |    49 |                        0 |                       0 |                            0 |                                        0 | 
+ sai-distributors | paid           |   236 |                        0 |                       0 |                            0 |                                        0 | 
+ tarsun           | partially_paid |    69 |                        0 |                       0 |                            0 |                                        0 | 
+ tarsun           | paid           |   574 |                        0 |                       0 |                            0 |                                        0 | 
+(6 rows)
+
+== 12c. dispatched-or-later orders whose vehicle never left: no confirmed load sheet carries the order, the sheet has no trip, or the trip is still planned / loading / cancelled
+       slug       |        state        | orders | no_confirmed_sheet | confirmed_sheet_without_trip | trip_not_departed |             examples              
+------------------+---------------------+--------+--------------------+------------------------------+-------------------+-----------------------------------
+ kalyan-agencies  | dispatched          |      4 |                  0 |                            0 |                 0 | 
+ kalyan-agencies  | delivered           |    163 |                  4 |                            0 |                 0 | {SO-9006,SO-9005,SO-9004,SO-9002}
+ kalyan-agencies  | partially_delivered |      7 |                  0 |                            0 |                 0 | 
+ sai-distributors | dispatched          |      7 |                  0 |                            0 |                 0 | 
+ sai-distributors | delivered           |    395 |                  4 |                            0 |                 0 | {SO-9006,SO-9005,SO-9004,SO-9002}
+ sai-distributors | partially_delivered |     38 |                  0 |                            0 |                 0 | 
+ tarsun           | dispatched          |      5 |                  0 |                            0 |                 0 | 
+ tarsun           | delivered           |    785 |                  4 |                            0 |                 0 | {SO-9006,SO-9005,SO-9004,SO-9002}
+ tarsun           | partially_delivered |     50 |                  0 |                            0 |                 0 | 
+(9 rows)
+
+== 12c2. detail for the orders dispatched since the batch-1 merge
+  slug  | order_no |   state    |               sheet_id               | sheet_status |               trip_id                |  trip_no  | trip_state |          started_at           
+--------+----------+------------+--------------------------------------+--------------+--------------------------------------+-----------+------------+-------------------------------
+ tarsun | SO-0869  | dispatched | 374f2089-b8fd-720e-907c-8380307948ab | confirmed    | 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | active     | 2026-09-12 15:08:33.833+05:30
+ tarsun | SO-0871  | dispatched | 374f2089-b8fd-720e-907c-8380307948ab | confirmed    | 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | active     | 2026-09-12 15:08:33.833+05:30
+ tarsun | SO-0875  | dispatched | 374f2089-b8fd-720e-907c-8380307948ab | confirmed    | 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | active     | 2026-09-12 15:08:33.833+05:30
+ tarsun | SO-0876  | dispatched | 374f2089-b8fd-720e-907c-8380307948ab | confirmed    | 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | active     | 2026-09-12 15:08:33.833+05:30
+ tarsun | SO-0878  | dispatched | 374f2089-b8fd-720e-907c-8380307948ab | confirmed    | 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | active     | 2026-09-12 15:08:33.833+05:30
+(5 rows)
+
+COMMIT

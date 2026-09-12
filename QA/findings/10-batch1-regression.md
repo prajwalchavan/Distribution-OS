@@ -41,3 +41,38 @@ Suggested fix: In billing.creditNotes.create/issue, derive each line's dispositi
 
 Found by: security regression probe (batch 1), residual of DOS-058 raised by its verifier.
 
+### DOS-117 — Overdue and ageing stop moving on days a shop has no posting: no nightly ageing rebuild is scheduled
+Category: bug | Priority: P1 | Role: Owner, Manager, Accountant (and the 09:00 dues reminder) | Platform: Backend (worker + receivables); every client
+
+```
+User: Owner (Today "overdue" and "Money owed, by age"); Accountant follow-up list; 09:00 IST dues reminder
+Platform: Backend — worker pg-boss schedules, retailer_outstanding_summary, owner_summary
+Environment: local dev, dos_qa, merged main after batch 1, 2026-09-13 01:45–01:58 IST
+Steps:
+  1. QA/evidence/batch1/regression/reconcile/08-followup-worker-schedule.sql: pgboss.schedule has no ageing job and none was ever
+     created; the worker's reporting finalize re-runs only yesterday's rollup and retailer behaviour; the receivables rebuildAgeing
+     path ("the same code path the nightly worker job runs") is called only by the owner app's Rebuild ageing button.
+  2. 08-followup-stale-shops.sql: retailer_outstanding_summary rows with as_of before today, stored overdue vs overdue recomputed
+     from invoices − allocations with today's IST date.
+  3. 08-followup-ageing-freshness.sql: owner_summary overdue and detail.ageingB* vs the same live recompute.
+Expected: at the start of each IST business day every shop's dues row is re-dated (as_of = today), overdue and buckets recomputed, an
+          ageing_snapshots row written, and the owner report's overdue equals live.
+Actual: at 01:58 on 13 Sep, 120 of 124 pilot-shop rows are as_of 2026-09-12; ageing_snapshots stop at 2026-09-12. Owner overdue
+        ₹26,77,818 vs live ₹27,79,739 (Tarsun, −₹1,01,921); Sai ₹21,24,093 vs ₹22,33,678 (−₹1,09,585); Kalyan ₹5,27,168.50 vs
+        ₹5,35,277.50 (−₹8,109); 18 shops drifted (Sahyadri Super Bazar stored ₹2,54,538 vs live ₹3,03,000 — INV/0643 fell due 12 Sep).
+        Sai's Ayre Road Super Market: stored overdue 0, live ₹4,163, so the 09:00 sweep skips it. Revenue, collections, outstanding and
+        90+ unaffected.
+Business impact: every morning the owner's and accountant's overdue and ageing understate what is overdue, by more each quiet day; newly
+        overdue shops get no dues reminder; the ageing trend has no points after the seed date. DOS-015 was graded P3 on the belief that
+        the worker rebuilds ageing on its own — it does not.
+Severity: P1
+Evidence: QA/evidence/batch1/regression/reconcile/08-owner-report.out, 08-followup-ageing-freshness.out, 08-followup-stale-shops.out,
+          08-followup-worker-schedule.out, 07-outstanding.out; SUMMARY.md
+Suggested fix: schedule a per-tenant ageing rebuild just after IST midnight (inside the 00:20 finalize, before the owner rollup) using the
+          rebuildAgeing path plus writeAgeingSnapshot; on worker start, catch up when the latest ageing_snapshots as_of is older than
+          today (pg-boss does not backfill a missed cron slot); a worker spec that after a business-date change with no postings overdue
+          equals the live recompute. Revisit DOS-015's severity.
+```
+
+Found by: batch 1 business reconciliation (read-only SQL). Note: QA stopped the worker 22:45–00:57 to free memory, so the 13 Sep 00:20
+finalize slot was also missed; that is separate from this defect (no ageing job exists at any hour).
