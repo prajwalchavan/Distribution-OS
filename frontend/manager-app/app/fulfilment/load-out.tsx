@@ -44,13 +44,16 @@ import {
   Field,
   PageTabs,
   Panel,
+  countText,
   moneyColumn,
+  pagedCount,
   textColumn,
   useCan,
   useNames,
 } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { shortDate, shortInstant } from '../../src/lib/dates'
+import { loadOutHistory, loadOutQueue } from '../../src/lib/load-out'
 import { useWord } from '../../src/lib/words'
 
 const SHEET_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -78,6 +81,14 @@ export default function LoadOut(): React.JSX.Element {
 
   const sheets = useQuery(['warehouse', 'loadSheets'], () =>
     api.api.warehouse.loadSheets.list({ limit: 100 }),
+  )
+  /*
+   * DOS-025: the sheets not out of the godown yet are their own read. `desc(id)` sinks a draft under
+   * any sheet built after it, and one older than the newest hundred is never on the page above. The
+   * key starts with 'warehouse', so approving or cancelling a sheet refetches this read too.
+   */
+  const waiting = useQuery(['warehouse', 'loadSheets', 'draft'], () =>
+    api.api.warehouse.loadSheets.list({ status: 'draft', limit: 100 }),
   )
   const detail = useQuery(
     ['warehouse', 'loadSheets', 'get', selected ?? 'none'],
@@ -121,6 +132,8 @@ export default function LoadOut(): React.JSX.Element {
   )
 
   const rows = sheets.data?.items ?? []
+  const queue = loadOutQueue(waiting.data?.items ?? [])
+  const history = loadOutHistory(rows)
 
   const sheetColumns: readonly RegisterColumn<LoadSheetSummary>[] = [
     textColumn('date', t('m7.sheetDate'), (row) => shortDate(row.sheetDate), {
@@ -199,21 +212,53 @@ export default function LoadOut(): React.JSX.Element {
         </Txt>
 
         {view === 'sheets' ? (
-          <Async state={[sheets]} rows={8} empty={rows.length === 0} emptyMessage={t('m7.empty')}>
-            <Register
-              testID="loadsheet-register"
-              columns={sheetColumns}
-              rows={rows}
-              rowKey={(row) => row.id}
-              frozen="date"
-              selectedKey={selected}
-              onSelect={(row) => {
-                setSelected(row.id)
-              }}
-              state="ready"
-              totals={{ date: t('app.rows', { count: rows.length }) }}
-            />
-          </Async>
+          <Stack gap={6}>
+            <Panel title={t('m7.waiting')} testID="loadout-waiting">
+              <Async
+                state={[waiting]}
+                rows={3}
+                empty={queue.length === 0}
+                emptyMessage={t('m7.waitingEmpty')}
+              >
+                <Register
+                  testID="loadsheet-waiting-register"
+                  columns={sheetColumns}
+                  rows={queue}
+                  rowKey={(row) => row.id}
+                  frozen="date"
+                  selectedKey={selected}
+                  onSelect={(row) => {
+                    setSelected(row.id)
+                  }}
+                  state="ready"
+                  totals={{ date: countText(pagedCount(waiting), t('app.none')) }}
+                />
+              </Async>
+            </Panel>
+
+            <Panel title={t('m7.history')}>
+              <Async
+                state={[sheets]}
+                rows={8}
+                empty={history.length === 0}
+                emptyMessage={t('m7.empty')}
+              >
+                <Register
+                  testID="loadsheet-register"
+                  columns={sheetColumns}
+                  rows={history}
+                  rowKey={(row) => row.id}
+                  frozen="date"
+                  selectedKey={selected}
+                  onSelect={(row) => {
+                    setSelected(row.id)
+                  }}
+                  state="ready"
+                  totals={{ date: t('app.rows', { count: history.length }) }}
+                />
+              </Async>
+            </Panel>
+          </Stack>
         ) : (
           <Async
             state={[challans]}
