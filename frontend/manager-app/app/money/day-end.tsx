@@ -1,22 +1,28 @@
 /**
  * M10 — day-end: banking, cheques and trip settlement (docs/23 §2.1).
  *
- * The three things that close a distributor's day, in the order they happen:
+ * The three things that close a distributor's day, in the order they stand on the screen:
  *
- *  1. THE VAN COMES BACK. `delivery.trips.settlementPreview` is the check-in cockpit — opening cash,
+ *  1. A CHEQUE COMES BACK. The cheques still in hand sit at the top; tapping one the bank returned
+ *     calls `receipts.bounce`, which restores the shop's outstanding EXACTLY as it was, and the bank's
+ *     charge is recorded against the day, not against the shop's ledger. A cheque already banked is
+ *     returned from its receipt panel on Money → Receipts.
+ *  2. THE VAN COMES BACK. Beside the cheques, the trips waiting in `closing`. Picking one opens
+ *     `delivery.trips.settlementPreview` directly below them — the check-in cockpit: opening cash,
  *     what was collected by mode, what was spent, and therefore what cash the crew owes. The desk
  *     counts what was actually handed over; a difference beyond the tenant's own tolerance is not
  *     something this screen may wave through, so `acceptVariance` raises an approval for the owner.
- *  2. THE CASH GOES TO THE BANK. Every receipt still `collected` is cash or a cheque in somebody's
- *     hand. Ticking them and banking them with the slip number is one call and marks them all.
- *  3. A CHEQUE COMES BACK. `receipts.bounce` restores the shop's outstanding EXACTLY as it was, and
- *     the bank's charge is recorded against the day, not against the shop's ledger.
+ *  3. THE CASH GOES TO THE BANK. The register underneath lists only what a desk can carry to the
+ *     bank: cash and cheques still `collected` (`receiptMayBeDeposited`, the server's own rule).
+ *     Ticking rows raises a bar at the foot of the screen, in view however far the register is
+ *     scrolled, and banking the batch with the slip number is one call that marks them all.
  *
  * The accountant does all three: this is the money desk. `trips.settle` is owner + manager +
  * accountant, `receipts.deposit` and `bounce` likewise.
  */
 import type { Receipt, Trip } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
+import { receiptMayBeDeposited } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -45,6 +51,7 @@ import {
   Half,
   PageTabs,
   Panel,
+  addCounts,
   moneyColumn,
   pagedCount,
   textColumn,
@@ -77,14 +84,16 @@ export default function DayEnd(): React.JSX.Element {
   const [settling, setSettling] = useState(false)
 
   /*
-   * The register itself is the whole "in hand" list; the two KPI figures above it are the SERVICE'S
-   * OWN TOTALS for each mode, not a sum over the page. Summing a capped page reported ₹200.00 of
-   * cash where the real figure is ₹5,95,381.11 — a partial sum that looks like a total, on the one
-   * screen whose whole job is to say how much money is in the drawer.
+   * The register is exactly the money a desk can carry to the bank: cash and cheques still
+   * `collected`, read as the two mode-filtered lists the KPI figures use. A plain `collected` list
+   * also held UPI and bank transfers — money already in the bank — under "Cash and cheques in hand",
+   * and a batch with one of them in it is refused whole by the server.
+   *
+   * The KPI figures and the register's foot are the SERVICE'S OWN TOTALS for each mode, not a sum over
+   * the page. Summing a capped page reported ₹200.00 of cash where the real figure is ₹5,95,381.11 — a
+   * partial sum that looks like a total, on the one screen whose whole job is to say how much money is
+   * in the drawer.
    */
-  const inHand = useQuery(['receipts', 'collected'], () =>
-    api.api.receivables.receipts.list({ status: 'collected', limit: 200 }),
-  )
   const cashTotals = useQuery(['receipts', 'collected', 'cash'], () =>
     api.api.receivables.receipts.list({ status: 'collected', mode: 'cash', limit: 200 }),
   )
@@ -138,8 +147,6 @@ export default function DayEnd(): React.JSX.Element {
     { invalidates: [['delivery'], ['receipts'], ['receivables'], ['reporting']] },
   )
 
-  const receipts = inHand.data?.items ?? []
-  const inHandCount = pagedCount(inHand)
   const countLabel = (of: PagedCount): string =>
     of.count === undefined
       ? t('app.none')
@@ -150,6 +157,16 @@ export default function DayEnd(): React.JSX.Element {
   const chequeCount = pagedCount(chequeTotals)
   /* The cheque list is short enough to page in full, and the row list is what the bounce panel uses. */
   const cheques = chequeTotals.data?.items ?? []
+  /* The register: both pages, newest first, the order one list read would have given. */
+  const receipts = [...(cashTotals.data?.items ?? []), ...cheques].sort(
+    (a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt),
+  )
+  const inHandCount = addCounts(cashCount, chequeCount)
+  /* The foot is the two services' own totals added up, and nothing until both have answered. */
+  const inHandPaise =
+    cashTotals.data === undefined || chequeTotals.data === undefined
+      ? null
+      : cashTotals.data.totals.countedPaise + chequeTotals.data.totals.countedPaise
   const tickedTotal = receipts
     .filter((row) => ticked.includes(row.id))
     .reduce((sum, row) => sum + row.amountPaise, 0)
@@ -199,7 +216,27 @@ export default function DayEnd(): React.JSX.Element {
   const beyondTolerance = p !== undefined && Math.abs(variance) > p.tolerancePaise
 
   return (
-    <Screen title={t('m10.title')} chips={<PageTabs group="/money" active="/money/day-end" />}>
+    <Screen
+      title={t('m10.title')}
+      chips={<PageTabs group="/money" active="/money/day-end" />}
+      bottomBar={
+        mayBank && ticked.length > 0 ? (
+          <Stack gap={2}>
+            <Txt field="body" desk="body" numeric>
+              {t('m10.selected', { count: ticked.length, amount: formatINR(paise(tickedTotal)) })}
+            </Txt>
+            <Button
+              label={t('m10.deposit')}
+              variant="primary"
+              onPress={() => {
+                setBanking(true)
+              }}
+              testID="bank-batch"
+            />
+          </Stack>
+        ) : undefined
+      }
+    >
       <Stack gap={6}>
         <Async state={[cashTotals, chequeTotals]} rows={4}>
           <KpiStrip
@@ -226,71 +263,17 @@ export default function DayEnd(): React.JSX.Element {
           />
         </Async>
 
-        <Panel
-          title={t('m10.toBank')}
-          meta={
-            ticked.length === 0
-              ? undefined
-              : t('m10.selected', {
-                  count: ticked.length,
-                  amount: formatINR(paise(tickedTotal)),
-                })
-          }
-          actions={
-            mayBank && ticked.length > 0 ? (
-              <Button
-                label={t('m10.deposit')}
-                variant="primary"
-                onPress={() => {
-                  setBanking(true)
-                }}
-                testID="bank-batch"
-              />
-            ) : undefined
-          }
-          testID="dayend-bank"
-        >
-          <Async
-            state={[inHand]}
-            rows={8}
-            empty={receipts.length === 0}
-            emptyMessage={t('m10.empty')}
-          >
-            <Register
-              testID="tobank-register"
-              columns={receiptColumns}
-              rows={receipts}
-              rowKey={(row) => row.id}
-              frozen="no"
-              onSelect={
-                mayBank
-                  ? (row) => {
-                      setTicked((current) =>
-                        current.includes(row.id)
-                          ? current.filter((id) => id !== row.id)
-                          : [...current, row.id],
-                      )
-                    }
-                  : undefined
-              }
-              state="ready"
-              totals={{
-                no: countLabel(inHandCount),
-                amount: (
-                  <Money
-                    value={inHand.data?.totals.countedPaise ?? null}
-                    size="cell"
-                    symbol={false}
-                  />
-                ),
-              }}
-            />
-          </Async>
-        </Panel>
-
+        {/*
+         * Cheques and trips come before the register, and the settlement form follows the trips: under
+         * a register of two hundred rows, a cheque card or a trip picked at the top would act out of sight.
+         */}
         <Columns>
           <Half>
-            <Panel title={t('m10.cheques')} testID="dayend-cheques">
+            <Panel
+              title={t('m10.cheques')}
+              meta={mayBank ? t('m10.chequesHint') : undefined}
+              testID="dayend-cheques"
+            >
               <Async
                 state={[chequeTotals]}
                 rows={4}
@@ -406,6 +389,44 @@ export default function DayEnd(): React.JSX.Element {
             </Stack>
           </Panel>
         )}
+
+        <Panel
+          title={t('m10.toBank')}
+          meta={mayBank && ticked.length === 0 ? t('m10.tickToBank') : undefined}
+          testID="dayend-bank"
+        >
+          <Async
+            state={[cashTotals, chequeTotals]}
+            rows={8}
+            empty={receipts.length === 0}
+            emptyMessage={t('m10.empty')}
+          >
+            <Register
+              testID="tobank-register"
+              columns={receiptColumns}
+              rows={receipts}
+              rowKey={(row) => row.id}
+              frozen="no"
+              onSelect={
+                mayBank
+                  ? (row) => {
+                      if (!receiptMayBeDeposited(row)) return
+                      setTicked((current) =>
+                        current.includes(row.id)
+                          ? current.filter((id) => id !== row.id)
+                          : [...current, row.id],
+                      )
+                    }
+                  : undefined
+              }
+              state="ready"
+              totals={{
+                no: countLabel(inHandCount),
+                amount: <Money value={inHandPaise} size="cell" symbol={false} />,
+              }}
+            />
+          </Async>
+        </Panel>
       </Stack>
 
       <Dialog

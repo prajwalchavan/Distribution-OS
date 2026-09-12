@@ -1461,6 +1461,146 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(url).not.toContain('tr=INV')
   })
 
+  // -------------------------------------------------------------------------------------------------------------
+  // banking the day
+
+  /*
+   * The manager app's Day-end and Receipts screens offer "Bank this batch", "Bank it" and "Mark bounced" from
+   * `receiptMayBeDeposited` / `receiptMayBounce` in @dos/domain (DOS-034). This pins the server half those buttons
+   * rely on. OFFICE receipts only: where a trip's cash is credited when it is banked is a separate, open
+   * accounting question and is deliberately not asserted here.
+   */
+  it('DOS-034 (guard): the desk banks an office cash + cheque batch (DR BANK, CR CASH and CHEQUES), a batch holding a UPI receipt is refused whole with nothing deposited, and a banked cheque bounces against BANK', async () => {
+    const shopJ = uuidv7()
+    const billJ = uuidv7()
+    await db.insert(retailers).values({
+      id: shopJ,
+      tenantId,
+      code: `S10-${run}`,
+      name: `Shop 10 ${run}`,
+      phone: `+9192${run}10`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    await seedInvoice({ id: billJ, retailerId: shopJ, totalPaise: 30_000, dueOffsetDays: 5 })
+
+    /** Money taken at the office desk: no trip, so cash lands in CASH and a cheque in CHEQUES. */
+    const take = async (
+      mode: 'cash' | 'cheque' | 'upi',
+      amountPaise: number,
+      extra: Record<string, unknown> = {},
+    ): Promise<string> => {
+      const id = uuidv7()
+      const res = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `rcpt-034-${id}`,
+        id,
+        retailerId: shopJ,
+        mode,
+        amountPaise,
+        ...extra,
+      })
+      expect(res.status).toBe(200)
+      expect(res.body.item.tripId).toBeNull()
+      return id
+    }
+    const cashId = await take('cash', 10_000)
+    const chequeId = await take('cheque', 12_000, {
+      reference: '034411',
+      bankName: 'Bank of Maharashtra',
+    })
+    const strayCashId = await take('cash', 5_000)
+    const upiId = await take('upi', 3_000, { reference: `UTR034${run}` })
+    expect(await invoiceState(billJ)).toBe('paid')
+    expect(await arBalance(shopJ)).toBe(0)
+
+    const statusOf = async (id: string): Promise<string> => {
+      const res = await call<{ item: Receipt }>(app, accountant, 'GET', `/receipts/${id}`)
+      expect(res.status).toBe(200)
+      return res.body.item.status
+    }
+    /** Account code -> net amount of the journal entry a ref posted, or `{}` when nothing was posted. */
+    const entryOf = async (refType: string, refId: string): Promise<Record<string, number>> => {
+      const result = await db.execute(sql`
+        select a.code, sum(jl.amount_paise)::bigint as amount
+          from journal_entries je
+          join journal_lines jl on jl.entry_id = je.id and jl.tenant_id = je.tenant_id
+          join accounts a on a.id = jl.account_id
+         where je.tenant_id = ${tenantId} and je.ref_type = ${refType} and je.ref_id = ${refId}
+         group by a.code`)
+      return Object.fromEntries(
+        (result.rows as { code: string; amount: string }[]).map((row) => [
+          row.code,
+          Number(row.amount),
+        ]),
+      )
+    }
+
+    // 1. a batch holding a UPI receipt is refused WHOLE: the cash beside it stays in hand, nothing is posted
+    const refusedBatch = uuidv7()
+    const refused = await call<{ message: string }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-034-refused-${run}`,
+      id: refusedBatch,
+      receiptIds: [strayCashId, upiId],
+      depositedAt: new Date().toISOString(),
+      depositRef: `DEP-034-X-${run}`,
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.message).toContain('only cash and cheques are banked')
+    expect(await statusOf(strayCashId)).toBe('collected')
+    expect(await statusOf(upiId)).toBe('collected')
+    expect(await entryOf('deposit', refusedBatch)).toEqual({})
+
+    // 2. office cash and a cheque banked together: DR BANK, CR CASH and CHEQUES, and the entry nets to zero
+    const batch = uuidv7()
+    const banked = await call<{ updated: number; journalEntryId: string; totalPaise: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receipts/deposit',
+      {
+        idempotencyKey: `dep-034-${run}`,
+        id: batch,
+        receiptIds: [cashId, chequeId],
+        depositedAt: new Date().toISOString(),
+        depositRef: `DEP-034-${run}`,
+      },
+    )
+    expect(banked.status).toBe(200)
+    expect(banked.body).toMatchObject({ updated: 2, totalPaise: 22_000 })
+    expect(await statusOf(cashId)).toBe('deposited')
+    expect(await statusOf(chequeId)).toBe('deposited')
+    const deposit = await entryOf('deposit', batch)
+    expect(deposit).toEqual({ BANK: 22_000, CASH: -10_000, CHEQUES: -12_000 })
+    expect(Object.values(deposit).reduce((sum, amount) => sum + amount, 0)).toBe(0)
+    // banking moves money between the distributor's own accounts: the shop's balance does not move
+    expect(await arBalance(shopJ)).toBe(0)
+
+    // 3. the bank returns the banked cheque: the reversal credits BANK, where the money went, not CHEQUES
+    const reversalId = uuidv7()
+    const bounced = await call<{ item: Receipt; original: Receipt; outstanding: Outstanding }>(
+      app,
+      accountant,
+      'POST',
+      `/receipts/${chequeId}/bounce`,
+      {
+        idempotencyKey: `bounce-034-${run}`,
+        id: chequeId,
+        reversalId,
+        bouncedAt: new Date().toISOString(),
+        reason: 'insufficient funds',
+      },
+    )
+    expect(bounced.status).toBe(200)
+    expect(bounced.body.original).toMatchObject({ id: chequeId, status: 'bounced' })
+    expect(bounced.body.item.amountPaise).toBe(-12_000)
+    expect(await entryOf('receipt_reversal', reversalId)).toEqual({ BANK: -12_000, AR: 12_000 })
+    // the shop owes exactly the cheque again
+    expect(bounced.body.outstanding.outstandingPaise).toBe(12_000)
+    expect(await arBalance(shopJ)).toBe(12_000)
+    expect(await invoiceState(billJ)).toBe('partially_paid')
+  })
+
   it('isolates tenants', async () => {
     const list = await call<{ items: unknown[] }>(app, stranger, 'GET', '/receipts', { limit: 50 })
     expect(list.status).toBe(200)

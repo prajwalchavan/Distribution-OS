@@ -48,7 +48,7 @@ import type {
   SendStatementsOutput,
   SettledInvoice,
 } from '@dos/contracts'
-import { businessDate, upiIntent, uuidv7 } from '@dos/domain'
+import { businessDate, isBankableReceiptMode, upiIntent, uuidv7 } from '@dos/domain'
 import {
   allocations,
   auditLog,
@@ -833,7 +833,7 @@ export class ReceivablesService {
               message: `receipt ${row.receiptNo ?? row.id} is ${row.status}, not collected`,
             })
           }
-          if (row.mode !== 'cash' && row.mode !== 'cheque') {
+          if (!isBankableReceiptMode(row.mode)) {
             throw new ORPCError('CONFLICT', {
               message: `receipt ${row.receiptNo ?? row.id} is ${row.mode}; only cash and cheques are banked`,
             })

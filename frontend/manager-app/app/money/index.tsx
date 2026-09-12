@@ -15,7 +15,7 @@
  */
 import type { Receipt } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { uuidv7 } from '@dos/domain'
+import { receiptMayBeDeposited, receiptMayBounce, uuidv7 } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -80,6 +80,13 @@ export default function Receipts(): React.JSX.Element {
   const [reversing, setReversing] = useState(false)
   const [reason, setReason] = useState('')
 
+  // --- banking a receipt, and a cheque the bank returned ---------------------------------------------
+  const [depositing, setDepositing] = useState(false)
+  const [depositRef, setDepositRef] = useState('')
+  const [bouncing, setBouncing] = useState(false)
+  const [bounceReason, setBounceReason] = useState('')
+  const [charges, setCharges] = useState<number | null>(null)
+
   // --- recording a payment ----------------------------------------------------------------------
   const [recording, setRecording] = useState(false)
   const [shopQuery, setShopQuery] = useState('')
@@ -130,6 +137,36 @@ export default function Receipts(): React.JSX.Element {
         reversalId: uuidv7(),
         reason: input.reason,
         idempotencyKey: meta.idempotencyKey,
+      }),
+    { invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting']] },
+  )
+
+  /*
+   * Banking one receipt and returning a bounced cheque: the per-receipt half of Day-end, and the only
+   * place a cheque that is ALREADY banked can be returned (Day-end lists what is still in hand). The
+   * buttons ask the server's own rules (`receiptMayBeDeposited`, `receiptMayBounce` in @dos/domain), and a
+   * refusal stays in its dialog in the server's words instead of closing it.
+   */
+  const deposit = useMutation(
+    (input: { receiptId: string; ref: string }, meta) =>
+      api.api.receivables.receipts.deposit({
+        id: meta.id,
+        idempotencyKey: meta.idempotencyKey,
+        receiptIds: [input.receiptId],
+        depositedAt: new Date().toISOString(),
+        ...(input.ref === '' ? {} : { depositRef: input.ref }),
+      }),
+    { invalidates: [['receipts'], ['receivables'], ['reporting']] },
+  )
+  const bounce = useMutation(
+    (input: { id: string; reason: string; chargesPaise: number | null }, meta) =>
+      api.api.receivables.receipts.bounce({
+        id: input.id,
+        reversalId: meta.id,
+        idempotencyKey: meta.idempotencyKey,
+        bouncedAt: new Date().toISOString(),
+        reason: input.reason,
+        ...(input.chargesPaise === null ? {} : { bankChargesPaise: input.chargesPaise }),
       }),
     { invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting']] },
   )
@@ -277,6 +314,32 @@ export default function Receipts(): React.JSX.Element {
                 }}
                 testID="receipt-print"
               />
+              {can('receivables.receipts.deposit') ? (
+                <Button
+                  label={t('m9.deposit')}
+                  variant="primary"
+                  disabled={!receiptMayBeDeposited(receipt)}
+                  disabledReason={t('m9.notBankable')}
+                  onPress={() => {
+                    deposit.reset()
+                    setDepositing(true)
+                  }}
+                  testID="receipt-deposit"
+                />
+              ) : null}
+              {can('receivables.receipts.bounce') ? (
+                <Button
+                  label={t('m9.bounce')}
+                  variant="secondary"
+                  disabled={!receiptMayBounce(receipt)}
+                  disabledReason={t('m9.notBounceable')}
+                  onPress={() => {
+                    bounce.reset()
+                    setBouncing(true)
+                  }}
+                  testID="receipt-bounce"
+                />
+              ) : null}
               {can('receivables.receipts.reverse') ? (
                 <Button
                   label={t('m9.reverse')}
@@ -446,6 +509,112 @@ export default function Receipts(): React.JSX.Element {
           )
         }}
         testID="reverse-dialog"
+      />
+
+      <Dialog
+        open={depositing}
+        onClose={() => {
+          setDepositing(false)
+        }}
+        title={t('m9.deposit')}
+        body={
+          <Stack gap={3}>
+            <Money value={receipt?.amountPaise ?? null} size="moneyM" />
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('m10.depositBody')}
+            </Txt>
+            <TextInput
+              label={t('m10.depositRef')}
+              value={depositRef}
+              onChange={setDepositRef}
+              capitalize="none"
+              testID="receipt-deposit-ref"
+            />
+            {deposit.error === undefined ? null : (
+              <Txt
+                field="label"
+                desk="meta"
+                color={colors.status.brick.fg}
+                testID="receipt-deposit-refusal"
+              >
+                {deposit.error.message}
+              </Txt>
+            )}
+          </Stack>
+        }
+        confirmLabel={t('m9.deposit')}
+        busy={deposit.status === 'pending'}
+        onConfirm={() => {
+          if (selected === null) return
+          void deposit.mutateAsync({ receiptId: selected, ref: depositRef.trim() }).then(
+            () => {
+              setDepositing(false)
+              setDepositRef('')
+            },
+            () => {
+              /* the refusal prints in the dialog, which stays open */
+            },
+          )
+        }}
+        testID="receipt-deposit-dialog"
+      />
+
+      <Dialog
+        open={bouncing}
+        onClose={() => {
+          setBouncing(false)
+        }}
+        title={t('m10.bounceTitle')}
+        body={
+          <Stack gap={3}>
+            <Money value={receipt?.amountPaise ?? null} size="moneyM" />
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('m10.bounceBody')}
+            </Txt>
+            <TextInput
+              label={t('m10.bounceReason')}
+              value={bounceReason}
+              onChange={setBounceReason}
+              capitalize="sentences"
+              testID="receipt-bounce-reason"
+            />
+            <RupeeInput
+              label={t('m10.bankCharges')}
+              value={charges}
+              onChange={setCharges}
+              testID="receipt-bounce-charges"
+            />
+            {bounce.error === undefined ? null : (
+              <Txt
+                field="label"
+                desk="meta"
+                color={colors.status.brick.fg}
+                testID="receipt-bounce-refusal"
+              >
+                {bounce.error.message}
+              </Txt>
+            )}
+          </Stack>
+        }
+        confirmLabel={t('m9.bounce')}
+        destructive
+        busy={bounce.status === 'pending'}
+        onConfirm={() => {
+          if (selected === null) return
+          void bounce
+            .mutateAsync({ id: selected, reason: bounceReason.trim(), chargesPaise: charges })
+            .then(
+              () => {
+                setBouncing(false)
+                setBounceReason('')
+                setCharges(null)
+              },
+              () => {
+                /* the refusal prints in the dialog, which stays open */
+              },
+            )
+        }}
+        testID="receipt-bounce-dialog"
       />
     </Screen>
   )
