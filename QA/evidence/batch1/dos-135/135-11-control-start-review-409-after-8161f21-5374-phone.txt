@@ -1,0 +1,72 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+7.14 edits per ten lines
+Documents to review
+Supplier bills
+Documents
+Gate count
+Guiltfree Industries — Gurugram
+1
+9,854.00
+Alan's Food Products — Bhiwandi
+Needs review
+10,896.00
+Reliance Consumer Products — Kalyan Depot
+Extracted
+3,45,530.00
+Guiltfree Industries — Gurugram
+2
+21,773.00
+Guru Kripa Agencies (Balaji Super-Stockist)
+Extracted
+44,218.00
+MOM Foods — Bikaner
+Failed
+—
+Guru Kripa Agencies (Balaji Super-Stockist)
+1
+44,218.00
+Alan's Food Products — Bhiwandi · ALA/26-27/00491
+Close
+Supplier
+Alan's Food Products — Bhiwandi
+State
+Needs review
+QR
+Absent
+Pages
+Checks
+Hsn dated rate
+What we read
+Bill no.
+Amount ₹
+₹
+Bill date
+12 Sep 2026
+What we think each line is
+On the bill: MASTI OYE CLASSIC SALTED 30 G
+336 pc
+₹2,493.86
+Our item: Masti Oye Classic Salted 30 g
+Match 95% · Supplier alias
+On the bill: MASTI OYE TOMATO TWIST 30 G
+912 pc
+₹6,822.86
+Our item: Masti Oye Tomato Twist 30 g
+Match 94% · Supplier alias
+On the bill: MASTI OYE PERI PERI TWIST 30 G
+144 pc
+₹1,079.00
+Our item: Masti Oye Peri Peri Twist 30 g
+Match 93% · Supplier alias
+Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)
+Start reviewing
+Match the items again
+Book it as a supplier bill
+Reject the document
+Today
+Orders
+Fulfilment
+Billing

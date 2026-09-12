@@ -132,6 +132,9 @@ Notes on the non-PASS rows:
 
 Non-PASS rows (re-graded after the before/after comparison, `QA/evidence/batch1/regression/part-b-regression-status.md`): **DOS-034 FAIL ×3 → PASS within DOS-034's approved scope** (its text named UPI/bank-transfer rows; actions, bar and refusals all passed). The failing part is trip cash, a pre-existing root cause that DOS-034 made easy to reach — companion finding DOS-132 (P1), which the DOS-034 plan asked to file at the same gate and QA did not until now. Original wording: — Bank it / Mark bounced are now in sight and work, but the in-hand register still offers cash that is out with a delivery crew and receipts of settled trips for banking (deposit credits CASH_VAN) → DOS-132. **DOS-029e FAIL ×2** — the verifier's residual reproduced in the running app: a refusal that arrives while another write on the same documents panel is still in flight is never shown → DOS-135 (P2). DOS-029 a–d (409 wave, 400 credit-note race, 501 brand-DMS on dos_qa, no connection) PASS at both widths.
 
+
+**DOS-135 re-check (repair of DOS-029, 8161f21), 2026-09-13 ~05:10 IST:** the DOS-029e scenario PASSES on the repaired build at desk and phone (before: the refusal never appeared on d600ab8; after: shown once the sibling write settled, hidden by a press, not brought back by a success). Evidence `QA/evidence/batch1/dos-135/`. Environment note: every Metro started by QA runs with `CI=1`, which disables reloads, so a served build changes only when its Metro is restarted — the :5274 manager build still carried d600ab8 during this check (used as the live BEFORE), and a second Metro on :5374 served 8161f21 for the AFTER.
+
 ### 2. Cross-role regression — the Phase 2 chain on merged main (web; manager on the DOS-029 build)
 
 One chain walker, tenant tarsun, 2026-09-13 ~03:00–03:45 IST, every hop checked in UI (screenshot), API and DB. 16 PASS · 3 FAIL.

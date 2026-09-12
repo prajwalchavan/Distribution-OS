@@ -1,0 +1,169 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+17
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+7.14 edits per ten lines
+Documents to review
+Supplier bills
+Documents
+Gate count
+Supplier	Bill no.	Bill date	Amount ₹	Lines	Must fix	Unmatched	Waiting	Locked by
+
+Guiltfree Industries — Gurugram
+	
+FA/TY/26-27/1187
+	
+12 Sep 2026
+	9,854.00	
+2
+	1	
+0
+	
+21 h
+	
+—
+
+
+Alan's Food Products — Bhiwandi
+	
+ALA/26-27/00491
+	
+12 Sep 2026
+	10,896.00	
+3
+	Needs review	
+0
+	
+19 h
+	
+Being reviewed by Sunil Tarsun
+
+
+Reliance Consumer Products — Kalyan Depot
+	
+REL/26-27/00495
+	
+12 Sep 2026
+	3,45,530.00	
+3
+	Extracted	
+0
+	
+19 h
+	
+—
+
+
+Guiltfree Industries — Gurugram
+	
+GFI/26-27/00489
+	
+12 Sep 2026
+	21,773.00	
+4
+	2	
+2
+	
+20 h
+	
+Being reviewed by Vikas Kadam
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GUR/26-27/00496
+	
+12 Sep 2026
+	44,218.00	
+4
+	Extracted	
+0
+	
+18 h
+	
+—
+
+
+MOM Foods — Bikaner
+	
+—
+	
+—
+	—	
+—
+	Failed	
+0
+	
+62 h
+	
+—
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GKA/26-27/00500
+	
+5 Sep 2026
+	44,218.00	
+4
+	1	
+0
+	
+85 h
+	
+—
+
+7 rows								
+Alan's Food Products — Bhiwandi · ALA/26-27/00491
+Close
+Supplier
+Alan's Food Products — Bhiwandi
+State
+Needs review
+QR
+Absent
+Pages
+Checks
+Hsn dated rate
+What we read
+Bill no.
+Amount ₹
+₹
+Bill date
+12 Sep 2026
+What we think each line is
+On the bill: MASTI OYE CLASSIC SALTED 30 G
+336 pc
+₹2,493.86
+Our item: Masti Oye Classic Salted 30 g
+Match 95% · Supplier alias
+On the bill: MASTI OYE TOMATO TWIST 30 G
+912 pc
+₹6,822.86
+Our item: Masti Oye Tomato Twist 30 g
+Match 94% · Supplier alias
+On the bill: MASTI OYE PERI PERI TWIST 30 G
+144 pc
+₹1,079.00
+Our item: Masti Oye Peri Peri Twist 30 g
+Match 93% · Supplier alias
+Start reviewing
+Match the items again
+Book it as a supplier bill
+Reject the document
