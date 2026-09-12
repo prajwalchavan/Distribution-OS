@@ -1,0 +1,107 @@
+{
+ "results": [
+  {
+   "id": "DOS-029",
+   "lane": "L5-manager-errors",
+   "final": "verified",
+   "impl": {
+    "id": "DOS-029",
+    "status": "fixed",
+    "commits": [
+     "2abe7e3 test(QA): DOS-029 manager refusals end-to-end check (credit note 400, wave 409, brand-DMS 501, no connection)",
+     "d600ab8 fix(DOS-029): manager app keeps a refused write's dialog or panel open, with the server's sentence where pressed"
+    ],
+    "failBefore": "Command (frontend/, before any implementation): pnpm --filter @dos/api-client test -- src/react/refusal.test.ts\n\nExcerpt:\nFAIL src/react/refusal.test.ts > useRefusal ... > DOS-029: on a surface serving several writes the latest refusal is shown, pressing any write hides it, and a later success elsewhere does not bring it back\nTypeError: refusalStart is not a function\n \u276f frames src/react/refusal.test.ts:50:15\n(the same TypeError for all 4 DOS-029 tests)\nTest Files 1 failed | 7 passed (8)   Tests 4 failed | 72 passed (76)\n\nWhat this red proves: only that the refusal rule is new, as the plan predicts. The defect itself is presentational: dialogs closing on failure, and a refusal printed below the button. No unit harness can observe it; manager screens import @dos/ui and react-native. The reproduction is QA/tools/e2e/dos-029-manager-refusals.mjs. I wrote and committed it, and `node --check` passes, but I did NOT run it: this lane may not start services or the web app.",
+    "passAfter": "Run from frontend/ after the fix:\n- pnpm --filter @dos/api-client test: Test Files 8 passed (8), Tests 76 passed (76). This includes the 4 DOS-029 tests and reads.test.ts.\n- pnpm --filter @dos/manager-app test: Test Files 1 passed (1), Tests 3 passed (3).\n- pnpm --filter @dos/api-client typecheck: exit 0. pnpm --filter @dos/manager-app typecheck: exit 0.\n- pnpm --filter @dos/api-client lint: exit 0. pnpm --filter @dos/manager-app lint: exit 0.\n- pnpm format:check (whole frontend workspace): exit 0.\n- pnpm --filter @dos/manager-app build (static expo web export, not a server): \"Exported: dist\".\n- node --check QA/tools/e2e/dos-029-manager-refusals.mjs: OK. Syntax only; the script was not run.\n\nScan after the fix: no `done, done`, `close, close` or `}, done)` is left in manager-app. No `mutateAsync(...).then(` lacks a rejection handler.\n\nBackend is untouched. I only built @dos/contracts and @dos/domain dist so the frontend links resolve.",
+    "testsAdded": [
+     {
+      "file": "frontend/libs/api-client/src/react/refusal.test.ts",
+      "name": "DOS-029: a refused write surfaces the service's own sentence (400 credit note, 409 wave, 501 brand-DMS approve)"
+     },
+     {
+      "file": "frontend/libs/api-client/src/react/refusal.test.ts",
+      "name": "DOS-029: a refusal left over from an earlier opening of the surface is not shown again, and the next refusal is"
+     },
+     {
+      "file": "frontend/libs/api-client/src/react/refusal.test.ts",
+      "name": "DOS-029: on a surface serving several writes the latest refusal is shown, pressing any write hides it, and a later success elsewhere does not bring it back"
+     },
+     {
+      "file": "frontend/libs/api-client/src/react/refusal.test.ts",
+      "name": "DOS-029: a new scope (another bill or document on the same open panel) hides the previous refusal"
+     },
+     {
+      "file": "QA/tools/e2e/dos-029-manager-refusals.mjs",
+      "name": "DOS-029 manager refusals stay on screen: credit note 400, wave 409, brand-DMS approve 501"
+     },
+     {
+      "file": "QA/tools/e2e/dos-029-manager-refusals.mjs",
+      "name": "DOS-029 a lost connection on a manager write keeps the dialog open and does not promise to send later"
+     }
+    ],
+    "testsCorrected": [],
+    "filesChanged": [
+     "QA/tools/e2e/dos-029-manager-refusals.mjs",
+     "frontend/libs/api-client/README.md",
+     "frontend/libs/api-client/src/react/index.tsx",
+     "frontend/libs/api-client/src/react/refusal.test.ts",
+     "frontend/manager-app/src/lib/ui.tsx",
+     "frontend/manager-app/src/strings.ts",
+     "frontend/manager-app/app/billing/brand-dms.tsx",
+     "frontend/manager-app/app/billing/credit-notes.tsx",
+     "frontend/manager-app/app/billing/index.tsx",
+     "frontend/manager-app/app/fulfilment/index.tsx",
+     "frontend/manager-app/app/fulfilment/load-out.tsx",
+     "frontend/manager-app/app/fulfilment/pack.tsx",
+     "frontend/manager-app/app/inbound/documents.tsx",
+     "frontend/manager-app/app/inbound/gate.tsx",
+     "frontend/manager-app/app/inbound/index.tsx",
+     "frontend/manager-app/app/messages/index.tsx",
+     "frontend/manager-app/app/money/claims.tsx",
+     "frontend/manager-app/app/money/day-end.tsx",
+     "frontend/manager-app/app/money/index.tsx",
+     "frontend/manager-app/app/orders/drafts.tsx",
+     "frontend/manager-app/app/orders/index.tsx",
+     "frontend/manager-app/app/registers/tally.tsx",
+     "frontend/manager-app/app/settings.tsx",
+     "frontend/manager-app/app/shops/index.tsx",
+     "frontend/manager-app/app/stock/index.tsx"
+    ],
+    "deviations": "The plan's line numbers were stale, so every edit was matched against merged main 2abb27e. Where the code differs from the plan:\n\n1. money/index.tsx (DOS-034, which postdates the plan). The Bank it and Mark bounced dialogs already stayed open and printed deposit.error / bounce.error inline. I replaced those inline lines with `<Refusal>`, keeping the testIDs `receipt-deposit-refusal` / `receipt-bounce-refusal`, their `reset()` on open, and their stay-open behaviour. This puts them on the one rule and adds the no-connection sentence.\n\n2. billing/credit-notes.tsx (DOS-021). DOS-021 had already moved the refusal above Draft and resets `create` on bill pick and on close. I replaced its inline line in the same place with `<Refusal of={[create]} scope={billId} testID=\"note-refusal\" />` and kept both `create.reset()` calls.\n\n3. billing/index.tsx IRN.\n   - The Refusal and the invoice-irn Button are wrapped in a fragment inside the existing permission conditional.\n   - `scope={invoice.id}` instead of the plan's `invoice?.id ?? null`, because `invoice` is already narrowed there.\n\n4. testIDs. The plan named only some; every `<Refusal>` now has one, for QA:\n   - dialogs: order-refusal, decision-refusal, draft-refusal, claim-refusal, billing-refusal, inbound-dialog-refusal, loadsheet-refusal, ewb-refusal, pack-refusal, shop-refusal, deposit-refusal, bounce-refusal, settle-refusal, reverse-refusal, adjust-refusal, transfer-refusal, gate-refusal, broadcast-refusal, revoke-refusal, brand-capture-refusal;\n   - tally dialogs: tally-export-refusal and tally-mapping-refusal;\n   - the template Sheet: template-refusal;\n   - ExportButton: `<testID>-refusal`;\n   - inbound/index uses `inbound-dialog-refusal` because the plan gives `inbound-refusal` to the messages register.\n\n5. settings.tsx (revoke) and billing/brand-dms.tsx (capture) had a bare `<Txt>` as the dialog body. It is now wrapped in `<Stack gap={3}>` so the line can sit under it.\n\n6. `RefusalProps` is an exported interface whose optional props include `| undefined`, matching the kit's prop style. `stayOpen` has a comment-only body, as the plan says.\n\n7. E2E script.\n   - Step 1 uses the plan's step-8 two-desk draft race, because DOS-021 caps the field.\n   - The two desks are separate browser contexts with separate sign-ins, so refresh-token rotation in one cannot sign out the other.\n   - It cancels desk A's draft through the UI afterwards.\n   - It refuses to run against dos, dos_qa or dos_batch1_template.\n   - It does not cover verify step 11 (a review lock held by another user); that stays a manual check.\n\n8. Commit history. `2abe7e3` was amended once, message only: a shell heredoc had dropped its subject line. It was my own unpushed commit, and HEAD and an empty index were checked before amending.\n\n9. Nothing else was changed: no contract, permission, schema or backend code, no owner-app, and no held plan.",
+    "followUps": "1. The E2E has NOT been run. The main session must run `cd QA/tools && DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/<copy> node e2e/dos-029-manager-refusals.mjs`:\n   - against a fresh dos_batch1_template copy, with auth :3000, manager :3002 and manager web :5174 all on that copy;\n   - first RED on the unfixed build (2abb27e), then GREEN on d600ab8;\n   - it writes and then cancels one credit-note draft on INV/0634;\n   - it needs SO-0850 still on the fulfilment queue (DOS-024 is unfixed) and document 0400aea1-\u2026 still needs_review.\n\n2. Docs:\n   - a docs/18 build-log row for DOS-029;\n   - the QA findings/state for DOS-029;\n   - no docs/22 or contract change and no `pnpm docs:readme` needed. If docs/22 or UX-00 records manager UX rules, add \"a manager dialog or panel closes only on success; a refusal shows the service's sentence where pressed; a lost connection says 'No connection. Check the signal, then press again.'\"\n\n3. Adjacent, not fixed:\n   - frontend/libs/api-client/README.md \"Tests\" still says \"42 of them\" (stale before this change; the suite now has 76).\n   - credit-notes create (`lines[].id = uuidv7()` in run) and docint approve (`lineIds[].id = uuidv7()`) make new ids per call. A retry after a committed-but-lost reply therefore gets 409 \"idempotencyKey was already used with a different request\". Pre-existing; raise separately.\n   - Some server sentences are still machine-ish (DOS-033/035).\n   - The owner-app sibling is DOS-012 (P2), deliberately not widened.\n\n4. Residual limits:\n   - On long surfaces the line can be off-screen from the pressed control. In the documents panel, \"Accept\" match buttons sit above the action stack that carries `docint-panel-refusal`.\n   - On iOS, RN Modal keeps its children until dismiss, so a very fast reopen of the same dialog for the same row may still show the last sentence.\n\n5. Held plans that edit manager screens (for example DOS-007's shop statement dialog) must keep `stayOpen` and the `<Refusal of=[...]>` line when they merge. Expect conflicts in shops/index.tsx and money screens.\n\n6. This worktree has an untracked, gitignored frontend/manager-app/dist from the export build, and backend contracts/domain dist.",
+    "platformCheck": "Role: manager vikas.kadam / Dos@1234 on the manager app (:5174), on a dos_batch1_template copy. Walk web at 1280x800 and at 375 px, then Android and iOS.\n\n1. Credit notes, 400:\n   - Billing \u2192 Credit notes \u2192 Draft a credit note \u2192 INV/0634, in two separate browser profiles.\n   - Desk A drafts Sunbake Glucose 55 g in full (40 pc); desk B presses Draft for the same pieces.\n   - Expected: the panel stays open; the brick line \"only 0 pcs of Sunbake Glucose 55 g are left to credit on INV/0634\" (`note-refusal`) sits directly above Draft, in view.\n   - Picking another bill in the same panel hides it. No new note is written. Cancel desk A's draft afterwards.\n\n2. Picking sheet, 409:\n   - Fulfilment \u2192 tick SO-0850 \u2192 Make a picking sheet \u2192 confirm.\n   - Expected: wave-dialog stays open with \"only a confirmed order can be waved; SO-0850 is packed\" (`wave-refusal`). Confirm stays usable; picklists count unchanged.\n   - Cancel, reopen for SO-0845: no stale line.\n\n3. Brand-DMS bill, 501:\n   - Inbound \u2192 Documents \u2192 FA/TY/26-27/1187 \u2192 Book it as a supplier bill \u2192 confirm.\n   - Expected: docint-dialog stays open with the \"a brand-DMS bill is committed through billing.invoices.importBrandDms \u2026\" sentence. The document is still needs_review with committed_entity_id null.\n\n4. Review lock:\n   - On a document another user has locked, press Start reviewing.\n   - Expected: `docint-panel-refusal` at the top of the panel's action stack; no \"Uncaught (in promise)\"; no `#error-overlay` blocking clicks.\n\n5. No connection:\n   - Block POST /warehouse/picklists and confirm a wave.\n   - Expected: the dialog stays open with \"No connection. Check the signal, then press again.\"; nowhere \"This will send when the signal is back\".\n\n6. Success still closes: Registers \u2192 Tally \u2192 Queue an export closes export-dialog with no brick line.\n\n7. Accountant meena.joshi, two tabs: reverse the same collected receipt in both. Expected: tab B's reverse-dialog stays open with the \"already cancelled\" sentence.\n\n8. Money \u2192 Receipts: Bank it and Mark bounced refusals still show inside their dialogs (`receipt-deposit-refusal` / `receipt-bounce-refusal`), same look as the other refusal lines.\n\n9. Layout checks at 1280 and 375 px:\n   - page headers with ExportButton, now a Stack of button plus refusal line: registers, orders, money/receipts, billing;\n   - messages outbox and inbound registers: a line above the register only after a refused row press;\n   - at 375 px, step 2 in the phone dialog and step 1 in the bottom sheet, with the line above the button.\n\n10. Android, Pixel_7_API_36 booted with -memory 3072, manager dev build: step 2 shows the sentence in the native Modal Dialog; Cancel then reopen shows none.\n\n11. iOS, Expo Go: try step 2. If the dialog cannot be driven headlessly, record NOT TESTED with that reason.",
+    "deviations_note_unused": "n/a"
+   },
+   "verdict": {
+    "id": "DOS-029",
+    "verdict": "pass",
+    "failBeforeConfirmed": true,
+    "passAfterConfirmed": true,
+    "problems": [
+     {
+      "severity": "minor",
+      "file": "QA/tools/e2e/dos-029-manager-refusals.mjs",
+      "detail": "The only real reproduction of the finding was not run: the E2E script covers dialogs staying open, the sentence in view, and no #error-overlay or 'Uncaught (in promise)'. This lane may not start services; only `node --check` passed. The unit spec only proves that the display rule is new (red = `refusalStart is not a function`). The code sites were checked by reading, not at runtime. The main session must run it RED on 2abb27e, then GREEN on d600ab8, against a dos_batch1_template copy, and do the planned web 1280/375, Android and iOS walks."
+     },
+     {
+      "severity": "minor",
+      "file": "frontend/libs/api-client/src/react/index.tsx",
+      "detail": "nextRefusal (about line 480) puts a refusal into `seen` with `shown` undefined when it arrives while ANOTHER write on the same surface is still pending, and it never shows it after that write settles. I proved this with a temporary assertion (deleted afterwards). Frames: [pending, pending], then [error A, pending] shows nothing, then [error A, success] still shows nothing. The realistic case is the documents panel (for example rematch refused while acceptMatch is still pending): that refusal stays silent. The finding's three single-write steps are not affected."
+     },
+     {
+      "severity": "minor",
+      "file": "frontend/manager-app/src/lib/ui.tsx",
+      "detail": "The plan asked for ExportButton to be wrapped in `<Stack gap={1}>`. Stack sets `alignSelf: 'stretch'` (web layout.tsx:163, native layout.tsx:159), and the header actions row is flex-wrap with `alignItems: 'center'` (web layout.tsx:610-617). So Export CSV may sit top-aligned next to taller header controls. When an export is refused, the Stack widens to the sentence and the button stretches with it. This is cosmetic, and the plan's 1280/375 px check of the registers, orders, money and billing headers has not been done."
+     },
+     {
+      "severity": "minor",
+      "file": "frontend/manager-app/app/money/index.tsx",
+      "detail": "The DOS-021 and DOS-034 refusal lines (note-refusal, receipt-deposit-refusal, receipt-bounce-refusal) changed from Txt label/meta to body/body when they moved onto <Refusal>. Their testIDs, placement and stay-open behaviour are kept, and dos-034-day-end.mjs does not use those testIDs, so only the look changes. Also, on iOS, most dialogs pass no `scope`: reopening one within the Modal dismiss animation may show the last sentence again (a residual the implementer already reported)."
+     }
+    ],
+    "evidence": "Worktree .claude/worktrees/b1-l5-manager-errors, HEAD d600ab8 on top of 2abe7e3 and 2abb27e.\n\n1. Scope\n- `git show --stat` of both commits: 24 files in d600ab8 plus the E2E .mjs in 2abe7e3.\n- Every file is in the plan's change list: api-client index.tsx, README.md (hand-written, not a generated service README) and refusal.test.ts; manager strings.ts and ui.tsx; the 19 named screens; QA/tools/e2e.\n- `git diff 2abb27e HEAD --stat -- backend docs QA/findings QA/STATE.md CLAUDE.md '**/README.md'` shows only frontend/libs/api-client/README.md. No backend, contract, permission, schema, docs/22 or QA findings/state change.\n\n2. Fail before\n- Reversed the non-test changes of d600ab8 and 2abe7e3 with the prescribed `git diff C^ C -- . ':(exclude)...' | git apply -R` (\"reversed d600ab8\", \"reversed 2abe7e3\").\n- `pnpm --filter @dos/api-client test -- src/react/refusal.test.ts`:\n  \"FAIL ... DOS-029: ... TypeError: refusalStart is not a function \u276f frames src/react/refusal.test.ts:48:15\"\n  \"Test Files 1 failed | 7 passed (8) Tests 4 failed | 72 passed (76)\"\n- In the unfixed tree, `grep -rnE \"done, ?done|close, ?close|\\}, ?done\\)\" app | wc -l` = 33. For example fulfilment/index.tsx:189 `}, done)` and :191/:193 `.then(done, done)`; inbound/documents.tsx:286/290/292 `.then(done, done)`.\n- documents.tsx:479 and :511: startReview and releaseReview had a `.then(ok)` with no rejection handler. No Refusal or stayOpen existed.\n- Restored with `git checkout -- .`: 0 porcelain lines. No library rebuild was needed: api-client is consumed from src, and contracts/domain dist were untouched.\n\n3. Pass after\n- `pnpm --filter @dos/api-client test`: Test Files 8 passed (8), Tests 76 passed (76). typecheck exit 0; lint exit 0.\n- `pnpm --filter @dos/manager-app typecheck`: exit 0. lint: exit 0. test: 3 passed (3).\n- `pnpm format:check` in frontend/: \"All matched files use Prettier code style!\"\n- `node --check QA/tools/e2e/dos-029-manager-refusals.mjs`: OK.\n\n4. Adversarial checks\n- Temporary property test of nextRefusal, deleted afterwards: 3,000 random runs, 36,000 frames of 1-5 writes with random idle/pending/success/error states and scope changes.\n  - Asserted `nextRefusal(next, w, sc) === next`, so the render-time setState converges in one extra render and cannot loop.\n  - Asserted `shown` is always one of the current errors. Result: 2 passed.\n- Temporary edge assertion, deleted: a refusal arriving while a sibling write is pending is never shown, even after the sibling settles. Result: passed (minor problem above).\n- Coverage scan:\n  - All 60 manager `useMutation` hooks (59 in app/, plus ExportButton's `request`) appear in some `<Refusal of=[...]>`.\n  - No `done, done`, `close, close` or `}, done)` is left.\n  - A bracket-aware Node scan found no `mutateAsync(...).then(` with a single argument.\n  - No `onError` or `.catch` closes a surface; only sign-in and change-password use `.catch`, with their own error handling.\n  - The remaining bare `.mutate()` calls (messages rows, documents accept/save/rematch, billing irn, ExportButton) are covered: `mutate` swallows the rejection (index.tsx:406-411) and each has a Refusal line.\n- Client semantics:\n  - `mutateAsync` stores one ApiError instance per failure and clears it on pending (index.tsx:389-398), so the identity-based `seen` is stable.\n  - `toApiError` maps only aborts and TypeErrors to kind 'network'. That default (\"No connection. This will send when the signal is back.\") is replaced by app.writeNoConnection in <Refusal>.\n- Kit: the web Dialog and Sheet return `<></>` when closed (feedback.tsx:178, :284), so the Refusal remounts and its mount rule hides stale errors. Native uses `<Modal visible>`.\n- Earlier batch fixes on the same screens:\n  - DOS-021 create.reset() on bill pick and close, and DOS-034 reset-on-open plus stay-open with testIDs receipt-deposit-refusal / receipt-bounce-refusal, are both kept.\n  - DOS-020 and DOS-005: the decision dialog gets decision-refusal, and order confirm stays gated on `waitingOn`.\n  - DOS-023, DOS-025 and DOS-041 success branches are unchanged.\n  - No held plan was implemented.\n- Frontend only: no backend, module-boundary, money/pieces, state-machine, idempotency or RLS surface. No screen imports react-native or react-dom (ESLint passes). A retry keeps its idempotency key because reset() is never called.\n\n5. End state: `git status` shows \"nothing to commit, working tree clean\" at d600ab8."
+   }
+  }
+ ],
+ "missing": []
+}

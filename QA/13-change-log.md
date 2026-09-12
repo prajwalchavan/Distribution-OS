@@ -36,6 +36,7 @@ then implementation by cluster, then the CI chain, then the five regressions of 
 | DOS-005 | Link each bargain gate to the bargain request it waits on, so one decision closes both and each queue shows on | The server and all three decision screens are both wrong. | 9 files: bargains.service.ts, index.ts, orders.internals.ts +6 | DOS-005: a bargain gate names the bargain request it waits on, and rejecting the gate rejects that request | 40fc300 → merge 2abb27e | merged; fail-before/pass-after verified; platform walk pending |
 | DOS-077 | Android order entry: catalog rows show only "Add a case" because the full-width kit Button squeezes the item-n | Confirmed by reviewer. | 4 files: new.tsx, order-entry-layout.test.ts, package.json +1 | DOS-077: the catalog row's "Add a case" button sizes to its label (fullWidth={false}), so the growing item-nam | f2a36ae → merge 2abb27e | merged; fail-before/pass-after verified; platform walk pending |
 | DOS-001 | Demo seed writes owner_summary.detail key 'ageingB90Plus', but the owner/manager dashboard reads 'ageingB90plu | The frontend is not the cause, so the finding's suggested fix is wrong. | 5 files: reporting.ts, reporting.ts, reporting.service.ts +2 | DOS-001: the seeded owner_summary.detail carries every ageing bucket under the keys the owner dashboard reads  | bc1f809 → merge 2abb27e | merged; fail-before/pass-after verified; platform walk pending |
+| DOS-029 | Manager app: a refused write keeps its dialog or panel open and shows the server's own sentence where the person pressed | 33 manager-app call sites closed the dialog on failure (`.then(done, done)`), and two review actions had no rejection handler, so 400/409/501 looked like nothing happened | 25 files: api-client `useRefusal`/`<Refusal>` rule, manager-app ui.tsx + 19 screens (DOS-021 and DOS-034 refusal lines moved onto the same rule) | refusal.test.ts › DOS-029 (4 tests); QA/tools/e2e/dos-029-manager-refusals.mjs | 2abe7e3 d600ab8 (branch qa/b1-l5-manager-errors, not merged yet) | verified (unit red→green); e2e red/green run pending; merge after regression part A |
 
 ### Batch 1 — how the 34 were split (2026-09-12, after planning)
 
@@ -94,3 +95,11 @@ check and verifier note: `QA/evidence/batch1/implement-followups.md`.
 - DOS-075: the sales app prices on the device from `@dos/domain` dist — rebuild domain and restart Metro with `--clear` before walking.
 - DOS-025, DOS-077: the frontend CI job does not run `pnpm test`, so the new app specs gate only locally.
 - DOS-073: generated READMEs regenerated once after the merge (orders.list summary changed).
+
+**DOS-029 (2026-09-13):** implemented on top of the 21 merged fixes, verified by an independent Opus reviewer (unit red→green, scope clean,
+no backend/contract/schema change). The unit test only proves the display rule is new; the real reproduction is the end-to-end script
+`QA/tools/e2e/dos-029-manager-refusals.mjs`, which must be run RED on 2abb27e and GREEN on the fix against a fresh template copy.
+Residuals to check in the manager walk: (1) a refusal that arrives while another write on the same panel is still pending is never shown
+after that write settles (verifier proved it in a unit frame; realistic in the documents panel); (2) on iOS a fast reopen of the same
+dialog may flash the previous sentence; (3) credit-note create and docint approve mint new line ids per call, so a retry after a lost reply
+gets 409 "idempotencyKey already used with a different request" (pre-existing).
