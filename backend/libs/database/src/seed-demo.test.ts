@@ -174,8 +174,10 @@ describeDb('demo seed on an empty database', () => {
   it('writes the whole demo the first time and nothing the second time', async () => {
     await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
     const first = await rowCounts(db)
-    expect(first['claims']).toBe(7)
-    expect(first['claim_lines']).toBeGreaterThan(20)
+    // the whole scheme book is claimed brand by brand and month by month, plus the damage, expiry,
+    // shortage and brand-DMS claims: a dozen or more, never fewer
+    expect(first['claims']).toBeGreaterThanOrEqual(12)
+    expect(first['claim_lines']).toBeGreaterThan(200)
 
     // The regression this spec exists for: the pending van-sale order is part of the FIRST seed.
     const pending = await db
@@ -205,7 +207,10 @@ describeDb('demo seed on an empty database', () => {
           FROM claim_statements s JOIN claims c ON c.id = s.claim_id
          WHERE s.tenant_id = ${tenantId} ORDER BY c.claim_no`)
     ).rows as { claim_no: string; shop: string | null }[]
-    expect(sheetRows.map((r) => r.claim_no)).toEqual(['CLM-0001', 'CLM-0002'])
+    // two sheets: one on the first settled scheme claim, one on the first still-submitted claim —
+    // both numbered claims (a draft has no sheet), both naming the shop on their first row
+    expect(sheetRows).toHaveLength(2)
+    expect(sheetRows.every((r) => /^CLM-\d{4}$/.test(r.claim_no))).toBe(true)
     expect(sheetRows.every((r) => typeof r.shop === 'string' && r.shop.length > 0)).toBe(true)
 
     await expectAiDemo(db, tenantId, 'pilot')
