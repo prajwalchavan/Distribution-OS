@@ -133,7 +133,7 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| GET | `/orders` | Orders (a retailer sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
 | POST | `/approvals/{id}/decide` | Approve or reject; the last approval approved confirms the order | owner, manager |
 | POST | `/receipts` | Record money from a shop and allocate it to bills (desk and delivery crew) | owner, manager, accountant, delivery |
