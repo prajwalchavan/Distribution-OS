@@ -1,0 +1,52 @@
+=== after Start loading + Send it off 15:09:36 ===
+                                                                                             string_agg                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ id,tenant_id,trip_no,trip_date,vehicle_id,driver_id,helper_id,state,van_sales_enabled,planned_stops,start_odometer_km,end_odometer_km,opening_cash_paise,started_at,ended_at,created_at,updated_at
+(1 row)
+
+ERROR:  column "departed_at" does not exist
+LINE 1: select trip_no, state, trip_date, departed_at, odometer_star...
+                                          ^
+HINT:  Perhaps you meant to reference the column "trips.started_at".
+                  id                  | status | counted_packages | confirmed_by | confirmed_at 
+--------------------------------------+--------+------------------+--------------+--------------
+ 374f2089-b8fd-720e-907c-8380307948ab | draft  |               38 |              | 
+(1 row)
+
+                                     string_agg                                      
+-------------------------------------------------------------------------------------
+ id,user_id,tenant_id,policy_version,locale,granted,granted_at,withdrawn_at,evidence
+(1 row)
+
+                  id                  |               user_id                |              tenant_id               |   policy_version   | locale | granted |        granted_at         | withdrawn_at |                                   evidence                                   
+--------------------------------------+--------------------------------------+--------------------------------------+--------------------+--------+---------+---------------------------+--------------+------------------------------------------------------------------------------
+ bf9fb0bd-e73f-7911-9603-566631e7eb16 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | gps-notice-2026-09 | en-IN  | t       | 2026-08-13 09:00:00+05:30 |              | {"app": "delivery", "source": "demo", "noticeVersion": "gps-notice-2026-09"}
+ 7f6717e2-5212-7f54-9cb6-76d95dd2b361 | b16c590d-3b76-7929-a5b6-557a56b31c9a | 01a0947d-7a79-75d2-bfff-97e499a58d49 | gps-notice-2026-09 | en-IN  | t       | 2026-08-13 09:00:00+05:30 |              | {"app": "delivery", "source": "demo", "noticeVersion": "gps-notice-2026-09"}
+ 8e2981fc-5fa7-7c09-b59d-423228b19c15 | 29880157-0943-7ca1-b0de-95680ff6addd | 01a0947d-7a79-75d2-bfff-97e499a58d49 | gps-notice-2026-09 | en-IN  | t       | 2026-08-13 09:00:00+05:30 |              | {"app": "delivery", "source": "demo", "noticeVersion": "gps-notice-2026-09"}
+(3 rows)
+ count | string_agg 
+-------+------------
+     5 | pending
+(1 row)
+
+ occurred_at | qty_delta | reason | ref_type 
+-------------+-----------+--------+----------
+(0 rows)
+
+                                            string_agg                                            
+--------------------------------------------------------------------------------------------------
+ id,tenant_id,actor_id,actor_role,action,entity_type,entity_id,before,after,device_id,occurred_at
+(1 row)
+
+ERROR:  column "created_at" does not exist
+LINE 1: select created_at, action, entity_type from audit_log where ...
+               ^
+  trip_no  | state  | trip_date  |          started_at           | start_odometer_km | opening_cash_paise | van_sales_enabled 
+-----------+--------+------------+-------------------------------+-------------------+--------------------+-------------------
+ TRIP-NEXT | active | 2026-09-14 | 2026-09-12 15:08:33.833+05:30 |                   |             300000 | t
+(1 row)
+
+ occurred_at | actor_role | action | entity_type 
+-------------+------------+--------+-------------
+(0 rows)
+

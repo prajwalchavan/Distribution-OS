@@ -1,0 +1,99 @@
+=== baseline 2026-09-12 14:41:35 ===
+--- picklists open/picking ---
+--- pick_lines summary per open picklist ---
+ picklist_no | lines | req  | picked | picked_lines | orders 
+-------------+-------+------+--------+--------------+--------
+ PICK-0078   |    40 | 7834 |   5926 |           27 |      7
+ PICK-0079   |    24 |  750 |      0 |            0 |      1
+(2 rows)
+
+--- load sheets draft ---
+--- load sheet status counts ---
+  status   | count 
+-----------+-------
+ draft     |     1
+ confirmed |    82
+(2 rows)
+
+--- grns by status ---
+ status | count 
+--------+-------
+ posted |   128
+(1 row)
+
+--- cycle counts ---
+                  id                  | status |             location_id              |              note               | counted_by 
+--------------------------------------+--------+--------------------------------------+---------------------------------+------------
+ b24cd950-8b2b-7979-b757-948dfe93be0a | open   | 01a0947d-7a96-723f-952d-338dd284a1b4 | Weekly count of the fast movers | 
+(1 row)
+
+--- ledger / balances counts ---
+--- reservation states ---
+  state  | count | sum 
+---------+-------+-----
+ pending |    40 | 903
+(1 row)
+
+--- orders by state ---
+        state        | count 
+---------------------+-------
+ draft               |     3
+ confirmed           |     6
+ picking             |     2
+ packed              |     9
+ dispatched          |     7
+ delivered           |   781
+ partially_delivered |    48
+ cancelled           |    31
+(8 rows)
+
+--- picklists open/picking ---
+ picklist_no | status  |             assigned_to              | n_orders |        started_at         | trip_id | beat_id | note |                  id                  
+-------------+---------+--------------------------------------+----------+---------------------------+---------+---------+------+--------------------------------------
+ PICK-0078   | picking | 4c8b82ce-c45e-7102-898f-db1e0b0763f3 |        7 | 2026-09-12 09:40:00+05:30 |         |         |      | 26a39571-e117-71c1-b399-bca6f1167b13
+ PICK-0079   | open    |                                      |        1 |                           |         |         |      | 01a094be-7e33-7122-815d-cd9292e3685b
+(2 rows)
+
+--- load sheets draft ---
+                  id                  | status |               trip_id                | n_orders | expected_packages | counted_packages | load_value_paise | ewb_required |             approved_by              | confirmed_by | sheet_date |           from_location_id           |            to_location_id            
+--------------------------------------+--------+--------------------------------------+----------+-------------------+------------------+------------------+--------------+--------------------------------------+--------------+------------+--------------------------------------+--------------------------------------
+ 374f2089-b8fd-720e-907c-8380307948ab | draft  | 72649337-4c50-7033-a988-ca5cf4406f9c |        5 |                38 |               38 |         15014700 | t            | a1cbd424-d568-7ccb-b5cc-b049e8ac2063 |              | 2026-09-12 | 01a0947d-7a96-723f-952d-338dd284a1b4 | 3bbe6b52-7dd7-7540-aad6-94ff815e8d8b
+(1 row)
+
+--- ledger / balances counts ---
+ ledger_rows |           last_ledger            | balances | packs | reservations 
+-------------+----------------------------------+----------+-------+--------------
+        4947 | 2026-09-12 14:27:16.988838+05:30 |     1315 |   840 |           40
+(1 row)
+
+--- orders in confirmed/picking/packed ---
+ERROR:  column o.grand_total_paise does not exist
+LINE 1: select o.order_no, o.state, o.retailer_id, o.grand_total_pai...
+                                                   ^
+--- locations ---
+ERROR:  column "code" does not exist
+LINE 1: select id, code, name, kind from locations where tenant_id='...
+                   ^
+--- sales_orders cols ---
+                                                                                                                                                                    string_agg                                                                                                                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ id,tenant_id,order_no,retailer_id,state,source,created_by,salesperson_id,pricing_date_mode,payment_terms,fulfil_from_location_id,external_ref,subtotal_paise,discount_paise,tax_paise,round_off_paise,total_paise,approval_flags,expected_delivery_date,note,submitted_at,confirmed_at,closed_at,cancelled_at,cancel_reason,created_at,updated_at
+(1 row)
+
+--- locations cols ---
+                                   string_agg                                    
+---------------------------------------------------------------------------------
+ id,tenant_id,kind,name,vehicle_id,negative_allowed,active,created_at,updated_at
+(1 row)
+
+--- locations ---
+                  id                  |         name          |    kind    
+--------------------------------------+-----------------------+------------
+ 01a0947d-7a96-723f-952d-338dd284a1b4 | Godown                | warehouse
+ 3bbe6b52-7dd7-7540-aad6-94ff815e8d8b | Vehicle MH-05-AB-1234 | vehicle
+ 7e8fe8ac-a7b5-7531-8def-b362624790ba | Vehicle MH-05-CD-5678 | vehicle
+ 2c7b4801-3f88-77d1-8a25-7e903891f265 | Vehicle MH-05-EF-9012 | vehicle
+ 01a0947d-7a97-7466-8ce4-06501d6672dd | Damaged / expiry bin  | damaged
+ 01a0947d-7a97-7467-b2a4-9f76014448cf | In transit            | in_transit
+(6 rows)
+

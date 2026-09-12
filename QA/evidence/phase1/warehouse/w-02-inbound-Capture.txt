@@ -1,0 +1,68 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Capture a bill
+Queues
+✓ Capture
+Stock
+Counts
+Held
+Photograph every page of the supplier bill. Nothing else is typed here.
+Supplier
+Not sure yet
+Alan's Food Products — Bhiwandi
+27AAEFA6120L1ZK
+Annapurna Agro — Kalyan Mill Depot
+27AABCA6610Q1ZG
+Godavari Dairy — Ahmednagar Chilling Centre
+27AABCG2287L1ZB
+Guiltfree Industries — Gurugram
+06AABCG3312F1Z8
+Guru Kripa Agencies (Balaji Super-Stockist)
+27AAJFG7845K1ZT
+Konkan Traders, Ratnagiri
+27AAFFK9034P1ZQ
+MOM Foods — Bikaner
+08AACCM9087P1ZK
+Rajwadi Beverages — Bhiwandi Depot
+27AAECR7712N1ZX
+0 pages captured
+Photograph a page
+Scan the e-invoice QR
+No page yet
+The desk reviews the reading and opens the GRN. You count at the gate.
+RECENT CAPTURES
+Guru Kripa Agencies (Balaji Super-Stockist)
+Captured by Kavita Sawant
+needs_review
+MOM Foods — Bikaner
+Captured by Kavita Sawant
+failed
+Guru Kripa Agencies (Balaji Super-Stockist)
+Captured by Kavita Sawant
+extracted
+Guru Kripa Agencies (Balaji Super-Stockist)
+Captured by Dinesh Patil
+committed
+Guiltfree Industries — Gurugram
+Captured by Dinesh Patil
+needs_review
+Reliance Consumer Products — Kalyan Depot
+Captured by Dinesh Patil
+extracted
+Alan's Food Products — Bhiwandi
+Captured by Dinesh Patil
+needs_review
+Reliance Consumer Products — Kalyan Depot
+Captured by Vikas Kadam
+committed

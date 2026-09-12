@@ -1,0 +1,37 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Cycle counts
+Queues
+Capture
+Stock
+✓ Counts
+Held
+Location
+Godown
+warehouse
+Vehicle MH-05-AB-1234
+vehicle
+Vehicle MH-05-CD-5678
+vehicle
+Vehicle MH-05-EF-9012
+vehicle
+Damaged / expiry bin
+damaged
+In transit
+in_transit
+COUNTS
+Godown
+3 lots · 12 Sep
+open
+The desk posts the differences into the ledger.

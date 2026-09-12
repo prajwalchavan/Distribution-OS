@@ -1,0 +1,45 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Van check-in
+Sheets
+Trips
+Check-in
+Count what came back on the vehicle. The settlement itself is desk work.
+Vehicle
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+EXPECTED ON THE VEHICLE
+Too Yumm Karare 60 g
+1 cs = 48 pc
+Exp 8 Mar 2027
+Campa Orange 750 ml
+1 cs = 24 pc
+Exp 6 Jun 2027
+Campa Cola 750 ml
+0 pc
+Exp 9 Feb 2027
+Campa Cola 1 L
+1 cs = 24 pc
+Exp 6 Jun 2027
+Campa Lemon 750 ml
+1 cs = 24 pc
+Exp 6 Jun 2027
+Balaji Simply Salted Wafers 45 g
+1 cs = 48 pc
+Exp 6 Feb 2027
+Campa Cola 750 ml
+1 cs = 24 pc
+Exp 19 May 2027
+The money side of the trip is settled at the desk.

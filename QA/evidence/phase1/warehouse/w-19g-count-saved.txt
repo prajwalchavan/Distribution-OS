@@ -1,0 +1,49 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Count what came off the lorry. The bill is not shown.
+Gate count
+reconciled
+This receipt is reconciled — nothing to count.
+Received
+Blind count: what the bill says is not on this screen.
+Balaji Simply Salted Wafers 45 g
+1200 pc
+Saved
+Balaji Masala Masti Wafers 45 g
+144 pc
+2 pc
+Balaji Chataka Pataka Wafers 45 g
+500 pc
+Saved
+Balaji Ratlami Sev 200 g
+0 pc
+Saved
+FINDINGS
+Short
+48 pc
+open
+Excess
+2 pc
+open
+Damaged
+2 pc
+open
+Excess
+68 pc
+open
+Short
+240 pc
+open
+The desk posts the GRN once the count is in.
+Close
+Count saved

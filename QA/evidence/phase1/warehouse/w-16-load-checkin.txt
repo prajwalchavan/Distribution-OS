@@ -1,0 +1,23 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Van check-in
+Sheets
+Trips
+Check-in
+Count what came back on the vehicle. The settlement itself is desk work.
+Vehicle
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+The money side of the trip is settled at the desk.

@@ -1,0 +1,53 @@
+POST /warehouse/picklists/{id}/start
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, assignedTo:string, deviceId:string
+
+POST /warehouse/picklists/{id}/pick
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, deviceId:string, lines*:array<id:string, orderLineId:string, lotId:string, pickedQtyPcs:integer, shortReason:string>
+
+POST /warehouse/orders/{orderId}/pack
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, id*:string, packages*:integer, weightGrams:integer, deviceId:string, issueInvoice:boolean
+
+POST /warehouse/packs/{packId}/invoice
+   roles=['owner', 'manager', 'accountant', 'warehouse']
+   body: idempotencyKey*:string, id*:string, invoiceDate:string, deviceId:string
+
+POST /warehouse/load-sheets
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, id*:string, toLocationId*:string, fromLocationId:string, tripId:string, sheetDate:string, orderIds:array<string>, vanStock:array<lotId:string, qtyPcs:integer>
+
+POST /warehouse/load-sheets/{id}/confirm
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, countedPackages*:integer, countedVanStock:array<lotId:string, qtyPcs:integer>, challanId*:string, ewbNo:string, varianceNote:string, deviceId:string
+
+POST /warehouse/load-sheets/{id}/approve
+   roles=['owner', 'manager']
+   body: idempotencyKey*:string, note:string, deviceId:string
+
+POST /procurement/grns/{id}/count
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, lines*:array<grnLineId:string, countedQtyPcs:integer, damagedQtyPcs:integer>
+
+POST /warehouse/reservations/release
+   roles=['owner', 'manager', 'accountant']
+   body: idempotencyKey*:string, orderId*:string, reason*:string
+
+POST /warehouse/picklists
+   roles=['owner', 'manager', 'warehouse']
+   body: idempotencyKey*:string, id*:string, orderIds*:array<string>, locationId:string, tripId:string, beatId:string, pickDate:string, note:string
+
+POST /warehouse/challans/{id}/ewb
+   roles=['owner', 'manager', 'accountant']
+   body: idempotencyKey*:string, ewbNo*:string
+
+POST /sync/upload
+   roles=['owner', 'manager', 'accountant', 'salesperson', 'warehouse', 'delivery']
+   body: protocol:integer, deviceId*:string, ops*:array<opId:string, op:string, table:string, id:string, data:object, baseUpdatedAt:string, clientTime:string>
+
+GET /warehouse/picklists params: status, locationId, assignedTo, tripId, from, to, limit, cursor
+GET /warehouse/reservations params: orderId, locationId, variantId, state, limit, cursor
+GET /warehouse/packs params: from, to, picklistId, orderId, invoiced, limit, cursor
+GET /warehouse/queue params: locationId, beatId, state, expectedDeliveryDate, unpicklistedOnly, limit, cursor
+GET /warehouse/load-sheets params: status, tripId, toLocationId, from, to, limit, cursor

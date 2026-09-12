@@ -1,0 +1,128 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Pick
+✓ Every beat
+Station Road
+Kalyan West Market
+Birla College Road
+ORDERS WAITING
+Select all
+Clear
+0 selected · 0 pc
+Shree Ganesh Kirana
+SO-0873 · Station Road · 163 pc
+confirmed
+Vitthal Traders
+SO-9003 · Kalyan West Market · 2 pc
+confirmed
+Nutan Kirana Stores
+SO-0870 · Birla College Road · 158 pc
+confirmed
+Laxmi Narayan Stores
+SO-0868 · Kalyan West Market · 566 pc
+confirmed
+Patil General Store
+SO-0867 · Kalyan West Market · 337 pc
+confirmed
+WAVES
+PICK-0047
+5611 of 5611 pc picked
+packed
+PICK-0077
+5519 of 5519 pc picked
+picked
+PICK-0009
+3233 of 3233 pc picked
+packed
+PICK-0071
+5636 of 5636 pc picked
+packed
+PICK-0019
+7067 of 7067 pc picked
+packed
+PICK-0067
+8321 of 8321 pc picked
+packed
+PICK-0062
+17300 of 17300 pc picked
+packed
+PICK-0012
+7574 of 7574 pc picked
+packed
+PICK-0001
+3662 of 3662 pc picked
+packed
+PICK-0013
+11199 of 11199 pc picked
+packed
+PICK-0011
+5339 of 5339 pc picked
+packed
+PICK-0016
+6690 of 6690 pc picked
+packed
+PICK-0064
+4244 of 4244 pc picked
+packed
+PICK-0007
+8754 of 8754 pc picked
+packed
+PICK-0065
+8205 of 8205 pc picked
+packed
+PICK-0061
+6033 of 6033 pc picked
+packed
+PICK-0037
+6304 of 6304 pc picked
+packed
+PICK-0005
+5143 of 5143 pc picked
+packed
+PICK-0072
+6625 of 6625 pc picked
+packed
+PICK-0041
+10451 of 10451 pc picked
+packed
+PICK-0025
+6282 of 6282 pc picked
+packed
+PICK-0028
+1602 of 1602 pc picked
+packed
+PICK-0029
+9599 of 9599 pc picked
+packed
+PICK-0002
+1894 of 1894 pc picked
+packed
+PICK-0018
+6504 of 6504 pc picked
+packed
+PICK-0073
+7852 of 7852 pc picked
+packed
+PICK-0027
+6680 of 6680 pc picked
+packed
+PICK-0006
+4491 of 4491 pc picked
+packed
+PICK-0051
+5543 of 5543 pc picked
+packed
+PICK-0020
+4985 of 4985 pc picked
+packed

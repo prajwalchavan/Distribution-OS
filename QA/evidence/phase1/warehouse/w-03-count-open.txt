@@ -1,0 +1,31 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Count is open
+Cycle counts
+open
+Blind count: the expected figure is not on this screen.
+COUNTS
+Campa Cola 1 L
+Batch RCP20260807
+Not counted
+Chamak Detergent Bar 250 g
+Batch SC20260604
+Not counted
+Godavari Cow Ghee 500 ml
+Batch GD20260720
+Not counted
+The desk posts the differences into the ledger.
+Close
+0 / 3
+Save the count
+Not counted

@@ -1,0 +1,29 @@
+=== permission probes as warehouse (dinesh.patil) 14:45:33 ===
+GET /tenant-catalog/costs                                  403 {"message":"the warehouse role may not call GET /tenant-catalog/costs","error":"Forbidden","statusCode":403}
+GET /tenant-catalog/costs?variantId=f086f3e3-3697-7439-98d9-f20c231c110a 403 {"message":"the warehouse role may not call GET /tenant-catalog/costs","error":"Forbidden","statusCode":403}
+GET /billing/sales-register                                403 {"message":"the warehouse role may not call GET /billing/sales-register","error":"Forbidden","statusCode":403}
+GET /billing/gst-summary                                   403 {"message":"the warehouse role may not call GET /billing/gst-summary","error":"Forbidden","statusCode":403}
+GET /billing/queue                                         200 {"items":[{"orderId":"26de3d20-189f-79a8-a4f8-0b983b6bb685","orderNo":"SO-0867","retailerId":"1fdb8d1c-3941-7406-a1b5-f3f97e07b598","retailerName":"Patil Genera
+GET /delivery/collections                                  403 {"message":"the warehouse role may not call GET /delivery/collections","error":"Forbidden","statusCode":403}
+GET /delivery/expenses                                     403 {"message":"the warehouse role may not call GET /delivery/expenses","error":"Forbidden","statusCode":403}
+GET /retailers?limit=1                                     200 {"items":[{"id":"06cf7ea6-f74a-76d8-a747-248696740a46","name":"Khan General Store","ownerName":"Nasreen Khan","phone":"+918976068981","altPhone":null,"address":
+GET /procurement/supplier-invoices                         403 {"message":"the warehouse role may not call GET /procurement/supplier-invoices","error":"Forbidden","statusCode":403}
+GET /procurement/purchase-orders                           403 {"message":"the warehouse role may not call GET /procurement/purchase-orders","error":"Forbidden","statusCode":403}
+POST /inventory/cycle-counts/b24cd950-8b2b-7979-b757-948dfe93be0a/post 403 {"message":"the warehouse role may not call POST /inventory/cycle-counts/:id/post","error":"Forbidden","statusCode":403}
+POST /warehouse/load-sheets/374f2089-b8fd-720e-907c-8380307948ab/approve 403 {"message":"the warehouse role may not call POST /warehouse/load-sheets/:id/approve","error":"Forbidden","statusCode":403}
+POST /warehouse/load-sheets/374f2089-b8fd-720e-907c-8380307948ab/confirm 400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide
+POST /warehouse/load-sheets/374f2089-b8fd-720e-907c-8380307948ab/cancel 403 {"message":"the warehouse role may not call POST /warehouse/load-sheets/:id/cancel","error":"Forbidden","statusCode":403}
+POST /warehouse/picklists/01a094be-7e33-7122-815d-cd9292e3685b/cancel 403 {"message":"the warehouse role may not call POST /warehouse/picklists/:id/cancel","error":"Forbidden","statusCode":403}
+POST /orders/00000000-0000-7000-8000-000000000000/confirm  403 {"message":"the warehouse role may not call POST /orders/:id/confirm","error":"Forbidden","statusCode":403}
+POST /orders                                               400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide
+POST /retailers/00000000-0000-7000-8000-000000000000/credit 403 {"message":"the warehouse role may not call POST /retailers/:id/credit","error":"Forbidden","statusCode":403}
+POST /tenant-catalog/costs                                 403 {"message":"the warehouse role may not call POST /tenant-catalog/costs","error":"Forbidden","statusCode":403}
+POST /docint/documents/00000000-0000-7000-8000-000000000000/approve 403 {"message":"the warehouse role may not call POST /docint/documents/:id/approve","error":"Forbidden","statusCode":403}
+POST /procurement/grns                                     403 {"message":"the warehouse role may not call POST /procurement/grns","error":"Forbidden","statusCode":403}
+POST /procurement/grns/00000000-0000-7000-8000-000000000000/post 403 {"message":"the warehouse role may not call POST /procurement/grns/:id/post","error":"Forbidden","statusCode":403}
+POST /delivery/trips/00000000-0000-7000-8000-000000000000/settle 403 {"message":"the warehouse role may not call POST /delivery/trips/:id/settle","error":"Forbidden","statusCode":403}
+POST /delivery/van-sales                                   403 {"message":"the warehouse role may not call POST /delivery/van-sales","error":"Forbidden","statusCode":403}
+POST /inventory/adjustments                                400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide
+POST /inventory/transfers                                  400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide
+POST /inventory/lots                                       400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide
+POST /inventory/locations                                  400 {"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"expected":"string","code":"invalid_type","path":["ide

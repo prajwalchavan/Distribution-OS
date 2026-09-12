@@ -1,0 +1,89 @@
+=== load-out refused 15:06:16 ===
+  loc   | on_hand | reserved 
+--------+---------+----------
+ Godown |       0 |        0
+(1 row)
+
+        occurred_at        |  loc   | qty_delta | reason  | ref_type 
+---------------------------+--------+-----------+---------+----------
+ 2026-09-12 11:30:00+05:30 | Godown |      -240 | sale    | pack
+ 2026-09-02 08:30:00+05:30 | Godown |       240 | opening | opening
+(2 rows)
+
+--- sheet van_stock vs godown balance ---
+ERROR:  operator does not exist: text = uuid
+LINE 1: ...pcs from vs left join stock_balances b on b.lot_id=vs.lot_id...
+                                                             ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+--- did packing move stock? ledger ref_types today ---
+  ref_type  |    reason    | count |   sum   
+------------+--------------+-------+---------
+ adjustment | opening      |     1 |  100000
+ adjustment | damage       |     3 |      -4
+ adjustment | adjustment   |     1 | -100000
+ manual     | cycle_count  |    21 |    1173
+ pack       | sale         |    27 |   -5926
+ transfer   | transfer_out |     1 |      -1
+ transfer   | transfer_in  |     1 |       1
+ trip       | van_load     |    12 |       0
+(8 rows)
+
+ order_no | state  | invoice_no | inv_state | packages |         packed_at         
+----------+--------+------------+-----------+----------+---------------------------
+ SO-0869  | packed | INV/0836   | issued    |        3 | 2026-09-12 11:30:00+05:30
+ SO-0871  | packed | INV/0837   | issued    |        4 | 2026-09-12 11:30:00+05:30
+ SO-0875  | packed | INV/0838   | paid      |       12 | 2026-09-12 11:30:00+05:30
+ SO-0876  | packed | INV/0839   | issued    |       12 | 2026-09-12 11:30:00+05:30
+ SO-0878  | packed | INV/0840   | issued    |        7 | 2026-09-12 11:30:00+05:30
+(5 rows)
+
+--- a confirmed sheet: what did its confirm write? ---
+ERROR:  operator does not exist: stock_reason ~~* unknown
+LINE 1: ...sheet','loadsheet','load','dispatch') or s.reason ilike '%lo...
+                                                             ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+    ref_type    
+----------------
+ adjustment
+ credit_note
+ grn
+ invoice
+ invoice_cancel
+ manual
+ opening
+ pack
+ transfer
+ trip
+(10 rows)
+
+--- draft sheet van_stock vs godown balance ---
+ lots | enough | short | van_pcs | godown_pcs 
+------+--------+-------+---------+------------
+    0 |      0 |     0 |         |           
+(1 row)
+
+--- do the draft sheet's van_stock lots equal the 5 orders' picked lots? ---
+ same_as_picked | not_picked_lots | total 
+----------------+-----------------+-------
+              0 |               0 |     0
+(1 row)
+
+--- one seeded confirmed sheet: van_stock count vs trip van_load ledger rows ---
+                  id                  |  status   | van_lots | expected_packages | counted_packages | variance_note | trip_ledger_rows | sheet_ledger_rows 
+--------------------------------------+-----------+----------+-------------------+------------------+---------------+------------------+-------------------
+ 29067d2f-43f5-7748-ba39-8084e257eb2e | confirmed |        0 |                64 |               64 |               |               12 |                 0
+ 91012acc-e7be-76bf-a96f-1a2d0e982aa1 | confirmed |        0 |                12 |               12 |               |                0 |                 0
+ d2853293-112a-7073-a939-748a7fd713c0 | confirmed |        0 |                74 |               74 |               |                0 |                 0
+(3 rows)
+
+                ref_id                |  reason  | count | sum 
+--------------------------------------+----------+-------+-----
+ dda35990-f442-7931-8da4-5808f09a33b6 | van_load |    12 |   0
+(1 row)
+
+--- variance notes on seeded confirmed sheets ---
+ with_variance | total 
+---------------+-------
+             6 |    82
+(1 row)
+

@@ -1,0 +1,32 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Line 2 of 4
+Balaji Masala Masti Wafers 45 g
+Blind count: what the bill says is not on this screen.
+Pieces damaged
+2
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Next line
+Scan
+Review the count

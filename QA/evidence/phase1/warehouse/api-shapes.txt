@@ -1,0 +1,89 @@
+=== API shapes as warehouse 15:10:28 ===
+
+--- GET /retailers/06cf7ea6-f74a-76d8-a747-248696740a46 ---
+status 200
+keys: active, address, altPhone, beatId, cashDiscountBps, cashDiscountDays, code, creditDays, creditLimitBills, creditLimitPaise, creditMode, gstRegType, gstin, id, identityId, lat, lng, name, onboardedBy, ownerName, paymentTerms, phone, stateCode, tier
+  creditLimitPaise = 0
+  creditDays = 0
+  creditMode = "stop"
+  tier = "D"
+  phone = "+918976068981"
+
+--- GET /warehouse/reservations?limit=2 ---
+status 200
+count: 2
+keys: batchNo, createdAt, id, locationId, lotId, orderId, orderLineId, orderNo, qtyPcs, state, variantId, variantName
+  orderId = "26de3d20-189f-79a8-a4f8-0b983b6bb685"
+  orderNo = "SO-0867"
+  state = "pending"
+
+--- GET /warehouse/picklists/01a094be-7e33-7122-815d-cd9292e3685b ---
+status 200
+keys: assignedTo, beatId, cancelReason, cancelledAt, completedAt, consolidated, createdAt, id, lineCount, lines, locationId, note, orderCount, orders, pickDate, pickedQtyPcs, picklistNo, requestedQtyPcs, startedAt, status, tripId
+  status = "picked"
+  lineCount = 3
+  requestedQtyPcs = 750
+  pickedQtyPcs = 676
+
+--- GET /warehouse/queue?limit=2 ---
+status 200
+count: 0
+{'items': [], 'nextCursor': 'ce2350c7-770c-78dd-901b-3206d37d6182'}
+
+--- GET /warehouse/packs?invoiced=false&limit=2 ---
+status 200
+count: 0
+{'items': [], 'nextCursor': None}
+
+--- GET /warehouse/packs?limit=1 ---
+status 200
+count: 1
+keys: id, invoiceId, invoiceNo, orderId, orderNo, packages, packedAt, packedBy, picklistId, retailerId, retailerName, shortPacked, weightGrams
+  invoiceNo = "INV/0768"
+  orderNo = "SO-0798"
+  packages = 12
+
+--- GET /warehouse/load-sheets/374f2089-b8fd-720e-907c-8380307948ab ---
+status 200
+keys: approvedAt, approvedBy, cancelReason, cancelledAt, challan, challanNo, confirmedAt, confirmedBy, countedPackages, createdAt, ewbNo, ewbRequired, expectedPackages, fromLocationId, id, loadValuePaise, lots, orderCount, orders, pinVerifiedBy, sheetDate, status, toLocationId, tripId, varianceNote, vehicleRegNo
+  status = "draft"
+  expectedPackages = 38
+  countedPackages = 38
+  approvedBy = "a1cbd424-d568-7ccb-b5cc-b049e8ac2063"
+
+--- GET /warehouse/challans?limit=1 ---
+status 200
+count: 1
+keys: challanDate, challanNo, ewbNo, fromLocationId, fy, gstPaise, id, issuedAt, issuedBy, loadSheetId, seriesCode, toLocationId, valuePaise, vehicleNo
+  challanNo = "DC-0019"
+  loadSheetId = "90093af8-d1fb-7f57-a0cd-ddfa5d04f948"
+
+--- GET /procurement/grns?status=counting&limit=2 ---
+status 200
+count: 0
+{'items': [], 'nextCursor': None}
+
+--- GET /procurement/grns?limit=1 ---
+status 200
+count: 1
+keys: countedAt, countedBy, createdAt, grnNo, id, locationId, note, postedAt, postedBy, status, supplierInvoiceId
+  grnNo = "GRN-0025"
+  status = "posted"
+
+--- GET /warehouse/picklists?status=open&limit=5 ---
+status 200
+count: 0
+{'items': [], 'nextCursor': None}
+
+--- GET /warehouse/picklists?status=picking&limit=5 ---
+status 200
+count: 1
+keys: assignedTo, beatId, cancelReason, cancelledAt, completedAt, createdAt, id, lineCount, locationId, note, orderCount, pickDate, pickedQtyPcs, picklistNo, requestedQtyPcs, startedAt, status, tripId
+  picklistNo = "PICK-0078"
+  status = "picking"
+
+--- GET /warehouse/load-sheets?status=draft&limit=5 ---
+status 200
+count: 1
+keys: approvedAt, approvedBy, cancelReason, cancelledAt, challanNo, confirmedAt, confirmedBy, countedPackages, createdAt, ewbNo, ewbRequired, expectedPackages, fromLocationId, id, loadValuePaise, orderCount, pinVerifiedBy, sheetDate, status, toLocationId, tripId, varianceNote, vehicleRegNo
+  status = "draft"

@@ -1,0 +1,1897 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Stock
+Queues
+Capture
+✓ Stock
+Counts
+Held
+Location
+Godown
+warehouse
+Vehicle MH-05-AB-1234
+vehicle
+Vehicle MH-05-CD-5678
+vehicle
+Vehicle MH-05-EF-9012
+vehicle
+Damaged / expiry bin
+damaged
+In transit
+in_transit
+All stock
+Near expiry only
+STOCK BY LOT
+Campa Cola 1 L
+Batch RCP20260807
+Exp 4 May 2027
+₹50.00
+On hand 4166 cs + 21 pc = 100005 pc
+Held 0 pc
+Free 1,00,005 pc
+Adjust
+Move
+Chamak Detergent Bar 250 g
+Batch SC20260604
+Exp 3 Jun 2028
+₹20.00
+On hand 14 pc
+Held 0 pc
+Free 14 pc
+Adjust
+Move
+Godavari Cow Ghee 500 ml
+Batch GD20260720
+Exp 20 Jul 2027
+₹395.00
+On hand 5 pc
+Held 0 pc
+Free 5 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 1.25 L
+Batch RJ20260730
+Exp 26 Apr 2027
+₹60.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Herbal Toothpaste 100 g
+Batch B20260902
+Exp 1 Sep 2028
+₹62.00
+On hand 6 cs = 432 pc
+Held 0 pc
+Free 432 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch B20260902
+Exp 30 May 2027
+₹330.00
+On hand 8 cs + 3 pc = 43 pc
+Held 0 pc
+Free 43 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 1.25 L
+Batch B20260729
+Exp 25 Apr 2027
+₹60.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 250 ml
+Batch B20260902
+Exp 30 May 2027
+₹15.00
+On hand 5 cs = 240 pc
+Held 0 pc
+Free 240 pc
+Adjust
+Move
+Sunbake Butter Cookies 75 g
+Batch SB20260830
+Exp 27 Apr 2027
+₹20.00
+On hand 2 cs = 144 pc
+Held 0 pc
+Free 144 pc
+Adjust
+Move
+Campa Lemon 750 ml
+Batch RCP20260703
+Exp 30 Mar 2027
+₹40.00
+On hand 5 pc
+Held 0 pc
+Free 5 pc
+Adjust
+Move
+Konkan Bhajani Chivda 100 g
+Batch B20260902
+Exp 31 Dec 2026
+₹35.00
+On hand 9 cs + 36 pc = 468 pc
+Held 0 pc
+Free 468 pc
+Adjust
+Move
+Annapurna Toor Dal 500 g
+Batch AN20260606
+Exp 3 Mar 2027
+₹95.00
+On hand 3 pc
+Held 3 pc
+Free 0 pc
+Adjust
+Move
+Chamak Detergent Powder 4 kg
+Batch B20260902
+Exp 1 Sep 2028
+₹399.00
+On hand 7 cs = 28 pc
+Held 0 pc
+Free 28 pc
+Adjust
+Move
+Sunbake Marie Light 300 g
+Batch SB20260719
+Exp 16 Mar 2027
+₹55.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Konkan Roasted Peanut Masala 150 g
+Batch KC20260731
+Expires in 77 days
+₹40.00
+On hand 1 cs = 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+Konkan Farsan Mix 100 g
+Batch KC20260717
+Expires in 63 days
+₹35.00
+On hand 2 cs + 10 pc = 106 pc
+Held 0 pc
+Free 106 pc
+Adjust
+Move
+Godavari Toned UHT Milk 500 ml
+Batch GD20260806
+Expires in 83 days
+₹32.00
+On hand 1 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Balaji Simply Salted Wafers 45 g
+Batch B20260823
+Exp 20 Jan 2027
+₹20.00
+On hand 42 pc
+Held 0 pc
+Free 42 pc
+Adjust
+Move
+Sunbake Marie Light 300 g
+Batch SB20260830
+Exp 27 Apr 2027
+₹55.00
+On hand 5 cs = 180 pc
+Held 0 pc
+Free 180 pc
+Adjust
+Move
+Godavari Dairy Whitener 200 g
+Batch GD20260629
+Exp 26 Mar 2027
+₹115.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Butter Cookies 75 g
+Batch SB20260607
+Exp 2 Feb 2027
+₹20.00
+On hand 14 pc
+Held 0 pc
+Free 14 pc
+Adjust
+Move
+Sunbake Marie Light 150 g
+Batch SB20260621
+Exp 16 Feb 2027
+₹30.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Fresh Paneer 500 g
+Batch GD20260611
+Expired 26 Jun 2026
+₹225.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Fresh Paneer 500 g
+Batch GD20260611
+Expired 26 Jun 2026
+₹225.00
+On hand 8 pc
+Held 0 pc
+Free 8 pc
+Adjust
+Move
+Sunbake Elaichi Cream 120 g
+Batch SB20260705
+Exp 2 Mar 2027
+₹20.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch TY20260720
+Exp 16 Jan 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch AN20260808
+Exp 5 May 2027
+₹255.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+MOM Roasted Makhana Himalayan Salt 12 g
+Batch B20260902
+Exp 30 May 2027
+₹10.00
+On hand 1 cs = 90 pc
+Held 0 pc
+Free 90 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260725
+Exp 21 Jan 2027
+₹135.00
+On hand 1 cs + 3 pc = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch TY20260710
+Exp 6 Jan 2027
+₹20.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Rajwadi Lemon Soda 500 ml
+Batch RJ20260820
+Exp 17 May 2027
+₹30.00
+On hand 2 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Rajwadi Lemon Soda 1.25 L
+Batch RJ20260621
+Exp 18 Mar 2027
+₹60.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Chamak Detergent Powder 1 kg
+Batch B20260909
+Exp 8 Sep 2028
+₹105.00
+On hand 11 cs + 2 pc = 134 pc
+Held 0 pc
+Free 134 pc
+Adjust
+Move
+Chamak Detergent Bar 250 g
+Batch B20260902
+Exp 1 Sep 2028
+₹20.00
+On hand 6 cs + 34 pc = 322 pc
+Held 0 pc
+Free 322 pc
+Adjust
+Move
+Chamak Detergent Bar 250 g
+Batch B20260902
+Exp 1 Sep 2028
+₹20.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 250 ml
+Batch RJ20260830
+Exp 27 May 2027
+₹15.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Sandal Soap 3 x 100 g pack
+Batch B20260729
+Exp 28 Jul 2028
+₹120.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Konkan Aloo Bhujia 400 g
+Batch B20260729
+Expires in 75 days
+₹85.00
+On hand 5 cs = 100 pc
+Held 0 pc
+Free 100 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 500 ml
+Batch RJ20260621
+Exp 18 Mar 2027
+₹30.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Balaji Chataka Pataka Wafers 45 g
+Batch GK20260811
+Exp 8 Jan 2027
+₹20.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch TY20260531
+Expires in 76 days
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 1 L
+Batch RCP20260529
+Exp 23 Feb 2027
+₹50.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Glucose 55 g
+Batch SB20260712
+Exp 9 Mar 2027
+₹10.00
+On hand 32 pc
+Held 0 pc
+Free 32 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 500 ml
+Batch RJ20260611
+Exp 8 Mar 2027
+₹30.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Coconut Hair Oil 200 ml
+Batch B20260902
+Exp 1 Sep 2028
+₹90.00
+On hand 4 cs + 19 pc = 163 pc
+Held 0 pc
+Free 163 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 250 ml
+Batch RJ20260611
+Exp 8 Mar 2027
+₹15.00
+On hand 16 pc
+Held 0 pc
+Free 16 pc
+Adjust
+Move
+Sunbake Choco Chip Cookies 40 g
+Batch SB20260802
+Exp 30 Mar 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Salted Cracker 200 g
+Batch SB20260802
+Exp 30 Mar 2027
+₹40.00
+On hand 1 cs = 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+Too Yumm Veggie Stix 70 g
+Batch TY20260819
+Exp 15 Feb 2027
+₹20.00
+On hand 1 cs = 48 pc
+Held 2 pc
+Free 46 pc
+Adjust
+Move
+Campa Orange 200 ml
+Batch RCP20260710
+Exp 6 Apr 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Marie Light 75 g
+Batch SB20260607
+Exp 2 Feb 2027
+₹15.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Godavari Dahi 400 g
+Batch GD20260806
+Expired 27 Aug 2026
+₹42.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Dahi 400 g
+Batch B20260830
+Expires in 8 days
+₹42.00
+On hand 2 cs = 40 pc
+Held 0 pc
+Free 40 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260613
+Exp 10 Mar 2027
+₹135.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Balaji Simply Salted Wafers 45 g
+Batch GK20260804
+Exp 1 Jan 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Dahi 400 g
+Batch GD20260801
+Expired 22 Aug 2026
+₹42.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+MOM Roasted Makhana Peri Peri 60 g
+Batch MOM20260526
+Exp 20 Feb 2027
+₹50.00
+On hand 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+MOM Roasted Makhana Peri Peri 60 g
+Batch MOM20260526
+Exp 20 Feb 2027
+₹50.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Sunbake Salted Cracker 200 g
+Batch B20260729
+Exp 26 Mar 2027
+₹40.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 200 ml
+Batch RCP20260731
+Exp 27 Apr 2027
+₹10.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Rajwadi Aamras Mango Drink 200 ml
+Batch RJ20260621
+Exp 18 Dec 2026
+₹12.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Dahi 200 g
+Batch B20260812
+Expired 2 Sep 2026
+₹22.00
+On hand 1 cs = 30 pc
+Held 0 pc
+Free 30 pc
+Adjust
+Move
+Campa Cola 500 ml
+Batch B20260729
+Exp 25 Apr 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Chamak Dishwash Bar 300 g
+Batch SC20260730
+Exp 29 Jul 2028
+₹30.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Glucose 32 g
+Batch B20260729
+Exp 26 Mar 2027
+₹5.00
+On hand 4 cs + 60 pc = 636 pc
+Held 0 pc
+Free 636 pc
+Adjust
+Move
+Campa Cola 500 ml
+Batch RCP20260529
+Exp 23 Feb 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 500 ml
+Batch RCP20260717
+Exp 13 Apr 2027
+₹20.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Sunbake Elaichi Cream 60 g
+Batch B20260902
+Exp 30 Apr 2027
+₹10.00
+On hand 4 cs = 384 pc
+Held 0 pc
+Free 384 pc
+Adjust
+Move
+Konkan Aloo Bhujia 42 g
+Batch B20260729
+Expires in 75 days
+₹10.00
+On hand 5 cs = 480 pc
+Held 0 pc
+Free 480 pc
+Adjust
+Move
+Balaji Chataka Pataka Wafers 45 g
+Batch GK20260721
+Exp 18 Dec 2026
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 750 ml
+Batch RCP20260724
+Exp 20 Apr 2027
+₹40.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch B20260909
+Exp 8 Mar 2027
+₹20.00
+On hand 12 cs + 43 pc = 619 pc
+Held 0 pc
+Free 619 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch B20260909
+Exp 8 Mar 2027
+₹20.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Campa Cola 1 L
+Batch RCP20260612
+Exp 9 Mar 2027
+₹50.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Campa Orange 750 ml
+Batch B20260614
+Exp 11 Mar 2027
+₹40.00
+On hand 8 pc
+Held 8 pc
+Free 0 pc
+Adjust
+Move
+Godavari Fresh Paneer 500 g
+Batch GD20260705
+Expired 20 Jul 2026
+₹225.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Fresh Paneer 500 g
+Batch GD20260705
+Expired 20 Jul 2026
+₹225.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Sunbake Glucose 110 g
+Batch SB20260823
+Exp 20 Apr 2027
+₹20.00
+On hand 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+Godavari Flavoured Milk Rose 180 ml
+Batch B20260605
+Expires in 21 days
+₹25.00
+On hand 2 cs = 54 pc
+Held 0 pc
+Free 54 pc
+Adjust
+Move
+Godavari Cow Ghee 500 ml
+Batch GD20260620
+Exp 20 Jun 2027
+₹395.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Toor Dal 500 g
+Batch B20260729
+Exp 25 Apr 2027
+₹95.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 750 ml
+Batch RCP20260619
+Exp 16 Mar 2027
+₹40.00
+On hand 5 pc
+Held 5 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Thick Poha 1 kg
+Batch AN20260801
+Exp 28 Apr 2027
+₹65.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Cola 200 ml
+Batch RCP20260619
+Exp 16 Mar 2027
+₹10.00
+On hand 17 pc
+Held 0 pc
+Free 17 pc
+Adjust
+Move
+Too Yumm Veggie Stix 70 g
+Batch TY20260827
+Exp 23 Feb 2027
+₹20.00
+On hand 2 cs + 42 pc = 138 pc
+Held 0 pc
+Free 138 pc
+Adjust
+Move
+Too Yumm Veggie Stix 70 g
+Batch TY20260827
+Exp 23 Feb 2027
+₹20.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Konkan Kerala Banana Chips 40 g
+Batch B20260902
+Exp 31 Dec 2026
+₹20.00
+On hand 4 cs = 288 pc
+Held 0 pc
+Free 288 pc
+Adjust
+Move
+MOM Roasted Makhana Himalayan Salt 12 g
+Batch MOM20260707
+Exp 3 Apr 2027
+₹10.00
+On hand 2 cs = 180 pc
+Held 180 pc
+Free 0 pc
+Adjust
+Move
+Konkan Masala Khakhra 180 g
+Batch KC20260828
+Exp 26 Dec 2026
+₹50.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 200 ml
+Batch RCP20260626
+Exp 23 Mar 2027
+₹10.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Godavari Toned UHT Milk 1 L
+Batch GD20260714
+Expires in 60 days
+₹62.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Campa Lemon 500 ml
+Batch RCP20260619
+Exp 16 Mar 2027
+₹20.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Sunbake Glucose 55 g
+Batch SB20260809
+Exp 6 Apr 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Toned UHT Milk 1 L
+Batch B20260909
+Exp 7 Jan 2027
+₹62.00
+On hand 10 cs = 120 pc
+Held 0 pc
+Free 120 pc
+Adjust
+Move
+Balaji Chataka Pataka Wafers 45 g
+Batch GK20260818
+Exp 15 Jan 2027
+₹20.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch AN20260627
+Exp 27 Jun 2027
+₹45.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Rajwadi Lemon Soda 250 ml
+Batch RJ20260820
+Exp 17 May 2027
+₹15.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Masti Oye Classic Salted 30 g
+Batch AF20260716
+Exp 13 Dec 2026
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260704
+Exp 31 Dec 2026
+₹135.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Campa Lemon 200 ml
+Batch RCP20260605
+Exp 2 Mar 2027
+₹10.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Neelam Herbal Toothpaste 200 g
+Batch B20260902
+Exp 1 Sep 2028
+₹115.00
+On hand 9 cs + 18 pc = 342 pc
+Held 0 pc
+Free 342 pc
+Adjust
+Move
+Konkan Aloo Bhujia 42 g
+Batch B20260902
+Exp 31 Dec 2026
+₹10.00
+On hand 5 cs = 480 pc
+Held 0 pc
+Free 480 pc
+Adjust
+Move
+Konkan Roasted Peanut Masala 150 g
+Batch KC20260814
+Exp 12 Dec 2026
+₹40.00
+On hand 1 cs = 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+Too Yumm Multigrain Chips 60 g
+Batch TY20260729
+Exp 25 Jan 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Digestive Hi-Fibre 100 g
+Batch B20260729
+Exp 26 Mar 2027
+₹30.00
+On hand 1 cs + 18 pc = 90 pc
+Held 0 pc
+Free 90 pc
+Adjust
+Move
+Neelam Handwash 200 ml pump
+Batch SC20260702
+Exp 1 Jul 2028
+₹75.00
+On hand 1 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Balaji Masala Masti Wafers 45 g
+Batch B20260909
+Exp 6 Feb 2027
+₹20.00
+On hand 12 cs + 26 pc = 602 pc
+Held 0 pc
+Free 602 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch AN20260815
+Exp 12 May 2027
+₹48.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch B20260614
+Expires in 90 days
+₹135.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Dahi 1 kg
+Batch GD20260822
+Expires in 0 days
+₹95.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 1.25 L
+Batch B20260902
+Exp 30 May 2027
+₹60.00
+On hand 5 cs = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Balaji Simply Salted Wafers 45 g
+Batch GK20260811
+Exp 8 Jan 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Balaji Chataka Pataka Wafers 45 g
+Batch B20260729
+Exp 26 Dec 2026
+₹20.00
+On hand 19 pc
+Held 0 pc
+Free 19 pc
+Adjust
+Move
+Godavari Cow Ghee 1 L
+Batch GD20260617
+Exp 17 Jun 2027
+₹770.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Prickly Heat Talc 100 g
+Batch SC20260618
+Exp 17 Jun 2028
+₹65.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Neelam Prickly Heat Talc 100 g
+Batch SC20260618
+Exp 17 Jun 2028
+₹65.00
+On hand 16 pc
+Held 0 pc
+Free 16 pc
+Adjust
+Move
+Sunbake Marie Light 150 g
+Batch SB20260719
+Exp 16 Mar 2027
+₹30.00
+On hand 12 pc
+Held 12 pc
+Free 0 pc
+Adjust
+Move
+Godavari Fresh Paneer 500 g
+Batch B20260908
+Expires in 11 days
+₹225.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Neelam Cold Cream 30 g
+Batch B20260902
+Exp 1 Sep 2028
+₹45.00
+On hand 10 cs = 720 pc
+Held 0 pc
+Free 720 pc
+Adjust
+Move
+Campa Lemon 200 ml
+Batch RCP20260731
+Exp 27 Apr 2027
+₹10.00
+On hand 10 pc
+Held 0 pc
+Free 10 pc
+Adjust
+Move
+Rajwadi Aamras Mango Drink 200 ml
+Batch RJ20260721
+Exp 17 Jan 2027
+₹12.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Thick Poha 500 g
+Batch AN20260606
+Exp 3 Mar 2027
+₹35.00
+On hand 8 pc
+Held 0 pc
+Free 8 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 5 kg
+Batch AN20260704
+Exp 31 Mar 2027
+₹235.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Coconut Hair Oil 500 ml
+Batch B20260729
+Exp 28 Jul 2028
+₹210.00
+On hand 5 cs = 100 pc
+Held 0 pc
+Free 100 pc
+Adjust
+Move
+Neelam Coconut Hair Oil 100 ml
+Batch B20260902
+Exp 1 Sep 2028
+₹48.00
+On hand 6 cs + 13 pc = 301 pc
+Held 0 pc
+Free 301 pc
+Adjust
+Move
+Godavari Cow Ghee 200 ml
+Batch GD20260614
+Exp 14 Jun 2027
+₹165.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Glucose 55 g
+Batch SB20260607
+Exp 2 Feb 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Lemon 750 ml
+Batch RCP20260612
+Exp 9 Mar 2027
+₹40.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Chamak Detergent Powder 4 kg
+Batch SC20260521
+Exp 20 May 2028
+₹399.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 750 ml
+Batch B20260909
+Exp 6 Jun 2027
+₹40.00
+On hand 14 cs + 21 pc = 357 pc
+Held 0 pc
+Free 357 pc
+Adjust
+Move
+Campa Orange 750 ml
+Batch B20260909
+Exp 6 Jun 2027
+₹40.00
+On hand 1 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Masti Oye Tomato Twist 30 g
+Batch AF20260702
+Expires in 78 days
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Chamak Detergent Powder 4 kg
+Batch SC20260604
+Exp 3 Jun 2028
+₹399.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260606
+Exp 3 Mar 2027
+₹135.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Too Yumm Makhana Himalayan Salt 20 g
+Batch B20260729
+Exp 25 Apr 2027
+₹25.00
+On hand 72 pc
+Held 0 pc
+Free 72 pc
+Adjust
+Move
+Campa Cola 2 L
+Batch RCP20260605
+Exp 2 Mar 2027
+₹90.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Godavari Flavoured Milk Chocolate 180 ml
+Batch B20260902
+Exp 31 Dec 2026
+₹25.00
+On hand 2 cs + 2 pc = 56 pc
+Held 0 pc
+Free 56 pc
+Adjust
+Move
+Sunbake Glucose 250 g
+Batch SB20260726
+Exp 23 Mar 2027
+₹45.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260801
+Exp 28 Apr 2027
+₹28.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Neelam Neem Soap 100 g
+Batch SC20260730
+Exp 29 Jul 2028
+₹38.00
+On hand 1 cs = 72 pc
+Held 0 pc
+Free 72 pc
+Adjust
+Move
+Neelam Coconut Hair Oil 500 ml
+Batch B20260902
+Exp 1 Sep 2028
+₹210.00
+On hand 5 cs = 100 pc
+Held 0 pc
+Free 100 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260815
+Exp 12 May 2027
+₹135.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Flavoured Milk Chocolate 180 ml
+Batch B20260525
+Expires in 10 days
+₹25.00
+On hand 2 cs = 54 pc
+Held 0 pc
+Free 54 pc
+Adjust
+Move
+Neelam Sandal Soap 100 g
+Batch SC20260521
+Exp 20 May 2028
+₹42.00
+On hand 27 pc
+Held 0 pc
+Free 27 pc
+Adjust
+Move
+Godavari Toned UHT Milk 500 ml
+Batch GD20260723
+Expires in 69 days
+₹32.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Elaichi Cream 120 g
+Batch SB20260621
+Exp 16 Feb 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Neelam Herbal Toothpaste 200 g
+Batch SC20260521
+Exp 20 May 2028
+₹115.00
+On hand 8 pc
+Held 0 pc
+Free 8 pc
+Adjust
+Move
+MOM Roasted Makhana Peri Peri 60 g
+Batch B20260902
+Exp 30 May 2027
+₹50.00
+On hand 1 cs + 12 pc = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Godavari Toned UHT Milk 1 L
+Batch GD20260908
+Exp 6 Jan 2027
+₹62.00
+On hand 3 cs = 36 pc
+Held 0 pc
+Free 36 pc
+Adjust
+Move
+Godavari Kesar Shrikhand 200 g
+Batch B20260814
+Expires in 1 days
+₹65.00
+On hand 5 cs = 120 pc
+Held 0 pc
+Free 120 pc
+Adjust
+Move
+Godavari Cow Ghee 1 L
+Batch GD20260711
+Exp 11 Jul 2027
+₹770.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Lemon 500 ml
+Batch RCP20260717
+Exp 13 Apr 2027
+₹20.00
+On hand 13 pc
+Held 0 pc
+Free 13 pc
+Adjust
+Move
+Godavari Cow Ghee 200 ml
+Batch GD20260804
+Exp 4 Aug 2027
+₹165.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Neelam Coconut Hair Oil 100 ml
+Batch SC20260730
+Exp 29 Jul 2028
+₹48.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch B20251204
+Expired 31 Aug 2026
+₹60.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Neelam Prickly Heat Talc 300 g
+Batch B20260604
+Exp 3 Jun 2028
+₹165.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260718
+Exp 14 Apr 2027
+₹135.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Sunbake Bourbon Cream 120 g
+Batch B20260729
+Exp 26 Mar 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Balaji Ratlami Sev 200 g
+Batch GK20260825
+Exp 23 Dec 2026
+₹80.00
+On hand 1 cs = 30 pc
+Held 0 pc
+Free 30 pc
+Adjust
+Move
+Balaji Masala Masti Wafers 45 g
+Batch GK20260609
+Expires in 55 days
+₹20.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Neelam Sandal Soap 100 g
+Batch SC20260604
+Exp 3 Jun 2028
+₹42.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Balaji Masala Masti Wafers 45 g
+Batch GK20260828
+Exp 25 Jan 2027
+₹20.00
+On hand 3 cs = 144 pc
+Held 0 pc
+Free 144 pc
+Adjust
+Move
+Godavari Dahi 1 kg
+Batch GD20260716
+Expired 6 Aug 2026
+₹95.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Dahi 1 kg
+Batch GD20260716
+Expired 6 Aug 2026
+₹95.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch AN20260711
+Exp 7 Apr 2027
+₹52.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Chamak Toilet Cleaner 1 L
+Batch B20260729
+Exp 28 Jul 2028
+₹165.00
+On hand 5 cs = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Chamak Toilet Cleaner 500 ml
+Batch B20260729
+Exp 28 Jul 2028
+₹89.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Orange Cream 120 g
+Batch SB20260809
+Exp 6 Apr 2027
+₹20.00
+On hand 15 pc
+Held 15 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch AN20260620
+Exp 17 Mar 2027
+₹60.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Godavari Table Butter 100 g
+Batch GD20260816
+Exp 12 Feb 2027
+₹58.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Sunbake Marie Light 150 g
+Batch SB20260614
+Exp 9 Feb 2027
+₹30.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Cola 2 L
+Batch RCP20260731
+Exp 27 Apr 2027
+₹90.00
+On hand 1 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Godavari Cow Ghee 1 L
+Batch GD20260816
+Exp 16 Aug 2027
+₹770.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Orange 200 ml
+Batch RCP20260703
+Exp 30 Mar 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Chamak Detergent Powder 1 kg
+Batch SC20260521
+Exp 20 May 2028
+₹105.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Flavoured Milk Rose 180 ml
+Batch GD20260716
+Expires in 62 days
+₹25.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Garam Masala 50 g
+Batch B20260604
+Exp 4 Jun 2027
+₹45.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Lemon 2 L
+Batch B20260902
+Exp 30 May 2027
+₹90.00
+On hand 9 cs + 2 pc = 218 pc
+Held 0 pc
+Free 218 pc
+Adjust
+Move
+Konkan Bhajani Chivda 100 g
+Batch KC20260703
+Expires in 49 days
+₹35.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Campa Cola 500 ml
+Batch RCP20260731
+Exp 27 Apr 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Godavari Table Butter 100 g
+Batch GD20260620
+Exp 17 Dec 2026
+₹58.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 5 kg
+Batch AN20260808
+Exp 5 May 2027
+₹235.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Konkan Aloo Bhujia 200 g
+Batch B20260909
+Exp 7 Jan 2027
+₹45.00
+On hand 14 cs + 11 pc = 515 pc
+Held 0 pc
+Free 515 pc
+Adjust
+Move
+Too Yumm Makhana Himalayan Salt 20 g
+Batch TY20260827
+Exp 24 May 2027
+₹25.00
+On hand 1 cs = 90 pc
+Held 0 pc
+Free 90 pc
+Adjust
+Move
+Rajwadi Jeera Masala Soda 500 ml
+Batch RJ20260721
+Exp 17 Apr 2027
+₹30.00
+On hand 1 cs + 14 pc = 38 pc
+Held 38 pc
+Free 0 pc
+Adjust
+Move
+Godavari Table Butter 500 g
+Batch GD20260825
+Exp 21 Feb 2027
+₹280.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Campa Lemon 750 ml
+Batch B20260614
+Exp 11 Mar 2027
+₹40.00
+On hand 5 pc
+Held 0 pc
+Free 5 pc
+Adjust
+Move
+Too Yumm Karare 60 g
+Batch B20260823
+Exp 19 Feb 2027
+₹20.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Rajwadi Lemon Soda 250 ml
+Batch RJ20260730
+Exp 26 Apr 2027
+₹15.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Sunbake Orange Cream 120 g
+Batch SB20260531
+Exp 26 Jan 2027
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Sunbake Digestive Hi-Fibre 100 g
+Batch B20260902
+Exp 30 Apr 2027
+₹30.00
+On hand 4 cs + 60 pc = 348 pc
+Held 0 pc
+Free 348 pc
+Adjust
+Move
+Masti Oye Tomato Twist 30 g
+Batch B20260729
+Exp 26 Dec 2026
+₹10.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Neelam Herbal Toothpaste 50 g
+Batch SC20260521
+Exp 20 May 2028
+₹35.00
+On hand 66 pc
+Held 0 pc
+Free 66 pc
+Adjust
+Move
+Godavari Cow Ghee 200 ml
+Batch GD20260625
+Exp 25 Jun 2027
+₹165.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹52.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Balaji Ratlami Sev 200 g
+Batch GK20260804
+Expires in 81 days
+₹80.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Campa Cola 200 ml
+Batch B20260729
+Exp 25 Apr 2027
+₹10.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+Rajwadi Aamras Mango Drink 600 ml
+Batch B20260902
+Exp 1 Mar 2027
+₹40.00
+On hand 7 cs = 168 pc
+Held 0 pc
+Free 168 pc
+Adjust
+Move
+Campa Orange 500 ml
+Batch RCP20260814
+Exp 11 May 2027
+₹20.00
+On hand 4 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Balaji Masala Masti Wafers 45 g
+Batch GK20260714
+Expires in 90 days
+₹20.00
+On hand 0 pc
+Held 0 pc
+Free 0 pc
+Adjust
+Move
+LAST MOVEMENTS
+opening
+9 Jun, 8:30 am
++1593
+sale
+22 Jun, 11:30 am
+-72
+sale
+9 Sep, 11:30 am
+-14
+sale
+10 Aug, 11:30 am
+-16
+sale
+24 Aug, 11:30 am
+-288
+opening
+2 Sep, 8:30 am
++54
+sale
+27 Jun, 11:30 am
+-234
+sale
+2 Jul, 11:30 am
+-24
+sale
+9 Jul, 11:30 am
+-50
+sale
+28 Aug, 11:30 am
+-22
+sale
+11 Jul, 11:30 am
+-144
+sale
+22 Aug, 11:30 am
+-29
+grn
+17 Jun, 11:00 am
++1248
+sale
+24 Aug, 11:30 am
+-25
+sale
+7 Sep, 11:30 am
+-125
+sale
+6 Jul, 11:30 am
+-25
+grn
+29 Aug, 11:00 am
++27
+sale
+21 Aug, 11:30 am
+-48
+sale
+18 Aug, 11:30 am
+-60
+sale
+14 Aug, 11:30 am
+-108
+Adjustment posted

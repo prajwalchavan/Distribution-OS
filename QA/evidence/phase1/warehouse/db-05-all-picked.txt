@@ -1,0 +1,22 @@
+=== after picking all 14:58:52 ===
+                op_id                 |  ok   |      code       |                                           msg                                            |            created_at            
+--------------------------------------+-------+-----------------+------------------------------------------------------------------------------------------+----------------------------------
+ 01a094eb-8f34-77ee-b4f6-74544fe04198 | false | picklist_closed | Picklist PICK-0079 is open; it is no longer being picked                                 | 2026-09-12 14:51:00.789787+05:30
+ 01a094f2-506e-7484-8e30-37d96ca0b37b | false | pick_rejected   | line 199afd5f-2e00-7a28-9057-36dbdb6aaa53 on PICK-0079 asks for 240 pcs; 246 were picked | 2026-09-12 14:58:23.450466+05:30
+(2 rows)
+
+ picked_lines | lines | picked_pcs | req_pcs 
+--------------+-------+------------+---------
+           23 |    24 |        676 |     750
+(1 row)
+
+ line_no | batch_no  | req | picked | short_reason 
+---------+-----------+-----+--------+--------------
+       1 | B20260902 |  80 |      0 | 
+(1 row)
+
+ picklist_no | status |         completed_at          
+-------------+--------+-------------------------------
+ PICK-0079   | picked | 2026-09-12 14:58:35.095+05:30
+(1 row)
+

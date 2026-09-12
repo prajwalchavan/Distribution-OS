@@ -1,0 +1,48 @@
+=== after Save the count 14:43:58 ===
+                  id                  | status  |              counted_by              |          counted_at           | posted_at |              note               
+--------------------------------------+---------+--------------------------------------+-------------------------------+-----------+---------------------------------
+ b24cd950-8b2b-7979-b757-948dfe93be0a | counted | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-12 14:43:56.122+05:30 |           | Weekly count of the fast movers
+(1 row)
+
+                                    string_agg                                     
+-----------------------------------------------------------------------------------
+ id,tenant_id,cycle_count_id,lot_id,expected_qty,counted_qty,created_at,updated_at
+(1 row)
+
+                  id                  |              tenant_id               |            cycle_count_id            |                lot_id                | expected_qty | counted_qty |            created_at            |          updated_at           
+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+--------------+-------------+----------------------------------+-------------------------------
+ 02b1ef84-a0dc-7b3b-b43e-aab7e2835146 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | b24cd950-8b2b-7979-b757-948dfe93be0a | 00106d03-d980-73ae-a720-b3369ea572f7 |            9 |           9 | 2026-09-12 12:50:55.278312+05:30 | 2026-09-12 14:43:56.122+05:30
+ 405ca9e9-e212-76cd-a769-fa4eb52d7f40 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | b24cd950-8b2b-7979-b757-948dfe93be0a | 005c43fd-3477-7558-8fe5-43c6f69b3a89 |           14 |          14 | 2026-09-12 12:50:55.278312+05:30 | 2026-09-12 14:43:56.122+05:30
+ e7b9e841-d4a0-7fe4-92fc-7664b793be52 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | b24cd950-8b2b-7979-b757-948dfe93be0a | 0073cfdc-5177-7b27-ba8f-566ab306b82f |            5 |           0 | 2026-09-12 12:50:55.278312+05:30 | 2026-09-12 14:43:56.122+05:30
+(3 rows)
+
+ERROR:  column l.lot_id does not exist
+LINE 1: select l.lot_id, b.on_hand, b.reserved from stock_balances b...
+               ^
+HINT:  Perhaps you meant to reference the column "b.lot_id".
+ count 
+-------
+     0
+(1 row)
+
+--- actual on-hand of the 3 counted lots (godown) ---
+  batch_no   | on_hand | reserved |            updated_at            
+-------------+---------+----------+----------------------------------
+ SC20260604  |      14 |        0 | 2026-09-12 12:50:49.379771+05:30
+ GD20260720  |       5 |        0 | 2026-09-12 12:50:49.49912+05:30
+ RCP20260807 |       7 |        0 | 2026-09-12 14:27:17.026852+05:30
+(3 rows)
+
+--- ledger of Campa Cola lot today ---
+          occurred_at          | qty_delta | reason |  ref_type  |                note                 |               actor_id               
+-------------------------------+-----------+--------+------------+-------------------------------------+--------------------------------------
+ 2026-09-12 14:24:55.91+05:30  |        -1 | damage | adjustment | QA: one bottle leaked in the godown | a1cbd424-d568-7ccb-b5cc-b049e8ac2063
+ 2026-09-12 14:27:17.002+05:30 |        -1 | damage | adjustment | QA accountant permission probe      | 3188dd91-43ff-768a-97cc-b63c11bb00a0
+(2 rows)
+
+--- cycle count created_at vs line snapshot ---
+        created_at         |          counted_at           
+---------------------------+-------------------------------
+ 2026-09-12 08:15:00+05:30 | 2026-09-12 14:43:56.122+05:30
+(1 row)
+

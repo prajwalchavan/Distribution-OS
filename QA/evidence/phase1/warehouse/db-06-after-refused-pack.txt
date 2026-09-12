@@ -1,0 +1,57 @@
+=== after refused pack 15:03:46 ===
+ order_no |  state  |            updated_at            
+----------+---------+----------------------------------
+ SO-0877  | picking | 2026-09-12 14:54:02.914487+05:30
+(1 row)
+
+ packs 
+-------
+     0
+(1 row)
+
+                                                                                                                                                                                                                                                                                               string_agg                                                                                                                                                                                                                                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ id,tenant_id,invoice_no,series_code,fy,invoice_date,order_id,retailer_id,source,external_invoice_no,state,supply_type,seller_gstin,buyer_gstin,buyer_name,buyer_address,place_of_supply_state,buyer_fssai,seller_fssai,is_inter_state,subtotal_paise,discount_paise,taxable_paise,cgst_paise,sgst_paise,igst_paise,cess_paise,round_off_paise,total_paise,cash_discount_bps,cash_discount_until,due_date,irn,ack_no,ack_date,signed_qr,eway_bill_no,eway_bill_valid_until,transport_mode,vehicle_no,upi_qr_payload,pdf_object_key,issued_by,issued_at,cancelled_at,cancel_reason,created_at,updated_at
+(1 row)
+
+ invoice_no | state 
+------------+-------
+(0 rows)
+
+  batch_no   | on_hand | reserved 
+-------------+---------+----------
+ B20260101   |      96 |        0
+ B20260515   |      81 |        0
+ B20260729   |      72 |        0
+ B20260902   |     140 |        0
+ RCP20260529 |       1 |        0
+ RCP20260605 |       4 |        0
+ RCP20260605 |       1 |        0
+ RCP20260612 |       1 |        0
+ RCP20260626 |       8 |        0
+ RCP20260710 |      12 |        0
+ RCP20260717 |       3 |        0
+ RCP20260717 |       6 |        0
+ RCP20260724 |      12 |        0
+ RCP20260724 |      11 |        0
+ RCP20260731 |      10 |        0
+ RCP20260807 |      22 |        0
+ RCP20260807 |       1 |        0
+ RCP20260814 |       1 |        0
+ RCP20260822 |    5999 |        0
+ SC20260521  |      47 |        0
+ SC20260604  |      42 |        0
+ SC20260618  |      24 |        0
+ SC20260730  |      72 |        0
+ SC20260813  |     144 |        0
+(24 rows)
+
+ picklist_no | status 
+-------------+--------
+ PICK-0079   | picked
+(1 row)
+
+ occurred_at | qty_delta | reason | ref_type 
+-------------+-----------+--------+----------
+(0 rows)
+

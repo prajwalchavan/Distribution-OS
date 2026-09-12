@@ -1,0 +1,1 @@
+{"message":"the warehouse role may not call GET /reporting/registers/stock-value","error":"Forbidden","statusCode":403}

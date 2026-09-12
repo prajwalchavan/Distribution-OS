@@ -1,0 +1,33 @@
+=== gate count saved 15:19:15 ===
+ grn_no |   status   |              counted_by              |          counted_at          | posted_at 
+--------+------------+--------------------------------------+------------------------------+-----------
+        | reconciled | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-12 15:18:52.24+05:30 | 
+(1 row)
+
+ expected_qty_pcs | counted_qty_pcs | damaged_qty_pcs | lot_id 
+------------------+-----------------+-----------------+--------
+             1248 |            1200 |               0 | 
+              144 |             144 |               2 | 
+              432 |             500 |               0 | 
+              240 |               0 |               0 | 
+(4 rows)
+
+                                                                string_agg                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
+ id,tenant_id,grn_id,grn_line_id,kind,qty_pcs,amount_paise,status,evidence_document_ids,note,resolved_at,created_at,updated_at,resolved_by
+(1 row)
+
+  kind   | qty_pcs | status 
+---------+---------+--------
+ short   |      48 | open
+ short   |     240 | open
+ excess  |       2 | open
+ excess  |      68 | open
+ damaged |       2 | open
+(5 rows)
+
+ count 
+-------
+     0
+(1 row)
+

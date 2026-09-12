@@ -134,3 +134,20 @@ Notes from the Manager walk (2026-09-12):
   A first pgrep pattern missed the surviving old pnpm wrapper and produced a duplicate worker — check `pgrep -fl "@dos/worker"` before starting one.
 - Android: after `android-login.sh`, drive with `ui.py text <label>` + `adb shell input tap`; the bottom tabs are Today/Orders/Fulfilment/Billing,
   the rest is behind "⋯". Row cells with no text show as "￼" in `ui.py texts` (e.g. the hidden shop-name column).
+
+Notes from the Warehouse walk (2026-09-12):
+- Keypads (count, pack, gate, load) are plain `<button>`s whose `aria-label` is lowercase ("clear"), so `getByRole('button', {name:'Clear', exact:true})`
+  fails; use `page.locator('button', { hasText: /^Clear$/ })`. Digit buttons repeat per keypad on the pack screen — pick by index.
+- Confirm dialogs on this app are `.dos-backdrop[data-testid=w6-dialog]` (pack) / `.dos-backdrop` (load, count); click the button INSIDE
+  the dialog or Playwright reports "subtree intercepts pointer events".
+- Picks and gate/cycle counts do NOT call `/warehouse/...` directly: they go through `POST /sync/upload` (offline outbox). Wait on that
+  URL to read the accept/reject; rejections are also durable in `sync_ops` (`outcome->'rejection'`), and the tray at `/pick/attention`.
+  A retry resends the same opId → `replayed:1` with the stored outcome (DOS-046).
+- The picking screen's `.dos-backdrop` for Short is opened per line (`w5-short-<lineId>`); reason chips are text, not role buttons.
+- `pw.mjs do` loses its return value when any step throws — wrap probes in try/catch or keep chains short.
+- Warehouse and manager API tokens expire after 15 min — re-login (`POST /auth/login` with a UUID deviceId) before a batch of probes.
+- To put a GRN in front of the gate, open it as the manager: `POST :3002/procurement/grns {idempotencyKey, id (UUIDv7), supplierInvoiceId, locationId}`
+  on an `approved` supplier invoice with no GRN (`api-grn-open.txt`).
+- Android: the debug build's LogBox ("Can't perform a React state update…") opens on the first tap and swallows `ui.py text` lookups —
+  `ui.py text Dismiss` + tap, then continue. Wave/sheet rows are below the fold on the phone: `adb shell input swipe 540 1800 540 900 400` first.
+- iOS: `ios-login.mjs 5176 dinesh.patil warehouse` worked first time (Appium on :4723, simulator booted); ~1 min.

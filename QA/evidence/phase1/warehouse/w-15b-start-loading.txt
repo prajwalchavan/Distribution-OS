@@ -1,0 +1,26 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Trips
+Sheets
+Trips
+Check-in
+TRIPS
+TRIP-ACTIVE
+active
+MH-05-AB-1234 · 12 Sep · 3 of 10 stops
+TRIP-NEXT
+loading
+MH-05-AB-1234 · 14 Sep · 0 of 5 stops
+Send it off
+The money side of the trip is settled at the desk.

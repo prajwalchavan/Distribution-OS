@@ -1,0 +1,210 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+0 of 24 picked
+PICK-0079
+picking
+Campa Lemon 200 ml
+Batch B20260101
+Expires in 16 days
+₹10.00
+2 cs = 96 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260529
+Exp 23 Feb 2027
+₹10.00
+1 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260605
+Exp 2 Mar 2027
+₹10.00
+1 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260710
+Exp 6 Apr 2027
+₹10.00
+12 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260717
+Exp 13 Apr 2027
+₹10.00
+6 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260724
+Exp 20 Apr 2027
+₹10.00
+12 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260731
+Exp 27 Apr 2027
+₹10.00
+10 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch RCP20260807
+Exp 4 May 2027
+₹10.00
+22 pc
+Picked
+Short
+Campa Lemon 200 ml
+Batch B20260902
+Exp 30 May 2027
+₹10.00
+1 cs + 32 pc = 80 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch SC20260521
+Exp 20 May 2028
+₹38.00
+47 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch SC20260604
+Exp 3 Jun 2028
+₹38.00
+42 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch SC20260618
+Exp 17 Jun 2028
+₹38.00
+24 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch B20260729
+Exp 28 Jul 2028
+₹38.00
+1 cs = 72 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch SC20260730
+Exp 29 Jul 2028
+₹38.00
+1 cs = 72 pc
+Picked
+Short
+Neelam Neem Soap 100 g
+Batch SC20260813
+Exp 12 Aug 2028
+₹38.00
+1 cs + 31 pc = 103 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch B20260515
+Exp 9 Feb 2027
+₹40.00
+3 cs + 9 pc = 81 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260605
+Exp 2 Mar 2027
+₹40.00
+4 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260612
+Exp 9 Mar 2027
+₹40.00
+1 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260626
+Exp 23 Mar 2027
+₹40.00
+8 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260717
+Exp 13 Apr 2027
+₹40.00
+3 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260724
+Exp 20 Apr 2027
+₹40.00
+11 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260807
+Exp 4 May 2027
+₹40.00
+1 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260814
+Exp 11 May 2027
+₹40.00
+1 pc
+Picked
+Short
+Campa Cola 750 ml
+Batch RCP20260822
+Exp 19 May 2027
+₹40.00
+1 cs + 16 pc = 40 pc
+Picked
+Short
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+Campa Lemon 200 ml
+Close
+Not on the rack
+Damaged carton
+Batch held back
+Pieces picked
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Short
+0 of 24 picked
+Scan
+Take it to packing
+24 lines not yet picked

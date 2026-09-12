@@ -1,0 +1,29 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+1
+Pack
+Load
+SETUP
+Settings
+1 need attention
+DP
+Dinesh Patil
+warehouse
+Waiting and refused
+Waiting 0
+Refused 2
+Held in memory only — a reload empties this device
+WAITING TO SEND
+Nothing is waiting
+NEEDS YOU
+line 199afd5f-2e00-7a28-9057-36dbdb6aaa53 on PICK-0079 asks for 240 pcs; 246 were picked
+pick_lines · pick_rejected · 12 Sep, 2:58 pm
+Try it again
+Throw it away
+Picklist PICK-0079 is open; it is no longer being picked
+pick_lines · picklist_closed · 12 Sep, 2:51 pm
+Try it again
+Throw it away
+Close

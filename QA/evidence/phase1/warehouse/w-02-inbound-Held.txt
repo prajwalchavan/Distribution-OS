@@ -1,0 +1,141 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Held for orders
+Queues
+Capture
+Stock
+Counts
+✓ Held
+STOCK HELD
+Sunbake Orange Cream 120 g
+23 pc · Batch SB20260830
+pending
+Sunbake Orange Cream 120 g
+15 pc · Batch SB20260809
+pending
+Sunbake Orange Cream 120 g
+24 pc · Batch SB20260802
+pending
+Sunbake Orange Cream 120 g
+12 pc · Batch SB20260712
+pending
+Sunbake Orange Cream 120 g
+34 pc · Batch SB20260705
+pending
+Sunbake Orange Cream 120 g
+12 pc · Batch SB20260607
+pending
+MOM Roasted Makhana Himalayan Salt 12 g
+180 pc · Batch MOM20260707
+pending
+Campa Orange 750 ml
+4 pc · Batch RCP20260626
+pending
+Campa Orange 750 ml
+5 pc · Batch RCP20260619
+pending
+Campa Orange 750 ml
+8 pc · Batch B20260614
+pending
+Campa Orange 750 ml
+3 pc · Batch RCP20260612
+pending
+Campa Orange 750 ml
+5 pc · Batch RCP20260605
+pending
+Chamak Detergent Powder 1 kg
+2 pc · Batch SC20260716
+pending
+Chamak Detergent Powder 1 kg
+2 pc · Batch SC20260702
+pending
+Chamak Detergent Powder 1 kg
+7 pc · Batch SC20260618
+pending
+Chamak Detergent Powder 1 kg
+1 pc · Batch SC20260604
+pending
+Rajwadi Jeera Masala Soda 500 ml
+10 pc · Batch B20260823
+pending
+Rajwadi Jeera Masala Soda 500 ml
+24 pc · Batch RJ20260810
+pending
+Rajwadi Jeera Masala Soda 500 ml
+6 pc · Batch RJ20260730
+pending
+Rajwadi Jeera Masala Soda 500 ml
+38 pc · Batch RJ20260721
+pending
+Rajwadi Jeera Masala Soda 500 ml
+8 pc · Batch RJ20260711
+pending
+Rajwadi Jeera Masala Soda 500 ml
+7 pc · Batch B20260614
+pending
+Rajwadi Jeera Masala Soda 500 ml
+3 pc · Batch RJ20260601
+pending
+Sunbake Marie Light 150 g
+123 pc · Batch B20260909
+pending
+Sunbake Marie Light 150 g
+12 pc · Batch B20260823
+pending
+Sunbake Marie Light 150 g
+60 pc · Batch SB20260823
+pending
+Sunbake Marie Light 150 g
+12 pc · Batch SB20260726
+pending
+Sunbake Marie Light 150 g
+12 pc · Batch SB20260719
+pending
+Sunbake Marie Light 150 g
+21 pc · Batch SB20260712
+pending
+Too Yumm Veggie Stix 70 g
+2 pc · Batch TY20260819
+pending
+Too Yumm Veggie Stix 70 g
+36 pc · Batch TY20260809
+pending
+Too Yumm Veggie Stix 70 g
+22 pc · Batch TY20260710
+pending
+Too Yumm Veggie Stix 70 g
+31 pc · Batch TY20260620
+pending
+Too Yumm Veggie Stix 70 g
+5 pc · Batch TY20260531
+pending
+Rajwadi Aamras Mango Drink 200 ml
+22 pc · Batch RJ20260830
+pending
+Rajwadi Aamras Mango Drink 200 ml
+27 pc · Batch RJ20260810
+pending
+Rajwadi Aamras Mango Drink 200 ml
+5 pc · Batch RJ20260611
+pending
+Annapurna Toor Dal 500 g
+64 pc · Batch AN20260829
+pending
+Annapurna Toor Dal 500 g
+13 pc · Batch AN20260815
+pending
+Annapurna Toor Dal 500 g
+3 pc · Batch AN20260606
+pending
+A hold is freed at the desk.

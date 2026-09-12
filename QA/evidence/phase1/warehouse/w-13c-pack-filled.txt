@@ -1,0 +1,124 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+1
+Pack
+Load
+SETUP
+Settings
+1 need attention
+DP
+Dinesh Patil
+warehouse
+Bhosale Traders
+SO-0877
+picking
+Cartons
+Cartons
+7
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Weight in grams
+Weight in grams
+45000
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+WHAT GOES IN THE CARTONS
+Campa Lemon 200 ml
+2 cs = 96 pc
+Packed
+Campa Lemon 200 ml
+0 pc
+Short
+Campa Lemon 200 ml
+1 pc
+Packed
+Campa Lemon 200 ml
+5 pc
+Short
+Campa Lemon 200 ml
+20 pc
+Packed
+Campa Lemon 200 ml
+12 pc
+Packed
+Campa Lemon 200 ml
+10 pc
+Packed
+Campa Lemon 200 ml
+22 pc
+Packed
+Campa Lemon 200 ml
+0 pc
+Short
+Neelam Neem Soap 100 g
+47 pc
+Packed
+Neelam Neem Soap 100 g
+42 pc
+Packed
+Neelam Neem Soap 100 g
+24 pc
+Packed
+Neelam Neem Soap 100 g
+1 cs = 72 pc
+Packed
+Neelam Neem Soap 100 g
+1 cs = 72 pc
+Packed
+Neelam Neem Soap 100 g
+1 cs + 31 pc = 103 pc
+Packed
+Campa Cola 750 ml
+3 cs + 9 pc = 81 pc
+Packed
+Campa Cola 750 ml
+4 pc
+Packed
+Campa Cola 750 ml
+1 pc
+Packed
+Campa Cola 750 ml
+8 pc
+Packed
+Campa Cola 750 ml
+3 pc
+Packed
+Campa Cola 750 ml
+11 pc
+Packed
+Campa Cola 750 ml
+1 pc
+Packed
+Campa Cola 750 ml
+1 pc
+Packed
+Campa Cola 750 ml
+1 cs + 16 pc = 40 pc
+Packed
+Close
+Cartons 7
+Pack without a bill
+Pack and bill
