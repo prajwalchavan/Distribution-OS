@@ -688,3 +688,121 @@ Suggested fix: Route bill hits from global search to /billing with view=bills an
 
 Found by: batch 1 regression part B (cross-role chain).
 
+### DOS-146 — Trip-start 'Cash handed to you' cannot hold any amount except the planned float: typing appends to ₹3,000 and Clear snaps back
+Category: bug | Priority: P1 | Role: Delivery | Platform: Android (Pixel_7_API_36 emulator, API 36); same screen code on iOS, not walked
+
+```
+User: Delivery
+Platform: Android (Pixel_7_API_36 emulator, API 36); same screen code on iOS, not walked
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in to the delivery app as sachin.dalvi (Sai Distributors). 2. Home → Your other trips → TRIP-NEXT (planned, opening float ₹3,000) → Start the trip → Before you leave → 'Cash handed to you' (shows ₹3,000.00). 3. Tap the field; the money keypad opens on ₹3,000. 4. Tap 4 7 5 6. 5. Tap Clear, then 4 7 5 6 again. 6. Tap ⌫ eight times. 7. Done.
+Expected: A driver handed ₹4,756 can enter ₹4,756: Clear empties the pad, digits start a new amount, and the planned float is only a pre-fill he can replace.
+Actual: Step 4 previews ₹3,00,04,756 ('30004756 rupees'). Clear snaps back to ₹3,000, and 4-7-5-6 again gives ₹3,00,04,756. ⌫ to empty also snaps back to ₹3,000, and Done leaves ₹3,000.00. The only enterable amounts are ₹3,000 or numbers beginning with 3000. The screen passes value={cashPaise ?? detail?.openingCashPaise}, so onChange(null) falls back to the plan on every render (frontend/delivery-app/app/trip/start.tsx:290). Trip not started; trips.opening_cash_paise stays 300000.
+Business impact: The opening float drives 'Cash the office expects' at check-in. A driver given a different float records ₹3,000 (a false variance), or taps one digit and starts the trip with a float in crores. On a loaded trip Start is enabled, so the wrong float is written and every day-end reconciliation for that van is off. The retailer Pay screen uses the same `amount ?? owed` pattern (implementer follow-up), not walked here.
+Severity: P1
+Evidence: QA/evidence/batch1/regression/android/delivery-060-23-sachin-trip-next-start.png; QA/evidence/batch1/regression/android/delivery-060-24-sachin-cash-field.png; QA/evidence/batch1/regression/android/delivery-060-25-cash-pad-open.png; QA/evidence/batch1/regression/android/delivery-060-26-cash-pad-typed-4756.png; QA/evidence/batch1/regression/android/delivery-060-27-cash-pad-after-clear.png; QA/evidence/batch1/regression/android/delivery-060-28-cash-pad-typed-after-clear.png; QA/evidence/batch1/regression/android/delivery-060-29-cash-pad-back-to-empty.png; QA/evidence/batch1/regression/android/delivery-060-30-cash-field-after-done.png
+Suggested fix: Seed cashPaise once from openingCashPaise when the trip loads, and let null mean 'empty' (no render-time fallback). Alternatively, give the pad an explicit 'Use planned float ₹3,000' chip. Apply the same pattern to retailer-app/app/pay.tsx. Add a render test: open pad on a pre-filled value, Clear, type 4756, expect ₹4,756.
+```
+
+Regression status: not re-executed on the pre-fix build. The DOS-060 verifier recorded the cause as pre-existing (trip/start.tsx passes `cashPaise ?? openingCash`, so an emptied field falls back to the float) and listed it as a follow-up, not a regression of the rupee-entry change.
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+
+### DOS-147 — Android order entry: with the stock chip shown, item names and pack sizes are clipped, so variants cannot be told apart before 'Add a case'
+Category: ux | Priority: P2 | Role: Sales Rep | Platform: Android (Pixel_7_API_36 emulator, API 36); web phone width is DOS-128
+
+```
+User: Sales Rep
+Platform: Android (Pixel_7_API_36 emulator, API 36); web phone width is DOS-128
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. rahul.deshmukh → Beat → Kalyan West Market → Laxmi Narayan Stores → Take order. 2. Scroll to the catalog; then search 'Neelam'. 3. Read the rows and the uiautomator bounds.
+Expected: Each row shows the full variant name (up to 2 lines) and 'brand · N pc case', as it does offline where no chip is drawn.
+Actual: Online, the '18 cs available' chip [312..665] and 'Add a case' [707..1004] leave the name column 77..260/290 px (~70–80 dp). Rows read 'Campa / Cola 200 …' with 'Campa · 48…'; 'Neelam An / ti-Dandru…' with 'Neelam · 2…' (175 ml, 24 pc case); and 'Neelam / Anti-Da…' with 'Neelam · …' (5 ml sachet, 480 pc case). A row without a chip (340 ml) and all offline rows show the full name and 'Neelam · 18 pc case'. The DOS-077 fix made rows visible; this residual was noted by the implementer.
+Business impact: A rep on the phone cannot tell Neelam Anti-Dandruff 175 ml from the 5 ml sachet, or Campa Cola 200 ml from 2 L, before adding a case. He adds blind and must check 'This order'. Wrong-SKU cases go to the shop and come back as returns.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/android/sales-077-05-catalog-rows.png; QA/evidence/batch1/regression/android/sales-077-05-catalog-rows-bounds.txt; QA/evidence/batch1/regression/android/sales-077-07-neelam-rows.png; QA/evidence/batch1/regression/android/sales-077-07-neelam-rows-bounds.txt; QA/evidence/batch1/regression/android/sales-077-09-offline-catalog-rows.png
+Suggested fix: Below the desk breakpoint, move availability onto the meta line ('Neelam · 24 pc case · 4 cs') or wrap chip and button under the name. Give the name column a minimum width. Fix together with DOS-128 in frontend/sales-app/app/orders/new.tsx.
+```
+
+Related: DOS-128 (the same clipping on the web phone width). DOS-077 itself PASSES on Android — rows are no longer blank — but the name column is still narrow when the stock chip shows.
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+
+### DOS-148 — Delivering a bill whose order was never dispatched fails only after the photo, with the raw message 'order: cannot apply "deliver_partial" in state "packed"'
+Category: ux | Priority: P2 | Role: Delivery | Platform: Android (Pixel_7_API_36 emulator, API 36)
+
+```
+User: Delivery
+Platform: Android (Pixel_7_API_36 emulator, API 36)
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. ganesh.more → Your other trips → TRIP-NEXT → Stop 1 City Light Provision (INV/0831, order SO-0862 state packed, not in DC-0083's order_ids, both lots still in the Godown). 2. The stop screen offers 'Deliver this bill'; tap it. 3. Press '−' on a line, choose a reason, photograph the signed bill, fill 'Bill signed by', Record the delivery.
+Expected: The stop or bill screen says before the door that this bill is not on the van (not dispatched) and does not offer Deliver. If the server refuses, the driver reads a sentence he can act on.
+Actual: Nothing marks the bill as not loaded; 'Deliver this bill' is enabled. After the photo upload, POST /delivery/deliveries answers 409 and the form shows, in red above the footer, 'order: cannot apply "deliver_partial" in state "packed"'. The Record button's accessibility state stays 'busy'. Nothing is written (INV/0831 has only its plan row, no credit note). An API replay with the same body gives the same 409 {from packed, event deliver_partial}.
+Business impact: The driver stands at the shop with a signed bill and a photo, and the app gives him developer text. He cannot tell whether he or the godown is at fault, and the goods were never on his van. With DOS-043 still open (trips go active before loading), this reaches real stops.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/android/delivery-058-17-d4-bottom-after-409.png; QA/evidence/batch1/regression/android/delivery-058-17-d4-texts-bottom.txt; QA/evidence/batch1/regression/android/delivery-058-api-probes.txt; QA/evidence/batch1/regression/android/delivery-058-db-trip-next-deliverable.txt; QA/evidence/batch1/regression/android/delivery-058-db-safety-check.txt
+Suggested fix: Map order-state 409s from deliveries.record to driver sentences, e.g. 'This bill is still in the godown — it was not loaded on this van'. Mark such bills on D3 and disable Deliver when the order is not dispatched or not on the trip's confirmed sheet. Refuse stop planning or trip start for orders that are not on the load sheet (with DOS-043).
+```
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+
+### DOS-149 — Stop screen stays stale for ~40 s after a successful delivery, still offering 'Deliver this bill' with the old dues and no success message
+Category: ux | Priority: P3 | Role: Delivery | Platform: Android (Pixel_7_API_36 emulator, API 36)
+
+```
+User: Delivery
+Platform: Android (Pixel_7_API_36 emulator, API 36)
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. ganesh.more → TRIP-NEXT → Stop 5 Meghana General Store → I am at the shop → Deliver this bill → return one case as Damaged → photo → Record the delivery. 2. Read the stop screen immediately, then again ~40 s later.
+Expected: After a 200 the stop shows 'Part delivered', the new dues and 'This stop is finished', and a toast names the credit note.
+Actual: At 03:25:0x (POST 200 at 03:24:58, CN/9007 written) the stop screen still read 'At the shop · Owes ₹28,496.00 · INV/0836 Not started · Deliver this bill · Take money'. No toast was visible: onSuccess sets the toast on D4 and then router.replace()s away from it. At 03:25:38 it showed 'Part delivered · Owes ₹27,724.00 · This stop is finished'.
+Business impact: For up to a minute a driver sees the bill as undelivered and may deliver it again or tell the shop the wrong dues. A second record is refused by the server, adding confusion at the door.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/delivery-058-24-meghana-after-record.png; QA/evidence/batch1/regression/android/delivery-058-24-meghana-after-record.txt; QA/evidence/batch1/regression/android/delivery-058-25-meghana-stop-refresh-check.png; QA/evidence/batch1/regression/android/delivery-058-db-after-record-meghana.txt
+Suggested fix: Write the returned stop and delivery (RecordDeliveryOutput.stop / item) into the local tables before navigating. Show the success toast on the destination screen, or pass it through the route.
+```
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+
+### DOS-150 — Emptied amount field still announces the previous amount to screen readers ('—' shown, '4756 rupees' spoken)
+Category: ux | Priority: P3 | Role: Delivery | Platform: Android (Pixel_7_API_36 emulator, API 36)
+
+```
+User: Delivery
+Platform: Android (Pixel_7_API_36 emulator, API 36)
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. ganesh.more → Stop 7 Nakshatra Kirana → Take money → Cash → Amount taken. 2. Type 4 7 5 6, then Clear, then Done. 3. Read the accessibility node of the field.
+Expected: The empty field's accessibility label says it is empty ('Amount taken, not entered').
+Actual: The field shows '—' and 'Record the payment' is DISABLED, but the node's content-desc is still '4756 rupees' ([76,1688][117,1757] '—' '4756 rupees'). Whether this predates batch 1 was not established.
+Business impact: A TalkBack user hears ₹4,756 while nothing is entered, and cannot tell why Record is disabled. It is low impact for sighted drivers.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/delivery-060-08-done-empty-record-disabled.png; QA/evidence/batch1/regression/android/delivery-060-08-done-empty-nodes.txt
+Suggested fix: Derive the field's accessibilityLabel from the current value (null → the 'empty' string) rather than the last non-null amount, and add a native render test.
+```
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+
+### DOS-151 — Invoice and credit-note PDFs print '?' for the em dash in the tenant's own footer ('Tarsun Enterprise ? Wholesale & Distribution')
+Category: bug | Priority: P3 | Role: Delivery / Retailer / Accountant (anyone reading the paper) | Platform: Backend PDF renderer, seen in the Android print preview
+
+```
+User: Delivery / Retailer / Accountant (anyone reading the paper)
+Platform: Backend PDF renderer, seen in the Android print preview
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. ganesh.more → Stop 5 Joshi Kirana Stores → INV/0826 → Send the papers → Print. 2. Read the footer line of the rendered tax invoice. 3. Extract the text of the stored PDF and read tenant_settings branding.invoice_footer.
+Expected: The footer reads 'Tarsun Enterprise — Wholesale & Distribution · GSTIN 27CNGPP9039R1ZX'.
+Actual: The print preview and the stored PDF text read 'Tarsun Enterprise ? Wholesale & Distribution · GSTIN …'. branding.invoice_footer contains U+2014, and pdf.ts documents that characters outside Latin-1 print '?'. The em dash exists in WinAnsi (0x97), yet it is replaced.
+Business impact: Every paper the shop receives carries a visible encoding glitch in the distributor's own letterhead line. It is cosmetic, but it undermines the professional look of GST papers.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/delivery-057-07-print-invoice.png
+Suggested fix: In backend/libs/core/src/documents/pdf.ts, map the cp1252 punctuation WinAnsi can hold (— – ‘ ’ “ ” • …) to their WinAnsi codes before the Latin-1 fallback. Optionally normalise tenant branding text on save.
+```
+
+Found by: batch 1 regression, Android pass (sales + delivery).
+

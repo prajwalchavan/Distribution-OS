@@ -165,7 +165,27 @@ Evidence under `QA/evidence/batch1/regression/web-chain/`.
 - Wrong day 2 (cancel mid-pick) FAIL: docs/22 §4 allows cancel only up to confirmed, so the refusal follows the state machine; the defect is the offered button and the missing mid-pick workflow (DOS-138, P2).
 - Not run in this pass: the platform-split chain (rep on Android, warehouse/delivery on Android/iOS) — the emulator was busy with the Android focused pass; it belongs to Phase 2.
 
-### 3. Platform regression (Web, Android, iOS) — pending
+### 3. Platform regression — Web, Android, iOS
+
+Web: §1 (desk and phone widths) and §2. Android and iOS are walked separately; nothing is inferred from web or API.
+
+**Android part 1 — sales and delivery apps, emulator Pixel_7_API_36 (API 36, 3 GB), 2026-09-13 ~02:30–03:32 IST.** 7 PASS · 0 FAIL.
+Evidence: `QA/evidence/batch1/regression/android/`; results `QA/evidence/batch1/regression/android-1-sales-delivery-results.json`.
+
+| Fix | User | Status | What was seen | First evidence |
+|---|---|---|---|---|
+| DOS-077 | Sales | **PASS** | Rows are no longer blank. Online rows show name, pack and chip, with valid bounds, e.g. 'Campa Cola 2 L' [77,866][290,982], '7 cs available' … | `QA/evidence/batch1/regression/android/sales-00-01-signed-in-home.png` |
+| DOS-075 | Sales | **PASS** | Device shows header chip 'Schemes ₹574.75', line '−₹574.75' at ₹119.74/pc (₹28,162.85 net), and group footer 'Schemes on this order −₹574.75'. Server … | `QA/evidence/batch1/regression/android/sales-075-01-shree-ganesh-card.png` |
+| DOS-073 | Sales | **PASS** | The Android 'All' list showed 56 distinct numbers (SO-0803…SO-0901, SO-9001). SQL: all 56 have salesperson rahul.deshmukh; none of Amit's recent … | `QA/evidence/batch1/regression/android/sales-073-01-orders-list.png` |
+| DOS-060 | Delivery | **PASS** | Pad layout 1–9 / . 0 ⌫ / [Clear \| Done]. 4756 → preview '₹4,756' (content-desc '4756 rupees'). '. 5 0' → '₹4,756.50' ('4756 rupees 50 paise'); extra … | `QA/evidence/batch1/regression/android/delivery-060-01-stop7-nakshatra.png` |
+| DOS-061 | Delivery | **PASS** | Home: 'TRIP-ACTIVE · 12 Sep 2026 · Today's trip · On the road · 10 of 10 stops done'. Load panel 'Load on board · Godown confirmed the load 11 Sep, … | `QA/evidence/batch1/regression/android/delivery-00-01-signed-in-home.png` |
+| DOS-058 | Delivery | **PASS** | After '−': 'Taken back · 24 pc', ONE segmented row [Shop refused it \| Damaged \| Past its date], caption 'Can be sold again'; only one 'Damaged' … | `QA/evidence/batch1/regression/android/delivery-058-02-d4-open.png` |
+| DOS-057 | Delivery | **PASS** | Open → com.android.intentresolver 'Sharing 1 file · INV-0826.pdf' (Quick Share, Print, Drive, Messages, Bluetooth); GET … | `QA/evidence/batch1/regression/android/delivery-057-01-stop5-joshi.png` |
+
+The two defects that existed only on native are fixed on Android: DOS-077 (catalog rows no longer blank; names and packs show, though narrow beside the stock chip — DOS-147) and DOS-060 (the pad enters rupees: 4-7-5-6 → ₹4,756, paise only after "."). Environment note: the emulator went down twice during this pass because the walker prompt's proxy cleanup `lsof -ti tcp:8081 | xargs kill` also kills the emulator's own processes (a QA harness mistake, now recorded in QA/ENV.md); it was restarted and a watchdog keeps it up for the rest of the pass.
+
+**Android part 2 — retailer, warehouse, owner:** running. **Android manager app (DOS-020/021/023/025/029/034/041 M20):** after the DOS-029 merge. **iOS:** after Android.
+
 ### 4. Business regression — orders, inventory, payments, outstanding, delivery and reports reconcile
 
 Read-only SQL audit of dos_qa, 2026-09-13 01:50–01:58 IST (while walkers were writing through the product). Full table, business meaning

@@ -224,3 +224,5 @@ Notes from the Admin walk (2026-09-12):
 - `timeout` does not exist on macOS; give the Bash tool its own timeout instead.
 
 - **Parallel walkers (2026-09-13):** `pw-server.mjs` and `pw.mjs` read `PW_PORT` (default 9333), so several walkers can each run their own headless Chromium: `PW_PORT=9341 nohup node pw-server.mjs > ~/.dos-qa-logs/logs/pw-9341.log 2>&1 &` then `PW_PORT=9341 EV_DIR=batch1/regression/web-x node pw.mjs …`. Android (one emulator, one :8081 proxy) and iOS (one simulator, one Appium) stay one walker at a time.
+
+- **Never stop the :8081 proxy with `lsof -ti tcp:8081 | xargs kill` (2026-09-13):** the emulator's own qemu/netsimd processes hold host sockets for the guest's 10.0.2.2:8081 bundle connection, so that command kills the emulator (twice in the batch 1 Android pass) and can also drop the guest network (`adb shell svc wifi enable; svc data enable` restores it). Stop the proxy by name instead: `pkill -f proxy8081.mjs`.
