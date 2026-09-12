@@ -46,6 +46,8 @@ export {
   type QueryStatus,
 } from './cache.js'
 
+export { readEveryPage, type CursorPage, type EveryPage } from './pages.js'
+
 export {
   PlatformSessionStore,
   SessionStore,

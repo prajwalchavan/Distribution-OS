@@ -261,6 +261,7 @@ export const strings = {
   'r6.d90': 'Last 90 days',
   'r6.fy': 'This year',
   'r6.explain': 'A plus balance is money you still owe. A minus one is money with them.',
+  'r6.partial': 'This period has more entries than one statement can show. Pick a shorter period.',
 
   // --- R13 receipts -----------------------------------------------------------------------------------
   'r13.title': 'Money you have paid',

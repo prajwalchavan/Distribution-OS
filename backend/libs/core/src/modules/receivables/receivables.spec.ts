@@ -76,7 +76,14 @@ type ReceiptReply = {
 type LedgerReply = {
   openingPaise: number
   closingPaise: number
-  items: { kind: string; debitPaise: number; creditPaise: number; balancePaise: number }[]
+  items: {
+    kind: string
+    refId: string
+    debitPaise: number
+    creditPaise: number
+    balancePaise: number
+  }[]
+  nextCursor: string | null
 }
 type OpenBillReply = { id: string; invoiceNo: string | null; totalPaise: number; openPaise: number }
 /** `receivables.payments.initiate`'s reply, as far as the payment-intent tests read it. */
@@ -867,6 +874,50 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(desk.body.closingPaise).toBe(await arBalance(shop.a))
     expect(desk.body.items.length).toBeGreaterThan(0)
     expect(shopside.body.items.length).toBe(desk.body.items.length)
+  })
+
+  /*
+   * The retailer statement now follows `nextCursor` to the end of its window and prints the closing
+   * balance only when it has (DOS-095). That is safe only if the page chain is exact: page 2 carries the
+   * running balance on from page 1, no entry is skipped or repeated at a page boundary, and the last
+   * balance on the last page is the window's closing balance.
+   */
+  it("DOS-095: the shop's statement pages chain: following nextCursor lists every entry and the last balance equals closingPaise", async () => {
+    const period = { from: day(-200), to: day(0) }
+    const whole = await call<LedgerReply>(app, shopA, 'GET', `/receivables/ledger/${shop.a}`, {
+      ...period,
+      limit: 200,
+    })
+    expect(whole.status).toBe(200)
+    expect(whole.body.nextCursor).toBeNull()
+
+    const paged: LedgerReply['items'] = []
+    let cursor: string | null = null
+    let pages = 0
+    do {
+      const page: { status: number; body: LedgerReply } = await call<LedgerReply>(
+        app,
+        shopA,
+        'GET',
+        `/receivables/ledger/${shop.a}`,
+        { ...period, limit: 2, ...(cursor === null ? {} : { cursor }) },
+      )
+      expect(page.status).toBe(200)
+      expect(page.body.items.length).toBeLessThanOrEqual(2)
+      expect(page.body.openingPaise).toBe(whole.body.openingPaise)
+      expect(page.body.closingPaise).toBe(whole.body.closingPaise)
+      paged.push(...page.body.items)
+      cursor = page.body.nextCursor
+      pages += 1
+    } while (cursor !== null && pages <= whole.body.items.length)
+
+    expect(cursor).toBeNull()
+    expect(pages).toBeGreaterThan(1)
+    expect(paged.map((row) => row.refId)).toEqual(whole.body.items.map((row) => row.refId))
+    expect(paged.map((row) => row.balancePaise)).toEqual(
+      whole.body.items.map((row) => row.balancePaise),
+    )
+    expect(paged.at(-1)?.balancePaise).toBe(whole.body.closingPaise)
   })
 
   it('gives the accountant a trial balance that nets to zero', async () => {

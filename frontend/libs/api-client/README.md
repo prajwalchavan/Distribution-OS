@@ -110,6 +110,9 @@ how old it is), invalidates by key **prefix**, and clears on sign-out so the nex
 one's rows. It is written here rather than pulled from a data library so the seven apps share exactly one
 cache and one retry rule.
 
+`readEveryPage(fetchPage, { maxPages })` follows `nextCursor` inside a window the server already bounds, reports
+`complete`, and rejects if any page fails.
+
 ## Tests
 
 ```bash
