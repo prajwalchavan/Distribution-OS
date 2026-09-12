@@ -330,6 +330,117 @@ describe('priceOrder', () => {
     ])
   })
 
+  it("DOS-076: a brand-scoped cash discount is reported on that brand's lines only, not the whole order", () => {
+    const r = priceOrder(
+      order({
+        lines: [
+          {
+            lineId: 'l1',
+            variantId: V1,
+            brandId: 'brand-tooyumm',
+            category: 'snacks',
+            qtyPcs: 24,
+            caseSize: 12,
+          },
+          {
+            lineId: 'l2',
+            variantId: V2,
+            brandId: BRAND,
+            category: 'snacks',
+            qtyPcs: 5,
+            caseSize: 24,
+          },
+        ],
+        schemes: [
+          scheme({
+            id: 's-cd-ty',
+            scope: { brandIds: ['brand-tooyumm'] },
+            triggerKind: 'value',
+            triggerUnit: 'inr',
+            triggerMin: 0,
+            rewardKind: 'cash_discount_pct',
+            rewardValue: 200,
+          }),
+        ],
+      }),
+    )
+    // 2% of the Too Yumm line's ₹240 net, not of the whole ₹340 order
+    expect(r.cashDiscountBps).toBe(200)
+    expect(r.cashDiscountPaise).toBe(fromRupees('4.80'))
+    expect(r.orderRules).toEqual([
+      {
+        ruleId: 's-cd-ty',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'cash_discount_pct',
+        amountPaise: fromRupees('4.80'),
+      },
+    ])
+    // reported, never deducted
+    expect(r.totals.netPaise).toBe(fromRupees('340'))
+    expect(line(r, 'l1').discountPaise).toBe(0)
+    expect(line(r, 'l2').discountPaise).toBe(0)
+  })
+
+  it('DOS-076: between cash discounts scoped to different brands, the one worth more to the retailer is reported', () => {
+    const r = priceOrder(
+      order({
+        lines: [
+          {
+            lineId: 'l1',
+            variantId: V1,
+            brandId: 'brand-tooyumm',
+            category: 'snacks',
+            qtyPcs: 24,
+            caseSize: 12,
+          },
+          {
+            lineId: 'l2',
+            variantId: V2,
+            brandId: 'brand-rajwadi',
+            category: 'beverages',
+            qtyPcs: 50,
+            caseSize: 24,
+          },
+        ],
+        // in id order, as both callers pass them
+        schemes: [
+          scheme({
+            id: 's-cd-rj',
+            scope: { brandIds: ['brand-rajwadi'] },
+            triggerKind: 'value',
+            triggerUnit: 'inr',
+            triggerMin: 0,
+            rewardKind: 'cash_discount_pct',
+            rewardValue: 150,
+          }),
+          scheme({
+            id: 's-cd-ty',
+            scope: { brandIds: ['brand-tooyumm'] },
+            triggerKind: 'value',
+            triggerUnit: 'inr',
+            triggerMin: 0,
+            rewardKind: 'cash_discount_pct',
+            rewardValue: 200,
+          }),
+        ],
+      }),
+    )
+    // Rajwadi 1.5% of ₹1,000 = ₹15.00 beats Too Yumm 2% of ₹240 = ₹4.80, whatever the rate says
+    expect(r.cashDiscountBps).toBe(150)
+    expect(r.cashDiscountPaise).toBe(fromRupees('15'))
+    expect(r.orderRules).toEqual([
+      {
+        ruleId: 's-cd-rj',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'cash_discount_pct',
+        amountPaise: fromRupees('15'),
+      },
+    ])
+    expect(r.totals.netPaise).toBe(fromRupees('1240'))
+  })
+
   it('lets a retailer override beat the tier and still stack schemes', () => {
     const r = priceOrder(
       order({

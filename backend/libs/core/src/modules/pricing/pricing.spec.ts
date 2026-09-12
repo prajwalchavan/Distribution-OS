@@ -595,6 +595,84 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(below.body.totals.discountPaise).toBe(0)
   })
 
+  it("DOS-076: pricing.quote reports a brand-scoped cash discount on that brand's lines only", async () => {
+    // A second brand under this run's manufacturer: Too Yumm Karare 60 g, case of 48, ₹14.75 on the default list.
+    const tooYummBrandId = uuidv7()
+    const tooYummProductId = uuidv7()
+    const v3 = uuidv7()
+    await db.insert(brands).values({ id: tooYummBrandId, manufacturerId, name: 'Too Yumm' })
+    await db.insert(products).values({
+      id: tooYummProductId,
+      manufacturerId,
+      brandId: tooYummBrandId,
+      name: 'Too Yumm Karare',
+      category: 'snacks',
+    })
+    await db.insert(productVariants).values({
+      id: v3,
+      productId: tooYummProductId,
+      name: 'Karare 60g',
+      netQty: 60,
+      netUnit: 'g',
+      defaultCaseSize: 48,
+      hsnCode: '19041090',
+    })
+    const priced = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      {
+        idempotencyKey: `pli-ty-${run}`,
+        priceListId: defaultListId,
+        items: [{ id: uuidv7(), variantId: v3, ratePaise: 1475 }],
+      },
+    )
+    expect(priced.status).toBe(200)
+
+    const schemeCdId = uuidv7()
+    const saved = await call<{ item: Scheme }>(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-cd-ty-${run}`,
+      id: schemeCdId,
+      name: 'Too Yumm 2% cash discount',
+      brandId: tooYummBrandId,
+      scope: { brandIds: [tooYummBrandId] },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 0,
+      rewardKind: 'cash_discount_pct',
+      rewardValue: 200,
+      validFrom: '2026-01-01',
+      validTo: '2026-12-31',
+    })
+    expect(saved.status).toBe(200)
+
+    // MOM v2 carries shopC's approved ₹16 bargain from the test above; only the Too Yumm line is in scope.
+    const q = await quoteFor(rep, shopC, [
+      { lineId: 'mom', variantId: v2, qtyPcs: 24 },
+      { lineId: 'ty', variantId: v3, qtyPcs: 48 },
+    ])
+    expect(q.status).toBe(200)
+    const mom = q.body.lines.find((l) => l.lineId === 'mom')
+    const ty = q.body.lines.find((l) => l.lineId === 'ty')
+    expect(mom?.lineNetPaise).toBeGreaterThan(0)
+    expect(ty?.lineNetPaise).toBe(70_800)
+    expect(ty?.discountPaise).toBe(0)
+    // 2% of the Too Yumm line's ₹708.00, not of the whole order; reported, never deducted
+    expect(q.body.cashDiscountBps).toBe(200)
+    expect(q.body.cashDiscountPaise).toBe(1_416)
+    expect(q.body.orderRules).toEqual([
+      {
+        ruleId: schemeCdId,
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'cash_discount_pct',
+        amountPaise: 1_416,
+      },
+    ])
+    expect(q.body.totals.netPaise).toBe(q.body.lines.reduce((n, l) => n + l.lineNetPaise, 0))
+  })
+
   it('refuses requests without tenant context', async () => {
     const res = await call(app, null, 'POST', '/pricing/quote', {
       retailerId: shopC,
