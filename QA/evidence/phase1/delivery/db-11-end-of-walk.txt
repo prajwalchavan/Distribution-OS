@@ -1,0 +1,38 @@
+-- TRIP-ACTIVE stops at the end of the walk --
+ seq |          shop          |   state   |  outcome  |     order_state     |   inv_state    | pods 
+-----+------------------------+-----------+-----------+---------------------+----------------+------
+   1 | Prerna Super Market    | delivered | delivered | delivered           | paid           |    1
+   2 | Metro Kirana Bazar     | delivered | delivered | delivered           | issued         |    1
+   3 | Anand Bhavan Provision | delivered | delivered | delivered           | issued         |    1
+   4 | Vaibhav Kirana Mart    | delivered | delivered | delivered           | issued         |    2
+   5 | Joshi Kirana Stores    | partial   | partial   | partially_delivered | partially_paid |    2
+   6 | Ansari Kirana Stores   | failed    | failed    | packed              | issued         |    0
+   7 | Nakshatra Kirana       | delivered | delivered | delivered           | issued         |    2
+   8 | Laxmi Narayan Stores   | arrived   |           | dispatched          | issued         |    0
+   9 | Khan General Store     | delivered | delivered | delivered           | issued         |    2
+  10 | Rukmini Provision      | delivered | delivered | delivered           | issued         |    2
+(10 rows)
+
+-- money written by this walk --
+  receipt_no   | mode |  rs   |     by      | book_no |         allocated_to         
+---------------+------+-------+-------------+---------+------------------------------
+ RCPT-0698     | cash |  7856 | ganesh.more | GM-1042 | INV/0099 7856
+ RCPT-0699     | upi  |  4756 | ganesh.more |         | INV/0404 3713, INV/0473 1043
+ RCPT-VAN-0001 | cash | 12569 | ganesh.more |         | INV/0820 12569
+(3 rows)
+
+ credit_note_no |     reason      | rs  | state  
+----------------+-----------------+-----+--------
+ CN/9003        | return_saleable | 768 | issued
+(1 row)
+
+ERROR:  column "recorded_at" does not exist
+LINE 1: ...) trip, proof_object_key from trip_expenses where recorded_a...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "trip_expenses.recorded_by".
+-- TRIP-NEXT pollution by this walk --
+ sequence |  state  |          arrived_at           
+----------+---------+-------------------------------
+        1 | arrived | 2026-09-12 16:48:54.785+05:30
+(1 row)
+

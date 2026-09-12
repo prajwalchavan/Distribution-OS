@@ -1,0 +1,29 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-10-after-record.png (528 chars text)
+{
+ "url": "http://localhost:5177/stop/4a5f6910-67eb-75a3-86b5-1a7d0e5dd623",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/files/upload-url",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"pod:01a0952d-1826-73fc-82d5-751909a43130\",\"id\":\"01a0952d-1826-73fc-82d5-751909a43130\",\"domain\":\"pod\",\"entityId\":\"666e71ad-13d2-7c80-9980-29728707bff9\",\"mimeType\":\"image/jpeg\",\"bytes\":56849}",
+   "body": "{\"objectKey\":\"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/666e71ad-13d2-7c80-9980-29728707bff9/01a0952d-1826-73fc-82d5-751909a43130.jpg\",\"url\":\"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/666e71ad-13d2-7c80-9980-29728707bff9/01a0952d-1826-73fc-82d5-751909a43130.jpg?expires=1789210070&signature=1340758ac10fa095e965c14db230697002b363f4c54f5e4153a15fa28b4df9c6\",\"method\":\"PUT\",\"headers\":{\"content-type\":\"image/jpeg\"},\"inline\":false,\"expiresAt\":\"2026-09-12T10:47:50.734Z\"}"
+  },
+  {
+   "m": "PUT",
+   "url": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/666e71ad-13d2-7c80-9980-29728707bff9/01a0952d-1826-73fc-82d5-751909a43130.jpg?expires=1789210070&signature=1340758ac10fa095e965c14db230697002b363f4c54f5e4153a15fa28b4df9c6",
+   "status": 200,
+   "req": "",
+   "body": "{\"ok\":true,\"objectKey\":\"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/666e71ad-13d2-7c80-9980-29728707bff9/01a0952d-1826-73fc-82d5-751909a43130.jpg\",\"bytes\":56849}"
+  },
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/delivery/deliveries",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"01a0952c-3374-7737-becb-701cd26721a2\",\"id\":\"666e71ad-13d2-7c80-9980-29728707bff9\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"4a5f6910-67eb-75a3-86b5-1a7d0e5dd623\",\"invoiceId\":\"caa0f602-adba-7dba-9109-5c5fbb641f76\",\"receiverName\":\"Vaibhav Patil\",\"note\":\"QA: delivered in full at 4 pm\",\"deliveredAt\":\"2026-09-12T10:32:50.746Z\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"lines\":[{\"id\":\"01a0952c-3384-75ef-8bdc-c2839e70dfe8\",\"invoiceLineId\":\"a5d36b03-bb47-7894-82aa-8de8a6fa3cd2\",\"deliveredQtyPcs\":60,\"returnedQtyPcs\":0,\"returnedSaleable\":true},{\"id\":\"01a0952c-3384-75f0-b485-9a7fa5cfdf7f\",\"invoiceLineId\":\"bed971d7-9c98-7ab4-a40a-2724af10dcc1\",\"deliveredQtyPcs\"",
+   "body": "{\"item\":{\"id\":\"666e71ad-13d2-7c80-9980-29728707bff9\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"4a5f6910-67eb-75a3-86b5-1a7d0e5dd623\",\"orderId\":\"4768f0b6-8eb7-7ae4-b9fc-82507e4da836\",\"invoiceId\":\"caa0f602-adba-7dba-9109-5c5fbb641f76\",\"invoiceNo\":\"INV/0825\",\"retailerId\":\"afe18716-a7e7-7e88-b68a-e8101898ebe0\",\"outcome\":\"delivered\",\"deliveredBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"deliveredAt\":\"2026-09-12T10:32:50.746Z\",\"receiverName\":\"Vaibhav Patil\",\"note\":\"QA: delivered in full at 4 pm\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"shortPcs\":0,\"returnedPcs\":0,\"creditNoteId\":null,\"podKinds\":[\"photo\",\"geo\"],\"createdAt\":\"2026-09-12T07:20:55.342Z\",\"lines\":[{\"id\":\"01a0952c-3384-75ef-8bdc-c2839e70dfe8\",\"invoiceLineId\":\"a5d36b03-bb47-7894-82aa-8de8a6fa3cd2\",\"deliveredQtyPcs\":60,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null},{\"id\":\"01a0952c-3384-75f0-b485-9a7fa5"
+  }
+ ],
+ "text": "Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | At the shop | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Open in maps | Expected | 12 Sep, 10:30 am | Arrived | 12 Sep, 10:40 am | Still due | ₹75,228.00 | 7 bills still open at this shop | Bills on this stop | ₹7,856.00 | INV/0825 | 11 Sep 2026 | ₹7,856.00 | Not started | Sell from the van | Nothing delivered | Deliver this bill | Take money"
+}
+[url] http://localhost:5177/stop/4a5f6910-67eb-75a3-86b5-1a7d0e5dd623

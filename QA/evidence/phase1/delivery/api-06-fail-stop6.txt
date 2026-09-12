@@ -1,0 +1,16 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-33-fail-filled.png (788 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-34-after-fail.png (577 chars text)
+{
+ "url": "http://localhost:5177/stop/74bbfade-4f45-7c41-a3e8-8b53ba8adb2b",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/sync/upload",
+   "status": 200,
+   "req": "{\"protocol\":1,\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"ops\":[{\"opId\":\"01a09538-0805-747d-b77b-fa32f294cd74\",\"op\":\"PATCH\",\"table\":\"trip_stops\",\"id\":\"74bbfade-4f45-7c41-a3e8-8b53ba8adb2b\",\"data\":{\"state\":\"failed\",\"occurred_at\":\"2026-09-12T10:44:32.389Z\",\"device_id\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"failure_reason\":\"no_cash\",\"completed_at\":\"2026-09-12T10:44:32.389Z\",\"failure_note\":\"QA: owner away, no cash in the till\"},\"baseUpdatedAt\":\"2026-09-12T10:43:53.967Z\",\"clientTime\":\"2026-09-12T10:44:32.390Z\"}]}",
+   "body": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+  }
+ ],
+ "text": "Stop 6 of 10 · TRIP-ACTIVE | Ansari Kirana Stores | Not delivered | Owes ₹8,042.00 | Credit | Shop 30, Rambaug Lane 4, Godrej Hill, Kalyan West, Kalyan, 421301 | Call | Open in maps | Expected | 12 Sep, 11:30 am | Arrived | 12 Sep, 4:13 pm | Still due | ₹8,042.00 | 3 bills still open at this shop | Bills on this stop | ₹2,610.00 | INV/0827 | 11 Sep 2026 | ₹2,610.00 | Not delivered | Shop had no money — QA: owner away, no cash in the till | Stop recorded as failed | Take money | Back to the trip"
+}
+[url] http://localhost:5177/stop/74bbfade-4f45-7c41-a3e8-8b53ba8adb2b

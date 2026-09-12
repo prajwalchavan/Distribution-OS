@@ -1,0 +1,53 @@
+ POST /receivables/payments/initiate | retailer 
+ GET /receivables/outstanding/{retailerId} | owner, manager, accountant, salesperson, delivery, retailer 
+ GET /receivables/outstanding | owner, manager, accountant 
+ GET /receivables/credit-check | owner, manager, accountant, salesperson, delivery 
+ GET /receivables/ledger/{retailerId} | owner, manager, accountant, salesperson, delivery, retailer 
+ POST /receivables/statements | owner, manager, accountant 
+ POST /receivables/write-offs | owner, manager, accountant 
+ GET /receivables/cash-discounts | owner, manager, accountant 
+ GET /receivables/accounts | owner, manager, accountant 
+ GET /receivables/journal | owner, manager, accountant 
+ POST /receivables/ageing/rebuild | owner 
+ GET /receivables/ageing/history | owner, manager, accountant 
+ GET /billing/queue | owner, manager, accountant, warehouse 
+ GET /billing/gst-summary | owner, manager, accountant 
+ GET /billing/sales-register | owner, manager, accountant 
+ POST /sync/upload | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET /sync/errors | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET /sync/manifest | owner, manager, accountant, salesperson, warehouse, delivery, retailer 
+ GET /sync/pull | owner, manager, accountant, salesperson, warehouse, delivery, retailer 
+ POST /files/upload-url | owner, manager, accountant, salesperson, warehouse, delivery 
+ GET /files/read-url | owner, manager, accountant, salesperson, warehouse, delivery, retailer 
+ GET /delivery/vehicles | owner, manager, accountant, warehouse, delivery 
+ POST /delivery/vehicles | owner, manager 
+ GET /delivery/vehicle-positions | owner, manager 
+ POST /delivery/consents | owner, manager, delivery 
+ GET /delivery/consents | owner, manager, delivery 
+ POST /delivery/trips | owner, manager, warehouse, delivery 
+ GET /delivery/trips | owner, manager, accountant, warehouse, delivery 
+ GET /delivery/trips/{id} | owner, manager, accountant, warehouse, delivery 
+ POST /delivery/trips/{id}/start-loading | owner, manager, warehouse, delivery 
+ POST /delivery/trips/{id}/depart | owner, manager, warehouse, delivery 
+ POST /delivery/trips/{id}/return | owner, manager, delivery 
+ POST /delivery/trips/{id}/cancel | owner, manager 
+ GET /delivery/trips/{id}/settlement | owner, manager, accountant, delivery 
+ POST /delivery/trips/{id}/settle | owner, manager, accountant 
+ GET /delivery/stops | owner, manager, accountant, salesperson, warehouse, delivery, retailer 
+ GET /delivery/trips/{id}/next-stop | owner, manager, accountant, warehouse, delivery 
+ POST /delivery/trips/{id}/stops | owner, manager, warehouse, delivery 
+ POST /delivery/trips/{id}/stops/reorder | owner, manager, delivery 
+ POST /delivery/stops/{id}/start | owner, manager, delivery 
+ POST /delivery/stops/{id}/arrive | owner, manager, delivery 
+ POST /delivery/stops/{id}/fail | owner, manager, delivery 
+ POST /delivery/deliveries | owner, manager, delivery 
+ POST /delivery/deliveries/{id}/pod | owner, manager, delivery 
+ GET /delivery/deliveries | owner, manager, accountant, delivery, retailer 
+ GET /delivery/deliveries/{id} | owner, manager, accountant, delivery, retailer 
+ POST /delivery/collections | owner, manager, accountant, delivery 
+ GET /delivery/collections | owner, manager, accountant, delivery 
+ POST /delivery/van-sales | owner, manager, delivery 
+ POST /delivery/expenses | owner, manager, accountant, delivery 
+ GET /delivery/expenses | owner, manager, accountant, delivery 
+ POST /gps/points | owner, manager, delivery 
+ GET /delivery/trips/{id}/trace | owner, manager 

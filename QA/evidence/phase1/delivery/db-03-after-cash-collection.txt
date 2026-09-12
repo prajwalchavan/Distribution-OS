@@ -1,0 +1,39 @@
+-- receipt RCPT-0698 --
+ receipt_no | mode |  rs   |  status   |          received_at          |   trip   | client_receipt_no | reference 
+------------+------+-------+-----------+-------------------------------+----------+-------------------+-----------
+ RCPT-0698  | cash |  7856 | collected | 2026-09-12 16:05:27.388+05:30 | dda35990 | GM-1042           | 
+ RCPT-0698  | cash | 98992 | collected | 2026-09-12 12:50:47.379+05:30 |          |                   | 
+(2 rows)
+
+-- allocations --
+ invoice_no |   rs   |           allocated_at           
+------------+--------+----------------------------------
+ INV/0838   | 101531 | 2026-09-12 12:50:47.379+05:30
+ INV/0099   |   7856 | 2026-09-12 16:05:27.418531+05:30
+(2 rows)
+
+-- collections --
+ mode |  rs  |   stop   |         collected_at          
+------+------+----------+-------------------------------
+ cash | 7856 | 4a5f6910 | 2026-09-12 16:05:27.388+05:30
+(1 row)
+
+-- invoice state --
+ invoice_no | state  
+------------+--------
+ INV/0825   | issued
+(1 row)
+
+-- outstanding summary (worker rollup) --
+ outstanding | overdue | open_bills | last_rs |            updated_at            
+-------------+---------+------------+---------+----------------------------------
+       67372 |   44320 |          7 |    7856 | 2026-09-12 16:05:27.527864+05:30
+(1 row)
+
+-- journal --
+ public | journal_entries              | table | dos
+ public | journal_lines                | table | dos
+     column_name       ----------------------  id  tenant_id  entry_date  ref_type  ref_id  narration  idempotency_key  posted_by  posted_at  reversed_by_entry_id (10 rows)  
+ERROR:  column je.created_at does not exist
+LINE 1: select je.narration, je.ref_type, je.created_at from journal...
+                                          ^

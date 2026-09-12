@@ -1,0 +1,20 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-30-share-buttons.png (2898 chars text)
+{
+ "url": "http://localhost:5177/share/89e7513d-3068-762d-8e9a-6060dca8d19f",
+ "popups": [
+  {
+   "url": "http://localhost:5177/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789210605&signature=…"
+  }
+ ],
+ "state": {
+  "shares": [],
+  "opens": [
+   "/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789210605&signature=…"
+  ],
+  "hasShare": false
+ },
+ "backdrops": 0,
+ "net": [],
+ "text": "Joshi Kirana Stores | Send the papers | INV/0826 | Partially paid | Tax invoice | 11 Sep 2026 | INV/0826 | ₹14,962.00 | Open | Print | Send on WhatsApp | Credit note | CN/9003 | 12 Sep 2026 | ₹768.00 | Receipt | RCPT-0626"
+}
+[url] http://localhost:5177/share/89e7513d-3068-762d-8e9a-6060dca8d19f

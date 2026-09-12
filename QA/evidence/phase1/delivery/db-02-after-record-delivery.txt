@@ -1,0 +1,79 @@
+-- delivery 666e71ad --
+  outcome  | receiver_name |         delivered_at          |             note              |   dev    
+-----------+---------------+-------------------------------+-------------------------------+----------
+ delivered | Vaibhav Patil | 2026-09-12 16:02:50.746+05:30 | QA: delivered in full at 4 pm | 01a0952a
+(1 row)
+
+    column_name     -------------------  id  tenant_id  delivery_id  invoice_line_id  delivered_qty_pcs  returned_qty_pcs  returned_saleable  reason  created_at  updated_at (10 rows)  
+ delivered_qty_pcs | returned_qty_pcs | returned_saleable | reason 
+-------------------+------------------+-------------------+--------
+                60 |                0 | t                 | 
+                75 |                0 | t                 | 
+               144 |                0 | t                 | 
+(3 rows)
+
+-- pod_evidence --
+ column_name  -------------  id  tenant_id  delivery_id  kind  object_key  payload  lat  lng  captured_at (9 rows)  
+                  id                  |              tenant_id               |             delivery_id              | kind  |                                                          object_key                                                           | payload |    lat    |    lng    |          captured_at          
+--------------------------------------+--------------------------------------+--------------------------------------+-------+-------------------------------------------------------------------------------------------------------------------------------+---------+-----------+-----------+-------------------------------
+ 01a0952d-533a-77a1-b115-a49d1235d445 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 666e71ad-13d2-7c80-9980-29728707bff9 | photo | tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/666e71ad-13d2-7c80-9980-29728707bff9/01a0952d-1826-73fc-82d5-751909a43130.jpg |         |           |           | 2026-09-12 16:02:50.746+05:30
+ 01a0952d-533a-77a2-8ddc-00d5f38a0a46 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 666e71ad-13d2-7c80-9980-29728707bff9 | geo   |                                                                                                                               |         | 19.231291 | 73.142109 | 2026-09-12 16:02:50.746+05:30
+(2 rows)
+
+-- stop 4 state --
+   state   |        arrived_at         |         completed_at          
+-----------+---------------------------+-------------------------------
+ delivered | 2026-09-12 10:40:00+05:30 | 2026-09-12 16:02:50.746+05:30
+(1 row)
+
+-- invoice + order --
+ invoice_no | state  
+------------+--------
+ INV/0825   | issued
+(1 row)
+
+ order_no |   state   | closed_at 
+----------+-----------+-----------
+ SO-0855  | delivered | 
+(1 row)
+
+-- stock ledger rows in the last 10 min --
+ERROR:  column "qty_pcs" does not exist
+LINE 1: select reason, ref_type, qty_pcs, left(location_id::text,8) ...
+                                 ^
+-- outbox last 10 min --
+    event_type    |            created_at            
+------------------+----------------------------------
+ OrderDelivered   | 2026-09-12 16:02:50.753033+05:30
+ DeliveryRecorded | 2026-09-12 16:02:50.753033+05:30
+(2 rows)
+
+-- retailer summary --
+              tenant_id               |             retailer_id              | outstanding_paise | overdue_paise | unallocated_credit_paise | open_bills | oldest_due_date | oldest_invoice_date |      last_receipt_at      | last_receipt_paise | bucket_0_7_paise | bucket_8_15_paise | bucket_16_30_paise | bucket_31_60_paise | bucket_61_90_paise | bucket_90_plus_paise |   as_of    |            updated_at            
+--------------------------------------+--------------------------------------+-------------------+---------------+--------------------------+------------+-----------------+---------------------+---------------------------+--------------------+------------------+-------------------+--------------------+--------------------+--------------------+----------------------+------------+----------------------------------
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | afe18716-a7e7-7e88-b68a-e8101898ebe0 |           7522800 |       5217600 |                        0 |          7 | 2026-07-10      | 2026-06-26          | 2026-09-11 17:30:00+05:30 |            1921300 |          3013200 |           3037600 |                  0 |                  0 |            1472000 |                    0 | 2026-09-12 | 2026-09-12 12:50:54.320242+05:30
+(1 row)
+
+-- where did the geo POD come from? --
+ arrived_lat | arrived_lng 
+-------------+-------------
+   19.231291 |   73.142109
+(1 row)
+
+ column_name  -------------  lat  lng (2 rows)  
+    lat    |    lng    
+-----------+-----------
+ 19.231344 | 73.142476
+(1 row)
+ERROR:  column "created_at" does not exist
+LINE 1: ...t(*) trip_points_last_hour from trip_points where created_at...
+                                                             ^
+-- stock ledger cols --
+   column_name    -----------------  id  tenant_id  occurred_at  lot_id  location_id  qty_delta  reason  ref_type  ref_id  actor_id  idempotency_key  note  created_at (13 rows)  
+ERROR:  column "delta_pcs" does not exist
+LINE 1: select reason, ref_type, delta_pcs, created_at from stock_le...
+                                 ^
+ reason | ref_type | qty_delta | loc | created_at 
+--------+----------+-----------+-----+------------
+(0 rows)
+

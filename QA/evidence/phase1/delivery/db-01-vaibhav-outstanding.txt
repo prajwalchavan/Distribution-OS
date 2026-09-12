@@ -1,0 +1,19 @@
+-- Vaibhav Kirana Mart open invoices --
+ invoice_no | invoice_date |     state      | total |  due_date  |       allocated        
+------------+--------------+----------------+-------+------------+------------------------
+ INV/0099   | 2026-06-26   | issued         | 14720 | 2026-07-10 | 0.00000000000000000000
+ INV/0595   | 2026-08-18   | issued         |  9131 | 2026-09-01 | 0.00000000000000000000
+ INV/0630   | 2026-08-21   | issued         | 21245 | 2026-09-04 | 0.00000000000000000000
+ INV/0664   | 2026-08-25   | partially_paid | 18499 | 2026-09-08 |     11419.000000000000
+ INV/0763   | 2026-09-04   | issued         |  4011 | 2026-09-18 | 0.00000000000000000000
+ INV/0793   | 2026-09-08   | issued         | 11185 | 2026-09-22 | 0.00000000000000000000
+ INV/0825   | 2026-09-11   | issued         |  7856 | 2026-09-25 | 0.00000000000000000000
+(7 rows)
+
+-- outstanding tables --
+ public | allocations                  | table | dos
+ public | lorry_receipts               | table | dos
+ public | receipts                     | table | dos
+ public | retailer_outstanding_summary | table | dos
+  column_name    ----------------  id  tenant_id  invoice_id  receipt_id  credit_note_id  amount_paise  allocated_at  allocated_by  write_off_id (9 rows)  
+     column_name      ---------------------  id  tenant_id  receipt_no  retailer_id  mode  amount_paise  received_at  received_by  trip_id  reference  upi_vpa  cheque_date  bank_name  status  cash_discount_paise  proof_object_key  note  idempotency_key  created_at  updated_at  device_id  client_receipt_no  reverses_receipt_id  deposited_at  deposit_ref  deposit_account_id  bounced_at  bounce_reason  bank_charges_paise  pdf_object_key (30 rows)  

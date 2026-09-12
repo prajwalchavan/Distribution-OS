@@ -1,0 +1,59 @@
+  status   |    id    |   trip   | orders | expected_packages | counted_packages | challan_no |       confirmed_at        |        approved_at        
+-----------+----------+----------+--------+-------------------+------------------+------------+---------------------------+---------------------------
+ confirmed | 29067d2f | dda35990 |     10 |                64 |               64 | DC-0081    | 2026-09-11 12:15:00+05:30 | 2026-09-11 12:10:00+05:30
+ draft     | 374f2089 | 72649337 |      5 |                38 |               38 |            |                           | 2026-09-12 12:10:00+05:30
+(2 rows)
+
+ERROR:  operator does not exist: text = uuid
+LINE 1: ...trip_id=s.trip_id left join sales_orders o on o.id=ls.oid an...
+                                                             ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+  outcome  |   stop   | receiver_name |       delivered_at        | lines 
+-----------+----------+---------------+---------------------------+-------
+ delivered | 7dd63add | Shobha Shinde | 2026-09-12 09:20:00+05:30 |     6
+ delivered | 342af087 | Vasant Jadhav | 2026-09-12 09:40:00+05:30 |     4
+ delivered | 6c4c742c | Hemant Patkar | 2026-09-12 10:20:00+05:30 |     2
+           | 4a5f6910 |               |                           |     0
+           | e82ef7b4 |               |                           |     0
+           | 74bbfade |               |                           |     0
+           | 18ac4301 |               |                           |     0
+           | 49acc96c |               |                           |     0
+           | 8fd70ab5 |               |                           |     0
+           | a53373df |               |                           |     0
+(10 rows)
+
+ mode | rs | stop | collected_at 
+------+----+------+--------------
+(0 rows)
+
+ERROR:  invalid input value for enum invoice_state: "-"
+LINE 1: ...coalesce(i.invoice_no,'-')||'/'||coalesce(i.state,'-')||'/'|...
+                                                             ^
+  outcome  |   stop   |   ord    |   inv    | receiver_name |       delivered_at        |                                  idempotency_key                                   
+-----------+----------+----------+----------+---------------+---------------------------+------------------------------------------------------------------------------------
+ delivered | 7dd63add | 3b8c86f8 | 010b2d0f | Shobha Shinde | 2026-09-12 09:20:00+05:30 | delivery:dda35990-f442-7931-8da4-5808f09a33b6:010b2d0f-e31a-71a0-9255-7522bc0b0fb2
+ delivered | 342af087 | 70e30ab0 | 9823b03a | Vasant Jadhav | 2026-09-12 09:40:00+05:30 | delivery:dda35990-f442-7931-8da4-5808f09a33b6:9823b03a-3556-7d23-b399-80fa7a25dd36
+ delivered | 6c4c742c | c2b2a996 | 78c9f631 | Hemant Patkar | 2026-09-12 10:20:00+05:30 | delivery:dda35990-f442-7931-8da4-5808f09a33b6:78c9f631-0300-7c18-92a2-834147f645d7
+           | 4a5f6910 | 4768f0b6 | caa0f602 |               |                           | plan:4a5f6910-67eb-75a3-86b5-1a7d0e5dd623:caa0f602-adba-7dba-9109-5c5fbb641f76
+           | e82ef7b4 | 47de7d5d | 89e7513d |               |                           | plan:e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb:89e7513d-3068-762d-8e9a-6060dca8d19f
+           | 74bbfade | 513f3480 | 103021cf |               |                           | plan:74bbfade-4f45-7c41-a3e8-8b53ba8adb2b:103021cf-26a8-72fa-8712-f932bed7cf20
+           | 18ac4301 | 7c434e6c | 2b7ac404 |               |                           | plan:18ac4301-73fb-72fd-9df1-cab54f72a4c4:2b7ac404-a71b-70ad-867a-402a4482bef9
+           | 49acc96c | 96b7d3d6 | 80b30321 |               |                           | plan:49acc96c-933b-7f45-b5bb-63d01d3b2e7f:80b30321-a74d-79e3-9a46-9d479e859494
+           | 8fd70ab5 | cb517f59 | b144aedd |               |                           | plan:8fd70ab5-b169-7cc0-9191-fc6083358804:b144aedd-7ff0-774f-8343-7722cff4bffc
+           | a53373df | d6fd4a9a | 61f3d158 |               |                           | plan:a53373df-e4c5-7a7a-aeca-833d3fa1f352:61f3d158-7345-70d9-b105-ab090caf340b
+(10 rows)
+
+ seq |   state   |          shop          | credit_mode |   sid    | planned_rs | order_no |   ostate   | invoice_no | istate | inv_rs |  outcome  |  inv_id  
+-----+-----------+------------------------+-------------+----------+------------+----------+------------+------------+--------+--------+-----------+----------
+   1 | delivered | Prerna Super Market    | indicate    | 7dd63add |      73245 | SO-0854  | delivered  | INV/0824   | paid   |  73245 | delivered | 010b2d0f
+   2 | delivered | Metro Kirana Bazar     | strict      | 342af087 |       4547 | SO-0858  | delivered  | INV/0828   | issued |   4547 | delivered | 9823b03a
+   3 | delivered | Anand Bhavan Provision | strict      | 6c4c742c |       2843 | SO-0863  | delivered  | INV/0832   | issued |   2843 | delivered | 78c9f631
+   4 | arrived   | Vaibhav Kirana Mart    | indicate    | 4a5f6910 |       7856 | SO-0855  | dispatched | INV/0825   | issued |   7856 |           | caa0f602
+   5 | pending   | Joshi Kirana Stores    | indicate    | e82ef7b4 |      14962 | SO-0856  | dispatched | INV/0826   | issued |  14962 |           | 89e7513d
+   6 | pending   | Ansari Kirana Stores   | strict      | 74bbfade |       2610 | SO-0857  | dispatched | INV/0827   | issued |   2610 |           | 103021cf
+   7 | pending   | Nakshatra Kirana       | strict      | 18ac4301 |       4756 | SO-0860  | dispatched | INV/0829   | issued |   4756 |           | 2b7ac404
+   8 | pending   | Laxmi Narayan Stores   | indicate    | 49acc96c |      22508 | SO-0861  | dispatched | INV/0830   | issued |  22508 |           | 80b30321
+   9 | pending   | Khan General Store     | stop        | 8fd70ab5 |        907 | SO-0864  | dispatched | INV/0833   | issued |    907 |           | b144aedd
+  10 | pending   | Rukmini Provision      | indicate    | a53373df |      26581 | SO-0866  | dispatched | INV/0835   | issued |  26581 |           | 61f3d158
+(10 rows)
+

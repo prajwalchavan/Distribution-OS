@@ -1,0 +1,68 @@
+-- credit note raised by the partial delivery --
+   column_name    -----------------  id  tenant_id  credit_note_no  series_code  fy  note_date  invoice_id  retailer_id  reason  state  delivery_id  taxable_paise  cgst_paise  sgst_paise  igst_paise  cess_paise  round_off_paise  total_paise  irn  issued_by  issued_at  note  created_at  updated_at  pdf_object_key (25 rows)  
+ credit_note_no | state  |     reason      | rs  | taxable |           issued_at           |   inv    
+----------------+--------+-----------------+-----+---------+-------------------------------+----------
+ CN/9003        | issued | return_saleable | 768 |     548 | 2026-09-12 16:09:00.667+05:30 | 89e7513d
+(1 row)
+
+   column_name     ------------------  id  tenant_id  credit_note_id  invoice_line_id  qty_pcs  saleable  rate_paise  taxable_paise  gst_bps  tax_paise  line_total_paise  created_at  updated_at (13 rows)  
+ERROR:  column "unit_price_paise" does not exist
+LINE 1: select qty_pcs, unit_price_paise/100 rate, line_total_paise/...
+                        ^
+-- invoice line rate for Campa Cola 750 ml on INV/0826 --
+    column_name      --------------------  id  tenant_id  invoice_id  line_no  order_line_id  variant_id  lot_id  description  hsn_code  batch_no  expiry_date  mrp_paise  qty_pcs  free_qty_pcs  entered_qty  entered_unit  pack_size_at_entry  case_size  rate_paise  discount_bps  discount_paise  taxable_paise  gst_bps  cgst_paise  sgst_paise  igst_paise  cess_bps  cess_paise  line_total_paise  applied_rules  created_at  updated_at (32 rows)  
+ERROR:  column "unit_price_paise" does not exist
+LINE 1: select qty_pcs, unit_price_paise/100 rate, line_total_paise/...
+                        ^
+-- stock ledger rows last 6 min --
+        reason        |  ref_type   | qty_delta |          loc          |  kind   |        note         |            created_at            
+----------------------+-------------+-----------+-----------------------+---------+---------------------+----------------------------------
+ sale_return_saleable | credit_note |        24 | Vehicle MH-05-AB-1234 | vehicle | credit note CN/9003 | 2026-09-12 16:09:00.560234+05:30
+(1 row)
+
+-- invoice / order / stop state --
+ invoice_no |     state      
+------------+----------------
+ INV/0826   | partially_paid
+(1 row)
+
+ order_no |        state        
+----------+---------------------
+ SO-0856  | partially_delivered
+(1 row)
+
+  state  |         completed_at          
+---------+-------------------------------
+ partial | 2026-09-12 16:09:00.557+05:30
+(1 row)
+
+-- outbox events last 6 min --
+       event_type        |            created_at            
+-------------------------+----------------------------------
+ CollectionRecorded      | 2026-09-12 16:05:27.418531+05:30
+ ReceiptRecorded         | 2026-09-12 16:05:27.418531+05:30
+ OrderPartiallyDelivered | 2026-09-12 16:09:00.560234+05:30
+ CreditNoteIssued        | 2026-09-12 16:09:00.560234+05:30
+ DocumentRenderRequested | 2026-09-12 16:09:00.560234+05:30
+ DeliveryRecorded        | 2026-09-12 16:09:00.560234+05:30
+(6 rows)
+
+-- outstanding summary Joshi --
+ outstanding | open_bills |           updated_at            
+-------------+------------+---------------------------------
+      120754 |          6 | 2026-09-12 16:09:00.69707+05:30
+(1 row)
+
+-- CN/9003 line vs INV/0826 line --
+ src | qty_pcs | saleable | rate_paise | gst_bps | taxable_paise | tax_paise | line_total_paise 
+-----+---------+----------+------------+---------+---------------+-----------+------------------
+ cn  |      24 | t        |       2286 |    2800 |         54864 |     21946 |            76810
+ inv |      72 |          |       2286 |    2800 |        164592 |     46086 |           230429
+(2 rows)
+
+-- allocation of the credit note --
+ invoice_no | rs  | from_cn 
+------------+-----+---------
+ INV/0826   | 768 | t
+(1 row)
+

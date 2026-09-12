@@ -1,0 +1,22 @@
+GET    /receivables/outstanding                                     -> 403 {"message":"the delivery role may not call GET /receivables/outstanding","error":"Forbidden","statusCode":403}
+GET    /tenancy/staff                                               -> 403 {"message":"the delivery role may not call GET /tenancy/staff","error":"Forbidden","statusCode":403}
+POST   /delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/settle  -> 403 {"message":"the delivery role may not call POST /delivery/trips/:id/settle","error":"Forbidden","statusCode":4
+POST   /delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/cancel  -> 403 {"message":"the delivery role may not call POST /delivery/trips/:id/cancel","error":"Forbidden","statusCode":4
+GET    /delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/trace   -> 403 {"message":"the delivery role may not call GET /delivery/trips/:id/trace","error":"Forbidden","statusCode":403
+GET    /delivery/vehicle-positions                                  -> 403 {"message":"the delivery role may not call GET /delivery/vehicle-positions","error":"Forbidden","statusCode":4
+GET    /delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719
+2041eb3c-92ba-7439-b5dd-4d618957497a -> 000 {"message":"the delivery role may not call GET /delivery/vehicle-positions","error":"Forbidden","statusCode":4
+GET    /delivery/trips?limit=50                                     -> 200 {"items":[{"id":"f947a005-e9b3-7d53-85ed-ef1d484c2252","tripNo":"TRIP-20260618-1","tripDate":"2026-06-18","veh
+--- trips list: distinct drivers returned ---
+items 32 drivers [ '7b2db500' ]
+GET    /delivery/deliveries?limit=2                                 -> 200 {"items":[{"id":"ff1ccbac-958d-717e-bd9b-a87d2e9e0c77","tripId":"a23f1f0b-85fd-7d52-87d8-015ccd89f180","stopId
+GET    /receivables/outstanding/afe18716-a7e7-7e88-b68a-e8101898ebe0 -> 200 {"retailerId":"afe18716-a7e7-7e88-b68a-e8101898ebe0","outstandingPaise":6737200,"overduePaise":4432000,"unallo
+GET    /retailers/afe18716-a7e7-7e88-b68a-e8101898ebe0              -> 200 {"item":{"id":"afe18716-a7e7-7e88-b68a-e8101898ebe0","name":"Vaibhav Kirana Mart","ownerName":"Sachin Sawant",
+GET    /delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719         -> 404 {"defined":false,"code":"NOT_FOUND","status":404,"message":"trip 20cb44cd-8721-777e-a1a4-dea97ff11719 not found"}
+GET    /delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settlement -> 404 {"defined":false,"code":"NOT_FOUND","status":404,"message":"trip 20cb44cd-8721-777e-a1a4-dea97ff11719 not found"}
+--- deliveries list: trips of other drivers? ---
+items 0 distinct trips 0 deliveredBy []
+ganesh trips with deliveries in db: 32
+--- retailers.get fields seen by the crew ---
+id, name, ownerName, phone, altPhone, address, lat, lng, beatId, gstRegType, gstin, stateCode, paymentTerms, cashDiscountBps, cashDiscountDays, active, code, identityId, tier, creditLimitPaise, creditLimitBills, creditDays, creditMode, onboardedBy
+creditLimitPaise 18000000 creditDays 14 creditMode indicate phone +919167062804

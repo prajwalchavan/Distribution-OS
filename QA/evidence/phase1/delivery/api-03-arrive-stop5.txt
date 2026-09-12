@@ -1,0 +1,24 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-20-stop5-arrived.png (589 chars text)
+{
+ "url": "http://localhost:5177/stop/e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/sync/upload",
+   "status": 200,
+   "req": "{\"protocol\":1,\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"ops\":[{\"opId\":\"01a09532-00fb-764e-88a3-b6376b9c3589\",\"op\":\"PATCH\",\"table\":\"trip_stops\",\"id\":\"e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb\",\"data\":{\"state\":\"arrived\",\"occurred_at\":\"2026-09-12T10:37:57.371Z\",\"device_id\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"arrived_at\":\"2026-09-12T10:37:57.371Z\"},\"baseUpdatedAt\":\"2026-09-12T07:20:52.961Z\",\"c",
+   "body": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+  }
+ ],
+ "head": "Stop 5 of 10 · TRIP-ACTIVE | Joshi Kirana Stores | At the shop | Owes ₹1,21,522.00 | Credit | Shop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301 | Call",
+ "refs": [
+  "d3-call:Call",
+  "d3-navigate:Open in maps",
+  "d3-bill-ea1e24a2-705a-7125-9c7a-946ae0267afc:INV/0826 11 Sep 2026 ₹14,962.0",
+  "d3-van-sale:Sell from the van",
+  "d3-fail:Nothing delivered",
+  "d3-deliver:Deliver this bill",
+  "d3-collect:Take money"
+ ]
+}
+[url] http://localhost:5177/stop/e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb

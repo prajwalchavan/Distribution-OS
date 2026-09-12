@@ -1,0 +1,71 @@
+-- worker log (last 25 lines) --
+worker.log
+delivery-service.log
+warehouse-service.log
+auth-service.log
+delivery-app.log
+appium.log
+warehouse-app.log
+manager-service.log
+manager-app.log
+pw-server.log
+owner-service.log
+owner-app.log
+[16:09:11.737] INFO (20369): outbox relayed
+    claimed: 2
+    published: 2
+    failed: 0
+    deadLettered: 0
+[16:10:11.685] INFO (20369): notifications: dispatched
+    claimed: 1
+    sent: 1
+    delivered: 0
+    failed: 0
+    deadLettered: 0
+[16:11:11.798] INFO (20369): document rendered
+    tenantId: "01a0947d-7a79-75d2-bfff-97e499a58d49"
+    kind: "invoice"
+    id: "89e7513d-3068-762d-8e9a-6060dca8d19f"
+    format: "a4"
+    copy: "original"
+    requestedBy: "7b2db500-02d5-7aa7-a1dc-005a3e89ff63"
+    objectKey: "tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf"
+    bytes: 21840
+[16:11:11.799] INFO (20369): outbox relayed
+    claimed: 1
+    published: 1
+    failed: 0
+    deadLettered: 0
+-- pdf keys --
+ invoice_no | has_pdf 
+------------+---------
+ INV/0825   | f
+ INV/0826   | t
+(2 rows)
+
+ credit_note_no | has_pdf 
+----------------+---------
+ CN/9003        | t
+(1 row)
+
+ receipt_no | has_pdf 
+------------+---------
+ RCPT-0698  | f
+ RCPT-0626  | f
+ RCPT-0698  | f
+(3 rows)
+
+ with_pdf | total 
+----------+-------
+        2 |   856
+(1 row)
+
+-- pg-boss jobs for pdf render --
+ name | state | count 
+------+-------+-------
+(0 rows)
+
+ name | state | output | completed_on 
+------+-------+--------+--------------
+(0 rows)
+

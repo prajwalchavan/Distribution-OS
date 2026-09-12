@@ -1,0 +1,88 @@
+-- duplicate receipt numbers per tenant --
+  slug  | receipt_no | count 
+--------+------------+-------
+ tarsun | RCPT-0696  |     2
+ tarsun | RCPT-0697  |     2
+ tarsun | RCPT-0698  |     2
+(3 rows)
+
+-- the two RCPT-0698 rows --
+    id    |  rs   |          received_at          | received_by |                 idempotency_key                 |            created_at            
+----------+-------+-------------------------------+-------------+-------------------------------------------------+----------------------------------
+ 3db84c22 | 98992 | 2026-09-12 12:50:47.379+05:30 | meena.joshi | receipt:56a6751e-5d51-7b13-b26f-f8d37037ec60    | 2026-09-12 12:50:47.379+05:30
+ 01a0952f |  7856 | 2026-09-12 16:05:27.388+05:30 | ganesh.more | collection:01a0952f-41c8-7449-a6f8-15eef4f9555f | 2026-09-12 16:05:27.418531+05:30
+(2 rows)
+
+-- receipt numbering series --
+ public | numbering_series             | table | dos
+   column_name    -----------------  tenant_id  series_code  fy  prefix  next_no  created_at  updated_at  allocation_mode  starting_no  device_id (10 rows)  
+ERROR:  column ns.code does not exist
+LINE 1: ...on tn.id=ns.tenant_id where tn.slug='tarsun' and (ns.code il...
+                                                             ^
+-- max receipt no in tarsun --
+      max      | count 
+---------------+-------
+ RCPT-VAN-0004 |   731
+(1 row)
+
+-- unique constraints on receipts --
+                   conname                   |                   pg_get_constraintdef                    
+---------------------------------------------+-----------------------------------------------------------
+ receipts_pkey                               | PRIMARY KEY (id)
+ receipts_tenant_id_tenants_id_fk            | FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+ receipts_retailer_id_retailers_id_fk        | FOREIGN KEY (retailer_id) REFERENCES retailers(id)
+ receipts_received_by_users_id_fk            | FOREIGN KEY (received_by) REFERENCES users(id)
+ receipts_reverses_receipt_id_receipts_id_fk | FOREIGN KEY (reverses_receipt_id) REFERENCES receipts(id)
+ receipts_deposit_account_id_accounts_id_fk  | FOREIGN KEY (deposit_account_id) REFERENCES accounts(id)
+ receipts_amount_nonzero                     | CHECK ((amount_paise <> 0))
+(7 rows)
+
+-- the six duplicate rows --
+ receipt_no |    id    |  rs   |          received_at          |  received_by   |     ikey     |            created_at            
+------------+----------+-------+-------------------------------+----------------+--------------+----------------------------------
+ RCPT-0696  | daeb39ba |  6990 | 2026-09-12 12:50:47.378+05:30 | rahul.deshmukh | receipt:8309 | 2026-09-12 12:50:47.378+05:30
+ RCPT-0696  | 01a094cb |  9182 | 2026-09-12 14:17:11.318+05:30 | vikas.kadam    | 01a094cb-c8c | 2026-09-12 14:17:11.304334+05:30
+ RCPT-0697  | de04cd91 | 28759 | 2026-09-12 12:50:47.378+05:30 | meena.joshi    | receipt:647d | 2026-09-12 12:50:47.378+05:30
+ RCPT-0697  | 01a094d9 |     1 | 2026-09-12 14:27:17.067+05:30 | meena.joshi    | 01a094d9-000 | 2026-09-12 14:27:17.055654+05:30
+ RCPT-0698  | 3db84c22 | 98992 | 2026-09-12 12:50:47.379+05:30 | meena.joshi    | receipt:56a6 | 2026-09-12 12:50:47.379+05:30
+ RCPT-0698  | 01a0952f |  7856 | 2026-09-12 16:05:27.388+05:30 | ganesh.more    | collection:0 | 2026-09-12 16:05:27.418531+05:30
+(6 rows)
+
+-- numbering series (tarsun) --
+ series_code |   fy    | prefix | next_no | starting_no | allocation_mode |            updated_at            
+-------------+---------+--------+---------+-------------+-----------------+----------------------------------
+ CLAIM       | 2026-27 | CLM-   |      25 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ CN          | 2026-27 | CN/    |    9003 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ DC          | 2026-27 | DC-    |      83 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ EXT         | 2026-27 |        |       1 |           1 | external        | 2026-09-12 12:50:53.548716+05:30
+ GRN         | 2026-27 | GRN-   |     129 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ INV         | 2026-27 | INV/   |    9007 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ PICK        | 2026-27 | PICK-  |      80 |           1 | server          | 2026-09-12 14:03:59.557+05:30
+ PO          | 2026-27 | PO-    |       1 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ RCPT        | 2026-27 | RCPT-  |     699 |           1 | server          | 2026-09-12 16:05:27.465+05:30
+ RET         | 2026-27 | R-     |      61 |           1 | server          | 2026-09-12 12:50:46.63118+05:30
+ SO          | 2026-27 | SO-    |     879 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+ TRIP        | 2026-27 | TRIP-  |       1 |           1 | server          | 2026-09-12 12:50:46.492438+05:30
+(12 rows)
+
+-- max seeded RCPT number (non-van) --
+    max    
+-----------
+ RCPT-0699
+(1 row)
+
+-- unique indexes on invoices / credit_notes / receipts --
+  tablename   |           indexname           |                                                                                  indexdef                                                                                   
+--------------+-------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ credit_notes | credit_notes_no_idx           | CREATE UNIQUE INDEX credit_notes_no_idx ON public.credit_notes USING btree (tenant_id, series_code, fy, credit_note_no) WHERE (credit_note_no IS NOT NULL)
+ credit_notes | credit_notes_pkey             | CREATE UNIQUE INDEX credit_notes_pkey ON public.credit_notes USING btree (id)
+ invoices     | invoices_order_active_idx     | CREATE UNIQUE INDEX invoices_order_active_idx ON public.invoices USING btree (tenant_id, order_id) WHERE ((order_id IS NOT NULL) AND (state <> 'cancelled'::invoice_state))
+ invoices     | invoices_external_no_idx      | CREATE UNIQUE INDEX invoices_external_no_idx ON public.invoices USING btree (tenant_id, external_invoice_no) WHERE (external_invoice_no IS NOT NULL)
+ invoices     | invoices_pkey                 | CREATE UNIQUE INDEX invoices_pkey ON public.invoices USING btree (id)
+ invoices     | invoices_no_idx               | CREATE UNIQUE INDEX invoices_no_idx ON public.invoices USING btree (tenant_id, series_code, fy, invoice_no) WHERE (invoice_no IS NOT NULL)
+ receipts     | receipts_pkey                 | CREATE UNIQUE INDEX receipts_pkey ON public.receipts USING btree (id)
+ receipts     | receipts_idempotency_idx      | CREATE UNIQUE INDEX receipts_idempotency_idx ON public.receipts USING btree (tenant_id, idempotency_key)
+ receipts     | receipts_device_client_no_idx | CREATE UNIQUE INDEX receipts_device_client_no_idx ON public.receipts USING btree (tenant_id, device_id, client_receipt_no) WHERE (client_receipt_no IS NOT NULL)
+ sales_orders | sales_orders_pkey             | CREATE UNIQUE INDEX sales_orders_pkey ON public.sales_orders USING btree (id)
+(10 rows)
+

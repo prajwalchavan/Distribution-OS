@@ -1,0 +1,69 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+TRIP-NEXT · 14 Sep 2026
+Today's trip
+On the road
+0 of 5 stops done
+MH-05-AB-1234
+STILL TO COLLECT
+₹55,654.00
+COLLECTED TODAY
+₹0.00
+FLOAT AT START
+₹3,000.00
+STOPS
+0 / 5
+Next stop
+City Light Provision
+Shop 6, Barave Road, Godrej Hill, Kalyan West, Kalyan, 421301
+₹7,038.00
+Not started
+Stops in order
+0 of 5 stops done
+1. City Light Provision
+Shop 6, Barave Road, Godrej Hill, Kalyan West, Kalyan, 421301
+₹7,038.00
+Not started
+2. Gupta Kirana Stores
+Shop 33, Khadakpada Circle, Khadakpada, Kalyan West, Kalyan, 421301
+₹10,806.00
+Not started
+3. Kadam Stores
+Shop 29, Gandhari Road, Khadakpada, Kalyan West, Kalyan, 421301
+₹12,707.00
+Not started
+4. Rameshwar General Store
+Shop 11, Birla College Road, Birla College Road, Kalyan West, Kalyan, 421301
+₹18,027.00
+Not started
+5. Meghana General Store
+Shop 8, Birla College Road, Birla College Road, Kalyan West, Kalyan, 421301
+₹7,076.00
+Not started
+Load on board
+12 Sep 2026
+38 cartons on board
+Draft
+Location
+Location is off
+This phone is not sharing location. The trip still works; the office cannot see it.
+A browser tab stops sending when it is hidden — keep this tab open.
+Sell from the van
+Add an expense
+Your other trips
+TRIP-ACTIVE
+Planned for 12 Sep 2026
+On the road
+Next stop
+Check in the vehicle

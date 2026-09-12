@@ -151,3 +151,26 @@ Notes from the Warehouse walk (2026-09-12):
 - Android: the debug build's LogBox ("Can't perform a React state update…") opens on the first tap and swallows `ui.py text` lookups —
   `ui.py text Dismiss` + tap, then continue. Wave/sheet rows are below the fold on the phone: `adb shell input swipe 540 1800 540 900 400` first.
 - iOS: `ios-login.mjs 5176 dinesh.patil warehouse` worked first time (Appium on :4723, simulator booted); ~1 min.
+
+Notes from the Delivery walk (2026-09-12):
+- **Android reaches the API over `adb reverse` (localhost:3000/3005 on the device → host), not over IP.** `svc wifi disable`, `svc data disable`
+  and airplane mode cut the radio (ping 10.0.2.2 → "Network is unreachable") but NOT the app's API calls. To simulate offline: `adb reverse
+  --remove tcp:3000` and `--remove tcp:3005` AND `am force-stop` + relaunch the app — an established keep-alive socket survives the removal
+  (a delivery went through on a "dead" network that way, `delivery-service.log` req-3hk). The debug bundle still loads from 10.0.2.2:8081 with the
+  radio up, so keep airplane mode OFF for that variant. Restore with `adb reverse tcp:3000 tcp:3000; adb reverse tcp:3005 tcp:3005`.
+- **Playwright `context.setOffline(true)` does not survive between `pw.mjs` processes** (each command reconnects over CDP). Do the whole offline
+  scenario inside ONE `pw.mjs do "…"`: setOffline → actions → waits → setOffline(false). The `d-43/d-44` screenshots of the delivery walk were an
+  online run for that reason.
+- After an uncaught error the RN dev build shows a LogBox toast at the bottom that covers the primary button; a tap there opens the log viewer
+  (Back closes it, then tap the toast's × at ~(996,2209) on the Pixel 7). Not a product defect.
+- `adb shell input text` only works on real TextInputs; the delivery app's amount field opens a full-screen keypad sheet (buttons, tap by label
+  with `ui.py text 4`). `adb shell input keyevent 111` (Escape) closes the keypad sheet; `keyevent 4` (Back) navigates when no keyboard is open.
+- Camera on the emulator: the app hands off to the system camera (`com.android.camera2`); tap `content-desc="Shutter"` then `"Done"` — parse
+  `uiautomator dump` for content-desc (`/tmp/uidesc.py` pattern in the session; add to `ui.py` when next needed). The stored JPEG is real
+  (1392×1856, `backend/.storage/tenant/<id>/pod/…`).
+- The Google "Location Accuracy" system dialog appears on every location use; `ui.py text "No thanks"` dismisses it. `adb emu geo fix 73.1421 19.2313`
+  sets a Kalyan position.
+- The `deliveries` table carries a `plan:` row per stop (idempotency_key `plan:<stopId>:<invoiceId>`, outcome NULL) — that is how a stop maps
+  to its invoice before delivery.
+- Seed hygiene found here: the RCPT numbering series was left at 696 while receipts up to RCPT-0699 exist, so the first four app receipts of
+  the day collided (DOS-059). Not fixed (founder: no more seed work) — fix together with the unique index when DOS-059 is approved.

@@ -1,0 +1,59 @@
+{
+ "strip": "Offline since 4:55 pm | GM | Ganesh More | delivery",
+ "head1": "Offline since 4:55 pm · 1 waiting to send | GM | Ganesh More | delivery | Stop 9 of 10 · TRIP-ACTIVE | Khan General Store | At the shop | Owes ₹907.00",
+ "refs": [
+  "d3-call:Call",
+  "d3-navigate:Open in maps",
+  "d3-bill-339a5196-6a3e-74f0-93b8-1c6fd7d0db78:INV/0833 11 Sep 2026 ₹90",
+  "d3-van-sale:Sell from the van",
+  "d3-fail:Nothing delivered",
+  "d3-deliver:Deliver this bill",
+  "d3-collect:Take money"
+ ],
+ "log": [
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED"
+ ]
+}
+[url] http://localhost:5177/stop/8fd70ab5-b169-7cc0-9191-fc6083358804
+[console errors] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-43-offline-record-3s.png (525 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-44-offline-record-25s.png (525 chars text)
+{
+ "url": "http://localhost:5177/stop/8fd70ab5-b169-7cc0-9191-fc6083358804",
+ "at3s": "",
+ "at25s": "",
+ "log": [
+  "OK 200 http://127.0.0.1:3005/files/upload-url",
+  "OK 200 http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/33",
+  "OK 200 http://127.0.0.1:3005/delivery/deliveries"
+ ]
+}
+[url] http://localhost:5177/stop/8fd70ab5-b169-7cc0-9191-fc6083358804
+ "at28s": "Offline since 4:57 pm · 1 waiting to send",
+ "recordEnabled": null,
+ "urlAfter": "http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f",
+ "backOnline": "",
+ "log": [
+  "OK 200 http://127.0.0.1:3000/auth/refresh",
+  "FAILED GET http://127.0.0.1:3005/delivery/trips/dda35990-f442-7931-8da4-5808f09a3 net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "FAILED POST http://127.0.0.1:3005/sync/upload net::ERR_INTERNET_DISCONNECTED",
+  "OK 200 http://127.0.0.1:3005/sync/upload"
+ ]
+}
+[url] http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f
+[console errors] Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED
+  Failed to load resource: net::ERR_INTERNET_DISCONNECTED

@@ -1,0 +1,30 @@
+-- stop 6 after fail --
+ state  | failure_reason |            failure_note             |         completed_at          
+--------+----------------+-------------------------------------+-------------------------------
+ failed | no_cash        | QA: owner away, no cash in the till | 2026-09-12 16:14:32.389+05:30
+(1 row)
+
+ outcome |         delivered_at          
+---------+-------------------------------
+ failed  | 2026-09-12 16:14:32.389+05:30
+(1 row)
+
+ order_no | state  
+----------+--------
+ SO-0857  | packed
+(1 row)
+
+ invoice_no | state  
+------------+--------
+ INV/0827   | issued
+(1 row)
+
+        event_type        |            created_at            
+--------------------------+----------------------------------
+ OrderReturnedUndelivered | 2026-09-12 16:14:32.453088+05:30
+ StopFailed               | 2026-09-12 16:14:32.453088+05:30
+(2 rows)
+
+ERROR:  column "op" does not exist
+LINE 1: select op, outcome->>'status' status, left(outcome::text,160...
+               ^

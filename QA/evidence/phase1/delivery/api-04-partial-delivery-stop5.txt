@@ -1,0 +1,31 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-24-deliver-stop5-partial-filled.png (1337 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-25-after-partial-record.png (530 chars text)
+{
+ "url": "http://localhost:5177/stop/e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb",
+ "lineBefore": "Campa Cola 750 ml | ₹2,304.29 | On the bill | 75 pc | Batch | RCP20260822 | Dropping | − | 2 cs | + | 2 cs + 3 pc = 51 pc | Taken back · 24 pc | Can be sold again | Damaged — into the damaged bin | Shop refused it | Damaged | Past its date | Godavari Dahi 1 kg",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/files/upload-url",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"pod:01a09532-ed25-771c-bd66-a216250b9a5d\",\"id\":\"01a09532-ed25-771c-bd66-a216250b9a5d\",\"domain\":\"pod\",\"entityId\":\"ea1e24a2-705a-7125-9c7a-946ae0267afc\",\"mimeType\":\"image/jpeg\",\"bytes\":56651}",
+   "body": "{\"objectKey\":\"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a09532-ed25-771c-bd66-a216250b9a5d.jpg\",\"url\":\"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a09532-ed25-771c-bd66-a216250b9a5d.jpg?expires=1789210440&signature=a74d4e19d10d927c78a3207db542e5e90eb5004aa8ed82551793cd0db8f35add\",\"method\":\"PUT\",\"headers\":{\"content-type\":\"image/jpeg\"},\"inline\":false,\"expiresAt\":\"2026-09-12T10:54:00.545Z\"}"
+  },
+  {
+   "m": "PUT",
+   "url": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a09532-ed25-771c-bd66-a216250b9a5d.jpg",
+   "status": 200,
+   "req": "",
+   "body": "{\"ok\":true,\"objectKey\":\"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a09532-ed25-771c-bd66-a216250b9a5d.jpg\",\"bytes\":56651}"
+  },
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/delivery/deliveries",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"01a09532-409a-7222-853c-d898758ad89a\",\"id\":\"ea1e24a2-705a-7125-9c7a-946ae0267afc\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb\",\"invoiceId\":\"89e7513d-3068-762d-8e9a-6060dca8d19f\",\"receiverName\":\"Joshi\",\"note\":\"QA: 1 case Campa Cola damaged, taken back\",\"deliveredAt\":\"2026-09-12T10:39:00.557Z\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"lines\":[{\"id\":\"01a09532-40a8-7408-8c23-ff180640e8aa\",\"invoiceLineId\":\"4874f7c8-b5cd-74d4-8b5d-43b49d2e9cb6\",\"deliveredQtyPcs\":51,\"returnedQtyPcs\":24,\"returnedSaleable\":true,\"reason\":\"damaged\"},{\"id\":\"01a09532-40a8-7409-8a26-2f98a918d82c\",\"invoiceLineId\":\"4e5d32ed-ffba-7b1b-8c4e-6b9824945106\",\"deliveredQtyPcs\":24,\"returnedQtyPcs\":0,\"returnedSaleable\":true},{\"id\":\"01a09532-40a8-740a-a8c7-90e52cbe1fed\",\"invoiceLineId\":\"b72009de-dae5-7cbd-b660-475f3349e4e1\",\"deliveredQtyPcs\":162,\"retur",
+   "body": "{\"item\":{\"id\":\"ea1e24a2-705a-7125-9c7a-946ae0267afc\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb\",\"orderId\":\"47de7d5d-281e-786b-8edc-6db3e57f0007\",\"invoiceId\":\"89e7513d-3068-762d-8e9a-6060dca8d19f\",\"invoiceNo\":\"INV/0826\",\"retailerId\":\"1b3e6156-389f-7163-a4c6-1e13569f4a1d\",\"outcome\":\"partial\",\"deliveredBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"deliveredAt\":\"2026-09-12T10:39:00.557Z\",\"receiverName\":\"Joshi\",\"note\":\"QA: 1 case Campa Cola damaged, taken back\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"shortPcs\":24,\"returnedPcs\":24,\"creditNoteId\":\"01a09532-f82f-736d-8bbc-e444a8b3cd48\",\"podKinds\":[\"photo\",\"geo\"],\"createdAt\":\"2026-09-12T07:20:55.342Z\",\"lines\":[{\"id\":\"01a09532-40a8-7408-8c23-ff180640e8aa\",\"invoiceLineId\":\"4874f7c8-b5cd-74d4-8b5d-43b49d2e9cb6\",\"deliveredQtyPcs\":51,\"returnedQtyPcs\":24,\"returnedSaleable\":true,\"reason\":\"damaged\"},{\"id\":\"01a09532-40a8-7409-8a26-2f98a918d82c\",\"invoiceLineId\":\"4e5d32ed-ffba-7b1b-8c4e-6b9824945106\",\"deliveredQtyPcs\":24,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null},{\"id\":\"01a09532-40a8-740a-a8c7-90e52cbe1fed\",\"invoiceLineId\":\"b72009de-dae5-7cbd-b660-475f3349e4e1\",\"deliveredQtyPcs\":162,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null},{\"id\":\"01a09532-40a8-740b-ab8e-5bc3c67bea4b\",\"invoiceLineId\":\"0bae7aa6-6bff-7b25-b126-877b56703444\",\"deliveredQtyPcs\":100,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null},{\"id\":\"01a09532-40a8-740c-b4e3-33073174f0ee\",\"invoiceL"
+  }
+ ],
+ "after": "Stop 5 of 10 · TRIP-ACTIVE | Joshi Kirana Stores | At the shop | Owes ₹1,21,522.00 | Credit | Shop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301 | Call | Open in maps | Expected | 12 Sep, 11:00 am | Arrived | 12 Sep, 4:07 pm | Still due | ₹1,21,522.00 | 6 bills still open at this shop | Bills on this stop | ₹14,962.00 | INV/0826 | 11 Sep 2026 | ₹14,962.00 | Not started | Sell from the van | Nothing delivered | Deliver this bill | Take money"
+}
+[url] http://localhost:5177/stop/e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb

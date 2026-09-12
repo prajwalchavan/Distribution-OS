@@ -1,0 +1,8 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-23-deliver-stop5-ghee-minus.png (1447 chars text)
+{
+ "firstLine": "What is being dropped | On the bill | Campa Cola 750 ml | ₹2,304.29 | On the bill | 75 pc | Batch | RCP20260822 | Dropping | − | 2 cs | + | 2 cs + 3 pc = 51 pc | Taken back · 24 pc | Can be sold again | Damaged — into the damaged bin",
+ "reasonChips": "Shop refused it / Damaged / Past its date",
+ "gheeAfterMinus": "Godavari Cow Ghee 200 ml | ₹749.79 | On the bill | 5 pc | Batch | GD20260702 | Dropping | − | 0 cs | + | Not ordered",
+ "foot": "Bill signed by | Note for the office | Dropping 725 / 754 | ₹14,962.00 | Record the delivery"
+}
+[url] http://localhost:5177/stop/e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb/deliver?deliveryId=ea1e24a2-705a-7125-9c7a-946ae0267afc

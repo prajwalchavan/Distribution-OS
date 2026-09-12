@@ -1,0 +1,13 @@
+09-12 15:21:10.477 W/ReactNativeJS( 9167): Error: undefined
+09-12 15:27:50.515 W/ReactNativeJS( 9167): Error happened from the WebSocket connection: Exceeded max retries
+09-12 15:27:50.515 W/ReactNativeJS( 9167): Error: Exceeded max retries
+09-12 15:27:50.515 W/ReactNativeJS( 9167):     at handleError (http://10.0.2.2:8081/node_modules/expo-sqlite/build/index.bundle//&platform=android&dev=true&lazy=true&minify=false&app=in.distributionos.warehouse&modulesOnly=true&runModule=false&excludeSource=true&sourcePaths=url-server&transform.routerRoot=app&transform.engine=hermes&transform.bytecode=1&unstable_transformProfile=hermes-stable:9318
+09-12 16:20:17.334 W/ReactNativeJS(11214): Error: undefined
+09-12 16:33:50.930 E/ReactNativeJS(11214): [Error: Uncaught (in promise, id: 0) Error: Call to function 'FileSystem.downloadFileAsync' has been rejected.
+09-12 16:33:50.930 E/ReactNativeJS(11214): [Error: Uncaught (in promise, id: 0) Error: Call to function 'FileSystem.downloadFileAsync' has been rejected.
+09-12 16:33:50.930 E/ReactNativeJS(11214): → Caused by: java.lang.IllegalArgumentException: URI is not absolute]
+09-12 16:33:51.749 D/WifiClientModeImpl[17761:wlan0](  671): updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2447 RxLinkSpeed=2
+09-12 16:33:51.749 D/WifiDataStall(  671): tx tput in kbps: 11000
+09-12 16:33:51.749 D/WifiDataStall(  671): rx tput in kbps: 11000
+09-12 16:33:51.749 V/WifiConfigManager(  671): Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+09-12 16:33:51.750 D/WifiThroughputPredictor(  671):  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80

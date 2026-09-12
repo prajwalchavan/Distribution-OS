@@ -1,0 +1,16 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-16-collect-cash-filled.png (461 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-17-after-collect.png (510 chars text)
+{
+ "url": "http://localhost:5177/stop/4a5f6910-67eb-75a3-86b5-1a7d0e5dd623",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/delivery/collections",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"01a0952f-41c8-744a-a00a-6eca9566cdc0\",\"id\":\"01a0952f-41c8-7449-a6f8-15eef4f9555f\",\"receiptId\":\"01a0952f-b71c-702c-9202-dec1a8b220fd\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"4a5f6910-67eb-75a3-86b5-1a7d0e5dd623\",\"retailerId\":\"afe18716-a7e7-7e88-b68a-e8101898ebe0\",\"mode\":\"cash\",\"amountPaise\":785600,\"clientReceiptNo\":\"GM-1042\",\"collectedAt\":\"2026-09-12T10:35:27.388Z\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\"}",
+   "body": "{\"item\":{\"id\":\"01a0952f-41c8-7449-a6f8-15eef4f9555f\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"4a5f6910-67eb-75a3-86b5-1a7d0e5dd623\",\"retailerId\":\"afe18716-a7e7-7e88-b68a-e8101898ebe0\",\"retailerName\":\"Vaibhav Kirana Mart\",\"receiptId\":\"01a0952f-b71c-702c-9202-dec1a8b220fd\",\"receiptNo\":\"RCPT-0698\",\"mode\":\"cash\",\"amountPaise\":785600,\"reference\":null,\"collectedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"collectedAt\":\"2026-09-12T10:35:27.388Z\"},\"receipt\":{\"id\":\"01a0952f-b71c-702c-9202-dec1a8b220fd\",\"receiptNo\":\"RCPT-0698\",\"retailerId\":\"afe18716-a7e7-7e88-b68a-e8101898ebe0\",\"mode\":\"cash\",\"amountPaise\":785600,\"allocatedPaise\":785600,\"unallocatedPaise\":0,\"cashDiscountPaise\":0,\"status\":\"collected\",\"receivedAt\":\"2026-09-12T10:35:27.388Z\",\"receivedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"reference\":null,\"upiVpa\":null,\"chequeDate\":null,\"bankName\":null,\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\",\"clientReceiptNo\":\"GM-1042\",\"reversesReceiptId\":null,\"depositedAt\":null,\"depositRef\":null,\"depositAccountId\":null,\"bouncedAt\":null,\"bounceReason\":null,\"bankChargesPaise\":0,\"proofObjectKey\":null,\"pdfObjectKey\":null,\"note\":null,\"crea"
+  }
+ ],
+ "text": "Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | Delivered | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Open in maps | Expected | 12 Sep, 10:30 am | Arrived | 12 Sep, 10:40 am | Still due | ₹75,228.00 | 7 bills still open at this shop | Bills on this stop | ₹7,856.00 | INV/0825 | 11 Sep 2026 | ₹7,856.00 | Delivered | This stop is finished | Take money | Back to the trip"
+}
+[url] http://localhost:5177/stop/4a5f6910-67eb-75a3-86b5-1a7d0e5dd623

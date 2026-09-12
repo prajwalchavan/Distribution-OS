@@ -1,0 +1,16 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/delivery/d-36-expense-no-photo.png (419 chars text)
+{
+ "url": "http://localhost:5177/expenses",
+ "noPhoto": "TRIP-NEXT | Expenses | ₹500.00 | What for | ✓ Diesel | Toll | Parking | Loading charges | Food | Repair | Something else | Amount | ₹ | Note | Photograph the bill | Today's expenses | Diesel | 12 Sep, 4:15 pm · QA: diesel at Shahad pump | ₹500.00 | Today's trip | Expense recorded | Spent on this trip | ₹500.00 | Record the expense | Amount",
+ "log": [
+  {
+   "m": "POST",
+   "url": "http://127.0.0.1:3005/delivery/expenses",
+   "status": 200,
+   "req": "{\"idempotencyKey\":\"01a09538-c8cf-7107-9d6a-2bfa97a5f0c8\",\"id\":\"01a09538-c8ce-734f-953b-3d011085eab9\",\"tripId\":\"72649337-4c50-7033-a988-ca5cf4406f9c\",\"kind\":\"diesel\",\"amountPaise\":50000,\"note\":\"QA: diesel at Shahad pump\",\"incurredAt\":\"2026-09-12T10:45:49.611Z\",\"deviceId\":\"01a0952a-33e7-76de-83e8-bb6650c9cf2c\"}",
+   "body": "{\"item\":{\"id\":\"01a09538-c8ce-734f-953b-3d011085eab9\",\"tripId\":\"72649337-4c50-7033-a988-ca5cf4406f9c\",\"kind\":\"diesel\",\"amountPaise\":50000,\"proofObjectKey\":null,\"note\":\"QA: diesel at Shahad pump\",\"recordedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"recordedAt\":\"2026-09-12T10:45:49.611Z\"}}"
+  }
+ ],
+ "after": null
+}
+[url] http://localhost:5177/expenses

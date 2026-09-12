@@ -1,0 +1,29 @@
+-- stop 8 and 9 after the web offline test --
+ sequence |   state   |  outcome  | receiver_name |         delivered_at          | pods 
+----------+-----------+-----------+---------------+-------------------------------+------
+        8 | arrived   |           |               |                               |    0
+        9 | delivered | delivered | Khan          | 2026-09-12 16:56:12.858+05:30 |    2
+(2 rows)
+
+-- sync_ops last 10 min --
+ column_name  -------------  tenant_id  device_id  op_id  outcome  created_at (5 rows)  
+ERROR:  column "table" does not exist
+LINE 1: select "table", op, left(outcome::text,120) outcome, created...
+               ^
+   dev    |    op    |                                                                                                                                                   outcome                                                                                                                                                    |            created_at            
+----------+----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ 01a09537 | 01a09557 | {"ok": true}                                                                                                                                                                                                                                                                                                 | 2026-09-12 16:53:56.400054+05:30
+ 01a0952a | 01a0955d | {"ok": true}                                                                                                                                                                                                                                                                                                 | 2026-09-12 16:55:51.175087+05:30
+ 01a0952a | 01a0955f | {"ok": false, "rejection": {"code": "row_invalid", "opId": "01a0955f-3b8d-7122-8b4f-7e03d1950ef9", "rowId": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab", "table": "deliveries", "messageEn": "[\n  {\n    \"code\": \"custom\",\n    \"path\": [\n      \"pod\",\n      0\n    ],\n    \"message\": \"a photo or  | 2026-09-12 16:58:19.622097+05:30
+(3 rows)
+
+[
+  {
+    "code": "custom",
+    "path": [
+      "pod",
+      0
+    ],
+    "message": "a photo or signature carries exactly one of objectKey / inline; an otp or geo carries neither"
+  }
+]

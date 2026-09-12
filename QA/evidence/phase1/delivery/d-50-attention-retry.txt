@@ -1,0 +1,25 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+Needs attention
+Waiting: 0
+Refused: 1
+Held in memory only — a reload empties this device
+Waiting to send
+Nothing is waiting
+The office could not accept these
+[ { "code": "custom", "path": [ "pod", 0 ], "message": "a photo or signature carries exactly one of objectKey / inline; an otp or geo carries neither" } ]
+At the door · row_invalid · 12 Sep, 4:58 pm
+Send it again
+Throw it away
+Today's trip

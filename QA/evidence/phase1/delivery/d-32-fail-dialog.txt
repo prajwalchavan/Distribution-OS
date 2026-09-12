@@ -1,0 +1,49 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+Stop 6 of 10 · TRIP-ACTIVE
+Ansari Kirana Stores
+At the shop
+Owes ₹8,042.00
+Credit
+Shop 30, Rambaug Lane 4, Godrej Hill, Kalyan West, Kalyan, 421301
+Call
+Open in maps
+Expected
+12 Sep, 11:30 am
+Arrived
+12 Sep, 4:13 pm
+Still due
+₹8,042.00
+3 bills still open at this shop
+Bills on this stop
+₹2,610.00
+INV/0827
+11 Sep 2026
+₹2,610.00
+Not started
+Sell from the van
+Nothing delivered
+Why was nothing delivered?
+Close
+Every bill on this stop goes back to the office as undelivered and the goods stay on the van.
+Shop was shut
+Shop refused it
+Shop had no money
+Wrong address
+Goods were damaged
+Something else
+What happened
+Record a failed stop
+Deliver this bill
+Take money
