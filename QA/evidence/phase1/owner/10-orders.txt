@@ -1,0 +1,1834 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Orders
+7 days
+30 days
+90 days
+Export CSV
+Orders
+Trips
+Submitted
+Confirmed
+Picking
+Packed
+Dispatched
+Delivered
+Cancelled
+Order	Shop	State	Value ₹	Waiting on	Placed
+
+SO-0689
+	
+Deshmukh Kirana
+	Delivered	6,376.00	
+—
+	
+25 Aug
+
+
+SO-0616
+	
+Ambika Provision Store
+	Delivered	3,082.00	
+—
+	
+17 Aug
+
+
+SO-0822
+	
+Gavhane Kirana
+	Delivered	517.00	
+—
+	
+7 Sep
+
+
+SO-0594
+	
+Ganpati General Stores
+	Delivered	23,801.00	
+—
+	
+14 Aug
+
+
+SO-0853
+	
+Gurukrupa Provision
+	Delivered	16,994.00	
+—
+	
+10 Sep
+
+
+SO-0766
+	
+More Provision Store
+	Part delivered	11,419.00	
+—
+	
+1 Sep
+
+
+SO-0878
+	
+Gupta Kirana Stores
+	Packed	11,300.00	
+—
+	
+12 Sep
+
+
+SO-0688
+	
+Sai Krupa Super Bazar
+	Delivered	2,90,536.00	
+—
+	
+25 Aug
+
+
+SO-0701
+	
+Shubhalabh Stores
+	Delivered	5,585.00	
+—
+	
+26 Aug
+
+
+SO-0700
+	
+Gupta Kirana Stores
+	Delivered	8,406.00	
+—
+	
+26 Aug
+
+
+SO-0671
+	
+Gurukrupa Provision
+	Part delivered	19,422.00	
+—
+	
+22 Aug
+
+
+SO-0687
+	
+Gurukrupa Provision
+	Part delivered	5,633.00	
+—
+	
+25 Aug
+
+
+SO-0645
+	
+Jai Bhavani Stores
+	Delivered	4,127.00	
+—
+	
+20 Aug
+
+
+SO-0644
+	
+Nutan Kirana Stores
+	Delivered	3,350.00	
+—
+	
+20 Aug
+
+
+SO-0605
+	
+Karve Provision
+	Delivered	12,622.00	
+—
+	
+15 Aug
+
+
+SO-0662
+	
+Balaji Wholesale Stores
+	Delivered	72,522.00	
+—
+	
+21 Aug
+
+
+SO-0801
+	
+Laxmi Narayan Stores
+	Delivered	40,314.00	
+—
+	
+4 Sep
+
+
+SO-0800
+	
+Navjeevan Super Bazar
+	Delivered	47,010.00	
+—
+	
+4 Sep
+
+
+SO-0754
+	
+Laxmi Narayan Stores
+	Delivered	46,055.00	
+—
+	
+31 Aug
+
+
+SO-0799
+	
+Vitthal Traders
+	Delivered	11,454.00	
+—
+	
+4 Sep
+
+
+SO-0844
+	
+Shree Ganesh Kirana
+	Delivered	12,180.00	
+—
+	
+9 Sep
+
+
+SO-0843
+	
+Pawar General Store
+	Part delivered	2,709.00	
+—
+	
+9 Sep
+
+
+SO-0670
+	
+Bhosale Traders
+	Delivered	23,572.00	
+—
+	
+22 Aug
+
+
+SO-0753
+	
+Metro Kirana Bazar
+	Delivered	5,068.00	
+—
+	
+31 Aug
+
+
+SO-0798
+	
+Dnyandeep Stores
+	Delivered	22,419.00	
+—
+	
+4 Sep
+
+
+SO-0686
+	
+Vaibhav Kirana Mart
+	Part delivered	18,499.00	
+—
+	
+25 Aug
+
+
+SO-0715
+	
+Jai Bhavani Stores
+	Delivered	3,948.00	
+—
+	
+27 Aug
+
+
+SO-0678
+	
+Balaji Wholesale Stores
+	Delivered	75,031.00	
+—
+	
+24 Aug
+
+
+SO-0604
+	
+Mishra Provision Store
+	Delivered	3,115.00	
+—
+	
+15 Aug
+
+
+SO-0593
+	
+Joshi Kirana Stores
+	Delivered	20,979.00	
+—
+	
+14 Aug
+
+
+SO-0752
+	
+Shivshakti Traders
+	Delivered	2,927.00	
+—
+	
+31 Aug
+
+
+SO-0833
+	
+Ganpati General Stores
+	Delivered	13,821.00	
+—
+	
+8 Sep
+
+
+SO-0626
+	
+Vitthal Traders
+	Delivered	4,685.00	
+—
+	
+18 Aug
+
+
+SO-0669
+	
+Shree Ganesh Kirana
+	Delivered	12,561.00	
+—
+	
+22 Aug
+
+
+SO-0797
+	
+Gurukrupa Provision
+	Part delivered	16,319.00	
+—
+	
+4 Sep
+
+
+SO-0714
+	
+Mahalaxmi General Stores
+	Delivered	12,784.00	
+—
+	
+27 Aug
+
+
+SO-0751
+	
+Shree Ganesh Kirana
+	Delivered	10,137.00	
+—
+	
+31 Aug
+
+
+SO-0776
+	
+New Bombay Stores
+	Delivered	12,463.00	
+—
+	
+2 Sep
+
+
+SO-0638
+	
+Gupta Kirana Stores
+	Delivered	14,261.00	
+—
+	
+19 Aug
+
+
+SO-0842
+	
+Ansari Kirana Stores
+	Delivered	1,868.00	
+—
+	
+9 Sep
+
+
+SO-0832
+	
+Khan General Store
+	Delivered	5,045.00	
+—
+	
+8 Sep
+
+
+SO-0637
+	
+Metro Kirana Bazar
+	Delivered	5,089.00	
+—
+	
+19 Aug
+
+
+SO-0731
+	
+Balaji Wholesale Stores
+	Delivered	36,089.00	
+—
+	
+28 Aug
+
+
+SO-0592
+	
+Prerna Super Market
+	Delivered	57,627.00	
+—
+	
+14 Aug
+
+
+SO-0866
+	
+Rukmini Provision
+	Dispatched	26,581.00	
+—
+	
+11 Sep
+
+
+SO-0668
+	
+Kadam Stores
+	Delivered	8,745.00	
+—
+	
+22 Aug
+
+
+SO-0785
+	
+Shivshakti Traders
+	Part delivered	1,679.00	
+—
+	
+3 Sep
+
+
+SO-0831
+	
+Vitthal Traders
+	Delivered	1,321.00	
+—
+	
+8 Sep
+
+
+SO-0841
+	
+Metro Kirana Bazar
+	Delivered	4,746.00	
+—
+	
+9 Sep
+
+
+SO-0865
+	
+Nutan Kirana Stores
+	Delivered	12,575.00	
+—
+	
+11 Sep
+
+
+SO-0821
+	
+Nutan Kirana Stores
+	Delivered	3,296.00	
+—
+	
+7 Sep
+
+
+SO-0877
+	
+Bhosale Traders
+	Confirmed	17,531.00	
+—
+	
+12 Sep
+
+
+SO-0765
+	
+Deshmukh Kirana
+	Delivered	5,951.00	
+—
+	
+1 Sep
+
+
+SO-0730
+	
+Rukmini Provision
+	Cancelled	18,280.00	
+—
+	
+28 Aug
+
+
+SO-0615
+	
+Prerna Super Market
+	Delivered	44,209.00	
+—
+	
+17 Aug
+
+
+SO-0864
+	
+Khan General Store
+	Dispatched	907.00	
+—
+	
+11 Sep
+
+
+SO-0775
+	
+Rukmini Provision
+	Delivered	19,244.00	
+—
+	
+2 Sep
+
+
+SO-0812
+	
+Meghana General Store
+	Delivered	3,051.00	
+—
+	
+5 Sep
+
+
+SO-0667
+	
+Meghana General Store
+	Delivered	6,499.00	
+—
+	
+22 Aug
+
+
+SO-0713
+	
+Rameshwar General Store
+	Delivered	15,071.00	
+—
+	
+27 Aug
+
+
+SO-0796
+	
+Ganpati General Stores
+	Delivered	9,789.00	
+—
+	
+4 Sep
+
+
+SO-0614
+	
+Balaji Wholesale Stores
+	Delivered	61,501.00	
+—
+	
+17 Aug
+
+
+SO-0729
+	
+More Provision Store
+	Cancelled	1,841.00	
+—
+	
+28 Aug
+
+
+SO-0750
+	
+Prerna Super Market
+	Delivered	57,062.00	
+—
+	
+31 Aug
+
+
+SO-0685
+	
+Kolsewadi Corner Store
+	Delivered	4,866.00	
+—
+	
+25 Aug
+
+
+SO-0811
+	
+Gurukrupa Provision
+	Delivered	19,286.00	
+—
+	
+5 Sep
+
+
+SO-0830
+	
+Shree Ganesh Kirana
+	Delivered	5,279.00	
+—
+	
+8 Sep
+
+
+SO-0591
+	
+Dnyandeep Stores
+	Delivered	21,617.00	
+—
+	
+14 Aug
+
+
+SO-0863
+	
+Anand Bhavan Provision
+	Delivered	2,843.00	
+—
+	
+11 Sep
+
+
+SO-0764
+	
+Anand Bhavan Provision
+	Delivered	9,934.00	
+—
+	
+1 Sep
+
+
+SO-0699
+	
+Metro Kirana Bazar
+	Delivered	6,638.00	
+—
+	
+26 Aug
+
+
+SO-0852
+	
+Mahalaxmi General Stores
+	Delivered	12,540.00	
+—
+	
+10 Sep
+
+
+SO-0829
+	
+Ekvira Kirana
+	Delivered	3,758.00	
+—
+	
+8 Sep
+
+
+SO-0625
+	
+Dnyandeep Stores
+	Delivered	25,217.00	
+—
+	
+18 Aug
+
+
+SO-0666
+	
+Gavhane Kirana
+	Delivered	2,932.00	
+—
+	
+22 Aug
+
+
+SO-0698
+	
+New Bombay Stores
+	Delivered	13,515.00	
+—
+	
+26 Aug
+
+
+SO-0613
+	
+Krishna Kirana Stores
+	Delivered	1,232.00	
+—
+	
+17 Aug
+
+
+SO-0828
+	
+Dnyandeep Stores
+	Delivered	29,952.00	
+—
+	
+8 Sep
+
+
+SO-0774
+	
+Mishra Provision Store
+	Delivered	3,584.00	
+—
+	
+2 Sep
+
+
+SO-0876
+	
+Rameshwar General Store
+	Packed	18,027.00	
+—
+	
+12 Sep
+
+
+SO-0636
+	
+Bhosale Traders
+	Delivered	23,504.00	
+—
+	
+19 Aug
+
+
+SO-0624
+	
+Nakshatra Kirana
+	Delivered	12,555.00	
+—
+	
+18 Aug
+
+
+SO-0661
+	
+Metro Kirana Bazar
+	Delivered	8,526.00	
+—
+	
+21 Aug
+
+
+SO-0728
+	
+Vitthal Traders
+	Delivered	11,465.00	
+—
+	
+28 Aug
+
+
+SO-0840
+	
+City Light Provision
+	Delivered	6,257.00	
+—
+	
+9 Sep
+
+
+SO-0635
+	
+Sharma Kirana Stores
+	Delivered	4,361.00	
+—
+	
+19 Aug
+
+
+SO-0623
+	
+Mangal Traders
+	Delivered	8,836.00	
+—
+	
+18 Aug
+
+
+SO-0851
+	
+Jai Bhavani Stores
+	Delivered	10,426.00	
+—
+	
+10 Sep
+
+
+SO-0712
+	
+Meghana General Store
+	Delivered	6,702.00	
+—
+	
+27 Aug
+
+
+SO-9004
+	
+Surat Sales Agency
+	Delivered	7,534.00	
+—
+	
+22 Aug
+
+
+SO-0711
+	
+Birla Road Kirana Mart
+	Delivered	1,490.00	
+—
+	
+27 Aug
+
+
+SO-0603
+	
+Balaji Wholesale Stores
+	Delivered	41,752.00	
+—
+	
+15 Aug
+
+
+SO-0875
+	
+Balaji Wholesale Stores
+	Packed	1,01,531.00	
+—
+	
+12 Sep
+
+
+SO-0738
+	
+Birla Road Kirana Mart
+	Delivered	12,854.00	
+—
+	
+29 Aug
+
+
+SO-0602
+	
+Rameshwar General Store
+	Part delivered	16,913.00	
+—
+	
+15 Aug
+
+
+SO-0697
+	
+Rukmini Provision
+	Delivered	29,224.00	
+—
+	
+26 Aug
+
+
+SO-0874
+	
+Pawar General Store
+	Picking	7,690.00	
+—
+	
+12 Sep
+
+
+SO-0862
+	
+City Light Provision
+	Packed	7,038.00	
+—
+	
+11 Sep
+
+
+SO-0590
+	
+Trimurti General Store
+	Delivered	12,889.00	
+—
+	
+14 Aug
+
+
+SO-0677
+	
+New Bombay Stores
+	Delivered	25,391.00	
+—
+	
+24 Aug
+
+
+SO-0696
+	
+Mishra Provision Store
+	Delivered	1,235.00	
+—
+	
+26 Aug
+
+
+SO-0850
+	
+Ambika Provision Store
+	Packed	12,569.00	
+—
+	
+10 Sep
+
+
+SO-0601
+	
+Chavan Kirana Stores
+	Delivered	11,517.00	
+—
+	
+15 Aug
+
+
+SO-0676
+	
+Ganesh General Store
+	Delivered	14,897.00	
+—
+	
+24 Aug
+
+
+SO-0600
+	
+Meghana General Store
+	Delivered	5,888.00	
+—
+	
+15 Aug
+
+
+SO-0710
+	
+Gurukrupa Provision
+	Delivered	28,960.00	
+—
+	
+27 Aug
+
+
+SO-0695
+	
+Chavan Kirana Stores
+	Delivered	3,716.00	
+—
+	
+26 Aug
+
+
+SO-0612
+	
+Rukmini Provision
+	Delivered	16,897.00	
+—
+	
+17 Aug
+
+
+SO-0643
+	
+Balaji Wholesale Stores
+	Delivered	1,01,179.00	
+—
+	
+20 Aug
+
+
+SO-0694
+	
+Balaji Wholesale Stores
+	Delivered	87,808.00	
+—
+	
+26 Aug
+
+
+SO-0861
+	
+Laxmi Narayan Stores
+	Dispatched	22,508.00	
+—
+	
+11 Sep
+
+
+SO-0684
+	
+Navjeevan Super Bazar
+	Delivered	47,176.00	
+—
+	
+25 Aug
+
+
+SO-0763
+	
+Trimurti General Store
+	Delivered	9,342.00	
+—
+	
+1 Sep
+
+
+SO-0611
+	
+Ganpati General Stores
+	Delivered	12,784.00	
+—
+	
+17 Aug
+
+
+SO-0810
+	
+Karve Provision
+	Delivered	7,530.00	
+—
+	
+5 Sep
+
+
+SO-0727
+	
+Shree Ganesh Kirana
+	Delivered	3,819.00	
+—
+	
+28 Aug
+
+
+SO-0827
+	
+Deshmukh Kirana
+	Delivered	6,560.00	
+—
+	
+8 Sep
+
+
+SO-0773
+	
+Pawar General Store
+	Delivered	5,104.00	
+—
+	
+2 Sep
+
+
+SO-0726
+	
+Gavhane Kirana
+	Delivered	1,213.00	
+—
+	
+28 Aug
+
+
+SO-0873
+	
+Shree Ganesh Kirana
+	Confirmed	12,837.00	
+—
+	
+12 Sep
+
+
+SO-0589
+	
+Metro Kirana Bazar
+	Delivered	5,134.00	
+—
+	
+14 Aug
+
+
+SO-0826
+	
+Laxmi Narayan Stores
+	Delivered	30,886.00	
+—
+	
+8 Sep
+
+
+SO-0660
+	
+Anand Bhavan Provision
+	Delivered	12,264.00	
+—
+	
+21 Aug
+
+
+SO-0683
+	
+Ganpati General Stores
+	Delivered	9,071.00	
+—
+	
+25 Aug
+
+
+SO-0622
+	
+Sai Baba Kirana
+	Delivered	12,911.00	
+—
+	
+18 Aug
+
+
+SO-0709
+	
+Pawar General Store
+	Delivered	4,225.00	
+—
+	
+27 Aug
+
+
+SO-0659
+	
+Trimurti General Store
+	Delivered	4,540.00	
+—
+	
+21 Aug
+
+
+SO-0825
+	
+Gavhane Kirana
+	Delivered	3,628.00	
+—
+	
+8 Sep
+
+
+SO-0610
+	
+Gavhane Kirana
+	Delivered	9,115.00	
+—
+	
+17 Aug
+
+
+SO-0658
+	
+Gavhane Kirana
+	Delivered	12,554.00	
+—
+	
+21 Aug
+
+
+SO-0657
+	
+Bhosale Traders
+	Part delivered	23,262.00	
+—
+	
+21 Aug
+
+
+—
+	
+Krishna Kirana Stores
+	Draft	1,598.00	
+—
+	
+12 Sep
+
+
+SO-0725
+	
+Khan General Store
+	Delivered	8,139.00	
+—
+	
+28 Aug
+
+
+SO-0682
+	
+Dnyandeep Stores
+	Delivered	23,525.00	
+—
+	
+25 Aug
+
+
+SO-0809
+	
+Rameshwar General Store
+	Delivered	22,828.00	
+—
+	
+5 Sep
+
+
+SO-0849
+	
+Balaji Wholesale Stores
+	Part delivered	74,505.00	
+—
+	
+10 Sep
+
+
+SO-0588
+	
+Deshmukh Kirana
+	Delivered	4,390.00	
+—
+	
+14 Aug
+
+
+SO-0872
+	
+Sahyadri Super Bazar
+	Picking	90,319.00	
+—
+	
+12 Sep
+
+
+SO-0724
+	
+Joshi Kirana Stores
+	Delivered	26,854.00	
+—
+	
+28 Aug
+
+
+SO-0848
+	
+Birla Road Kirana Mart
+	Part delivered	7,804.00	
+—
+	
+10 Sep
+
+
+SO-0795
+	
+Nutan Kirana Stores
+	Delivered	12,124.00	
+—
+	
+4 Sep
+
+
+SO-0723
+	
+Prerna Super Market
+	Delivered	65,422.00	
+—
+	
+28 Aug
+
+
+SO-0722
+	
+New Bombay Stores
+	Part delivered	26,848.00	
+—
+	
+28 Aug
+
+
+SO-0599
+	
+Pawar General Store
+	Delivered	11,858.00	
+—
+	
+15 Aug
+
+
+SO-0820
+	
+City Light Provision
+	Delivered	11,025.00	
+—
+	
+7 Sep
+
+
+SO-0860
+	
+Nakshatra Kirana
+	Dispatched	4,756.00	
+—
+	
+11 Sep
+
+
+SO-0721
+	
+Sharma Kirana Stores
+	Delivered	5,783.00	
+—
+	
+28 Aug
+
+
+SO-0772
+	
+Metro Kirana Bazar
+	Delivered	5,313.00	
+—
+	
+2 Sep
+
+
+SO-0708
+	
+Sahyadri Super Bazar
+	Delivered	39,634.00	
+—
+	
+27 Aug
+
+
+SO-0675
+	
+Shivshakti Traders
+	Delivered	4,467.00	
+—
+	
+24 Aug
+
+
+SO-0587
+	
+Shubhalabh Stores
+	Delivered	9,773.00	
+—
+	
+14 Aug
+
+
+SO-0871
+	
+Kadam Stores
+	Packed	12,707.00	
+—
+	
+12 Sep
+
+
+SO-0586
+	
+More Provision Store
+	Delivered	2,737.00	
+—
+	
+14 Aug
+
+
+SO-0762
+	
+Dnyandeep Stores
+	Delivered	13,786.00	
+—
+	
+1 Sep
+
+
+SO-0859
+	
+New Bombay Stores
+	Cancelled	28,290.00	
+—
+	
+11 Sep
+
+
+SO-0609
+	
+Shree Ganesh Kirana
+	Delivered	6,253.00	
+—
+	
+17 Aug
+
+
+SO-0737
+	
+Singh General Store
+	Delivered	3,318.00	
+—
+	
+29 Aug
+
+
+SO-9003
+	
+Vitthal Traders
+	Confirmed	35.00	
+—
+	
+12 Sep
+
+
+SO-0707
+	
+Krishna Kirana Stores
+	Delivered	6,745.00	
+—
+	
+27 Aug
+
+
+SO-0819
+	
+Sharma Kirana Stores
+	Delivered	8,891.00	
+—
+	
+7 Sep
+
+
+SO-0585
+	
+Nakshatra Kirana
+	Delivered	4,291.00	
+—
+	
+14 Aug
+
+
+SO-0771
+	
+Shubhalabh Stores
+	Delivered	4,249.00	
+—
+	
+2 Sep
+
+
+SO-0720
+	
+Navjeevan Super Bazar
+	Delivered	52,487.00	
+—
+	
+28 Aug
+
+
+SO-0634
+	
+City Light Provision
+	Part delivered	702.00	
+—
+	
+19 Aug
+
+
+SO-0761
+	
+Navjeevan Super Bazar
+	Delivered	28,398.00	
+—
+	
+1 Sep
+
+
+SO-0736
+	
+Nutan Kirana Stores
+	Delivered	5,969.00	
+—
+	
+29 Aug
+
+
+SO-0656
+	
+Sharma Kirana Stores
+	Delivered	10,187.00	
+—
+	
+21 Aug
+
+
+SO-0858
+	
+Metro Kirana Bazar
+	Delivered	4,547.00	
+—
+	
+11 Sep
+
+
+SO-0681
+	
+Ekvira Kirana
+	Delivered	12,861.00	
+—
+	
+25 Aug
+
+
+SO-0808
+	
+Chavan Kirana Stores
+	Delivered	10,422.00	
+—
+	
+5 Sep
+
+
+SO-0870
+	
+Nutan Kirana Stores
+	Confirmed	7,361.00	
+—
+	
+12 Sep
+
+
+SO-0760
+	
+Joshi Kirana Stores
+	Delivered	25,159.00	
+—
+	
+1 Sep
+
+
+SO-0674
+	
+Rukmini Provision
+	Delivered	18,820.00	
+—
+	
+24 Aug
+
+
+SO-0665
+	
+Sahyadri Super Bazar
+	Delivered	48,462.00	
+—
+	
+22 Aug
+
+
+SO-0869
+	
+Meghana General Store
+	Packed	7,076.00	
+—
+	
+12 Sep
+
+
+SO-0621
+	
+Ekvira Kirana
+	Delivered	4,600.00	
+—
+	
+18 Aug
+
+
+SO-9001
+	
+Mahalaxmi General Stores
+	Packed	2,327.00	
+—
+	
+10 Sep
+
+
+SO-0794
+	
+More Provision Store
+	Delivered	7,962.00	
+—
+	
+4 Sep
+
+
+SO-0839
+	
+Chavan Kirana Stores
+	Delivered	5,039.00	
+—
+	
+9 Sep
+
+
+SO-0759
+	
+Birla Road Kirana Mart
+	Delivered	2,290.00	
+—
+	
+1 Sep
+
+
+SO-0655
+	
+Khan General Store
+	Delivered	1,174.00	
+—
+	
+21 Aug
+
+
+SO-0693
+	
+Rameshwar General Store
+	Delivered	27,293.00	
+—
+	
+26 Aug
+
+
+SO-0749
+	
+Krishna Kirana Stores
+	Delivered	8,542.00	
+—
+	
+31 Aug
+
+
+SO-0719
+	
+Mangal Traders
+	Delivered	7,894.00	
+—
+	
+28 Aug
+
+
+SO-0770
+	
+Bhosale Traders
+	Delivered	14,576.00	
+—
+	
+2 Sep
+
+
+SO-0807
+	
+Deshmukh Kirana
+	Delivered	6,113.00	
+—
+	
+5 Sep
+
+
+SO-0598
+	
+Sahyadri Super Bazar
+	Delivered	61,703.00	
+—
+	
+15 Aug
+
+
+SO-0673
+	
+Prerna Super Market
+	Part delivered	76,115.00	
+—
+	
+24 Aug
+
+
+SO-0633
+	
+New Bombay Stores
+	Delivered	20,035.00	
+—
+	
+19 Aug
+
+
+SO-0758
+	
+Balaji Wholesale Stores
+	Delivered	91,331.00	
+—
+	
+1 Sep
+
+
+SO-0748
+	
+City Light Provision
+	Delivered	1,732.00	
+—
+	
+31 Aug
+
+
+SO-0654
+	
+Nakshatra Kirana
+	Delivered	9,506.00	
+—
+	
+21 Aug
+
+
+SO-0747
+	
+Sai Krupa Super Bazar
+	Delivered	35,443.00	
+—
+	
+31 Aug
+
+
+SO-0680
+	
+More Provision Store
+	Delivered	1,977.00	
+—
+	
+25 Aug
+
+
+SO-0818
+	
+Rukmini Provision
+	Delivered	12,780.00	
+—
+	
+7 Sep
+
+
+SO-0632
+	
+Rukmini Provision
+	Delivered	15,364.00	
+—
+	
+19 Aug
+
+
+SO-0597
+	
+Gurukrupa Provision
+	Delivered	27,572.00	
+—
+	
+15 Aug
+
+
+SO-0653
+	
+Rukmini Provision
+	Delivered	17,179.00	
+—
+	
+21 Aug
+
+
+SO-0793
+	
+Vaibhav Kirana Mart
+	Delivered	4,011.00	
+—
+	
+4 Sep
+
+
+—
+	
+More Provision Store
+	Draft	1,472.00	
+—
+	
+12 Sep
+
+200 rows			36,77,635.00		

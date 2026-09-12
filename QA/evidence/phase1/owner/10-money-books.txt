@@ -1,0 +1,239 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Trial balance & day book
+Trial balance
+Day book
+Outstanding
+Receipts
+Books
+Claims
+Trial balance
+Debits equal credits
+Code	Account	Kind	Balance ₹
+
+AP
+	
+Sundry Creditors (suppliers)
+	
+Liability
+	37,590.94
+
+AR
+	
+Sundry Debtors (retailers)
+	
+Asset
+	43,89,294.00
+
+BAD_DEBTS
+	
+Bad debts written off
+	
+Expense
+	2,047.00
+
+BANK
+	
+Bank
+	
+Asset
+	23,54,991.55
+
+BANK_CHARGES
+	
+Bank charges
+	
+Expense
+	1,050.00
+
+CASH
+	
+Cash in hand
+	
+Asset
+	39,43,793.52
+
+CASH_DISCOUNT
+	
+Cash discount allowed
+	
+Expense
+	22,203.36
+
+CASH_SHORT
+	
+Cash short/over on settlement
+	
+Expense
+	0.00
+
+CASH_VAN
+	
+Cash with delivery crews
+	
+Asset
+	1,52,536.00
+
+CHEQUES
+	
+Cheques in hand
+	
+Asset
+	1,73,556.98
+
+CLAIMS_RECEIVABLE
+	
+Claims receivable (damage/expiry)
+	
+Asset
+	494.88
+
+DAMAGES
+	
+Damages and expiry write-off
+	
+Expense
+	-494.88
+
+DISCOUNTS
+	
+Discounts allowed
+	
+Expense
+	2,14,881.45
+
+INPUT_CGST
+	
+Input CGST
+	
+Asset
+	0.00
+
+INPUT_IGST
+	
+Input IGST
+	
+Asset
+	0.00
+
+INPUT_SGST
+	
+Input SGST
+	
+Asset
+	0.00
+
+OPENING
+	
+Opening balance equity
+	
+Equity
+	-1,06,172.00
+
+OUTPUT_CESS
+	
+Output cess
+	
+Liability
+	-3,65,046.25
+
+OUTPUT_CGST
+	
+Output CGST
+	
+Liability
+	-9,69,792.57
+
+OUTPUT_IGST
+	
+Output IGST
+	
+Liability
+	-3,260.27
+
+OUTPUT_SGST
+	
+Output SGST
+	
+Liability
+	-9,69,792.57
+
+PURCHASES
+	
+Purchases
+	
+Expense
+	0.00
+
+ROUND_OFF
+	
+Round off
+	
+Income
+	-10.82
+
+SALES
+	
+Sales
+	
+Income
+	-1,18,16,528.10
+
+SALES_RETURNS
+	
+Sales returns
+	
+Income
+	19,534.13
+
+SCHEME_EXPENSE
+	
+Scheme expense (distributor funded)
+	
+Expense
+	-1,57,754.39
+
+SCHEME_RECEIVABLE
+	
+Scheme receivable from manufacturers
+	
+Asset
+	74,584.19
+
+STOCK
+	
+Stock in hand
+	
+Asset
+	0.00
+
+TRIP_EXPENSES
+	
+Delivery trip expenses
+	
+Expense
+	0.00
+
+UPI
+	
+UPI clearing
+	
+Asset
+	30,02,293.85
+Total			0.00

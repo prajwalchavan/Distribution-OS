@@ -1,0 +1,39 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Bills & GST
+Bills
+GST summary
+7 days
+30 days
+90 days
+Export CSV
+Bills
+Credit notes
+Any date, matching "INV/0824"
+Filters (1)
+Clear
+Bill	Date	Shop	Taxable ₹	GST ₹	Total ₹	Due ₹	State
+
+INV/0824
+	
+11 Sep 2026
+	
+Prerna Super Market
+	66,323.94	6,920.66	73,245.00	0.00	Paid
+1 rows					73,245.00	0.00	

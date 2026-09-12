@@ -1,0 +1,80 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Approvals
+All
+Order approvals
+Rate requests
+Today
+Approvals
+Live map
+j / k move · 1 approve · 2 reject
+Kind	What	Person	Value ₹	Asked
+
+Over credit limit
+	
+retailer
+	
+Rahul Deshmukh
+	—	
+12 Sep, 10:30 am
+
+
+Below floor price
+	
+order
+	
+Rahul Deshmukh
+	—	
+12 Sep, 10:30 am
+
+
+Over credit limit
+	
+retailer
+	
+Rahul Deshmukh
+	—	
+12 Sep, 10:30 am
+
+
+Bargain
+	
+bargain_request
+	
+Rahul Deshmukh
+	—	
+12 Sep, 11:20 am
+
+
+Bargain
+	
+Om Sai Provision Store
+	
+Rahul Deshmukh
+	39.58	
+12 Sep, 11:15 am
+
+
+Bargain
+	
+Mahalaxmi General Stores
+	
+Rahul Deshmukh
+	22.28	
+12 Sep, 11:15 am

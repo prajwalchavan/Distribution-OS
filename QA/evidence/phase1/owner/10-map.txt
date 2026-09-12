@@ -1,0 +1,51 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Vehicles now
+Today
+Approvals
+Live map
+Map tiles arrive with the MapView component; positions are live.
+Vehicle	Driver	Trip	Stops	Last seen	Position
+
+MH-05-AB-1234
+	
+Ganesh More
+	
+TRIP-ACTIVE
+	3 / 10	12 Sep, 11:30 am	
+Open in maps
+
+
+MH-05-CD-5678
+	
+—
+	
+—
+	0 / 0	11 Sep, 7:30 pm	
+Open in maps
+
+
+MH-05-EF-9012
+	
+—
+	
+—
+	0 / 0	11 Sep, 7:30 pm	
+Open in maps
+Trip trace

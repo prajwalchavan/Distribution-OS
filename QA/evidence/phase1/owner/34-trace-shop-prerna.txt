@@ -1,0 +1,72 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Shops
+1 rows
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Code	Shop	Beat	Tier	Limit ₹	Terms	Phone
+
+R-0031
+	
+Prerna Super Market
+	
+Godrej Hill
+	A	6,00,000.00	
+Credit
+	
++918655045958
+
+	1 rows					
+Prerna Super Market
+Close
+Code
+R-0031
+Phone
++918655045958
+Beat
+Godrej Hill
+GSTIN
+27RRGPS2670M1ZQ
+Outstanding ₹
+₹3,94,335.00
+Overdue ₹
+₹2,85,332.00
+Open bills
+9
+12 weeks
+Behaviour
+Last order
+11 Sep, 12:00 pm
+Average days to pay
+30
+Visits
+20
+Credit
+Credit limit
+₹6,00,000.00
+Credit days
+21
+When it is crossed
+Warn only
+Set credit
+Send statement

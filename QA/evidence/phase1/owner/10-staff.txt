@@ -1,0 +1,255 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Beats & staff
+Staff
+Beats
+Reps on this beat
+Person	Username	Role	Phone	Last sign-in	Status
+
+Amit Pawar
+	
+amit.pawar
+	
+Salesperson
+	
++919810000012
+	
+—
+	Active
+
+Amol Vaidya
+	
+amol.vaidya
+	
+Accountant
+	
++919810000006
+	
+—
+	Active
+
+Anil Tarsun
+	
+anil.tarsun
+	
+Owner
+	
++919810000004
+	
+—
+	Active
+
+Dinesh Patil
+	
+dinesh.patil
+	
+Warehouse
+	
++919810000031
+	
+12 Sep, 12:52 pm
+	Active
+
+Ganesh More
+	
+ganesh.more
+	
+Delivery
+	
++919810000021
+	
+12 Sep, 12:52 pm
+	Active
+
+Iqbal Shaikh
+	
+iqbal.shaikh
+	
+Delivery
+	
++919810000024
+	
+—
+	Active
+
+Kavita Sawant
+	
+kavita.sawant
+	
+Warehouse
+	
++919810000032
+	
+—
+	Active
+
+Mahesh Sutar
+	
+mahesh.sutar
+	
+Delivery
+	
++919810000026
+	
+—
+	Active
+
+Meena Joshi
+	
+meena.joshi
+	
+Accountant
+	
++919810000003
+	
+12 Sep, 12:52 pm
+	Active
+
+Pilot Owner
+	
+pilot.owner
+	
+Owner
+	
++919000000001
+	
+—
+	Active
+
+Pooja Shinde
+	
+pooja.shinde
+	
+Salesperson
+	
++919810000013
+	
+—
+	Active
+
+Prashant Gawde
+	
+prashant.gawde
+	
+Warehouse
+	
++919810000033
+	
+—
+	Active
+
+Rahul Deshmukh
+	
+rahul.deshmukh
+	
+Salesperson
+	
++919810000011
+	
+12 Sep, 12:52 pm
+	Active
+
+Raju Yadav
+	
+raju.yadav
+	
+Delivery
+	
++919810000022
+	
+—
+	Active
+
+Ruksana Shaikh
+	
+ruksana.shaikh
+	
+Salesperson
+	
++919810000015
+	
+—
+	Active
+
+Sandeep Mane
+	
+sandeep.mane
+	
+Salesperson
+	
++919810000014
+	
+—
+	Active
+
+Santosh Kamble
+	
+santosh.kamble
+	
+Delivery
+	
++919810000023
+	
+—
+	Active
+
+Snehal Rane
+	
+snehal.rane
+	
+Manager
+	
++919810000005
+	
+—
+	Active
+
+Sunil Tarsun
+	
+sunil.tarsun
+	
+Owner
+	
++919810000001
+	
+12 Sep, 12:58 pm
+	Active
+
+Tanaji Bhosale
+	
+tanaji.bhosale
+	
+Delivery
+	
++919810000025
+	
+—
+	Active
+
+Vikas Kadam
+	
+vikas.kadam
+	
+Manager
+	
++919810000002
+	
+12 Sep, 12:52 pm
+	Active
+21 rows					

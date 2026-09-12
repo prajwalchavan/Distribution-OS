@@ -1,0 +1,110 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Bills & GST
+Bills
+GST summary
+7 days
+30 days
+90 days
+Export CSV
+Bills
+Credit notes
+Any date, matching "INV/0824"
+Filters (1)
+Clear
+Bill	Date	Shop	Taxable ₹	GST ₹	Total ₹	Due ₹	State
+
+INV/0824
+	
+11 Sep 2026
+	
+Prerna Super Market
+	66,323.94	6,920.66	73,245.00	0.00	Paid
+1 rows					73,245.00	0.00	
+INV/0824
+Close
+Shop
+Prerna Super Market
+Date
+11 Sep 2026
+Total ₹
+₹73,245.00
+Due ₹
+₹0.00
+6 lines
+Konkan Ratlami Sev 180 g
+9 cs · 324 pc
+·
+at
+₹34.09
+·
+less
+₹1,303.33
+₹10,910.85
+Campa Cola 750 ml
+10 cs · 240 pc · 10 pc free
+·
+at
+₹22.63
+·
+less
+₹108.62
+₹7,451.61
+Annapurna Iodised Salt 1 kg
+10 cs · 240 pc
+·
+at
+₹25.73
+·
+less
+₹123.51
+₹6,051.69
+Godavari Dairy Whitener 200 g
+10 cs · 360 pc
+·
+at
+₹96.81
+·
+less
+₹697.03
+₹35,862.29
+Konkan Bhajani Chivda 100 g
+8 cs · 384 pc
+·
+at
+₹26.43
+·
+less
+₹1,197.60
+₹10,025.70
+Campa Cola 500 ml
+8 cs · 192 pc
+·
+at
+₹11.17
+·
+less
+₹42.89
+₹2,942.46
+Open bill
+Print bill
+⌘P
+Record e-way bill
+Request IRN
+Cancel bill

@@ -1,0 +1,2228 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Messages & templates
+Sent messages
+Templates
+Replies
+Settings
+Imports
+Messages
+Audit
+Channel	To	Template	Body	Cost ₹	Status	Sent	Send again
+
+Whatsapp
+	
+Ambika Provision Store
+	
+Order confirmed
+	
+Your order SO-0850 of ₹12,569.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+10 Sep, 2:20 pm
+	—
+
+Whatsapp
+	
+Ambika Provision Store
+	
+Order confirmed
+	
+Your order SO-0672 of ₹12,686.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+24 Aug, 12:03 pm
+	—
+
+SMS
+	
+Joshi Kirana Stores
+	
+Order confirmed
+	
+Order SO-0856 of ₹14,962.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+11 Sep, 2:15 pm
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0642 of ₹16,244.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+20 Aug, 12:01 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0844 of ₹12,180.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Sent	
+9 Sep, 2:44 pm
+	—
+
+SMS
+	
+Dnyandeep Stores
+	
+Order confirmed
+	
+Order SO-0682 of ₹23,525.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+25 Aug, 4:45 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0853 of ₹16,994.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+10 Sep, 11:07 am
+	—
+
+Whatsapp
+	
+Om Sai Provision Store
+	
+Order confirmed
+	
+Your order SO-0741 of ₹8,943.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+31 Aug, 12:43 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0873 of ₹12,837.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+12 Sep, 12:50 pm
+	—
+
+SMS
+	
+Meghana General Store
+	
+Order confirmed
+	
+Order SO-0600 of ₹5,888.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+15 Aug, 12:46 pm
+	—
+
+Whatsapp
+	
+Shivshakti Traders
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+9 Sep, 10:31 am
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order cancelled
+	
+Order SO-0859 of ₹28,290.00 cancelled. Call us if this is a mistake. M/s. Tarsun Enterprise
+	0.20	Delivered	
+11 Sep, 5:05 pm
+	—
+
+Whatsapp
+	
+Ganesh General Store
+	
+Order confirmed
+	
+Your order SO-0676 of ₹14,897.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+24 Aug, 4:28 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0658 of ₹12,554.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 4:31 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0739 of ₹15,844.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+31 Aug, 4:07 pm
+	—
+
+SMS
+	
+Sai Baba Kirana
+	
+Order confirmed
+	
+Order SO-0815 of ₹87,602.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+7 Sep, 3:03 pm
+	—
+
+Whatsapp
+	
+Ganpati General Stores
+	
+Order confirmed
+	
+Your order SO-0594 of ₹23,801.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+14 Aug, 12:17 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0597 of ₹27,572.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+15 Aug, 3:50 pm
+	—
+
+SMS
+	
+Pawar General Store
+	
+Order confirmed
+	
+Order SO-0843 of ₹2,709.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+9 Sep, 1:37 pm
+	—
+
+SMS
+	
+Chavan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0808 of ₹10,422.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+5 Sep, 2:39 pm
+	—
+
+SMS
+	
+Nutan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0845 of ₹4,264.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+10 Sep, 3:55 pm
+	—
+
+SMS
+	
+Chavan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0601 of ₹11,517.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+15 Aug, 1:57 pm
+	—
+
+Whatsapp
+	
+Ambika Provision Store
+	
+Order confirmed
+	
+Your order SO-0616 of ₹3,082.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+17 Aug, 4:56 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0837 of ₹10,914.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+9 Sep, 1:08 pm
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0693 of ₹27,293.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+26 Aug, 3:31 pm
+	—
+
+SMS
+	
+Birla Road Kirana Mart
+	
+Order confirmed
+	
+Order SO-0711 of ₹1,490.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+27 Aug, 2:45 pm
+	—
+
+SMS
+	
+City Light Provision
+	
+Order confirmed
+	
+Order SO-0634 of ₹702.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+19 Aug, 4:47 pm
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0788 of ₹10,203.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+4 Sep, 1:32 pm
+	—
+
+SMS
+	
+Nutan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0870 of ₹7,361.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+12 Sep, 12:50 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0758 of ₹91,331.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+1 Sep, 3:51 pm
+	—
+
+Whatsapp
+	
+Navjeevan Super Bazar
+	
+Order confirmed
+	
+Your order SO-0684 of ₹47,176.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+25 Aug, 12:43 pm
+	—
+
+SMS
+	
+City Light Provision
+	
+Order confirmed
+	
+Order SO-0748 of ₹1,732.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+31 Aug, 11:02 am
+	—
+
+Whatsapp
+	
+Laxmi Narayan Stores
+	
+Order confirmed
+	
+Your order SO-0861 of ₹22,508.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+11 Sep, 12:14 pm
+	—
+
+SMS
+	
+Shubhalabh Stores
+	
+Order confirmed
+	
+Order SO-0627 of ₹3,199.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+19 Aug, 3:21 pm
+	—
+
+SMS
+	
+Kolsewadi Corner Store
+	
+Order confirmed
+	
+Order SO-0716 of ₹2,119.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+28 Aug, 1:22 pm
+	—
+
+SMS
+	
+City Light Provision
+	
+Order confirmed
+	
+Order SO-0862 of ₹7,038.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+11 Sep, 1:29 pm
+	—
+
+SMS
+	
+City Light Provision
+	
+Order confirmed
+	
+Order SO-0820 of ₹11,025.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+7 Sep, 2:35 pm
+	—
+
+SMS
+	
+Deshmukh Kirana
+	
+Order confirmed
+	
+Order SO-0618 of ₹5,281.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+18 Aug, 12:09 pm
+	—
+
+Whatsapp
+	
+Laxmi Narayan Stores
+	
+Order confirmed
+	
+Your order SO-0826 of ₹30,886.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+8 Sep, 2:09 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order cancelled
+	
+Order SO-0730 of ₹18,280.00 cancelled. Call us if this is a mistake. M/s. Tarsun Enterprise
+	0.20	Delivered	
+28 Aug, 5:05 pm
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0829 of ₹3,758.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Sent	
+8 Sep, 11:44 am
+	—
+
+Whatsapp
+	
+Prerna Super Market
+	
+Order confirmed
+	
+Your order SO-0768 of ₹43,581.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+2 Sep, 1:38 pm
+	—
+
+SMS
+	
+Birla Road Kirana Mart
+	
+Order confirmed
+	
+Order SO-0738 of ₹12,854.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+29 Aug, 3:40 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0677 of ₹25,391.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+24 Aug, 11:02 am
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0776 of ₹12,463.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+2 Sep, 3:16 pm
+	—
+
+SMS
+	
+Vitthal Traders
+	
+Order confirmed
+	
+Order SO-0728 of ₹11,465.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+28 Aug, 1:55 pm
+	—
+
+Whatsapp
+	
+Sahyadri Super Bazar
+	
+Order confirmed
+	
+Your order SO-0708 of ₹39,634.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+27 Aug, 11:26 am
+	—
+
+Whatsapp
+	
+Krishna Kirana Stores
+	
+Order confirmed
+	
+Your order SO-0613 of ₹1,232.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+17 Aug, 1:35 pm
+	—
+
+Whatsapp
+	
+Bhosale Traders
+	
+Order confirmed
+	
+Your order SO-0770 of ₹14,576.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+2 Sep, 3:52 pm
+	—
+
+Whatsapp
+	
+Shivshakti Traders
+	
+Order confirmed
+	
+Your order SO-0675 of ₹4,467.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+24 Aug, 3:30 pm
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0621 of ₹4,600.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+18 Aug, 3:18 pm
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0647 of ₹6,937.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+21 Aug, 11:31 am
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order cancelled
+	
+Your order SO-0746 of ₹46,229.00 has been cancelled. Call us if this is a mistake. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+31 Aug, 5:05 pm
+	—
+
+SMS
+	
+Gupta Kirana Stores
+	
+Order confirmed
+	
+Order SO-0638 of ₹14,261.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+19 Aug, 2:25 pm
+	—
+
+SMS
+	
+Nakshatra Kirana
+	
+Order confirmed
+	
+Order SO-0624 of ₹12,555.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+18 Aug, 12:39 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0674 of ₹18,820.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+24 Aug, 2:09 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0875 of ₹1,01,531.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+12 Sep, 12:02 pm
+	—
+
+In the app
+	
+10fc2bd5-539e-7494-873a-b7ee6bb961d4
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+Whatsapp
+	
+More Provision Store
+	
+Order confirmed
+	
+Your order SO-0680 of ₹1,977.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+25 Aug, 2:56 pm
+	—
+
+Whatsapp
+	
+Ganpati General Stores
+	
+Order confirmed
+	
+Your order SO-0683 of ₹9,071.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+25 Aug, 11:29 am
+	—
+
+In the app
+	
+a66bacc8-4212-73e1-b75f-405af2960e36
+	
+Order needs approval
+	
+Order SO-0868 of ₹17,736.00 is waiting for your approval.
+	0.00	Delivered	
+12 Sep, 12:05 pm
+	—
+
+SMS
+	
+Anand Bhavan Provision
+	
+Order confirmed
+	
+Order SO-0733 of ₹6,073.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+29 Aug, 4:30 pm
+	—
+
+In the app
+	
+b16c590d-3b76-7929-a5b6-557a56b31c9a
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+Whatsapp
+	
+Sai Krupa Super Bazar
+	
+Order confirmed
+	
+Your order SO-0607 of ₹61,711.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+17 Aug, 1:59 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0792 of ₹10,826.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+4 Sep, 4:41 pm
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0681 of ₹12,861.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+25 Aug, 3:11 pm
+	—
+
+SMS
+	
+Deshmukh Kirana
+	
+Order confirmed
+	
+Order SO-0689 of ₹6,376.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+25 Aug, 11:00 am
+	—
+
+SMS
+	
+Vitthal Traders
+	
+Order confirmed
+	
+Order SO-0757 of ₹2,247.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+1 Sep, 2:50 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0797 of ₹16,319.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+4 Sep, 3:32 pm
+	—
+
+SMS
+	
+Deshmukh Kirana
+	
+Order confirmed
+	
+Order SO-0765 of ₹5,951.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+1 Sep, 4:41 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0671 of ₹19,422.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+22 Aug, 11:41 am
+	—
+
+SMS
+	
+Deshmukh Kirana
+	
+Order confirmed
+	
+Order SO-0827 of ₹6,560.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+8 Sep, 3:37 pm
+	—
+
+Whatsapp
+	
+Prerna Super Market
+	
+Order confirmed
+	
+Your order SO-0673 of ₹76,115.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+24 Aug, 1:43 pm
+	—
+
+SMS
+	
+Meghana General Store
+	
+Order confirmed
+	
+Order SO-0812 of ₹3,051.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+5 Sep, 12:17 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0630 of ₹10,604.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+19 Aug, 12:35 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0775 of ₹19,244.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+2 Sep, 2:38 pm
+	—
+
+SMS
+	
+Karve Provision
+	
+Order confirmed
+	
+Order SO-0810 of ₹7,530.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+5 Sep, 4:32 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0822 of ₹517.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+7 Sep, 4:30 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0830 of ₹5,279.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+8 Sep, 12:51 pm
+	—
+
+SMS
+	
+Joshi Kirana Stores
+	
+Order confirmed
+	
+Order SO-0620 of ₹13,587.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+18 Aug, 2:49 pm
+	—
+
+Whatsapp
+	
+Krishna Kirana Stores
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+9 Sep, 10:31 am
+	—
+
+Whatsapp
+	
+Sahyadri Super Bazar
+	
+Order confirmed
+	
+Your order SO-0665 of ₹48,462.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+22 Aug, 11:30 am
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0612 of ₹16,897.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+17 Aug, 12:06 pm
+	—
+
+Whatsapp
+	
+Jai Bhavani Stores
+	
+Order confirmed
+	
+Your order SO-0851 of ₹10,426.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+10 Sep, 3:24 pm
+	—
+
+SMS
+	
+Mishra Provision Store
+	
+Order confirmed
+	
+Order SO-0696 of ₹1,235.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+26 Aug, 12:33 pm
+	—
+
+SMS
+	
+Nutan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0736 of ₹5,969.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+29 Aug, 1:32 pm
+	—
+
+SMS
+	
+Sai Baba Kirana
+	
+Order confirmed
+	
+Order SO-0718 of ₹24,650.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+28 Aug, 3:43 pm
+	—
+
+SMS
+	
+Nutan Kirana Stores
+	
+Order confirmed
+	
+Order SO-0821 of ₹3,296.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+7 Sep, 3:37 pm
+	—
+
+SMS
+	
+Dnyandeep Stores
+	
+Order confirmed
+	
+Order SO-0591 of ₹21,617.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+14 Aug, 3:46 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0632 of ₹15,364.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+19 Aug, 2:25 pm
+	—
+
+SMS
+	
+Dnyandeep Stores
+	
+Order confirmed
+	
+Order SO-0625 of ₹25,217.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+18 Aug, 1:14 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0653 of ₹17,179.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+21 Aug, 11:16 am
+	—
+
+Whatsapp
+	
+Ambika Provision Store
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise
+	0.14	Read	
+9 Sep, 10:31 am
+	—
+
+Whatsapp
+	
+Prerna Super Market
+	
+Order confirmed
+	
+Your order SO-0615 of ₹44,209.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+17 Aug, 3:00 pm
+	—
+
+SMS
+	
+Kadam Stores
+	
+Order confirmed
+	
+Order SO-0595 of ₹6,128.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+15 Aug, 1:00 pm
+	—
+
+In the app
+	
+29880157-0943-7ca1-b0de-95680ff6addd
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+SMS
+	
+Kadam Stores
+	
+Order confirmed
+	
+Order SO-0871 of ₹12,707.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+12 Sep, 12:50 pm
+	—
+
+SMS
+	
+Sharma Kirana Stores
+	
+Order confirmed
+	
+Order SO-0656 of ₹10,187.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 2:23 pm
+	—
+
+SMS
+	
+Pawar General Store
+	
+Order confirmed
+	
+Order SO-0773 of ₹5,104.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+2 Sep, 12:25 pm
+	—
+
+SMS
+	
+Vaibhav Kirana Mart
+	
+Order confirmed
+	
+Order SO-0793 of ₹4,011.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+4 Sep, 11:47 am
+	—
+
+Whatsapp
+	
+Mahalaxmi General Stores
+	
+Order confirmed
+	
+Your order SO-0852 of ₹12,540.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+10 Sep, 4:50 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0751 of ₹10,137.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+31 Aug, 2:28 pm
+	—
+
+Whatsapp
+	
+Bhosale Traders
+	
+Order confirmed
+	
+Your order SO-0636 of ₹23,504.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Sent	
+19 Aug, 12:02 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order cancelled
+	
+Your order SO-0782 of ₹53,548.00 has been cancelled. Call us if this is a mistake. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+3 Sep, 5:05 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0580 of ₹16,665.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+14 Aug, 4:45 pm
+	—
+
+Whatsapp
+	
+Ambika Provision Store
+	
+Order confirmed
+	
+Your order SO-0740 of ₹3,155.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+31 Aug, 11:15 am
+	—
+
+SMS
+	
+Birla Road Kirana Mart
+	
+Order confirmed
+	
+Order SO-0640 of ₹4,875.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+20 Aug, 4:02 pm
+	—
+
+SMS
+	
+Vaibhav Kirana Mart
+	
+Order confirmed
+	
+Order SO-0855 of ₹7,856.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+11 Sep, 1:38 pm
+	—
+
+SMS
+	
+Meghana General Store
+	
+Order confirmed
+	
+Order SO-0869 of ₹7,076.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+12 Sep, 12:02 pm
+	—
+
+SMS
+	
+Gavhane Kirana
+	
+Order confirmed
+	
+Order SO-0744 of ₹7,283.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+31 Aug, 2:04 pm
+	—
+
+Whatsapp
+	
+Sahyadri Super Bazar
+	
+Order confirmed
+	
+Your order SO-0598 of ₹61,703.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+15 Aug, 4:51 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0835 of ₹29,346.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+9 Sep, 11:02 am
+	—
+
+SMS
+	
+Sai Baba Kirana
+	
+Order confirmed
+	
+Order SO-0824 of ₹28,480.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+8 Sep, 12:33 pm
+	—
+
+Whatsapp
+	
+Navjeevan Super Bazar
+	
+Order confirmed
+	
+Your order SO-0778 of ₹26,799.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+3 Sep, 11:51 am
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0783 of ₹29,803.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+3 Sep, 2:40 pm
+	—
+
+SMS
+	
+Metro Kirana Bazar
+	
+Order confirmed
+	
+Order SO-0699 of ₹6,638.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+26 Aug, 3:23 pm
+	—
+
+In the app
+	
+8760e17e-4830-7395-a946-1e02fffa1ad7
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+Whatsapp
+	
+Ekvira Kirana
+	
+Order confirmed
+	
+Your order SO-0583 of ₹3,202.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+14 Aug, 1:38 pm
+	—
+
+SMS
+	
+Mangal Traders
+	
+Order confirmed
+	
+Order SO-0649 of ₹4,552.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+21 Aug, 1:33 pm
+	—
+
+Whatsapp
+	
+Sai Krupa Super Bazar
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise
+	0.14	Sent	
+9 Sep, 10:31 am
+	—
+
+SMS
+	
+Khan General Store
+	
+Order confirmed
+	
+Order SO-0679 of ₹7,758.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+25 Aug, 1:37 pm
+	—
+
+SMS
+	
+Khan General Store
+	
+Order confirmed
+	
+Order SO-0725 of ₹8,139.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+28 Aug, 4:56 pm
+	—
+
+Whatsapp
+	
+Sai Krupa Super Bazar
+	
+Order confirmed
+	
+Your order SO-0688 of ₹2,90,536.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+25 Aug, 4:33 pm
+	—
+
+Whatsapp
+	
+Krishna Kirana Stores
+	
+Order confirmed
+	
+Your order SO-0749 of ₹8,542.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+31 Aug, 12:22 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+9 Sep, 10:31 am
+	—
+
+Whatsapp
+	
+Om Sai Provision Store
+	
+Order confirmed
+	
+Your order SO-0704 of ₹4,784.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+27 Aug, 1:00 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0703 of ₹3,526.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+27 Aug, 12:33 pm
+	—
+
+SMS
+	
+Anand Bhavan Provision
+	
+Order confirmed
+	
+Order SO-0660 of ₹12,264.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 12:59 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0643 of ₹1,01,179.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+20 Aug, 1:39 pm
+	—
+
+Whatsapp
+	
+Jai Bhavani Stores
+	
+Dues reminder
+	
+A gentle reminder: ₹11,511.00 is overdue on your account since 2026-08-27. Please pay on the next visit or by UPI. — M/s. Tarsun Enterprise
+	0.14	Delivered	
+8 Sep, 9:00 am
+	—
+
+SMS
+	
+Vaibhav Kirana Mart
+	
+Order confirmed
+	
+Order SO-0686 of ₹18,499.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+25 Aug, 2:25 pm
+	—
+
+Whatsapp
+	
+Mahalaxmi General Stores
+	
+Order confirmed
+	
+Your order SO-0650 of ₹12,674.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+21 Aug, 2:20 pm
+	—
+
+Whatsapp
+	
+Shivshakti Traders
+	
+Order confirmed
+	
+Your order SO-0785 of ₹1,679.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+3 Sep, 4:55 pm
+	—
+
+In the app
+	
+7b2db500-02d5-7aa7-a1dc-005a3e89ff63
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+SMS
+	
+Vitthal Traders
+	
+Order confirmed
+	
+Order SO-0799 of ₹11,454.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+4 Sep, 11:02 am
+	—
+
+SMS
+	
+Mishra Provision Store
+	
+Order confirmed
+	
+Order SO-0774 of ₹3,584.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+2 Sep, 1:55 pm
+	—
+
+SMS
+	
+Shubhalabh Stores
+	
+Order confirmed
+	
+Order SO-0787 of ₹7,224.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+4 Sep, 12:24 pm
+	—
+
+SMS
+	
+Gupta Kirana Stores
+	
+Order confirmed
+	
+Order SO-0700 of ₹8,406.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+26 Aug, 4:22 pm
+	—
+
+SMS
+	
+Iyer Provision Store
+	
+Order confirmed
+	
+Order SO-0834 of ₹4,323.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+9 Sep, 4:09 pm
+	—
+
+Whatsapp
+	
+Prerna Super Market
+	
+Order confirmed
+	
+Your order SO-0750 of ₹57,062.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+31 Aug, 1:20 pm
+	—
+
+SMS
+	
+Metro Kirana Bazar
+	
+Order confirmed
+	
+Order SO-0841 of ₹4,746.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+9 Sep, 11:11 am
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0713 of ₹15,071.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+27 Aug, 4:45 pm
+	—
+
+SMS
+	
+Mangal Traders
+	
+Order confirmed
+	
+Order SO-0755 of ₹867.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+1 Sep, 12:04 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0662 of ₹72,522.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+21 Aug, 2:19 pm
+	—
+
+SMS
+	
+Meghana General Store
+	
+Order confirmed
+	
+Order SO-0667 of ₹6,499.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+22 Aug, 1:32 pm
+	—
+
+SMS
+	
+Nakshatra Kirana
+	
+Order confirmed
+	
+Order SO-0654 of ₹9,506.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 12:56 pm
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0876 of ₹18,027.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+12 Sep, 12:50 pm
+	—
+
+Whatsapp
+	
+Navjeevan Super Bazar
+	
+Order confirmed
+	
+Your order SO-0800 of ₹47,010.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Sent	
+4 Sep, 12:35 pm
+	—
+
+Whatsapp
+	
+Singh General Store
+	
+Order confirmed
+	
+Your order SO-0737 of ₹3,318.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+29 Aug, 2:54 pm
+	—
+
+SMS
+	
+Sharma Kirana Stores
+	
+Order confirmed
+	
+Order SO-0721 of ₹5,783.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+28 Aug, 12:37 pm
+	—
+
+SMS
+	
+Nakshatra Kirana
+	
+Order confirmed
+	
+Order SO-0585 of ₹4,291.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+14 Aug, 3:02 pm
+	—
+
+SMS
+	
+Pawar General Store
+	
+Order confirmed
+	
+Order SO-0874 of ₹7,690.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+12 Sep, 11:39 am
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0602 of ₹16,913.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+15 Aug, 2:42 pm
+	—
+
+In the app
+	
+4c8b82ce-c45e-7102-898f-db1e0b0763f3
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+SMS
+	
+Shubhalabh Stores
+	
+Order confirmed
+	
+Order SO-0587 of ₹9,773.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+14 Aug, 11:19 am
+	—
+
+SMS
+	
+Ansari Kirana Stores
+	
+Order confirmed
+	
+Order SO-0857 of ₹2,610.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+11 Sep, 3:20 pm
+	—
+
+SMS
+	
+Dnyandeep Stores
+	
+Order confirmed
+	
+Order SO-0828 of ₹29,952.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+8 Sep, 4:26 pm
+	—
+
+SMS
+	
+Rukmini Provision
+	
+Order confirmed
+	
+Order SO-0745 of ₹16,454.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+31 Aug, 3:08 pm
+	—
+
+SMS
+	
+Joshi Kirana Stores
+	
+Order confirmed
+	
+Order SO-0803 of ₹20,299.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+5 Sep, 3:54 pm
+	—
+
+SMS
+	
+Kadam Stores
+	
+Order confirmed
+	
+Order SO-0691 of ₹1,818.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+26 Aug, 1:42 pm
+	—
+
+SMS
+	
+Metro Kirana Bazar
+	
+Order confirmed
+	
+Order SO-0608 of ₹6,132.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+17 Aug, 2:53 pm
+	—
+
+SMS
+	
+Khan General Store
+	
+Order confirmed
+	
+Order SO-0864 of ₹907.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+11 Sep, 3:34 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0678 of ₹75,031.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+24 Aug, 12:45 pm
+	—
+
+SMS
+	
+Meghana General Store
+	
+Order confirmed
+	
+Order SO-0712 of ₹6,702.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+27 Aug, 3:44 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0731 of ₹36,089.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+28 Aug, 2:20 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0732 of ₹23,068.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+29 Aug, 3:14 pm
+	—
+
+SMS
+	
+Pawar General Store
+	
+Order confirmed
+	
+Order SO-0599 of ₹11,858.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+15 Aug, 11:01 am
+	—
+
+SMS
+	
+Shubhalabh Stores
+	
+Order confirmed
+	
+Order SO-0771 of ₹4,249.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+2 Sep, 4:09 pm
+	—
+
+SMS
+	
+Ansari Kirana Stores
+	
+Order confirmed
+	
+Order SO-0717 of ₹12,602.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+28 Aug, 2:11 pm
+	—
+
+SMS
+	
+Birla Road Kirana Mart
+	
+Order confirmed
+	
+Order SO-0596 of ₹7,742.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+15 Aug, 2:12 pm
+	—
+
+SMS
+	
+Sai Baba Kirana
+	
+Order confirmed
+	
+Order SO-0622 of ₹12,911.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+18 Aug, 4:13 pm
+	—
+
+SMS
+	
+Kolsewadi Corner Store
+	
+Order confirmed
+	
+Order SO-0685 of ₹4,866.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+25 Aug, 1:35 pm
+	—
+
+Whatsapp
+	
+Krishna Kirana Stores
+	
+Order confirmed
+	
+Your order SO-0707 of ₹6,745.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+27 Aug, 4:01 pm
+	—
+
+SMS
+	
+Nakshatra Kirana
+	
+Order confirmed
+	
+Order SO-0860 of ₹4,756.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+11 Sep, 11:34 am
+	—
+
+SMS
+	
+Vaibhav Kirana Mart
+	
+Order confirmed
+	
+Order SO-0652 of ₹21,245.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 4:37 pm
+	—
+
+Whatsapp
+	
+Navjeevan Super Bazar
+	
+Order confirmed
+	
+Your order SO-0761 of ₹28,398.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+1 Sep, 12:32 pm
+	—
+
+Whatsapp
+	
+Shivshakti Traders
+	
+Order confirmed
+	
+Your order SO-0752 of ₹2,927.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+31 Aug, 3:18 pm
+	—
+
+SMS
+	
+Khan General Store
+	
+Order confirmed
+	
+Order SO-0619 of ₹1,256.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+18 Aug, 1:43 pm
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0781 of ₹5,472.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+3 Sep, 1:25 pm
+	—
+
+In the app
+	
+4e7ccc38-81dc-7e8f-83d8-240e2ae66860
+	
+Scheme announcement
+	
+New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026.
+	0.00	Delivered	
+9 Sep, 10:32 am
+	—
+
+SMS
+	
+Joshi Kirana Stores
+	
+Order confirmed
+	
+Order SO-0593 of ₹20,979.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+14 Aug, 11:55 am
+	—
+
+SMS
+	
+Kolsewadi Corner Store
+	
+Order confirmed
+	
+Order SO-0769 of ₹3,142.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+2 Sep, 2:31 pm
+	—
+
+SMS
+	
+Vaibhav Kirana Mart
+	
+Order confirmed
+	
+Order SO-0617 of ₹9,131.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+18 Aug, 11:05 am
+	—
+
+Whatsapp
+	
+Bhosale Traders
+	
+Order confirmed
+	
+Your order SO-0877 of ₹17,531.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+12 Sep, 12:50 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0606 of ₹11,214.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+17 Aug, 12:49 pm
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0811 of ₹19,286.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+5 Sep, 11:40 am
+	—
+
+SMS
+	
+Gurukrupa Provision
+	
+Order confirmed
+	
+Order SO-0687 of ₹5,633.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+25 Aug, 3:09 pm
+	—
+
+Whatsapp
+	
+Balaji Wholesale Stores
+	
+Order confirmed
+	
+Your order SO-0813 of ₹88,128.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+7 Sep, 1:44 pm
+	—
+
+SMS
+	
+Sharma Kirana Stores
+	
+Order confirmed
+	
+Order SO-0635 of ₹4,361.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+19 Aug, 11:59 am
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0651 of ₹13,106.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+21 Aug, 3:50 pm
+	—
+
+SMS
+	
+Mishra Provision Store
+	
+Order confirmed
+	
+Order SO-0805 of ₹1,901.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Sent	
+5 Sep, 11:03 am
+	—
+
+SMS
+	
+Rameshwar General Store
+	
+Order confirmed
+	
+Order SO-0809 of ₹22,828.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+5 Sep, 3:23 pm
+	—
+
+SMS
+	
+New Bombay Stores
+	
+Order confirmed
+	
+Order SO-0784 of ₹10,709.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+3 Sep, 3:42 pm
+	—
+
+Whatsapp
+	
+Prerna Super Market
+	
+Order confirmed
+	
+Your order SO-0592 of ₹57,627.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Delivered	
+14 Aug, 4:34 pm
+	—
+
+SMS
+	
+Karve Provision
+	
+Order confirmed
+	
+Order SO-0605 of ₹12,622.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+15 Aug, 11:29 am
+	—
+
+SMS
+	
+Trimurti General Store
+	
+Order confirmed
+	
+Order SO-0763 of ₹9,342.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Read	
+1 Sep, 2:45 pm
+	—
+
+SMS
+	
+Metro Kirana Bazar
+	
+Order confirmed
+	
+Order SO-0858 of ₹4,547.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+11 Sep, 4:24 pm
+	—
+
+SMS
+	
+Dnyandeep Stores
+	
+Order confirmed
+	
+Order SO-0646 of ₹23,631.00 confirmed. Delivery on the next beat day. M/s. Tarsun Enterprise
+	0.20	Delivered	
+21 Aug, 4:49 pm
+	—
+
+In the app
+	
+Balaji Wholesale Stores
+	
+Welcome
+	
+Welcome, Balaji Wholesale Stores! Your bills, dues and orders with M/s. Tarsun Enterprise now live here.
+	0.00	Delivered	
+31 Aug, 9:15 am
+	—
+
+Whatsapp
+	
+Shree Ganesh Kirana
+	
+Order confirmed
+	
+Your order SO-0609 of ₹6,253.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise
+	0.14	Read	
+17 Aug, 3:38 pm
+	—
+	Total			34.18			

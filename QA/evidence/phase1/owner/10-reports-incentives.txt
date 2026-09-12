@@ -1,0 +1,117 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Targets & incentives
+Target
+Payout statements
+Growth
+Profit
+Incentives
+Exports
+Team
+0%
+50%
+100%
+150%
+200%
+Rahul Deshmukh
+Amit Pawar
+Ganesh More
+Pooja Shinde
+Person	Target	Metric	Period	Target	Achieved %
+
+Amit Pawar
+	
+This Month — Campa Value
+	
+Order value
+	
+1 Sep 2026 – 30 Sep 2026
+	4,50,000.00	47%
+
+Rahul Deshmukh
+	
+August — Value (All Brands)
+	
+Order value
+	
+1 Aug 2026 – 31 Aug 2026
+	4,00,000.00	527%
+
+Ganesh More
+	
+This Month — Van Sales Value
+	
+Order value
+	
+1 Sep 2026 – 30 Sep 2026
+	9,00,000.00	1%
+
+Ganesh More
+	
+This Month — Collections
+	
+Money collected
+	
+1 Sep 2026 – 30 Sep 2026
+	7,50,000.00	56%
+
+Amit Pawar
+	
+August — Order Lines
+	
+Lines
+	
+1 Aug 2026 – 31 Aug 2026
+	120	449%
+
+Rahul Deshmukh
+	
+This Month — Beat Visits
+	
+Beat visits
+	
+1 Sep 2026 – 30 Sep 2026
+	60	143%
+
+Ganesh More
+	
+August — Collections
+	
+Money collected
+	
+1 Aug 2026 – 31 Aug 2026
+	50,000.00	85%
+
+Pooja Shinde
+	
+This Month — Order Lines
+	
+Lines
+	
+1 Sep 2026 – 30 Sep 2026
+	80	10%
+
+Rahul Deshmukh
+	
+This Month — Value (All Brands)
+	
+Order value
+	
+1 Sep 2026 – 30 Sep 2026
+	15,00,000.00	80%

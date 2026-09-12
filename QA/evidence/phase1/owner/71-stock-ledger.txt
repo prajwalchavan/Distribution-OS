@@ -1,0 +1,1854 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+27%
+Godavari
+₹3.7L
+22%
+Neelam
+₹3.5L
+20%
+Campa
+₹2.9L
+17%
+Other
+₹2.4L
+14%
+Stock at cost
+₹21,75,206.91
+Near expiry
+₹1,65,781.86
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Date	Reason	Movement	Document	Note for the person who asked
+
+9 Jun, 8:30 am
+	
+Opening balance
+	1593	
+Opening balance
+	
+—
+
+
+22 Jun, 11:30 am
+	
+Sold
+	-72	
+Pack
+	
+—
+
+
+9 Sep, 11:30 am
+	
+Sold
+	-14	
+Pack
+	
+—
+
+
+10 Aug, 11:30 am
+	
+Sold
+	-16	
+Pack
+	
+—
+
+
+24 Aug, 11:30 am
+	
+Sold
+	-288	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	54	
+Opening balance
+	
+—
+
+
+27 Jun, 11:30 am
+	
+Sold
+	-234	
+Pack
+	
+—
+
+
+2 Jul, 11:30 am
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+9 Jul, 11:30 am
+	
+Sold
+	-50	
+Pack
+	
+—
+
+
+28 Aug, 11:30 am
+	
+Sold
+	-22	
+Pack
+	
+—
+
+
+11 Jul, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+22 Aug, 11:30 am
+	
+Sold
+	-29	
+Pack
+	
+—
+
+
+17 Jun, 11:00 am
+	
+GRN
+	1248	
+GRN
+	
+—
+
+
+24 Aug, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+7 Sep, 11:30 am
+	
+Sold
+	-125	
+Pack
+	
+—
+
+
+6 Jul, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+29 Aug, 11:00 am
+	
+GRN
+	27	
+GRN
+	
+—
+
+
+21 Aug, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+18 Aug, 11:30 am
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+14 Aug, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+21 Aug, 11:30 am
+	
+Sold
+	-275	
+Pack
+	
+—
+
+
+15 Jul, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+1 Jul, 11:00 am
+	
+GRN
+	2088	
+GRN
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	360	
+Opening balance
+	
+—
+
+
+19 Aug, 11:00 am
+	
+GRN
+	180	
+GRN
+	
+—
+
+
+1 Aug, 11:30 am
+	
+Sold
+	-200	
+Pack
+	
+—
+
+
+19 Aug, 11:30 am
+	
+Sold
+	-7	
+Pack
+	
+—
+
+
+23 Jul, 11:30 am
+	
+Sold
+	-8	
+Pack
+	
+—
+
+
+7 Aug, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+7 Sep, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+14 Jul, 11:30 am
+	
+Sold
+	-168	
+Pack
+	
+—
+
+
+10 Jun, 11:00 am
+	
+GRN
+	1800	
+GRN
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+18 Jul, 11:30 am
+	
+Sold
+	-5	
+Pack
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-34	
+Pack
+	
+—
+
+
+5 Sep, 11:30 am
+	
+Sold
+	-288	
+Pack
+	
+—
+
+
+7 Jul, 11:30 am
+	
+Sold
+	-80	
+Pack
+	
+—
+
+
+14 Jul, 11:30 am
+	
+Sold
+	-384	
+Pack
+	
+—
+
+
+9 Jul, 9:30 am
+	
+Sent out
+	-19	
+Manual entry
+	
+Past expiry on the weekly check; moved to the expiry bin for the claim.
+
+
+31 Jul, 11:00 am
+	
+GRN
+	228	
+GRN
+	
+—
+
+
+2 Jul, 11:30 am
+	
+Sold
+	-720	
+Pack
+	
+—
+
+
+13 Jul, 11:30 am
+	
+Sold
+	-288	
+Pack
+	
+—
+
+
+23 Aug, 8:30 am
+	
+Opening balance
+	468	
+Opening balance
+	
+—
+
+
+24 Jul, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+28 Jul, 11:00 am
+	
+GRN
+	48	
+GRN
+	
+—
+
+
+17 Jun, 11:00 am
+	
+GRN
+	192	
+GRN
+	
+—
+
+
+29 Jul, 8:30 am
+	
+Opening balance
+	480	
+Opening balance
+	
+—
+
+
+4 Jul, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+14 Jul, 11:30 am
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+8 Jul, 11:00 am
+	
+GRN
+	5	
+GRN
+	
+—
+
+
+10 Jun, 11:00 am
+	
+GRN
+	240	
+GRN
+	
+—
+
+
+17 Aug, 11:30 am
+	
+Sold
+	-125	
+Pack
+	
+—
+
+
+28 Aug, 11:30 am
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+13 Jul, 11:30 am
+	
+Sold
+	-216	
+Pack
+	
+—
+
+
+28 Aug, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+3 Aug, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+7 Aug, 11:30 am
+	
+Sold
+	-18	
+Pack
+	
+—
+
+
+29 Jul, 8:30 am
+	
+Opening balance
+	360	
+Opening balance
+	
+—
+
+
+13 Aug, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+8 Jul, 11:30 am
+	
+Sold
+	-200	
+Pack
+	
+—
+
+
+20 Jul, 11:30 am
+	
+Sold
+	-5	
+Pack
+	
+—
+
+
+10 Sep, 11:30 am
+	
+Sold
+	-7	
+Pack
+	
+—
+
+
+17 Aug, 11:30 am
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+7 Sep, 11:30 am
+	
+Sold
+	-264	
+Pack
+	
+—
+
+
+15 Jun, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+5 Sep, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+8 Jul, 11:00 am
+	
+GRN
+	1560	
+GRN
+	
+—
+
+
+2 Sep, 11:00 am
+	
+GRN
+	160	
+GRN
+	
+—
+
+
+13 Aug, 11:30 am
+	
+Sold
+	-11	
+Pack
+	
+—
+
+
+15 Jun, 11:30 am
+	
+Sold
+	-11	
+Pack
+	
+—
+
+
+3 Aug, 11:30 am
+	
+Sold
+	-8	
+Pack
+	
+—
+
+
+10 Aug, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-168	
+Pack
+	
+—
+
+
+18 Aug, 11:30 am
+	
+Sold
+	-312	
+Pack
+	
+—
+
+
+24 Jun, 11:00 am
+	
+GRN
+	624	
+GRN
+	
+—
+
+
+29 Jul, 11:00 am
+	
+GRN
+	168	
+GRN
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	135	
+Opening balance
+	
+—
+
+
+28 Jul, 11:30 am
+	
+Sold
+	-125	
+Pack
+	
+—
+
+
+22 Jul, 11:00 am
+	
+GRN
+	288	
+GRN
+	
+—
+
+
+7 Aug, 11:30 am
+	
+Sold
+	-6	
+Pack
+	
+—
+
+
+18 Jun, 11:30 am
+	
+Sold
+	-18	
+Pack
+	
+—
+
+
+22 Jul, 11:30 am
+	
+Sold
+	-312	
+Pack
+	
+—
+
+
+2 Sep, 11:30 am
+	
+Sold
+	-192	
+Pack
+	
+—
+
+
+2 Jul, 11:30 am
+	
+Sold
+	-480	
+Pack
+	
+—
+
+
+25 Aug, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-120	
+Pack
+	
+—
+
+
+24 Aug, 11:30 am
+	
+Sold
+	-72	
+Pack
+	
+—
+
+
+12 Aug, 11:00 am
+	
+GRN
+	456	
+GRN
+	
+—
+
+
+31 Aug, 11:30 am
+	
+Sold
+	-175	
+Pack
+	
+—
+
+
+17 Jun, 11:00 am
+	
+GRN
+	120	
+GRN
+	
+—
+
+
+25 Jun, 11:30 am
+	
+Sold
+	-248	
+Pack
+	
+—
+
+
+17 Jun, 11:00 am
+	
+GRN
+	624	
+GRN
+	
+—
+
+
+5 Aug, 11:00 am
+	
+GRN
+	1032	
+GRN
+	
+—
+
+
+3 Aug, 11:30 am
+	
+Sold
+	-72	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	24	
+Opening balance
+	
+—
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	30	
+Manual entry
+	
+Past expiry by 5 days on this morning's count; held for the expiry claim.
+
+
+30 Jun, 11:30 am
+	
+Sold
+	-162	
+Pack
+	
+—
+
+
+5 Aug, 11:30 am
+	
+Sold
+	-23	
+Pack
+	
+—
+
+
+19 Aug, 11:00 am
+	
+GRN
+	204	
+GRN
+	
+—
+
+
+24 Jun, 11:30 am
+	
+Sold
+	-50	
+Pack
+	
+—
+
+
+21 Aug, 11:30 am
+	
+Sold
+	-2	
+Pack
+	
+—
+
+
+27 Jun, 11:30 am
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+22 Jul, 11:30 am
+	
+Sold
+	-27	
+Pack
+	
+—
+
+
+14 Jul, 11:30 am
+	
+Sold
+	-288	
+Pack
+	
+—
+
+
+18 Jul, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+20 Jun, 11:00 am
+	
+GRN
+	48	
+GRN
+	
+—
+
+
+5 Aug, 11:00 am
+	
+GRN
+	2016	
+GRN
+	
+—
+
+
+20 Jul, 11:30 am
+	
+Sold
+	-50	
+Pack
+	
+—
+
+
+26 Aug, 11:00 am
+	
+GRN
+	300	
+GRN
+	
+—
+
+
+23 Jul, 11:30 am
+	
+Sold
+	-100	
+Pack
+	
+—
+
+
+20 Jun, 11:00 am
+	
+GRN
+	252	
+GRN
+	
+—
+
+
+21 Jul, 11:30 am
+	
+Sold
+	-858	
+Pack
+	
+—
+
+
+16 Jun, 11:00 am
+	
+GRN
+	81	
+GRN
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	54	
+Opening balance
+	
+—
+
+
+21 Jul, 11:30 am
+	
+Sold
+	-17	
+Pack
+	
+—
+
+
+29 Jul, 8:30 am
+	
+Opening balance
+	120	
+Opening balance
+	
+—
+
+
+17 Aug, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+19 Jun, 11:30 am
+	
+Sold
+	-156	
+Pack
+	
+—
+
+
+14 Jun, 8:30 am
+	
+Opening balance
+	72	
+Opening balance
+	
+—
+
+
+2 Sep, 11:30 am
+	
+Sold
+	-20	
+Pack
+	
+—
+
+
+14 Jun, 8:30 am
+	
+Opening balance
+	270	
+Opening balance
+	
+—
+
+
+20 Jun, 11:30 am
+	
+Sold
+	-210	
+Pack
+	
+—
+
+
+18 Aug, 11:30 am
+	
+Sold
+	-3	
+Pack
+	
+—
+
+
+13 Jul, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+10 Jun, 11:00 am
+	
+GRN
+	60	
+GRN
+	
+—
+
+
+15 Aug, 11:30 am
+	
+Sold
+	-960	
+Pack
+	
+—
+
+
+30 Jun, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+7 Jul, 11:30 am
+	
+Sold
+	-7	
+Pack
+	
+—
+
+
+19 Aug, 11:00 am
+	
+GRN
+	120	
+GRN
+	
+—
+
+
+30 Jun, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+5 Aug, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+22 Jul, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+25 Jun, 11:30 am
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+24 Jul, 11:30 am
+	
+Sold
+	-252	
+Pack
+	
+—
+
+
+29 Aug, 11:00 am
+	
+GRN
+	12	
+GRN
+	
+—
+
+
+13 Aug, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+18 Jun, 11:30 am
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+22 Jul, 11:00 am
+	
+GRN
+	2040	
+GRN
+	
+—
+
+
+11 Aug, 11:30 am
+	
+Sold
+	-81	
+Pack
+	
+—
+
+
+17 Jun, 11:30 am
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+12 Aug, 11:00 am
+	
+GRN
+	912	
+GRN
+	
+—
+
+
+9 Sep, 8:30 am
+	
+Opening balance
+	134	
+Opening balance
+	
+—
+
+
+10 Jun, 11:00 am
+	
+GRN
+	816	
+GRN
+	
+—
+
+
+19 Aug, 11:00 am
+	
+GRN
+	351	
+GRN
+	
+—
+
+
+11 Aug, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+5 Aug, 11:30 am
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	163	
+Opening balance
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-100	
+Pack
+	
+—
+
+
+6 Jul, 11:30 am
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+24 Jun, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+17 Jun, 11:30 am
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+24 Jun, 11:00 am
+	
+GRN
+	144	
+GRN
+	
+—
+
+
+18 Jul, 11:30 am
+	
+Sold
+	-936	
+Pack
+	
+—
+
+
+29 Jul, 8:30 am
+	
+Opening balance
+	120	
+Opening balance
+	
+—
+
+
+4 Jul, 11:30 am
+	
+Sold
+	-192	
+Pack
+	
+—
+
+
+30 Jul, 11:30 am
+	
+Sold
+	-1056	
+Pack
+	
+—
+
+
+1 Jul, 11:00 am
+	
+GRN
+	1488	
+GRN
+	
+—
+
+
+16 Jul, 11:30 am
+	
+Sold
+	-124	
+Pack
+	
+—
+
+
+5 Aug, 11:00 am
+	
+GRN
+	264	
+GRN
+	
+—
+
+
+9 Sep, 11:00 am
+	
+GRN
+	1296	
+GRN
+	
+—
+
+
+17 Jul, 11:30 am
+	
+Sold
+	-108	
+Pack
+	
+—
+
+
+26 Jun, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	665	
+Opening balance
+	
+—
+
+
+5 Sep, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+24 Jun, 11:00 am
+	
+GRN
+	20	
+GRN
+	
+—
+
+
+1 Sep, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+1 Aug, 11:30 am
+	
+Sold
+	-192	
+Pack
+	
+—
+
+
+17 Jul, 11:30 am
+	
+Sold
+	-336	
+Pack
+	
+—
+
+
+23 Aug, 8:30 am
+	
+Opening balance
+	288	
+Opening balance
+	
+—
+
+
+17 Jul, 11:30 am
+	
+Sold
+	-144	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-312	
+Pack
+	
+—
+
+
+3 Aug, 11:30 am
+	
+Sold
+	-325	
+Pack
+	
+—
+
+
+18 Jul, 11:30 am
+	
+Sold
+	-12	
+Pack
+	
+—
+
+
+21 Jul, 9:30 am
+	
+Sent out
+	-24	
+Manual entry
+	
+Past expiry on the weekly check; moved to the expiry bin for the claim.
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-120	
+Pack
+	
+—
+
+
+2 Jul, 11:30 am
+	
+Sold
+	-100	
+Pack
+	
+—
+
+
+30 Jul, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+17 Aug, 11:30 am
+	
+Sold
+	-29	
+Pack
+	
+—
+
+
+15 Jun, 11:30 am
+	
+Sold
+	-168	
+Pack
+	
+—
+
+
+21 Aug, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+6 Jul, 11:30 am
+	
+Sold
+	-200	
+Pack
+	
+—
+
+
+25 Jun, 11:30 am
+	
+Sold
+	-54	
+Pack
+	
+—
+
+
+8 Jul, 11:00 am
+	
+GRN
+	576	
+GRN
+	
+—
+
+
+16 Jul, 11:00 am
+	
+GRN
+	80	
+GRN
+	
+—
+
+
+7 Aug, 11:30 am
+	
+Sold
+	-30	
+Pack
+	
+—
+
+
+25 Jun, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+27 Jul, 11:30 am
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+7 Sep, 11:30 am
+	
+Sold
+	-200	
+Pack
+	
+—
+
+
+31 Aug, 11:30 am
+	
+Sold
+	-288	
+Pack
+	
+—
+
+
+29 Jun, 11:30 am
+	
+Sold
+	-200	
+Pack
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-225	
+Pack
+	
+—
+
+
+19 Aug, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+2 Sep, 8:30 am
+	
+Opening balance
+	216	
+Opening balance
+	
+—
+
+
+26 Aug, 11:30 am
+	
+Sold
+	-96	
+Pack
+	
+—
+
+
+19 Jun, 11:30 am
+	
+Sold
+	-300	
+Pack
+	
+—
+
+
+1 Sep, 11:30 am
+	
+Sold
+	-23	
+Pack
+	
+—
+
+
+10 Jul, 11:30 am
+	
+Sold
+	-600	
+Pack
+	
+—
+
+
+24 Aug, 7:00 pm
+	
+Returned, saleable
+	6	
+Credit note
+	
+credit note CN/0034
+Cycle counts

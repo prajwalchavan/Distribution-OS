@@ -1,0 +1,288 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Profit
+Export CSV
+Growth
+Profit
+Incentives
+Exports
+Owner only. Nobody else can open this page.
+GROSS MARGIN THIS MONTH
+₹82,766.50
+SALES THIS MONTH
+₹19,72,543.00
+STOCK AT COST
+₹21,75,206.91
+NEAR EXPIRY
+₹1,65,781.86
+Gross margin by month
+₹0
+₹1L
+₹2L
+₹3L
+1 Oct
+1 Jan
+1 Apr
+1 Jul
+1 Sep
+as of 12 Sep, 12:50 pm
+Margin by brand
+₹0
+₹2L
+₹4L
+₹6L
+Campa
+Neelam
+Sunbake
+Godavari
+Annapur…
+Balaji
+Too Yumm
+Chamak
+Other
+Scheme spend
+The brand
+₹2.6L
+69%
+Us
+₹1.1L
+31%
+Stock at cost
+₹21,75,206.91
+₹1,65,781.86
+Scheme spend
+2026-06-13 — 2026-09-12
+Scheme	Brand	Funded by	Spend ₹	Bills
+
+Order value — 2% off on bills over ₹25,000
+	
+—
+	
+Us
+	1,09,319.62	
+106
+
+
+Campa 750 ml / 1 L — a bottle free per case
+	
+Campa
+	
+The brand
+	88,339.92	
+444
+
+
+Sunbake Glucose — 12+1 free
+	
+Sunbake
+	
+The brand
+	37,442.28	
+68
+
+
+Balaji — 4% off on 3+ cases
+	
+Balaji
+	
+The brand
+	28,909.29	
+128
+
+
+Campa 1 L / 2 L — 3% off on 5+ cases
+	
+Campa
+	
+The brand
+	19,967.48	
+96
+
+
+Sunbake creams — slab discount
+	
+Sunbake
+	
+The brand
+	16,855.81	
+44
+
+
+Rajwadi sodas — 5% off on 4+ cases
+	
+Rajwadi
+	
+The brand
+	16,239.89	
+110
+
+
+Neelam soaps — 12+1 free
+	
+Neelam
+	
+The brand
+	14,622.66	
+26
+
+
+Konkan Crunch — launch offer 10%
+	
+Konkan Crunch
+	
+The brand
+	7,070.33	
+8
+
+
+Godavari Ghee — 6% exclusive
+	
+Godavari
+	
+The brand
+	7,069.28	
+10
+
+
+Balaji Monsoon Bonanza — 2 pkts free per 2 cases (expired)
+	
+Balaji
+	
+The brand
+	5,864.04	
+25
+
+
+Chamak — 3% off on Chamak bills over ₹4,000
+	
+Chamak
+	
+Us
+	4,375.39	
+22
+
+
+Campa 2 L — festive 2 bottles free per 2 cases (expired)
+	
+Campa
+	
+The brand
+	2,954.06	
+15
+
+
+Rajwadi sodas — 1.5% cash discount
+	
+Rajwadi
+	
+The brand
+	2,422.83	
+74
+
+
+Godavari UHT milk — 2% off on 3+ cases
+	
+Godavari
+	
+The brand
+	2,353.47	
+26
+
+
+Too Yumm — 2% cash discount
+	
+Too Yumm
+	
+The brand
+	2,133.34	
+33
+
+
+Annapurna Atta — ₹15 off per case on 2+
+	
+Annapurna
+	
+The brand
+	1,806.00	
+26
+
+
+MOM Makhana — slab scheme
+	
+MOM Makhana
+	
+The brand
+	832.89	
+4
+
+
+Scheme fd5079b5
+	
+—
+	
+The brand
+	625.30	
+2
+
+
+Scheme 57dd77c6
+	
+—
+	
+The brand
+	296.64	
+2
+
+
+Scheme 12366313
+	
+—
+	
+The brand
+	290.88	
+10
+
+
+Scheme 96d92b33
+	
+—
+	
+The brand
+	89.40	
+1
+
+
+Scheme 36795306
+	
+—
+	
+The brand
+	41.63	
+6
+
+
+Scheme ad67db29
+	
+—
+	
+The brand
+	0.00	
+1
+
+Total			3,69,922.43	

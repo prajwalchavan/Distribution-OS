@@ -1,0 +1,345 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Claims on brands
+Outstanding
+Receipts
+Books
+Claims
+Claim ageing
+Open ₹
+₹
+Reliance Consumer Produ…
+36,762.20
+Shree Sai Marketing (Su…
+16,156.79
+Guru Kripa Agencies (Ba…
+9,896.70
+Rajwadi Beverages — Bhi…
+6,190.88
+Shubhda Consumer Care —…
+3,883.67
+Godavari Dairy — Ahmedn…
+1,265.84
+Guiltfree Industries — …
+1,168.88
+Annapurna Agro — Kalyan…
+636.00
+Claims on brands
+Claimed ₹
+₹2,37,438.88
+Open ₹
+₹1,54,268.68
+Claim	Brand / supplier	Kind	Period	Claimed ₹	Settled ₹	Open ₹	Status
+
+CLM-0021
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	6,190.88	0.00	6,190.88	Submitted
+
+CLM-0004
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	232.50	232.50	0.00	Settled
+
+CLM-0016
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	9,896.70	0.00	9,896.70	Acknowledged
+
+—
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	11,915.57	0.00	11,915.57	Draft
+
+CLM-0001
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	195.00	195.00	0.00	Settled
+
+CLM-0019
+	
+MOM Foods — Bikaner
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	286.99	0.00	286.99	Acknowledged
+
+CLM-0011
+	
+MOM Foods — Bikaner
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	545.90	545.90	0.00	Settled
+
+CLM-0014
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	15,174.61	15,174.61	0.00	Settled
+
+CLM-0010
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	1,020.61	1,020.61	0.00	Settled
+
+CLM-0009
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	36,480.94	36,480.94	0.00	Settled
+
+CLM-0018
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	1,265.84	0.00	1,265.84	Submitted
+
+CLM-0005
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	1,584.84	1,584.84	0.00	Settled
+
+—
+	
+Konkan Traders, Ratnagiri
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	7,070.33	0.00	7,070.33	Draft
+
+CLM-0002
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	7,478.76	7,478.76	0.00	Settled
+
+CLM-0024
+	
+Guiltfree Industries — Gurugram
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	1,168.88	0.00	1,168.88	Submitted
+
+CLM-0017
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	36,267.32	0.00	36,267.32	Submitted
+
+CLM-0006
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	10,848.84	10,848.84	0.00	Settled
+
+—
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Damaged
+	
+13 Aug 2026 – 12 Sep 2026
+	79.92	0.00	79.92	Draft
+
+—
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	60.00	0.00	60.00	Draft
+
+CLM-0008
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	12,384.42	0.00	12,384.42	Rejected
+
+—
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	2,577.80	0.00	2,577.80	Draft
+
+CLM-0012
+	
+Shubhda Consumer Care — Vapi Works
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	8,693.20	8,693.20	0.00	Settled
+
+CLM-0022
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	16,156.79	0.00	16,156.79	Acknowledged
+
+CLM-0020
+	
+Shubhda Consumer Care — Vapi Works
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	3,883.67	0.00	3,883.67	Submitted
+
+CLM-0015
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Scheme
+	
+1 Aug 2026 – 31 Aug 2026
+	636.00	0.00	636.00	Submitted
+
+—
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	8,190.33	0.00	8,190.33	Draft
+
+CLM-0007
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	915.00	915.00	0.00	Settled
+
+CLM-0023
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Shortage
+	
+13 Aug 2026 – 12 Sep 2026
+	494.88	0.00	494.88	Submitted
+
+—
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	6,903.80	0.00	6,903.80	Draft
+
+CLM-0003
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Scheme
+	
+1 Jun 2026 – 30 Jun 2026
+	17,942.26	0.00	17,942.26	Rejected
+
+CLM-0013
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Scheme
+	
+1 Jul 2026 – 31 Jul 2026
+	5,886.37	0.00	5,886.37	Rejected
+
+—
+	
+MOM Foods — Bikaner
+	
+Expiry
+	
+14 Jul 2026 – 12 Sep 2026
+	503.52	0.00	503.52	Draft
+
+—
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Scheme
+	
+1 Sep 2026 – 30 Sep 2026
+	4,506.41	0.00	4,506.41	Draft

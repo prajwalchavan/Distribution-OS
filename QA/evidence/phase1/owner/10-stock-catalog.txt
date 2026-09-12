@@ -1,0 +1,883 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Catalog, costs & suppliers
+Listed items
+Purchase cost
+Suppliers
+Stock
+Inbound
+Documents
+Catalog
+✓ Only what I sell
+Item	Brand	Case size	MRP ₹	Active
+
+Chamak Detergent Bar 250 g
+	
+Chamak
+	48	20.00	Yes
+
+Godavari Full Cream UHT Milk 500 ml
+	
+Godavari
+	24	37.00	Yes
+
+Annapurna Basmati Classic 1 kg
+	
+Annapurna
+	12	135.00	Yes
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+Rajwadi
+	48	15.00	Yes
+
+Sunbake Bourbon Cream 60 g
+	
+Sunbake
+	96	10.00	Yes
+
+Godavari Table Butter 500 g
+	
+Godavari
+	20	280.00	Yes
+
+Sunbake Kaju Pista Cookies 75 g
+	
+Sunbake
+	72	25.00	Yes
+
+Annapurna Iodised Salt 1 kg
+	
+Annapurna
+	24	28.00	Yes
+
+Annapurna Filtered Groundnut Oil 5 L
+	
+Annapurna
+	4	1,035.00	Yes
+
+Godavari Cheese Slices 200 g
+	
+Godavari
+	24	145.00	Yes
+
+Campa Lemon 2 L
+	
+Campa
+	24	90.00	Yes
+
+Chamak Detergent Powder 1 kg
+	
+Chamak
+	12	105.00	Yes
+
+Godavari Dairy Whitener 500 g
+	
+Godavari
+	20	275.00	Yes
+
+Chamak Floor Cleaner 1 L
+	
+Chamak
+	12	155.00	Yes
+
+Too Yumm Veggie Stix 70 g
+	
+Too Yumm
+	48	20.00	Yes
+
+Campa Orange 200 ml
+	
+Campa
+	48	10.00	Yes
+
+Godavari Masala Chaas 200 ml
+	
+Godavari
+	30	12.00	Yes
+
+Annapurna Sulphurless Sugar 5 kg
+	
+Annapurna
+	5	235.00	Yes
+
+Godavari Flavoured Milk Rose 180 ml
+	
+Godavari
+	27	25.00	Yes
+
+Campa Orange 500 ml
+	
+Campa
+	24	20.00	Yes
+
+Annapurna Kolam Rice 25 kg
+	
+Annapurna
+	1	1,590.00	Yes
+
+Campa Orange 1 L
+	
+Campa
+	24	50.00	Yes
+
+Konkan Farsan Mix 400 g
+	
+Konkan Crunch
+	20	120.00	Yes
+
+Konkan Aloo Bhujia 200 g
+	
+Konkan Crunch
+	36	45.00	Yes
+
+Balaji Chataka Pataka Wafers 45 g
+	
+Balaji
+	48	20.00	Yes
+
+Neelam Rose Soap 100 g
+	
+Neelam
+	72	42.00	Yes
+
+Masti Oye Classic Salted 30 g
+	
+Masti Oye
+	48	10.00	Yes
+
+Annapurna Sulphurless Sugar 1 kg
+	
+Annapurna
+	20	48.00	Yes
+
+Annapurna Chana Dal 1 kg
+	
+Annapurna
+	12	105.00	Yes
+
+Sunbake Digestive Hi-Fibre 250 g
+	
+Sunbake
+	36	70.00	Yes
+
+Konkan Kerala Banana Chips 40 g
+	
+Konkan Crunch
+	72	20.00	Yes
+
+Konkan Kerala Banana Chips 400 g
+	
+Konkan Crunch
+	20	150.00	Yes
+
+Chamak Toilet Cleaner 500 ml
+	
+Chamak
+	24	89.00	Yes
+
+Annapurna Garam Masala 100 g
+	
+Annapurna
+	48	85.00	Yes
+
+Sunbake Kaju Pista Cookies 200 g
+	
+Sunbake
+	36	60.00	Yes
+
+Chamak White Phenyl 5 L
+	
+Chamak
+	4	330.00	Yes
+
+Konkan Bhajani Chivda 400 g
+	
+Konkan Crunch
+	20	120.00	Yes
+
+Godavari Kesar Shrikhand 200 g
+	
+Godavari
+	24	65.00	Yes
+
+Rajwadi Lemon Soda 500 ml
+	
+Rajwadi
+	24	30.00	Yes
+
+MOM Roasted Makhana Himalayan Salt 12 g
+	
+MOM Makhana
+	90	10.00	Yes
+
+Annapurna Turmeric Powder 500 g
+	
+Annapurna
+	20	150.00	Yes
+
+Campa Cola 200 ml
+	
+Campa
+	48	10.00	Yes
+
+Sunbake Digestive Hi-Fibre 100 g
+	
+Sunbake
+	72	30.00	Yes
+
+Rajwadi Jeera Masala Soda 1.25 L
+	
+Rajwadi
+	12	60.00	Yes
+
+Annapurna Thick Poha 1 kg
+	
+Annapurna
+	12	65.00	Yes
+
+Balaji Simply Salted Wafers 45 g
+	
+Balaji
+	48	20.00	Yes
+
+Godavari Toned UHT Milk 500 ml
+	
+Godavari
+	24	32.00	Yes
+
+Godavari Flavoured Milk Kesar Badam 180 ml
+	
+Godavari
+	27	25.00	Yes
+
+Campa Cola 2 L
+	
+Campa
+	24	90.00	Yes
+
+Konkan Aloo Bhujia 42 g
+	
+Konkan Crunch
+	96	10.00	Yes
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+Annapurna
+	5	255.00	Yes
+
+Godavari Toned UHT Milk 1 L
+	
+Godavari
+	12	62.00	Yes
+
+Sunbake Marie Light 150 g
+	
+Sunbake
+	60	30.00	Yes
+
+Annapurna Besan 1 kg
+	
+Annapurna
+	12	115.00	Yes
+
+Sunbake Butter Cookies 75 g
+	
+Sunbake
+	72	20.00	Yes
+
+Sunbake Glucose 110 g
+	
+Sunbake
+	72	20.00	Yes
+
+Campa Lemon 1 L
+	
+Campa
+	24	50.00	Yes
+
+Rajwadi Lemon Soda 1.25 L
+	
+Rajwadi
+	12	60.00	Yes
+
+Sunbake Marie Light 300 g
+	
+Sunbake
+	36	55.00	Yes
+
+Rajwadi Aamras Mango Drink 1 L
+	
+Rajwadi
+	12	70.00	Yes
+
+Campa Cola 500 ml
+	
+Campa
+	24	20.00	Yes
+
+Chamak Detergent Powder 4 kg
+	
+Chamak
+	4	399.00	Yes
+
+Godavari Table Butter 100 g
+	
+Godavari
+	48	58.00	Yes
+
+Annapurna Chana Dal 500 g
+	
+Annapurna
+	20	55.00	Yes
+
+Neelam Prickly Heat Talc 100 g
+	
+Neelam
+	48	65.00	Yes
+
+Annapurna Turmeric Powder 100 g
+	
+Annapurna
+	48	32.00	Yes
+
+Chamak Dishwash Bar 145 g
+	
+Chamak
+	60	15.00	Yes
+
+Chamak Dishwash Bar 300 g
+	
+Chamak
+	36	30.00	Yes
+
+Too Yumm Karare 60 g
+	
+Too Yumm
+	48	20.00	Yes
+
+Godavari Dahi 200 g
+	
+Godavari
+	30	22.00	Yes
+
+Sunbake Orange Cream 120 g
+	
+Sunbake
+	60	20.00	Yes
+
+Too Yumm Makhana Himalayan Salt 20 g
+	
+Too Yumm
+	90	25.00	Yes
+
+Annapurna Kolam Rice 1 kg
+	
+Annapurna
+	12	68.00	Yes
+
+Konkan Bhajani Chivda 100 g
+	
+Konkan Crunch
+	48	35.00	Yes
+
+Godavari Dahi 1 kg
+	
+Godavari
+	8	95.00	Yes
+
+Konkan Roasted Peanut Masala 40 g
+	
+Konkan Crunch
+	96	10.00	Yes
+
+Godavari Cow Ghee 200 ml
+	
+Godavari
+	24	165.00	Yes
+
+Sunbake Choco Chip Cookies 120 g
+	
+Sunbake
+	48	30.00	Yes
+
+Neelam Tooth Brush 2+1 pack
+	
+Neelam
+	48	50.00	Yes
+
+Campa Lemon 750 ml
+	
+Campa
+	24	40.00	Yes
+
+Konkan Masala Khakhra 360 g
+	
+Konkan Crunch
+	20	95.00	Yes
+
+Annapurna Bombay Rava 1 kg
+	
+Annapurna
+	12	52.00	Yes
+
+Masti Oye Peri Peri Twist 30 g
+	
+Masti Oye
+	48	10.00	Yes
+
+Neelam Herbal Toothpaste 50 g
+	
+Neelam
+	96	35.00	Yes
+
+Konkan Kerala Banana Chips 150 g
+	
+Konkan Crunch
+	36	60.00	Yes
+
+Annapurna Basmati Classic 5 kg
+	
+Annapurna
+	4	650.00	Yes
+
+Godavari Dahi 400 g
+	
+Godavari
+	20	42.00	Yes
+
+Annapurna Kolam Rice 5 kg
+	
+Annapurna
+	5	330.00	Yes
+
+Godavari Fresh Paneer 500 g
+	
+Godavari
+	12	225.00	Yes
+
+Independence Packaged Drinking Water 1 L
+	
+Independence
+	24	20.00	Yes
+
+Annapurna Besan 500 g
+	
+Annapurna
+	20	60.00	Yes
+
+Neelam Rose Soap 3 x 100 g pack
+	
+Neelam
+	24	120.00	Yes
+
+Sunbake Bourbon Cream 300 g
+	
+Sunbake
+	30	50.00	Yes
+
+Sunbake Choco Chip Cookies 40 g
+	
+Sunbake
+	120	10.00	Yes
+
+Chamak Toilet Cleaner 1 L
+	
+Chamak
+	12	165.00	Yes
+
+Too Yumm Multigrain Chips 60 g
+	
+Too Yumm
+	48	20.00	Yes
+
+Neelam Coconut Hair Oil 200 ml
+	
+Neelam
+	36	90.00	Yes
+
+Sunbake Glucose 250 g
+	
+Sunbake
+	48	45.00	Yes
+
+Sunbake Salted Cracker 200 g
+	
+Sunbake
+	36	40.00	Yes
+
+Annapurna Red Chilli Powder 500 g
+	
+Annapurna
+	20	210.00	Yes
+
+Neelam Herbal Toothpaste 200 g
+	
+Neelam
+	36	115.00	Yes
+
+Neelam Handwash 750 ml refill
+	
+Neelam
+	12	165.00	Yes
+
+Godavari Cow Ghee 500 ml
+	
+Godavari
+	12	395.00	Yes
+
+Rajwadi Jeera Masala Soda 500 ml
+	
+Rajwadi
+	24	30.00	Yes
+
+Campa Lemon 500 ml
+	
+Campa
+	24	20.00	Yes
+
+Annapurna Toor Dal 500 g
+	
+Annapurna
+	20	95.00	Yes
+
+Neelam Sandal Soap 100 g
+	
+Neelam
+	72	42.00	Yes
+
+MOM Roasted Makhana Peri Peri 60 g
+	
+MOM Makhana
+	48	50.00	Yes
+
+Sunbake Marie Light 75 g
+	
+Sunbake
+	96	15.00	Yes
+
+Annapurna Sunflower Refined Oil 5 L jar
+	
+Annapurna
+	4	660.00	Yes
+
+Konkan Roasted Peanut Masala 150 g
+	
+Konkan Crunch
+	36	40.00	Yes
+
+Konkan Ratlami Sev 180 g
+	
+Konkan Crunch
+	36	45.00	Yes
+
+Rajwadi Lemon Soda 250 ml
+	
+Rajwadi
+	48	15.00	Yes
+
+Annapurna Bombay Rava 500 g
+	
+Annapurna
+	20	28.00	Yes
+
+Godavari Full Cream UHT Milk 1 L
+	
+Godavari
+	12	72.00	Yes
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+Annapurna
+	12	135.00	Yes
+
+Annapurna Chakki Fresh Atta 1 kg
+	
+Annapurna
+	10	55.00	Yes
+
+Neelam Handwash 200 ml pump
+	
+Neelam
+	24	75.00	Yes
+
+Neelam Anti-Dandruff Shampoo 340 ml
+	
+Neelam
+	18	199.00	Yes
+
+Campa Orange 750 ml
+	
+Campa
+	24	40.00	Yes
+
+Annapurna Thick Poha 500 g
+	
+Annapurna
+	20	35.00	Yes
+
+Konkan Masala Khakhra 180 g
+	
+Konkan Crunch
+	30	50.00	Yes
+
+Chamak White Phenyl 1 L
+	
+Chamak
+	12	75.00	Yes
+
+Annapurna Filtered Groundnut Oil 1 L
+	
+Annapurna
+	12	210.00	Yes
+
+Annapurna Red Chilli Powder 100 g
+	
+Annapurna
+	48	45.00	Yes
+
+Rajwadi Soda Water 750 ml
+	
+Rajwadi
+	24	20.00	Yes
+
+Masti Oye Tomato Twist 30 g
+	
+Masti Oye
+	48	10.00	Yes
+
+Balaji Masala Masti Wafers 45 g
+	
+Balaji
+	48	20.00	Yes
+
+Chamak Dishwash Gel 750 ml
+	
+Chamak
+	12	129.00	Yes
+
+Balaji Ratlami Sev 200 g
+	
+Balaji
+	30	80.00	Yes
+
+Neelam Anti-Dandruff Shampoo 5 ml sachet
+	
+Neelam
+	480	2.00	Yes
+
+Chamak Detergent Bar 125 g
+	
+Chamak
+	72	10.00	Yes
+
+Sunbake Glucose 55 g
+	
+Sunbake
+	120	10.00	Yes
+
+Sunbake Butter Cookies 200 g
+	
+Sunbake
+	36	50.00	Yes
+
+Campa Lemon 200 ml
+	
+Campa
+	48	10.00	Yes
+
+Neelam Sandal Soap 3 x 100 g pack
+	
+Neelam
+	24	120.00	Yes
+
+Chamak Floor Cleaner 2 L
+	
+Chamak
+	6	285.00	Yes
+
+Campa Orange 2 L
+	
+Campa
+	24	90.00	Yes
+
+Godavari Masala Chaas 1 L
+	
+Godavari
+	12	55.00	Yes
+
+Godavari Cow Ghee 1 L
+	
+Godavari
+	8	770.00	Yes
+
+Godavari Dairy Whitener 200 g
+	
+Godavari
+	36	115.00	Yes
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+Annapurna
+	3	495.00	Yes
+
+Rajwadi Apple Nectar 1 L
+	
+Rajwadi
+	12	80.00	Yes
+
+Neelam Prickly Heat Talc 300 g
+	
+Neelam
+	24	165.00	Yes
+
+Sunbake Bourbon Cream 120 g
+	
+Sunbake
+	60	20.00	Yes
+
+Neelam Tooth Brush single
+	
+Neelam
+	144	25.00	Yes
+
+Annapurna Garam Masala 50 g
+	
+Annapurna
+	72	45.00	Yes
+
+Sunbake Elaichi Cream 60 g
+	
+Sunbake
+	96	10.00	Yes
+
+Sunbake Glucose 32 g
+	
+Sunbake
+	144	5.00	Yes
+
+Godavari Flavoured Milk Chocolate 180 ml
+	
+Godavari
+	27	25.00	Yes
+
+Konkan Aloo Bhujia 400 g
+	
+Konkan Crunch
+	20	85.00	Yes
+
+Neelam Coconut Hair Oil 100 ml
+	
+Neelam
+	48	48.00	Yes
+
+Chamak Floor Cleaner 500 ml
+	
+Chamak
+	24	85.00	Yes
+
+Neelam Anti-Dandruff Shampoo 175 ml
+	
+Neelam
+	24	110.00	Yes
+
+Chamak Dishwash Gel 225 ml
+	
+Chamak
+	36	45.00	Yes
+
+Sunbake Salted Cracker 60 g
+	
+Sunbake
+	96	10.00	Yes
+
+Neelam Neem Soap 100 g
+	
+Neelam
+	72	38.00	Yes
+
+Godavari Fresh Paneer 200 g
+	
+Godavari
+	24	95.00	Yes
+
+Neelam Herbal Toothpaste 100 g
+	
+Neelam
+	72	62.00	Yes
+
+Konkan Farsan Mix 100 g
+	
+Konkan Crunch
+	48	35.00	Yes
+
+Sunbake Elaichi Cream 120 g
+	
+Sunbake
+	60	20.00	Yes
+
+Neelam Cold Cream 50 g
+	
+Neelam
+	48	70.00	Yes
+
+Chamak Detergent Powder 500 g
+	
+Chamak
+	24	55.00	Yes
+
+Campa Cola 1 L
+	
+Campa
+	24	50.00	Yes
+
+Neelam Cold Cream 30 g
+	
+Neelam
+	72	45.00	Yes
+
+Rajwadi Josh Energy Drink 250 ml
+	
+Rajwadi
+	24	50.00	Yes
+
+Annapurna Toor Dal 1 kg
+	
+Annapurna
+	12	185.00	Yes
+
+Rajwadi Aamras Mango Drink 600 ml
+	
+Rajwadi
+	24	40.00	Yes
+
+Campa Cola 750 ml
+	
+Campa
+	24	40.00	Yes
+
+Rajwadi Aamras Mango Drink 200 ml
+	
+Rajwadi
+	27	12.00	Yes
+
+Neelam Coconut Hair Oil 500 ml
+	
+Neelam
+	20	210.00	Yes

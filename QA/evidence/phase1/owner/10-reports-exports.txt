@@ -1,0 +1,141 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Exports & Tally
+Exports
+Tally ledger map
+Request export
+Growth
+Profit
+Incentives
+Exports
+Kind	File	Rows	Person	Requested	Status	Download
+
+Claim sheet
+	
+claim-sheet.xlsx
+	
+3
+	
+Vikas Kadam
+	
+4 Jul, 12:00 pm
+	Succeeded	
+Download
+
+
+Tally XML
+	
+tally-2026-06-15-to-2026-06-21.xml
+	
+61
+	
+Meena Joshi
+	
+5 Sep, 7:00 pm
+	Succeeded	
+Download
+
+
+GST sales register · CSV
+	
+gst-sales-2026-09-01-to-2026-09-12.csv
+	
+12
+	
+Meena Joshi
+	
+11 Sep, 11:04 am
+	Succeeded	
+Download
+
+
+Daily sales · CSV
+	
+daily-sales-2026-08-30-to-2026-09-12.csv
+	
+12
+	
+Sunil Tarsun
+	
+10 Sep, 7:29 pm
+	Succeeded	
+Download
+
+
+Stock value · CSV
+	
+stock-value.csv
+	
+191
+	
+Sunil Tarsun
+	
+12 Sep, 9:15 am
+	Succeeded	
+Download
+
+
+Outstanding (Excel)
+	
+outstanding-2026-09-12.xlsx
+	
+60
+	
+Sunil Tarsun
+	
+12 Sep, 9:00 am
+	Succeeded	
+Download
+
+
+GST purchase register · CSV
+	
+gst-purchase-2026-09-01-to-2026-09-12.csv
+	
+—
+	
+Meena Joshi
+	
+9 Sep, 4:01 pm
+	Failed	no supplier invoices were received in this window
+
+GSTR-1 JSON
+	
+gstr1-2026-08-09-to-2026-09-08.json
+	
+288
+	
+Meena Joshi
+	
+12 Sep, 9:00 am
+	Succeeded	
+Download
+
+
+Claim sheet
+	
+claim-sheet.xlsx
+	
+10
+	
+Vikas Kadam
+	
+4 Sep, 11:45 am
+	Succeeded	
+Download

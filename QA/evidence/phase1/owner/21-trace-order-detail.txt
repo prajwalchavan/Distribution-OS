@@ -1,0 +1,46 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated 1 min ago
+ST
+Sunil Tarsun
+owner
+Orders
+7 days
+30 days
+90 days
+Export CSV
+Orders
+Trips
+Submitted
+Confirmed
+Picking
+Packed
+Dispatched
+Delivered
+Cancelled
+Any date, matching "SO-0854"
+Filters (1)
+Clear
+Order	Shop	State	Value ₹	Waiting on	Placed
+
+SO-0854
+	
+Prerna Super Market
+	Delivered	73,245.00	
+—
+	
+11 Sep
+
+1 rows			73,245.00		

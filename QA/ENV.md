@@ -101,3 +101,19 @@ What was found before the drop, kept for the record:
 | delivery | delivery :5177 | `ganesh.more`, `iqbal.shaikh`, `raju.yadav`, `santosh.kamble` | 4 each |
 | retailer | retailer :5178 | `ramesh.gupta` (member of all three), `fatima.shaikh` (tarsun + sai) | `suresh.chauhan` (kalyan only) |
 | platform_admin | admin :5179 | `dos.admin` (super), `dos.support` (support) — `POST /auth/platform/login`, no membership | — |
+
+## 8. Phase 1 harness (added 2026-09-12, Owner walk)
+
+| File | What it does |
+|---|---|
+| `pw-server.mjs` | one headless Chromium kept alive with CDP on :9333 so short commands share a signed-in session: `nohup node pw-server.mjs > ~/.dos-qa-logs/logs/pw-server.log 2>&1 &` |
+| `pw.mjs <cmd>` | one command per process against that browser: `login <user> [pass] [url]`, `goto <url> [shotName]`, `shot <name>` (full-page PNG + innerText `.txt`), `phone <name>` / `desk` / `size w h`, `text`, `click <sel|text>`, `fill`, `press`, `refs` (interactive elements), `do "<async JS with page, settle, shot, sel>"`. Every run prints console errors and ≥400 responses it saw. Evidence dir = `QA/evidence/$EV_DIR/` (default `phase1/owner`). |
+| `pw-audit.mjs <base> <routes…>` | visits each route, reports console errors, failed requests and error-looking page text |
+| `pw-net.mjs <url> <name>` | saves every API response of one page load to `evidence/<EV_DIR>/net-<name>/NN-METHOD-path.json` |
+
+Notes learned this phase:
+- The Bash tool's shell is Node 22 unless `fnm use 24` is run; Playwright is fine on either.
+- On a `connectOverCDP` browser, `browser.close()` only disconnects — the server's context and page survive between commands.
+- Android: the first bundle still triggers "System UI isn't responding"; `android-login.sh` waits for the sign-in form, so tap *Wait* (`ui.py text Wait`) and it proceeds. Owner APK signed in fine after that. Remove `adb reverse` afterwards (`adb reverse --remove-all`).
+- iOS: `ios-login.mjs 5173 sunil.tarsun owner` worked first time with Appium already on :4723 and the simulator booted headlessly (`xcrun simctl boot <udid>`); Expo Go's gear overlay sits over the "⋯" menu in screenshots.
+- `psql` path must be exported (`export PATH=/opt/homebrew/opt/postgresql@17/bin:$PATH`); zsh does not word-split a `$P` command string — define a function instead.

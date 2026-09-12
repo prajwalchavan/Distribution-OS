@@ -1,0 +1,115 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Today
+Open approvals
+Today
+Approvals
+Live map
+INVOICED TODAY
+₹1,50,147.00
+COLLECTED TODAY
+₹4,49,793.67
+2 trips active
+OUTSTANDING
+₹44,24,374.00
+₹26,86,917.00 overdue
+ORDERS TODAY
+13
+5 stops delivered
+as of 12 Sep, 12:50 pm
+Sales vs the period before
+14 Aug — 12 Sep
+₹0
+₹2L
+₹4L
+₹6L
+14 Aug
+1 Sep
+12 Sep
+Invoiced
+Previous
+14 Aug — 12 Sep · as of 12 Sep, 12:50 pm
+Brand mix
+1 Sep — 12 Sep
+Campa
+₹5.0L
+25%
+Other
+₹4.1L
+21%
+Sunbake
+₹2.9L
+15%
+Godavari
+₹2.9L
+15%
+Other
+₹4.8L
+24%
+Money owed, by age
+₹
+0–7
+23,27,491.00
+8–15
+6,76,326.50
+16–30
+7,86,763.50
+31–60
+5,00,590.00
+61–90
+98,059.00
+90+
+0.00
+Open the rows behind this
+At-risk stock
+Stock at cost
+₹1,65,781.86 near expiry
+₹21,75,206.91
+Cash in transit
+2 trips active
+₹0.00
+Sales this month
+₹19,72,543.00
+Needs you (5)
+Open approvals
+retailer
+Over credit limit
+—
+Waiting for owner
+order
+Below floor price
+—
+Waiting for owner
+retailer
+Over credit limit
+—
+Waiting for owner
+bargain_request
+Bargain
+—
+Waiting for owner
+bargain_request
+Bargain
+—
+Waiting for owner
+Om Sai Provision Store
+Bargain
+₹39.58
+Waiting for owner
+Press / to search, Esc to close, Enter to commit

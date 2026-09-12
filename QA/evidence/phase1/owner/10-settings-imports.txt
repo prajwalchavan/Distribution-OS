@@ -1,0 +1,145 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Imports
+Settings
+Imports
+Messages
+Audit
+Saved column maps
+Marg party master (guessed columns) · TradeEzee sales register (guessed columns) · Busy party master (guessed columns) · TradeEzee outstanding (guessed columns) · TradeEzee item master (guessed columns) · TradeEzee party master (guessed columns) · FieldAssist invoices (guessed columns) · Tally ledgers as party master (guessed columns)
+File	From	Into	Rows	OK	Errors	Status	Requested
+
+fieldassist-invoices-aug.csv
+	
+FieldAssist
+	
+Brand DMS bills
+	
+3
+	
+1
+	
+0
+	Confirmed	
+7 Sep, 6:00 pm
+
+
+marg-parties.csv
+	
+Marg
+	
+Shops
+	
+3
+	
+0
+	
+0
+	Cancelled	
+3 Sep, 12:00 pm
+
+
+tradeezee-outstanding.csv
+	
+TradeEzee
+	
+Opening outstanding
+	
+6
+	
+0
+	
+0
+	Staged	
+10 Sep, 4:00 pm
+
+
+items.pdf
+	
+Excel
+	
+Items
+	
+—
+	
+0
+	
+0
+	Failed	
+4 Sep, 12:00 pm
+
+
+tradeezee-sales-register.csv
+	
+TradeEzee
+	
+Sales register
+	
+40
+	
+40
+	
+0
+	Confirmed	
+31 Aug, 3:00 pm
+
+
+tradeezee-item-master.csv
+	
+TradeEzee
+	
+Items
+	
+6
+	
+4
+	
+0
+	Confirmed	
+30 Aug, 11:00 am
+
+
+tradeezee-party-master.csv
+	
+TradeEzee
+	
+Shops
+	
+10
+	
+10
+	
+0
+	Confirmed	
+29 Aug, 10:00 am
+
+
+tradeezee-party-master-sept.csv
+	
+TradeEzee
+	
+Shops
+	
+10
+	
+0
+	
+0
+	Staged	
+11 Sep, 9:00 am

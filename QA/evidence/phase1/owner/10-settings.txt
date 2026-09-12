@@ -1,0 +1,56 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Settings
+Business profile
+Numbering series
+Feature flags
+Save changes
+Change something first
+Settings
+Imports
+Messages
+Audit
+Business profile
+Legal name
+M/s. Tarsun Enterprise
+GSTIN
+27CNGPP9039R1ZX
+State code
+27
+Display name
+Address on the bill
+Bill footer
+UPI address
+FSSAI licence
+Branding
+Tarsun Enterprise
+27CNGPP9039R1ZX
+PNG or JPG, square, at least 256 px
+Upload logo
+Delivery & policy
+Geofence metres
+Proof of delivery
+Every bill
+Credit bills only
+Never
+GPS kept for (days)
+Settlement tolerance ₹
+₹100.00
+E-way bill threshold ₹
+₹1,00,000.00

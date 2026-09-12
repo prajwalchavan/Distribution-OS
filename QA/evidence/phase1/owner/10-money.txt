@@ -1,0 +1,607 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Money owed
+7 days
+30 days
+90 days
+Export CSV
+Rebuild ageing
+Outstanding
+Receipts
+Books
+Claims
+Money owed, by age
+₹
+0–7
+23,27,491.00
+8–15
+6,76,326.50
+16–30
+7,86,763.50
+31–60
+5,00,590.00
+61–90
+98,059.00
+90+
+35,144.00
+0–7
+8–15
+16–30
+31–60
+61–90
+90+
+Ageing over time
+15 Jun — 12 Sep
+₹0
+₹20L
+₹40L
+₹60L
+20 Jun
+4 Jul
+1 Aug
+5 Sep
+12 Sep
+Outstanding ₹
+Overdue ₹
+Shop by shop
+Send statements
+60 rows
+Overdue ₹
+Shop	Beat	Outstanding ₹	Overdue ₹	Open bills	Oldest due	On the limit
+
+R-0010 Balaji Wholesale Stores
+	
+Station Road
+	7,20,804.00	5,23,018.00	
+12
+	
+17 Aug
+	Warn only
+
+R-0053 Sahyadri Super Bazar
+	
+Birla College Road
+	4,81,610.00	2,54,538.00	
+9
+	
+11 Jul
+	Warn only
+
+R-0031 Prerna Super Market
+	
+Godrej Hill
+	3,94,335.00	2,85,332.00	
+9
+	
+31 Jul
+	Warn only
+
+R-0016 Navjeevan Super Bazar
+	
+Kalyan West Market
+	2,68,111.00	1,00,399.00	
+6
+	
+21 Aug
+	Warn only
+
+R-0004 Sai Krupa Super Bazar
+	
+Station Road
+	2,06,709.00	24,703.00	
+5
+	
+3 Sep
+	Warn only
+
+R-0011 Sai Baba Kirana
+	
+Kalyan West Market
+	1,43,930.00	30,667.00	
+5
+	
+14 Aug
+	Warn only
+
+R-0013 Laxmi Narayan Stores
+	
+Kalyan West Market
+	1,37,886.00	0.00	
+4
+	
+14 Sep
+	Warn only
+
+R-0033 New Bombay Stores
+	
+Godrej Hill
+	1,31,361.00	1,04,808.00	
+8
+	
+24 Aug
+	Warn only
+
+R-0059 Gurukrupa Provision
+	
+Birla College Road
+	1,27,901.00	52,426.00	
+7
+	
+5 Sep
+	Warn only
+
+R-0038 Rukmini Provision
+	
+Godrej Hill
+	1,21,841.00	66,026.00	
+7
+	
+21 Aug
+	Warn only
+
+R-0020 Joshi Kirana Stores
+	
+Kalyan West Market
+	1,21,522.00	61,420.00	
+6
+	
+28 Aug
+	Warn only
+
+R-0048 Dnyandeep Stores
+	
+Kolsewadi
+	98,162.00	61,957.00	
+5
+	
+1 Sep
+	Warn only
+
+R-0007 Ganesh General Store
+	
+Station Road
+	94,373.00	40,302.00	
+4
+	
+27 Aug
+	Warn only
+
+R-0027 Gupta Kirana Stores
+	
+Khadakpada
+	90,266.00	55,858.00	
+8
+	
+22 Aug
+	Warn only
+
+R-0015 Ganpati General Stores
+	
+Kalyan West Market
+	78,831.00	69,042.00	
+5
+	
+18 Aug
+	Warn only
+
+R-0042 Vaibhav Kirana Mart
+	
+Kolsewadi
+	75,228.00	52,176.00	
+7
+	
+10 Jul
+	Warn only
+
+R-0023 Bhosale Traders
+	
+Khadakpada
+	74,287.00	74,287.00	
+4
+	
+29 Jul
+	Warn only
+
+R-0057 Hariom Kirana Bhandar
+	
+Birla College Road
+	72,917.00	72,917.00	
+8
+	
+2 Jul
+	Blocked
+
+R-0002 Om Sai Provision Store
+	
+Station Road
+	69,862.50	60,919.50	
+6
+	
+20 Aug
+	Warn only
+
+R-0018 Patil General Store
+	
+Kalyan West Market
+	69,604.50	69,604.50	
+9
+	
+11 Jun
+	Blocked
+
+R-0051 Rameshwar General Store
+	
+Birla College Road
+	57,297.00	16,442.00	
+3
+	
+29 Aug
+	Warn only
+
+R-0014 Ekvira Kirana
+	
+Kalyan West Market
+	39,728.00	39,728.00	
+3
+	
+10 Aug
+	Needs approval
+
+R-0035 Metro Kirana Bazar
+	
+Godrej Hill
+	39,300.00	30,007.00	
+8
+	
+21 Aug
+	Needs approval
+
+R-0039 Gavhane Kirana
+	
+Godrej Hill
+	38,056.00	22,997.00	
+7
+	
+14 Aug
+	Needs approval
+
+R-0003 Mahalaxmi General Stores
+	
+Station Road
+	36,259.00	36,259.00	
+5
+	
+12 Aug
+	Needs approval
+
+R-0001 Shree Ganesh Kirana
+	
+Station Road
+	35,843.00	35,843.00	
+6
+	
+6 Aug
+	Needs approval
+
+R-0043 Anand Bhavan Provision
+	
+Kolsewadi
+	35,548.00	32,705.00	
+5
+	
+28 Jul
+	Needs approval
+
+R-0054 Nutan Kirana Stores
+	
+Birla College Road
+	34,995.00	14,860.00	
+6
+	
+25 Jul
+	Needs approval
+
+R-0040 Shubhalabh Stores
+	
+Godrej Hill
+	33,348.00	33,348.00	
+5
+	
+17 Jul
+	Needs approval
+
+R-0037 Sharma Kirana Stores
+	
+Godrej Hill
+	32,464.00	23,573.00	
+6
+	
+10 Aug
+	Needs approval
+
+R-0021 Kadam Stores
+	
+Khadakpada
+	30,216.00	17,509.00	
+4
+	
+1 Aug
+	Needs approval
+
+R-0034 City Light Provision
+	
+Godrej Hill
+	29,824.00	5,504.00	
+7
+	
+17 Aug
+	Needs approval
+
+R-0056 Meghana General Store
+	
+Birla College Road
+	28,496.00	18,498.00	
+5
+	
+1 Aug
+	Needs approval
+
+R-0025 Yadav General Store
+	
+Khadakpada
+	28,485.00	28,485.00	
+2
+	
+26 May
+	Blocked
+
+R-0052 Karve Provision
+	
+Birla College Road
+	26,616.00	19,086.00	
+4
+	
+14 Aug
+	Needs approval
+
+R-0012 Vitthal Traders
+	
+Kalyan West Market
+	26,439.00	25,118.00	
+4
+	
+4 Sep
+	Needs approval
+
+R-0050 Nakshatra Kirana
+	
+Kolsewadi
+	25,825.00	21,069.00	
+5
+	
+3 Aug
+	Needs approval
+
+R-0036 Friends Corner Stores
+	
+Godrej Hill
+	25,537.00	25,537.00	
+3
+	
+25 Jul
+	Blocked
+
+R-0017 Deshmukh Kirana
+	
+Kalyan West Market
+	24,365.00	11,692.00	
+5
+	
+28 Jul
+	Needs approval
+
+R-0009 Ambika Provision Store
+	
+Station Road
+	23,995.00	18,021.00	
+5
+	
+3 Aug
+	Needs approval
+
+R-0006 Shivshakti Traders
+	
+Station Road
+	22,834.00	22,834.00	
+5
+	
+16 Jul
+	Needs approval
+
+R-0024 Chavan Kirana Stores
+	
+Khadakpada
+	21,892.00	7,490.00	
+4
+	
+22 Aug
+	Needs approval
+
+R-0045 Kolsewadi Corner Store
+	
+Kolsewadi
+	21,608.00	21,608.00	
+6
+	
+4 Aug
+	Needs approval
+
+R-0058 Birla Road Kirana Mart
+	
+Birla College Road
+	18,873.00	11,346.00	
+4
+	
+22 Aug
+	Needs approval
+
+R-0028 Singh General Store
+	
+Khadakpada
+	17,372.00	14,810.00	
+3
+	
+8 Aug
+	Needs approval
+
+R-0019 More Provision Store
+	
+Kalyan West Market
+	15,794.00	15,794.00	
+4
+	
+14 Aug
+	Needs approval
+
+R-0060 Vasudha Stores
+	
+Birla College Road
+	15,265.00	15,265.00	
+3
+	
+6 Jun
+	Blocked
+
+R-0005 Jai Bhavani Stores
+	
+Station Road
+	11,511.00	8,075.00	
+3
+	
+27 Aug
+	Needs approval
+
+R-0026 Mishra Provision Store
+	
+Khadakpada
+	10,385.00	8,484.00	
+5
+	
+22 Jul
+	Needs approval
+
+R-0030 Reddy Traders
+	
+Khadakpada
+	9,474.00	4,129.00	
+3
+	
+29 Aug
+	Needs approval
+
+R-0041 Trimurti General Store
+	
+Kolsewadi
+	9,174.00	9,174.00	
+1
+	
+8 Sep
+	Needs approval
+
+R-0022 Pawar General Store
+	
+Khadakpada
+	8,199.00	5,889.00	
+3
+	
+26 Aug
+	Needs approval
+
+R-0032 Ansari Kirana Stores
+	
+Godrej Hill
+	8,042.00	3,564.00	
+3
+	
+11 Sep
+	Needs approval
+
+R-0046 Khan General Store
+	
+Kolsewadi
+	907.00	907.00	
+1
+	
+11 Sep
+	Blocked
+
+R-0047 Mangal Traders
+	
+Kolsewadi
+	867.00	867.00	
+1
+	
+8 Sep
+	Needs approval
+
+R-0044 Sujata Stores
+	
+Kolsewadi
+	0.00	0.00	
+0
+	
+—
+	Needs approval
+
+R-0049 Shantai Provision Store
+	
+Kolsewadi
+	0.00	0.00	
+0
+	
+—
+	Blocked
+
+R-0055 Ashirwad Provision
+	
+Birla College Road
+	0.00	0.00	
+0
+	
+—
+	Needs approval
+
+R-0008 Krishna Kirana Stores
+	
+Station Road
+	0.00	0.00	
+0
+	
+—
+	Blocked
+
+R-0029 Iyer Provision Store
+	
+Khadakpada
+	0.00	0.00	
+0
+	
+—
+	Blocked
+Total		44,24,374.00	26,86,917.00			
