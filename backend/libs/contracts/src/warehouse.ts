@@ -565,8 +565,9 @@ export const RecordPickLineInput = z.object({
 /**
  * What was actually taken off the rack. PAPER ONLY — no `stock_ledger` row is written here; the pieces
  * leave at pack, so a half-picked wave abandoned at 6 pm leaves the ledger untouched. Σ `pickedQtyPcs`
- * per order line may not exceed the requested pieces (400) and a short line needs a `shortReason`;
- * taking a later-expiry lot is a warning, never a refusal.
+ * per order line may not exceed the requested pieces (400), and a row the wave created may not take
+ * more than its own `requestedQtyPcs` (400; a new `id` is a split row, which asks for nothing of its
+ * own); a short line needs a `shortReason`; taking a later-expiry lot is a warning, never a refusal.
  */
 export const RecordPickInput = MutationBase.extend({
   id: IdSchema,

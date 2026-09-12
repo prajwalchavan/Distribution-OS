@@ -106,6 +106,14 @@ export default function PickingSheet(): React.JSX.Element {
   const [shortReason, setShortReason] = useState<string>(REASON_KEYS[0])
   const [scanNote, setScanNote] = useState<string | null>(null)
   const [view, setView] = useState<'todo' | 'all'>('todo')
+  /*
+   * DOS-041: a batch row the wave asked N pieces of can never save more than N — the server refuses it,
+   * because the pack would take the extra pieces from a lot that was never asked to hold them. The pad
+   * still takes every key (UX-00 §6.3, no silent clamping): over the ask it says why, and Short refuses
+   * to save. A split row asks for nothing of its own (0) and is bounded by its line, as on the server.
+   */
+  const ask = shortFor?.line.requested_qty_pcs ?? 0
+  const overAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) > ask
 
   const picked = rows.filter((row) => row.state !== 'todo').length
   const shown = useMemo(
@@ -128,6 +136,10 @@ export default function PickingSheet(): React.JSX.Element {
   const saveShort = (): void => {
     const row = shortFor
     if (row === null || locked) return
+    if (overAsk) {
+      haptics.error()
+      return
+    }
     haptics.warning()
     void recordPick({
       line: row.line,
@@ -344,10 +356,17 @@ export default function PickingSheet(): React.JSX.Element {
             mode="count"
             label={t('w5.enterPieces')}
             value={shortPieces}
+            expected={ask > 0 ? ask : null}
+            expectedLabel={t('w5.bin', { pieces: ask })}
             onChange={setShortPieces}
             doneLabel={t('w5.short')}
             onDone={saveShort}
           />
+          {overAsk ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
+              {t('w5.overAsk', { pieces: ask })}
+            </Txt>
+          ) : null}
         </Stack>
       </Sheet>
     </Screen>

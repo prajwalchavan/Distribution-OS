@@ -1578,7 +1578,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
   it('DOS-042 guard: a line picked in full through split rows alone (new ids, as the manager app records it) still closes the wave', async () => {
     const w = await dos042Wave('C', '2027-03-29')
 
-    // exactly what manager-app/app/fulfilment/pack.tsx (M20) sends: every counted row under a NEW id
+    // every counted row under a NEW id: what manager-app/app/fulfilment/pack.tsx (M20) sent before
+    // DOS-041, and still a valid API split — rows under new ids ask 0, so no per-row ask applies
     const res = await call<{ item: Dos042Sheet }>(
       app,
       manager,
@@ -1599,6 +1600,150 @@ describeDb('warehouse (DATABASE_URL)', () => {
     // the wave's own asking rows were never stamped: the full count alone closes the line
     expect(rows.find((l) => l.id === w.own.id)?.pickedAt).toBeNull()
     expect(rows.find((l) => l.id === w.other.id)?.pickedAt).toBeNull()
+  })
+
+  // DOS-041: a lot row the wave created may not take more than its OWN ask, even while its order line
+  // is still under the line total. One order of two cases (24 pcs) holds 6 pcs on a 6-pc TINY lot and
+  // 18 on lotB, so the line has two asking rows; rows are found by lot, never by index. TINY expires
+  // after every DOS-042 lot and after DOS-039's SOLDOUT (2027-06-30) but before lotB, so FEFO holds it
+  // first here and never ahead of SOLDOUT in the last test, even if this one stops part-way.
+  let dos041Picklist = ''
+  let dos041Order = ''
+  let dos041OrderLine = ''
+  let tinyLot = ''
+  let tinyRow = ''
+  let bRow = ''
+
+  it("DOS-041 refuses a pick above its own batch row's ask while the order line is still under its total", async () => {
+    const inventory = app.get(InventoryService)
+    await asOwner(async (tx) => {
+      const tiny = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `TINY-${run}`,
+        mrpPaise: 2000,
+        expiryDate: '2028-01-31',
+      })
+      tinyLot = tiny.lot.id
+      await inventory.post(tx, [
+        {
+          lotId: tinyLot,
+          locationId: godown,
+          qtyDelta: 6,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-tiny`,
+        },
+      ])
+    })
+    dos041Order = await placeOrder([{ variantId: variantB, cases: 2 }], 'dos041')
+    const waved = await wave([dos041Order], 'dos041')
+    expect(waved.res.status).toBe(200)
+    dos041Picklist = waved.id
+    const tiny = waved.res.body.item.lines.find((l) => l.lotId === tinyLot)
+    dos041OrderLine = tiny?.orderLineId ?? ''
+    const rows = waved.res.body.item.lines.filter((l) => l.orderLineId === dos041OrderLine)
+    const b = rows.find((l) => l.lotId === lotB)
+    // the precondition the defect needs: ONE order line asking 24 over a 6-pc row and an 18-pc row
+    expect(rows).toHaveLength(2)
+    expect(tiny?.requestedQtyPcs).toBe(6)
+    expect(b?.requestedQtyPcs).toBe(18)
+    tinyRow = tiny?.id ?? ''
+    bRow = b?.id ?? ''
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/start`,
+      { idempotencyKey: `start-dos041-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+
+    // 20 on the 6-pc TINY row: the LINE (20 of 24) is still under its total, the ROW is not
+    const over = await call<{ message: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/pick`,
+      {
+        idempotencyKey: `pick-dos041-over-${run}`,
+        lines: [
+          {
+            id: tinyRow,
+            orderLineId: dos041OrderLine,
+            lotId: tinyLot,
+            pickedQtyPcs: 20,
+            shortReason: 'Damaged carton',
+          },
+        ],
+      },
+    )
+    expect(over.status).toBe(400)
+    expect(over.body.message).toMatch(/asks for 6/)
+    const stored = (
+      await db.execute(sql`select picked_qty_pcs, picked_at from pick_lines where id = ${tinyRow}`)
+    ).rows as { picked_qty_pcs: number; picked_at: Date | null }[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+    expect(stored[0]?.picked_at).toBeNull()
+  })
+
+  it("DOS-041 a device pick above its batch row's ask comes back pick_rejected, never 4xx, and the corrected picks then pack", async () => {
+    const upload = await call<{
+      accepted: number
+      rejected: { code: string; messageEn: string }[]
+    }>(app, packer, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `dev-dos041-${run}`,
+      ops: [
+        {
+          opId: `op-dos041-${run}`,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: tinyRow,
+          data: {
+            picklist_id: dos041Picklist,
+            order_line_id: dos041OrderLine,
+            lot_id: tinyLot,
+            picked_qty_pcs: 20,
+            short_reason: 'Damaged carton',
+          },
+        },
+      ],
+    })
+    expect(upload.status).toBe(200)
+    expect(upload.body.accepted).toBe(0)
+    expect(upload.body.rejected.map((r) => r.code)).toEqual(['pick_rejected'])
+    expect(upload.body.rejected[0]?.messageEn).toMatch(/asks for 6/)
+    const stored = (
+      await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${tinyRow}`)
+    ).rows as { picked_qty_pcs: number }[]
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+
+    // the picker counts again: each batch row takes exactly what it asks, and the wave closes
+    const corrected = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/pick`,
+      {
+        idempotencyKey: `pick-dos041-corrected-${run}`,
+        lines: [
+          { id: tinyRow, orderLineId: dos041OrderLine, lotId: tinyLot, pickedQtyPcs: 6 },
+          { id: bRow, orderLineId: dos041OrderLine, lotId: lotB, pickedQtyPcs: 18 },
+        ],
+      },
+    )
+    expect(corrected.status).toBe(200)
+    expect(corrected.body.item.status).toBe('picked')
+
+    const { res } = await packOrder(dos041Order, 'dos041')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const sale = (await ledgerFor(dos041Order)).filter((r) => r.reason === 'sale')
+    expect(sale).toHaveLength(2)
+    const deltaByLot = new Map(sale.map((r) => [r.lot_id, r.qty_delta]))
+    expect(deltaByLot.get(tinyLot)).toBe(-6)
+    expect(deltaByLot.get(lotB)).toBe(-18)
+    expect(await balanceOf(tinyLot, godown)).toEqual({ on_hand: 0, reserved: 0 })
   })
 
   // ---------------------------------------------------------------------------------------------------------------

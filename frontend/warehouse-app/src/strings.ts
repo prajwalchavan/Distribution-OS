@@ -262,6 +262,7 @@ export const strings = {
   'w5.viewAll': 'Every line',
   'w5.bin': 'Requested {pieces} pc',
   'w5.enterPieces': 'Pieces picked',
+  'w5.overAsk': 'This batch asks for {pieces} pc. Count again — more cannot be saved on this line.',
   'w5.pickedAll': 'Picked in full',
   'w5.status': 'Sheet is {status}',
   'w5.offlineNote': 'Picks are saved on this phone and sent when there is a signal.',

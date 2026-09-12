@@ -15,7 +15,6 @@
  * §6.4 names for exactly this and the only one that speaks cases and pieces at once.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { uuidv7 } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -79,7 +78,7 @@ export default function PickAndPack(): React.JSX.Element {
     (
       input: {
         id: string
-        lines: readonly { orderLineId: string; lotId: string; pickedQtyPcs: number }[]
+        lines: readonly { id: string; orderLineId: string; lotId: string; pickedQtyPcs: number }[]
       },
       meta,
     ) =>
@@ -87,7 +86,12 @@ export default function PickAndPack(): React.JSX.Element {
         id: input.id,
         idempotencyKey: meta.idempotencyKey,
         lines: input.lines.map((line) => ({
-          id: uuidv7(),
+          /*
+           * The sheet's OWN row id, so the count updates the row this screen shows and the server holds
+           * it to that row's ask (DOS-041). A fresh id inserted an ask-0 split row beside it on every
+           * record, left the shown row at its old count, and slipped past the per-row rule.
+           */
+          id: line.id,
           orderLineId: line.orderLineId,
           lotId: line.lotId,
           pickedQtyPcs: line.pickedQtyPcs,
@@ -128,6 +132,7 @@ export default function PickAndPack(): React.JSX.Element {
         .mutateAsync({
           id: sheetId,
           lines: touched.map((line) => ({
+            id: line.id,
             orderLineId: line.orderLineId,
             lotId: line.lotId as string,
             pickedQtyPcs: counts[line.id] ?? 0,
