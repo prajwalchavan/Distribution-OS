@@ -16,7 +16,14 @@ import type {
   IssueCreditNoteInput,
   IssueCreditNoteOutput,
 } from '@dos/contracts'
-import { financialYear, paise, percentOf, roundToRupee, uuidv7 } from '@dos/domain'
+import {
+  financialYear,
+  paise,
+  percentOf,
+  piecesLeftToCredit,
+  roundToRupee,
+  uuidv7,
+} from '@dos/domain'
 import {
   creditNoteLines,
   creditNotes,
@@ -305,7 +312,7 @@ export class CreditNotesService {
         throw new ORPCError('BAD_REQUEST', {
           message: `line ${line.invoiceLineId} does not belong to bill ${invoice.invoiceNo ?? invoice.id}`,
         })
-      const remaining = source.qtyPcs + source.freeQtyPcs - (credited.get(source.id) ?? 0)
+      const remaining = piecesLeftToCredit(source, credited.get(source.id) ?? 0)
       if (line.qtyPcs > remaining)
         throw new ORPCError('BAD_REQUEST', {
           message: `only ${String(remaining)} pcs of ${source.description} are left to credit on ${invoice.invoiceNo ?? invoice.id}`,

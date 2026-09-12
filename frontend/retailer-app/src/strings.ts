@@ -197,6 +197,8 @@ export const strings = {
   'r5.expires': 'Good until {when}',
   'r5.payee': 'Paying {name}',
   'r5.openUpi': 'Open a UPI app',
+  'r5.noUpiApp':
+    'No UPI app opened on this phone. Pay {vpa} from any UPI app and quote the reference below.',
   'r5.failed': 'Could not start the payment',
   'r5.covers': 'This covers {count} bills',
   'r5.noVpa': '{name} has not set up online payment yet.',
@@ -259,6 +261,7 @@ export const strings = {
   'r6.d90': 'Last 90 days',
   'r6.fy': 'This year',
   'r6.explain': 'A plus balance is money you still owe. A minus one is money with them.',
+  'r6.partial': 'This period has more entries than one statement can show. Pick a shorter period.',
 
   // --- R13 receipts -----------------------------------------------------------------------------------
   'r13.title': 'Money you have paid',

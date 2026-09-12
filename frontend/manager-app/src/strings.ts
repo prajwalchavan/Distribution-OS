@@ -448,6 +448,12 @@ export const strings = {
   'm8.detail': 'Credit note {no}',
   'm8.lines': 'Lines',
   'm8.onlyDraft': 'Only a draft note can be issued or cancelled',
+  'm8.piecesToCredit': 'Pieces to credit',
+  'm8.leftToCredit': '{left} pc left to credit',
+  'm8.nothingLeft': 'Already credited in full',
+  'm8.overLeft': 'Only {left} pc left to credit on this line',
+  'm8.wholePieces': 'Type whole pieces, like 5 or 40',
+  'm8.fixPieces': 'Fix the pieces marked in red first',
 
   // --- M11 Brand-DMS bills -------------------------------------------------------------------------
   'm11.tab': 'Brand DMS',
@@ -501,6 +507,10 @@ export const strings = {
   'm9.needsShop': 'Pick a shop first',
   'm9.needsAmount': 'Enter the amount',
   'm9.alreadyCancelled': 'This receipt is already cancelled',
+  'm9.deposit': 'Bank it',
+  'm9.bounce': 'Mark bounced',
+  'm9.notBankable': 'Only cash or a cheque in hand goes to the bank',
+  'm9.notBounceable': 'Only a cheque in hand or banked can bounce',
 
   // --- M10 Day-end: banking, cheques, trip settlement ------------------------------------------------
   'm10.tab': 'Day-end',
@@ -540,6 +550,8 @@ export const strings = {
   'm10.settled': 'Trip settled',
   'm10.needsRef': 'Enter the bank slip number',
   'm10.tolerance': 'Tolerance {amount}',
+  'm10.tickToBank': 'Tick the cash and cheques you are banking',
+  'm10.chequesHint': 'Tap a cheque the bank returned to mark it bounced',
 
   // --- M17 Claims ------------------------------------------------------------------------------------
   'm17.tab': 'Claims',

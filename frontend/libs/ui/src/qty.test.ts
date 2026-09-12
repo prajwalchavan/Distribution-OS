@@ -6,6 +6,7 @@ import {
   caseLine,
   formatCount,
   joinQty,
+  parsePieces,
   qtyState,
   splitQty,
   stepByCase,
@@ -73,6 +74,28 @@ describe('stepByCase — the + and - of the stepper', () => {
   it('refuses to divide by an impossible case size instead of producing NaN', () => {
     expect(stepByCase(48, 1, 0)).toBe(48)
     expect(stepByCase(48, 1, -3)).toBe(48)
+  })
+})
+
+/**
+ * A credit note counts what comes BACK, which is rarely a whole case: 5 of a bill line's 40 pc at a case
+ * of 120. The field takes typed pieces, so the parser must read what a person types and refuse anything
+ * that is not a whole count — never truncating `1.5` to `1` the way `Number.parseInt` does.
+ */
+describe('parsePieces', () => {
+  it("DOS-021: parsePieces reads a count below one case as pieces — '5', ' 40 ' and '1,200'", () => {
+    expect(parsePieces('5')).toEqual({ ok: true, pieces: 5 })
+    expect(parsePieces(' 40 ')).toEqual({ ok: true, pieces: 40 })
+    expect(parsePieces('1,200')).toEqual({ ok: true, pieces: 1200 })
+    expect(parsePieces('0')).toEqual({ ok: true, pieces: 0 })
+  })
+
+  it("DOS-021: parsePieces refuses '1.5', '-3', '5abc' and '1e3' as unparseable and '' as empty, never truncating", () => {
+    for (const typed of ['1.5', '-3', '5abc', '1e3']) {
+      expect(parsePieces(typed)).toEqual({ ok: false, reason: 'unparseable' })
+    }
+    expect(parsePieces('')).toEqual({ ok: false, reason: 'empty' })
+    expect(parsePieces('   ')).toEqual({ ok: false, reason: 'empty' })
   })
 })
 

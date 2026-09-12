@@ -48,6 +48,11 @@ export default function Pay(): React.JSX.Element {
   const [amount, setAmount] = useState<number | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
   const [failure, setFailure] = useState<string | null>(null)
+  /**
+   * `links.open` answers false when no app on the phone takes a `upi://` link, and the tap would otherwise
+   * do nothing at all. A browser cannot tell, so on the web this never shows.
+   */
+  const [noUpiApp, setNoUpiApp] = useState(false)
 
   const dues = useQuery(
     ['outstanding', retailerId, 'bills'],
@@ -105,6 +110,7 @@ export default function Pay(): React.JSX.Element {
               : {})}
             onPress={() => {
               setFailure(null)
+              setNoUpiApp(false)
               void initiate
                 .mutateAsync({
                   amountPaise: chosen.length > 0 ? chosenTotal : amount,
@@ -179,12 +185,23 @@ export default function Pay(): React.JSX.Element {
                       <Button
                         label={t('r5.openUpi')}
                         variant="primary"
-                        onPress={() => {
-                          void links.open(intent.upiIntentUrl ?? '')
+                        onPress={async () => {
+                          setNoUpiApp(false)
+                          if (!(await links.open(intent.upiIntentUrl ?? ''))) setNoUpiApp(true)
                         }}
                         fullWidth
                         testID="r5-open-upi"
                       />
+                      {noUpiApp ? (
+                        <Txt
+                          field="body"
+                          desk="body"
+                          color={colors.status.ochre.fg}
+                          testID="r5-no-upi-app"
+                        >
+                          {t('r5.noUpiApp', { vpa: intent.payeeVpa ?? '' })}
+                        </Txt>
+                      ) : null}
                       <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                         {intent.upiQrPayload ?? ''}
                       </Txt>

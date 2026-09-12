@@ -322,25 +322,5 @@ export { sellerBranding as loadSeller, loadSettings } from '../tenancy/index.js'
 // ---------------------------------------------------------------------------------------------------------------
 // the UPI intent printed as a QR
 
-/**
- * `upi://pay?pa=<vpa>&pn=<payee>&am=<rupees>&tr=<ref>&cu=INR`. The payee is the DISTRIBUTOR's own
- * display name (§D6). Returns null — never an invented VPA — when the tenant has not configured one:
- * a QR that pays the wrong person is far worse than no QR.
- */
-export function upiIntent(i: {
-  vpa: string | null
-  payeeName: string
-  amountPaise: number
-  reference: string | null
-}): string | null {
-  if (!i.vpa || i.amountPaise <= 0) return null
-  const amount = (i.amountPaise / 100).toFixed(2)
-  const params = [
-    `pa=${encodeURIComponent(i.vpa)}`,
-    `pn=${encodeURIComponent(i.payeeName)}`,
-    `am=${amount}`,
-    ...(i.reference ? [`tr=${encodeURIComponent(i.reference.replace(/\//g, '-'))}`] : []),
-    'cu=INR',
-  ]
-  return `upi://pay?${params.join('&')}`
-}
+/** Moved to `@dos/domain`: receivables builds a shop's payment intent with it and cannot import billing. */
+export { upiIntent } from '@dos/domain'

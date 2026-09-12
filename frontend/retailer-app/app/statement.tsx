@@ -4,7 +4,8 @@
  *
  * `receivables.ledger.get` for the retailer role is BUILT FROM DOCUMENTS, not from the journal — a
  * shop reads its own bills and receipts, never the distributor's chart of accounts. The opening and
- * closing balances come with the page; nothing here adds a column up.
+ * closing balances come from the service, and nothing here adds a column up. Every page of the window
+ * is read before the closing balance is printed, and a capped read prints no closing figure (DOS-095).
  *
  * WHY THIS IS NOT A `<Register>`. This app's density is `field` (UX-00 §5.2), and a field register
  * renders as ROWS and keeps only the `identity`, `value` and `chip` columns — `detail` columns are
@@ -13,6 +14,7 @@
  * statement without those is not a statement, so the entry draws itself: what it was, its number,
  * its amount, and the balance after it.
  */
+import { readEveryPage } from '@dos/api-client'
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import { Money, Row, Screen, Segments, Stack, Txt, useColors, useStrings } from '@dos/ui'
 import { useState } from 'react'
@@ -21,6 +23,16 @@ import { longDate, rangeOf, type RangeId } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
 import { Async, PageTabs, Panel } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
+
+/** The contract's largest ledger page (`CursorInput`, contracts receivables.ts): one request per 200 entries. */
+const STATEMENT_PAGE = 200
+/**
+ * 1,000 entries at most. The entries below are drawn in a plain `Stack`, not a virtualised list (the
+ * kit's `<List>` gives every row one fixed height on the web, and a statement entry's height varies),
+ * so the read is bounded to about a year of a shop billed and paying every day. A longer period stops
+ * there, prints no closing figure and asks for a shorter period.
+ */
+const STATEMENT_MAX_PAGES = 5
 
 export default function Statement(): React.JSX.Element {
   const t = useStrings()
@@ -35,13 +47,19 @@ export default function Statement(): React.JSX.Element {
   const range = rangeOf(rangeId)
 
   const ledger = useQuery(
-    ['ledger', retailerId, rangeId],
+    ['ledger', retailerId, rangeId, 'every'],
     () =>
-      api.api.receivables.ledger.get({
-        retailerId: retailerId ?? '',
-        from: range.from,
-        to: range.to,
-      }),
+      readEveryPage(
+        (cursor) =>
+          api.api.receivables.ledger.get({
+            retailerId: retailerId ?? '',
+            from: range.from,
+            to: range.to,
+            limit: STATEMENT_PAGE,
+            ...(cursor === undefined ? {} : { cursor }),
+          }),
+        { maxPages: STATEMENT_MAX_PAGES },
+      ),
     { enabled: signedIn && retailerId !== null },
   )
   const rows = ledger.data?.items ?? []
@@ -68,7 +86,7 @@ export default function Statement(): React.JSX.Element {
             <Txt field="body" desk="body" color={colors.text.secondary}>
               {t('r6.opening')}
             </Txt>
-            <Money value={ledger.data?.openingPaise ?? null} size="moneyM" />
+            <Money value={ledger.data?.first.openingPaise ?? null} size="moneyM" />
           </Row>
         </Panel>
 
@@ -143,8 +161,16 @@ export default function Statement(): React.JSX.Element {
               <Txt field="bodyStrong" desk="body">
                 {t('r6.closing')}
               </Txt>
-              <Money value={ledger.data?.closingPaise ?? null} size="moneyL" />
+              <Money
+                value={ledger.data?.complete === true ? ledger.data.last.closingPaise : null}
+                size="moneyL"
+              />
             </Row>
+            {ledger.data?.complete === false ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="r6-partial">
+                {t('r6.partial')}
+              </Txt>
+            ) : null}
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {t('r6.explain')}
             </Txt>

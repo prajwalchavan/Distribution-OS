@@ -16,6 +16,8 @@ import {
   retailerLinks,
   retailers,
   tenants,
+  tenantSettings,
+  TENANT_SETTING_KEYS,
   users,
   withTenant,
   type ActorRole,
@@ -74,7 +76,26 @@ type ReceiptReply = {
 type LedgerReply = {
   openingPaise: number
   closingPaise: number
-  items: { kind: string; debitPaise: number; creditPaise: number; balancePaise: number }[]
+  items: {
+    kind: string
+    refId: string
+    debitPaise: number
+    creditPaise: number
+    balancePaise: number
+  }[]
+  nextCursor: string | null
+}
+type OpenBillReply = { id: string; invoiceNo: string | null; totalPaise: number; openPaise: number }
+/** `receivables.payments.initiate`'s reply, as far as the payment-intent tests read it. */
+type PaymentIntentReply = {
+  retailerId: string
+  amountPaise: number
+  upiQrPayload: string | null
+  upiIntentUrl: string | null
+  payeeVpa: string | null
+  payeeName: string | null
+  paymentRef: string
+  bills: OpenBillReply[]
 }
 
 describeDb('receivables (DATABASE_URL)', () => {
@@ -151,12 +172,13 @@ describeDb('receivables (DATABASE_URL)', () => {
     dueOffsetDays: number
   }): Promise<void> {
     invoiceCount += 1
+    const invoiceNo = `INV/${run}/${String(invoiceCount).padStart(3, '0')}`
     const dueDate = day(input.dueOffsetDays)
     const invoiceDate = day(input.dueOffsetDays - 15)
     await db.insert(invoices).values({
       id: input.id,
       tenantId,
-      invoiceNo: `INV/${run}/${String(invoiceCount).padStart(3, '0')}`,
+      invoiceNo,
       seriesCode: 'INV',
       fy,
       invoiceDate,
@@ -168,7 +190,9 @@ describeDb('receivables (DATABASE_URL)', () => {
       taxablePaise: input.totalPaise,
       totalPaise: input.totalPaise,
       dueDate,
-      upiQrPayload: `pa=tarsun@upi&pn=Tarsun%20Enterprises&am=${String(input.totalPaise / 100)}`,
+      // the issue-time snapshot exactly as billing writes it: the full URI, the bill's ORIGINAL total and
+      // its invoice number. A payment intent must never reuse it (DOS-094).
+      upiQrPayload: `upi://pay?pa=tarsun%40upi&pn=Tarsun%20Enterprises&am=${(input.totalPaise / 100).toFixed(2)}&tr=${invoiceNo.replace(/\//g, '-')}&cu=INR`,
     })
     await asOwner((tx) =>
       receivables.postInvoiceIssued(tx, {
@@ -230,6 +254,12 @@ describeDb('receivables (DATABASE_URL)', () => {
     ])
     await bootstrapTenant(db, tenantId)
     await bootstrapTenant(db, otherTenantId)
+    // The distributor's own UPI id, the one a shop's payment intent pays into. Only the VPA: the display
+    // name stays the one bootstrapTenant seeds from the legal name, which the receipt seller block expects.
+    await db
+      .insert(tenantSettings)
+      .values({ tenantId, key: TENANT_SETTING_KEYS.upiVpa, value: 'tarsun@upi' })
+      .onConflictDoNothing()
 
     const shopRow = (id: string, n: number, extra: Record<string, unknown> = {}) => ({
       id,
@@ -846,6 +876,50 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(shopside.body.items.length).toBe(desk.body.items.length)
   })
 
+  /*
+   * The retailer statement now follows `nextCursor` to the end of its window and prints the closing
+   * balance only when it has (DOS-095). That is safe only if the page chain is exact: page 2 carries the
+   * running balance on from page 1, no entry is skipped or repeated at a page boundary, and the last
+   * balance on the last page is the window's closing balance.
+   */
+  it("DOS-095: the shop's statement pages chain: following nextCursor lists every entry and the last balance equals closingPaise", async () => {
+    const period = { from: day(-200), to: day(0) }
+    const whole = await call<LedgerReply>(app, shopA, 'GET', `/receivables/ledger/${shop.a}`, {
+      ...period,
+      limit: 200,
+    })
+    expect(whole.status).toBe(200)
+    expect(whole.body.nextCursor).toBeNull()
+
+    const paged: LedgerReply['items'] = []
+    let cursor: string | null = null
+    let pages = 0
+    do {
+      const page: { status: number; body: LedgerReply } = await call<LedgerReply>(
+        app,
+        shopA,
+        'GET',
+        `/receivables/ledger/${shop.a}`,
+        { ...period, limit: 2, ...(cursor === null ? {} : { cursor }) },
+      )
+      expect(page.status).toBe(200)
+      expect(page.body.items.length).toBeLessThanOrEqual(2)
+      expect(page.body.openingPaise).toBe(whole.body.openingPaise)
+      expect(page.body.closingPaise).toBe(whole.body.closingPaise)
+      paged.push(...page.body.items)
+      cursor = page.body.nextCursor
+      pages += 1
+    } while (cursor !== null && pages <= whole.body.items.length)
+
+    expect(cursor).toBeNull()
+    expect(pages).toBeGreaterThan(1)
+    expect(paged.map((row) => row.refId)).toEqual(whole.body.items.map((row) => row.refId))
+    expect(paged.map((row) => row.balancePaise)).toEqual(
+      whole.body.items.map((row) => row.balancePaise),
+    )
+    expect(paged.at(-1)?.balancePaise).toBe(whole.body.closingPaise)
+  })
+
   it('gives the accountant a trial balance that nets to zero', async () => {
     const res = await call<{
       items: { code: string; balancePaise: number }[]
@@ -1365,6 +1439,224 @@ describeDb('receivables (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(403)
+  })
+
+  it("DOS-094: payments.initiate puts the amount the shop chose and its own PAY reference in a single upi://pay? intent paid to the distributor's configured UPI id", async () => {
+    const res = await call<PaymentIntentReply>(
+      app,
+      shopA,
+      'POST',
+      '/receivables/payments/initiate',
+      { idempotencyKey: `pay-094-all-${run}`, id: uuidv7() },
+    )
+    expect(res.status).toBe(200)
+    const { amountPaise, paymentRef, bills } = res.body
+    const url = res.body.upiIntentUrl ?? ''
+
+    // one intent, one scheme prefix: the deep link and the QR payload are the same full URI
+    expect(url).not.toBe('')
+    expect(res.body.upiQrPayload).toBe(url)
+    expect(url.split('upi://pay?')).toHaveLength(2)
+    // paid into the distributor's configured UPI id under its display name, not the bill snapshot's `pn`
+    expect(url.startsWith('upi://pay?pa=tarsun%40upi&pn=Receivables%20test&am=')).toBe(true)
+    expect(res.body.payeeVpa).toBe('tarsun@upi')
+    expect(res.body.payeeName).toBe('Receivables test')
+
+    // "pay everything" across several bills asks for what is open on all of them, not one bill's total
+    expect(bills.length).toBeGreaterThan(1)
+    expect(amountPaise).toBe(bills.reduce((sum, bill) => sum + bill.openPaise, 0))
+    expect(url).toContain(`&am=${(amountPaise / 100).toFixed(2)}&`)
+
+    // the reference the shop quotes rides in `tr` and in the note, never a bill's invoice number
+    expect(paymentRef).toMatch(/^PAY-[0-9a-f]{12}$/)
+    expect(url).toContain(`&tr=${paymentRef}&tn=${paymentRef}&cu=INR`)
+    expect(url).not.toContain('tr=INV')
+
+    // and it still credits nothing
+    const rows = await db.execute(sql`
+      select count(*)::int as n from receipts where tenant_id = ${tenantId} and received_by = ${shopUserA}`)
+    expect((rows.rows[0] as { n: number }).n).toBe(0)
+  })
+
+  it("DOS-094: one part-paid bill asks for what is left of it under the PAY reference, not the bill's original total or its invoice number", async () => {
+    // the shop's own dues, the list the Pay screen ticks bills from
+    const dues = await call<{ bills: OpenBillReply[] }>(
+      app,
+      shopA,
+      'GET',
+      `/receivables/outstanding/${shop.a}`,
+      { includeBills: true },
+    )
+    expect(dues.status).toBe(200)
+    // precondition: the FIFO receipt left inv.a2 part-paid, the INV/0433 shape from the finding
+    const bill = dues.body.bills.find((b) => b.id === inv.a2)
+    expect(bill).toBeDefined()
+    const { totalPaise, openPaise } = bill ?? { totalPaise: 0, openPaise: 0 }
+    expect(openPaise).toBeGreaterThan(0)
+    expect(openPaise).toBeLessThan(totalPaise)
+
+    const res = await call<PaymentIntentReply>(
+      app,
+      shopA,
+      'POST',
+      '/receivables/payments/initiate',
+      {
+        idempotencyKey: `pay-094-one-${run}`,
+        id: uuidv7(),
+        invoiceIds: [inv.a2],
+        amountPaise: openPaise,
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.bills.map((b) => b.id)).toEqual([inv.a2])
+    expect(res.body.amountPaise).toBe(openPaise)
+    const url = res.body.upiIntentUrl ?? ''
+    expect(url.split('upi://pay?')).toHaveLength(2)
+    expect(url).toContain(`&am=${(openPaise / 100).toFixed(2)}&`)
+    expect(url).not.toContain(`am=${(totalPaise / 100).toFixed(2)}`)
+    expect(res.body.paymentRef).toMatch(/^PAY-[0-9a-f]{12}$/)
+    expect(url).toContain(`&tr=${res.body.paymentRef}&`)
+    expect(url).not.toContain('tr=INV')
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // banking the day
+
+  /*
+   * The manager app's Day-end and Receipts screens offer "Bank this batch", "Bank it" and "Mark bounced" from
+   * `receiptMayBeDeposited` / `receiptMayBounce` in @dos/domain (DOS-034). This pins the server half those buttons
+   * rely on. OFFICE receipts only: where a trip's cash is credited when it is banked is a separate, open
+   * accounting question and is deliberately not asserted here.
+   */
+  it('DOS-034 (guard): the desk banks an office cash + cheque batch (DR BANK, CR CASH and CHEQUES), a batch holding a UPI receipt is refused whole with nothing deposited, and a banked cheque bounces against BANK', async () => {
+    const shopJ = uuidv7()
+    const billJ = uuidv7()
+    await db.insert(retailers).values({
+      id: shopJ,
+      tenantId,
+      code: `S10-${run}`,
+      name: `Shop 10 ${run}`,
+      phone: `+9192${run}10`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    await seedInvoice({ id: billJ, retailerId: shopJ, totalPaise: 30_000, dueOffsetDays: 5 })
+
+    /** Money taken at the office desk: no trip, so cash lands in CASH and a cheque in CHEQUES. */
+    const take = async (
+      mode: 'cash' | 'cheque' | 'upi',
+      amountPaise: number,
+      extra: Record<string, unknown> = {},
+    ): Promise<string> => {
+      const id = uuidv7()
+      const res = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `rcpt-034-${id}`,
+        id,
+        retailerId: shopJ,
+        mode,
+        amountPaise,
+        ...extra,
+      })
+      expect(res.status).toBe(200)
+      expect(res.body.item.tripId).toBeNull()
+      return id
+    }
+    const cashId = await take('cash', 10_000)
+    const chequeId = await take('cheque', 12_000, {
+      reference: '034411',
+      bankName: 'Bank of Maharashtra',
+    })
+    const strayCashId = await take('cash', 5_000)
+    const upiId = await take('upi', 3_000, { reference: `UTR034${run}` })
+    expect(await invoiceState(billJ)).toBe('paid')
+    expect(await arBalance(shopJ)).toBe(0)
+
+    const statusOf = async (id: string): Promise<string> => {
+      const res = await call<{ item: Receipt }>(app, accountant, 'GET', `/receipts/${id}`)
+      expect(res.status).toBe(200)
+      return res.body.item.status
+    }
+    /** Account code -> net amount of the journal entry a ref posted, or `{}` when nothing was posted. */
+    const entryOf = async (refType: string, refId: string): Promise<Record<string, number>> => {
+      const result = await db.execute(sql`
+        select a.code, sum(jl.amount_paise)::bigint as amount
+          from journal_entries je
+          join journal_lines jl on jl.entry_id = je.id and jl.tenant_id = je.tenant_id
+          join accounts a on a.id = jl.account_id
+         where je.tenant_id = ${tenantId} and je.ref_type = ${refType} and je.ref_id = ${refId}
+         group by a.code`)
+      return Object.fromEntries(
+        (result.rows as { code: string; amount: string }[]).map((row) => [
+          row.code,
+          Number(row.amount),
+        ]),
+      )
+    }
+
+    // 1. a batch holding a UPI receipt is refused WHOLE: the cash beside it stays in hand, nothing is posted
+    const refusedBatch = uuidv7()
+    const refused = await call<{ message: string }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-034-refused-${run}`,
+      id: refusedBatch,
+      receiptIds: [strayCashId, upiId],
+      depositedAt: new Date().toISOString(),
+      depositRef: `DEP-034-X-${run}`,
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.message).toContain('only cash and cheques are banked')
+    expect(await statusOf(strayCashId)).toBe('collected')
+    expect(await statusOf(upiId)).toBe('collected')
+    expect(await entryOf('deposit', refusedBatch)).toEqual({})
+
+    // 2. office cash and a cheque banked together: DR BANK, CR CASH and CHEQUES, and the entry nets to zero
+    const batch = uuidv7()
+    const banked = await call<{ updated: number; journalEntryId: string; totalPaise: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receipts/deposit',
+      {
+        idempotencyKey: `dep-034-${run}`,
+        id: batch,
+        receiptIds: [cashId, chequeId],
+        depositedAt: new Date().toISOString(),
+        depositRef: `DEP-034-${run}`,
+      },
+    )
+    expect(banked.status).toBe(200)
+    expect(banked.body).toMatchObject({ updated: 2, totalPaise: 22_000 })
+    expect(await statusOf(cashId)).toBe('deposited')
+    expect(await statusOf(chequeId)).toBe('deposited')
+    const deposit = await entryOf('deposit', batch)
+    expect(deposit).toEqual({ BANK: 22_000, CASH: -10_000, CHEQUES: -12_000 })
+    expect(Object.values(deposit).reduce((sum, amount) => sum + amount, 0)).toBe(0)
+    // banking moves money between the distributor's own accounts: the shop's balance does not move
+    expect(await arBalance(shopJ)).toBe(0)
+
+    // 3. the bank returns the banked cheque: the reversal credits BANK, where the money went, not CHEQUES
+    const reversalId = uuidv7()
+    const bounced = await call<{ item: Receipt; original: Receipt; outstanding: Outstanding }>(
+      app,
+      accountant,
+      'POST',
+      `/receipts/${chequeId}/bounce`,
+      {
+        idempotencyKey: `bounce-034-${run}`,
+        id: chequeId,
+        reversalId,
+        bouncedAt: new Date().toISOString(),
+        reason: 'insufficient funds',
+      },
+    )
+    expect(bounced.status).toBe(200)
+    expect(bounced.body.original).toMatchObject({ id: chequeId, status: 'bounced' })
+    expect(bounced.body.item.amountPaise).toBe(-12_000)
+    expect(await entryOf('receipt_reversal', reversalId)).toEqual({ BANK: -12_000, AR: 12_000 })
+    // the shop owes exactly the cheque again
+    expect(bounced.body.outstanding.outstandingPaise).toBe(12_000)
+    expect(await arBalance(shopJ)).toBe(12_000)
+    expect(await invoiceState(billJ)).toBe('partially_paid')
   })
 
   it('isolates tenants', async () => {
