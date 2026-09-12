@@ -37,9 +37,11 @@ import {
   Field,
   PageTabs,
   Panel,
+  Refusal,
   countText,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -186,11 +188,11 @@ export default function Fulfilment(): React.JSX.Element {
       void createWave.mutateAsync({ orderIds: picked, beatId: beat }).then(() => {
         setPicked([])
         done()
-      }, done)
+      }, stayOpen)
     if (acting === 'start' && openSheet !== null)
-      void startPick.mutateAsync(openSheet).then(done, done)
+      void startPick.mutateAsync(openSheet).then(done, stayOpen)
     if (acting === 'cancel' && openSheet !== null)
-      void cancelWave.mutateAsync({ id: openSheet, reason: reason.trim() }).then(done, done)
+      void cancelWave.mutateAsync({ id: openSheet, reason: reason.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -410,6 +412,7 @@ export default function Fulfilment(): React.JSX.Element {
                 testID="wave-reason"
               />
             ) : null}
+            <Refusal of={[createWave, startPick, cancelWave]} testID="wave-refusal" />
           </Stack>
         }
         confirmLabel={

@@ -46,9 +46,11 @@ import {
   PageTabs,
   Panel,
   RangeSegments,
+  Refusal,
   countText,
   moneyColumn,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -435,6 +437,8 @@ export default function Receipts(): React.JSX.Element {
             {t('m9.allocateHint')}
           </Txt>
 
+          {/* A refused receipt says why directly above the button that sent it (DOS-029). */}
+          <Refusal of={[create]} scope={shopId} testID="receipt-refusal" />
           <Button
             label={t('m9.record')}
             variant="primary"
@@ -450,25 +454,15 @@ export default function Receipts(): React.JSX.Element {
                   amountPaise: amount,
                   reference: reference.trim(),
                 })
-                .then(
-                  () => {
-                    setRecording(false)
-                    setShopId(null)
-                    setAmount(null)
-                    setReference('')
-                  },
-                  () => {
-                    /* the error prints below */
-                  },
-                )
+                .then(() => {
+                  setRecording(false)
+                  setShopId(null)
+                  setAmount(null)
+                  setReference('')
+                }, stayOpen)
             }}
             testID="receipt-submit"
           />
-          {create.error === undefined ? null : (
-            <Txt field="label" desk="meta" color={colors.status.brick.fg}>
-              {create.error.message}
-            </Txt>
-          )}
         </Stack>
       </Sheet>
 
@@ -491,6 +485,7 @@ export default function Receipts(): React.JSX.Element {
               capitalize="sentences"
               testID="reverse-reason"
             />
+            <Refusal of={[reverse]} testID="reverse-refusal" />
           </Stack>
         }
         confirmLabel={t('m9.reverse')}
@@ -498,15 +493,10 @@ export default function Receipts(): React.JSX.Element {
         busy={reverse.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
-          void reverse.mutateAsync({ id: selected, reason: reason.trim() }).then(
-            () => {
-              setReversing(false)
-              setReason('')
-            },
-            () => {
-              setReversing(false)
-            },
-          )
+          void reverse.mutateAsync({ id: selected, reason: reason.trim() }).then(() => {
+            setReversing(false)
+            setReason('')
+          }, stayOpen)
         }}
         testID="reverse-dialog"
       />
@@ -530,31 +520,17 @@ export default function Receipts(): React.JSX.Element {
               capitalize="none"
               testID="receipt-deposit-ref"
             />
-            {deposit.error === undefined ? null : (
-              <Txt
-                field="label"
-                desk="meta"
-                color={colors.status.brick.fg}
-                testID="receipt-deposit-refusal"
-              >
-                {deposit.error.message}
-              </Txt>
-            )}
+            <Refusal of={[deposit]} testID="receipt-deposit-refusal" />
           </Stack>
         }
         confirmLabel={t('m9.deposit')}
         busy={deposit.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
-          void deposit.mutateAsync({ receiptId: selected, ref: depositRef.trim() }).then(
-            () => {
-              setDepositing(false)
-              setDepositRef('')
-            },
-            () => {
-              /* the refusal prints in the dialog, which stays open */
-            },
-          )
+          void deposit.mutateAsync({ receiptId: selected, ref: depositRef.trim() }).then(() => {
+            setDepositing(false)
+            setDepositRef('')
+          }, stayOpen)
         }}
         testID="receipt-deposit-dialog"
       />
@@ -584,16 +560,7 @@ export default function Receipts(): React.JSX.Element {
               onChange={setCharges}
               testID="receipt-bounce-charges"
             />
-            {bounce.error === undefined ? null : (
-              <Txt
-                field="label"
-                desk="meta"
-                color={colors.status.brick.fg}
-                testID="receipt-bounce-refusal"
-              >
-                {bounce.error.message}
-              </Txt>
-            )}
+            <Refusal of={[bounce]} testID="receipt-bounce-refusal" />
           </Stack>
         }
         confirmLabel={t('m9.bounce')}
@@ -603,16 +570,11 @@ export default function Receipts(): React.JSX.Element {
           if (selected === null) return
           void bounce
             .mutateAsync({ id: selected, reason: bounceReason.trim(), chargesPaise: charges })
-            .then(
-              () => {
-                setBouncing(false)
-                setBounceReason('')
-                setCharges(null)
-              },
-              () => {
-                /* the refusal prints in the dialog, which stays open */
-              },
-            )
+            .then(() => {
+              setBouncing(false)
+              setBounceReason('')
+              setCharges(null)
+            }, stayOpen)
         }}
         testID="receipt-bounce-dialog"
       />

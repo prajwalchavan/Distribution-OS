@@ -44,9 +44,11 @@ import {
   Field,
   PageTabs,
   Panel,
+  Refusal,
   countText,
   moneyColumn,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -183,9 +185,9 @@ export default function LoadOut(): React.JSX.Element {
       setNote('')
     }
     if (acting === 'approve')
-      void approve.mutateAsync({ id: selected, note: note.trim() }).then(done, done)
+      void approve.mutateAsync({ id: selected, note: note.trim() }).then(done, stayOpen)
     if (acting === 'cancel')
-      void cancelSheet.mutateAsync({ id: selected, reason: note.trim() }).then(done, done)
+      void cancelSheet.mutateAsync({ id: selected, reason: note.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -426,6 +428,7 @@ export default function LoadOut(): React.JSX.Element {
               capitalize="sentences"
               testID="loadsheet-note"
             />
+            <Refusal of={[approve, cancelSheet]} testID="loadsheet-refusal" />
           </Stack>
         }
         confirmLabel={acting === 'approve' ? t('m7.approve') : t('m7.cancelSheet')}
@@ -454,20 +457,16 @@ export default function LoadOut(): React.JSX.Element {
               capitalize="none"
               testID="ewb-number"
             />
+            <Refusal of={[recordEwb]} testID="ewb-refusal" />
           </Stack>
         }
         confirmLabel={t('m7.recordEwb')}
         busy={recordEwb.status === 'pending'}
         onConfirm={() => {
           if (ewbFor === null) return
-          void recordEwb.mutateAsync({ id: ewbFor, ewbNo: ewbNo.trim() }).then(
-            () => {
-              setEwbFor(null)
-            },
-            () => {
-              setEwbFor(null)
-            },
-          )
+          void recordEwb.mutateAsync({ id: ewbFor, ewbNo: ewbNo.trim() }).then(() => {
+            setEwbFor(null)
+          }, stayOpen)
         }}
         testID="ewb-dialog"
       />

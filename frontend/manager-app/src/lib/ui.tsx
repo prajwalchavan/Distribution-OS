@@ -6,7 +6,14 @@
  * error / empty triple in one place so no screen invents its own, and `PageTabs` is the level-2 tab
  * row of §8.1 rendered from `src/nav.ts` — one definition, not one per page.
  */
-import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import {
+  useApi,
+  useMutation,
+  useQuery,
+  useRefusal,
+  useSession,
+  type WriteOutcome,
+} from '@dos/api-client/react'
 import {
   Button,
   ErrorState,
@@ -178,6 +185,52 @@ export function Async({
   if (states.some((s) => s.isLoading)) return <Skeleton rows={rows} />
   if (empty) return <EmptyState message={emptyMessage ?? t('state.empty')} />
   return <>{children}</>
+}
+
+// ---------------------------------------------------------------------------
+// A refused write, where the person pressed
+// ---------------------------------------------------------------------------
+
+export interface RefusalProps {
+  /** Every write the dialog or panel serves. */
+  of: readonly WriteOutcome[]
+  /** The bill, shop or document the surface is about; a different one hides the last refusal. */
+  scope?: string | null | undefined
+  testID?: string | undefined
+}
+
+/**
+ * DOS-029: the service's own sentence for a refused write, on the surface where it was pressed.
+ *
+ * Every confirm on this app used to close its dialog on failure as well as on success
+ * (`.then(done, done)`), so a 400, a 409 and a 501 all looked like nothing had happened. A surface now
+ * closes only on success (`stayOpen` is the rejection handler) and this line says why it did not: the
+ * last child of a dialog's body, directly above the buttons, or directly above a panel's submit button.
+ *
+ * WHICH refusal is `useRefusal`'s rule (@dos/api-client): the latest among `of`, hidden while any of
+ * them is pending, never one already there when the surface opened, reset when `scope` changes.
+ *
+ * A lost connection is the one sentence replaced. The client's default promises "This will send when
+ * the signal is back", true of a queued field write and false here: nothing queues a manager write.
+ */
+export function Refusal({ of, scope, testID }: RefusalProps): React.JSX.Element {
+  const t = useStrings()
+  const colors = useColors()
+  const refusal = useRefusal(of, scope ?? null)
+  if (refusal === undefined) return <></>
+  return (
+    <Txt field="body" desk="body" color={colors.status.brick.fg} testID={testID}>
+      {refusal.kind === 'network' ? t('app.writeNoConnection') : refusal.message}
+    </Txt>
+  )
+}
+
+/**
+ * The rejection handler of every confirm on this app: `.then(done, stayOpen)`. The dialog or panel stays
+ * open, the refusal stays on the mutation's state, and `<Refusal>` prints it.
+ */
+export function stayOpen(): void {
+  /* the refusal stays on the mutation state; <Refusal> prints it */
 }
 
 // ---------------------------------------------------------------------------
@@ -505,17 +558,21 @@ export function ExportButton({
   }
 
   return (
-    <Button
-      testID={testID}
-      label={request.status === 'pending' ? t('app.exportQueued') : t('app.export')}
-      variant="secondary"
-      loading={request.status === 'pending' || job.isFetching}
-      onPress={() => {
-        request.reset()
-        setUrl(null)
-        request.mutate(null)
-      }}
-    />
+    <Stack gap={1}>
+      <Button
+        testID={testID}
+        label={request.status === 'pending' ? t('app.exportQueued') : t('app.export')}
+        variant="secondary"
+        loading={request.status === 'pending' || job.isFetching}
+        onPress={() => {
+          request.reset()
+          setUrl(null)
+          request.mutate(null)
+        }}
+      />
+      {/* A refused export says why under its own button (DOS-029); the next press starts a new intent. */}
+      <Refusal of={[request]} testID={testID === undefined ? undefined : `${testID}-refusal`} />
+    </Stack>
   )
 }
 

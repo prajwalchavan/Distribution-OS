@@ -29,7 +29,7 @@ import {
 } from '@dos/ui'
 import { useState } from 'react'
 
-import { Async, Field, PageTabs, Panel, useNames } from '../../src/lib/ui'
+import { Async, Field, PageTabs, Panel, Refusal, stayOpen, useNames } from '../../src/lib/ui'
 import { instantWithClock } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -110,15 +110,10 @@ export default function GateCount(): React.JSX.Element {
           damagedQtyPcs: value.damaged,
         })),
       })
-      .then(
-        () => {
-          setCounts({})
-          setConfirming(false)
-        },
-        () => {
-          setConfirming(false)
-        },
-      )
+      .then(() => {
+        setCounts({})
+        setConfirming(false)
+      }, stayOpen)
   }
 
   return (
@@ -307,6 +302,7 @@ export default function GateCount(): React.JSX.Element {
             <Field label={t('m19.countedLines', { done: pending.length, total: lines.length })}>
               {grn?.grnNo ?? t('m4.receipts')}
             </Field>
+            <Refusal of={[record]} testID="gate-refusal" />
           </Stack>
         }
         confirmLabel={t('m19.save')}

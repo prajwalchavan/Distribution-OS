@@ -51,9 +51,11 @@ import {
   Half,
   PageTabs,
   Panel,
+  Refusal,
   addCounts,
   moneyColumn,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -450,21 +452,17 @@ export default function DayEnd(): React.JSX.Element {
               capitalize="none"
               testID="deposit-ref"
             />
+            <Refusal of={[deposit]} testID="deposit-refusal" />
           </Stack>
         }
         confirmLabel={t('m10.deposit')}
         busy={deposit.status === 'pending'}
         onConfirm={() => {
-          void deposit.mutateAsync({ receiptIds: ticked, ref: depositRef.trim() }).then(
-            () => {
-              setTicked([])
-              setDepositRef('')
-              setBanking(false)
-            },
-            () => {
-              setBanking(false)
-            },
-          )
+          void deposit.mutateAsync({ receiptIds: ticked, ref: depositRef.trim() }).then(() => {
+            setTicked([])
+            setDepositRef('')
+            setBanking(false)
+          }, stayOpen)
         }}
         testID="deposit-dialog"
       />
@@ -493,6 +491,7 @@ export default function DayEnd(): React.JSX.Element {
               onChange={setCharges}
               testID="bounce-charges"
             />
+            <Refusal of={[bounce]} testID="bounce-refusal" />
           </Stack>
         }
         confirmLabel={t('m10.bounce')}
@@ -502,16 +501,11 @@ export default function DayEnd(): React.JSX.Element {
           if (bouncing === null) return
           void bounce
             .mutateAsync({ id: bouncing, reason: bounceReason.trim(), chargesPaise: charges })
-            .then(
-              () => {
-                setBouncing(null)
-                setBounceReason('')
-                setCharges(null)
-              },
-              () => {
-                setBouncing(null)
-              },
-            )
+            .then(() => {
+              setBouncing(null)
+              setBounceReason('')
+              setCharges(null)
+            }, stayOpen)
         }}
         testID="bounce-dialog"
       />
@@ -535,6 +529,7 @@ export default function DayEnd(): React.JSX.Element {
               capitalize="sentences"
               testID="settle-note"
             />
+            <Refusal of={[settle]} testID="settle-refusal" />
           </Stack>
         }
         confirmLabel={t('m10.settle')}
@@ -548,17 +543,12 @@ export default function DayEnd(): React.JSX.Element {
               note: settleNote.trim(),
               accept: beyondTolerance,
             })
-            .then(
-              () => {
-                setSettling(false)
-                setTripId(null)
-                setHandedOver(null)
-                setSettleNote('')
-              },
-              () => {
-                setSettling(false)
-              },
-            )
+            .then(() => {
+              setSettling(false)
+              setTripId(null)
+              setHandedOver(null)
+              setSettleNote('')
+            }, stayOpen)
         }}
         testID="settle-dialog"
       />

@@ -31,7 +31,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { Async, Field, Panel, textColumn } from '../src/lib/ui'
+import { Async, Field, Panel, Refusal, stayOpen, textColumn } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
@@ -165,23 +165,21 @@ export default function Account(): React.JSX.Element {
         }}
         title={t('x4.revoke')}
         body={
-          <Txt field="body" desk="body">
-            {t('x4.revokeBody')}
-          </Txt>
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('x4.revokeBody')}
+            </Txt>
+            <Refusal of={[revoke]} testID="revoke-refusal" />
+          </Stack>
         }
         confirmLabel={t('x4.revoke')}
         destructive
         busy={revoke.status === 'pending'}
         onConfirm={() => {
           if (revoking === null) return
-          void revoke.mutateAsync(revoking).then(
-            () => {
-              setRevoking(null)
-            },
-            () => {
-              setRevoking(null)
-            },
-          )
+          void revoke.mutateAsync(revoking).then(() => {
+            setRevoking(null)
+          }, stayOpen)
         }}
         testID="revoke-dialog"
       />

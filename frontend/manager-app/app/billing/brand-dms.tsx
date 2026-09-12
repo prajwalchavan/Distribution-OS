@@ -41,10 +41,12 @@ import {
   PageTabs,
   Panel,
   RangeSegments,
+  Refusal,
   countText,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -191,22 +193,20 @@ export default function BrandDms(): React.JSX.Element {
         }}
         title={t('m11.capture')}
         body={
-          <Txt field="body" desk="body">
-            {t('m3.captureHint')}
-          </Txt>
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('m3.captureHint')}
+            </Txt>
+            <Refusal of={[startCapture]} testID="brand-capture-refusal" />
+          </Stack>
         }
         confirmLabel={t('m11.capture')}
         busy={startCapture.status === 'pending'}
         onConfirm={() => {
-          void startCapture.mutateAsync(null).then(
-            () => {
-              setCapturing(false)
-              router.push('/inbound/documents')
-            },
-            () => {
-              setCapturing(false)
-            },
-          )
+          void startCapture.mutateAsync(null).then(() => {
+            setCapturing(false)
+            router.push('/inbound/documents')
+          }, stayOpen)
         }}
         testID="brand-capture-dialog"
       />

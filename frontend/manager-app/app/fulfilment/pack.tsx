@@ -32,7 +32,16 @@ import {
 } from '@dos/ui'
 import { useState } from 'react'
 
-import { Async, Field, PageTabs, Panel, useCan, useNames } from '../../src/lib/ui'
+import {
+  Async,
+  Field,
+  PageTabs,
+  Panel,
+  Refusal,
+  stayOpen,
+  useCan,
+  useNames,
+} from '../../src/lib/ui'
 import { shortDate, shortInstant } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -150,12 +159,12 @@ export default function PickAndPack(): React.JSX.Element {
         .then(() => {
           setCounts({})
           done()
-        }, done)
+        }, stayOpen)
     if (confirming === 'pack' && packing !== null)
       void pack.mutateAsync(packing).then(() => {
         setPacking(null)
         done()
-      }, done)
+      }, stayOpen)
   }
 
   return (
@@ -368,6 +377,7 @@ export default function PickAndPack(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {confirming === 'pack' ? t('m20.packBody') : ''}
             </Txt>
+            <Refusal of={[recordPick, pack]} testID="pack-refusal" />
           </Stack>
         }
         confirmLabel={confirming === 'pick' ? t('m20.recordPick') : t('m20.packOrder')}
