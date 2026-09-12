@@ -111,3 +111,13 @@ the same three for "No connection". GREEN run on the fix (d600ab8), after recrea
 note refusal sitting directly above Draft, the wave dialog staying open with "only a confirmed order can be waved; SO-0850 is packed", and
 "No connection. Check the signal, then press again." One step NOT RUN in both: the brand-DMS 501 approve needs document 0400aea1…, whose id
 exists only in dos_qa. Logs: `QA/evidence/batch1/dos-029/e2e-red.log`, `e2e-green.log`, `run-summary.txt`, screenshots under `red/` and `green/`.
+
+**DOS-029 whole-frontend check on its branch (d600ab8, before merging):** lint 11/11, typecheck 11/11, tests 6/6 packages
+(api-client 76, ui 216, offline 38, sales-app 1, delivery-app 6, manager-app 3 = 340 passed), format:check clean — the api-client change breaks no
+other app. `git merge-tree` against main: clean. Merge waits only for the last regression walker (sales + owner) so its apps do not reload mid-walk.
+
+**Regression outcome of the fixes so far (2026-09-13 ~03:45 IST; details in QA/14):** web and API re-walks PASS for DOS-039 (desk), 040, 041, 042, 023, 025,
+058, 060 (web), 057, 061, 094, 095, 099, 073, 075, 076, 001, 005, 020 and DOS-029 (a–d). **DOS-034 PARTIAL** — actions in sight and working, but the in-hand
+list still offers money the desk cannot bank (DOS-132). **DOS-029 residual** — refusal dropped while another write is pending (DOS-135). **DOS-077** — web
+desk PASS; web phone clipping predates the fix (DOS-128); Android result pending. Cross-role chain completes only through the API for trip creation and
+load-sheet building (DOS-131 P0, DOS-133 P1); money sanity PASS.

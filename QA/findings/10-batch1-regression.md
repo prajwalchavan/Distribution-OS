@@ -350,3 +350,341 @@ Suggested fix: Show the summed reservation qty formatted with the line case size
 
 Found by: batch 1 regression web walk (sales + owner).
 
+### DOS-131 — No screen in any app can create a delivery trip or add a stop, so a newly packed order can never reach a delivery crew
+Category: missing-feature | Priority: P0 | Role: Manager (also Owner, Warehouse) | Platform: Web (manager :5274, owner :5173, warehouse :5176, delivery :5177); same code on Android/iOS
+
+```
+User: Manager (also Owner, Warehouse)
+Platform: Web (manager :5274, owner :5173, warehouse :5176, delivery :5177); same code on Android/iOS
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. Pack SO-0903..SO-0906 on 13 Sep (INV/9010-9013). 2. As vikas.kadam open Fulfilment -> Waves / Pick & pack / Load-out: the only controls are approve or cancel a sheet and the e-way bill. 3. As sunil.tarsun open Orders -> Trips: a register and settlement preview only. 4. As dinesh.patil open Load -> Trips: existing TRIP-ACTIVE/TRIP-NEXT with Start loading / Send it off only (the screen's own header says it may not create the round). 5. Search frontend/*/app and src for delivery.trips.create or a stop-add call: none. 6. Backend: trips/trip_stops are written only by trips.service create/addStop (HTTP) and van sales; no worker job creates trips.
+Expected: The manager, or the godown, plans today's round (docs/23 section 2.1 M7 lists delivery.trips.create; W10 is 'Trips: create, start loading'): date, vehicle, driver, float, and stops chosen from packed bills; and can add a late bill to a planned trip.
+Actual: No UI path exists. The regression chain could continue only by calling POST :3002/delivery/trips as the manager (200, TRIP-0001).
+Business impact: From go-live the distributor cannot send any new order out for delivery through the product: each morning's packed bills need a developer's API call to become a round, and a late bill cannot be added to a planned round. Seeded TRIP-ACTIVE/TRIP-NEXT hid this in Phase 1.
+Severity: P0
+Evidence: QA/evidence/batch1/regression/web-chain/c34-manager-fulfilment-desk.png; QA/evidence/batch1/regression/web-chain/c35-manager-load-out-desk.png; QA/evidence/batch1/regression/web-chain/c36-warehouse-trips-before-loading-desk.png; QA/evidence/batch1/regression/web-chain/api-12-manager-create-trip-response.json; QA/evidence/batch1/regression/web-chain/db-07-TRIP-0001-after-create.txt
+Suggested fix: Add 'Plan a trip' to the manager Load-out (and owner Trips) screen: date, vehicle, driver/helper, opening float, and stops picked from packed bills not yet on a trip (grouped by beat, reorderable), calling delivery.trips.create. Add 'Add a bill to this trip' calling the stop-add procedure. Have W7/W10 pass tripId so sheet and trip are linked.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-132 — Day-end offers cash still out with a delivery crew, and trip receipts of settled trips, for banking; the deposit credits CASH_VAN for them
+Category: business-logic | Priority: P1 | Role: Manager, Accountant | Platform: Web (desk 1280x800 and phone 390x844), manager build :5274; server posting applies to all clients
+
+```
+User: Manager, Accountant
+Platform: Web (desk 1280x800 and phone 390x844), manager build :5274; server posting applies to all clients
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. Sign in as vikas.kadam (also meena.joshi) → Money → Day-end.
+  2. The register 'Cash and cheques in hand' lists:
+     - RCPT-0698, Vaibhav Kirana Mart, ₹7,856, 12 Sep;
+     - RCPT-0701, Anand Bhavan Provision, ₹2,843, 13 Sep;
+     - RCPT-VAN-0001..0004 (₹12,569 / ₹3,848 / ₹61,109 / ₹75,010);
+     - RCPT-0655 and RCPT-0644.
+     The Trips coming back tile reads 0: 'No trip is waiting to be settled'.
+  3. SQL: RCPT-0698 and RCPT-0701 have trip TRIP-ACTIVE (trips.state = active, not settled). RCPT-VAN-* belong to TRIP-20260615-1 (settled); RCPT-0655 and RCPT-0644 belong to settled trips.
+  4. Tick RCPT-0701: the bottom bar shows '1 receipts · ₹2,843.00 · Bank this batch', enabled. It was not pressed.
+  5. SQL: the CASH_VAN ledger holds only 6 receipt debits (RCPT-VAN-0001..0004, RCPT-0698, RCPT-0701) = ₹1,63,235.00, with no settlement credits. RCPT-0655's receipt entry posted Dr CASH ₹4,323, not CASH_VAN.
+  6. Code: receivables.service.ts depositReceipts builds the credit side from receiptAccountCode(mode, tripId), which returns 'CASH_VAN' for any cash receipt with a trip_id. delivery/settlement.service.ts:236 credits CASH_VAN at settlement.
+Expected: Day-end lists only money the desk holds: office cash and cheques, plus trip cash only after its trip is settled. A deposit of trip cash that settlement already handed over credits CASH, and nothing is credited out of CASH_VAN twice.
+Actual: Cash still in the van (TRIP-ACTIVE) is offered for banking next to office cash, at desk and phone, to both the manager and the accountant. Its amounts are counted in 'Cash to bank' (₹40,98,730.52 at the time).
+
+From the code (not executed; banking trip receipts was deliberately not done):
+- Banking RCPT-0655 or RCPT-0644 would credit CASH_VAN for money posted to CASH, taking CASH_VAN negative and leaving CASH overstated.
+- Banking RCPT-0698 or RCPT-0701 now, then settling TRIP-ACTIVE, would credit CASH_VAN twice.
+Business impact: The desk can mark cash as banked while the delivery man still carries it. The bank slip total then disagrees with the physical cash, the van-cash control account goes wrong, and the day-end cash-to-bank figure includes money the office does not have.
+Severity: P1
+Evidence: QA/evidence/batch1/regression/web-manager/034-30-trip-cash-RCPT-0701-tickable-desk.png; QA/evidence/batch1/regression/web-manager/034-31-trip-cash-listed-phone-viewport.png; QA/evidence/batch1/regression/web-manager/034-32-trip-cash-listed-accountant-desk.png; QA/evidence/batch1/regression/web-manager/034-01-manager-day-end-desk.png; QA/evidence/batch1/regression/web-manager/db-034-trip-cash-on-day-end.txt; QA/evidence/batch1/regression/web-manager/db-034-cash-van-ledger.txt; QA/evidence/batch1/regression/web-manager/code-034-receipt-account-code.txt
+Suggested fix: Exclude receipts whose trip is not settled from the Day-end register and from receipts.deposit (server refusal). Post a deposit's credit from the account the cash sits in now: CASH once settlement has handed it over, never CASH_VAN after settlement. Make trips.settle move CASH_VAN→CASH exactly once per receipt. Add a DB guarantee test that banking plus settling a trip never takes CASH_VAN below zero. This is the van-cash follow-up the DOS-034 implementer asked to be filed.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (manager desk walk).
+
+### DOS-133 — Warehouse Load screen offers 50 arbitrary old packs as 'Packed orders'; today's packed orders never appear, so no load sheet can be built for them
+Category: bug | Priority: P1 | Role: Warehouse | Platform: Web (warehouse :5176); code shared by Android/iOS
+
+```
+User: Warehouse
+Platform: Web (warehouse :5176); code shared by Android/iOS
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. Pack SO-0903, SO-0904, SO-0905 and SO-0906 (13 Sep 03:12-03:27). 2. As dinesh.patil open Load (W7) and choose vehicle MH-05-EF-9012. 3. Read the 'Packed orders' panel. 4. GET :3004/warehouse/packs?limit=50 (the screen's call in app/load/index.tsx: packs.list({ limit: 50 }), no filter).
+Expected: Orders packed and not yet on a sheet, newest first (today's four), with paging or a date filter.
+Actual: The panel lists 50 long-dispatched packs (SO-0798 4 Sep, SO-0311 16 Jul, SO-0070 22 Jun...) and none of today's. The API returns id-ordered rows with a nextCursor, and the screen never pages. The sheet had to be created with POST :3004/warehouse/load-sheets using the screen's own body.
+Business impact: The godown cannot build today's load sheet, so nothing packed today can be checked out from the app, and old delivered orders are offered for loading instead. Same ordering class as DOS-023/DOS-025, which were fixed for picklists and sheets only.
+Severity: P1
+Evidence: QA/evidence/batch1/regression/web-chain/c38-warehouse-load-build-before-desk.png; QA/evidence/batch1/regression/web-chain/c38b-warehouse-load-packed-panel-desk.png; QA/evidence/batch1/regression/web-chain/api-14-warehouse-packs-list-limit50.json; QA/evidence/batch1/regression/web-chain/api-15-warehouse-create-load-sheet-response.json
+Suggested fix: Serve W7 from a server-side filter 'packed, not on a live sheet, not dispatched', ordered by packed_at desc, paged, with the pack date shown; exclude dispatched and delivered orders.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-134 — Manager Pick & pack cannot record a part-case pick row after DOS-041: whole cases only, so 6 pc or 18 pc can be saved only as 0 or refused
+Category: bug | Priority: P2 | Role: Manager | Platform: Web (desk 1280x800 and phone 390x844), manager build :5274
+
+```
+User: Manager
+Platform: Web (desk 1280x800 and phone 390x844), manager build :5274
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. PICK-0084 (SO-0899, Campa Cola 2 L, case 24). FEFO split the order into rows: RCP20260710 asks 6, RCP20260724 asks 18.
+  2. Fulfilment → Pick & pack → PICK-0084. Each row's stepper reads '− 0 cs + Not ordered'. Its only controls are 'One case less' and 'One case more'; there is no pieces field (0 inputs).
+  3. 'One case more' on the 6-pc row → '1 cs = 24 pc' → Record pick → 400 'batch RCP20260710 on PICK-0084 asks for 6 pcs; 24 were picked'.
+  4. At phone width the same on the 18-pc row → 400 '…RCP20260724 … asks for 18 pcs; 24 were picked'.
+  5. The exact 6 and 18 had to be sent through the warehouse API as dinesh.patil (200, same row ids).
+Expected: The desk can enter the pieces actually picked on each row, up to that row's ask (6, 18), as the warehouse app's Short keypad and the credit-note sheet allow.
+Actual: Only 0 or multiples of the case size can be entered, and DOS-041's per-row rule refuses anything above the ask. Any row that is not a whole case can no longer be recorded from the manager app. Before DOS-041 the screen inserted split rows; that path is now closed. The stepper also carries order-entry copy ('Not ordered').
+Business impact: FEFO routinely splits a case across batches. When the picker's phone is unavailable, the manager cannot finish the pick from the desk, and the order waits.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-manager/041-01-M20-row6-stepped-one-case-desk.png; QA/evidence/batch1/regression/web-manager/041-02-M20-over-ask-400-refusal-desk.png; QA/evidence/batch1/regression/web-manager/041-10-M20-row18-stepped-phone-viewport.png; QA/evidence/batch1/regression/web-manager/041-11-M20-over-ask-400-refusal-phone-viewport.png; QA/evidence/batch1/regression/web-manager/db-041-PICK-0084-after-over-ask.txt; QA/evidence/batch1/regression/web-manager/api-041-dinesh-exact-picks-PICK-0084.txt
+Suggested fix: Give the M20 QtyStepper a pieces entry (onOpenPieces / parsePieces, as the credit-note sheet does), capped at the row's requested_qty_pcs, with a helper 'asks for N pc'. Drop the 'Not ordered' label on this screen. This is the residual the DOS-041 implementer and verifier asked to be logged.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (manager desk walk).
+
+### DOS-135 — Documents panel drops a refusal that arrives while another write on the same panel is still in flight (DOS-029 residual)
+Category: bug | Priority: P2 | Role: Manager | Platform: Web (desk 1280x800 and phone 390x844), manager build :5274
+
+```
+User: Manager
+Platform: Web (desk 1280x800 and phone 390x844), manager build :5274
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. Inbound → Documents → ALA/26-27/00491 (document 2254e884, review lock held by Sunil Tarsun until 2026-10-12).
+  2. Control: press Start reviewing. You get 409, and 'Sunil Tarsun is reviewing this document (until …)' shows above the button.
+  3. Close and reopen the panel. Press 'Match the items again'; the POST /docint/extractions/32b0dd16…/rematch was held for 8 s with page.route to simulate a slow network.
+  4. While it is pending, press Start reviewing. The same 409 comes back in 79 ms.
+  5. Watch docint-panel-refusal at +1.5 s, after rematch returns 200, and 6.5 s later.
+Expected: The 409 sentence appears where Start reviewing was pressed, at the latest once the other write settles.
+Actual: The refusal line never renders (count 0 at every check, desk and phone). The button just stops spinning, which is the same silence DOS-029 removed elsewhere.
+Business impact: On a slow connection a manager who presses two things on a document sees one of them fail with no reason. They may think the review started and wait, or retry blindly.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-manager/029e-01-control-start-review-409-desk-viewport.png; QA/evidence/batch1/regression/web-manager/029e-02-refusal-while-rematch-pending-desk-viewport.png; QA/evidence/batch1/regression/web-manager/029e-03-after-rematch-settled-desk-viewport.png; QA/evidence/batch1/regression/web-manager/029e-01-control-start-review-409-phone-viewport.png; QA/evidence/batch1/regression/web-manager/029e-02-refusal-while-rematch-pending-phone-viewport.png; QA/evidence/batch1/regression/web-manager/029e-03-after-rematch-settled-phone-viewport.png
+Suggested fix: In frontend/libs/api-client/src/react/index.tsx nextRefusal, do not mark an error as seen-without-shown while a sibling write is pending. Either show it at once or show it when the sibling settles. Add refusal.test.ts cases for frames [pending,pending] → [error A,pending] → [error A,success], expecting A to be shown.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (manager desk walk).
+
+### DOS-136 — After a lost reply, pressing Bank it again says 'idempotencyKey was already used with a different request' and the receipt still reads Collected although it was banked
+Category: bug | Priority: P2 | Role: Accountant, Manager | Platform: Web desk 1280x800, manager build :5274
+
+```
+User: Accountant, Manager
+Platform: Web desk 1280x800, manager build :5274
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. As meena.joshi, open Money → Receipts (7 days) → RCPT-0693 (office cash ₹5,511) → Bank it → slip DEP-QA-034-ACC → confirm.
+  2. The request reached the service and committed: 200, journal 01a09777-e789 BANK +551100 / CASH −551100. The reply was then dropped in the browser (page.route fetch, then abort), simulating a signal loss.
+  3. The dialog says 'No connection. Check the signal, then press again.'
+  4. Press Bank it again. The POST carries the same id and idempotencyKey, but depositedAt changed from 2026-09-12T21:13:32.681Z to …32.964Z.
+  5. The service answers 409 'idempotencyKey was already used with a different request', and the dialog shows that sentence.
+  6. Close the dialog: the panel still shows State Collected.
+Expected: The retry of the same intent replays the stored result (200, State Banked), or at least says in plain words that this receipt is already banked with slip DEP-QA-034-ACC.
+Actual: The accountant gets a developer sentence and a stale 'Collected' state, while the DB has RCPT-0693 deposited once. The money was not banked twice, because the server's status check holds.
+Business impact: On a weak signal the desk cannot tell whether the cash went to the bank. They may try again through Day-end with another slip (it would be refused as 'deposited, not collected') or chase the bank, and the receipt screen disagrees with the books until a reload.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-manager/034-13-accountant-receipt-panel-office-cash-desk.png; QA/evidence/batch1/regression/web-manager/034-14-accountant-lost-reply-no-connection-desk.png; QA/evidence/batch1/regression/web-manager/034-15-accountant-retry-after-lost-reply-desk.png; QA/evidence/batch1/regression/web-manager/db-034-accountant-desk-before.txt; QA/evidence/batch1/regression/web-manager/db-034-accountant-desk-after.txt
+Suggested fix: Fix time an intent's client values once per intent, outside the mutation run: depositedAt for Bank it and the Day-end batch, bouncedAt for bounce, lines[].id for credit-note create, lineIds[].id for docint approve. Then a retry is byte-identical and replays. After a network failure of unknown outcome, refetch the record so the panel shows the true state. Map the idempotency 409 to 'This was already saved' plus a refresh. Code review (not executed) shows the same timestamp pattern in day-end.tsx deposit and bounce.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (manager desk walk).
+
+### DOS-137 — A load sheet built in the warehouse app is never linked to its trip, so the crew app says the godown has not confirmed the load after it has
+Category: bug | Priority: P2 | Role: Delivery / Warehouse | Platform: Web (warehouse :5176, delivery :5177); shared code
+
+```
+User: Delivery / Warehouse
+Platform: Web (warehouse :5176, delivery :5177); shared code
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. TRIP-0001 planned for MH-05-EF-9012; Start loading in W10. 2. Build the sheet with the W7 request body (no tripId), have the manager approve it, and have the warehouse confirm it (DC-0084, 6 cartons). 3. As iqbal.shaikh open Today's trip before depart, after depart and after all 4 stops.
+Expected: The trip shows the load as confirmed (DC-0084, 6 cartons) so the crew can check what is on board.
+Actual: 'Load on board - The godown has not confirmed a load sheet for this trip' every time. GET :3005/delivery/trips/{id} returns loadSheetIds [] and loadConfirmedAt null. The trip stayed 'loading' after load-out confirm until the crew departed. warehouse-app/app/load/index.tsx create() sends no tripId (the sheet's tripId is null).
+Business impact: The driver cannot see the challan or cartons he left with and is told the godown never released the load, so carton disputes cannot be settled from the trip.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-chain/c49-delivery-home-before-depart-desk.png; QA/evidence/batch1/regression/web-chain/c55-delivery-home-after-depart-reload-desk.png; QA/evidence/batch1/regression/web-chain/c67-delivery-home-all-stops-done-desk.png; QA/evidence/batch1/regression/web-chain/api-18b-delivery-get-trip-before-depart.json; QA/evidence/batch1/regression/web-chain/api-15-warehouse-create-load-sheet-response.json
+Suggested fix: Let W7 choose the vehicle's planned/loading trip and send tripId, or link the sheet to that trip on create/confirm; show the challan on the crew's trip.
+```
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-138 — Once picking has started no one can cancel an order; the manager is offered Cancel order and gets a raw state-machine refusal
+Category: missing-feature | Priority: P2 | Role: Manager | Platform: Web (manager :5274 DOS-029 build); the server rule applies on every platform
+
+```
+User: Manager
+Platform: Web (manager :5274 DOS-029 build); the server rule applies on every platform
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. SO-0909 (R-0004) waved as PICK-0088, started, 3 of 5 lot lines picked (dinesh.patil). 2. As vikas.kadam: Orders -> Being picked -> SO-0909 -> Cancel order -> reason -> Cancel order. 3. Fulfilment -> PICK-0088 -> Cancel the sheet. 4. Repeat step 2 on SO-0908 (all picked, not packed).
+Expected: When a shop phones during picking, the order can be cancelled: reservation voided and the picker told to put the stock back. At least, the product states the route ('finish packing, then cancel the bill').
+Actual: POST :3002/orders/{id}/cancel returns 409 'order: cannot apply "cancel" in state "picking"', printed verbatim in the dialog while the Cancel button stays enabled. 'Cancel the sheet' is disabled: 'Only a sheet that has not started can be started or cancelled'. The picker's sheet shows nothing. The only exit was to finish picking, issue INV/9014 and cancel that bill. SO-0908 remains in picking with 144 pc reserved.
+Business impact: Every mid-pick cancellation forces a legal invoice to be issued and cancelled (an invoice number and GST paperwork used up), or leaves orders stuck in picking with stock reserved.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-chain/w2-03-warehouse-mid-pick-one-line-picked-desk.png; QA/evidence/batch1/regression/web-chain/w2-04-manager-cancel-SO-0909-mid-pick-dialog.png; QA/evidence/batch1/regression/web-chain/w2-04-manager-cancel-SO-0909-mid-pick-after.png; QA/evidence/batch1/regression/web-chain/w2-09-manager-wave-PICK-0088-panel-desk.png; QA/evidence/batch1/regression/web-chain/api-w2-cancel-mid-pick.json; QA/evidence/batch1/regression/web-chain/db-w2-after-cancel-mid-pick.txt
+Suggested fix: Add picking->cancelled to the order machine (void reservations, cancel the open pick lines, show 'put back' on the picker's sheet), or a manager 'stop picking' returning the order to confirmed. Until then hide Cancel on picking orders and explain the route.
+```
+
+Context: docs/22 §4 defines cancel as allowed only up to confirmed, so the refusal itself follows the documented state machine; the defect is that Cancel order is offered in picking and answers with a raw refusal, and that no mid-pick cancel workflow exists.
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-139 — Cancelling a bill before dispatch returns the stock and the money but leaves the order 'packed' and back in the billing queue
+Category: business-logic | Priority: P2 | Role: Manager | Platform: Web (manager :5274)
+
+```
+User: Manager
+Platform: Web (manager :5274)
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. SO-0909 packed with 1 carton -> INV/9014 Rs 3,029. 2. As vikas.kadam: Billing -> Bills issued (search INV/9014) -> Cancel the bill -> reason -> Cancel the bill (dialog: 'The number is kept. Stock and money come back. Only before dispatch.'). 3. Query the order, stock ledger and outstanding, and GET :3002/billing/queue.
+Expected: In the same step the order is cancelled (or returned to confirmed with its pack voided), so nothing is left to bill or load.
+Actual: INV/9014 cancelled; stock_ledger adjustment +168 into Godown; R-0004 outstanding -302,900 and open bills 6 -> 5. But SO-0909 is still 'packed' with no transition, and /billing/queue lists it (state packed, hasDraftInvoice false) as left to bill.
+Business impact: The desk sees a packed order waiting for a bill whose goods are already back on the rack. Billing or loading it again would sell or dispatch the same 168 pieces twice (not executed). Order, invoice and stock lifecycles disagree.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-chain/w2-12-manager-INV-9014-panel-desk.png; QA/evidence/batch1/regression/web-chain/w2-13-manager-cancel-bill-dialog-desk.png; QA/evidence/batch1/regression/web-chain/w2-14-manager-after-cancel-bill-desk.png; QA/evidence/batch1/regression/web-chain/api-w2-manager-cancel-bill-INV-9014.json; QA/evidence/batch1/regression/web-chain/api-w2-manager-billing-queue.json; QA/evidence/batch1/regression/web-chain/api-w2-manager-get-SO-0909-after-bill-cancel.json; QA/evidence/batch1/regression/web-chain/db-w2-after-cancel-bill-INV-9014.txt
+Suggested fix: In billing.invoices.cancel for a pre-dispatch pack bill, move the order in the same transaction (packed->cancelled with the bill's reason, or packed->confirmed with the pack voided) and remove it from the pack and billing queues.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-140 — The sellable-stock API offers damaged-bin lots to reps and shops as available
+Category: business-logic | Priority: P2 | Role: Sales Rep / Retailer | Platform: Backend API (sales-service :3003 GET /inventory/sellable; the same view serves every role)
+
+```
+User: Sales Rep / Retailer
+Platform: Backend API (sales-service :3003 GET /inventory/sellable; the same view serves every role)
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. dos_qa: Sunbake Marie Light 75 g lot SB20260802 has 32 pc in 'Damaged / expiry bin' (location kind damaged). 2. As rahul.deshmukh: GET :3003/inventory/sellable?variantId=860dacfb-9d78-7fd4-95ca-1e6b5e96fdc1&limit=50. 3. SELECT pg_get_viewdef('sellable_stock').
+Expected: Available-to-promise counts only saleable warehouse stock (plus the caller's own vehicle for van sales); the damaged/expiry bin never appears.
+Actual: The response includes locationId 01a0947d-7a97-7466-8ce4-06501d6672dd (Damaged / expiry bin), batch SB20260802, available 32. The view is on_hand - reserved over every location with no kind filter. Reservations and the order availability check do filter kind='warehouse', so no damaged piece was reserved.
+Business impact: Reps and shops are shown damaged or expired pieces as stock they can order, and the bin grows with every DOS-058 return; anything that sums this view inherits the overstatement.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-chain/api-11-sales-sellable-marie-light.json; QA/evidence/batch1/regression/web-chain/db-05-sellable-stock-view-and-damaged-bin.txt
+Suggested fix: Restrict sellable_stock (or the inventory.stock.sellable query) to locations of kind warehouse (plus the caller's vehicle for van sales), exclude expired lots, and add a guarantee test.
+```
+
+Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-141 — Refusals now reach the desk as machine sentences: record UUIDs, UTC ISO times and 'Input validation failed'
+Category: ux | Priority: P3 | Role: Manager, Accountant | Platform: Web (desk and phone), manager build :5274
+
+```
+User: Manager, Accountant
+Platform: Web (desk and phone), manager build :5274
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  Refused writes observed during this walk:
+  1. Stale second desk approves an already-approved gate: 'approval 01a09766-114f-73f5-b1fc-9d9cab81e82e was already approved'.
+  2. Stale second desk approves a load sheet: 'load sheet 01a0976e-bbaf-7dbe-9bb3-f6ed587bd574 was already approved by a1cbd424-d568-7ccb-b5cc-b049e8ac2063'.
+  3. Start reviewing a locked document: 'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)'.
+  4. 'Cheque returned' → Mark bounced with an empty reason. The button is enabled, a POST is sent, and the answer is 400 'Input validation failed'.
+  5. Retry after a lost reply: 'idempotencyKey was already used with a different request'.
+Expected: Sentences a desk person can act on:
+- names and numbers: SO-0899 · Over credit limit; load sheet MH-05-CD-5678 13 Sep; Vikas Kadam;
+- IST dates ('until 12 Oct');
+- field messages such as 'Write what the bank said', with the confirm button disabled until a reason is typed.
+Actual: DOS-029 now shows the service's own sentence, which is right. Several of those sentences carry database ids, a UTC timestamp or a generic validation line, so the manager still cannot tell who or what the refusal is about.
+Business impact: The desk cannot tell which approval or load sheet was involved or who holds it without asking IT. It does not block work.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-manager/020-08-deskB-stale-decide-409-refusal-desk.png; QA/evidence/batch1/regression/web-manager/025-07-deskB-stale-approve-409-refusal-desk.png; QA/evidence/batch1/regression/web-manager/029e-01-control-start-review-409-desk-viewport.png; QA/evidence/batch1/regression/web-manager/034-42-accountant-blank-bounce-reason-phone-viewport.png; QA/evidence/batch1/regression/web-manager/034-15-accountant-retry-after-lost-reply-desk.png
+Suggested fix: In approvals.service, load-sheets.service and review.service, build refusal messages from human numbers and names (orderNo, vehicle reg + sheet date, user name) and IST dates. Map Zod issues to field-level messages on the client. Disable 'Mark bounced' in both bounce dialogs until a reason is typed. Related known findings: DOS-033 (UUID for the settled bill on a receipt) and DOS-035.
+```
+
+Found by: batch 1 regression part B (manager desk walk).
+
+### DOS-142 — The manager's cancellation reason never reaches the rep's order screen, although the cancel dialog promises it will
+Category: ux | Priority: P3 | Role: Sales Rep / Manager | Platform: Web (manager :5274, sales :5175)
+
+```
+User: Sales Rep / Manager
+Platform: Web (manager :5274, sales :5175)
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. As vikas.kadam cancel SO-0907 with reason 'Shop asked to cancel - owner out of town, will reorder next week'; the dialog reads 'Why is it cancelled? The shop and the rep will read this.' 2. As rahul.deshmukh open SO-0907.
+Expected: The rep sees who cancelled the order and why.
+Actual: The rep's screen shows 'Cancelled' with no reason and no actor. GET :3003/orders/{id} does return cancelReason, but the sales app's local order (LocalOrder) has no cancel_reason field.
+Business impact: The rep walks into the shop not knowing why the order died, and may re-book it or argue with the shopkeeper.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-chain/w1-02-manager-cancel-dialog-desk.png; QA/evidence/batch1/regression/web-chain/w1-04-sales-rep-sees-SO-0907-cancelled-desk.png; QA/evidence/batch1/regression/web-chain/api-w1-sales-get-SO-0907.json; QA/evidence/batch1/regression/web-chain/db-w1-SO-0907-after-manager-cancel.txt
+Suggested fix: Sync cancel_reason and cancelled_by to the device and show them on the order screen; otherwise drop the promise from the dialog.
+```
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-143 — Retailer 'My orders' prints the UTC date: an order placed at 3:05 am IST on 13 Sep reads 'Placed 12 Sep 2026'
+Category: bug | Priority: P3 | Role: Retailer | Platform: Web (retailer :5178); code shared by Android/iOS
+
+```
+User: Retailer
+Platform: Web (retailer :5178); code shared by Android/iOS
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. SO-0903 submitted 2026-09-13 03:05 IST (API createdAt 2026-09-12T21:35:33Z). 2. As fatima.shaikh open My orders.
+Expected: 'Placed 13 Sep 2026', matching the order detail ('13 Sep, 3:05 am') and the bill date.
+Actual: 'Order SO-0903 · Placed 12 Sep 2026'. frontend/retailer-app/app/orders/index.tsx renders longDate((order.submittedAt ?? order.createdAt).slice(0, 10)), which is the UTC calendar date.
+Business impact: Every order placed between midnight and 5:30 am IST shows the previous day in the shop's own list, contradicting the bill and the delivery record.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-chain/c69-retailer-my-orders-desk.png; QA/evidence/batch1/regression/web-chain/c70-retailer-order-SO-0903-desk.png; QA/evidence/batch1/regression/web-chain/api-24-retailer-get-SO-0903.json
+Suggested fix: Format instants through the IST business-date helper (businessDate in @dos/domain) instead of slicing the ISO string, and check other apps for .slice(0, 10) on instants.
+```
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-144 — After a short pick the shop's order page still says 'You pay Rs 6,753.00' and '60 pc', while the delivered bill is Rs 6,679.00 for 54 pc
+Category: ux | Priority: P3 | Role: Retailer | Platform: Web (retailer :5178)
+
+```
+User: Retailer
+Platform: Web (retailer :5178)
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. SO-0903 ordered at Rs 6,753 with 60 pc Chamak Dishwash Bar; 6 pc short at pick -> INV/9010 Rs 6,679 (54 pc), delivered. 2. As fatima.shaikh open My orders -> SO-0903.
+Expected: The order shows what was billed and delivered (54 of 60, 6 short and not billed) and the bill's amount due, or no 'You pay' at all.
+Actual: 'WHAT YOU ORDERED ... Chamak Dishwash Bar 145 g 1 cs · 60 pc Rs 737.74 ... You pay Rs 6,753.00' next to 'Bill INV/9010 Rs 6,679.00 To pay'; the short is not mentioned.
+Business impact: The shopkeeper sees two different amounts to pay for one order and no explanation for the missing 6 bars, which invites short-payment disputes. Same wording class as DOS-105 (a cancelled order showing 'You pay').
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-chain/c70-retailer-order-SO-0903-desk.png; QA/evidence/batch1/regression/web-chain/c72-retailer-bill-INV-9010-desk.png; QA/evidence/batch1/regression/web-chain/db-03-INV-9010-after-pack.txt
+Suggested fix: On orders that have a bill, show billed/delivered quantities per line and replace 'You pay' with the bill's amount due, linking to the bill.
+```
+
+Found by: batch 1 regression part B (cross-role chain).
+
+### DOS-145 — The manager cannot open a given bill from search: global search lands on Registers, Billing ?q= works only on the 'Bills issued' tab, and that register is not newest-first
+Category: ux | Priority: P3 | Role: Manager | Platform: Web (manager :5274)
+
+```
+User: Manager
+Platform: Web (manager :5274)
+Environment: local dev, merged main + DOS-029 manager build (:5274), dos_qa, 2026-09-13
+Steps:
+  1. Billing -> Bills issued: first rows INV/0634 (21 Aug), INV/0822 (10 Sep), INV/0803; INV/9014, issued minutes earlier, is not in view. 2. Global search 'INV/9014' -> choose 'INV/9014 Sai Krupa Super Bazar' -> lands on Registers (sales register) with no bill panel and no Cancel. 3. Open /billing?q=INV%2F9014 -> the Billing desk tab still shows the order queue; the filtered bill appears only after switching to Bills issued.
+Expected: Search opens the bill panel (cancel, e-way bill); the issued register is sorted newest first.
+Actual: As above: three attempts to reach a bill issued minutes earlier.
+Business impact: When a shop phones to cancel before dispatch, the desk loses minutes finding today's bill at exactly the moment the cancel must happen before the van leaves.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-chain/w2-11a-manager-billing-desk.png; QA/evidence/batch1/regression/web-chain/w2-12a-manager-search-INV-9014-desk.png; QA/evidence/batch1/regression/web-chain/w2-12a-manager-bills-issued-search-INV-9014-desk.png
+Suggested fix: Route bill hits from global search to /billing with view=bills and the bill panel open; make ?q switch to Bills issued; sort the register by invoice_date desc, invoice_no desc.
+```
+
+Found by: batch 1 regression part B (cross-role chain).
+
