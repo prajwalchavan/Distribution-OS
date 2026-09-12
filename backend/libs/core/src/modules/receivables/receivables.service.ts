@@ -48,7 +48,7 @@ import type {
   SendStatementsOutput,
   SettledInvoice,
 } from '@dos/contracts'
-import { businessDate, uuidv7 } from '@dos/domain'
+import { businessDate, upiIntent, uuidv7 } from '@dos/domain'
 import {
   allocations,
   auditLog,
@@ -1186,8 +1186,10 @@ export class ReceivablesService {
    * gateway callback running as `system`) records the receipt.
    *
    * The shop is taken from the actor's own link, never from the input, so it cannot name another shop.
-   * `payeeVpa` / `payeeName` are read off the shop's newest open bill, because `tenant_settings` is
-   * owner-only until billing's migration 0009 and is closed to the retailer role entirely.
+   * The payee is the distributor's configured UPI id and display name from `sellerBranding` (tenancy),
+   * and the intent is built HERE for this payment: the amount the shop chose, with its own `paymentRef`
+   * in `tr` and in the note. A bill's `upi_qr_payload` is that bill's issue-time snapshot (its original
+   * total, its invoice number) and is never reused as a payment intent (DOS-094).
    */
   async initiatePayment(input: InitiateIn): Promise<InitiateOut> {
     requireRole(SHOPKEEPER)
@@ -1226,9 +1228,15 @@ export class ReceivablesService {
         if (amountPaise <= 0) {
           throw new ORPCError('CONFLICT', { message: 'there is nothing outstanding to pay' })
         }
-        const newest = [...chosen].sort((a, b) => (a.invoiceDate < b.invoiceDate ? 1 : -1))[0]
-        const payload = newest?.upiQrPayload ?? null
         const paymentRef = `PAY-${input.id.slice(-12)}`
+        const seller = await sellerBranding(tx)
+        const upi = upiIntent({
+          vpa: seller.upiVpa,
+          payeeName: seller.displayName,
+          amountPaise,
+          reference: paymentRef,
+          note: paymentRef,
+        })
         await emitEvent(tx, 'retailer', retailerId, 'PaymentIntentCreated', {
           intentId: input.id,
           retailerId,
@@ -1241,10 +1249,10 @@ export class ReceivablesService {
           intentId: input.id,
           retailerId,
           amountPaise,
-          upiQrPayload: payload,
-          upiIntentUrl: payload ? `upi://pay?${payload}` : null,
-          payeeVpa: upiField(payload, 'pa'),
-          payeeName: upiField(payload, 'pn'),
+          upiQrPayload: upi,
+          upiIntentUrl: upi,
+          payeeVpa: seller.upiVpa,
+          payeeName: seller.displayName,
           paymentRef,
           expiresAt: new Date(Date.now() + PAYMENT_INTENT_MINUTES * 60_000).toISOString(),
           bills: chosen.map((bill) => toOpenBill(bill, asOf)),
@@ -1801,14 +1809,4 @@ export class ReceivablesService {
     await refreshOutstandingFor(tx, [retailerId])
     return loadOutstanding(tx, retailerId)
   }
-}
-
-/** Pull one field out of a UPI intent payload (`pa=…&pn=…&am=…&tr=…`) without trusting its order. */
-function upiField(payload: string | null, key: string): string | null {
-  if (!payload) return null
-  for (const part of payload.split('&')) {
-    const at = part.indexOf('=')
-    if (at > 0 && part.slice(0, at) === key) return decodeURIComponent(part.slice(at + 1))
-  }
-  return null
 }

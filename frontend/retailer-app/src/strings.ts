@@ -197,6 +197,8 @@ export const strings = {
   'r5.expires': 'Good until {when}',
   'r5.payee': 'Paying {name}',
   'r5.openUpi': 'Open a UPI app',
+  'r5.noUpiApp':
+    'No UPI app opened on this phone. Pay {vpa} from any UPI app and quote the reference below.',
   'r5.failed': 'Could not start the payment',
   'r5.covers': 'This covers {count} bills',
   'r5.noVpa': '{name} has not set up online payment yet.',
