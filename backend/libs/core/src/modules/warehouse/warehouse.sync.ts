@@ -56,6 +56,17 @@ export async function applyPickLineSync(
       `Picklist ${picklistId} has not arrived on the server yet`,
       `पिकलिस्ट ${picklistId} अभी सर्वर पर नहीं आई`,
     )
+  // DOS-040: a wave nobody has started is not closed, it is not open to picks YET. The picker is told
+  // to start it (the W5 sheet's Start step, `warehouse.picklists.start`), never that it is "no longer
+  // being picked". The handler still accepts only `picking`: starting is an online state-machine step
+  // the manager's cancel depends on, so a queued pick must never start a wave by itself.
+  const no = sheet.picklistNo ?? sheet.id
+  if (sheet.status === 'open')
+    throw new SyncRejection(
+      'picklist_not_started',
+      `Picklist ${no} has not been started; start it before picking`,
+      `पिकलिस्ट ${no} अभी शुरू नहीं हुई; पहले पिकिंग शुरू करें`,
+    )
   if (sheet.status !== 'picking')
     throw new SyncRejection(
       'picklist_closed',

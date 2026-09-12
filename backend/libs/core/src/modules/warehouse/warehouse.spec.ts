@@ -1243,7 +1243,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
       },
     )
     expect(closed.status).toBe(200)
-    expect(closed.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
+    expect(closed.body.rejected.map((r) => r.code)).toEqual(['picklist_not_started'])
 
     await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
       idempotencyKey: `start-sync-${run}`,
@@ -1278,6 +1278,124 @@ describeDb('warehouse (DATABASE_URL)', () => {
       await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${row?.id ?? ''}`)
     ).rows as { picked_qty_pcs: number }[]
     expect(stored[0]?.picked_qty_pcs).toBe(12)
+  })
+
+  it("DOS-040: a device pick on a wave nobody has started is refused as picklist_not_started with 'start it before picking' (never 'no longer being picked') and is accepted once the wave is started", async () => {
+    const target = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos040')
+    const waved = await wave([target], 'dos040')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    expect(row?.requestedQtyPcs).toBe(12)
+    const upload = (opId: string) => ({
+      protocol: 1,
+      deviceId: `dev-dos040-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: row?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: row?.orderLineId ?? '',
+            lot_id: row?.lotId ?? '',
+            picked_qty_pcs: 12,
+          },
+        },
+      ],
+    })
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const pickedPieces = async (): Promise<number | undefined> =>
+      (
+        (await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${row?.id ?? ''}`))
+          .rows as { picked_qty_pcs: number }[]
+      )[0]?.picked_qty_pcs
+
+    // the picker taps Picked on a sheet the desk raised and nobody started
+    const openOpId = `op-dos040-open-${run}`
+    const refused = await call<UploadBody>(app, packer, 'POST', '/sync/upload', upload(openOpId))
+    expect(refused.status).toBe(200)
+    expect(refused.body.rejected).toHaveLength(1)
+    expect(refused.body.rejected[0]?.code).toBe('picklist_not_started')
+    expect(refused.body.rejected[0]?.messageEn).toMatch(/start it before picking/)
+    expect(refused.body.rejected[0]?.messageEn).not.toMatch(/no longer being picked/)
+    const logged = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and op_id = ${openOpId}`,
+      )
+    ).rows as { code: string }[]
+    expect(logged.map((r) => r.code)).toEqual(['picklist_not_started'])
+    const sheet = (await db.execute(sql`select status from picklists where id = ${waved.id}`))
+      .rows as { status: string }[]
+    expect(sheet[0]?.status).toBe('open')
+    expect(await pickedPieces()).toBe(0)
+
+    // the Start step the sheet now offers, then the same pick under a new op
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `start-dos040-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    const accepted = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos040-started-${run}`),
+    )
+    expect(accepted.status).toBe(200)
+    expect(accepted.body.accepted).toBe(1)
+    expect(accepted.body.rejected).toEqual([])
+    expect(await pickedPieces()).toBe(12)
+  })
+
+  it("DOS-040 guard: splitting the gate leaves every other closed status alone — a device pick on a cancelled wave is still picklist_closed 'no longer being picked'", async () => {
+    const target = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos040-guard')
+    const waved = await wave([target], 'dos040-guard')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    const cancelled = await call<{ item: PicklistBody }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/picklists/${waved.id}/cancel`,
+      { idempotencyKey: `cancel-dos040-${run}`, reason: 'DOS-040 guard' },
+    )
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item.status).toBe('cancelled')
+
+    const res = await call<{ accepted: number; rejected: { code: string; messageEn: string }[] }>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      {
+        protocol: 1,
+        deviceId: `dev-dos040-guard-${run}`,
+        ops: [
+          {
+            opId: `op-dos040-cancelled-${run}`,
+            op: 'PUT',
+            table: 'pick_lines',
+            id: row?.id ?? '',
+            data: {
+              picklist_id: waved.id,
+              order_line_id: row?.orderLineId ?? '',
+              lot_id: row?.lotId ?? '',
+              picked_qty_pcs: 12,
+            },
+          },
+        ],
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(0)
+    expect(res.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
+    expect(res.body.rejected[0]?.messageEn).toMatch(/is cancelled; it is no longer being picked/)
   })
 
   // ---------------------------------------------------------------------------------------------------------------

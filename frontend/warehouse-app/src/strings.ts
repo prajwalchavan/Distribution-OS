@@ -240,6 +240,7 @@ export const strings = {
   'w5.progress': '{picked} of {total} picked',
   'w5.start': 'Start picking',
   'w5.startFailed': 'Could not start the sheet',
+  'w5.startOffline': 'Starting a sheet needs a signal',
   'w5.picked': 'Picked',
   'w5.short': 'Short',
   'w5.shortReason': 'Why is it short?',
