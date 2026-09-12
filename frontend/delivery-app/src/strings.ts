@@ -185,7 +185,7 @@ export const strings = {
   'd4.takingBack': 'Taken back',
   'd4.reason': 'Reason',
   'd4.saleable': 'Can be sold again',
-  'd4.damaged': 'Damaged — into the damaged bin',
+  'd4.damaged': 'Into the damaged / expiry bin',
   'd4.short': '{pieces} pc short',
   'd4.receiver': 'Bill signed by',
   'd4.note': 'Note for the office',

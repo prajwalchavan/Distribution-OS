@@ -185,6 +185,23 @@ export const DeliveryLineReasonSchema = z.enum([
 ])
 export type DeliveryLineReason = z.infer<typeof DeliveryLineReasonSchema>
 
+/**
+ * The reasons whose returned pieces never go back on sale: a damaged or expired piece goes to the tenant's
+ * damaged / expiry bin (DOS-058). `deliveries.record` refuses a returned line with one of these reasons and
+ * `returnedSaleable: true`, and the delivery app derives the disposition from the reason with the same
+ * predicate, so the screen and the server read one list.
+ */
+export const UNSALEABLE_RETURN_REASONS = [
+  'damaged',
+  'expired',
+] as const satisfies readonly DeliveryLineReason[]
+
+/** False when pieces coming back for this reason belong in the damaged bin; true for every other reason, or none. */
+export function isSaleableReturn(reason: DeliveryLineReason | null | undefined): boolean {
+  if (reason === null || reason === undefined) return true
+  return !(UNSALEABLE_RETURN_REASONS as readonly DeliveryLineReason[]).includes(reason)
+}
+
 /** Proof of delivery: photo of the signed bill, a signature image, the shopkeeper's OTP, the geo-fence check. */
 export const PodKindSchema = z.enum(['photo', 'signature', 'otp', 'geo'])
 export type PodKind = z.infer<typeof PodKindSchema>
@@ -908,7 +925,9 @@ export const FailStopOutput = z.object({
  * Per invoice line: `deliveredQtyPcs + returnedQtyPcs` must equal the line's `qtyPcs + freeQtyPcs`
  * (400 otherwise) — free pieces are delivered and returned like any other piece. A line delivered
  * short with nothing handed back is a short delivery (the pieces were not on the van); a returned
- * line is goods handed back at the door.
+ * line is goods handed back at the door. A returned line whose `reason` is `damaged` or `expired`
+ * (`UNSALEABLE_RETURN_REASONS`) goes to the damaged bin and must carry `returnedSaleable: false`
+ * (400 `return_not_saleable` otherwise).
  */
 export const DeliveryLineInput = z.object({
   id: IdSchema,

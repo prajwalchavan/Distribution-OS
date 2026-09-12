@@ -15,6 +15,7 @@ import type {
   RecordDeliveryInput,
   RecordDeliveryOutput,
 } from '@dos/contracts'
+import { isSaleableReturn } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import { deliveries, deliveryLines, podEvidence, withTenant, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
@@ -306,8 +307,9 @@ export class DeliveriesService {
   // internals
 
   /**
-   * Every listed line must be the bill's, listed once, with `delivered + returned = qty + free`. A line
-   * the crew did not list was handed over in full — the crew records exceptions, not the whole bill.
+   * Every listed line must be the bill's, listed once, with `delivered + returned = qty + free`, and a
+   * damaged or expired return is never saleable (`return_not_saleable`). A line the crew did not list
+   * was handed over in full — the crew records exceptions, not the whole bill.
    */
   private checkLines(
     invoice: InvoiceForDelivery,
@@ -340,6 +342,12 @@ export class DeliveriesService {
         throw new ORPCError('BAD_REQUEST', {
           message: `${source.description}: delivered ${String(line.deliveredQtyPcs)} + returned ${String(line.returnedQtyPcs)} must equal the ${String(billed)} pieces billed`,
           data: { invoiceLineId: source.id, billedPcs: billed },
+        })
+      // a damaged or expired piece goes to the damaged bin: the line cannot also say it goes back on sale
+      if (line.returnedQtyPcs > 0 && line.returnedSaleable && !isSaleableReturn(line.reason))
+        throw new ORPCError('BAD_REQUEST', {
+          message: `${source.description}: ${String(line.reason)} goods go to the damaged bin, not back on sale`,
+          data: { code: 'return_not_saleable', invoiceLineId: source.id, reason: line.reason },
         })
       out.push({
         id: line.id,

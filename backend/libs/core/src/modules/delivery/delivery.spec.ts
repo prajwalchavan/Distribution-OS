@@ -875,6 +875,110 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(await balanceOf(lotB, vehicleLocation)).toBe(before + 6)
   })
 
+  it('DOS-058: a return marked damaged or past its date is refused as saleable (400 return_not_saleable, online and from the offline queue) and nothing is written', async () => {
+    const vanBefore = await balanceOf(lotB, vehicleLocation)
+    const binBefore = await balanceOf(lotB, damaged)
+
+    // online: the driver taps "Damaged" / "Past its date" but the line still says it can be sold again
+    for (const reason of ['damaged', 'expired'] as const) {
+      const res = await call<{
+        message?: string
+        data?: { code?: string; invoiceLineId?: string; reason?: string }
+      }>(app, driver, 'POST', '/delivery/deliveries', {
+        idempotencyKey: `deliver-a2-dos058-${reason}-${run}`,
+        id: uuidv7(),
+        tripId,
+        stopId: stopA2,
+        invoiceId: billA2.invoiceId,
+        lines: [
+          {
+            id: uuidv7(),
+            invoiceLineId: billA2.lineId,
+            deliveredQtyPcs: 9,
+            returnedQtyPcs: 3,
+            returnedSaleable: true,
+            reason,
+          },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'signature',
+            inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+          },
+        ],
+      })
+      expect(res.status, reason).toBe(400)
+      expect(res.body.data?.code, reason).toBe('return_not_saleable')
+      expect(res.body.data?.invoiceLineId, reason).toBe(billA2.lineId)
+      expect(res.body.data?.reason, reason).toBe(reason)
+    }
+
+    // offline: the same contradiction from the queue is a readable 2xx rejection, never a restock. A geo
+    // pod, because `podFromDevice` drops `inline`; the pod policy runs after the line check, so only the
+    // message tells this refusal from `pod_required`.
+    const queued = await call<{
+      accepted: number
+      rejected: { opId: string; code: string; messageEn: string }[]
+    }>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `driver-phone-dos058-${run}`,
+      ops: [
+        {
+          opId: `dos058-${run}`,
+          op: 'PUT',
+          table: 'deliveries',
+          id: uuidv7(),
+          data: {
+            trip_id: tripId,
+            stop_id: stopA2,
+            invoice_id: billA2.invoiceId,
+            lines: [
+              {
+                id: uuidv7(),
+                invoice_line_id: billA2.lineId,
+                delivered_qty_pcs: 9,
+                returned_qty_pcs: 3,
+                returned_saleable: true,
+                reason: 'expired',
+              },
+            ],
+            pod: [{ id: uuidv7(), kind: 'geo', lat: 19.24, lng: 73.13 }],
+          },
+        },
+      ],
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.accepted).toBe(0)
+    expect(queued.body.rejected).toHaveLength(1)
+    expect(queued.body.rejected[0]?.opId).toBe(`dos058-${run}`)
+    expect(queued.body.rejected[0]?.code).toBe('bad_request')
+    expect(queued.body.rejected[0]?.messageEn).toMatch(/damaged bin/)
+
+    // nothing was written: no credit note, the planned delivery still unattempted, no lines, no stock moved
+    const notes = (
+      await db.execute(
+        sql`select count(*)::int as n from credit_notes where invoice_id = ${billA2.invoiceId}`,
+      )
+    ).rows as { n: number }[]
+    expect(notes[0]?.n).toBe(0)
+    const planned = (
+      await db.execute(
+        sql`select outcome::text as outcome from deliveries where stop_id = ${stopA2}`,
+      )
+    ).rows as { outcome: string | null }[]
+    expect(planned.map((r) => r.outcome)).toEqual([null])
+    const written = (
+      await db.execute(
+        sql`select count(*)::int as n from delivery_lines dl join deliveries d on d.id = dl.delivery_id
+             where d.stop_id = ${stopA2}`,
+      )
+    ).rows as { n: number }[]
+    expect(written[0]?.n).toBe(0)
+    expect(await balanceOf(lotB, vehicleLocation)).toBe(vanBefore)
+    expect(await balanceOf(lotB, damaged)).toBe(binBefore)
+  })
+
   it('a damaged return goes to the damaged bin, and proof is required for a shop on credit', async () => {
     const vanBefore = await balanceOf(lotB, vehicleLocation)
     const noProof = await call<{ data?: { code?: string } }>(
