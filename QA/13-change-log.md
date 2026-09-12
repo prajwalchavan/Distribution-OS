@@ -36,15 +36,15 @@ schema, or depends on a founder answer: DOS-106, DOS-043, DOS-007, DOS-056, DOS-
 DOS-074+097 (new `inventory.stock.availability` read), DOS-096 (`pricing.quote` returns GST and the payable total),
 DOS-003 (order lines carry `variantName`), DOS-004 (`orders.approvals.list` items carry shop, order number and amount).
 
-### Batch 1 — founder decisions pending
+### Batch 1 — founder decisions (answered 2026-09-12: "yes to all 5, go with defaults")
 
-| # | Fix | Question | What the plan does by default |
+| # | Fix | Question | Decision (founder, 2026-09-12) |
 |---|---|---|---|
-| Q1 | DOS-106 | Console levels: may *support* only read everything plus ask for and hand back support access, and *billing* only read everything plus change a distributor's plan? | Yes to both; only *super* can onboard, suspend, lock or unlock logins |
-| Q2 | DOS-043 | Remove the warehouse role from "send a trip out" (owner, manager and the crew only), and refuse departure while the load sheet is a draft? | Yes; warehouse keeps create trip, add stops, start loading |
-| Q3 | DOS-007 | "Send statement": send a short WhatsApp/SMS text now (balance, overdue, UPI pay link), or wait for a PDF statement? | Text now; PDF later |
-| Q4 | DOS-056 | Offline delivery photo: carry the photo inside the queued delivery (size M), or first build the separate photo-upload queue docs/27 §15 describes (size L)? | Inside the queued delivery; docs/27 §15 updated |
-| Q5 | DOS-032+059 | A database rule that receipt numbers never repeat. `dos_qa` holds four duplicate pairs, so the migration refuses there: rebuild `dos_qa` from the seed (loses the Phase 1 side-effect rows)? The founder's own `dos` may need the same. | Rebuild `dos_qa` only after a yes; `dos` is the founder's call |
+| Q1 | DOS-106 | Console levels: may *support* only read everything plus ask for and hand back support access, and *billing* only read everything plus change a distributor's plan? | **Yes (default).** Only *super* can onboard, suspend, lock or unlock logins |
+| Q2 | DOS-043 | Remove the warehouse role from "send a trip out" (owner, manager and the crew only), and refuse departure while the load sheet is a draft? | **Yes (default).** Warehouse keeps create trip, add stops, start loading |
+| Q3 | DOS-007 | "Send statement": send a short WhatsApp/SMS text now (balance, overdue, UPI pay link), or wait for a PDF statement? | **Text now (default)**; PDF statement later |
+| Q4 | DOS-056 | Offline delivery photo: carry the photo inside the queued delivery (size M), or first build the separate photo-upload queue docs/27 §15 describes (size L)? | **Inside the queued delivery (default)**; docs/27 §15 updated with the fix |
+| Q5 | DOS-032+059 | A database rule that receipt numbers never repeat. `dos_qa` holds four duplicate pairs, so the migration refuses there: rebuild `dos_qa` from the seed (loses the Phase 1 side-effect rows)? The founder's own `dos` may need the same. | **Yes: rebuild `dos_qa`** — only after DOS-032+059 merges (the current seed itself writes duplicates, so an earlier rebuild would reproduce them). `dos` stays the founder's own call |
 
 Non-blocking (the fix goes ahead; recorded for Phase 3): DOS-075 — should a "bills over ₹X" threshold count lines under an
 exclusive scheme? · DOS-057+099 — a long-lived share link for papers sent to shops needs a public endpoint and a security

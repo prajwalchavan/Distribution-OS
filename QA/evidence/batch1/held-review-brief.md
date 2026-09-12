@@ -1,0 +1,341 @@
+# Batch 1 — architect review brief (Fable)
+
+Generated 2026-09-12 from `QA/evidence/batch1/plans.json` (reviewed plans, Opus). Founder answered Q1–Q5 with the defaults
+(`QA/13-change-log.md`, docs/22 §8). The 21 decision-free fixes are being implemented meanwhile in four worktree lanes.
+
+**What the architect decides for each plan below:** is the contract / permission / schema shape right and minimal; does it respect
+docs/22, the ADRs and the module boundaries; is anything missing (a sibling path, a platform, a migration hazard); approve, amend, or
+reject. Write the verdict into the table at the end of this file. Implementation then runs on Opus after the lanes merge.
+
+Known file overlaps with the running lanes: DOS-003/004 ↔ L4 orders (orders.ts, orders.spec.ts, owner/manager order screens);
+DOS-096 ↔ L4 (pricing.ts, pricing.spec.ts); DOS-074+097 ↔ L3 (api-client pages.ts) and L4 (sales-app orders/new.tsx);
+DOS-043 ↔ L1 (load-sheets.service.ts) and L2 (delivery.spec.ts); DOS-032+059 and DOS-007 ↔ L2/L3 (receivables.service.ts);
+DOS-056 ↔ L2 (delivery-app deliver.tsx, strings, package.json). So the held nine are implemented on top of the merged lanes.
+
+## DOS-106 — Enforce the console level (super / support / billing) on every admin.* mutation, put the level on the platform sign-in reply, keep the acting super alive through a lock, and hide what the level …
+
+*Why held:* Q1 answered: support = reads + support request/revoke; billing = reads + subscriptions.upsert; super = all. Size M, confidence high.
+
+**Root cause:** The level is stored but nothing above the database reads it. Nothing between the token and the handlers uses it. Every citation below was re-read.  1. The level exists and is seeded.    - Enum `platform_admin_role` ('super','support','billing') at backend/libs/database/src/schema/platform-admin.ts:78. The comment at :72-77 gives the job split.    - Column `platform_admins.role NOT NULL` at :122.    - Seed: dos.support = 'support' (seed-demo/platform-admin.ts:76-78); dos.admin = 'super' (:168).    - docs/18-build-log.md:2135-2136 names the jobs: super onboards, sets plans, suspends; support ASKS for access.  2. The token and the gate cannot tell levels apart.    - `isPlatformAdmin()` (modules/auth/auth.service.ts:1046-1053) selects only `platformAdmins.id`.    - `issuePlatformPair()` (:1097-1125) hard-codes `role: 'platform_admin'` in token and reply. The same holds for platformLogin …
+
+**Contract:** backend/libs/contracts changes in three places.
+
+1. **common.ts** adds `PlatformAdminLevelSchema` ('super' | 'support' | 'billing'), mirroring the database enum.
+2. **permissions.ts** adds:
+   - `AdminProcedurePath` (`Extract<ProcedurePath, 'admin.${string}'>`);
+   - `ADMIN_LEVELS`, a console-only narrowing table keyed by exactly the 15 `admin.*` paths;
+   - `levelAllows()`.
+
+   `PERMISSIONS`, `PLATFORM_ROLES`, `ROLE_GROUPS` and `isAllowed` do not change.
+3. **auth.ts**: `PlatformTokenPairOutput` and `PlatformMeOutput` each gain an additive output field, `level`.
+
+No input schema changes.
+
+**Why this cannot be avoided.** The level is the fact the server enforces and the admin app hides buttons by. Today it lives only in `platform_admins.role`, and neither the token role nor `AdminUserSchema.platformRole` carries it. Declaring it once in contracts keeps the app from carrying a second permission list (CLAUDE.md, "Permissions on the device").
+
+**Consumers of the reply.**
+- The frontend api-client (session store) and its tests are updated in this plan.
+- The smoke tool and `QA/tools/tok.sh` read the JSON loosely and are unaffected.
+
+**Permissions:** **PERMISSIONS is unchanged.**
+- Every `admin.*` row stays `ROLE_GROUPS.PLATFORM`.
+- The token role stays `platform_admin`.
+- TenantGuard, PlatformTokenGuard and the `describePermissionMatrix` semantics are untouched.
+
+**New `ADMIN_LEVELS` in permissions.ts narrows access inside the platform role:**
+- **super:** all 15 procedures.
+- **support:** the 8 reads (tenants.list/get, subscriptions.list/get, support.list, users.list, metrics.overview, audit.list) plus support.request and support.revoke.
+- **billing:** the 8 reads plus subscriptions.upsert.
+
+**Where it is enforced.** In the platform-admin module, by `requireAdminLevel()`:
+- It runs before `platformIdempotent` in the four `withPlatform` mutations.
+- In `tenants.create` it runs as a pre-check before password hashing, and again inside the withSystem transaction.
+- In `users.disable` it runs as a pre-check, and then the actor is …
+
+**Migration:** None.
+- `platform_admins.role` (enum `platform_admin_role`: super, support, billing; NOT NULL) already exists (schema/platform-admin.ts:78, :122) and is seeded.
+- The `users` row lock in `disableUser` is a plain `SELECT … FOR UPDATE` and needs no schema change.
+
+Enforcing the level in the database was considered and rejected for this fix:
+- `tenants.create` (tenants.service.ts:166) and `users.disable` (console.service.ts:129) run under `withSystem`, where `app.actor_role = 'system'`, so a trigger cannot see the console actor for two of the six mutations.
+- One application gate covers all six the same way.
+- Writes to `platform_admins` itself are already super-only in the database (`dos_platform_admin_guard`, 0034:78-106).
+
+A database-level guarantee for subscriptions and tenants is listed as a residual in reviewNotes, not built here.
+
+**Files:** `backend/libs/contracts/src/common.ts`; `backend/libs/contracts/src/permissions.ts`; `backend/libs/contracts/src/auth.ts`; `backend/libs/core/src/modules/platform-admin/internals.ts`; `backend/libs/core/src/modules/platform-admin/tenants.service.ts`; `backend/libs/core/src/modules/platform-admin/subscriptions.service.ts`; `backend/libs/core/src/modules/platform-admin/support.service.ts`; `backend/libs/core/src/modules/platform-admin/console.service.ts`; `backend/libs/core/src/modules/auth/auth.service.ts`; `backend/libs/contracts/src/permissions.test.ts`; `backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts`; `backend/auth-service/README.md`; `frontend/libs/api-client/src/session.ts`; `frontend/libs/api-client/src/platform-client.test.ts`; `frontend/admin-app/src/lib/ui.tsx`; `frontend/admin-app/app/settings.tsx`; `frontend/admin-app/app/_layout.tsx`; `frontend/admin-app/src/strings.ts`; `frontend/admin-app/app/distributors/index.tsx`; `frontend/admin-app/app/distributors/new.tsx`; `frontend/admin-app/app/distributors/[id].tsx`; `frontend/admin-app/app/subscriptions.tsx`; `frontend/admin-app/app/users.tsx`; `frontend/admin-app/app/support.tsx`; `frontend/admin-app/src/lib/support.tsx`
+
+**Tests:** `permissions.test.ts` › DOS-106: declares a console level for every admin.* procedure — super does everything, support only reads and asks or …; `platform-admin.spec.ts` › DOS-106: a support-level console account is refused onboarding, a plan change, suspension, reactivation and locking a …; `platform-admin.spec.ts` › DOS-106: a lower console level replaying a super's idempotencyKey with the identical body is refused, not handed the …; `platform-admin.spec.ts` › DOS-106: a support-level console account still reads every console register and can ask for and withdraw support access; `platform-admin.spec.ts` › DOS-106: a billing-level console account may change a subscription and is refused suspension, locking a login and …; `platform-admin.spec.ts` › DOS-106: the platform sign-in reply and platformMe name the console level; `platform-admin.spec.ts` › DOS-106: a support-level console account cannot lock a super administrator out, and the super still signs in; `platform-admin.spec.ts` › DOS-106: a super whose login was just locked by another super cannot lock that super back with the token still in hand, …; `platform-client.test.ts` › DOS-106: keeps the console level from the sign-in and refresh replies, and restores a session saved before the level …
+
+**Risk:** 1. **Contract output change on the three auth platform procedures.** A new required `level` field. Build @dos/contracts before the frontend typecheck, and run `pnpm docs:readme`. 2. **Gate moved before `platformIdempotent`.** On four mutations, a replay by a demoted or disabled admin is now refused instead of getting the stored reply. This is intended, but it is a behaviour change. 3. **Row lock in `disableUser`.** It takes `FOR UPDATE` on at most two `users` rows, in id order.    - Two disables cannot deadlock.    - Login and refresh update a single users row, so there is no lock cycle.    - A disable waits for a concurrent sign-in write on the same identity: milliseconds. 4. **Extra read …
+
+**Reviewer's residual doubts:** **WHAT I CHANGED in the plan, and why:**  1. **Corrected point (c), the "no last-super rule needed" argument; it is false.**    - `requireActiveAdmin` (internals.ts:84-95) never reads `users.status`.    - TenantGuard does no session lookup (tenant.guard.ts:150-156).    - `disableUser` leaves `platform_admins` untouched (console.service.ts:141-149).    - So super B, locked by super A, keeps a working token for up to 15 min and can lock A back. Two simultaneous disables also both pass.    - Added: in `disableUser`, lock the actor and target `users` rows in id order `FOR UPDATE` and re-check that the actor is active, plus a spec case that fails before the fix (B's token locks A → 200 today).    - No count query: once the acting super is provably active at commit, the set of active supers cannot empty through the API. 2. **`tenants.create`: early level pre-check** (withPlatform + requireAdminLevel) before validatePassword/argon2. The existing pattern is console.service.ts assertActive before withSystem. A refused caller gets 403, not 400 on a weak password, and burns no hash. The in-transaction under-system check is kept and made level-aware. 3. **Spec fixtures redesigned.**    - The plan's billing fixture and any new console usernames under `p${run}.` would break the existing 'shows one identity…' case, which asserts `platformOnly + q: p${run}.` returns exactly two ids.    - The plan's 'lock the spec's own super, place it LAST' also relies on order. Replaced with dedicated fixtures (`l${run}.bill`, `l${run}.sup2`, `l${run}.sup3`, throwaway tenant `lvl-${run}` and victim user; …
+
+## DOS-043 — Only the crew and the desk depart a trip, never while its load sheet is a draft; start-loading and depart write audit rows; W10 asks before "Start loading" and loses "Send it off"
+
+*Why held:* Q2 answered: warehouse removed from delivery.trips.depart; no depart while load sheet is draft. Size M, confidence high.
+
+**Root cause:** Four defects combine, plus one wrong expectation in the finding. Every citation below was re-read and holds unless marked.  1. PERMISSION.    - `backend/libs/contracts/src/permissions.ts:662` sets `'delivery.trips.depart': TRIP_PLANNERS`. TRIP_PLANNERS (`permissions.ts:189-194`) includes 'warehouse'.    - The handler repeats it: `requireRole(TRIP_PLANNERS)` at `backend/libs/core/src/modules/delivery/trips.service.ts:357` and `assertCrewOrDesk(trip, TRIP_PLANNERS)` at `:363`. The core copy of the tuple also includes 'warehouse' (`delivery.internals.ts:60-66`).    - `permissions.test.ts:589-610` pins the defect: depart sits in the TRIP_PLANNERS loop (:594) and in `warehouseMay` (:606).    - This contradicts the contract's own service table. `contracts/src/delivery.ts:44-46` says warehouse-service does "trip PLANNING only: `trips.create`, `trips.startLoading`, `stops.add`…", with no …
+
+**Contract:** - `permissions.ts`: `delivery.trips.depart` moves from TRIP_PLANNERS to DOORSTEP, so warehouse is removed. This is unavoidable: PERMISSIONS is the single matrix TenantGuard enforces before any handler (`tenancy/tenant.guard.ts:176-179`), the apps read it, and describePermissionMatrix and the README x-roles are generated from it. Narrowing only the handler tuple would leave the guard admitting the call and the docs advertising it.
+- `delivery.ts`: JSDoc and route summary only, documenting the new 409 `load_sheet_not_confirmed` (data.code + data.loadSheetIds, the same data shape as the existing `gps_consent_missing`).
+- No Zod input or output shape changes, and no procedure is added or removed.
+
+**Permissions:** - `delivery.trips.depart`: owner, manager, warehouse, delivery → owner, manager, delivery (DOORSTEP, the same as `delivery.trips.return`). The core handler tuples in `trips.service.ts` (requireRole and assertCrewOrDesk) follow.
+- Unchanged: `delivery.trips.startLoading`, `delivery.trips.create` and `delivery.stops.add` stay TRIP_PLANNERS with warehouse included (docs/23 W10), and every warehouse.* procedure stays as it is.
+- RLS `trips_update` still admits warehouse, and must, because start-loading and addStop update `trips`. It is not narrowed.
+- The `permissions.test.ts` pins move to the narrower matrix; the test gets stricter (warehouse must now be refused on depart). This narrowing is a product change: record it in docs/22 §8 after approval.
+
+**Migration:** None.
+- `load_sheets` already has `trip_id`, `status` and index `load_sheets_trip_idx (tenant_id, trip_id)` (`schema/warehouse.ts:242`).
+- RLS `load_sheets_read` (tenant AND role <> retailer) already lets the driver and the desk read draft sheets.
+- RLS `audit_log_insert` (tenant AND actor_id = app.actor_id) plus app_rw's INSERT grant (verified in information_schema) already let every app_rw role write its own audit row.
+- No trigger, grant, policy or FORCE line changes.
+
+**Files:** `backend/libs/contracts/src/permissions.ts`; `backend/libs/contracts/src/delivery.ts`; `backend/libs/core/src/modules/warehouse/load-sheets.service.ts`; `backend/libs/core/src/modules/delivery/trips.service.ts`; `backend/libs/core/src/docs/examples.ts`; `backend/tools/smoke-endpoints.mts`; `frontend/warehouse-app/app/load/trips.tsx`; `frontend/warehouse-app/src/strings.ts`; `backend/libs/contracts/src/permissions.test.ts`; `backend/libs/core/src/modules/delivery/delivery.spec.ts`; `backend/warehouse-service/src/service.spec.ts`; `backend/*-service/README.md + frontend/{owner,manager,warehouse,delivery}-app/README.md`
+
+**Tests:** `delivery.spec.ts` › DOS-043: the godown starts loading but cannot send a trip off, nobody departs past a draft load sheet, and both moves …; `service.spec.ts` › DOS-043: a warehouse token is refused at the gate on POST /delivery/trips/{id}/depart and still reaches start-loading; `permissions.test.ts` › DOS-043: departing a trip is the crew's and the desk's, never the godown's (delivery)
+
+**Risk:** - **Who departs now.** Warehouse staff lose "Send it off". In practice the driver departs from D2: owner-app and manager-app have no depart call (grep), which matches docs/23 D2. - **Blocked until DOS-039 lands.** A trip carrying a draft load sheet cannot depart until the sheet is counted out or cancelled. While DOS-039 is open, count-out fails, so every seeded TRIP-NEXT stays blocked at D2 unless a PIN holder cancels its sheet. Ship with or after DOS-039. - **Seed.** Each tenant's TRIP-NEXT carries an approved draft sheet (seed-demo/warehouse.ts:~300-345; dos_qa shows one per tenant), so D2 on TRIP-NEXT refuses depart. That is intended. - **Smoke.** The warehouse target's throwaway trip …
+
+**Reviewer's residual doubts:** **What I verified.** Every root-cause citation was re-read and holds (line offsets within ±3), including: - the RLS policy texts: deliveries_read, load_sheets_read, audit_log_insert and trips_update - the app_rw grants on audit_log - the dos_qa evidence: trip 72649337 active, 5 orders packed, sheet 374f2089 draft, outbox TripLoading/TripDeparted 36 s apart, 0 trip audit rows - the absence of any founder decision in docs/22 that lets the godown depart - that no offline sync op, worker job or other spec calls depart; only delivery.spec.ts and smoke do.  The plan's direction is right, and I could not refute the core fix.  **What I changed:** 1. Two more stale comments in the change list:    - confirmedForTrip's JSDoc says it is "the ONLY thing delivery asks the warehouse" (load-sheets.service.ts:594-598)    - the contracts/delivery.ts header says the same.    The plan only added a JSDoc on the new method, which would have left both contradicting it. 2. The smoke sweep comment at smoke-endpoints.mts:2605-2607 ("the godown plans and departs") becomes false. Added as a comment-only change. I checked that smoke logic needs nothing else: classify turns the refused 403 into EXPECTED, and addStop still admits a desk role on a `loading` trip. 3. W10 dialog detail:    - `asking` must be cleared on success and on error, or a refused call leaves the dialog open over the error text.    - `useState` must be imported from react.    - The audit `after` must carry ISO strings, not Date objects. 4. Core spec step 7: CancelLoadSheetInput requires `id` as well as `reason` …
+
+## DOS-007 — "Send statement" queues an outbox event nothing consumes: add the StatementRequested consumer (statement message via notifications) and show the result on the owner's statement buttons
+
+*Why held:* Q3 answered: text statement (WhatsApp/SMS summary) now, PDF later. Size M, confidence high.
+
+**Root cause:** Finding (QA/findings/01-walkthrough-owner.md, DOS-007): POST /receivables/statements answers 200 {jobId, queued:1}, the screen shows nothing, and the StatementRequested outbox row stays published_at = null, attempts = 0. Nothing consumes that event type. I re-traced the path and it holds; three things are wrong together.  1. The request half works; nothing picks up the hand-off. - `ReceivablesService.sendStatements` (backend/libs/core/src/modules/receivables/receivables.service.ts:1264-1304) writes one `StatementRequested` row per shop via `emitEvent` (:1292). - Payload: {jobId, retailerId, from, to, channel, includeUpiQr}, no figures. Answer: {jobId, queued} (contracts receivables.ts:631-650, route :890-898). - Its JSDoc (:1260-1263) says "the worker renders and sends them", which is untrue.  2. No consumer exists. - The worker registers relay handlers for `DocumentRenderRequested` …
+
+**Contract:** Two small contract-side changes; no procedure input or output shape changes.
+1. `PLATFORM_TEMPLATE_KEYS` in backend/libs/contracts/src/notifications.ts gains 'statement'. It is a const list with no consumer, not a Zod schema.
+2. `receivables.statements.send` answers 501 `statement_pdf_not_rendered` for `channel: 'pdf'` instead of 200-and-dropped.
+   - The service throws it; the schema is unchanged.
+   - No app sends 'pdf': owner shops l.127, owner money l.113 and manager shops l.140 all send 'whatsapp'.
+   - The docs/smoke example samples the schema default 'whatsapp' (core/src/docs/sample.ts:185-187; examples.ts:4669-4672).
+
+Unchanged: SendStatementsInput/Output, StatementChannelSchema, MessageRefTypeSchema. The generated READMEs don't change.
+
+Not a contract but a package surface: @dos/core gains the './receivables' worker export (package.json).
+
+**Permissions:** none. 'receivables.statements.send' stays MONEY_DESK (backend/libs/contracts/src/permissions.ts:554; the service's requireRole(BACK_OFFICE) at receivables.service.ts:1265 is untouched). The consumer runs as the tenant's system actor in the worker. No notifications procedure or role changes.
+
+**Migration:** none. outbox_events, messages (ref_type is text; 'retailer' is already used by dues_reminder) and templates are unchanged. The two platform templates are data, seeded idempotently by seed-demo/notifications.ts (insertMany … onConflictDoNothing) like every other platform default; no migration inserts templates today. dos_qa needs the seed re-run once to get the two rows.
+
+**Files:** `backend/libs/core/src/modules/receivables/receivables.queries.ts`; `backend/libs/core/src/modules/receivables/receivables.service.ts`; `backend/libs/core/src/modules/receivables/documents.ts`; `backend/libs/core/src/modules/receivables/index.ts`; `backend/libs/core/src/modules/receivables/worker.ts`; `backend/libs/core/package.json`; `backend/libs/core/src/modules/notifications/events.ts`; `backend/libs/core/src/modules/notifications/worker.ts`; `backend/libs/core/src/modules/notifications/index.ts`; `backend/worker/src/jobs/notifications.ts`; `backend/worker/src/main.ts`; `backend/libs/database/src/seed-demo/notifications.ts`; `backend/libs/contracts/src/notifications.ts`; `frontend/owner-app/app/shops/index.tsx`; `frontend/owner-app/app/money/index.tsx`; `frontend/owner-app/src/strings.ts`; `backend/libs/core/src/modules/notifications/notifications.spec.ts`; `backend/libs/core/src/modules/receivables/receivables.spec.ts`; `backend/worker/src/jobs/notifications.test.ts`
+
+**Tests:** `notifications.spec.ts` › DOS-007: a statement request queues ONE statement message to the shop with the period balances and a UPI link for …; `receivables.spec.ts` › DOS-007: loadStatementSummary gives the same opening and closing as ledger.get for the same window (including a clamped …; `receivables.spec.ts` › DOS-007: a statement run asking for a PDF is refused 501 and writes no StatementRequested row, while a WhatsApp run …; `notifications.test.ts` › DOS-007: registering the notifications jobs gives StatementRequested an outbox relay handler; `notifications.test.ts` › DOS-007: sendStatement turns a StatementRequested event into one statement message keyed …
+
+**Risk:** - **Real sends:** with Meta/MSG91 credentials, shops now actually receive statements. A 200-shop O10 run queues up to 200 rows, drained by the relay (100 × 10 per tick) and dispatch (≤ 200 per tick). Locally the stub provider is used. - **Meta approval:** real WhatsApp needs an approved `statement_en` template in Meta. Until then the Meta provider fails, dispatch backs off 1m/5m/30m/2h/12h and dead-letters at five, and the row shows Failed in Settings → Messages. That is honest, but it isn't a send. - **Empty variables:** when there is no VPA, dues ≤ 0 or includeUpiQr=false, the body reads "Pay by UPI:  — Tarsun Enterprise". invoice_issued already does the same. Meta may reject an empty …
+
+**Reviewer's residual doubts:** WHAT I CHANGED (against the planner's version): 1. **Worker import path.** The plan imported `loadStatementSummary` from '@dos/core/modules/receivables'. No worker job imports `@dos/core/modules/*` today: every job uses a module's worker entry (@dos/core/notifications, /claims, /integrations, /reporting, /incentives, /ai, /docint, /documents), per coordination §3.9 "plain functions, no Nest DI" and the incentives/worker.ts comment "kept separate from index.ts so the worker never resolves the controller or a Nest module". Added receivables/worker.ts plus a './receivables' export in backend/libs/core/package.json. The runtime effect is nil (the barrel already loads through documents/render.ts:14); this is only about following the pattern. 2. **Pay-link amount.** The plan used the period closing. SendStatementsInput accepts any past `to`, so a statement for last quarter would have asked the shop to pay last quarter's balance. The link now uses today's dues, `duePaise = max(0, outstanding − unallocatedCredit)` from the rollup, which equals the AR balance by the existing rollup-vs-books spec. For today's screens (all send to = today: shops l.126, money rangeOf always ends `now`) the figure is identical; the Prerna expectation stays am=394335.00. 3. **Window clamp.** ledger.get clamps `from` to `to − 400 days` (receivables.service.ts:1140), but the statement input has no cap. The plan's "matches ledger.get by construction" was false for windows over 400 days. `loadStatementSummary` now clamps the same way through the shared constant and returns the effective from/to that the …
+
+## DOS-056 — Offline doorstep delivery: the server keeps the queued photo, Expo's native fetch failure counts as no signal, the app saves to the outbox when the office never answered, and the tray drops the Zod …
+
+*Why held:* Q4 answered: proof photo inline in the queued delivery op; docs/27 §15 updated. Size M, confidence medium.
+
+**Root cause:** Four separate defects. The web loss and the Android loss have different causes, and both must be fixed.  1) WEB: the office refuses a correctly queued delivery. The server's device mapper drops the photo. - The app queues one `deliveries` PUT. The photo rides in it as `pod[].inline = {mimeType, contentBase64}` (frontend/delivery-app/src/lib/queue.ts:181-197; the offline pod is built at app/stop/[id]/deliver.tsx:322-329). - `applyDeliverySync` maps the proof with `podFromDevice` (backend/libs/core/src/modules/delivery/delivery.sync.ts:135). `podFromDevice` (:218-228) copies id, kind, object_key, payload, lat, lng and captured_at. It never reads `p.inline`. - The photo therefore reaches `RecordDeliveryInput` with neither `objectKey` nor `inline`. The `PodEvidenceInput` refine fails (backend/libs/contracts/src/delivery.ts:576-593), and `parsed()` throws `SyncRejection('row_invalid', …)` …
+
+**Contract:** none. `PodEvidenceInput`, `RecordDeliveryInput` and `SyncOpSchema` are unchanged. The device already sends `pod[].inline` inside the free-form `data` record, and the server now reads it. `@dos/api-client` is a frontend library, not the contract.
+
+**Permissions:** none
+
+**Migration:** none
+
+**Files:** `backend/libs/core/src/modules/delivery/delivery.sync.ts`; `backend/libs/core/src/modules/delivery/delivery.spec.ts`; `frontend/libs/api-client/src/errors.ts`; `frontend/libs/api-client/src/errors.test.ts`; `frontend/delivery-app/src/lib/doorstep.ts`; `frontend/delivery-app/src/lib/doorstep.test.ts`; `frontend/delivery-app/app/stop/[id]/deliver.tsx`; `frontend/delivery-app/app/attention.tsx`; `frontend/delivery-app/src/strings.ts`; `frontend/delivery-app/package.json`; `frontend/pnpm-lock.yaml`; `docs/27-offline-sync-client.md`
+
+**Tests:** `delivery.spec.ts` › DOS-056 an offline delivery for a credit shop, queued with its photo inline after an offline arrival, is accepted from …; `delivery.spec.ts` › DOS-056 a malformed offline delivery is refused row_invalid in the rule's own sentence, never as a Zod JSON array; `errors.test.ts` › DOS-056 a native fetch failure (Expo FetchError 'fetch failed: …') is a network error, never unknown; `doorstep.test.ts` › DOS-056 saves the delivery on the phone when the office call fails with Expo's native FetchError while the online flag …; `doorstep.test.ts` › DOS-056 saves the delivery on the phone when the browser fetch throws TypeError or the request hits the deadline; `doorstep.test.ts` › DOS-056 never queues a write the office refused (business/validation/conflict/server ApiError is rethrown, save not …; `doorstep.test.ts` › DOS-056 with no signal goes straight to the phone and never calls the office
+
+**Risk:** 1. **Lost response after the server committed.** When the record call hits the 20 s deadline after a commit, the fallback queues a second op. The planner said it is refused `conflict`; more likely it is `stale`. `vetoIfStale` runs first (sync.registry.ts:510-532), `deliveries` is a pull table keyed on id, and the op carries `baseUpdatedAt`; the conflict at `STOP_TERMINAL` only fires if the online record left `deliveries.updated_at` unchanged. No double delivery either way, but the tray shows a refusal the driver throws away. 2. **Classifier breadth (new).** Any Error whose message starts with 'fetch failed' becomes `network` on every platform and app.    - That is correct for Expo's …
+
+**Reviewer's residual doubts:** WHAT I CHANGED 1. **Android root cause corrected, and the fix extended to `@dos/api-client`.**    - On native the global fetch is expo/fetch: expo/src/winter/runtime.native.ts:41-52, SDK 57.0.20; no `EXPO_PUBLIC_USE_RN_FETCH` anywhere in frontend.    - It rejects with `FetchError` ('fetch failed: …', name 'Error'; FetchErrors.ts, fetch.ts:78/88-93). `toApiError` (errors.ts:130-161) maps that to 'unknown'.    - DOS-068's a-39 shows "· unknown", which is `failed.error.kind` rendered by delivery-app/src/lib/ui.tsx:179.    - Consequence: the planner's `noSignal = kind === 'network'` never fires on Android or iOS, and the delivery would still be lost there. I added the classifier fix and its DOS-056 test. 2. **Why `online` stays true on native, corrected.**    - The cause is not `setNetworkHint(true)`: native has no hint wiring at all (react.tsx:118-139 needs `globalThis.addEventListener`; delivery-app never calls it).    - The cause is `isNetworkFailure` (engine.ts:1137-1149) not recognising `ApiError{kind:'unknown'}`, so `call()` never sets `reachable=false`.    - The Android `d4-error` text was "Something could not be completed. Try again.", not errors.ts:77. 3. **`save()` reuses the objectKey.** When the PUT already landed, the queued op carries the `objectKey` instead of re-sending bytes. This follows docs/20 rule 15 and avoids an orphan pending `file_objects` row. 4. **`parsed()` keeps field paths.** The refine sentence stays exact, but non-custom issues keep their path, so a type error still names the field. 5. **Test 1 made concrete and closer to the device.**    - Uses …
+
+## DOS-032+DOS-059 — Receipt numbers can repeat: add a unique receipt number per series and FY (keyed the same way as the counter), turn a collision into a 409 or a sync rejection, and fix the seed's lagging RCPT counter
+
+*Why held:* Q5 answered: DB unique receipt number per series+FY; rebuild dos_qa after merge. Size M, confidence high.
+
+**Root cause:** CONFIRMED. Both ids have one root cause. DOS-032 is the desk path (manager and accountant, POST /receipts). DOS-059 is the field path. The finding's own steps went through the ONLINE POST /delivery/collections (delivery-app app/stop/[id]/collect.tsx:109-139 calls delivery.collections.record; the response carries receipt.receiptNo). The offline /sync/upload path has the same defect. Two parts combine.  1. PRODUCT: nothing enforces a unique receipt number. - `receipts` has only the pkey, `receipts_idempotency_idx` and `receipts_device_client_no_idx` (schema/receivables.ts:206-220; pg_indexes on dos_qa confirms). - Invoices and credit notes carry `series_code` + `fy` plus a unique index (billing.ts:115-117; billing.ts:222-224 and 254-256). - `nextDocumentNumber` (platform/numbering.ts:27-52) returns whatever the counter holds. - Both insert sites write that number unchecked: …
+
+**Contract:** None. ReceiptSchema (contracts/src/receivables.ts:143-175) does not expose seriesCode or fy, the 409 uses an existing ORPC code, and the READMEs do not change. Side effect: `tablePull(receipts)` (receivables.module.ts:40-46) publishes every column, so the sync manifest gains `series_code` and `fy` and `schemaVersion` changes (sync.service.ts:250, 353-358). Receipts is pulled only by the DELIVERY and SHOP roles (sync-tables.ts:49, 51, 94), so only delivery and retailer devices re-snapshot once. Sales devices are unaffected, unlike what the original plan said. @dos/offline handles this as designed: it flushes pending ops, then drops, recreates and re-snapshots (engine.ts:328-360). ManifestOut's shape does not change.
+
+**Permissions:** none
+
+**Migration:** Required, and it cannot be avoided. The finding names restored counters and seeds as the failure class, and only a database index defends against those. The per-FY key needs a column receipts does not have.
+
+- 0043 (generated): ADD COLUMN series_code text NOT NULL DEFAULT 'RCPT', ADD COLUMN fy text (nullable).
+- 0044 (hand-written guarantees sibling, 0015 method): fail-loud duplicate check naming the tenant slug and the numbers; backfill fy from IST received_at; SET NOT NULL; CREATE UNIQUE INDEX receipts_no_idx (tenant_id, series_code, fy, receipt_no) WHERE receipt_no IS NOT NULL; closing assertion (FORCE RLS, no FOR ALL policy, index present and unique).
+
+Expand-only. No new table, grants or policies.
+
+A generated column was considered: timezone(text, timestamptz) is IMMUTABLE (pg_proc provolatile 'i' on dos_qa). It would avoid the backfill and the fixture edits. It was rejected because it would pin fy to IST while the counter's key is process-local (numbering.ts:33), and no schema uses generatedAlwaysAs today.
+
+Consequences:
+- dos_qa WILL refuse (4 duplicate pairs in tarsun). Drizzle's migrator applies ALL pending migrations in one transaction (dialect.js:60-71), so the refusal also rolls back every other pending batch migration on that database. dos_qa must be rebuilt per QA/ENV.md §6a (dropdb/createdb/migrate/seed); ask first.
+- The founder's `dos` (backend/.env default) …
+
+**Files:** `backend/libs/database/src/schema/receivables.ts`; `backend/libs/database/migrations/0043_receipts_number_expand.sql`; `backend/libs/database/migrations/0044_receipts_number_guarantees.sql`; `backend/libs/database/migrations/meta/_journal.json`; `backend/libs/core/src/platform/pg-errors.ts`; `backend/libs/core/src/platform/numbering.ts`; `backend/libs/core/src/modules/receivables/receivables.service.ts`; `backend/libs/database/src/seed-demo/sales.ts`; `backend/libs/database/src/seed-demo/billing.ts`; `backend/libs/database/src/seed-demo/receivables.ts`; `backend/libs/database/src/rls.test.ts`; `backend/libs/core/src/modules/incentives/incentives.spec.ts`; `backend/libs/core/src/modules/reporting/reporting.spec.ts`; `backend/libs/core/src/modules/receivables/receivables.spec.ts`; `backend/libs/core/src/modules/delivery/delivery.spec.ts`; `backend/libs/database/src/seed-demo.test.ts`
+
+**Tests:** `rls.test.ts` › DOS-032 DOS-059: refuses a second receipt under the same number in one series and financial year, and accepts that …; `receivables.spec.ts` › DOS-032: a desk receipt whose number the RCPT counter already issued is refused with 409 and nothing is recorded; `delivery.spec.ts` › DOS-059: a doorstep collection whose receipt number is already taken is refused with 409 and writes neither a receipt …; `receivables.spec.ts` › DOS-059: an offline receipt that would reuse a taken number is rejected 2xx with a sync error, never a 5xx and never a …; `seed-demo.test.ts` › DOS-032 DOS-059: every RCPT counter ends past the highest receipt number the seed wrote, and no two receipts share a …
+
+**Risk:** 1. The migration refuses any database that already holds duplicate receipt numbers, and it rolls back the whole pending batch with it (one transaction, drizzle dialect.js:60-71). dos_qa must be rebuilt (QA data lost; ask first). The founder's `dos` was not checked. If it has duplicates, migrating against the backend/.env default fails until the founder rebuilds it. 2. Migration ordering with other schema-changing fixes in this batch: take the idx at merge time, keep `when` monotonic (the migrator skips a `when` at or below the last applied, dialect.js:62), and re-generate snapshots if the prevId chain moved. 3. A lagging counter now stops ALL money recording for that tenant with a 409: desk …
+
+**Reviewer's residual doubts:** WHAT I CHANGED  1. Added a DOS-059 test on the online POST /delivery/collections path (delivery.spec.ts). The finding's steps 1-2 quote the online response receiptNo (collect.tsx:109-139 → collections.service.ts collectInTx → recordReceipt). The original plan tested only /sync/upload, which is kept as extra coverage because the delivery app does queue receipts offline (queue.ts:240-270).  2. The stored `fy` now comes from a new `numberingYear()` in platform/numbering.ts, which nextDocumentNumber itself uses, instead of @dos/domain financialYear.    - The two functions differ: @dos/db is process-local (tenant-bootstrap.ts:20-24), @dos/domain is IST (calendar.ts:31-35).    - The original plan called the mismatch 'latent, unchanged'. It is not unchanged: with a unique index it becomes a hard 409 outage.    - How: on a non-IST server, a receipt taken between 00:00 and 05:30 IST on 1 April draws from the old FY's counter but would be filed under the new FY. When the new FY's counter reaches that number, every receipt is refused.    - invoices.service.ts:1533 copies the domain function and carries the same latent bug. I chose not to spread it. Fallback if the founder prefers strict house symmetry: the domain function plus a dated note.  3. seed-demo/receivables.ts: the plan's single `fy: FY` edit is not enough. addReceipt's row type (428) is `Omit<$inferInsert, 'id'|'tenantId'|'idempotencyKey'>`, so all seven callers would fail typecheck. 'fy' must join the Omit.  4. Named the existing collision pattern the helper copies: invoices.service.ts:1566-1578 (isUniqueViolation + …
+
+## DOS-074+DOS-097 — Stock hint on the rep's and the shop's order screens: one complete per-item total at the godown orders reserve from, instead of the first 500 lot rows
+
+*Why held:* contract: new inventory.stock.availability read + permission row. Size M, confidence high.
+
+**Root cause:** CONFIRMED (reviewer re-traced it). Both findings have the same cause. The same read-and-sum code was copied into two apps, and it runs against a stock read that returns one row per lot per location, 500 rows at most.  1) The client ignores nextCursor. Three screens call `inventory.stock.sellable({ limit: 500 })` once and add up whatever rows come back per item: - frontend/sales-app/app/orders/new.tsx:98-108, read at :387 (draft line, which also feeds QtyStepper availablePieces at ~:425) and :475 (SuggestionRow chip :581-588). This is S3 order entry, DOS-074. - frontend/sales-app/app/shops/catalog.tsx:49-59, read at :71 and :170 (S11). - frontend/retailer-app/app/order.tsx:97-114, read at :432 and :522 (R7, DOS-097). None of them reads `nextCursor`. No other app calls `stock.sellable` except delivery van-sale.tsx:94, which reads the vehicle location per lot and is out of scope.  2) The …
+
+**Contract:** Additive: a new procedure `inventory.stock.availability`.
+- Route: GET /inventory/availability.
+- Input: { variantId?: uuid, limit 1..500 default 500, cursor?: uuid (last variantId) }.
+- Output: { items: [{ variantId, available }], nextCursor }.
+- Lives in inventoryContract (backend/libs/contracts/src/inventory.ts) and is wired automatically through `inventory: inventoryContract` in contract.ts.
+- No existing schema changes. Only `stock.sellable`'s summary TEXT is reworded, because it would otherwise claim to be the only rep/shop stock read. `stock.sellable` stays for the van-sale screen and the desk.
+
+Why a new procedure cannot be avoided:
+1. The only stock read a rep or a shop may call is per lot per location, capped at 500 rows, so the page count grows with every GRN.
+2. The client cannot restrict a total to the one godown orders reserve from. SellableStockRow has no location kind, and `inventory.locations.list` is STAFF.
+3. A location filter on `sellable` would also change its contract and still ship per-lot rows.
+4. docs/20 rule 3 requires cursor paging with limit ≤ 500, so the new read pages by item.
+
+No examples.ts entry is needed:
+- examples.spec.ts 'covers every procedure' builds from PROCEDURES generically.
+- A blank GET example returns rows, so `pnpm smoke` passes without a QUERY_FILL entry.
+
+**Permissions:** Add `'inventory.stock.availability': ANY_MEMBER` at backend/libs/contracts/src/permissions.ts:478, next to `'inventory.stock.sellable': ANY_MEMBER`, and reword the comment at :474-475.
+
+This does not widen access. The new read gives a strict subset of what `sellable` already gives every member: one sum per item, with no lot, batch, MRP, expiry, location, on-hand, reserved or cost.
+
+No existing entry changes. The automatic checks pick up the new route:
+- permissions.test.ts 'covers every procedure' and 'has no entry for a procedure that does not exist'.
+- each service's describePermissionMatrix.
+No permissions.test.ts list names inventory procedures for reps or shops (only :1048 compares against inventory.stock.adjust), so no test edit is needed.
+
+**Migration:** None.
+- The query reads the existing security_invoker `sellable_stock` view (0003:170-174) and `locations`.
+- Every member can SELECT them under RLS: locations_read, stock_balances_read and stock_lots_read in 0012 at :228, :236 and :244 (schema/inventory.ts tenantReadPolicy at :66, :93, :174).
+- The `s.location_id = <godown>` filter is served by the stock_balances (tenant_id, location_id) index.
+
+**Files:** `backend/libs/contracts/src/inventory.ts`; `backend/libs/contracts/src/permissions.ts`; `backend/libs/core/src/modules/inventory/stock.service.ts`; `backend/libs/core/src/modules/inventory/inventory.mappers.ts`; `backend/libs/core/src/modules/inventory/inventory.controller.ts`; `backend/libs/core/src/modules/inventory/availability.spec.ts`; `frontend/libs/api-client/src/pages.ts`; `frontend/libs/api-client/src/index.ts`; `frontend/libs/api-client/src/pages.test.ts`; `frontend/sales-app/src/lib/stock.ts`; `frontend/sales-app/app/orders/new.tsx`; `frontend/sales-app/app/shops/catalog.tsx`; `frontend/retailer-app/src/lib/stock.ts`; `frontend/retailer-app/app/order.tsx`; `backend/{owner,manager,sales,warehouse,delivery,retailer}-service/README.md and frontend/<role>-app/README.md endpoint tables`; `docs/23-app-screens-and-api-gaps.md`
+
+**Tests:** `availability.spec.ts` › DOS-074: stock.availability returns one godown total per item even when the item's lots run past the 500th sellable row; `availability.spec.ts` › DOS-074: stock.availability counts only the godown orders reserve from (not a vehicle, the damaged bin, in-transit or a …; `availability.spec.ts` › DOS-097: a retailer gets variantId and available only, one row per in-stock item, paged by item, with items that have …; `pages.test.ts` › DOS-074: readAllPages follows nextCursor to the last page; `pages.test.ts` › DOS-097: readAllPages reports an incomplete read when the page cap or a repeated cursor stops it, so an absent item is …; `pages.test.ts` › DOS-097: readAllPages rejects when any page fails, so a screen never gets a partial stock map
+
+**Risk:** Low to medium.  - Contract: one new GET procedure; existing shapes are untouched (only sellable's summary text). The frontend links @dos/contracts, so backend libs must be built before the frontend typecheck, and the READMEs regenerated. - Query cost: a GROUP BY over one location's positive balances per page, O(lots at the godown). Typically one call instead of several 500-row pages, cached on the client for 60-120 s. - Visible changes (all correct, but a pilot user will notice them):   - The rep now sees a brick "0 cs available" on zero-stock items when online (previously no chip).   - The stepper shows its ochre over-available warning for any quantity of such items; it never blocks (UX-00 …
+
+**Reviewer's residual doubts:** WHAT I CHANGED 1. The godown rule. The plan summed every active kind='warehouse' location. I changed it to the SAME single location orders reserve from: the first active warehouse ordered by id.    - That rule lives in orders' warehouseLocation() (orders.internals.ts:188-207) and warehouse's activeWarehouseLocation() (warehouse.internals.ts:225-244). No frontend sets fulfilFromLocationId (git grep: none).    - So in a tenant with two godowns, summing would promise stock no rep or shop order can ever reserve. The finding's expected result is "the godown's sellable total".    - It is identical in dos_qa today, where every tenant has one warehouse; I re-ran the ground-truth SQL with the subquery rule and got the same 480/9,709/249/7 and 166 items.    - Added a second-warehouse exclusion to test 2 and a NOT TESTED note for the running product, because proving it there needs a mutation. 2. Tests.    - The 505-lot fixture must be built in process (findOrCreateLot + one InventoryService.post inside one withTenant transaction), not through ~1,010 HTTP calls, given the 30 s test and 60 s hook timeouts.    - The retailer actor needs its own membership; inventory.spec.ts has no retailer, so copy billing.spec.ts.    - Added a third api-client spec: a failed page rejects the whole read. That behaviour is what the OFFLINE verify step relies on. 3. Stale comments that become false are now in scope: the contracts header, sellable's summary, the permissions.ts comment at :474-475, and the STOCK_KEEPERS comment in stock.service.ts:80. 4. Verification: added iOS steps (Appium + Expo Go per …
+
+## DOS-096 — Retailer order screen shows the pre-GST net as "You pay": make pricing.quote carry the order's own GST and payable total, have orders take GST from it, and show it on R7 (and on R8 lines)
+
+*Why held:* contract: pricing.quote output gains GST and payable totals. Size M, confidence high.
+
+**Root cause:** The planner's analysis is right; every citation below was re-read, and the DB figures were re-queried in dos_qa. The finding's suggested fix is wrong on one point: `pricing.quote` does not return GST, and that missing tax is the root cause.  1. R7 labels the pre-GST net as the payable amount.    - frontend/retailer-app/app/order.tsx:361-364: the bottom bar shows `totals?.netPaise` under t('r7.net') = "You pay" (strings.ts:108).    - order.tsx:449-457: the totals panel has only Before offers, Offers, and net as "You pay".    - order.tsx:725: the row rate uses t('r7.perPiece') = '{rate} per piece' (strings.ts:96), which is the ex-GST `ratePaise`.    - order.tsx:740: the row money is `quoted?.lineNetPaise`, also ex-GST.    - The ask-for-a-better-rate sheet on the same screen is also unlabelled. order.tsx:563 shows 'r7.askListRate' = "Today's rate is {rate}" and :566 shows 'r7.askRate' = …
+
+**Contract:** `pricing.quote` output only (backend/libs/contracts/src/pricing.ts), additive:
+- `QuotedLineSchema` gains `gstBps`, `taxPaise`, `lineTotalPaise`.
+- `QuoteOutput.totals` gains `taxPaise`, `roundOffPaise`, `totalPaise`.
+
+Why it cannot be avoided: no other procedure tells a client what an order will cost with GST before the order is written. HSN rates are not on any device, and computing GST in the app would be a second tax implementation.
+
+Input, path and permissions are unchanged. The server must fill the new fields, because oRPC validates declared outputs.
+
+No code in either workspace constructs a `Quote`/`QuotedLine` object; the readers are owner-app prices/index.tsx:113-122, delivery-app van-sale.tsx:150/193/263 and retailer order.tsx. The sales app's device pricing uses @dos/domain's `PriceOrderResult`, not the contract. So the new required fields compile everywhere.
+
+**Permissions:** none. `pricing.quote` stays ANY_MEMBER (retailer included); the new `hsn_rates` read is allowed for every app_rw role by `hsn_rates_read USING (true)`. The new keys carry no cost/margin/PTD, so the key-name guard in pricing.spec.ts:484-485 still holds.
+
+**Migration:** none. `hsn_rates` (global) and `sales_order_lines.gst_bps/tax_paise/line_total_paise` already exist; nothing is stored differently.
+
+**Files:** `backend/libs/contracts/src/pricing.ts`; `backend/libs/core/src/modules/pricing/quote.service.ts`; `backend/libs/core/src/modules/orders/pricing-lines.ts`; `backend/libs/core/src/modules/pricing/pricing.spec.ts`; `backend/libs/core/src/modules/orders/orders.spec.ts`; `frontend/retailer-app/app/order.tsx`; `frontend/retailer-app/app/orders/[id].tsx`; `frontend/retailer-app/src/strings.ts`; `backend/owner-service/README.md, backend/manager-service/README.md, backend/sales-service/README.md, backend/delivery-service/README.md, backend/retailer-service/README.md`
+
+**Tests:** `pricing.spec.ts` › DOS-096: a shop's quote carries GST at the dated HSN rate and the rupee-rounded amount it will pay; `pricing.spec.ts` › DOS-096: a quote for an item whose HSN has no GST rate is a 400 naming the HSN, never a silent 0%; `orders.spec.ts` › DOS-096: what the shop is quoted is what its placed order carries — GST per line, rounding and total
+
+**Risk:** 1. Money path. orders.create / setLines / submit / repeatLast / sync upload, and the delivery van sale (vansales.service.ts:79-87 via writeLines), now take per-line GST from the quote instead of their own lookup.    - The query moves verbatim and the arithmetic is identical (engine netPaise = Σ lineNet, schemes.ts:327-336), so totals must not move.    - Guarded by orders.spec 26_900 / 40_300 and the delivery, billing and warehouse specs.  2. Failure surface widens. A listed item whose HSN has no dated rate now makes `pricing.quote` answer 400, not just orders.create. That blanks the WHOLE R7 price list (the 1-pc list quote, order.tsx:203-217), the owner what-if and the van-sale total, not …
+
+**Reviewer's residual doubts:** WHAT I CHANGED 1. README list: five service READMEs embed the quote output (owner, manager, sales, delivery, retailer). warehouse-service does not mount pricing.quote and was wrongly listed. 2. Test fixtures would not have run as written.    - `hsnRates` and `priceListItems` rows need an explicit `id`, because `id()` has no default (columns.ts:6). `priceListItems` also needs `tenantId`, and its unique key is (tenant, list, variant).    - v3 now has its own per-run HSN (prefix 6) so it can never collide with a rated code.    - Both pricing.spec DOS-096 tests are pinned between 'rejects a quote for an unpriced…' and 'refuses requests without tenant context'.    - The orders.spec test goes after :801 and before the `countRows` helper. 3. Added 'r7.askRate' → '… per piece, before GST'. It is the same defect on the same screen: the bargain input is ex-GST, and a GST-inclusive entry is silently dropped by the engine (rate ≥ base rate is skipped). 4. Verify changes:    - specs run against a copy of dos_batch1_template, never dos_qa (QA/STATE.md);    - added the delivery, billing and warehouse specs (van sales share writeLines), backend lint/typecheck and the retailer-app typecheck/lint;    - added a check that the R7 price list still loads, and the ask-sheet label check;    - dropped the needless auth restart. 5. Risk and root cause now state three more things:    - van sales go through the changed path;    - billing re-resolves GST and cess at the INVOICE date (invoices.service.ts:340), so the fix makes screen = order by construction, but screen = bill only with no cess, no …
+
+## DOS-003 — Order detail panels (owner + manager) name every line and show its free quantity, from a variantName carried on the order line
+
+*Why held:* contract: OrderLineSchema gains variantName (output). Size S, confidence high.
+
+**Root cause:** The order line on the wire has no name. Neither panel looks one up, and neither prints the free quantity. The reviewer re-read every cited line and found it correct.  1. Contract and mapper - `OrderLineSchema` (backend/libs/contracts/src/orders.ts:70-91) has `variantId` (line 73) plus quantities and money, but no name. - `toOrderLine` (backend/libs/core/src/modules/orders/orders.mappers.ts:44-66) maps only `sales_order_lines` columns, and `loadDetail` (orders.mappers.ts:102-129) selects only that table. - The live owner-service OpenAPI, re-fetched 2026-09-12 (`GET :3001/docs/openapi.json`, `/orders/{id}` → `item.lines[]`), lists exactly: id, lineNo, variantId, enteredQty, enteredUnit, packSizeAtEntry, qtyPcs, freeQtyPcs, pickedQtyPcs, deliveredQtyPcs, listRatePaise, ratePaise, discountBps, discountPaise, gstBps, taxPaise, lineTotalPaise, appliedRules, priceLocked. There is no name.  2. …
+
+**Contract:** backend/libs/contracts/src/orders.ts: `OrderLineSchema` gains the OUTPUT field `variantName: z.string()`. It is additive. No input, procedure, route or permission changes.
+
+It flows through `OrderDetailSchema.lines` (orders.ts:151-152) into every reply that embeds OrderDetail:
+- `orders.get`, `orders.create`, `orders.setLines`, `orders.repeatLast`, `orders.submit`, `orders.confirm`, `orders.cancel` (`OrderItemOutput`, orders.ts:158 and :213);
+- `orders.approvals.decide` → `order` (orders.ts:277);
+- `ai.drafts.confirm` → `ConfirmDraftOutput.order` (ai.ts:379-382);
+- `delivery.vanSales.create` → `CreateVanSaleOutput.order` (delivery.ts:1115-1121).
+
+Sync upload replies are NOT affected; the orders sync handlers never build an OrderDetail.
+
+The change cannot be avoided. The only client-side name source, `tenantCatalog.list`, defaults to `listedOnly=true` and caps at 500 rows (catalog.ts:118,120). 60+ dos_qa orders contain a line whose item is unlisted or has no listing, and the invoice line already carries its name server-side (`InvoiceLineSchema.description`).
+
+Frontend impact, checked:
+- No code builds an OrderLine or OrderDetail literal.
+- The sales app maps server lines field by field (sales-app/app/orders/[id].tsx:443-455).
+- The retailer app only uses `OrderLine['enteredUnit']` (order.tsx:60).
+- No backend spec, contract test or frontend test holds a full order-line literal …
+
+**Permissions:** none.
+- `orders.get` stays ANY_MEMBER (permissions.ts:524).
+- The name read touches `product_variants`, which uses `globalCuratedPolicies` (database/src/schema/catalog.ts:135) with read `using true` (columns.ts:267-270).
+- It also touches `tenant_products` (`tenantReadPolicy('tenant_products_read')`, schema/tenant-catalog.ts:203; any tenant member may SELECT, columns.ts:148-149).
+- The retailer role already reads both through `tenantCatalog.list`.
+- `tenant_product_costs` is never touched, so the "cost invisible to salesperson/delivery/retailer" guarantee is unaffected.
+
+**Migration:** none. The name is read at request time from existing columns (`product_variants.name`, `tenant_products.local_alias`). An order stays editable until it is invoiced, and the invoice line freezes its own `description` at issue, so no snapshot column is needed. No founder decision on freezing names on orders was found (grep of docs/15, docs/17 and docs/22 for local_alias or name freezing returned nothing).
+
+**Files:** `backend/libs/contracts/src/orders.ts`; `backend/libs/core/src/modules/tenant-catalog/import.ts`; `backend/libs/core/src/modules/tenant-catalog/index.ts`; `backend/libs/core/src/modules/orders/orders.mappers.ts`; `backend/libs/core/src/modules/orders/orders.spec.ts`; `frontend/owner-app/app/orders/index.tsx`; `frontend/manager-app/app/orders/index.tsx`; `backend/owner-service/README.md, backend/manager-service/README.md, backend/sales-service/README.md, backend/warehouse-service/README.md, backend/delivery-service/README.md, backend/retailer-service/README.md`
+
+**Tests:** `orders.spec.ts` › DOS-003: order lines carry variantName — tenant alias first, global name otherwise, and an item delisted after ordering …
+
+**Risk:** Low, with one deploy-window edge the original plan missed.  Idempotent replays can return 500 for 24 hours after the restart - `runIdempotent` returns the STORED reply as-is on a replay (backend/libs/core/src/platform/idempotency.ts:61-73). - oRPC validates every handler output against the contract (`validateOutput` in @orpc/server dist shared/server.DEBcqOjg.mjs:178-191 throws INTERNAL_SERVER_ERROR "Output validation failed"). - So once the services run the new contract, replaying any order-returning mutation stored before the restart answers 500 instead of the stored reply. That means the same idempotencyKey with the same payload, for orders …
+
+**Reviewer's residual doubts:** What I changed 1. Removed the `frontend/libs/ui/src/qty.test.ts` "guard". The exact case already exists at qty.test.ts:134-145 ('names free goods, which carry quantity and no value' → '2 cs · 48 pc · 6 pc free', the order-line shape with packSizeAtEntry and no caseSize). It passes before and after, so it proves nothing about DOS-003. The only failing-first test is the core spec. 2. Added the idempotent-replay risk the plan missed, with a concrete smoke mitigation (`--run-tag`). Verified: idempotency.ts:61-73 returns `existing.response` verbatim, oRPC's `validateOutput` throws on issues, retention is 24 h (worker/src/jobs/retention.ts:28), and dos_qa holds 24 stored replies containing order lines. smoke keys run-scope only `orders.create` and `orders.repeatLast` ids (smoke-endpoints.mts:63,1106); other ops use the IST-date `RUN_TAG` (:56,206). 3. Corrected the plan's risk claim that sync upload replies carry OrderDetail. orders.sync.ts:54,80,102,137 use only findOrder, insertDraft and writeLines. 4. Completed the list of replies embedding OrderDetail: added `ai.drafts.confirm` (ai.ts:381, drafts.service.ts:189) and `delivery.vanSales.create` (delivery.ts:1116, vansales.service.ts:214). 5. Made the spec executable. `manufacturerId`, `productId` and `priceListId` are consts inside `beforeAll` (orders.spec.ts:118-120,194) and unreachable from an `it`: hoist them or look them up. Place the test last. Assert on the create reply as well as owner and retailer GETs. Corrected the `Line` type location to :37-50. 6. Checked the new orders → tenant-catalog edge. The ESLint boundaries …
+
+## DOS-004 — Approvals name the shop, order and amount (owner queue, owner Today, manager cards), with the live credit position and the reason in the panel
+
+*Why held:* contract: orders.approvals.list items gain shop/order/amount. Size M, confidence high.
+
+**Root cause:** The approvals list never carries the shop, and carries the order number and total only when a payload happens to hold them. All three screens that read the list fill the gap from that payload.  1. Contract. `ApprovalSchema` (backend/libs/contracts/src/orders.ts:134-148) has only `orderId`, `entityType`, `entityId`, `requestedBy` and a loose `payload` record (line 142). `ApprovalsListOutput.items` (orders.ts:263-266) returns exactly that: no shop id, shop name, order number or order total.  2. Service. `ApprovalsService.list` (backend/libs/core/src/modules/orders/approvals.service.ts:54-60) runs `select().from(approvals)` and maps each row with `toApproval` (orders.mappers.ts:81-96). It never reads the order or the shop, although every order approval has `approvals.order_id`.    - dos_qa check: 17/17 `entity_type='retailer'` rows and 12/12 `'order'` rows have an order_id. Shop mismatch …
+
+**Contract:** Only the output of `orders.approvals.list` changes. A new `ApprovalQueueItemSchema` (`ApprovalSchema` plus nullable `orderNo`, `orderTotalPaise`, `retailerId`, `retailerName`) replaces `ApprovalSchema` in `ApprovalsListOutput.items`.
+
+Why it can't be avoided:
+- The list is the only data the owner queue, the owner Today card and the manager cards have.
+- Working it out on the client means one `orders.get` per row (N+1, docs/20) plus `useNames`, whose shop cache is capped at 500 active shops (owner-app/src/lib/ui.tsx:335).
+
+The change only adds fields. The two frontend readers (owner-app, manager-app) still type-check. `ApprovalSchema`, `OrderDetailSchema.approvals` (read by the sales app for kind and status) and `orders.approvals.decide` are untouched.
+
+Coordination: docs/23 §10 gap #2 (`requestedBy` printed as a uuid) is on the same procedure. If that slice adds a requester name, it should extend `ApprovalQueueItemSchema`.
+
+**Permissions:** None.
+- `orders.approvals.list` stays BACK_OFFICE (permissions.ts:526).
+- The owner panel's one extra read, `receivables.creditCheck`, is CREDIT_CHECKERS, which includes owner (permissions.ts:172-178, 552). owner-service serves it: `receivables` is in ownerServiceDefinition.contractKeys (core/src/service/definitions.ts:82+).
+- The 'Open the order' link reuses `orders.list` with `q`, already on the owner route.
+- Under RLS, `sales_orders_read` and `retailers_read` are `tenantOrOwnRetailerPolicy` (schema/orders.ts:117, schema/retailers.ts:165), so every back-office role, the accountant included, reads the joined columns.
+
+**Migration:** None. The join reads columns that already exist (`sales_orders.order_no`, `total_paise`, `retailer_id`, `retailers.name`) through the existing `approvals.order_id` FK, covered by `approvals_order_idx` (schema/orders.ts:304) and the primary keys.
+
+**Files:** `backend/libs/contracts/src/orders.ts`; `backend/libs/core/src/modules/orders/orders.mappers.ts`; `backend/libs/core/src/modules/orders/approvals.service.ts`; `backend/libs/core/src/modules/orders/orders.spec.ts`; `frontend/owner-app/app/approvals.tsx`; `frontend/owner-app/app/index.tsx`; `frontend/manager-app/app/orders/index.tsx`; `frontend/owner-app/src/strings.ts`; `backend/owner-service/README.md, backend/manager-service/README.md, backend/sales-service/README.md, backend/warehouse-service/README.md, backend/delivery-service/README.md, backend/retailer-service/README.md`
+
+**Tests:** `orders.spec.ts` › DOS-004: the approvals queue names the shop, the order number and the total of an order approval; `orders.spec.ts` › DOS-004: an approval whose payload carries no order number still names the order and shop from its order; `orders.spec.ts` › DOS-004: an approval that is not on an order lists with null shop and order fields
+
+**Risk:** Low. - Output validation: the left joins always produce the four keys (null without an order), so no list row can start failing `ApprovalsListOutput`. - A shop hidden by RLS would give a null name. Back-office roles read every tenant shop (retailers_read), so this is not expected. - Cost: one page joined on primary keys, no N+1. The owner panel adds one `creditCheck` read, only for the selected credit_limit row. - Deciding does not change (decide, confirm, cancel, RLS, state machine). - A copied manager sentence would have misreported overdue-only breaches as '₹0.00 over the limit'. The amended plan builds from `reasons` instead. - Merge risk: DOS-005 edits approvals.tsx and may change …
+
+**Reviewer's residual doubts:** What I changed from the submitted plan:  1. The manager app's 'Waiting for a decision' cards are now part of DOS-004, not handed to DOS-020. The manager walk files them under DOS-004 by name (QA/findings/02-walkthrough-manager.md:401, QA/03-manager-review.md:34). DOS-020's text is about confirm silently deciding approvals and walking through a credit stop, not card names. It is a two-line mapping change at manager-app/app/orders/index.tsx:269-276. Tell the DOS-020 fixer not to redo it.  2. I removed the below-floor lines block (`orders.get` + `lines.filter(ratePaise < listRatePaise)`) and the DOS-003 dependency. Three reasons:    - On dos_qa neither pending below_floor order (Kalyan SO-0178, Sai SO-0449) has a line with rate < list (SQL on sales_order_lines), so the block would render empty and the old verify step could not be executed.    - Its filter left out the server's exclusion of lines carrying a `bargain`/`override` applied rule (orders.internals.ts:149-153), so it would list lines the server never flagged.    - It would be a second client-side copy of a server rule, with names only after DOS-003.    In its place is an 'Open the order' Link to `/orders?q=<orderNo>`, using the existing href pattern at owner-app/app/_layout.tsx:342.  3. The credit sentence is specified from `reasons[]` and `creditMode` instead of 'copy manager-app/app/orders/index.tsx:254-266'. That builder hides everything for stop+breached, and prints '₹0.00 over the limit' when the breach is overdue days (Tarsun SO-0882/0885, Kalyan Kailash Traders). Its `creditLimitPaise === null` branch is dead: …
+
+## Architect verdicts
+
+| Plan | Verdict | Amendments |
+|---|---|---|
+| DOS-106 | pending | |
+| DOS-043 | pending | |
+| DOS-007 | pending | |
+| DOS-056 | pending | |
+| DOS-032+DOS-059 | pending | |
+| DOS-074+DOS-097 | pending | |
+| DOS-096 | pending | |
+| DOS-003 | pending | |
+| DOS-004 | pending | |
