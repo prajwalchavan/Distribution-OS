@@ -367,7 +367,7 @@ Evidence: QA/evidence/batch1/regression/web-chain/c34-manager-fulfilment-desk.pn
 Suggested fix: Add 'Plan a trip' to the manager Load-out (and owner Trips) screen: date, vehicle, driver/helper, opening float, and stops picked from packed bills not yet on a trip (grouped by beat, reorderable), calling delivery.trips.create. Add 'Add a bill to this trip' calling the stop-add procedure. Have W7/W10 pass tripId so sheet and trip are linked.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **PRE-EXISTING — never built** (git log over all branches finds no frontend call to delivery.trips.create / stops.add at any commit; the API and matrix have allowed it since before batch 1). Batch 1 only exposed it: DOS-039 let a chain push new orders past load-out for the first time, and the seed's TRIP-ACTIVE/TRIP-NEXT had hidden it. docs/23 lists it (M7 Load-out, W10 Trips: create), and the warehouse W10 screen's header says the godown "may NOT create the round" — which contradicts the founder's 2026-09-12 answer (Q2: warehouse keeps create trip, add stops). New scope; a go-live blocker. Evidence: QA/evidence/batch1/regression/part-b-regression-status.md §1.
 
 Found by: batch 1 regression part B (cross-role chain).
 
@@ -402,7 +402,7 @@ Evidence: QA/evidence/batch1/regression/web-manager/034-30-trip-cash-RCPT-0701-t
 Suggested fix: Exclude receipts whose trip is not settled from the Day-end register and from receipts.deposit (server refusal). Post a deposit's credit from the account the cash sits in now: CASH once settlement has handed it over, never CASH_VAN after settlement. Make trips.settle move CASH_VAN→CASH exactly once per receipt. Add a DB guarantee test that banking plus settling a trip never takes CASH_VAN below zero. This is the van-cash follow-up the DOS-034 implementer asked to be filed.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **CONSEQUENCE of DOS-034 (c0889f7); root cause pre-existing.** Trip cash was already listed and bankable at c5c6e03 (Day-end register, owner Bank it; deposit credits CASH_VAN); DOS-034 put Bank this batch and Bank it in easy reach. DOS-034's approved text named only UPI and bank-transfer rows, so its three failed checks PASS within DOS-034's scope and this is the companion finding. **QA process miss:** the DOS-034 plan and its verifier both said the van-cash finding must be filed at the same gate as DOS-034; it was not filed until this regression. Stopgap until approved: hide or refuse receipts with a tripId on Day-end and Bank it until settlement hands the cash over. Evidence: part-b-regression-status.md §3.
 
 Found by: batch 1 regression part B (manager desk walk).
 
@@ -423,7 +423,7 @@ Evidence: QA/evidence/batch1/regression/web-chain/c38-warehouse-load-build-befor
 Suggested fix: Serve W7 from a server-side filter 'packed, not on a live sheet, not dispatched', ordered by packed_at desc, paged, with the pack date shown; exclude dispatched and delivered orders.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **PRE-EXISTING** — W7 `packs.list({ limit: 50 })` with no filter, server orders by `desc(id)`; seeded packs carry hash ids that sort above every live uuidv7 id; nothing in batch 1 touched W7, packs.list or the seed ids. New scope (same ordering class as DOS-023/025, other screens). Evidence: part-b-regression-status.md §2.
 
 Found by: batch 1 regression part B (cross-role chain).
 
@@ -448,7 +448,7 @@ Evidence: QA/evidence/batch1/regression/web-manager/041-01-M20-row6-stepped-one-
 Suggested fix: Give the M20 QtyStepper a pieces entry (onOpenPieces / parsePieces, as the credit-note sheet does), capped at the row's requested_qty_pcs, with a helper 'asks for N pc'. Drop the 'Not ordered' label on this screen. This is the residual the DOS-041 implementer and verifier asked to be logged.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **CONSEQUENCE of DOS-041 (475092f), accepted in its plan.** M20 was already whole-cases-only at c5c6e03; the lost path was an incorrect workaround (a whole case booked onto a 6-pc row, which then broke pack with 'insufficient stock' — the DOS-041 defect). New scope: loose-piece entry on M20. Evidence: part-b-regression-status.md §6.
 
 Found by: batch 1 regression part B (manager desk walk).
 
@@ -473,7 +473,7 @@ Evidence: QA/evidence/batch1/regression/web-manager/029e-01-control-start-review
 Suggested fix: In frontend/libs/api-client/src/react/index.tsx nextRefusal, do not mark an error as seen-without-shown while a sibling write is pending. Either show it at once or show it when the sibling settles. Add refusal.test.ts cases for frames [pending,pending] → [error A,pending] → [error A,success], expecting A to be shown.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **defect inside DOS-029's own new code** (d600ab8, `nextRefusal` in frontend/libs/api-client/src/react/index.tsx:476-497; no test covers [error A, pending] → [error A, success]). Not a regression of main (that refusal was silent before DOS-029). Inside DOS-029's approved scope: repaired on the DOS-029 branch before merging (2026-09-13). Evidence: part-b-regression-status.md §8.
 
 Found by: batch 1 regression part B (manager desk walk).
 
@@ -499,7 +499,7 @@ Evidence: QA/evidence/batch1/regression/web-manager/034-13-accountant-receipt-pa
 Suggested fix: Fix time an intent's client values once per intent, outside the mutation run: depositedAt for Bank it and the Day-end batch, bouncedAt for bounce, lines[].id for credit-note create, lineIds[].id for docint approve. Then a retry is byte-identical and replays. After a network failure of unknown outcome, refetch the record so the panel shows the true state. Map the idempotency 409 to 'This was already saved' plus a refresh. Code review (not executed) shows the same timestamp pattern in day-end.tsx deposit and bounce.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **CONSEQUENCE of DOS-034 (c0889f7), made visible by DOS-029 (d600ab8); mechanism pre-existing.** The api-client keys on the hook input while `run` adds `depositedAt: new Date()`, so a retry sends the same key with a new body; the same silent 409 existed at c5c6e03 on Day-end and the owner's Bank it. Nothing is banked twice (the status check refuses). New scope. Evidence: part-b-regression-status.md §7.
 
 Found by: batch 1 regression part B (manager desk walk).
 
@@ -560,7 +560,7 @@ Evidence: QA/evidence/batch1/regression/web-chain/w2-12-manager-INV-9014-panel-d
 Suggested fix: In billing.invoices.cancel for a pre-dispatch pack bill, move the order in the same transaction (packed->cancelled with the bill's reason, or packed->confirmed with the pack voided) and remove it from the pack and billing queues.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **PRE-EXISTING** — invoice cancel restocks and reverses but never moves the order (order machine has packed → dispatch only); unchanged by batch 1. Note: since DOS-039, re-loading such an order would send goods out without deducting stock again, and re-billing is allowed; neither path is reachable from an app today (no app calls issueForPack; W7 would not list the pack). Candidate for P1 after an API probe. Evidence: part-b-regression-status.md §5.
 
 Found by: batch 1 regression part B (cross-role chain).
 
@@ -581,7 +581,7 @@ Evidence: QA/evidence/batch1/regression/web-chain/api-11-sales-sellable-marie-li
 Suggested fix: Restrict sellable_stock (or the inventory.stock.sellable query) to locations of kind warehouse (plus the caller's vehicle for van sales), exclude expired lots, and add a guarantee test.
 ```
 
-Regression status: UNDER INVESTIGATION (read-only before/after code comparison running; verdict to be added).
+Regression status: **PRE-EXISTING** — the sellable_stock view counts every location (no kind filter) since migration 0003; the damaged bin held stock before batch 1 (seed write-offs, desk saleable:false notes). DOS-058 only moved doorstep damaged returns from the vehicle row (also listed, and reservable later) to the damaged-bin row (listed, never reserved). Partly inside the held DOS-074+097 plan (its fix excludes vehicle and damaged locations from the rep/shop hint); the raw view for every role is new scope. Evidence: part-b-regression-status.md §4.
 
 Found by: batch 1 regression part B (cross-role chain).
 

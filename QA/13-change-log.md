@@ -117,7 +117,6 @@ exists only in dos_qa. Logs: `QA/evidence/batch1/dos-029/e2e-red.log`, `e2e-gree
 other app. `git merge-tree` against main: clean. Merge waits only for the last regression walker (sales + owner) so its apps do not reload mid-walk.
 
 **Regression outcome of the fixes so far (2026-09-13 ~03:45 IST; details in QA/14):** web and API re-walks PASS for DOS-039 (desk), 040, 041, 042, 023, 025,
-058, 060 (web), 057, 061, 094, 095, 099, 073, 075, 076, 001, 005, 020 and DOS-029 (a–d). **DOS-034 PARTIAL** — actions in sight and working, but the in-hand
-list still offers money the desk cannot bank (DOS-132). **DOS-029 residual** — refusal dropped while another write is pending (DOS-135). **DOS-077** — web
+058, 060 (web), 057, 061, 094, 095, 099, 073, 075, 076, 001, 005, 020 and DOS-029 (a–d). **DOS-034 PASS within its approved scope** — actions in sight and working; trip cash in the in-hand list is the companion finding DOS-132 (pre-existing root cause, made reachable by DOS-034; its plan asked for it to be filed at the same gate and QA missed that). **DOS-029 residual** — refusal dropped while another write is pending (DOS-135, a defect in DOS-029's own code; repaired on the DOS-029 branch before merge). **DOS-077** — web
 desk PASS; web phone clipping predates the fix (DOS-128); Android result pending. Cross-role chain completes only through the API for trip creation and
 load-sheet building (DOS-131 P0, DOS-133 P1); money sanity PASS.
