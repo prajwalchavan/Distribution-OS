@@ -1180,6 +1180,42 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(list.body.totals.upiPaise).toBe(upiCollected)
   })
 
+  it("DOS-057: a doorstep cash collection queues the receipt's A5 paper for the renderer", async () => {
+    // The two collections the test above took at the door, both through POST /delivery/collections.
+    const taken = (
+      await db.execute(
+        sql`select c.receipt_id, c.mode, count(o.id)::int as requests
+              from collections c
+              left join outbox_events o
+                on o.tenant_id = c.tenant_id and o.event_type = 'DocumentRenderRequested'
+               and o.aggregate_type = 'document'
+               and o.aggregate_id = 'receipt:' || c.receipt_id || ':a5:original'
+             where c.tenant_id = ${tenantId} and c.trip_id = ${tripId}
+             group by c.receipt_id, c.mode`,
+      )
+    ).rows as { receipt_id: string; mode: string; requests: number }[]
+    expect(taken.map((row) => row.mode).sort()).toEqual(['cash', 'upi'])
+    // One request per receipt: the shop's paper is being made before the crew reaches the next door.
+    expect(taken.map((row) => row.requests)).toEqual([1, 1])
+
+    const cash = taken.find((row) => row.mode === 'cash')
+    const [request] = (
+      await db.execute(
+        sql`select payload from outbox_events
+             where tenant_id = ${tenantId} and event_type = 'DocumentRenderRequested'
+               and aggregate_id = ${`receipt:${cash?.receipt_id ?? ''}:a5:original`}`,
+      )
+    ).rows as { payload: Record<string, unknown> }[]
+    expect(request?.payload).toMatchObject({
+      tenantId,
+      kind: 'receipt',
+      id: cash?.receipt_id,
+      format: 'a5',
+      copy: 'original',
+      requestedBy: driverId,
+    })
+  })
+
   it('a van sale bills from the normal series and moves the pieces off the vehicle', async () => {
     const vanBefore = await balanceOf(lotB, vehicleLocation)
     const orderId = uuidv7()

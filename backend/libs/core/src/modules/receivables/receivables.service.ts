@@ -114,7 +114,11 @@ import {
   type CollectionsRegisterFilter,
   type CollectionsRegisterRow,
 } from './collections-register.js'
-import { documentRender, type DocumentRenderKind } from '../../platform/documents.js'
+import {
+  documentRender,
+  requestDocumentRender,
+  type DocumentRenderKind,
+} from '../../platform/documents.js'
 import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
 import {
@@ -677,6 +681,11 @@ export class ReceivablesService {
       cashDiscountPaise,
       tripId,
     })
+    // The shop's paper (A5 original), queued in the same transaction as the money, the way billing
+    // queues a bill at issue: ready by the time the crew or the desk sends it (DOS-057). Every receipt
+    // path lands here — the desk, the doorstep and van-sale collections, the offline queue — and a
+    // replay returned above, so it never queues twice. A reversal's mirror row has no paper.
+    await requestDocumentRender(tx, { kind: 'receipt', id: input.id })
     for (const invoice of settled.filter((i) => i.state === 'paid')) {
       await emitEvent(tx, 'invoice', invoice.id, 'InvoicePaid', { invoiceId: invoice.id })
     }

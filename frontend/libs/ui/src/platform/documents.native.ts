@@ -1,6 +1,8 @@
 /**
  * Documents on a phone. `open` downloads the PDF and hands it to the OS share/preview sheet —
  * WhatsApp is one tap from there, which is how a bill actually reaches a shopkeeper in this trade.
+ * `share` is the same hand-over with the sheet titled: the shop receives the FILE, which never
+ * expires, rather than a signed link that dies in 15 minutes (DOS-057).
  * `print` uses `expo-print`, which drives AirPrint on iOS and the Android print framework.
  */
 import { File, Paths } from 'expo-file-system'
@@ -9,8 +11,13 @@ import * as Sharing from 'expo-sharing'
 
 import type { PlatformDocuments } from './types.js'
 
+/**
+ * The cache file's name. A paper's number carries a "/" (`INV/0826`), and `new File(Paths.cache,
+ * 'INV/0826.pdf')` names a file inside a directory nobody created, so the download fails on Android
+ * and on iOS alike. A path separator in the name therefore becomes "-".
+ */
 function localName(url: string, filename: string | undefined): string {
-  if (filename !== undefined && filename !== '') return filename
+  if (filename !== undefined && filename !== '') return filename.replace(/[\\/]/g, '-')
   const tail = url.split('?')[0]?.split('/').pop()
   return tail !== undefined && tail !== '' ? tail : 'document.pdf'
 }
@@ -37,5 +44,17 @@ export const documents: PlatformDocuments = {
     await Print.printAsync({ uri })
   },
 
+  share: async (url, options) => {
+    const uri = await cache(url, options?.filename)
+    if (!(await Sharing.isAvailableAsync())) return false
+    await Sharing.shareAsync(uri, {
+      mimeType: 'application/pdf',
+      UTI: 'com.adobe.pdf',
+      ...(options?.title === undefined ? {} : { dialogTitle: options.title }),
+    })
+    return true
+  },
+
   canPrint: true,
+  canShare: true,
 }

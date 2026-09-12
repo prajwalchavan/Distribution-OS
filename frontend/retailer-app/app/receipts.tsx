@@ -27,6 +27,7 @@ import {
 import { documents } from '@dos/ui/platform'
 import { useState } from 'react'
 
+import { absoluteUrl } from '../src/config'
 import { instantWithClock } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
 import { Async, Field, PageTabs, Panel } from '../src/lib/ui'
@@ -56,7 +57,8 @@ export default function Receipts(): React.JSX.Element {
 
   const rows = receipts.data?.items ?? []
   const open = rows.find((row) => row.id === openId)
-  const url = document.data?.url ?? null
+  // Service-relative on the local storage driver; the platform needs the service's origin on it.
+  const url = absoluteUrl(document.data?.url)
 
   return (
     <Screen title={t('r13.title')} context={distributor} testID="r13-screen">

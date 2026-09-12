@@ -49,14 +49,27 @@ export interface PlatformStorage {
 /**
  * An invoice, a credit note, a challan or a receipt — always a PDF the API rendered, never a
  * client-side re-draw of the same figures (`@dos/core/documents`). The URL is a signed read URL from
- * `files.signRead`; a raw object key never reaches a client.
+ * `files.signRead`; a raw object key never reaches a client. The local storage driver signs it
+ * SERVICE-RELATIVE (`/storage/…`), so an app passes it through its own `absoluteUrl()` first
+ * (`document-urls.test.ts` holds every app to that).
  */
 export interface PlatformDocuments {
   /** Show it: a new tab in a browser, the preview/share sheet on a phone. */
   open: (url: string, options?: { filename?: string }) => Promise<void>
   /** Print it. The browser prints through the kit's print stylesheet; a phone uses the OS dialog. */
   print: (url: string, options?: { filename?: string }) => Promise<void>
+  /**
+   * Send it: hand the PDF FILE itself to the OS or browser share sheet, never a link, which dies with
+   * its signature. `true` only when the file was handed over. `false` when nothing was sent — the
+   * reader dismissed the sheet, or the browser cannot share files, in which case the PDF opens in a
+   * tab so it can still be saved and attached by hand.
+   */
+  share: (
+    url: string,
+    options?: { filename?: string; title?: string; message?: string },
+  ) => Promise<boolean>
   readonly canPrint: boolean
+  readonly canShare: boolean
 }
 
 // ---------------------------------------------------------------------------
