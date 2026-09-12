@@ -37,11 +37,52 @@ import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
 import type { StockResult } from './stock.js'
 import type { TenantCatalogResult } from './tenant-catalog.js'
-import { atIstTime, daysAgo, FY, isoDate, TODAY } from './util.js'
+import { atIstTime, daysAgo, FY, isoDate, isWorkingDay, postingTime, TODAY } from './util.js'
 
-const CAMPA_SCHEME_ID = demoId('scheme', 'campa-750-12-plus-1')
-const BALAJI_SCHEME_ID = demoId('scheme', 'balaji-5pct-5-cases')
-const MOM_SCHEME_ID = demoId('scheme', 'mom-makhana-slab')
+/** Which supplier a brand's schemes are claimed from (the house's own depot or its super-stockist). */
+const BRAND_SUPPLIER: Readonly<Record<string, keyof TenantCatalogResult['supplierIds']>> = {
+  campa: 'reliance',
+  independence: 'reliance',
+  tooyumm: 'guiltfree',
+  balaji: 'guruKripa',
+  mommakhana: 'momMakhana',
+  mastioye: 'alansFoods',
+  rajwadi: 'rajwadiDepot',
+  sunbake: 'sunriseStockist',
+  konkancrunch: 'konkanAgency',
+  annapurna: 'annapurnaMill',
+  godavari: 'godavariDairy',
+  neelam: 'shubhdaDist',
+  chamak: 'shubhdaDist',
+}
+
+interface Period {
+  from: string
+  to: string
+}
+/** The calendar month an ISO date falls in. */
+function monthOf(day: string): Period {
+  const d = new Date(`${day.slice(0, 7)}-01T00:00:00.000Z`)
+  const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))
+  return { from: isoDate(d), to: isoDate(new Date(next.getTime() - 86_400_000)) }
+}
+/** The calendar month `back` months before the live day's. */
+function monthWindow(back: number): Period {
+  const d = new Date(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth() - back, 1))
+  return monthOf(isoDate(d))
+}
+function monthName(from: string): string {
+  return new Date(`${from}T00:00:00.000Z`).toLocaleString('en-IN', {
+    month: 'long',
+    timeZone: 'UTC',
+  })
+}
+/** The first working day on or after `day` plus `gap` days. */
+function workingDayOnOrAfter(day: Date, gap: number): Date {
+  let d = new Date(day.getTime() + gap * 86_400_000)
+  while (!isWorkingDay(d)) d = new Date(d.getTime() + 86_400_000)
+  return d
+}
 
 /** The two MOM Makhana lots that expire in the demo: moved godown → damaged bin as `expiry_writeoff`. */
 const EXPIRY_VARIANT_KEYS = ['mom-makhana-himalayan-salt-12g', 'mom-makhana-peri-peri-60g']
@@ -99,6 +140,8 @@ interface ClaimSpec {
   dueDate: string | null
   acknowledgedAt: Date | null
   settledAt: Date | null
+  rejectedAt?: Date | null
+  rejectionReason?: string | null
   externalRef: string | null
   note: string | null
   lines: LineDraft[]
@@ -154,26 +197,19 @@ export async function seedClaims(
     return id
   }
 
-  const august = { from: '2026-08-01', to: '2026-08-31' }
-  const fortnight = { from: isoDate(daysAgo(21)), to: isoDate(daysAgo(8)) }
-
   // --- the sources, read back from what the sales and stock seeds wrote ------------------------------
-  const campaLines = await invoiceLinesFor(
-    db,
-    tenantId,
-    brandId('campa'),
-    august,
-    15,
-    CAMPA_SCHEME_ID,
-  )
-  const balajiLines = await invoiceLinesFor(db, tenantId, brandId('balaji'), fortnight, 8)
-  const momLines = await invoiceLinesFor(db, tenantId, brandId('mommakhana'), august, 6)
-  const tooYummLines = await invoiceLinesFor(db, tenantId, brandId('tooyumm'), august, 6)
+  // Every company-funded scheme the brand settles through us, on every bill that carried it, by
+  // brand and calendar month: the whole book, not a sample (2026-09-08 review: six claims worth a
+  // few thousand rupees against seventy lakh of purchases was a rounding error, and recovering
+  // scheme money from principals is the founder's stated second problem).
+  const schemeLines = await schemeClaimLinesFor(db, tenantId)
+  const brandKeyById = new Map(variants.map((v) => [brandId(v.brandKey), v.brandKey]))
   const balajiDamage = await ledgerRow(
     db,
     demoId('stock-ledger-damage-in', 'balaji-chataka-pataka-45g'),
   )
   const shortage = await discrepancyRow(db, tenantId, demoId('inbound-discrepancy', '1'))
+  const tooYummLines = await invoiceLinesFor(db, tenantId, brandId('tooyumm'), monthWindow(1), 12)
 
   const schemeLine = (
     l: InvoiceLineSource,
@@ -212,83 +248,209 @@ export async function seedClaims(
     },
   })
 
-  // CLM-0001 — Campa 12+1: the free case of every August bill, claimed at PTD.
-  const campaClaimLines = campaLines.map((l) => {
-    const rule = l.appliedRules.find((r) => r.ruleId === CAMPA_SCHEME_ID) ?? {
-      ruleId: CAMPA_SCHEME_ID,
-      version: 1,
-      kind: 'scheme' as const,
+  // one claim per (supplier, brand, month): free goods at PTD, percentages and flat amounts as billed
+  const groups = new Map<
+    string,
+    { supplierId: string; brandId: string; brandKey: string; period: Period; lines: LineDraft[] }
+  >()
+  for (const sl of schemeLines) {
+    const brandKey = brandKeyById.get(sl.brandId)
+    const supplierKey = brandKey ? BRAND_SUPPLIER[brandKey] : undefined
+    if (!brandKey || !supplierKey) continue
+    const period = monthOf(sl.invoiceDate)
+    const gkey = `${supplierKey}:${sl.brandId}:${period.from}`
+    const group = groups.get(gkey) ?? {
+      supplierId: supplierIds[supplierKey],
+      brandId: sl.brandId,
+      brandKey,
+      period,
+      lines: [],
     }
-    const variantId = rule.freeVariantId ?? l.variantId
-    const qty = rule.freeQty ?? variantById.get(variantId)?.defaultCaseSize ?? 0
-    const rate = ptdOf(variantId)
-    return schemeLine(
-      l,
-      CAMPA_SCHEME_ID,
-      'Campa 750 ml — 12+1 free',
-      'Reliance circular RCP/2026/08/CAMPA-MON',
-      rule,
-      rate * qty,
-      qty,
-      'ptd',
-      rate,
-      variantId,
-    )
-  })
-  // CLM-0002 — Balaji 5% on 5+ cases: the percentage given away on the fortnight's bills.
-  const balajiClaimLines = balajiLines.map((l) => {
-    const amount = Math.round((l.taxablePaise * 500) / 10_000)
-    const rule: AppliedRule = {
-      ruleId: BALAJI_SCHEME_ID,
-      version: 1,
-      kind: 'scheme',
-      rewardKind: 'line_pct',
-      amountPaise: amount,
+    const rule = sl.rule
+    if (rule.rewardKind === 'free_qty') {
+      const variantId = rule.freeVariantId ?? sl.variantId
+      const qty = rule.freeQty ?? 0
+      const rate = ptdOf(variantId)
+      if (qty > 0 && rate > 0)
+        group.lines.push(
+          schemeLine(
+            sl,
+            sl.schemeId,
+            sl.schemeName,
+            sl.schemeRef,
+            rule,
+            rate * qty,
+            qty,
+            'ptd',
+            rate,
+            variantId,
+          ),
+        )
+    } else {
+      const amount = rule.amountPaise ?? 0
+      if (amount > 0)
+        group.lines.push(
+          schemeLine(
+            sl,
+            sl.schemeId,
+            sl.schemeName,
+            sl.schemeRef,
+            rule,
+            amount,
+            sl.qtyPcs,
+            'scheme_amount',
+            null,
+            sl.variantId,
+          ),
+        )
     }
-    return schemeLine(
-      l,
-      BALAJI_SCHEME_ID,
-      'Balaji — 5% off on 5+ cases',
-      'Balaji secondary scheme letter Aug-2026',
-      rule,
-      amount,
-      l.qtyPcs,
-      'scheme_amount',
-      null,
-      l.variantId,
+    groups.set(gkey, group)
+  }
+
+  const total = (lines: LineDraft[]) => lines.reduce((s, l) => s + l.amountPaise, 0)
+  const settlementDaysFor = (brandKey: string): number =>
+    brandKey === 'balaji' ? 21 : brandKey === 'tooyumm' ? 15 : 30
+  const thisMonth = monthOf(isoDate(TODAY)).from
+  const lastMonth = monthOf(isoDate(daysAgo(TODAY.getUTCDate() + 1))).from
+  const specs: ClaimSpec[] = []
+  ;[...groups.values()]
+    .filter((g) => g.lines.length > 0)
+    .sort(
+      (a, b) => a.period.from.localeCompare(b.period.from) || a.brandKey.localeCompare(b.brandKey),
     )
-  })
-  // CLM-0003 — MOM Makhana slab: 2% or 4% by the case count on the bill.
-  const momClaimLines = momLines.map((l) => {
-    const caseSize = variantById.get(l.variantId)?.defaultCaseSize ?? 1
-    const bps = l.qtyPcs >= 10 * caseSize ? 400 : 200
-    const amount = Math.round((l.taxablePaise * bps) / 10_000)
-    const rule: AppliedRule = {
-      ruleId: MOM_SCHEME_ID,
-      version: 1,
-      kind: 'scheme',
-      rewardKind: 'line_pct',
-      amountPaise: amount,
-    }
-    return schemeLine(
-      l,
-      MOM_SCHEME_ID,
-      'MOM Makhana — slab scheme',
-      'MOM Foods slab scheme Jul-2026',
-      rule,
-      amount,
-      l.qtyPcs,
-      'scheme_amount',
-      null,
-      l.variantId,
-    )
-  })
-  // CLM-0007 — Too Yumm inside FieldAssist: the DMS's own scheme credit per bill, recorded only.
+    .forEach((g, i) => {
+      const claimed = total(g.lines)
+      const submitDay = workingDayOnOrAfter(new Date(`${g.period.to}T00:00:00.000Z`), 4)
+      const submittedAt = atIstTime(submitDay, 11, 0)
+      const settlementDays = settlementDaysFor(g.brandKey)
+      const dueDate = isoDate(new Date(submitDay.getTime() + settlementDays * 86_400_000))
+      const creditNoteBrand =
+        g.brandKey === 'campa' || g.brandKey === 'annapurna' || g.brandKey === 'independence'
+      const ref = (n: number) =>
+        `${g.brandKey.toUpperCase().slice(0, 3)}/CN/2026/${String(1000 + n)}`
+      let status: ClaimSpec['status']
+      let settlements: ClaimSpec['settlements']
+      let settledAt: Date | null = null
+      let acknowledgedAt: Date | null
+      let note: string
+      if (g.period.from === thisMonth) {
+        // accruing: the month is not over
+        specs.push({
+          key: `scheme:${g.brandKey}:${g.period.from}`,
+          claimNo: null,
+          supplierId: g.supplierId,
+          brandId: g.brandId,
+          kind: 'scheme',
+          status: 'draft',
+          claimChannel: 'dos',
+          periodFrom: g.period.from,
+          periodTo: g.period.to,
+          submittedAt: null,
+          dueDate: null,
+          acknowledgedAt: null,
+          settledAt: null,
+          externalRef: null,
+          note: `${monthName(g.period.from)} scheme accrual, ${g.brandKey}: builds as the bills go out.`,
+          lines: g.lines,
+          settlements: [],
+        })
+        return
+      }
+      if (g.period.from === lastMonth) {
+        // last month's claims are out with the brands: some acknowledged, one paid in part, the rest
+        // waiting — and nothing dated past today (early in the month they are all still waiting)
+        const pick = i % 3
+        const ackDay = workingDayOnOrAfter(submitDay, 6)
+        const partDay = workingDayOnOrAfter(submitDay, 12)
+        status =
+          pick === 0 && ackDay.getTime() <= TODAY.getTime()
+            ? 'acknowledged'
+            : pick === 1 && partDay.getTime() <= TODAY.getTime()
+              ? 'partially_settled'
+              : 'submitted'
+        acknowledgedAt = status === 'submitted' ? null : atIstTime(ackDay, 16, 0)
+        note = `${monthName(g.period.from)} secondary schemes on ${g.brandKey}, claimed on the brand's format.`
+        settlements = []
+        if (status === 'partially_settled') {
+          const part = Math.round(claimed * 0.6)
+          settlements = [
+            {
+              key: `scheme:${g.brandKey}:${g.period.from}:part`,
+              settledOn: partDay,
+              amountPaise: part,
+              mode: 'bank_receipt',
+              externalRef: `NEFT AXISN2626${String(100000 + i)}`,
+              note: 'On account; the balance is promised with the next dispatch.',
+            },
+          ]
+          note += ' Sixty per cent received on account.'
+        }
+      } else if (i % 5 === 2) {
+        // one the brand turned down: wholesale billing is outside the scheme's terms
+        status = 'rejected'
+        acknowledgedAt = atIstTime(workingDayOnOrAfter(submitDay, 5), 16, 0)
+        settlements = []
+        note = `${monthName(g.period.from)} secondary schemes on ${g.brandKey}: rejected, the wholesale bills are outside the scheme's terms.`
+      } else if (
+        workingDayOnOrAfter(submitDay, settlementDays - 4 + (i % 9)).getTime() > TODAY.getTime()
+      ) {
+        // an older month whose settlement is not due yet: acknowledged, money awaited
+        status = 'acknowledged'
+        acknowledgedAt = atIstTime(workingDayOnOrAfter(submitDay, 5), 16, 0)
+        settlements = []
+        note = `${monthName(g.period.from)} secondary schemes on ${g.brandKey}, acknowledged by the brand.`
+      } else {
+        // an older month: settled by the brand's credit note or a transfer, a month or so on
+        status = 'settled'
+        const settleDay = workingDayOnOrAfter(submitDay, settlementDays - 4 + (i % 9))
+        settledAt = atIstTime(settleDay, 12, 0)
+        acknowledgedAt = atIstTime(workingDayOnOrAfter(submitDay, 5), 16, 0)
+        settlements = [
+          {
+            key: `scheme:${g.brandKey}:${g.period.from}:full`,
+            settledOn: settleDay,
+            amountPaise: claimed,
+            mode: creditNoteBrand ? 'credit_note' : 'bank_receipt',
+            externalRef: creditNoteBrand ? ref(i) : `NEFT HDFCN2626${String(200000 + i)}`,
+            note: creditNoteBrand
+              ? 'Brand credit note against the scheme claim; adjusted on the next supply bill.'
+              : 'Transfer from the brand against the scheme claim.',
+          },
+        ]
+        note = `${monthName(g.period.from)} secondary schemes on ${g.brandKey}, settled.`
+      }
+      specs.push({
+        key: `scheme:${g.brandKey}:${g.period.from}`,
+        claimNo: 'pending',
+        supplierId: g.supplierId,
+        brandId: g.brandId,
+        kind: 'scheme',
+        status,
+        claimChannel: 'dos',
+        periodFrom: g.period.from,
+        periodTo: g.period.to,
+        submittedAt,
+        dueDate,
+        acknowledgedAt,
+        settledAt,
+        rejectedAt:
+          status === 'rejected' ? atIstTime(workingDayOnOrAfter(submitDay, 9), 15, 0) : null,
+        rejectionReason:
+          status === 'rejected' ? 'Wholesale billing not covered by the scheme circular.' : null,
+        externalRef: status === 'settled' ? (settlements[0]?.externalRef ?? null) : null,
+        note,
+        lines: g.lines,
+        settlements,
+      })
+    })
+
+  // The claims that are not schemes: a damage draft with photos, an expiry draft, the gate-count
+  // shortage on the brand, and the Too Yumm scheme that settles inside FieldAssist.
   const tooYummClaimLines = tooYummLines.map((l): LineDraft => {
     const amount = Math.round((l.taxablePaise * 300) / 10_000)
     return {
       sourceType: 'manual',
-      sourceId: demoId('claim-line', `CLM-0007:${l.lineId}`),
+      sourceId: demoId('claim-line', `tooyumm-dms:${l.lineId}`),
       schemeId: null,
       retailerId: l.retailerId,
       variantId: l.variantId,
@@ -367,97 +529,10 @@ export async function seedClaims(
         },
       ]
     : []
-
-  const total = (lines: LineDraft[]) => lines.reduce((s, l) => s + l.amountPaise, 0)
-  const specs: ClaimSpec[] = [
+  const lastMonthWindow = monthWindow(1)
+  specs.push(
     {
-      key: 'CLM-0001',
-      claimNo: 'CLM-0001',
-      supplierId: supplierIds.reliance,
-      brandId: brandId('campa'),
-      kind: 'scheme',
-      status: 'settled',
-      claimChannel: 'dos',
-      periodFrom: august.from,
-      periodTo: august.to,
-      submittedAt: atIstTime(daysAgo(30), 11, 0),
-      dueDate: isoDate(daysAgo(0)),
-      acknowledgedAt: atIstTime(daysAgo(24), 16, 0),
-      settledAt: atIstTime(daysAgo(6), 12, 0),
-      externalRef: 'RCP/CN/2026/0812',
-      note: 'August 12+1 free goods on Campa 750 ml.',
-      lines: campaClaimLines,
-      settlements: [
-        {
-          key: 'CLM-0001:cn',
-          settledOn: daysAgo(6),
-          amountPaise: total(campaClaimLines),
-          mode: 'credit_note',
-          externalRef: 'RCP/CN/2026/0812',
-          note: 'Reliance credit note against the August scheme claim.',
-        },
-      ],
-    },
-    {
-      key: 'CLM-0002',
-      claimNo: 'CLM-0002',
-      supplierId: supplierIds.guruKripa,
-      brandId: brandId('balaji'),
-      kind: 'scheme',
-      status: 'submitted',
-      claimChannel: 'dos',
-      periodFrom: fortnight.from,
-      periodTo: fortnight.to,
-      submittedAt: atIstTime(daysAgo(5), 10, 30),
-      dueDate: isoDate(new Date(daysAgo(5).getTime() + 21 * 86_400_000)),
-      acknowledgedAt: null,
-      settledAt: null,
-      externalRef: null,
-      note: 'Fortnight secondary scheme, 5% on 5+ cases.',
-      lines: balajiClaimLines,
-      settlements: [],
-    },
-    {
-      key: 'CLM-0003',
-      claimNo: 'CLM-0003',
-      supplierId: supplierIds.momMakhana,
-      brandId: brandId('mommakhana'),
-      kind: 'scheme',
-      status: 'partially_settled',
-      claimChannel: 'dos',
-      periodFrom: august.from,
-      periodTo: august.to,
-      submittedAt: atIstTime(daysAgo(28), 11, 30),
-      dueDate: isoDate(new Date(daysAgo(28).getTime() + 30 * 86_400_000)),
-      acknowledgedAt: atIstTime(daysAgo(20), 15, 0),
-      settledAt: null,
-      externalRef: 'MOM/CLM/0826',
-      note: 'Slab scheme, August. Balance promised with the next dispatch.',
-      lines: momClaimLines,
-      settlements: [
-        {
-          key: 'CLM-0003:neft',
-          settledOn: daysAgo(9),
-          amountPaise: Math.round(total(momClaimLines) * 0.6),
-          mode: 'bank_receipt',
-          externalRef: 'NEFT AXISN26240912345',
-          note: 'NEFT from MOM Foods, 60% on account.',
-        },
-        {
-          key: 'CLM-0003:adj',
-          settledOn: daysAgo(3),
-          amountPaise: Math.min(
-            5_000,
-            Math.max(1, total(momClaimLines) - Math.round(total(momClaimLines) * 0.6) - 1),
-          ),
-          mode: 'adjustment',
-          externalRef: 'ADJ/SEP/01',
-          note: 'Small rounding adjusted against the September supply bill.',
-        },
-      ],
-    },
-    {
-      key: 'CLM-0004',
+      key: 'damage-draft',
       claimNo: null,
       supplierId: supplierIds.guruKripa,
       brandId: brandId('balaji'),
@@ -476,7 +551,7 @@ export async function seedClaims(
       settlements: [],
     },
     {
-      key: 'CLM-0005',
+      key: 'expiry-draft',
       claimNo: null,
       supplierId: supplierIds.momMakhana,
       brandId: brandId('mommakhana'),
@@ -495,8 +570,8 @@ export async function seedClaims(
       settlements: [],
     },
     {
-      key: 'CLM-0006',
-      claimNo: 'CLM-0006',
+      key: 'shortage',
+      claimNo: 'pending',
       supplierId: supplierIds.reliance,
       brandId: null,
       kind: 'shortage',
@@ -514,15 +589,15 @@ export async function seedClaims(
       settlements: [],
     },
     {
-      key: 'CLM-0007',
-      claimNo: 'CLM-0007',
+      key: 'tooyumm-dms',
+      claimNo: 'pending',
       supplierId: supplierIds.guiltfree,
       brandId: brandId('tooyumm'),
       kind: 'scheme',
       status: 'submitted',
       claimChannel: 'brand_dms',
-      periodFrom: august.from,
-      periodTo: august.to,
+      periodFrom: lastMonthWindow.from,
+      periodTo: lastMonthWindow.to,
       submittedAt: atIstTime(daysAgo(1), 12, 0),
       dueDate: isoDate(new Date(daysAgo(1).getTime() + 15 * 86_400_000)),
       acknowledgedAt: null,
@@ -532,7 +607,16 @@ export async function seedClaims(
       lines: tooYummClaimLines,
       settlements: [],
     },
-  ]
+  )
+
+  // Numbers follow the order the claims went out; a draft has none yet.
+  let claimSeq = 0
+  for (const spec of [...specs]
+    .filter((sp) => sp.lines.length > 0 && sp.submittedAt !== null)
+    .sort((a, b) => (a.submittedAt?.getTime() ?? 0) - (b.submittedAt?.getTime() ?? 0))) {
+    claimSeq += 1
+    spec.claimNo = `CLM-${String(claimSeq).padStart(4, '0')}`
+  }
 
   const entryRows: (typeof journalEntries.$inferInsert)[] = []
   const lineRows: (typeof journalLines.$inferInsert)[] = []
@@ -558,7 +642,7 @@ export async function seedClaims(
       narration,
       idempotencyKey: key,
       postedBy,
-      postedAt: entryDate,
+      postedAt: postingTime(entryDate),
     })
     lines.forEach((l, i) => {
       lineRows.push({
@@ -601,6 +685,8 @@ export async function seedClaims(
         dueDate: spec.dueDate,
         acknowledgedAt: spec.acknowledgedAt,
         settledAt: spec.settledAt,
+        rejectedAt: spec.rejectedAt ?? null,
+        rejectionReason: spec.rejectionReason ?? null,
         accruedAt: spec.claimChannel === 'dos' ? spec.submittedAt : null,
         createdBy: people.manager.id,
         submittedBy: spec.submittedAt ? people.manager.id : null,
@@ -662,7 +748,7 @@ export async function seedClaims(
         spec.submittedAt,
         'claim',
         claimId,
-        `Claim ${spec.claimNo ?? ''} on ${spec.key === 'CLM-0006' ? 'Reliance' : 'the brand'} (${spec.kind}, ${spec.periodFrom} to ${spec.periodTo})`,
+        `Claim ${spec.claimNo ?? ''} on ${spec.kind === 'shortage' ? 'the depot' : 'the brand'} (${spec.kind}, ${spec.periodFrom} to ${spec.periodTo})`,
         people.manager.id,
         [
           {
@@ -674,6 +760,26 @@ export async function seedClaims(
           { code: expense, amountPaise: -claimed, memo: spec.claimNo ?? undefined },
         ],
       )
+      if (spec.status === 'rejected' && spec.rejectedAt) {
+        // the brand said no: the accrual is reversed, line for line, the way `claims.reject` does
+        post(
+          `claim:reject:${claimId}`,
+          spec.rejectedAt,
+          'claim',
+          claimId,
+          `Claim ${spec.claimNo ?? ''} rejected: ${spec.rejectionReason ?? ''}`,
+          people.manager.id,
+          [
+            { code: expense, amountPaise: claimed, memo: spec.claimNo ?? undefined },
+            {
+              code: receivable,
+              amountPaise: -claimed,
+              supplierId: spec.supplierId,
+              memo: spec.claimNo ?? undefined,
+            },
+          ],
+        )
+      }
       for (const s of spec.settlements) {
         const settlementId = demoId('claim-settlement', s.key)
         const debit = s.mode === 'bank_receipt' ? 'BANK' : s.mode === 'cheque' ? 'CHEQUES' : 'AP'
@@ -734,12 +840,12 @@ export async function seedClaims(
   }
 
   // Evidence on the damage draft: two photos of the wet cartons, uploaded through files.uploadUrl.
-  const damageClaimId = demoId('claim', 'CLM-0004')
+  const damageClaimId = demoId('claim', 'damage-draft')
   await insertMany(
     db,
     claimEvidence,
     [1, 2].map((n) => ({
-      id: demoId('claim-evidence', `CLM-0004:${n}`),
+      id: demoId('claim-evidence', `damage-draft:${n}`),
       tenantId,
       claimId: damageClaimId,
       kind: 'damage_photo',
@@ -753,13 +859,13 @@ export async function seedClaims(
   // Claim sheets: CLM-0001's is rendered (a succeeded export), CLM-0002's is still in the queue.
   await seedStatements(db, tenantId, specs, variantById, people)
 
-  // The CLAIM series continues after the seven seeded numbers (never moved backwards).
+  // The CLAIM series continues after the numbers this seed used (never moved backwards).
   await db
     .insert(numberingSeries)
-    .values({ tenantId, seriesCode: 'CLAIM', fy: FY, prefix: 'CLM-', nextNo: 8 })
+    .values({ tenantId, seriesCode: 'CLAIM', fy: FY, prefix: 'CLM-', nextNo: claimSeq + 1 })
     .onConflictDoUpdate({
       target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
-      set: { nextNo: sql`greatest(${numberingSeries.nextNo}, 8)` },
+      set: { nextNo: sql`greatest(${numberingSeries.nextNo}, ${claimSeq + 1})` },
     })
 }
 
@@ -947,6 +1053,48 @@ async function seedExpiryMovements(
   return out
 }
 
+/** One row per (invoice line, company-funded scheme rule) the book carries: the claimable spend. */
+interface SchemeLineSource extends InvoiceLineSource {
+  rule: AppliedRule
+  schemeId: string
+  schemeName: string
+  schemeRef: string
+  brandId: string
+}
+async function schemeClaimLinesFor(db: Db, tenantId: string): Promise<SchemeLineSource[]> {
+  const result = await db.execute(sql`
+    SELECT il.id AS line_id, i.id AS invoice_id, i.invoice_no, i.invoice_date::text AS invoice_date,
+           i.retailer_id, il.variant_id, il.qty_pcs, il.rate_paise, il.taxable_paise, il.applied_rules,
+           rule AS rule, s.id AS scheme_id, s.name AS scheme_name, s.source_ref, s.brand_id
+      FROM invoice_lines il
+      JOIN invoices i ON i.id = il.invoice_id AND i.tenant_id = il.tenant_id
+      CROSS JOIN LATERAL jsonb_array_elements(il.applied_rules) AS rule
+      JOIN schemes s ON s.id = rule ->> 'ruleId' AND s.tenant_id = il.tenant_id
+     WHERE il.tenant_id = ${tenantId}
+       AND i.state NOT IN ('draft', 'cancelled')
+       AND s.funding_source = 'company' AND s.claimable AND s.claim_channel = 'dos'
+       AND s.brand_id IS NOT NULL
+       AND rule ->> 'kind' = 'scheme' AND rule ->> 'rewardKind' <> 'cash_discount_pct'
+     ORDER BY i.invoice_date ASC, i.id ASC, il.line_no ASC, s.id ASC`)
+  return result.rows.map((r) => ({
+    lineId: String(r.line_id),
+    invoiceId: String(r.invoice_id),
+    invoiceNo: (r.invoice_no as string | null) ?? null,
+    invoiceDate: String(r.invoice_date),
+    retailerId: String(r.retailer_id),
+    variantId: String(r.variant_id),
+    qtyPcs: Number(r.qty_pcs),
+    ratePaise: Number(r.rate_paise),
+    taxablePaise: Number(r.taxable_paise),
+    appliedRules: (r.applied_rules as AppliedRule[] | null) ?? [],
+    rule: r.rule as AppliedRule,
+    schemeId: String(r.scheme_id),
+    schemeName: String(r.scheme_name),
+    schemeRef: (r.source_ref as string | null) ?? '',
+    brandId: String(r.brand_id),
+  }))
+}
+
 async function invoiceLinesFor(
   db: Db,
   tenantId: string,
@@ -1085,10 +1233,14 @@ async function seedStatements(
 ): Promise<void> {
   // The live `statements.generate` names the shop on every scheme line; the seeded snapshot must
   // too, or the demo's own claim sheet prints an empty "Party" column.
+  const schemeSpecs = specs.filter((sp) => sp.kind === 'scheme' && sp.claimChannel === 'dos')
+  const first = schemeSpecs.find((sp) => sp.status === 'settled' && sp.lines.length > 0)
+  const second = schemeSpecs.find((sp) => sp.status === 'submitted' && sp.lines.length > 0)
+  const partyNames = await claimPartyNames(db, tenantId)
   const shopIds = [
     ...new Set(
-      specs
-        .filter((sp) => sp.key === 'CLM-0001' || sp.key === 'CLM-0002')
+      [first, second]
+        .filter((sp): sp is ClaimSpec => sp !== undefined)
         .flatMap((sp) => sp.lines.map((l) => l.retailerId))
         .filter((id): id is string => id !== null),
     ),
@@ -1111,14 +1263,9 @@ async function seedStatements(
     periodFrom: spec.periodFrom,
     periodTo: spec.periodTo,
     format,
-    supplier: {
-      id: spec.supplierId,
-      name: spec.key.startsWith('CLM-0001')
-        ? 'Reliance Consumer Products — Kalyan Depot'
-        : 'Guru Kripa Agencies (Balaji Super-Stockist)',
-    },
+    supplier: { id: spec.supplierId, name: partyNames.suppliers.get(spec.supplierId) ?? '' },
     brand: spec.brandId
-      ? { id: spec.brandId, name: spec.key === 'CLM-0001' ? 'Campa' : 'Balaji' }
+      ? { id: spec.brandId, name: partyNames.brands.get(spec.brandId) ?? '' }
       : null,
     rows: spec.lines.map((l, i) => ({
       lineNo: i + 1,
@@ -1149,19 +1296,17 @@ async function seedStatements(
     },
     snapshotAt: at.toISOString(),
   })
-  const first = specs.find((s) => s.key === 'CLM-0001')
-  const second = specs.find((s) => s.key === 'CLM-0002')
   if (first && first.lines.length > 0) {
     const statementId = demoId('claim-statement', 'CLM-0001')
     const exportId = demoId('export', 'claim-sheet-CLM-0001')
-    const at = atIstTime(daysAgo(29), 10, 0)
+    const at = new Date((first.submittedAt ?? atIstTime(daysAgo(29), 10, 0)).getTime() + 3_600_000)
     const key = `tenant/${tenantId}/exports/${exportId}/claim-sheet.xlsx`
     await insertMany(db, exportJobs, [
       {
         id: exportId,
         tenantId,
         kind: 'claim_sheet',
-        params: { claimId: demoId('claim', 'CLM-0001'), statementId, format: 'reliance_xlsx' },
+        params: { claimId: demoId('claim', first.key), statementId, format: 'reliance_xlsx' },
         status: 'succeeded',
         requestedBy: people.manager.id,
         objectKey: key,
@@ -1176,7 +1321,7 @@ async function seedStatements(
       {
         id: statementId,
         tenantId,
-        claimId: demoId('claim', 'CLM-0001'),
+        claimId: demoId('claim', first.key),
         format: 'reliance_xlsx',
         objectKey: key,
         exportJobId: exportId,
@@ -1189,13 +1334,13 @@ async function seedStatements(
   if (second && second.lines.length > 0) {
     const statementId = demoId('claim-statement', 'CLM-0002')
     const exportId = demoId('export', 'claim-sheet-CLM-0002')
-    const at = atIstTime(daysAgo(5), 10, 45)
+    const at = new Date((second.submittedAt ?? atIstTime(daysAgo(5), 10, 45)).getTime() + 2_700_000)
     await insertMany(db, exportJobs, [
       {
         id: exportId,
         tenantId,
         kind: 'claim_sheet',
-        params: { claimId: demoId('claim', 'CLM-0002'), statementId, format: 'guru_kripa_xlsx' },
+        params: { claimId: demoId('claim', second.key), statementId, format: 'guru_kripa_xlsx' },
         status: 'queued',
         requestedBy: people.manager.id,
         createdAt: at,
@@ -1206,7 +1351,7 @@ async function seedStatements(
       {
         id: statementId,
         tenantId,
-        claimId: demoId('claim', 'CLM-0002'),
+        claimId: demoId('claim', second.key),
         format: 'guru_kripa_xlsx',
         objectKey: null,
         exportJobId: exportId,
@@ -1216,4 +1361,26 @@ async function seedStatements(
       },
     ])
   }
+}
+
+/** Supplier and brand names for a claim sheet's header, from the rows the catalog seeds wrote. */
+async function claimPartyNames(
+  db: Db,
+  tenantId: string,
+): Promise<{ suppliers: Map<string, string>; brands: Map<string, string> }> {
+  const suppliers = new Map(
+    (
+      (await db.execute(sql`SELECT id, name FROM suppliers WHERE tenant_id = ${tenantId}`))
+        .rows as {
+        id: string
+        name: string
+      }[]
+    ).map((r) => [r.id, r.name] as const),
+  )
+  const brands = new Map(
+    (
+      (await db.execute(sql`SELECT id, name FROM brands`)).rows as { id: string; name: string }[]
+    ).map((r) => [r.id, r.name] as const),
+  )
+  return { suppliers, brands }
 }

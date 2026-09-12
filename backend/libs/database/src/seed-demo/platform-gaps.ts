@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
+import type { stockLedger } from '../schema/index.js'
 import {
   cycleCountLines,
   cycleCounts,
@@ -7,14 +8,13 @@ import {
   pickLines,
   salesOrderLines,
   stockBalances,
-  stockLedger,
   syncErrors,
 } from '../schema/index.js'
-import { insertMany } from './db-helpers.js'
+import { insertMany, postLedger } from './db-helpers.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
 import type { StockResult } from './stock.js'
-import { atIstTime, daysAgo, TODAY } from './util.js'
+import { atIstTime, daysAgo, occurred, TODAY } from './util.js'
 
 /**
  * The rows the platform-gaps procedures (docs/23 §8) answer with, on top of the module seeds:
@@ -114,7 +114,24 @@ async function packLedgerForParkedPacks(
     if (!lot) continue
     push(line.orderId, line.orderLineId, lot.id, line.qtyPcs + line.freeQtyPcs)
   }
-  await insertMany(db, stockLedger, rows)
+  // The pack really takes the pieces off the rack: never more than the godown holds, and always with
+  // the balance moved alongside the ledger row.
+  const onHand = new Map(
+    (
+      await db
+        .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
+        .from(stockBalances)
+        .where(and(eq(stockBalances.tenantId, tenantId), eq(stockBalances.locationId, godown)))
+    ).map((b) => [b.lotId, b.onHand]),
+  )
+  const clamped = rows.flatMap((row) => {
+    const have = onHand.get(row.lotId) ?? 0
+    const qty = Math.min(-row.qtyDelta, have)
+    if (qty <= 0) return []
+    onHand.set(row.lotId, have - qty)
+    return [{ ...row, qtyDelta: -qty }]
+  })
+  await postLedger(db, tenantId, clamped)
   // The pack records what left the rack, as `packs.confirm` does through `recordPick`.
   for (const line of lines)
     await db
@@ -162,7 +179,7 @@ async function openCycleCount(
       locationId: stock.godownId,
       status: 'open',
       note: 'Weekly count of the fast movers',
-      createdAt: atIstTime(TODAY, 8, 15),
+      createdAt: occurred(atIstTime(TODAY, 8, 15)),
     },
   ])
   await insertMany(

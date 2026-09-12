@@ -28,10 +28,30 @@ import {
 } from '../schema/index.js'
 import type { Db } from '../client.js'
 import { insertMany } from './db-helpers.js'
-import { demoId } from './ids.js'
+import { currentDemoScope, demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
-import type { RetailersResult } from './retailers.js'
-import { atIstTime, daysAgo, FY, isoDate, nth, TODAY } from './util.js'
+import {
+  byArchetype,
+  type ArchetypeKey,
+  type RetailerRow,
+  type RetailersResult,
+} from './retailers.js'
+import {
+  atIstTime,
+  daysAgo,
+  FY,
+  isoDate,
+  lastWorkingDayOnOrBefore,
+  makeRng,
+  nth,
+  occurred,
+  postingTime,
+  randInt,
+  TODAY,
+} from './util.js'
+
+/** `n` days back, moved to the last working day before it: nothing is banked or collected on a Sunday. */
+const workingDayAgo = (n: number): Date => lastWorkingDayOnOrBefore(daysAgo(n))
 
 /** Old dues carried over from the previous software, bill by bill (docs/plans/receivables.md §8.4). */
 interface OpeningBill {
@@ -41,22 +61,105 @@ interface OpeningBill {
   agedDays: number
   /** Days before TODAY it fell due — chosen to land the money in a specific ageing bucket. */
   dueDaysAgo: number
+  /** The kind of shop that carries such a bill, most specific first (spec §2.10). */
+  hosts: [ArchetypeKey, number][]
 }
 
 const OPENING_BILLS: OpeningBill[] = [
-  { no: 'OPEN/0006', rupees: 63_100, agedDays: 130, dueDaysAgo: 109 }, // 90+
-  { no: 'OPEN/0005', rupees: 15_600, agedDays: 110, dueDaysAgo: 89 }, // 61-90
-  { no: 'OPEN/0004', rupees: 42_000, agedDays: 95, dueDaysAgo: 74 }, // 61-90
-  { no: 'OPEN/0003', rupees: 9_850, agedDays: 70, dueDaysAgo: 49 }, // 31-60
-  { no: 'OPEN/0002', rupees: 31_200, agedDays: 55, dueDaysAgo: 34 }, // 31-60
-  { no: 'OPEN/0001', rupees: 18_400, agedDays: 40, dueDaysAgo: 19 }, // 16-30
-  { no: 'OPEN/0007', rupees: 7_500, agedDays: 32, dueDaysAgo: 11 }, // 8-15
+  // Every host list ends on a `stop`-mode account: an old due never lands on a shop that trades on
+  // terms, whose limit the sales seed keeps honest.
+  {
+    no: 'OPEN/0006',
+    rupees: 19_900,
+    agedDays: 130,
+    dueDaysAgo: 109,
+    hosts: [
+      ['bad_debt', 0],
+      ['overdue_hard', 0],
+    ],
+  }, // 90+
+  { no: 'OPEN/0005', rupees: 9_600, agedDays: 110, dueDaysAgo: 89, hosts: [['overdue_hard', 0]] }, // 61-90
+  {
+    no: 'OPEN/0004',
+    rupees: 18_600,
+    agedDays: 95,
+    dueDaysAgo: 74,
+    hosts: [
+      ['overdue_hard', 1],
+      ['bad_debt', 0],
+      ['overdue_hard', 0],
+    ],
+  }, // 61-90
+  {
+    no: 'OPEN/0003',
+    rupees: 9_850,
+    agedDays: 70,
+    dueDaysAgo: 49,
+    hosts: [
+      ['blocked_link', 0],
+      ['overdue_mild', 1],
+      ['overdue_hard', 0],
+    ],
+  }, // 31-60
+  {
+    no: 'OPEN/0002',
+    rupees: 17_800,
+    agedDays: 55,
+    dueDaysAgo: 34,
+    hosts: [
+      ['overdue_hard', 1],
+      ['blocked_link', 0],
+      ['overdue_hard', 0],
+    ],
+  }, // 31-60
+  { no: 'OPEN/0001', rupees: 12_400, agedDays: 40, dueDaysAgo: 19, hosts: [['overdue_hard', 0]] }, // 16-30
+  {
+    no: 'OPEN/0007',
+    rupees: 7_500,
+    agedDays: 32,
+    dueDaysAgo: 11,
+    hosts: [
+      ['grocery_medium', 0],
+      ['overdue_hard', 0],
+    ],
+  }, // 8-15
+  {
+    no: 'OPEN/0010',
+    rupees: 4_300,
+    agedDays: 120,
+    dueDaysAgo: 99,
+    hosts: [
+      ['bad_debt', 1],
+      ['closed_shop', 0],
+      ['overdue_hard', 0],
+    ],
+  }, // 90+
 ]
 
 /** Two tiny old bills nobody is going to pay: the write-off story, and honest 90+ money until then. */
-const BAD_DEBT_BILLS = [
-  { no: 'OPEN/0008', rupees: 1_240, agedDays: 165, dueDaysAgo: 144 },
-  { no: 'OPEN/0009', rupees: 860, agedDays: 150, dueDaysAgo: 129 },
+const BAD_DEBT_BILLS: OpeningBill[] = [
+  {
+    no: 'OPEN/0008',
+    rupees: 1_240,
+    agedDays: 165,
+    dueDaysAgo: 144,
+    hosts: [
+      ['closed_shop', 0],
+      ['bad_debt', 0],
+      ['overdue_hard', 0],
+    ],
+  },
+  {
+    no: 'OPEN/0009',
+    rupees: 860,
+    agedDays: 150,
+    dueDaysAgo: 129,
+    hosts: [
+      ['bad_debt', 1],
+      ['bad_debt', 0],
+      ['overdue_hard', 0],
+    ],
+  },
 ]
 
 const DEPOSIT_REF = 'DEP/2026/0117'
@@ -107,12 +210,84 @@ type AgeingRow = BillRow & { credit_days: string | number }
  */
 const credit = (amountPaise: number): number => -Number(amountPaise)
 
+/** One carried-over bill and the shop that owes it, decided from the network alone (no database). */
+export interface OpeningBillPlan {
+  billNo: string
+  retailerId: string
+  totalPaise: number
+  agedDays: number
+  dueDaysAgo: number
+  isBadDebt: boolean
+}
+
+/**
+ * Which shop carries which old due — pure, so the sales seed can start every shop's running unpaid
+ * total from these before it decides who pays what, and no stopped account ever ends past its limit.
+ */
+export function planOpeningBills(rows: readonly RetailerRow[]): OpeningBillPlan[] {
+  // Each distributor's old book is its own (2026-09-08 review: byte-identical amounts and dates in
+  // all three tenants gave the tail away): the amounts and the ages are jittered on a stream keyed
+  // by the tenant's scope, inside the bucket the bill is meant to land in.
+  const jitterRng = makeRng(`dos-demo:opening-bills:${currentDemoScope()}`)
+  const byTier = (tier: 'A' | 'B' | 'C' | 'D') =>
+    rows.filter((r) => r.tier === tier && r.archetype !== 'new_shop')
+  /** Dues already placed on a shop: no stopped account is loaded past 80 % of its limit. */
+  const carried = new Map<string, number>()
+  const fits = (r: RetailerRow, paiseDue: number): boolean =>
+    r.creditMode === 'indicate' ||
+    r.creditLimitPaise === 0 ||
+    (carried.get(r.id) ?? 0) + paiseDue <= r.creditLimitPaise * 0.8
+  const hostFor = (bill: OpeningBill, totalPaise: number): RetailerRow => {
+    const candidates: RetailerRow[] = []
+    for (const [key, n] of bill.hosts) {
+      try {
+        candidates.push(byArchetype(rows, key, n))
+      } catch {
+        // the network has no such shop; try the next host
+      }
+    }
+    const first = candidates.find((r) => fits(r, totalPaise))
+    if (first) return first
+    const stopped = rows.find((r) => r.creditMode === 'stop' && r.active && fits(r, totalPaise))
+    if (stopped) return stopped
+    // a bigger account on `indicate` terms can carry an old due past its limit
+    return (
+      byTier('B').find((r) => r.creditMode === 'indicate') ?? candidates[0] ?? nth(byTier('C'), 0)
+    )
+  }
+  return [...OPENING_BILLS, ...BAD_DEBT_BILLS].map((bill, i) => {
+    // ±18 % on the amount, to the rupee with the odd fifty paise, and up to four days either way
+    const rupees = Math.round(bill.rupees * (0.82 + jitterRng() * 0.36))
+    const halfRupee = jitterRng() < 0.35 ? 50 : 0
+    const totalPaise = paise(rupees * 100 + halfRupee)
+    const shift = randInt(jitterRng, -4, 4)
+    const isBadDebt = i >= OPENING_BILLS.length
+    const host = hostFor(bill, isBadDebt ? 0 : totalPaise)
+    if (!isBadDebt) carried.set(host.id, (carried.get(host.id) ?? 0) + totalPaise)
+    return {
+      billNo: bill.no,
+      retailerId: host.id,
+      totalPaise,
+      agedDays: bill.agedDays + shift,
+      dueDaysAgo: bill.dueDaysAgo + shift,
+      isBadDebt,
+    }
+  })
+}
+
+export interface SeedReceivablesOptions {
+  /** Shops whose dues tell the ageing story: nothing here may settle their bills. */
+  protectedRetailerIds?: ReadonlySet<string>
+}
+
 export async function seedReceivables(
   db: Db,
   tenantId: string,
   retailersRes: RetailersResult,
   people: PeopleResult,
+  opts: SeedReceivablesOptions = {},
 ): Promise<void> {
+  const protectedIds = opts.protectedRetailerIds ?? new Set<string>()
   const accountRows = await db.select().from(accounts).where(eq(accounts.tenantId, tenantId))
   const accountId = new Map(accountRows.map((a) => [a.code, a.id]))
   const acc = (code: string): string => {
@@ -148,7 +323,7 @@ export async function seedReceivables(
       narration,
       idempotencyKey: `journal:${key}`,
       postedBy,
-      postedAt: entryDate,
+      postedAt: postingTime(entryDate),
     })
     lines.forEach((l, i) => {
       lineRows.push({
@@ -171,23 +346,21 @@ export async function seedReceivables(
   //    entries against the OPENING account"). Each is a synthetic invoice, source = import, series OPEN.
   // ---------------------------------------------------------------------------------------------------
   const byTier = (tier: 'A' | 'B' | 'C' | 'D') =>
-    retailersRes.retailers.filter((r) => r.tier === tier)
-  const openingHosts = [...byTier('C'), ...byTier('B'), ...byTier('D')]
-  const badDebtHosts = byTier('D')
+    retailersRes.retailers.filter((r) => r.tier === tier && r.archetype !== 'new_shop')
+  const retailerById = new Map(retailersRes.retailers.map((r) => [r.id, r]))
   const invoiceRows: (typeof invoices.$inferInsert)[] = []
 
-  const carriedBills = [...OPENING_BILLS, ...BAD_DEBT_BILLS].map((bill, i) => {
-    const isBadDebt = i >= OPENING_BILLS.length
-    const host = isBadDebt
-      ? nth(badDebtHosts, (i - OPENING_BILLS.length) % badDebtHosts.length)
-      : nth(openingHosts, (i * 3) % openingHosts.length)
+  const carriedBills = planOpeningBills(retailersRes.retailers).map((bill) => {
+    const isBadDebt = bill.isBadDebt
+    const host = retailerById.get(bill.retailerId)
+    if (!host) throw new Error(`opening bill ${bill.billNo} names an unknown shop`)
     const invoiceDate = daysAgo(bill.agedDays)
-    const totalPaise = paise(bill.rupees * 100)
-    const invoiceId = demoId('opening-invoice', bill.no)
+    const totalPaise = bill.totalPaise
+    const invoiceId = demoId('opening-invoice', bill.billNo)
     invoiceRows.push({
       id: invoiceId,
       tenantId,
-      invoiceNo: bill.no,
+      invoiceNo: bill.billNo,
       seriesCode: 'OPEN',
       fy: FY,
       invoiceDate: isoDate(invoiceDate),
@@ -206,18 +379,18 @@ export async function seedReceivables(
       issuedAt: atIstTime(invoiceDate, 11, 0),
     })
     post(
-      `opening:${bill.no}`,
+      `opening:${bill.billNo}`,
       invoiceDate,
       'opening',
       invoiceId,
-      `Opening balance ${bill.no} (${host.name})`,
+      `Opening balance ${bill.billNo} (${host.name})`,
       people.accountant.id,
       [
         { code: 'AR', amountPaise: totalPaise, retailerId: host.id },
         { code: 'OPENING', amountPaise: credit(totalPaise) },
       ],
     )
-    return { billNo: bill.no, invoiceId, retailerId: host.id, totalPaise, isBadDebt }
+    return { billNo: bill.billNo, invoiceId, retailerId: host.id, totalPaise, isBadDebt }
   })
   await insertMany(db, invoices, invoiceRows)
 
@@ -240,6 +413,7 @@ export async function seedReceivables(
         (b) =>
           !takenInvoices.has(b.id) &&
           !carriedInvoiceIds.has(b.id) &&
+          !protectedIds.has(b.retailerId) &&
           openPaiseOf(b) > 0 &&
           predicate(b),
       )
@@ -282,12 +456,12 @@ export async function seedReceivables(
   // 3. Eight on-account payments: money in the drawer that nobody has matched to a bill yet, which is what
   //    the desk's `unallocatedOnly` filter and the allocation screen exist for.
   // ---------------------------------------------------------------------------------------------------
-  const onAccountHosts = [...byTier('B'), ...byTier('C')]
+  const onAccountHosts = [...byTier('B'), ...byTier('C')].filter((r) => !protectedIds.has(r.id))
   const onAccountRupees = [500, 1_250, 2_000, 2_750, 3_400, 4_100, 4_800, 5_000]
   onAccountRupees.forEach((rupees, i) => {
     const host = nth(onAccountHosts, (i * 5) % onAccountHosts.length)
     const amountPaise = paise(rupees * 100)
-    const receivedAt = atIstTime(daysAgo(i + 1), 15, 45)
+    const receivedAt = atIstTime(workingDayAgo(i * 2 + 1), 15, 45)
     const mode = i % 2 === 0 ? ('cash' as const) : ('upi' as const)
     const key = `on-account:${i}`
     const receiptId = addReceipt(key, {
@@ -318,15 +492,36 @@ export async function seedReceivables(
   // ---------------------------------------------------------------------------------------------------
   // 4. Five cheques: two still in hand, two banked in one deposit batch, one returned unpaid.
   // ---------------------------------------------------------------------------------------------------
-  const chequeBills = [0, 1, 2, 3, 4]
-    .map(() => claimBill((b) => openPaiseOf(b) >= 200_000 && openPaiseOf(b) <= 6_000_000))
+  // Cheques come from the bigger `indicate` accounts. (The one that bounces re-opens exactly what it
+  // paid, so the shop ends where the sales seed left it — under its limit.) The rule must depend only
+  // on what the earlier seeds wrote, never on this seed's own later steps, or a re-seed finds a
+  // different set: a bill this seed part-paid on the first run is simply gone from the pool.
+  const indicateShops = new Set(
+    retailersRes.retailers.filter((r) => r.creditMode === 'indicate').map((r) => r.id),
+  )
+  // two in hand (today, a couple of days ago), two banked last week, one that came back — and each
+  // cheque pays a bill raised BEFORE the day it was handed over (2026-09-08 review: a cheque
+  // allocated to a bill issued days later showed a payment against a bill that did not exist yet)
+  const chequeDays = [0, 1, 2, 3, 4].map((i) =>
+    workingDayAgo(i === 0 ? 0 : i === 1 ? 2 : 3 * i + 1),
+  )
+  const chequeBills = chequeDays
+    .map((day) =>
+      claimBill(
+        (b) =>
+          indicateShops.has(b.retailerId) &&
+          openPaiseOf(b) >= 200_000 &&
+          openPaiseOf(b) <= 3_000_000 &&
+          b.invoiceDate < isoDate(day),
+      ),
+    )
     .filter((b): b is OpenBill => b !== undefined)
   const depositedIds: string[] = []
   let depositTotal = 0
   chequeBills.forEach((bill, i) => {
     const amountPaise = openPaiseOf(bill)
     const host = retailersRes.retailers.find((r) => r.id === bill.retailerId)
-    const receivedAt = atIstTime(daysAgo(i === 0 ? 0 : i === 1 ? 1 : i + 2), 12, 30)
+    const receivedAt = occurred(atIstTime(nth(chequeDays, i), 12, 30))
     const deposited = i === 2 || i === 3
     const bounced = i === 4
     const key = `cheque:${i}`
@@ -339,12 +534,12 @@ export async function seedReceivables(
       receivedBy: people.accountant.id,
       reference: `${560021 + i}`,
       bankName: i % 2 === 0 ? 'Bank of Maharashtra' : 'HDFC Bank',
-      chequeDate: isoDate(daysAgo(i)),
+      chequeDate: isoDate(receivedAt),
       status: bounced ? ('bounced' as const) : deposited ? ('deposited' as const) : undefined,
-      depositedAt: deposited ? atIstTime(daysAgo(1), 11, 0) : null,
+      depositedAt: deposited ? atIstTime(workingDayAgo(1), 11, 0) : null,
       depositRef: deposited ? DEPOSIT_REF : null,
       depositAccountId: deposited ? acc('BANK') : null,
-      bouncedAt: bounced ? atIstTime(daysAgo(1), 16, 0) : null,
+      bouncedAt: bounced ? atIstTime(workingDayAgo(1), 16, 0) : null,
       bounceReason: bounced ? 'insufficient funds' : null,
       bankChargesPaise: bounced ? BOUNCE_CHARGES_PAISE : 0,
     })
@@ -368,7 +563,7 @@ export async function seedReceivables(
     if (bounced) {
       // A returned cheque must put AR back exactly where it was, and the bank's fee is our cost
       // (docs/plans/00-coordination.md §7 question 9): DR BANK_CHARGES / CR BANK, never billed to the shop.
-      const bouncedAt = atIstTime(daysAgo(1), 16, 0)
+      const bouncedAt = atIstTime(workingDayAgo(1), 16, 0)
       const reversalId = addReceipt(`cheque-bounce:${i}`, {
         receiptNo: `RCPT-CHQ-${String(i + 1).padStart(4, '0')}-R`,
         retailerId: bill.retailerId,
@@ -411,7 +606,7 @@ export async function seedReceivables(
   if (depositedIds.length > 0) {
     post(
       'deposit:0117',
-      atIstTime(daysAgo(1), 11, 0),
+      atIstTime(workingDayAgo(1), 11, 0),
       'deposit',
       DEPOSIT_REF,
       `Cheques banked, ${DEPOSIT_REF}`,
@@ -429,10 +624,11 @@ export async function seedReceivables(
   //    touch land in `partially_paid`.
   // ---------------------------------------------------------------------------------------------------
   for (let i = 0; i < 3; i++) {
-    const bill = claimBill((b) => openPaiseOf(b) >= 100_000)
+    const crewDay = workingDayAgo(i + 2)
+    const bill = claimBill((b) => openPaiseOf(b) >= 100_000 && b.invoiceDate < isoDate(crewDay))
     if (!bill) continue
     const amountPaise = Math.max(10_000, Math.round((openPaiseOf(bill) * 0.6) / 100) * 100)
-    const receivedAt = atIstTime(daysAgo(i + 2), 18, 10)
+    const receivedAt = atIstTime(crewDay, 18, 10)
     const key = `crew-book:${i}`
     const receiptId = addReceipt(key, {
       receiptNo: `RCPT-FLD-${String(i + 1).padStart(4, '0')}`,
@@ -473,10 +669,16 @@ export async function seedReceivables(
   let vanSeq = 0
   for (const pair of tripPairs) {
     if (vanSeq >= 4) break
-    const bill = claimBill((b) => b.retailerId === pair.retailerId && openPaiseOf(b) >= 50_000)
+    const vanDay = workingDayAgo(vanSeq === 0 ? 0 : 1)
+    const bill = claimBill(
+      (b) =>
+        b.retailerId === pair.retailerId &&
+        openPaiseOf(b) >= 50_000 &&
+        b.invoiceDate < isoDate(vanDay),
+    )
     if (!bill) continue
     const amountPaise = openPaiseOf(bill)
-    const collectedAt = atIstTime(daysAgo(vanSeq === 0 ? 0 : 1), 13, 20)
+    const collectedAt = occurred(atIstTime(vanDay, 13, 20))
     const key = `van-cash:${vanSeq}`
     const collector = nth(crew, vanSeq % crew.length)
     const receiptId = addReceipt(key, {
@@ -510,10 +712,13 @@ export async function seedReceivables(
   //    shows the pair and the "receipts are immutable" story is visible in the UI.
   // ---------------------------------------------------------------------------------------------------
   {
-    const host = nth(byTier('C'), 1)
+    const host = nth(
+      byTier('C').filter((r) => !protectedIds.has(r.id)),
+      1,
+    )
     const amountPaise = paise(2_000 * 100)
-    const receivedAt = atIstTime(daysAgo(5), 17, 5)
-    const reversedAt = atIstTime(daysAgo(4), 10, 15)
+    const receivedAt = atIstTime(workingDayAgo(5), 17, 5)
+    const reversedAt = atIstTime(workingDayAgo(4), 10, 15)
     const receiptId = addReceipt('keying-error', {
       receiptNo: 'RCPT-ERR-0001',
       retailerId: host.id,
@@ -571,7 +776,7 @@ export async function seedReceivables(
     .filter((b) => b.isBadDebt)
     .forEach((bill, i) => {
       const writeOffId = demoId('write-off', bill.billNo)
-      const at = atIstTime(daysAgo(3), 16, 40)
+      const at = atIstTime(workingDayAgo(3), 16, 40)
       const entryId = post(
         `writeoff:${bill.billNo}`,
         at,

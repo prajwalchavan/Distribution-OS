@@ -9,6 +9,12 @@ the outside, walked every screen of its docs/23 section in a real browser at des
 measuring rather than eyeballing, drove it on the Pixel 7, and fixed what it found before reporting.
 Everything is committed and pushed to `origin/main`.
 
+**Demo data (2026-09-08): the realistic seed replaces the fortnight demo.** 174 SKUs across 13
+brands, 60 / 40 / 24 shops in named archetypes, 90 / 60 / 45 days of orders through every reachable
+state, ageing that reads as a pyramid, and `QA/tools/seed/verify-seed.sh` (the spec's invariants,
+120 checks green). **It needs the founder's `dos` database dropped and recreated once** — the seed
+refuses an old-shape database before writing anything (docs/28 §3 has the one-liner).
+
 **The end-to-end pass was NOT run, by founder decision (2026-09-07): Fable does the E2E test.** The
 F10 gate of `scratchpad/dos-frontend.js` was stopped after the admin app went green. The founder will
 open a Fable session and drive the E2E from there. Do not re-launch that gate without being asked.

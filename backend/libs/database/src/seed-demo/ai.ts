@@ -63,7 +63,7 @@ import type { PeopleResult } from './people.js'
 import type { RetailersResult } from './retailers.js'
 import type { OrderRecord, SalesResult } from './sales.js'
 import type { StockResult } from './stock.js'
-import { atIstTime, daysAgo, isoDate } from './util.js'
+import { atIstTime, daysAgo, isoDate, occurred, TODAY } from './util.js'
 
 /** Horizon the demo rows are computed for; the contract's own default (`AI_DEFAULT_HORIZON_DAYS`). */
 const HORIZON_DAYS = 14
@@ -265,7 +265,7 @@ async function seedDrafts(
       provider: 'deterministic',
       model: 'rules/1.0.0',
       idempotencyKey: inbound ? `inbound:${inbound.id}` : demoId('ai-draft-key', 'whatsapp'),
-      createdAt: atIstTime(daysAgo(0), 8, 40),
+      createdAt: occurred(atIstTime(daysAgo(0), 8, 40)),
       updatedAt: atIstTime(daysAgo(0), 8, 40),
     })
   }
@@ -307,7 +307,7 @@ async function seedDrafts(
       provider: 'deterministic',
       model: 'rules/1.0.0',
       idempotencyKey: demoId('ai-draft-key', 'text'),
-      createdAt: atIstTime(daysAgo(0), 10, 15),
+      createdAt: occurred(atIstTime(daysAgo(0), 10, 15)),
       updatedAt: atIstTime(daysAgo(0), 10, 15),
     })
   }
@@ -695,6 +695,11 @@ async function seedRoutePlans(db: Db, tenantId: string): Promise<void> {
           : new Date(startAt.getTime() + entry.etaMinutes * 60_000).toISOString(),
       distanceM: entry.distanceM,
     }))
+    // the desk plans a round the evening before it leaves: tomorrow's plan was computed today,
+    // today's when the van left — never at a stamp still in the future (I-58)
+    const computedAt = occurred(
+      startAt.getTime() > TODAY.getTime() + 86_400_000 ? atIstTime(TODAY, 17, 30) : startAt,
+    )
     rows.push({
       id: demoId('route-plan', tripId),
       tenantId,
@@ -703,9 +708,9 @@ async function seedRoutePlans(db: Db, tenantId: string): Promise<void> {
       sequence,
       totalDistanceM: plan.totalDistanceM,
       totalDurationS: plan.totalDurationS,
-      computedAt: startAt,
-      createdAt: startAt,
-      updatedAt: startAt,
+      computedAt,
+      createdAt: computedAt,
+      updatedAt: computedAt,
     })
   }
   await insertMany(db, routePlans, rows)

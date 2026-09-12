@@ -136,7 +136,9 @@ export async function seedIncentives(
       metric: 'visits',
       periodFrom: thisMonth.from,
       periodTo: thisMonth.to,
-      targetValue: 110,
+      // the calls a rep logs on his beats in a month, at the pace the order book sets (about
+      // two and a half a working day on his half of the beats; the strike rate is I-51's)
+      targetValue: 60,
       name: 'This Month — Beat Visits',
       payoutRule: flat(50_000, 120_000, 250_000),
     },
@@ -343,7 +345,7 @@ async function measure(
       join sales_orders o on o.id = l.order_id and o.tenant_id = l.tenant_id
       ${brandJoin}
      where l.tenant_id = ${tenantId}
-       and o.state in ('confirmed','picking','packed','dispatched','delivered','partially_delivered','closed')
+       and o.state in ('confirmed','picking','packed','dispatched','delivered','partially_delivered')
        and (o.salesperson_id = ${seed.userId}
             or (o.salesperson_id is null and o.created_by = ${seed.userId}))
        and coalesce(o.confirmed_at, o.created_at) >= ${from}

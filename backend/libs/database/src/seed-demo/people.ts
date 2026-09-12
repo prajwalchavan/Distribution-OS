@@ -50,7 +50,13 @@ export interface PeopleRoster {
   delivery: readonly [PersonSpec, PersonSpec, PersonSpec, PersonSpec]
   /** Shopkeepers who sign in to the retailer app; matched positionally to the network's app logins. */
   retailerUsers: readonly [PersonSpec, PersonSpec]
+  /** Extra staff beyond the slots the downstream seeds address by name. Users + memberships only. */
+  extra?: readonly (PersonSpec & { role: StaffRole })[]
 }
+
+export type StaffRole =
+  'owner' | 'manager' | 'accountant' | 'salesperson' | 'warehouse' | 'delivery'
+export type ExtraPerson = PersonRef & { role: StaffRole }
 
 /**
  * The seeded team, by slot. The property names are the pilot tenant's first names because that is
@@ -67,6 +73,8 @@ export interface PeopleResult {
   salespeople: { rahul: PersonRef; amit: PersonRef; pooja: PersonRef }
   delivery: { ganesh: PersonRef; raju: PersonRef; santosh: PersonRef; iqbal: PersonRef }
   retailerUsers: [PersonRef, PersonRef]
+  /** The roster's `extra` members, with their roles; empty when the roster names none. */
+  extra: ExtraPerson[]
 }
 
 const person = (spec: PersonSpec): PersonRef => ({
@@ -148,6 +156,65 @@ export const TARSUN_ROSTER: PeopleRoster = {
       username: 'fatima.shaikh',
     },
   ],
+  // The eight who joined as the pilot grew to six beats (spec §2.7); phones continue each block.
+  extra: [
+    {
+      key: 'owner-anil',
+      name: 'Anil Tarsun',
+      phone: '+919810000004',
+      username: 'anil.tarsun',
+      role: 'owner',
+    },
+    {
+      key: 'manager-snehal',
+      name: 'Snehal Rane',
+      phone: '+919810000005',
+      username: 'snehal.rane',
+      role: 'manager',
+    },
+    {
+      key: 'accountant-amol',
+      name: 'Amol Vaidya',
+      phone: '+919810000006',
+      username: 'amol.vaidya',
+      role: 'accountant',
+    },
+    {
+      key: 'rep-sandeep',
+      name: 'Sandeep Mane',
+      phone: '+919810000014',
+      username: 'sandeep.mane',
+      role: 'salesperson',
+    },
+    {
+      key: 'rep-ruksana',
+      name: 'Ruksana Shaikh',
+      phone: '+919810000015',
+      username: 'ruksana.shaikh',
+      role: 'salesperson',
+    },
+    {
+      key: 'warehouse-prashant',
+      name: 'Prashant Gawde',
+      phone: '+919810000033',
+      username: 'prashant.gawde',
+      role: 'warehouse',
+    },
+    {
+      key: 'delivery-tanaji',
+      name: 'Tanaji Bhosale',
+      phone: '+919810000025',
+      username: 'tanaji.bhosale',
+      role: 'delivery',
+    },
+    {
+      key: 'delivery-mahesh',
+      name: 'Mahesh Sutar',
+      phone: '+919810000026',
+      username: 'mahesh.sutar',
+      role: 'delivery',
+    },
+  ],
 }
 
 export async function seedPeople(
@@ -168,6 +235,10 @@ export async function seedPeople(
   ]
   const [warehouse, warehouse2] = roster.warehouse.map(person) as [PersonRef, PersonRef]
   const [retailerUser1, retailerUser2] = roster.retailerUsers.map(person) as [PersonRef, PersonRef]
+  const extra: ExtraPerson[] = (roster.extra ?? []).map((spec) => ({
+    ...person(spec),
+    role: spec.role,
+  }))
 
   const staff = [
     owner,
@@ -182,6 +253,7 @@ export async function seedPeople(
     iqbal,
     warehouse,
     warehouse2,
+    ...extra,
   ]
   const retailerUsers = [retailerUser1, retailerUser2]
 
@@ -223,6 +295,7 @@ export async function seedPeople(
     [iqbal.id]: 'delivery',
     [warehouse.id]: 'warehouse',
     [warehouse2.id]: 'warehouse',
+    ...Object.fromEntries(extra.map((p) => [p.id, p.role])),
   }
 
   await insertMany(db, memberships, [
@@ -240,8 +313,10 @@ export async function seedPeople(
     })),
   ])
 
+  const extraReps = extra.filter((p) => p.role === 'salesperson')
+
   // The third rep is employed by Guiltfree Industries and sells only Too Yumm (Pooja Shinde at the
-  // pilot); the other two sell the full catalog.
+  // pilot); the other two — and the extra reps — sell the full catalog.
   await insertMany(db, repProductAuthorisations, [
     ...BRAND_KEYS.map((key) => ({
       id: demoId('rep-auth', `${shortKey(rahul)}:${key}`),
@@ -264,12 +339,21 @@ export async function seedPeople(
       brandId: brandId('tooyumm'),
       employedBy: 'manufacturer',
     },
+    ...extraReps.flatMap((rep) =>
+      BRAND_KEYS.map((key) => ({
+        id: demoId('rep-auth', `${shortKey(rep)}:${key}`),
+        tenantId,
+        userId: rep.id,
+        brandId: brandId(key),
+        employedBy: 'distributor',
+      })),
+    ),
   ])
 
   await insertMany(
     db,
     repAutoApproveBounds,
-    [rahul, amit, pooja].map((rep) => ({
+    [rahul, amit, pooja, ...extraReps].map((rep) => ({
       id: demoId('rep-bound', rep.id),
       tenantId,
       userId: rep.id,
@@ -303,6 +387,12 @@ export async function seedPeople(
       platform: 'android' as const,
       model: 'Moto G54 (godown)',
     },
+    ...extraReps.slice(0, 2).map((rep, i) => ({
+      id: demoId('device', rep.id),
+      userId: rep.id,
+      platform: 'android' as const,
+      model: i === 0 ? 'Realme Narzo 60' : 'Samsung Galaxy A15',
+    })),
   ])
 
   return {
@@ -314,6 +404,7 @@ export async function seedPeople(
     salespeople: { rahul, amit, pooja },
     delivery: { ganesh, raju, santosh, iqbal },
     retailerUsers: [retailerUser1, retailerUser2],
+    extra,
   }
 }
 

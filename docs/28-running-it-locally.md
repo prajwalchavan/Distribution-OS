@@ -48,6 +48,21 @@ The seed builds three distributorships: **Tarsun Enterprise** (the pilot, with i
 logo), **Sai Distributors** and **Kalyan Agencies** — with staff under each and shops that buy from more than
 one of them, which is what makes the tenant-boundary tests meaningful. It prints every sign-in it created.
 
+**Once, after 2026-09-08: drop and recreate `dos`.** The realistic dataset (174 SKUs, 90 days of trade,
+`QA/tools/seed/REALISTIC-SEED-SPEC.md`) is keyed on the live day the database was first seeded
+(`tenant_settings` → `demo.anchor_date`) and cannot be layered on a database the earlier seed wrote —
+its document numbers would collide half way. `pnpm db:seed` detects such a database and refuses before
+writing anything; the fix is one line:
+
+```bash
+dropdb -h 127.0.0.1 -p 5439 -U dos dos && createdb -h 127.0.0.1 -p 5439 -U dos dos && pnpm db:migrate && pnpm db:seed
+```
+
+From then on it is idempotent again (re-run after `pnpm smoke --destructive`), the live day stays the
+day of that first seed, and `QA/tools/seed/verify-seed.sh` checks the fifty invariants of the spec
+(`RESEED=1` also proves a second seed adds nothing). `DEMO_TODAY=YYYY-MM-DD` pins the live day on a
+fresh database only.
+
 ## 4. Start the services
 
 Eight services and a worker. Each runs alone; start only the ones the app you are opening needs, plus auth.

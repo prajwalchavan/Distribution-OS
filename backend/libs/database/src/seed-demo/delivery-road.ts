@@ -27,16 +27,14 @@ import {
 } from '../schema/index.js'
 import type { Db } from '../client.js'
 import { insertMany } from './db-helpers.js'
-import { DEMO_ACTIVE_TRIP_ID, demoVehicleId, type DeliveryResult } from './delivery.js'
+import { demoVehicleId, type DeliveryResult } from './delivery.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
 import type { SalesResult } from './sales.js'
-import { atIstTime, daysAhead, isoDate } from './util.js'
+import { activeTripId, plannedTripId } from './trip-plan.js'
+import { atIstTime, isoDate, nextWorkingDay } from './util.js'
 
-/** Tomorrow's plan on the tempo: the trip the delivery app opens on. */
-export const DEMO_PLANNED_TRIP_ID = demoId('trip', 'planned-next')
-
-const MAX_PLANNED_STOPS = 6
+const MAX_PLANNED_STOPS = 14
 
 export async function seedDeliveryRoad(
   db: Db,
@@ -45,6 +43,7 @@ export async function seedDeliveryRoad(
   people: PeopleResult,
   delivery: DeliveryResult,
 ): Promise<{ plannedTripId: string; plannedStops: number }> {
+  const DEMO_PLANNED_TRIP_ID = plannedTripId()
   // 1. van sales exist for this distributor, and today's trip may make them
   await db
     .insert(featureFlags)
@@ -59,7 +58,7 @@ export async function seedDeliveryRoad(
     .where(
       and(
         eq(trips.tenantId, tenantId),
-        eq(trips.id, DEMO_ACTIVE_TRIP_ID),
+        eq(trips.id, activeTripId()),
         eq(trips.vanSalesEnabled, false),
       ),
     )
@@ -117,7 +116,8 @@ export async function seedDeliveryRoad(
     )
     .orderBy(invoices.id)
     .limit(MAX_PLANNED_STOPS)
-  const tomorrow = daysAhead(1)
+  // the next WORKING day: Monday's round on a Saturday, never a trip dated on the weekly off
+  const tomorrow = nextWorkingDay()
   const tempo = delivery.vehicles.find((v) => v.key === 'tempo')
   await insertMany(db, trips, [
     {

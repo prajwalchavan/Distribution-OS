@@ -13,8 +13,21 @@ import {
   productVariants,
 } from '../schema/index.js'
 import type { Db } from '../client.js'
+import {
+  EXTRA_ALIASES,
+  EXTRA_BRANDS,
+  EXTRA_EXTERNAL_CODES,
+  EXTRA_HSN_RATES,
+  EXTRA_MANUFACTURERS,
+  EXTRA_PRODUCTS,
+  INNER_PACK_BY_BRAND,
+  INNER_PACK_BY_VARIANT,
+} from './catalog-extra.js'
 import { insertMany } from './db-helpers.js'
 import { demoId } from './ids.js'
+
+export type NetUnit = 'g' | 'kg' | 'ml' | 'l' | 'pcs'
+export type CatalogStatus = 'active' | 'proposed' | 'discontinued'
 
 export interface VariantRow {
   id: string
@@ -26,38 +39,42 @@ export interface VariantRow {
   category: string
   name: string
   netQty: number
-  netUnit: 'ml' | 'g'
+  netUnit: NetUnit
   defaultCaseSize: number
   hsnCode: string
   gstBps: number
   cessBps: number
   mrpPaise: number
   shelfLifeDays: number
+  /** `active` unless the row is one of the demo's proposed / discontinued SKUs. */
+  status: CatalogStatus
 }
 
-interface VariantDef {
+export interface VariantDef {
   key: string
   name: string
   netQty: number
-  netUnit: 'ml' | 'g'
+  netUnit: NetUnit
   caseSize: number
   mrpPaise: number
   shelfLifeDays: number
   hsnCode: string
   gstBps: number
   cessBps: number
+  status?: CatalogStatus
 }
 
-interface ProductDef {
+export interface ProductDef {
   key: string
   manufacturerKey: string
   brandKey: string
   name: string
   category: string
+  status?: CatalogStatus
   variants: VariantDef[]
 }
 
-interface ManufacturerDef {
+export interface ManufacturerDef {
   key: string
   name: string
   legalName: string
@@ -65,7 +82,7 @@ interface ManufacturerDef {
   website: string
 }
 
-interface BrandDef {
+export interface BrandDef {
   key: string
   manufacturerKey: string
   name: string
@@ -107,6 +124,7 @@ const MANUFACTURERS: ManufacturerDef[] = [
     fssaiLicense: '10015043005678',
     website: 'https://www.mastioye.in',
   },
+  ...EXTRA_MANUFACTURERS,
 ]
 
 const BRANDS: BrandDef[] = [
@@ -116,6 +134,7 @@ const BRANDS: BrandDef[] = [
   { key: 'balaji', manufacturerKey: 'balajiwafers', name: 'Balaji' },
   { key: 'mommakhana', manufacturerKey: 'mommakhana', name: 'MOM Makhana' },
   { key: 'mastioye', manufacturerKey: 'alansfoods', name: 'Masti Oye' },
+  ...EXTRA_BRANDS,
 ]
 
 /** Campa's five pack sizes are identical in case size / MRP / shelf life across the three flavours. */
@@ -460,6 +479,7 @@ const PRODUCTS: ProductDef[] = [
       },
     ],
   },
+  ...EXTRA_PRODUCTS,
 ]
 
 const HSN_RATES: {
@@ -498,6 +518,7 @@ const HSN_RATES: {
     cessBps: 0,
   },
   { key: 'hsn-2008', hsnCode: '2008', description: 'Roasted makhana', gstBps: 500, cessBps: 0 },
+  ...EXTRA_HSN_RATES,
 ]
 
 const ALIASES: { variantKey: string; alias: string; hits: number }[] = [
@@ -516,12 +537,25 @@ const ALIASES: { variantKey: string; alias: string; hits: number }[] = [
     hits: 27,
   },
   { variantKey: 'balaji-ratlami-sev-200g', alias: 'BALAJI RATLAMI SEV 200G X 30', hits: 8 },
+  ...EXTRA_ALIASES,
 ]
 
 export const BRAND_KEYS = BRANDS.map((b) => b.key)
+
+/** The `inner` pack a variant carries (a strip of 12 biscuit packs, a box of 6 chips), if any. */
+export const innerPackOf = (v: { key: string; brandKey: string }): number | undefined =>
+  INNER_PACK_BY_VARIANT[v.key] ?? INNER_PACK_BY_BRAND[v.brandKey]
 export const brandId = (key: string): string => demoId('brand', key)
 
-export async function seedCatalog(db: Db): Promise<VariantRow[]> {
+export interface SeedCatalogOptions {
+  /**
+   * The distributor named as proposer on the two `proposed` products. Passed by the pilot only; the
+   * other tenants' calls leave it out, and their insert is then a no-op on rows that already exist.
+   */
+  proposerTenantId?: string
+}
+
+export async function seedCatalog(db: Db, opts: SeedCatalogOptions = {}): Promise<VariantRow[]> {
   await insertMany(
     db,
     manufacturers,
@@ -553,6 +587,8 @@ export async function seedCatalog(db: Db): Promise<VariantRow[]> {
       brandId: demoId('brand', p.brandKey),
       name: p.name,
       category: p.category,
+      status: p.status ?? 'active',
+      proposedByTenantId: p.status === 'proposed' ? (opts.proposerTenantId ?? null) : null,
     })),
   )
 
@@ -573,6 +609,7 @@ export async function seedCatalog(db: Db): Promise<VariantRow[]> {
       cessBps: v.cessBps,
       mrpPaise: v.mrpPaise,
       shelfLifeDays: v.shelfLifeDays,
+      status: v.status ?? p.status ?? 'active',
     })),
   )
 
@@ -589,6 +626,7 @@ export async function seedCatalog(db: Db): Promise<VariantRow[]> {
       hsnCode: v.hsnCode,
       mrpPaise: v.mrpPaise,
       shelfLifeDays: v.shelfLifeDays,
+      status: v.status,
     })),
   )
 
@@ -607,24 +645,30 @@ export async function seedCatalog(db: Db): Promise<VariantRow[]> {
       level: 'case' as const,
       qtyInParent: v.defaultCaseSize,
     })),
-    ...variants.filter(isTooYumm).map((v) => ({
-      id: demoId('pack', `${v.key}:inner`),
-      variantId: v.id,
-      level: 'inner' as const,
-      qtyInParent: 12,
-    })),
+    ...variants
+      .filter((v) => innerPackOf(v) !== undefined)
+      .map((v) => ({
+        id: demoId('pack', `${v.key}:inner`),
+        variantId: v.id,
+        level: 'inner' as const,
+        qtyInParent: innerPackOf(v) ?? 12,
+      })),
   ])
 
-  await insertMany(
-    db,
-    productExternalCodes,
-    variants.filter(isTooYumm).map((v, i) => ({
+  await insertMany(db, productExternalCodes, [
+    ...variants.filter(isTooYumm).map((v, i) => ({
       id: demoId('external-code', v.key),
       variantId: v.id,
       system: 'field_assist',
       code: `FA-ITEM-${String(i + 1).padStart(4, '0')}`,
     })),
-  )
+    ...EXTRA_EXTERNAL_CODES.map((c) => ({
+      id: demoId('external-code', `${c.system}:${c.variantKey}`),
+      variantId: demoId('variant', c.variantKey),
+      system: c.system,
+      code: c.code,
+    })),
+  ])
 
   await insertMany(
     db,

@@ -1,121 +1,97 @@
-/** Inventory + inbound procurement (ADR 0003): lots, opening/GRN ledger rows, balances, one posted GRN per supplier. */
-import { insertMany } from './db-helpers.js'
+/**
+ * Inventory + inbound procurement (ADR 0003): lots, opening / GRN / count ledger rows, balances, the
+ * purchase register with its posted GRNs, and the movements that are not sales (the damaged carton,
+ * the stock take that emptied the sold-out SKUs, the van load, the expiry sweep).
+ *
+ * WHAT is written is decided by `stock-plan.ts` (pure): the sales seed builds its order book first,
+ * the planner sizes every supplier bill from that demand and replays every sold line FEFO against
+ * the batches, and only then does this module write — so the godown really did receive what it sold
+ * and no batch ever goes negative. Stock is written through `postLedger`, so the balances always
+ * equal the ledger whatever the database held before.
+ */
 import { paise, percentOf, splitGst } from '@dos/domain'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
+import type { stockLedger } from '../schema/index.js'
 import {
   grnLines,
   grns,
   inboundDiscrepancies,
   locations,
-  stockBalances,
-  stockLedger,
+  numberingSeries,
   stockLots,
   supplierInvoiceLines,
   supplierInvoices,
 } from '../schema/index.js'
 import type { Db } from '../client.js'
 import type { VariantRow } from './catalog.js'
+import { insertMany, postLedger } from './db-helpers.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
+import type { LotProfile, LotRef, StockPlan } from './stock-plan.js'
 import type { TenantCatalogResult } from './tenant-catalog.js'
-import { atIstTime, daysAgo, isoDate, nth } from './util.js'
+import { atIstTime, FY, isoDate, occurred } from './util.js'
 
-const FAST_MOVERS = new Set([
-  'campa-cola-750ml',
-  'campa-orange-750ml',
-  'campa-lemon-750ml',
-  'too-yumm-karare-60g',
-  'balaji-simply-salted-45g',
-  'balaji-masala-masti-45g',
-])
-
-interface LotRef {
-  id: string
-  variantId: string
-  variantKey: string
-  batchNo: string
-  caseSize: number
-}
+export { DAMAGED_VARIANT_KEYS, lotProfileOf, type LotProfile, type LotRef } from './stock-plan.js'
 
 export interface StockResult {
   godownId: string
   damagedId: string
   /** Every lot for a variant, oldest batch first. */
   lotsByVariantId: Map<string, LotRef[]>
+  profileByVariantId: Map<string, LotProfile>
+  /** The plan as written, for the seeds that read the picks and the events. */
+  plan: StockPlan
 }
 
-interface SupplierLine {
-  supplierKey: keyof TenantCatalogResult['supplierIds']
-  supplierStateCode: string
-  invoiceKey: string
-  invoiceDate: Date
-  paymentTermsDays: number
-  variantKeys: string[]
+/** The GRN lines that go wrong at the gate (spec §2.8): two from the original demo, two new. */
+const GATE_EVENTS: Record<
+  string,
+  {
+    kind: 'short' | 'damaged' | 'excess'
+    cases: number
+    status: 'open' | 'credited' | 'accepted'
+    note: string
+  }
+> = {
+  'reliance-1:campa-cola-750ml': {
+    kind: 'short',
+    cases: 1,
+    status: 'open',
+    note: '1 case short against invoice on gate count.',
+  },
+  'guru-kripa-1:balaji-ratlami-sev-200g': {
+    kind: 'damaged',
+    cases: 1,
+    status: 'credited',
+    note: '1 case crushed in transit, credited by supplier.',
+  },
+  'godavari-1:godavari-fresh-paneer-200g': {
+    kind: 'short',
+    cases: 0,
+    status: 'open',
+    note: 'Whole line refused at the gate: crate arrived at 11 °C, cold chain broken.',
+  },
+  'annapurna-1:annapurna-chakki-fresh-atta-5kg': {
+    kind: 'excess',
+    cases: 2,
+    status: 'accepted',
+    note: '2 bags over the invoice; mill asked us to keep them on the next bill.',
+  },
 }
 
-const SUPPLIER_INVOICES: SupplierLine[] = [
-  {
-    supplierKey: 'reliance',
-    supplierStateCode: '27',
-    invoiceKey: 'reliance-1',
-    invoiceDate: daysAgo(9),
-    paymentTermsDays: 30,
-    variantKeys: ['campa-cola-750ml', 'campa-orange-750ml', 'independence-water-1l'],
-  },
-  {
-    supplierKey: 'guruKripa',
-    supplierStateCode: '27',
-    invoiceKey: 'guru-kripa-1',
-    invoiceDate: daysAgo(7),
-    paymentTermsDays: 21,
-    variantKeys: [
-      'balaji-simply-salted-45g',
-      'balaji-masala-masti-45g',
-      'balaji-chataka-pataka-45g',
-      'balaji-ratlami-sev-200g',
-    ],
-  },
-  {
-    supplierKey: 'momMakhana',
-    supplierStateCode: '08',
-    invoiceKey: 'mom-makhana-1',
-    invoiceDate: daysAgo(11),
-    paymentTermsDays: 30,
-    variantKeys: ['mom-makhana-himalayan-salt-12g', 'mom-makhana-peri-peri-60g'],
-  },
-  {
-    supplierKey: 'guiltfree',
-    supplierStateCode: '06',
-    invoiceKey: 'guiltfree-1',
-    invoiceDate: daysAgo(6),
-    paymentTermsDays: 30,
-    variantKeys: [
-      'too-yumm-karare-60g',
-      'too-yumm-multigrain-chips-60g',
-      'too-yumm-veggie-stix-70g',
-      'too-yumm-makhana-20g',
-    ],
-  },
-  {
-    supplierKey: 'alansFoods',
-    supplierStateCode: '27',
-    invoiceKey: 'alans-foods-1',
-    invoiceDate: daysAgo(10),
-    paymentTermsDays: 15,
-    variantKeys: [
-      'masti-oye-classic-salted-30g',
-      'masti-oye-tomato-twist-30g',
-      'masti-oye-peri-peri-twist-30g',
-    ],
-  },
-]
-
-/** 3 lots (spread across suppliers) get a small quantity moved to the damaged/expiry bin. */
-const DAMAGED_VARIANT_KEYS = [
-  'campa-lemon-500ml',
-  'too-yumm-veggie-stix-70g',
-  'balaji-chataka-pataka-45g',
-]
+const SUPPLIER_BILL_PREFIX: Record<string, string> = {
+  reliance: 'RCP',
+  guruKripa: 'GKA',
+  momMakhana: 'MOM',
+  guiltfree: 'GFI',
+  alansFoods: 'AFP',
+  rajwadiDepot: 'RJB',
+  sunriseStockist: 'SSM',
+  konkanAgency: 'KTR',
+  annapurnaMill: 'ANP',
+  godavariDairy: 'GOD',
+  shubhdaDist: 'SCC',
+}
 
 export async function seedStock(
   db: Db,
@@ -123,6 +99,7 @@ export async function seedStock(
   variants: VariantRow[],
   tenantCatalog: TenantCatalogResult,
   people: PeopleResult,
+  plan: StockPlan,
 ): Promise<StockResult> {
   // Oldest first: the tenant's bootstrap rows ('Godown', 'Damaged / expiry bin') come before anything
   // a docs example or a smoke probe adds later ('Demo Godown (docs)', 'Smoke Probe (owner)' — also
@@ -142,119 +119,55 @@ export async function seedStock(
       'bootstrapTenant must run before seedDemo: Godown/Damaged locations are missing',
     )
   }
-
-  // --- stock_lots: fast movers get two batches, everything else gets one. ---
-  const lotsByVariantId = new Map<string, LotRef[]>()
-  const lotRows: {
-    id: string
-    tenantId: string
-    variantId: string
-    batchNo: string
-    mrpPaise: number
-    mfgDate: string
-    expiryDate: string
-    caseSize: number
-  }[] = []
-
-  for (const v of variants) {
-    const batches = FAST_MOVERS.has(v.key)
-      ? [
-          {
-            key: `${v.key}:b1`,
-            mfgDaysAgo: 90,
-            batchNo: `B${isoDate(daysAgo(90)).replace(/-/g, '')}`,
-          },
-          {
-            key: `${v.key}:b2`,
-            mfgDaysAgo: 20,
-            batchNo: `B${isoDate(daysAgo(20)).replace(/-/g, '')}`,
-          },
-        ]
-      : [
-          {
-            key: `${v.key}:b1`,
-            mfgDaysAgo: 45,
-            batchNo: `B${isoDate(daysAgo(45)).replace(/-/g, '')}`,
-          },
-        ]
-
-    const refs: LotRef[] = []
-    for (const b of batches) {
-      const id = demoId('stock-lot', b.key)
-      const mfg = daysAgo(b.mfgDaysAgo)
-      const expiry = new Date(mfg.getTime() + v.shelfLifeDays * 86_400_000)
-      lotRows.push({
-        id,
-        tenantId,
-        variantId: v.id,
-        batchNo: b.batchNo,
-        mrpPaise: v.mrpPaise,
-        mfgDate: isoDate(mfg),
-        expiryDate: isoDate(expiry),
-        caseSize: v.defaultCaseSize,
-      })
-      refs.push({
-        id,
-        variantId: v.id,
-        variantKey: v.key,
-        batchNo: b.batchNo,
-        caseSize: v.defaultCaseSize,
-      })
-    }
-    lotsByVariantId.set(v.id, refs)
-  }
-  await insertMany(db, stockLots, lotRows)
-
-  // Running balance accumulator: `${lotId}:${locationId}` -> pieces on hand.
-  const balance = new Map<string, number>()
-  const bump = (lotId: string, locationId: string, delta: number) => {
-    const key = `${lotId}:${locationId}`
-    balance.set(key, (balance.get(key) ?? 0) + delta)
-  }
-
-  // --- opening stock_ledger: every lot starts with a few cases at the Godown. ---
-  const openingAt = atIstTime(daysAgo(14), 8, 30)
-  const ledgerRows: (typeof stockLedger.$inferInsert)[] = []
   const variantByKey = new Map(variants.map((v) => [v.key, v]))
 
-  for (const refs of lotsByVariantId.values()) {
-    for (const [i, lot] of refs.entries()) {
-      // The older batch of a fast mover is nearly sold through; the newer one starts fuller.
-      const cases = refs.length === 2 ? (i === 0 ? 3 : 6) : 5
-      const qty = cases * lot.caseSize
-      ledgerRows.push({
-        id: demoId('stock-ledger-opening', lot.id),
-        tenantId,
-        occurredAt: openingAt,
-        lotId: lot.id,
-        locationId: godown.id,
-        qtyDelta: qty,
-        reason: 'opening',
-        refType: 'opening',
-        refId: lot.id,
-        actorId: people.owner.id,
-        idempotencyKey: `opening:${lot.id}`,
-      })
-      bump(lot.id, godown.id, qty)
-    }
+  // --- stock_lots: every batch of the plan, whichever way it arrived -------------------------------
+  await insertMany(
+    db,
+    stockLots,
+    plan.lots.map((lot) => ({
+      id: lot.id,
+      tenantId,
+      variantId: lot.variantId,
+      batchNo: lot.batchNo,
+      mrpPaise: variantByKey.get(lot.variantKey)?.mrpPaise ?? 0,
+      mfgDate: isoDate(lot.mfgDate),
+      expiryDate: isoDate(lot.expiryDate),
+      caseSize: lot.caseSize,
+    })),
+  )
+
+  // --- opening rows: the books opened on one morning; a batch made later opens the day it was made;
+  //     a batch found on this morning's count comes in as a cycle count. ---------------------------
+  const ledgerRows: (typeof stockLedger.$inferInsert)[] = []
+  for (const lot of plan.lots) {
+    if (lot.kind === 'grn' || lot.qtyPcs <= 0) continue
+    ledgerRows.push({
+      id: demoId('stock-ledger-opening', lot.id),
+      tenantId,
+      occurredAt: occurred(atIstTime(lot.availableFrom, 8, 30)),
+      lotId: lot.id,
+      locationId: godown.id,
+      qtyDelta: lot.qtyPcs,
+      reason: lot.kind === 'count' ? 'cycle_count' : 'opening',
+      refType: lot.kind === 'count' ? 'manual' : 'opening',
+      refId: lot.id,
+      actorId: lot.kind === 'count' ? people.warehouse.id : people.owner.id,
+      idempotencyKey: `opening:${lot.id}`,
+      ...(lot.countNote ? { note: lot.countNote } : {}),
+    })
   }
 
-  // --- one posted supplier invoice + GRN per supplier, adding stock to the newest batch of each variant. ---
+  // --- supplier invoices + posted GRNs, one batch per bill line ------------------------------------
   const invoiceRows: (typeof supplierInvoices.$inferInsert)[] = []
   const invoiceLineRows: (typeof supplierInvoiceLines.$inferInsert)[] = []
   const grnRows: (typeof grns.$inferInsert)[] = []
   const grnLineRows: (typeof grnLines.$inferInsert)[] = []
   const discrepancyRows: (typeof inboundDiscrepancies.$inferInsert)[] = []
   let discrepancySeq = 0
+  const billSeq = new Map<string, number>()
 
-  for (const template of SUPPLIER_INVOICES) {
-    // A distributor that does not carry a brand still has the supplier on file, but no bill from it:
-    // the tenant's catalog overlay decides which lines exist (`variants` is that overlay).
-    const inv = {
-      ...template,
-      variantKeys: template.variantKeys.filter((k) => variantByKey.has(k)),
-    }
-    if (inv.variantKeys.length === 0) continue
+  plan.invoices.forEach((inv, invoiceIndex) => {
     const supplierId = tenantCatalog.supplierIds[inv.supplierKey]
     const invoiceId = demoId('supplier-invoice', inv.invoiceKey)
     const grnId = demoId('grn', inv.invoiceKey)
@@ -263,34 +176,43 @@ export async function seedStock(
     let sgst = 0
     let igst = 0
     let cess = 0
-    const lineInserts: (typeof supplierInvoiceLines.$inferInsert)[] = []
-    const grnLineInserts: (typeof grnLines.$inferInsert)[] = []
+    const seq = (billSeq.get(inv.supplierKey) ?? 0) + 1
+    billSeq.set(inv.supplierKey, seq)
 
-    inv.variantKeys.forEach((vk, i) => {
-      const v = variantByKey.get(vk)
-      if (!v) throw new Error(`unknown variant key in supplier invoice seed: ${vk}`)
+    inv.lines.forEach((line, i) => {
+      const v = variantByKey.get(line.variantKey)
+      if (!v) throw new Error(`unknown variant key in supplier invoice seed: ${line.variantKey}`)
       const cost = tenantCatalog.costsByVariantId.get(v.id)
-      if (!cost) throw new Error(`no cost for variant ${vk}`)
-      const refs = lotsByVariantId.get(v.id) ?? []
-      const targetLot = refs.length > 0 ? nth(refs, refs.length - 1) : undefined
-      if (!targetLot) throw new Error(`no stock lot for variant ${vk}`)
-
-      const cases = 15 + i * 5
-      const qtyPcs = cases * v.defaultCaseSize
+      if (!cost) throw new Error(`no cost for variant ${line.variantKey}`)
+      const lot = line.lot
+      // what the bill printed: the replay sized the batch at what the gate actually counted
+      const event = GATE_EVENTS[`${inv.invoiceKey}:${line.variantKey}`]
+      const cs = v.defaultCaseSize
+      const countedQtyPcs = lot.refused ? 0 : lot.qtyPcs
+      let printedCases = Math.max(1, Math.round(lot.qtyPcs / cs))
+      let damagedPcs = 0
+      let eventPcs = 0
+      if (event) {
+        if (event.kind === 'short') {
+          eventPcs = event.cases === 0 ? lot.qtyPcs : event.cases * cs
+          if (event.cases > 0) printedCases = lot.qtyPcs / cs + event.cases
+        } else if (event.kind === 'damaged') {
+          eventPcs = event.cases * cs
+          damagedPcs = eventPcs
+        } else {
+          eventPcs = event.cases * cs
+          printedCases = Math.max(1, lot.qtyPcs / cs - event.cases)
+        }
+      }
+      const qtyPcs = printedCases * cs
       const ratePaise = cost.purchaseRatePaise
       const taxablePaise = paise(ratePaise * qtyPcs)
       const gst = splitGst(taxablePaise, v.gstBps, inv.supplierStateCode, '27')
       const cessAmt = percentOf(taxablePaise, v.cessBps)
+      const received = countedQtyPcs
 
-      // The Reliance line for Campa Cola comes up 1 case short; a Guru Kripa Ratlami Sev case arrives damaged.
-      const isShortLine = inv.invoiceKey === 'reliance-1' && vk === 'campa-cola-750ml'
-      const isDamagedLine = inv.invoiceKey === 'guru-kripa-1' && vk === 'balaji-ratlami-sev-200g'
-      const shortPcs = isShortLine ? v.defaultCaseSize : 0
-      const damagedPcs = isDamagedLine ? v.defaultCaseSize : 0
-      const countedQtyPcs = qtyPcs - shortPcs
-
-      const lineId = demoId('supplier-invoice-line', `${inv.invoiceKey}:${vk}`)
-      lineInserts.push({
+      const lineId = demoId('supplier-invoice-line', `${inv.invoiceKey}:${line.variantKey}`)
+      invoiceLineRows.push({
         id: lineId,
         tenantId,
         supplierInvoiceId: invoiceId,
@@ -298,8 +220,8 @@ export async function seedStock(
         description: v.name.toUpperCase(),
         variantId: v.id,
         hsnCode: v.hsnCode,
-        batchNo: targetLot.batchNo,
-        printedQty: cases,
+        batchNo: lot.batchNo,
+        printedQty: printedCases,
         printedUnit: 'case',
         qtyPcs,
         ratePaise,
@@ -317,67 +239,53 @@ export async function seedStock(
       igst += gst.igst
       cess += cessAmt
 
-      const grnLineId = demoId('grn-line', `${inv.invoiceKey}:${vk}`)
-      grnLineInserts.push({
+      const grnLineId = demoId('grn-line', `${inv.invoiceKey}:${line.variantKey}`)
+      grnLineRows.push({
         id: grnLineId,
         tenantId,
         grnId,
         supplierInvoiceLineId: lineId,
         variantId: v.id,
-        lotId: targetLot.id,
+        lotId: lot.id,
         expectedQtyPcs: qtyPcs,
-        countedQtyPcs,
+        countedQtyPcs: received,
         damagedQtyPcs: damagedPcs,
       })
-
-      if (countedQtyPcs > 0) {
+      if (received > 0) {
         ledgerRows.push({
-          id: demoId('stock-ledger-grn', `${inv.invoiceKey}:${vk}`),
+          id: demoId('stock-ledger-grn', `${inv.invoiceKey}:${line.variantKey}`),
           tenantId,
-          occurredAt: atIstTime(inv.invoiceDate, 11, 0),
-          lotId: targetLot.id,
+          occurredAt: occurred(atIstTime(inv.invoiceDate, 11, 0)),
+          lotId: lot.id,
           locationId: godown.id,
-          qtyDelta: countedQtyPcs,
+          qtyDelta: received,
           reason: 'grn',
           refType: 'grn',
           refId: grnId,
           actorId: people.accountant.id,
-          idempotencyKey: `grn:${inv.invoiceKey}:${vk}`,
+          idempotencyKey: `grn:${inv.invoiceKey}:${line.variantKey}`,
         })
-        bump(targetLot.id, godown.id, countedQtyPcs)
       }
-
-      if (isShortLine) {
+      if (event) {
         discrepancySeq += 1
         discrepancyRows.push({
           id: demoId('inbound-discrepancy', `${discrepancySeq}`),
           tenantId,
           grnId,
           grnLineId,
-          kind: 'short',
-          qtyPcs: shortPcs,
-          amountPaise: shortPcs * ratePaise,
-          status: 'open',
-          note: `${v.name}: 1 case short against invoice on gate count.`,
-        })
-      }
-      if (isDamagedLine) {
-        discrepancySeq += 1
-        discrepancyRows.push({
-          id: demoId('inbound-discrepancy', `${discrepancySeq}`),
-          tenantId,
-          grnId,
-          grnLineId,
-          kind: 'damaged',
-          qtyPcs: damagedPcs,
-          amountPaise: damagedPcs * ratePaise,
-          status: 'credited',
-          note: `${v.name}: 1 case crushed in transit, credited by supplier.`,
+          kind: event.kind,
+          qtyPcs: eventPcs,
+          amountPaise: eventPcs * ratePaise,
+          status: event.status,
+          note: `${v.name}: ${event.note}`,
+          resolvedBy: event.status === 'accepted' ? people.manager.id : null,
+          resolvedAt:
+            event.status === 'accepted' ? occurred(atIstTime(inv.invoiceDate, 12, 0)) : null,
         })
       }
     })
 
-    const freightPaise = 50_000
+    const freightPaise = inv.supplierStateCode === '27' ? 50_000 : 180_000
     const totalPaise = subtotal + cgst + sgst + igst + cess + freightPaise
     invoiceRows.push({
       id: invoiceId,
@@ -385,7 +293,7 @@ export async function seedStock(
       supplierId,
       source: 'manual',
       status: 'received',
-      invoiceNo: `${inv.supplierKey.toUpperCase().slice(0, 3)}/26-27/${String(482 + SUPPLIER_INVOICES.indexOf(inv)).padStart(5, '0')}`,
+      invoiceNo: `${SUPPLIER_BILL_PREFIX[inv.supplierKey] ?? 'SUP'}/26-27/${String(400 + seq * 7 + (invoiceIndex % 5)).padStart(5, '0')}`,
       invoiceDate: isoDate(inv.invoiceDate),
       supplierGstin: null,
       placeOfSupplyState: '27',
@@ -398,88 +306,140 @@ export async function seedStock(
       totalPaise,
       dueDate: isoDate(new Date(inv.invoiceDate.getTime() + inv.paymentTermsDays * 86_400_000)),
       approvedBy: people.accountant.id,
-      approvedAt: atIstTime(inv.invoiceDate, 18, 0),
+      approvedAt: occurred(atIstTime(inv.invoiceDate, 18, 0)),
+      createdAt: occurred(atIstTime(inv.invoiceDate, 9, 45)),
     })
-    invoiceLineRows.push(...lineInserts)
     grnRows.push({
       id: grnId,
       tenantId,
-      grnNo: `GRN-${String(SUPPLIER_INVOICES.indexOf(inv) + 1).padStart(4, '0')}`,
+      grnNo: `GRN-${String(invoiceIndex + 1).padStart(4, '0')}`,
       supplierInvoiceId: invoiceId,
       locationId: godown.id,
       status: 'posted',
-      countedBy: people.accountant.id,
-      countedAt: atIstTime(inv.invoiceDate, 10, 30),
+      countedBy: people.warehouse.id,
+      countedAt: occurred(atIstTime(inv.invoiceDate, 10, 30)),
       postedBy: people.accountant.id,
-      postedAt: atIstTime(inv.invoiceDate, 11, 0),
+      postedAt: occurred(atIstTime(inv.invoiceDate, 11, 0)),
+      createdAt: occurred(atIstTime(inv.invoiceDate, 10, 30)),
     })
-    grnLineRows.push(...grnLineInserts)
-  }
+  })
 
   await insertMany(db, supplierInvoices, invoiceRows)
   await insertMany(db, supplierInvoiceLines, invoiceLineRows)
   await insertMany(db, grns, grnRows)
   await insertMany(db, grnLines, grnLineRows)
   await insertMany(db, inboundDiscrepancies, discrepancyRows)
+  // The GRN counter ends past everything this seed booked, never backwards: `grn_no` carries no
+  // unique index, so a counter left at 1 would hand the app's first posted GRN a number the
+  // register already shows.
+  if (grnRows.length > 0) {
+    await db
+      .insert(numberingSeries)
+      .values({ tenantId, seriesCode: 'GRN', fy: FY, prefix: 'GRN-', nextNo: grnRows.length + 1 })
+      .onConflictDoUpdate({
+        target: [numberingSeries.tenantId, numberingSeries.seriesCode, numberingSeries.fy],
+        set: { nextNo: sql`greatest(${numberingSeries.nextNo}, ${grnRows.length + 1})` },
+      })
+  }
 
-  // --- move a little stock to the damaged bin for three variants. ---
-  for (const vk of DAMAGED_VARIANT_KEYS) {
-    const v = variantByKey.get(vk)
-    if (!v) continue
-    const refs = lotsByVariantId.get(v.id) ?? []
-    const lot = refs.length > 0 ? nth(refs, refs.length - 1) : undefined
-    if (!lot) continue
-    const qty = 6
-    ledgerRows.push(
-      {
-        id: demoId('stock-ledger-damage-out', vk),
+  // --- the movements that are not sales, exactly where the replay put them --------------------------
+  for (const e of plan.events) {
+    if (!e.lotId || e.qtyPcs <= 0) continue
+    if (e.kind === 'soldout') {
+      ledgerRows.push({
+        id: demoId('stock-ledger-soldout', e.lotId),
         tenantId,
-        occurredAt: atIstTime(daysAgo(4), 15, 0),
-        lotId: lot.id,
+        occurredAt: e.at,
+        lotId: e.lotId,
         locationId: godown.id,
-        qtyDelta: -qty,
-        reason: 'damage',
+        qtyDelta: -e.qtyPcs,
+        reason: 'adjustment',
         refType: 'manual',
-        refId: lot.id,
+        refId: e.lotId,
         actorId: people.manager.id,
-        idempotencyKey: `damage-out:${vk}`,
-        note: 'Carton wet from monsoon leak, moved to damaged bin.',
-      },
-      {
-        id: demoId('stock-ledger-damage-in', vk),
-        tenantId,
-        occurredAt: atIstTime(daysAgo(4), 15, 0),
-        lotId: lot.id,
-        locationId: damaged.id,
-        qtyDelta: qty,
-        reason: 'damage',
-        refType: 'manual',
-        refId: lot.id,
-        actorId: people.manager.id,
-        idempotencyKey: `damage-in:${vk}`,
-        note: 'Carton wet from monsoon leak, moved to damaged bin.',
-      },
-    )
-    bump(lot.id, godown.id, -qty)
-    bump(lot.id, damaged.id, qty)
+        idempotencyKey: `soldout:${e.lotId}`,
+        note: e.note,
+      })
+    } else if (e.kind === 'damage') {
+      const vk = e.key.slice('damage:'.length)
+      ledgerRows.push(
+        {
+          id: demoId('stock-ledger-damage-out', vk),
+          tenantId,
+          occurredAt: e.at,
+          lotId: e.lotId,
+          locationId: godown.id,
+          qtyDelta: -e.qtyPcs,
+          reason: 'damage',
+          refType: 'manual',
+          refId: e.lotId,
+          actorId: people.manager.id,
+          idempotencyKey: `damage-out:${vk}`,
+          note: e.note,
+        },
+        {
+          id: demoId('stock-ledger-damage-in', vk),
+          tenantId,
+          occurredAt: e.at,
+          lotId: e.lotId,
+          locationId: damaged.id,
+          qtyDelta: e.qtyPcs,
+          reason: 'damage',
+          refType: 'manual',
+          refId: e.lotId,
+          actorId: people.manager.id,
+          idempotencyKey: `damage-in:${vk}`,
+          note: e.note,
+        },
+      )
+    } else if (e.kind === 'expiry_sweep') {
+      // Expired leftovers move to the expiry bin as a TRANSFER; the write-off itself (reason
+      // `expiry_writeoff`) is the claims module's decision, filed against the bin later.
+      ledgerRows.push(
+        {
+          id: demoId('stock-ledger-sweep-out', e.lotId),
+          tenantId,
+          occurredAt: e.at,
+          lotId: e.lotId,
+          locationId: godown.id,
+          qtyDelta: -e.qtyPcs,
+          reason: 'transfer_out',
+          refType: 'manual',
+          refId: e.lotId,
+          actorId: people.warehouse.id,
+          idempotencyKey: `expiry-sweep:${e.lotId}:out`,
+          note: e.note,
+        },
+        {
+          id: demoId('stock-ledger-sweep-in', e.lotId),
+          tenantId,
+          occurredAt: e.at,
+          lotId: e.lotId,
+          locationId: damaged.id,
+          qtyDelta: e.qtyPcs,
+          reason: 'transfer_in',
+          refType: 'manual',
+          refId: e.lotId,
+          actorId: people.warehouse.id,
+          idempotencyKey: `expiry-sweep:${e.lotId}:in`,
+          note: e.note,
+        },
+      )
+    }
+    // `van_load` is posted by the warehouse seed once the vehicle locations exist.
   }
 
-  await insertMany(db, stockLedger, ledgerRows)
+  // Openings and GRNs first (all positive), then the issues: `postLedger` folds the deltas per lot and
+  // location, so the order only matters for the row timestamps, which are already set above.
+  await postLedger(db, tenantId, ledgerRows, new Set([damaged.id]))
 
-  const balanceRows: (typeof stockBalances.$inferInsert)[] = []
-  for (const [key, onHand] of balance) {
-    const [lotId, locationId] = key.split(':')
-    if (!lotId || !locationId) continue
-    balanceRows.push({
-      tenantId,
-      lotId,
-      locationId,
-      onHand,
-      reserved: 0,
-      negativeAllowed: locationId === damaged.id,
-    })
+  const lotsByVariantId = new Map<string, LotRef[]>()
+  for (const [variantId, lots] of plan.lotsByVariantId) lotsByVariantId.set(variantId, [...lots])
+  return {
+    godownId: godown.id,
+    damagedId: damaged.id,
+    lotsByVariantId,
+    profileByVariantId: plan.profileByVariantId,
+    plan,
   }
-  await insertMany(db, stockBalances, balanceRows)
-
-  return { godownId: godown.id, damagedId: damaged.id, lotsByVariantId }
 }

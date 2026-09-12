@@ -63,7 +63,16 @@ export async function inDemoScope<T>(next: string, fn: () => Promise<T>): Promis
  * data into one database without a single id collision. Global kinds ignore it.
  */
 export function demoId(kind: string, n: number | string): string {
-  const prefix = GLOBAL_KINDS.has(kind) ? '' : scope
+  return scopedDemoId(GLOBAL_KINDS.has(kind) ? '' : scope, kind, n)
+}
+
+/**
+ * The id a row has under an EXPLICIT scope, whatever scope is in force — for the multi-tenant seed,
+ * which must name another distributor's identity rows (a shop shared between Sai Distributors and
+ * Kalyan Agencies) from the root scope. Global kinds ignore the scope exactly as `demoId` does.
+ */
+export function scopedDemoId(scopeOf: string, kind: string, n: number | string): string {
+  const prefix = GLOBAL_KINDS.has(kind) ? '' : scopeOf
   const hex = createHash('sha1')
     .update(`dos-demo:${prefix}${kind}:${n}`)
     .digest('hex')

@@ -15,6 +15,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { paise, percentOf, roundToRupee } from '@dos/domain'
 import type { Db } from '../client.js'
+import type { stockLedger } from '../schema/index.js'
 import {
   accounts,
   allocations,
@@ -30,22 +31,128 @@ import {
   retailers,
   salesOrderLines,
   salesOrders,
-  stockLedger,
   tenants,
   tenantSettings,
 } from '../schema/index.js'
 import { TENANT_SETTING_KEYS } from '../tenant-bootstrap.js'
 import type { VariantRow } from './catalog.js'
-import { insertMany, seriesPrefix } from './db-helpers.js'
-import { demoId } from './ids.js'
+import { insertMany, postLedger, seriesPrefix } from './db-helpers.js'
+import { currentDemoScope, demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
-import type { RetailersResult } from './retailers.js'
+import type { PricingResult } from './pricing.js'
+import {
+  byArchetype,
+  type ArchetypeKey,
+  type RetailerRow,
+  type RetailersResult,
+} from './retailers.js'
 import type { SalesResult } from './sales.js'
 import type { StockResult } from './stock.js'
-import { atIstTime, daysAgo, FY, isoDate, makeGstin, nth, TODAY as TODAY_SEED } from './util.js'
+import {
+  atIstTime,
+  daysAgo,
+  FY,
+  hashMod,
+  isoDate,
+  lastWorkingDayOnOrBefore,
+  makeGstin,
+  occurred,
+  TODAY as TODAY_SEED,
+} from './util.js'
+
+/** `n` days back, on the last working day before it: no bill is raised on a Sunday. */
+const workingDayAgo = (n: number): Date => lastWorkingDayOnOrBefore(daysAgo(n))
+
+/** Pieces the van sale (`INV/9003`) sells off the flagship's oldest batch. */
+export const VAN_SALE_PCS = 18
+/** Cases the cancelled bill (`INV/9002`) issued and took back the same afternoon. */
+export const CANCELLED_BILL_CASES = 3
+
+/**
+ * The SKU the special bills are written on: the beverage flagship (the one SKU with a real float,
+ * so three cases out and back in an afternoon never dent it), else the first taxed SKU on the shelf.
+ * `sales.ts` holds the van sale's and the cancelled bill's pieces on its oldest batch by this key.
+ */
+export function flagshipVariant(variants: VariantRow[]): VariantRow {
+  const v =
+    variants.find((x) => x.key === 'campa-cola-750ml') ??
+    variants.find((x) => x.gstBps > 0) ??
+    variants[0]
+  if (!v) throw new Error('billing seed needs at least one variant')
+  return v
+}
+
+/**
+ * The line on the brand-DMS bill: a Too Yumm SKU on Too Yumm's own number series (the brand whose
+ * FieldAssist DMS issues the legal invoice, docs/17 item 1), else Balaji's on its stockist's series.
+ */
+function dmsBill(variants: VariantRow[]): { variant: VariantRow; invoiceNo: string } | null {
+  const ty = variants.find((x) => x.key === 'too-yumm-karare-60g' || x.brandKey === 'tooyumm')
+  if (ty) return { variant: ty, invoiceNo: 'TY/26-27/00412' }
+  const bw = variants.find((x) => x.brandKey === 'balaji')
+  if (bw) return { variant: bw, invoiceNo: 'GK/26-27/01187' }
+  return null
+}
+
+/** A shop of the archetype, falling back down the list so a small network still has one. */
+function shopFor(rows: RetailerRow[], wanted: [ArchetypeKey, number][]): RetailerRow {
+  for (const [key, n] of wanted) {
+    try {
+      return byArchetype(rows, key, n)
+    } catch {
+      // try the next
+    }
+  }
+  const first = rows[0]
+  if (!first) throw new Error('billing seed needs at least one shop')
+  return first
+}
 
 /** The seller's own FSSAI licence, printed on a food invoice. Display-only, like the demo GSTIN. */
 const SELLER_FSSAI = '11525012000456'
+
+/**
+ * The one out-of-state B2B party each distributor bills (the IGST story). Its own for each
+ * distributor, with the terms a wholesale account actually gets — a limit, three weeks, `indicate`
+ * — rather than a zero limit alongside credit days (2026-09-08 review). Not on a beat: nobody
+ * walks to Surat.
+ */
+interface InterStateParty {
+  name: string
+  ownerName: string
+  phone: string
+  stateCode: string
+  pan: string
+  address: { line1: string; area: string; city: string; pincode: string }
+}
+const INTER_STATE_PARTIES: Readonly<Record<string, InterStateParty>> = {
+  '': {
+    name: 'Surat Sales Agency',
+    ownerName: 'Nilesh Patel',
+    phone: '+919824000024',
+    stateCode: '24',
+    pan: 'AAXPS4410M',
+    address: { line1: 'Ring Road', area: 'Salabatpura', city: 'Surat', pincode: '395003' },
+  },
+  'sai:': {
+    name: 'Vapi Agro Traders',
+    ownerName: 'Hitesh Desai',
+    phone: '+919825000124',
+    stateCode: '24',
+    pan: 'AAKPD2210F',
+    address: { line1: 'Plot 14, Phase 2', area: 'GIDC', city: 'Vapi', pincode: '396195' },
+  },
+  'kalyan:': {
+    name: 'Belgaum Provision Mart',
+    ownerName: 'Raghavendra Kulkarni',
+    phone: '+919845000324',
+    stateCode: '29',
+    pan: 'AAKPK7710R',
+    address: { line1: 'Congress Road', area: 'Tilakwadi', city: 'Belagavi', pincode: '590006' },
+  },
+}
+/** Days back the party's three bills were raised, as shares of the history: one a month on ninety days. */
+const INTER_STATE_BILL_AGE_SHARES = [0.22, 0.53, 0.84] as const
 /** Where a brand DMS's own number is filed; the tenant's INV counter is never touched (docs/17 item 1). */
 const EXTERNAL_SERIES = 'EXT'
 
@@ -94,7 +201,16 @@ export async function seedBilling(
   sales: SalesResult,
   stock: StockResult,
   people: PeopleResult,
+  pricing: PricingResult,
+  opts: { historyDays?: number } = {},
 ): Promise<void> {
+  const historyDays = opts.historyDays ?? 90
+  /** The distributor's own list rate for a SKU: every special bill sells at list, never above MRP. */
+  const listRate = (v: VariantRow): number => {
+    const r = pricing.ratesByVariantId.get(v.id)
+    if (!r) throw new Error(`billing seed: no price for ${v.key}`)
+    return r.defaultPaise
+  }
   const accountRows = await db.select().from(accounts).where(eq(accounts.tenantId, tenantId))
   const accountId = new Map(accountRows.map((a) => [a.code, a.id]))
   const acc = (code: string): string => {
@@ -181,7 +297,7 @@ export async function seedBilling(
       retailerId: i.retailerId,
       mode: i.mode,
       amountPaise: i.amountPaise,
-      receivedAt: atIstTime(i.date, 18, 0),
+      receivedAt: occurred(atIstTime(i.date, 18, 0)),
       receivedBy: i.receivedBy,
       reference:
         i.mode === 'bank_transfer' ? `NEFT${String(900000000 + receiptRows.length)}` : null,
@@ -193,7 +309,7 @@ export async function seedBilling(
       invoiceId: i.invoiceId,
       receiptId,
       amountPaise: i.amountPaise,
-      allocatedAt: atIstTime(i.date, 18, 0),
+      allocatedAt: occurred(atIstTime(i.date, 18, 0)),
     })
     const entryId = demoId('journal-entry', `receipt:billing:${i.key}`)
     entryRows.push({
@@ -205,7 +321,7 @@ export async function seedBilling(
       narration: `Receipt against ${i.key}`,
       idempotencyKey: `journal:receipt:billing:${i.key}`,
       postedBy: i.receivedBy,
-      postedAt: atIstTime(i.date, 18, 0),
+      postedAt: occurred(atIstTime(i.date, 18, 0)),
     })
     journalRows.push(
       {
@@ -255,7 +371,7 @@ export async function seedBilling(
       narration: `Invoice ${i.invoiceNo} to ${i.retailerName}`,
       idempotencyKey: `journal:invoice:${i.invoiceId}`,
       postedBy: people.accountant.id,
-      postedAt: atIstTime(i.date, 18, 30),
+      postedAt: occurred(atIstTime(i.date, 18, 30)),
     })
     const line = (suffix: string, code: string, amountPaise: number, party = false) => {
       if (amountPaise === 0) return
@@ -281,52 +397,114 @@ export async function seedBilling(
   // 2. The GST shapes the ordinary seed cannot make: an inter-state bill needs a shop in another state.
   //    R-9024 is a Gujarat wholesaler, so `27 -> 24` fills `igst_paise` alone and nothing else changes.
 
+  const scope = currentDemoScope()
+  const party = INTER_STATE_PARTIES[scope] ?? INTER_STATE_PARTIES['']
+  if (!party) throw new Error('billing seed: no inter-state party')
+  const codePrefix = (retailersRes.retailers[0]?.code ?? 'R-').replace(/\d+$/, '')
   const gujaratRetailerId = demoId('retailer', 'gujarat')
+  const partyGstin = makeGstin(party.stateCode, party.pan)
   await insertMany(db, retailers, [
     {
       id: gujaratRetailerId,
       tenantId,
-      code: 'R-9024',
-      name: 'Surat Sales Agency',
-      ownerName: 'Nilesh Patel',
-      phone: '+919824000024',
-      stateCode: '24',
+      code: `${codePrefix}9024`,
+      name: party.name,
+      ownerName: party.ownerName,
+      phone: party.phone,
+      stateCode: party.stateCode,
       gstRegType: 'regular',
-      gstin: makeGstin('24', 'AAXPS4410M'),
+      gstin: partyGstin,
+      pan: party.pan,
       tier: 'B',
+      creditLimitPaise: 20_000_000,
       creditDays: 21,
+      creditMode: 'indicate',
       paymentTerms: 'POST_FULFILLMENT',
-      address: { line1: 'Ring Road', area: 'Salabatpura', city: 'Surat', pincode: '395003' },
-      tallyLedgerName: 'Surat Sales Agency',
+      address: party.address,
+      tallyLedgerName: `${party.name} (${codePrefix}9024)`,
     },
   ])
 
-  const wafer = variants.find((v) => v.gstBps > 0) ?? nth(variants, 0)
-  const cola = variants.find((v) => v.cessBps > 0) ?? wafer
+  const wafer = flagshipVariant(variants)
+  const waferRate = listRate(wafer)
 
-  const interStateDate = daysAgo(3)
-  const interStateInvoiceId = demoId('invoice', 'inter-state')
-  {
-    const priced = priceLine(wafer, wafer.defaultCaseSize * 10, 950, true)
+  // Three bills a month apart, each on a different taxed SKU and case count for each distributor (so
+  // no two GSTR-1 inter-state lines are the same number), each behind a phone order the desk keyed,
+  // each paid by transfer a fortnight or so later. The pieces are a separate B2B consignment picked
+  // from the batch on the rack, not part of the beat plan's stock replay.
+  const taxed = variants.filter((v) => v.gstBps > 0 && v.status === 'active')
+  INTER_STATE_BILL_AGE_SHARES.map((share) => Math.round(historyDays * share)).forEach((age, n) => {
+    const seed = hashMod(`inter-state:${scope}:${n}`, 1000)
+    const v = taxed[(seed + n * 37) % Math.max(1, taxed.length)] ?? wafer
+    const rate = listRate(v)
+    const cases = 6 + (seed % 7)
+    const qty = v.defaultCaseSize * cases
+    const date = workingDayAgo(age)
+    const key = n === 0 ? 'inter-state' : `inter-state:${n + 1}`
+    const invoiceId = demoId('invoice', key)
+    const orderId = demoId('order', key)
+    const invoiceNo = `${invPrefix}${n === 0 ? 9001 : 9004 + n}`
+    const orderNo = `${soPrefix}${n === 0 ? 9004 : 9004 + n}`
+    const lot = (stock.lotsByVariantId.get(v.id) ?? [])[0]
+    const priced = priceLine(v, qty, rate, true)
     const { rounded, roundOff } = roundToRupee(
       paise(priced.taxable + priced.igst + priced.cgst + priced.sgst + priced.cess),
     )
-    invoiceRows.push({
-      id: interStateInvoiceId,
+    orderRows.push({
+      id: orderId,
       tenantId,
-      invoiceNo: `${invPrefix}9001`,
+      orderNo,
+      retailerId: gujaratRetailerId,
+      state: 'delivered',
+      source: 'phone',
+      createdBy: people.manager.id,
+      salespersonId: null,
+      paymentTerms: 'POST_FULFILLMENT',
+      fulfilFromLocationId: godown,
+      subtotalPaise: priced.taxable,
+      taxPaise: priced.igst + priced.cess,
+      roundOffPaise: roundOff,
+      totalPaise: rounded,
+      submittedAt: occurred(atIstTime(date, 10, 20)),
+      confirmedAt: occurred(atIstTime(date, 10, 40)),
+      createdAt: occurred(atIstTime(date, 10, 20)),
+      updatedAt: occurred(atIstTime(date, 17, 0)),
+    })
+    orderLineRows.push({
+      id: demoId('order-line', `${orderId}:0`),
+      tenantId,
+      orderId,
+      lineNo: 1,
+      variantId: v.id,
+      enteredQty: cases,
+      enteredUnit: 'case',
+      packSizeAtEntry: v.defaultCaseSize,
+      qtyPcs: qty,
+      pickedQtyPcs: qty,
+      deliveredQtyPcs: qty,
+      listRatePaise: rate,
+      ratePaise: rate,
+      gstBps: v.gstBps,
+      taxPaise: priced.igst + priced.cess,
+      lineTotalPaise: priced.total,
+    })
+    invoiceRows.push({
+      id: invoiceId,
+      tenantId,
+      invoiceNo,
       seriesCode: 'INV',
       fy: FY,
-      invoiceDate: isoDate(interStateDate),
+      invoiceDate: isoDate(date),
+      orderId,
       retailerId: gujaratRetailerId,
       source: 'pack',
       state: 'issued',
       supplyType: 'B2B',
       sellerGstin,
-      buyerGstin: makeGstin('24', 'AAXPS4410M'),
-      buyerName: 'Surat Sales Agency',
-      buyerAddress: { area: 'Salabatpura', city: 'Surat', pincode: '395003' },
-      placeOfSupplyState: '24',
+      buyerGstin: partyGstin,
+      buyerName: party.name,
+      buyerAddress: party.address,
+      placeOfSupplyState: party.stateCode,
       sellerFssai: SELLER_FSSAI,
       isInterState: true,
       subtotalPaise: priced.taxable,
@@ -335,38 +513,43 @@ export async function seedBilling(
       cessPaise: priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
-      dueDate: isoDate(new Date(interStateDate.getTime() + 21 * 86_400_000)),
+      dueDate: isoDate(new Date(date.getTime() + 21 * 86_400_000)),
       issuedBy: people.accountant.id,
-      issuedAt: atIstTime(interStateDate, 17, 0),
+      issuedAt: occurred(atIstTime(date, 17, 0)),
     })
     lineRows.push({
-      id: demoId('invoice-line', `${interStateInvoiceId}:0`),
+      id: demoId('invoice-line', `${invoiceId}:0`),
       tenantId,
-      invoiceId: interStateInvoiceId,
+      invoiceId,
       lineNo: 1,
-      variantId: wafer.id,
-      description: wafer.name,
-      hsnCode: wafer.hsnCode,
-      qtyPcs: wafer.defaultCaseSize * 10,
-      enteredQty: 10,
+      orderLineId: demoId('order-line', `${orderId}:0`),
+      variantId: v.id,
+      lotId: lot?.id ?? null,
+      description: v.name,
+      hsnCode: v.hsnCode,
+      batchNo: lot?.batchNo ?? null,
+      expiryDate: lot ? isoDate(lot.expiryDate) : null,
+      qtyPcs: qty,
+      enteredQty: cases,
       enteredUnit: 'case',
-      packSizeAtEntry: wafer.defaultCaseSize,
-      caseSize: wafer.defaultCaseSize,
-      ratePaise: 950,
+      packSizeAtEntry: v.defaultCaseSize,
+      caseSize: lot?.caseSize ?? v.defaultCaseSize,
+      mrpPaise: v.mrpPaise,
+      ratePaise: rate,
       taxablePaise: priced.taxable,
-      gstBps: wafer.gstBps,
+      gstBps: v.gstBps,
       igstPaise: priced.igst,
-      cessBps: wafer.cessBps,
+      cessBps: v.cessBps,
       cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     })
     postSale({
-      key: 'inter-state',
-      invoiceId: interStateInvoiceId,
-      invoiceNo: `${invPrefix}9001`,
+      key,
+      invoiceId,
+      invoiceNo,
       retailerId: gujaratRetailerId,
-      retailerName: 'Surat Sales Agency',
-      date: interStateDate,
+      retailerName: party.name,
+      date,
       subtotal: priced.taxable,
       cgst: 0,
       sgst: 0,
@@ -375,31 +558,38 @@ export async function seedBilling(
       roundOff,
       total: rounded,
     })
+    // paid by NEFT a fortnight or so on — every one of them, so the party's AR nets to nothing and
+    // the books tie on the shops the network knows
     settle({
-      key: 'inter-state',
-      invoiceId: interStateInvoiceId,
+      key,
+      invoiceId,
       retailerId: gujaratRetailerId,
       amountPaise: rounded,
-      date: interStateDate,
+      date: workingDayAgo(Math.max(1, age - 12 - (seed % 5))),
       mode: 'bank_transfer',
       receivedBy: people.accountant.id,
     })
-  }
+  })
 
   // ---------------------------------------------------------------------------------------------------------------
   // 3. A CANCELLED bill: the number survives (GSTR-1 Table 13), the goods go back on a compensating
   //    ledger row and the money on a reversing entry, and the order returns to the billing queue.
 
-  const cancelledDate = daysAgo(2)
+  const cancelledDate = workingDayAgo(2)
   const cancelledInvoiceId = demoId('invoice', 'cancelled')
   const cancelledOrderId = demoId('order', 'cancelled-invoice')
-  const cancelledShop = nth(retailersRes.retailers, 3)
+  const cancelledShop = shopFor(retailersRes.retailers, [
+    ['kirana_small', 1],
+    ['grocery_medium', 0],
+  ])
   {
-    const qty = wafer.defaultCaseSize * 3
-    const priced = priceLine(wafer, qty, 1000, false)
+    const qty = wafer.defaultCaseSize * CANCELLED_BILL_CASES
+    const priced = priceLine(wafer, qty, waferRate, false)
     const { rounded, roundOff } = roundToRupee(
       paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
     )
+    // the oldest batch: the stock plan holds these pieces on it, so the afternoon they were out
+    // never took the batch below zero
     const lot = (stock.lotsByVariantId.get(wafer.id) ?? [])[0]
     orderRows.push({
       id: cancelledOrderId,
@@ -416,8 +606,10 @@ export async function seedBilling(
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
-      submittedAt: atIstTime(cancelledDate, 10, 0),
-      confirmedAt: atIstTime(cancelledDate, 11, 0),
+      submittedAt: occurred(atIstTime(cancelledDate, 10, 0)),
+      confirmedAt: occurred(atIstTime(cancelledDate, 11, 0)),
+      createdAt: occurred(atIstTime(cancelledDate, 9, 45)),
+      updatedAt: occurred(atIstTime(cancelledDate, 19, 30)),
     })
     orderLineRows.push({
       id: demoId('order-line', `${cancelledOrderId}:0`),
@@ -425,13 +617,13 @@ export async function seedBilling(
       orderId: cancelledOrderId,
       lineNo: 1,
       variantId: wafer.id,
-      enteredQty: 3,
+      enteredQty: CANCELLED_BILL_CASES,
       enteredUnit: 'case',
       packSizeAtEntry: wafer.defaultCaseSize,
       qtyPcs: qty,
       pickedQtyPcs: qty,
-      listRatePaise: 1000,
-      ratePaise: 1000,
+      listRatePaise: waferRate,
+      ratePaise: waferRate,
       gstBps: wafer.gstBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       lineTotalPaise: priced.total,
@@ -463,8 +655,8 @@ export async function seedBilling(
       totalPaise: rounded,
       dueDate: isoDate(new Date(cancelledDate.getTime() + cancelledShop.creditDays * 86_400_000)),
       issuedBy: people.accountant.id,
-      issuedAt: atIstTime(cancelledDate, 16, 0),
-      cancelledAt: atIstTime(cancelledDate, 19, 30),
+      issuedAt: occurred(atIstTime(cancelledDate, 16, 0)),
+      cancelledAt: occurred(atIstTime(cancelledDate, 19, 30)),
       cancelReason: 'Retailer refused the load before dispatch.',
     })
     lineRows.push({
@@ -478,13 +670,14 @@ export async function seedBilling(
       description: wafer.name,
       hsnCode: wafer.hsnCode,
       batchNo: lot?.batchNo ?? null,
+      expiryDate: lot ? isoDate(lot.expiryDate) : null,
       mrpPaise: wafer.mrpPaise,
       qtyPcs: qty,
-      enteredQty: 3,
+      enteredQty: CANCELLED_BILL_CASES,
       enteredUnit: 'case',
       packSizeAtEntry: wafer.defaultCaseSize,
       caseSize: lot?.caseSize ?? wafer.defaultCaseSize,
-      ratePaise: 1000,
+      ratePaise: waferRate,
       taxablePaise: priced.taxable,
       gstBps: wafer.gstBps,
       cgstPaise: priced.cgst,
@@ -519,7 +712,7 @@ export async function seedBilling(
       narration: `cancels invoice ${invPrefix}9002`,
       idempotencyKey: `journal:invoice-cancel:${cancelledInvoiceId}`,
       postedBy: people.owner.id,
-      postedAt: atIstTime(cancelledDate, 19, 30),
+      postedAt: occurred(atIstTime(cancelledDate, 19, 30)),
     })
     const reversalLine = (suffix: string, code: string, amountPaise: number, party = false) => {
       if (amountPaise === 0) return
@@ -543,7 +736,7 @@ export async function seedBilling(
         {
           id: demoId('ledger', `cancel-sale:${cancelledInvoiceId}`),
           tenantId,
-          occurredAt: atIstTime(cancelledDate, 16, 0),
+          occurredAt: occurred(atIstTime(cancelledDate, 16, 0)),
           lotId: lot.id,
           locationId: godown,
           qtyDelta: -qty,
@@ -556,7 +749,7 @@ export async function seedBilling(
         {
           id: demoId('ledger', `cancel-restock:${cancelledInvoiceId}`),
           tenantId,
-          occurredAt: atIstTime(cancelledDate, 19, 30),
+          occurredAt: occurred(atIstTime(cancelledDate, 19, 30)),
           lotId: lot.id,
           locationId: godown,
           qtyDelta: qty,
@@ -575,13 +768,16 @@ export async function seedBilling(
   // 4. A VAN SALE. Same tenant series as any other bill (docs/17 §D5): `source = 'van_sale'` and the
   //    pieces leaving the VEHICLE location are the only difference.
 
-  const vanDate = daysAgo(1)
+  const vanDate = workingDayAgo(1)
   const vanInvoiceId = demoId('invoice', 'van-sale')
   const vanOrderId = demoId('order', 'van-sale-billed')
-  const vanShop = nth(retailersRes.retailers, 7)
+  const vanShop = shopFor(retailersRes.retailers, [
+    ['cash_only', 0],
+    ['kirana_small', 2],
+  ])
   {
-    const qty = 18
-    const priced = priceLine(wafer, qty, 1050, false)
+    const qty = VAN_SALE_PCS
+    const priced = priceLine(wafer, qty, waferRate, false)
     const { rounded, roundOff } = roundToRupee(
       paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
     )
@@ -600,8 +796,10 @@ export async function seedBilling(
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
-      submittedAt: atIstTime(vanDate, 11, 0),
-      confirmedAt: atIstTime(vanDate, 11, 1),
+      submittedAt: occurred(atIstTime(vanDate, 11, 0)),
+      confirmedAt: occurred(atIstTime(vanDate, 11, 1)),
+      createdAt: occurred(atIstTime(vanDate, 11, 0)),
+      updatedAt: occurred(atIstTime(vanDate, 11, 10)),
     })
     orderLineRows.push({
       id: demoId('order-line', `${vanOrderId}:0`),
@@ -615,8 +813,8 @@ export async function seedBilling(
       qtyPcs: qty,
       pickedQtyPcs: qty,
       deliveredQtyPcs: qty,
-      listRatePaise: 1050,
-      ratePaise: 1050,
+      listRatePaise: waferRate,
+      ratePaise: waferRate,
       gstBps: wafer.gstBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       lineTotalPaise: priced.total,
@@ -647,7 +845,7 @@ export async function seedBilling(
       totalPaise: rounded,
       dueDate: isoDate(vanDate),
       issuedBy: people.delivery.ganesh.id,
-      issuedAt: atIstTime(vanDate, 11, 5),
+      issuedAt: occurred(atIstTime(vanDate, 11, 5)),
     })
     lineRows.push({
       id: demoId('invoice-line', `${vanInvoiceId}:0`),
@@ -660,13 +858,14 @@ export async function seedBilling(
       description: wafer.name,
       hsnCode: wafer.hsnCode,
       batchNo: lot?.batchNo ?? null,
+      expiryDate: lot ? isoDate(lot.expiryDate) : null,
       mrpPaise: wafer.mrpPaise,
       qtyPcs: qty,
       enteredQty: qty,
       enteredUnit: 'piece',
       packSizeAtEntry: 1,
       caseSize: lot?.caseSize ?? wafer.defaultCaseSize,
-      ratePaise: 1050,
+      ratePaise: waferRate,
       taxablePaise: priced.taxable,
       gstBps: wafer.gstBps,
       cgstPaise: priced.cgst,
@@ -699,21 +898,8 @@ export async function seedBilling(
       mode: 'cash',
       receivedBy: people.delivery.ganesh.id,
     })
-    if (lot) {
-      ledgerRows.push({
-        id: demoId('ledger', `van-sale:${vanInvoiceId}`),
-        tenantId,
-        occurredAt: atIstTime(vanDate, 11, 5),
-        lotId: lot.id,
-        locationId: vanLocationId,
-        qtyDelta: -qty,
-        reason: 'sale',
-        refType: 'invoice',
-        refId: vanInvoiceId,
-        actorId: people.delivery.ganesh.id,
-        idempotencyKey: `invoice:${vanInvoiceId}:${lot.id}`,
-      })
-    }
+    // The pieces leave the VAN — posted by `seedPendingVanSaleOrder`, after the warehouse seed has
+    // loaded it, so the van's balance never goes negative (`stock_balances_on_hand_nonneg`).
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -721,13 +907,20 @@ export async function seedBilling(
   //    invoice, so it is stored verbatim on an `external` series, the AR is posted because we still
   //    collect the money, and NO stock moves — the goods came in on the brand's own documents.
 
-  const dmsDate = daysAgo(5)
+  const dmsDate = workingDayAgo(5)
   const dmsInvoiceId = demoId('invoice', 'brand-dms')
-  const dmsShop = nth(retailersRes.retailers, 12)
-  const dmsNo = 'TY/26-27/00412'
-  {
+  const dmsShop = shopFor(retailersRes.retailers, [
+    ['supermarket', 0],
+    ['grocery_medium', 0],
+    ['kirana_small', 3],
+  ])
+  const dms = dmsBill(variants)
+  const dmsNo = dms?.invoiceNo ?? 'TY/26-27/00412'
+  if (dms) {
+    const cola = dms.variant
+    const colaRate = listRate(cola)
     const qty = cola.defaultCaseSize * 4
-    const priced = priceLine(cola, qty, 1400, false)
+    const priced = priceLine(cola, qty, colaRate, false)
     const { rounded, roundOff } = roundToRupee(
       paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
     )
@@ -757,7 +950,7 @@ export async function seedBilling(
       totalPaise: rounded,
       dueDate: isoDate(new Date(dmsDate.getTime() + dmsShop.creditDays * 86_400_000)),
       issuedBy: people.accountant.id,
-      issuedAt: atIstTime(dmsDate, 12, 0),
+      issuedAt: occurred(atIstTime(dmsDate, 12, 0)),
     })
     lineRows.push({
       id: demoId('invoice-line', `${dmsInvoiceId}:0`),
@@ -773,7 +966,7 @@ export async function seedBilling(
       enteredUnit: 'case',
       packSizeAtEntry: cola.defaultCaseSize,
       caseSize: cola.defaultCaseSize,
-      ratePaise: 1400,
+      ratePaise: colaRate,
       taxablePaise: priced.taxable,
       gstBps: cola.gstBps,
       cgstPaise: priced.cgst,
@@ -820,10 +1013,9 @@ export async function seedBilling(
    * this the notes land wherever the biggest open bill happens to be, and the shop the founder signs
    * in as sees an empty screen that is correct and useless.
    */
-  const appShopIds = [
-    retailersRes.retailers[0]?.id ?? '',
-    retailersRes.retailers[9]?.id ?? '',
-  ] as const
+  const appShopIds = retailersRes.appLoginRetailerCodes.map(
+    (code) => retailersRes.retailers.find((r) => r.code === code)?.id ?? '',
+  )
 
   const extraNoteIds = ['return', 'rate'].map((key) => demoId('credit-note', `extra:${key}`))
   const alreadyBooked = new Set(
@@ -869,9 +1061,9 @@ export async function seedBilling(
       no: `${cnPrefix}9001`,
       reason: 'return_saleable',
       ratePaise: (line) => Number(line.rate_paise),
-      maxQty: 6,
+      maxQty: 24,
       restock: true,
-      note: 'Returned unopened and taken back into the godown.',
+      note: 'One case returned unopened, the shop had over-ordered; taken back into the godown.',
     },
     {
       // A rate-difference note passes the DIFFERENCE per piece, never today's price list (ADR 0004),
@@ -879,10 +1071,10 @@ export async function seedBilling(
       key: 'rate',
       no: `${cnPrefix}9002`,
       reason: 'rate_difference',
-      ratePaise: (line) => Math.min(50, Number(line.rate_paise)),
-      maxQty: 24,
+      ratePaise: (line) => Math.max(100, Math.min(400, Math.round(Number(line.rate_paise) * 0.03))),
+      maxQty: 96,
       restock: false,
-      note: 'Rate difference agreed with the shopkeeper: 50 paise a piece. No goods moved.',
+      note: 'Rate difference agreed with the shopkeeper: the list moved after the order was taken. No goods moved.',
     },
   ]
 
@@ -931,7 +1123,7 @@ export async function seedBilling(
       roundOffPaise: money.roundOff,
       totalPaise: money.rounded,
       issuedBy: people.accountant.id,
-      issuedAt: atIstTime(date, 19, 15),
+      issuedAt: occurred(atIstTime(date, 19, 15)),
       note: spec.note,
     })
     cnLineRows.push({
@@ -955,13 +1147,13 @@ export async function seedBilling(
       invoiceId: source.id,
       creditNoteId: cnId,
       amountPaise: money.rounded,
-      allocatedAt: atIstTime(date, 19, 15),
+      allocatedAt: occurred(atIstTime(date, 19, 15)),
     })
     if (spec.restock && source.lot_id) {
       ledgerRows.push({
         id: demoId('ledger', `cn:${cnId}`),
         tenantId,
-        occurredAt: atIstTime(date, 19, 15),
+        occurredAt: occurred(atIstTime(date, 19, 15)),
         lotId: source.lot_id,
         locationId: godown,
         qtyDelta: qty,
@@ -993,7 +1185,7 @@ export async function seedBilling(
       narration: `Credit note ${cnNo}`,
       idempotencyKey: `journal:credit_note:${cnId}`,
       postedBy: people.accountant.id,
-      postedAt: atIstTime(date, 19, 30),
+      postedAt: occurred(atIstTime(date, 19, 30)),
     })
     const push = (suffix: string, code: string, amountPaise: number, party = false) => {
       if (amountPaise === 0) return
@@ -1028,7 +1220,8 @@ export async function seedBilling(
   await insertMany(db, journalEntries, entryRows)
   await insertMany(db, journalLines, journalRows)
   await insertMany(db, allocations, allocationRows)
-  await insertMany(db, stockLedger, ledgerRows)
+  // The cancelled bill's out-and-back pair and the saleable return both move the godown balance.
+  await postLedger(db, tenantId, ledgerRows)
 
   // ---------------------------------------------------------------------------------------------------------------
   // 8. The GST shapes the ordinary seed left flat: a bill carrying a buyer GSTIN is a B2B tax invoice,
@@ -1056,7 +1249,7 @@ export async function seedBilling(
   // and then past everything the DATABASE holds — the app and `pnpm smoke` issue real bills between
   // reseeds, and a counter that stops at the seed's own last number hands the next caller a number
   // the table already has, which is a 409 nobody can get past without a fresh database.
-  await bumpSeries(db, tenantId, 'INV', 9004)
+  await bumpSeries(db, tenantId, 'INV', 9007)
   await bumpSeries(db, tenantId, 'CN', 9003)
   await reconcileSeries(db, tenantId, 'INV')
   await reconcileSeries(db, tenantId, 'CN')
@@ -1086,7 +1279,9 @@ export async function seedPendingVanSaleOrder(
   tenantId: string,
   variants: VariantRow[],
   retailersRes: RetailersResult,
+  stock: StockResult,
   people: PeopleResult,
+  pricing: PricingResult,
 ): Promise<void> {
   const [vehicleLocation] = await db
     .select({ id: locations.id })
@@ -1097,6 +1292,63 @@ export async function seedPendingVanSaleOrder(
     .limit(1)
   if (!vehicleLocation) return
   const vanLocationId = vehicleLocation.id
+
+  // 1. The stock side of yesterday's van sale (`INV/9003`): the tempo carries whatever the freshest
+  //    load sheet put on it, which may or may not include the wafer the bill names. Top the van up
+  //    from the godown with exactly the pieces sold, then issue them — both through `postLedger`, so
+  //    the ledger and the balances agree and a re-seed moves nothing.
+  const wafer = flagshipVariant(variants)
+  const vanInvoiceId = demoId('invoice', 'van-sale')
+  const vanLot = (stock.lotsByVariantId.get(wafer.id) ?? [])[0]
+  if (vanLot) {
+    const soldQty = VAN_SALE_PCS
+    const vanDate = workingDayAgo(1)
+    await postLedger(db, tenantId, [
+      {
+        id: demoId('ledger', `van-topup-out:${vanInvoiceId}`),
+        tenantId,
+        occurredAt: occurred(atIstTime(vanDate, 10, 50)),
+        lotId: vanLot.id,
+        locationId: stock.godownId,
+        qtyDelta: -soldQty,
+        reason: 'van_load',
+        refType: 'manual',
+        refId: vanInvoiceId,
+        actorId: people.warehouse.id,
+        idempotencyKey: `van-topup:${vanInvoiceId}:${vanLot.id}:out`,
+        note: 'Counter stock handed to the crew for van sales',
+      },
+      {
+        id: demoId('ledger', `van-topup-in:${vanInvoiceId}`),
+        tenantId,
+        occurredAt: occurred(atIstTime(vanDate, 10, 50)),
+        lotId: vanLot.id,
+        locationId: vanLocationId,
+        qtyDelta: soldQty,
+        reason: 'van_load',
+        refType: 'manual',
+        refId: vanInvoiceId,
+        actorId: people.warehouse.id,
+        idempotencyKey: `van-topup:${vanInvoiceId}:${vanLot.id}:in`,
+        note: 'Counter stock handed to the crew for van sales',
+      },
+    ])
+    await postLedger(db, tenantId, [
+      {
+        id: demoId('ledger', `van-sale:${vanInvoiceId}`),
+        tenantId,
+        occurredAt: occurred(atIstTime(vanDate, 11, 5)),
+        lotId: vanLot.id,
+        locationId: vanLocationId,
+        qtyDelta: -soldQty,
+        reason: 'sale',
+        refType: 'invoice',
+        refId: vanInvoiceId,
+        actorId: people.delivery.ganesh.id,
+        idempotencyKey: `invoice:${vanInvoiceId}:${vanLot.id}`,
+      },
+    ])
+  }
 
   const [onVan] = (
     await db.execute(sql`
@@ -1113,7 +1365,9 @@ export async function seedPendingVanSaleOrder(
 
   const pendingVanOrderId = demoId('order', 'van-sale-pending')
   const qty = 2
-  const priced = priceLine(vanStockVariant, qty, 1050, false)
+  const pendingRate = pricing.ratesByVariantId.get(vanStockVariant.id)?.defaultPaise ?? 0
+  if (pendingRate <= 0) return
+  const priced = priceLine(vanStockVariant, qty, pendingRate, false)
   const { rounded, roundOff } = roundToRupee(
     paise(priced.taxable + priced.cgst + priced.sgst + priced.cess),
   )
@@ -1122,7 +1376,10 @@ export async function seedPendingVanSaleOrder(
       id: pendingVanOrderId,
       tenantId,
       orderNo: 'SO-9003',
-      retailerId: nth(retailersRes.retailers, 11).id,
+      retailerId: shopFor(retailersRes.retailers, [
+        ['kirana_small', 4],
+        ['kirana_small', 0],
+      ]).id,
       state: 'confirmed',
       source: 'van_sale',
       createdBy: people.delivery.ganesh.id,
@@ -1132,8 +1389,10 @@ export async function seedPendingVanSaleOrder(
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
-      submittedAt: atIstTime(TODAY_SEED, 9, 30),
-      confirmedAt: atIstTime(TODAY_SEED, 9, 31),
+      submittedAt: occurred(atIstTime(TODAY_SEED, 9, 30)),
+      confirmedAt: occurred(atIstTime(TODAY_SEED, 9, 31)),
+      createdAt: occurred(atIstTime(TODAY_SEED, 9, 30)),
+      updatedAt: occurred(atIstTime(TODAY_SEED, 9, 31)),
     },
   ])
   await insertMany(db, salesOrderLines, [
@@ -1147,8 +1406,8 @@ export async function seedPendingVanSaleOrder(
       enteredUnit: 'piece',
       packSizeAtEntry: 1,
       qtyPcs: qty,
-      listRatePaise: 1050,
-      ratePaise: 1050,
+      listRatePaise: pendingRate,
+      ratePaise: pendingRate,
       gstBps: vanStockVariant.gstBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
       lineTotalPaise: priced.total,

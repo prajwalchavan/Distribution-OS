@@ -4,9 +4,9 @@
  *
  * - **Tarsun Enterprise** (Kalyan West) — the pilot. Seeded in full by `seed.ts`; its ids are
  *   unscoped, so every example in `/docs`, every spec and `pnpm smoke` keep quoting the same rows.
- * - **Sai Distributors** (Dombivli East) — 32 shops, of which the first ten are the SAME shops Tarsun
+ * - **Sai Distributors** (Dombivli East) — 40 shops, of which the first ten are the SAME shops Tarsun
  *   sells to: one `retailer_identities` row, a `retailers` row and a `retailer_links` row per tenant.
- * - **Kalyan Agencies** (Ulhasnagar) — 32 shops, of which the first five are shops Tarsun AND Sai also
+ * - **Kalyan Agencies** (Ulhasnagar) — 24 shops, of which the first five are shops Tarsun AND Sai also
  *   sell to, so those five sit on three distributors' books at once.
  *
  * Ramesh Gupta (`ramesh.gupta`) owns the shop shared by all three, so he is ONE platform user with
@@ -26,6 +26,7 @@ import {
   buildRetailerRows,
   sharedShopsFrom,
   TARSUN_NETWORK,
+  type ArchetypeKey,
   type RetailerNetwork,
   type SharedShop,
 } from './retailers.js'
@@ -52,6 +53,10 @@ export interface TenantProfile {
   brandKeys: readonly string[]
   /** Shops of the pilot's network this distributor also sells to: `own index -> pilot index`. */
   sharesPilotShops: Readonly<Record<number, number>>
+  /** Shops of SAI's own network this distributor also sells to: `own index -> Sai index`. */
+  sharesSaiShops?: Readonly<Record<number, number>>
+  /** Calendar days of order history (the pilot has 90). */
+  historyDays: number
 }
 
 const SAI_SHOP_NAMES = [
@@ -61,13 +66,13 @@ const SAI_SHOP_NAMES = [
   'Shree Ganesh Kirana',
   'Om Sai Provision Store',
   'Mahalaxmi General Stores',
-  'Sharma Kirana Stores',
+  'Sai Krupa Super Bazar',
   'Jai Bhavani Stores',
   'Shivshakti Traders',
   'Ganesh General Store',
   'Krishna Kirana Stores',
   'Ambika Provision Store',
-  'Balaji Stores',
+  'Balaji Wholesale Stores',
   // 10-31: Sai's own shops around Dombivli.
   'Datta Kirana Bhandar',
   'Swami Samarth Stores',
@@ -78,8 +83,8 @@ const SAI_SHOP_NAMES = [
   'Konkan Kirana Mart',
   'Prabhu Provision Store',
   'Rajhans General Store',
-  'Sadguru Traders',
-  'Manpada Super Bazar',
+  'Sadguru Super Bazar',
+  'Ayre Road Super Market',
   'Suvarna Kirana Stores',
   'Aditya Provision',
   'Nakoda General Store',
@@ -88,19 +93,103 @@ const SAI_SHOP_NAMES = [
   'Vighnaharta Kirana',
   'Tirupati Provision Store',
   'Sanjivani General Store',
-  'Ayre Road Kirana',
+  'Nandivali Super Bazar',
   'Milan Provision Mart',
   'Nandivali Corner Store',
+  // 32-39: the Kopar Road / Thakurli beat Sai opened this year.
+  'Thakurli Station Kirana',
+  'Kopar Road Super Bazar',
+  'Sonal Provision Store',
+  'Chhatrapati General Store',
+  'Dombivli Fresh Mart',
+  'Yashodhan Kirana',
+  'Mauli Provision',
+  'Kopar Corner Stores',
+]
+
+const K: ArchetypeKey = 'kirana_small'
+const G: ArchetypeKey = 'grocery_medium'
+/** Sai skews mid-market: 14 kirana / 12 grocery / 4 supermarkets over five beats of eight. */
+const SAI_ARCHETYPES: readonly ArchetypeKey[] = [
+  K,
+  G,
+  K,
+  'supermarket',
+  G,
+  K,
+  'overdue_mild',
+  G,
+  G,
+  'high_volume',
+  K,
+  K,
+  G,
+  'cash_only',
+  K,
+  'overdue_hard',
+  K,
+  G,
+  G,
+  'supermarket',
+  G,
+  K,
+  'bad_debt',
+  K,
+  G,
+  K,
+  'credit_near_limit',
+  G,
+  K,
+  'supermarket',
+  'overdue_mild',
+  K,
+  K,
+  G,
+  'new_shop',
+  K,
+  'supermarket',
+  G,
+  'cash_only',
+  'overdue_hard',
+]
+/** Kalyan Agencies is the small one: mostly kiranas over three beats of eight. */
+const KALYAN_ARCHETYPES: readonly ArchetypeKey[] = [
+  K,
+  G,
+  K,
+  'supermarket',
+  K,
+  K,
+  K,
+  G,
+  K,
+  'credit_near_limit',
+  G,
+  K,
+  'cash_only',
+  K,
+  K,
+  'overdue_hard',
+  K,
+  G,
+  K,
+  K,
+  'new_shop',
+  K,
+  'bad_debt',
+  'overdue_hard',
 ]
 
 const KALYAN_SHOP_NAMES = [
-  // 0-4 are the five shops both Tarsun and Sai also sell to.
+  // 0-4 are the five shops both Tarsun and Sai also sell to (seed-demo.test.ts pins ten shared
+  // shops, five of them on all three books; a wider spread — a shop shared by the two smaller
+  // distributors alone — is supported by `sharesSaiShops` when that gate moves).
   'Shree Ganesh Kirana',
   'Om Sai Provision Store',
   'Mahalaxmi General Stores',
-  'Sharma Kirana Stores',
+  'Sai Krupa Super Bazar',
   'Jai Bhavani Stores',
-  // 5-31: Kalyan Agencies' own shops around Ulhasnagar, Ambernath and Badlapur.
+  // 5-23: Kalyan Agencies' own shops around Ulhasnagar, Ambernath and Badlapur.
   'Sindhi Colony Kirana',
   'Jhulelal Provision Store',
   'Camp 3 General Store',
@@ -120,14 +209,6 @@ const KALYAN_SHOP_NAMES = [
   'Hanuman Provision Store',
   'Jyoti General Store',
   'Shahad Corner Stores',
-  'Vardhaman Kirana',
-  'Poonam Provision Mart',
-  'Sagar General Store',
-  'Tirumala Kirana Stores',
-  'Aakash Provision',
-  'Samrat General Store',
-  'Vikas Kirana Bhandar',
-  'Rangoli Stores',
 ]
 
 /**
@@ -207,6 +288,22 @@ const SAI_ROSTER: PeopleRoster = {
     { key: 'delivery-rohit', name: 'Rohit Tare', phone: '+919820000024', username: 'rohit.tare' },
   ],
   retailerUsers: [SHARED_RETAILER_USERS.ramesh, SHARED_RETAILER_USERS.fatima],
+  extra: [
+    {
+      key: 'rep-pallavi',
+      name: 'Pallavi More',
+      phone: '+919820000014',
+      username: 'pallavi.more',
+      role: 'salesperson',
+    },
+    {
+      key: 'delivery-arif',
+      name: 'Arif Qureshi',
+      phone: '+919820000025',
+      username: 'arif.qureshi',
+      role: 'delivery',
+    },
+  ],
 }
 
 const KALYAN_ROSTER: PeopleRoster = {
@@ -286,10 +383,36 @@ const KALYAN_ROSTER: PeopleRoster = {
 
 const SAI_NETWORK: RetailerNetwork = {
   beats: [
-    { key: 'manpada-road', name: 'Manpada Road', visitDays: [1, 4] },
-    { key: 'tilak-nagar', name: 'Tilak Nagar', visitDays: [2, 5] },
-    { key: 'ayre-road', name: 'Ayre Road', visitDays: [3, 6] },
-    { key: 'nandivali', name: 'Nandivali', visitDays: [1, 3, 5] },
+    {
+      key: 'manpada-road',
+      name: 'Manpada Road',
+      visitDays: [1, 4],
+      centre: { lat: 19.2208, lng: 73.0886 },
+    },
+    {
+      key: 'tilak-nagar',
+      name: 'Tilak Nagar',
+      visitDays: [2, 5],
+      centre: { lat: 19.2128, lng: 73.0798 },
+    },
+    {
+      key: 'ayre-road',
+      name: 'Ayre Road',
+      visitDays: [3, 6],
+      centre: { lat: 19.2162, lng: 73.0946 },
+    },
+    {
+      key: 'nandivali',
+      name: 'Nandivali',
+      visitDays: [1, 3, 5],
+      centre: { lat: 19.2266, lng: 73.1012 },
+    },
+    {
+      key: 'kopar-road',
+      name: 'Kopar Road',
+      visitDays: [2, 6],
+      centre: { lat: 19.2038, lng: 73.0872 },
+    },
   ],
   area: 'Dombivli East',
   city: 'Dombivli',
@@ -297,23 +420,38 @@ const SAI_NETWORK: RetailerNetwork = {
   stateCode: '27',
   centre: { lat: 19.216, lng: 73.086 },
   names: SAI_SHOP_NAMES,
+  archetypePattern: SAI_ARCHETYPES,
   perBeat: 8,
   codePrefix: 'SD-',
   phoneSeed: 3_000_001,
-  gstinPanStem: 'AASPD',
   rngSeed: 'dos-demo:retailers:sai',
-  linkedIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22],
-  registeredIndices: [10, 14, 19, 25, 30],
+  linkedIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 2, 10, 19, 26, 29, 34].filter(
+    (v, i, a) => a.indexOf(v) === i,
+  ),
   appLoginIndices: [0, 9],
   externalCodeIndices: [0, 1, 2, 3, 4, 5, 6, 7],
 }
 
 const KALYAN_NETWORK: RetailerNetwork = {
   beats: [
-    { key: 'ulhasnagar-camp-3', name: 'Ulhasnagar Camp 3', visitDays: [1, 4] },
-    { key: 'ambernath-east', name: 'Ambernath East', visitDays: [2, 5] },
-    { key: 'badlapur-west', name: 'Badlapur West', visitDays: [3, 6] },
-    { key: 'shahad', name: 'Shahad', visitDays: [1, 3, 5] },
+    {
+      key: 'ulhasnagar-camp-3',
+      name: 'Ulhasnagar Camp 3',
+      visitDays: [1, 4],
+      centre: { lat: 19.2204, lng: 73.1598 },
+    },
+    {
+      key: 'ambernath-east',
+      name: 'Ambernath East',
+      visitDays: [2, 5],
+      centre: { lat: 19.2012, lng: 73.1912 },
+    },
+    {
+      key: 'badlapur-west',
+      name: 'Badlapur West',
+      visitDays: [3, 6],
+      centre: { lat: 19.1662, lng: 73.2308 },
+    },
   ],
   area: 'Ulhasnagar',
   city: 'Ulhasnagar',
@@ -321,19 +459,28 @@ const KALYAN_NETWORK: RetailerNetwork = {
   stateCode: '27',
   centre: { lat: 19.218, lng: 73.163 },
   names: KALYAN_SHOP_NAMES,
+  archetypePattern: KALYAN_ARCHETYPES,
   perBeat: 8,
   codePrefix: 'KA-',
   phoneSeed: 4_000_001,
-  gstinPanStem: 'AAKAG',
   rngSeed: 'dos-demo:retailers:kalyan',
-  linkedIndices: [0, 1, 2, 3, 4, 12, 20],
-  registeredIndices: [5, 9, 13, 18, 24, 29],
+  linkedIndices: [0, 1, 2, 3, 4, 12, 20, 7, 10, 15],
   appLoginIndices: [0, 12],
   externalCodeIndices: [0, 1, 2, 3, 4],
 }
 
-/** Every brand the global catalog carries; the pilot lists all of them. */
-const ALL_BRANDS = ['campa', 'independence', 'tooyumm', 'balaji', 'mommakhana', 'mastioye'] as const
+/** What each of the smaller distributors carries (spec §2.4); the pilot lists every brand. */
+const SAI_BRANDS = [
+  'campa',
+  'independence',
+  'tooyumm',
+  'balaji',
+  'mommakhana',
+  'sunbake',
+  'konkancrunch',
+  'godavari',
+] as const
+const KALYAN_BRANDS = ['campa', 'independence', 'balaji', 'annapurna'] as const
 
 export const EXTRA_TENANTS: TenantProfile[] = [
   {
@@ -348,9 +495,9 @@ export const EXTRA_TENANTS: TenantProfile[] = [
     invoicePrefix: 'SAI/',
     roster: SAI_ROSTER,
     network: SAI_NETWORK,
-    // Does not carry Alan's Masti Oye.
-    brandKeys: ALL_BRANDS.filter((b) => b !== 'mastioye'),
+    brandKeys: SAI_BRANDS,
     sharesPilotShops: { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9 },
+    historyDays: 60,
   },
   {
     scope: 'kalyan:',
@@ -365,9 +512,9 @@ export const EXTRA_TENANTS: TenantProfile[] = [
     invoicePrefix: 'KA/',
     roster: KALYAN_ROSTER,
     network: KALYAN_NETWORK,
-    // Carries neither Masti Oye nor MOM Makhana.
-    brandKeys: ALL_BRANDS.filter((b) => b !== 'mastioye' && b !== 'mommakhana'),
+    brandKeys: KALYAN_BRANDS,
     sharesPilotShops: { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4 },
+    historyDays: 45,
   },
 ]
 
@@ -439,6 +586,25 @@ export async function seedExtraTenants(
       const shop = shopsFromPilot[i]
       if (shop) shared[Number(ownIndex)] = shop
     })
+    // A shop shared between the two smaller distributors: Sai's own rows, Sai's identity ids (Sai
+    // seeds first — `EXTRA_TENANTS` order — so the identity row exists by the time Kalyan links it).
+    if (profile.sharesSaiShops) {
+      const sai = EXTRA_TENANTS[0]
+      if (!sai) throw new Error('EXTRA_TENANTS must start with Sai Distributors')
+      const saiShops = buildRetailerRows(sai.network)
+      const saiEntries = Object.entries(profile.sharesSaiShops)
+      const shopsFromSai = sharedShopsFrom(
+        sai.network,
+        saiShops,
+        saiEntries.map(([, saiIndex]) => saiIndex),
+        {},
+        sai.scope,
+      )
+      saiEntries.forEach(([ownIndex], i) => {
+        const shop = shopsFromSai[i]
+        if (shop) shared[Number(ownIndex)] = shop
+      })
+    }
 
     results.push(
       await seedDemo(db, tenantId, {
@@ -450,6 +616,7 @@ export async function seedExtraTenants(
         network: { ...profile.network, shared },
         brandKeys: profile.brandKeys,
         depth: 'core',
+        historyDays: profile.historyDays,
       }),
     )
   }

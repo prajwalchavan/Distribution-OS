@@ -33,7 +33,7 @@ import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
 import type { SalesResult } from './sales.js'
 import type { RetailerRow, RetailersResult } from './retailers.js'
-import { atIstTime, daysAgo, isoDate, makeRng, randInt, TODAY } from './util.js'
+import { atIstTime, daysAgo, isoDate, makeRng, occurred, randInt, TODAY } from './util.js'
 
 type Channel = 'whatsapp' | 'sms' | 'push' | 'in_app'
 type Status = 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | 'skipped'
@@ -353,12 +353,13 @@ export async function seedNotifications(
       nextAttemptAt: null,
       refType: i.refType,
       refId: i.refId,
-      sentAt: sent ? i.at : null,
-      deliveredAt: delivered ? new Date(i.at.getTime() + 60_000) : null,
-      readAt: i.status === 'read' ? new Date(i.at.getTime() + 25 * 60_000) : null,
+      // nothing that has happened is stamped past the wall clock on the live day (I-58)
+      sentAt: sent ? occurred(i.at) : null,
+      deliveredAt: delivered ? occurred(new Date(i.at.getTime() + 60_000)) : null,
+      readAt: i.status === 'read' ? occurred(new Date(i.at.getTime() + 25 * 60_000)) : null,
       idempotencyKey: i.idempotencyKey,
-      createdAt: i.at,
-      updatedAt: i.at,
+      createdAt: occurred(i.at),
+      updatedAt: occurred(i.at),
     }
   }
 
@@ -637,12 +638,12 @@ export async function seedNotifications(
       attempts: 1,
       refType: i.refType,
       refId: i.refId,
-      sentAt: i.at,
-      deliveredAt: i.at,
+      sentAt: occurred(i.at),
+      deliveredAt: occurred(i.at),
       readAt: null,
       idempotencyKey: i.idempotencyKey,
-      createdAt: i.at,
-      updatedAt: i.at,
+      createdAt: occurred(i.at),
+      updatedAt: occurred(i.at),
     }
   }
   if (waiting) {

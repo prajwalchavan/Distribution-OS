@@ -13,7 +13,7 @@
  */
 import { and, eq, ne, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
-import { memberships, tenants, users } from '../schema/index.js'
+import { memberships, salesOrders, tenants, tenantSettings, users } from '../schema/index.js'
 import { seedAi } from './ai.js'
 import { seedPlatformSupport } from './platform-admin.js'
 import { seedBilling, seedPendingVanSaleOrder } from './billing.js'
@@ -31,11 +31,12 @@ import { seedPeople, type PeopleResult, type PeopleRoster } from './people.js'
 import { seedPlatformGaps } from './platform-gaps.js'
 import { seedPricing } from './pricing.js'
 import { seedReceivables } from './receivables.js'
-import { seedReporting } from './reporting.js'
+import { seedReporting, seedReportingClose } from './reporting.js'
 import { seedRetailers, TARSUN_NETWORK, type RetailerNetwork } from './retailers.js'
 import { seedSales } from './sales.js'
 import { seedStock } from './stock.js'
 import { seedTenantCatalog } from './tenant-catalog.js'
+import { defaultDemoToday, isoDate, lastWorkingDayOnOrBefore, setDemoToday, TODAY } from './util.js'
 import { seedWarehouse } from './warehouse.js'
 
 /**
@@ -73,6 +74,8 @@ export interface SeedDemoOptions {
    * distributor, not a pilot extra (see the block below the `full` gate).
    */
   depth?: 'full' | 'core'
+  /** Calendar days of order history (default 90; the smaller distributors run 60 and 45). */
+  historyDays?: number
 }
 
 export interface SeedDemoResult {
@@ -120,16 +123,130 @@ async function restoreDemoAccess(db: Db, tenantId: string): Promise<void> {
     )
 }
 
+/** The `tenant_settings` key that remembers the live day a database was first seeded on. */
+export const DEMO_ANCHOR_KEY = 'demo.anchor_date'
+/**
+ * The `tenant_settings` key a seed run writes FIRST and removes LAST: the live day it is building
+ * towards. Present after the run means the run died half way; the next run resumes on the same day.
+ */
+export const DEMO_SEED_IN_PROGRESS_KEY = 'demo.seed_in_progress'
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+async function readSetting(db: Db, tenantId: string | null, key: string): Promise<string | null> {
+  const [row] = await db
+    .select({ value: tenantSettings.value })
+    .from(tenantSettings)
+    .where(
+      tenantId
+        ? and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, key))
+        : eq(tenantSettings.key, key),
+    )
+    .orderBy(tenantSettings.createdAt, tenantSettings.tenantId)
+    .limit(1)
+  return typeof row?.value === 'string' && DATE_RE.test(row.value) ? row.value : null
+}
+
+/**
+ * THE LIVE DAY. A fresh database is seeded with today (IST) as the day every screen opens on; the
+ * date is written to `tenant_settings` so every later `pnpm db:seed` on the same database rebuilds
+ * the exact same rows (idempotency needs the same anchor, and a date-keyed order id must not change
+ * under a row that already exists). `DEMO_TODAY=YYYY-MM-DD` in the environment wins on a fresh
+ * database and must agree with the stored anchor on a seeded one.
+ *
+ * The anchor (`demo.anchor_date`) is committed only AFTER the whole seed has succeeded
+ * (`commitDemoAnchor`). Until then the run leaves `demo.seed_in_progress` behind: a run that dies
+ * half way — a bug on one weekday, a lost connection — is resumed by the next run on the same live
+ * day (every insert is keyed on a deterministic id, so the rows already written are skipped and the
+ * rest are filled in), instead of being a database nobody can seed again (2026-09-08 review: the
+ * anchor used to be written before a single business row).
+ *
+ * REFUSES a database that already carries demo rows from a seed that predates the anchor (neither
+ * key anywhere, yet the tenant has orders): every date-keyed id would differ, the invoice numbers
+ * would collide on their unique index, `onConflictDoNothing` would drop the headers and the lines
+ * would fail their foreign key half way through — leaving the founder's database with two order
+ * books. The only honest answer is a fresh database (`docs/28-running-it-locally.md` §3).
+ */
+async function resolveDemoToday(db: Db, tenantId: string): Promise<void> {
+  const pinned = process.env.DEMO_TODAY
+  const pinnedValid = pinned !== undefined && DATE_RE.test(pinned)
+  const stored =
+    (await readSetting(db, tenantId, DEMO_ANCHOR_KEY)) ??
+    (await readSetting(db, null, DEMO_ANCHOR_KEY))
+  const inProgress = stored
+    ? null
+    : ((await readSetting(db, tenantId, DEMO_SEED_IN_PROGRESS_KEY)) ??
+      (await readSetting(db, null, DEMO_SEED_IN_PROGRESS_KEY)))
+  if (!stored && !inProgress) {
+    const [seededBefore] = await db
+      .select({ id: salesOrders.id })
+      .from(salesOrders)
+      .where(eq(salesOrders.tenantId, tenantId))
+      .limit(1)
+    if (seededBefore) {
+      throw new Error(
+        [
+          'pnpm db:seed: this database was seeded by an earlier demo seed (it has orders but no',
+          `\`${DEMO_ANCHOR_KEY}\` setting). The realistic dataset cannot be layered on top of it —`,
+          'its ids and document numbers would collide half way through. Drop and recreate the database',
+          'once: `dropdb dos && createdb dos && pnpm db:migrate && pnpm db:seed`',
+          '(docs/28-running-it-locally.md §3). Only the bootstrap ran: the tenant row, the pilot',
+          'owner and the chart of accounts were (re)written; no demo row was.',
+        ].join(' '),
+      )
+    }
+  }
+  const remembered = stored ?? inProgress
+  let anchor: Date
+  if (pinnedValid) {
+    const pinnedDay = isoDate(lastWorkingDayOnOrBefore(new Date(`${pinned}T00:00:00.000Z`)))
+    if (remembered && remembered !== pinnedDay) {
+      throw new Error(
+        `pnpm db:seed: DEMO_TODAY=${pinned} (live day ${pinnedDay}) but this database was ${stored ? 'seeded' : 'part-seeded by a run that did not finish'} with ${remembered}; a seeded database keeps its anchor. Unset DEMO_TODAY, or use a fresh database. Only the bootstrap ran; no demo row was written.`,
+      )
+    }
+    anchor = defaultDemoToday()
+  } else if (remembered) anchor = new Date(`${remembered}T00:00:00.000Z`)
+  else anchor = defaultDemoToday()
+  setDemoToday(anchor)
+  if (!stored)
+    await db
+      .insert(tenantSettings)
+      .values({ tenantId, key: DEMO_SEED_IN_PROGRESS_KEY, value: isoDate(TODAY) })
+      .onConflictDoNothing()
+}
+
+/** The last statement of a successful seed: the live day is now this database's anchor. */
+async function commitDemoAnchor(db: Db, tenantId: string): Promise<void> {
+  await db
+    .insert(tenantSettings)
+    .values({ tenantId, key: DEMO_ANCHOR_KEY, value: isoDate(TODAY) })
+    .onConflictDoNothing()
+  await db
+    .delete(tenantSettings)
+    .where(
+      and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, DEMO_SEED_IN_PROGRESS_KEY)),
+    )
+}
+
 export async function seedDemo(
   db: Db,
   tenantId: string,
   opts: SeedDemoOptions,
 ): Promise<SeedDemoResult> {
-  // Before anything is written: put the distributorship and its people back on their feet.
+  // Before anything is written: put the distributorship and its people back on their feet, and
+  // settle which day is "today".
+  await resolveDemoToday(db, tenantId)
   await restoreDemoAccess(db, tenantId)
   // The catalog is global and curated (ADR 0005): one row per manufacturer, brand, product, variant
-  // for the whole platform, seeded once at the root scope whichever tenant is being written.
-  const allVariants = await seedCatalog(db)
+  // for the whole platform, seeded once at the root scope whichever tenant is being written. The
+  // pilot is named as the proposer of the two `proposed` products; the other tenants' calls are
+  // no-ops on rows that already exist.
+  const allVariants = await seedCatalog(
+    db,
+    (opts.scope ?? '') === '' ? { proposerTenantId: tenantId } : {},
+  )
+  const historyDays = opts.historyDays ?? 90
 
   return inDemoScope(opts.scope ?? '', async () => {
     const roster = opts.roster
@@ -144,12 +261,20 @@ export async function seedDemo(
       : await seedPeople(db, tenantId, opts.passwordHash)
     const retailersRes = await seedRetailers(db, tenantId, people, network)
     const pricing = await seedPricing(db, tenantId, variants, retailersRes, people)
-    const tenantCatalog = await seedTenantCatalog(db, tenantId, variants)
-    const stock = await seedStock(db, tenantId, variants, tenantCatalog, people)
-    const sales = await seedSales(db, tenantId, variants, retailersRes, pricing, stock, people)
-    const delivery = await seedDelivery(db, tenantId, retailersRes, sales, people)
+    const tenantCatalog = await seedTenantCatalog(db, tenantId, variants, people)
+    // The order book comes first; the godown is written from the plan it produces (stock-plan.ts):
+    // every supplier bill sized from what was sold, every sold line picked from a batch that was on
+    // the rack and in date that day.
+    const sales = await seedSales(db, tenantId, variants, retailersRes, pricing, people, {
+      historyDays,
+      commitStock: (plan) => seedStock(db, tenantId, variants, tenantCatalog, people, plan),
+    })
+    const stock = sales.stock
+    const delivery = await seedDelivery(db, tenantId, retailersRes, sales, people, { historyDays })
     // After delivery: the van sale below leaves a VEHICLE location, which `seedDelivery` creates.
-    await seedBilling(db, tenantId, variants, retailersRes, sales, stock, people)
+    await seedBilling(db, tenantId, variants, retailersRes, sales, stock, people, pricing, {
+      historyDays,
+    })
     // After billing: a pack confirmation carries the invoice id billing has just written, and a load
     // sheet's value is the sum of those invoices. After delivery: a sheet loads a VEHICLE location, and
     // `seedDelivery` is what creates them.
@@ -157,11 +282,17 @@ export async function seedDemo(
     // After warehouse: the freshest load sheet has put real stock on Tempo 1, so the one van-sale order
     // still waiting to be billed can be fulfilled from it (inside `seedBilling` the van was still empty
     // on the first seed of a fresh database and the order only appeared on the second run).
-    await seedPendingVanSaleOrder(db, tenantId, variants, retailersRes, people)
-    await seedReceivables(db, tenantId, retailersRes, people)
-    await seedReporting(db, tenantId, variants, tenantCatalog, retailersRes, sales, people)
+    await seedPendingVanSaleOrder(db, tenantId, variants, retailersRes, stock, people, pricing)
+    await seedReceivables(db, tenantId, retailersRes, people, {
+      protectedRetailerIds: sales.protectedRetailerIds,
+    })
+    await seedReporting(db, tenantId, variants, tenantCatalog, retailersRes, sales, people, {
+      historyDays,
+      pricing,
+    })
 
-    if ((opts.depth ?? 'full') === 'full') {
+    const full = (opts.depth ?? 'full') === 'full'
+    if (full) {
       // After warehouse: the parked packs and their pick lines exist; after stock: the godown balances.
       await seedPlatformGaps(db, tenantId, stock, people)
       // After stock: the document readings equal the supplier invoices it booked (docs/plans/docint.md §6).
@@ -169,11 +300,16 @@ export async function seedDemo(
       // After receivables and billing: the confirmed imports point at rows those seeds wrote (the shops,
       // the listings, billing's brand-DMS bill); the Tally sync ledger names the first week's bills.
       await seedIntegrations(db, tenantId, variants, retailersRes, stock, sales, people)
-      // Last: the delivery module's road data reads the bills, orders and loads every seed above wrote.
-      await seedDeliveryRoad(db, tenantId, sales, people, delivery)
-      // After sales, stock and integrations: the claims read the August scheme bills, the damaged-bin
-      // ledger rows and the gate-count shortage back from the database (docs/plans/claims.md §6).
-      await seedClaims(db, tenantId, variants, tenantCatalog, stock, people)
+    }
+    // EVERY distributor: tomorrow's planned trip is what today's draft load sheet points at, and the
+    // delivery app of each distributor opens on a plan. Reads the bills, orders and loads every seed
+    // above wrote.
+    await seedDeliveryRoad(db, tenantId, sales, people, delivery)
+    // EVERY distributor claims its scheme money from the brands (the founder's second stated problem):
+    // after sales and stock, the claims read every scheme bill of the quarter, the damaged-bin ledger
+    // rows and the gate-count shortage back from the database (docs/plans/claims.md §6).
+    await seedClaims(db, tenantId, variants, tenantCatalog, stock, people)
+    if (full) {
       // Last of all: the message log points at the orders, bills, deliveries and receipts every seed
       // above wrote, and reads the shops' opt-ins the retailers seed recorded (docs/plans/notifications.md §6).
       await seedNotifications(db, tenantId, retailersRes, sales, people)
@@ -201,6 +337,12 @@ export async function seedDemo(
     // document and every app header shows Tarsun Enterprise rather than a placeholder. Only the
     // pilot: the other two distributors keep the branding `seed-demo/tenants.ts` gives them.
     if (!(opts.scope ?? '')) await seedPilotBranding(db, tenantId)
+    // The owner's home tile and the closing stock at cost, from the tables every seed above has
+    // finished with — the last rows written, so they tie to everything else.
+    await seedReportingClose(db, tenantId, tenantCatalog, { historyDays })
+
+    // Everything is in: remember the live day, and clear the in-progress marker.
+    await commitDemoAnchor(db, tenantId)
 
     if (opts.printSignIn ?? true) printSignInTable(tenantId, label, people)
     return { tenantId, label, people }
@@ -229,6 +371,7 @@ export function printSignInTable(tenantId: string, label: string, people: People
     row('delivery', people.delivery.iqbal),
     row('retailer', people.retailerUsers[0]),
     row('retailer', people.retailerUsers[1]),
+    ...people.extra.map((p) => row(p.role, p)),
   ]
   const pad = (key: 'role' | 'name' | 'username', header: string) =>
     Math.max(header.length, ...rows.map((r) => r[key].length))
