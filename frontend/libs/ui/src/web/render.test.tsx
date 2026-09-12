@@ -820,6 +820,37 @@ describe('<NumberPad> on the web says what the native half says', () => {
       ),
     ).toContain('aria-label="201 rupees"')
   })
+
+  /*
+   * DOS-060: a money pad enters rupees, so it needs a '.' to reach paise, and its preview shows what
+   * was typed (475600 reopens as "4756", not "4756.00", so the next digit is a rupee). Clear leaves
+   * the grid for the row beside Done. The count pads (the two BLIND counts) keep their old grid.
+   */
+  it("DOS-060: a money pad has a '.' key and previews 475600 as ₹4,756 (not ₹4,756.00), while a count pad has no '.' key and still previews 201", () => {
+    const money = renderField(
+      <NumberPad label="Amount taken" value={475600} onChange={noop} onDone={noop} />,
+    )
+    expect(money).toContain('aria-label="."')
+    expect(money).toMatch(/aria-label="4756 rupees"[^>]*>₹4,756<\/div>/)
+    expect(money).not.toContain('₹4,756.00')
+    expect(money).not.toContain('aria-label="clear"')
+    expect(money).toContain('<span>Clear</span>')
+    expect(money).toContain('<span>Done</span>')
+
+    const count = renderFloor(
+      <NumberPad
+        label="Pieces counted back"
+        value={201}
+        mode="count"
+        onChange={noop}
+        onDone={noop}
+      />,
+    )
+    expect(count).not.toContain('aria-label="."')
+    expect(count).toContain('aria-label="clear"')
+    expect(count).toContain('>201</div>')
+    expect(count).not.toContain('<span>Clear</span>')
+  })
 })
 
 /** UX-00 §6.10: filter chips sit "≥ 19 dp apart (25 dp warehouse)" — on BOTH renderers. */

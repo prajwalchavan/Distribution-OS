@@ -6,7 +6,20 @@
  */
 import { useEffect, useRef, useState } from 'react'
 
-import { formatMoney, parseRupees, speakMoney, splitMoney, toEditableRupees } from '../money.js'
+import {
+  formatMoney,
+  formatPadEntry,
+  MONEY_PAD_KEYS,
+  padEntryFromPaise,
+  paiseFromPadEntry,
+  parseRupees,
+  pressMoneyPadKey,
+  reconcilePadEntry,
+  speakMoney,
+  splitMoney,
+  toEditableRupees,
+  type MoneyPadKey,
+} from '../money.js'
 import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
@@ -284,6 +297,13 @@ export function NumberPad({
    */
   const keyGap = theme.touch === 'floor' ? gap.warehouse : space[3]
   const digits = value === null ? '' : String(Math.abs(Math.trunc(value)))
+  /*
+   * Money mode enters rupees, paise only after `.` (DOS-060), exactly as the native twin: it keeps
+   * what was TYPED (`4756.` is not a number yet) and reconciles it with `value` on every render,
+   * never in an effect, so the preview can never disagree with the value that will be committed.
+   */
+  const [entry, setEntry] = useState(() => (mode === 'money' ? padEntryFromPaise(value) : ''))
+  const current = mode === 'money' ? reconcilePadEntry(entry, value) : ''
   const press = (key: (typeof PAD_KEYS)[number]): void => {
     if (key === 'clear') return onChange(null)
     if (key === 'back') {
@@ -294,6 +314,49 @@ export function NumberPad({
     if (next.length > 12) return
     onChange(Number(next))
   }
+  const pressMoney = (key: MoneyPadKey): void => {
+    const next = pressMoneyPadKey(current, key)
+    setEntry(next)
+    onChange(paiseFromPadEntry(next))
+  }
+  const padKey = (key: string, onPress: () => void): React.JSX.Element => (
+    <button
+      key={key}
+      type="button"
+      aria-label={key}
+      onClick={onPress}
+      style={{
+        height: keyHeight,
+        borderRadius: radius.sm,
+        border: `1px solid ${theme.colors.border.strong}`,
+        background: theme.colors.bg.surface,
+        color: theme.colors.text.primary,
+        fontFamily: 'inherit',
+        fontSize: 24,
+        cursor: 'pointer',
+      }}
+    >
+      {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
+    </button>
+  )
+  /*
+   * The kit's own <Button>, not a hand-rolled one.
+   *
+   * This was a raw `<button className="dos-btn">` with no font size, so it fell through to the
+   * browser's UA default — measured 13.3333 px on "Damaged pieces" (gate count) and "Done"
+   * (load-sheet carton count), under the 14 px floor of UX-00 §4.3 and nowhere near the 16 sp
+   * `field.bodyStrong` its native twin has always used. One contract, two renderers, two
+   * different type sizes on the same button.
+   */
+  const done = (
+    <Button
+      label={doneLabel ?? theme.t('action.done')}
+      variant="primary"
+      size="floor"
+      fullWidth
+      onPress={onDone}
+    />
+  )
   return (
     <div data-testid={testID} style={{ padding: space[4], background: theme.colors.bg.surface }}>
       <Txt field="label" desk="label" as="div" color={theme.colors.text.secondary}>
@@ -320,51 +383,44 @@ export function NumberPad({
       ) : null}
       <div
         className="dos-num"
+        aria-label={
+          mode === 'money' ? speakMoney(paiseFromPadEntry(current) ?? 0, theme.t) : undefined
+        }
         style={{ ...typeStyle(typeField.keypad), textAlign: 'right', margin: `${space[4]}px 0` }}
       >
-        {mode === 'money' ? formatMoney(value ?? 0) : String(value ?? 0)}
+        {mode === 'money' ? formatPadEntry(current) : String(value ?? 0)}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: keyGap }}>
-        {PAD_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            aria-label={key}
-            onClick={() => {
-              press(key)
-            }}
-            style={{
-              height: keyHeight,
-              borderRadius: radius.sm,
-              border: `1px solid ${theme.colors.border.strong}`,
-              background: theme.colors.bg.surface,
-              color: theme.colors.text.primary,
-              fontFamily: 'inherit',
-              fontSize: 24,
-              cursor: 'pointer',
-            }}
-          >
-            {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
-          </button>
-        ))}
+        {mode === 'money'
+          ? MONEY_PAD_KEYS.map((key) =>
+              padKey(key, () => {
+                pressMoney(key)
+              }),
+            )
+          : PAD_KEYS.map((key) =>
+              padKey(key, () => {
+                press(key)
+              }),
+            )}
       </div>
-      {/*
-       * The kit's own <Button>, not a hand-rolled one.
-       *
-       * This was a raw `<button className="dos-btn">` with no font size, so it fell through to the
-       * browser's UA default — measured 13.3333 px on "Damaged pieces" (gate count) and "Done"
-       * (load-sheet carton count), under the 14 px floor of UX-00 §4.3 and nowhere near the 16 sp
-       * `field.bodyStrong` its native twin has always used. One contract, two renderers, two
-       * different type sizes on the same button.
-       */}
+      {/* Money mode: Clear sits beside Done, because `.` took its place in the grid. */}
       <div style={{ marginTop: keyGap }}>
-        <Button
-          label={doneLabel ?? theme.t('action.done')}
-          variant="primary"
-          size="floor"
-          fullWidth
-          onPress={onDone}
-        />
+        {mode === 'money' ? (
+          <div style={{ display: 'flex', gap: keyGap }}>
+            <Button
+              label={theme.t('action.clear')}
+              variant="secondary"
+              size="floor"
+              fullWidth
+              onPress={() => {
+                pressMoney('clear')
+              }}
+            />
+            {done}
+          </div>
+        ) : (
+          done
+        )}
       </div>
     </div>
   )

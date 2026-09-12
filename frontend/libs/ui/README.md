@@ -23,17 +23,17 @@ cd frontend && pnpm --filter @dos/ui gallery   # http://localhost:5199
 
 ## 1. Layers
 
-| File                      | What it holds                                                                                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/tokens.ts`           | Semantic colours (light + dark), the ageing ladder, the field and desk type scales, space, the four touch floors, radii, elevation, motion, chart constants |
-| `src/strings.ts`          | The `en` catalogue for every string the components own, plus `createTranslator` / `extendStrings`                                                           |
-| `src/money.ts`            | `formatMoney`, `splitMoney`, `parseRupees`, `speakMoney`, `abbreviateMoney` — integer paise in, integer paise out                                           |
-| `src/qty.ts`              | `splitQty`, `joinQty`, `caseLine`, `stepByCase`, `qtyState` — integer pieces plus a case size                                                               |
-| `src/relative-time.ts`    | `relativeTime` ("12 min ago") and `clockTime` ("9:40 am")                                                                                                   |
-| `src/charts/geometry.ts`  | Scales, paths, ticks, mix allocation — pure, shared by both chart renderers                                                                                 |
-| `src/theme.tsx`           | `ThemeContextProvider`, `useTheme`, `useColors`, `useStrings`, `useTenant`                                                                                  |
-| `src/types.ts`            | Every component contract, written once                                                                                                                      |
-| `src/web/`, `src/native/` | The two implementations                                                                                                                                     |
+| File                      | What it holds                                                                                                                                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/tokens.ts`           | Semantic colours (light + dark), the ageing ladder, the field and desk type scales, space, the four touch floors, radii, elevation, motion, chart constants                                                                                                  |
+| `src/strings.ts`          | The `en` catalogue for every string the components own, plus `createTranslator` / `extendStrings`                                                                                                                                                            |
+| `src/money.ts`            | `formatMoney`, `splitMoney`, `parseRupees`, `speakMoney`, `abbreviateMoney`, and the money pad's `MONEY_PAD_KEYS`, `pressMoneyPadKey`, `padEntryFromPaise`, `paiseFromPadEntry`, `reconcilePadEntry`, `formatPadEntry` — integer paise in, integer paise out |
+| `src/qty.ts`              | `splitQty`, `joinQty`, `caseLine`, `stepByCase`, `qtyState` — integer pieces plus a case size                                                                                                                                                                |
+| `src/relative-time.ts`    | `relativeTime` ("12 min ago") and `clockTime` ("9:40 am")                                                                                                                                                                                                    |
+| `src/charts/geometry.ts`  | Scales, paths, ticks, mix allocation — pure, shared by both chart renderers                                                                                                                                                                                  |
+| `src/theme.tsx`           | `ThemeContextProvider`, `useTheme`, `useColors`, `useStrings`, `useTenant`                                                                                                                                                                                   |
+| `src/types.ts`            | Every component contract, written once                                                                                                                                                                                                                       |
+| `src/web/`, `src/native/` | The two implementations                                                                                                                                                                                                                                      |
 
 **Primitive ramps are private.** `paper`, `petrol`, `slate` never leave `tokens.ts`; a screen names
 `colors.accent.solid`, never a hex. There is no hex literal anywhere else in the frontend.
@@ -115,8 +115,10 @@ never a float. Over `bound` the value is **accepted** and `boundMessage` says wh
 silent clamping. `expected` prints above the field and is never pre-filled. On native at field density the
 field opens the full-screen `<NumberPad>`.
 
-`<NumberPad label value onChange onDone mode expected />` — digits are appended (`1 2 3 4` → `₹12.34` in
-`money` mode, `1234` in `count` mode), so no parser stands between a loader's thumb and the ledger.
+`<NumberPad label value onChange onDone mode expected />` — in `money` mode the pad enters **rupees**
+(`4 7 5 6` → `₹4,756.00`) and reaches paise only after `.` (`4 7 5 6 . 5` → `₹4,756.50`), with Clear beside
+Done; the typed entry goes through `parseRupees`, so no float stands between a driver's thumb and the ledger.
+In `count` mode digits are appended (`1 2 3 4` → `1234`).
 
 ### 6.4 `<QtyStepper>`
 

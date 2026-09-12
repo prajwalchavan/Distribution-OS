@@ -82,6 +82,98 @@ export function toEditableRupees(value: number | null): string {
   return `${sign}${Math.floor(abs / 100)}.${(abs % 100).toString().padStart(2, '0')}`
 }
 
+// ---------------------------------------------------------------------------
+// The money pad (UX-00 section 6.3): rupees first, paise only after '.'
+// ---------------------------------------------------------------------------
+
+/**
+ * The keys of the money `<NumberPad>`, in the order both renderers draw them (four rows of three).
+ *
+ * The pad enters RUPEES: `4 7 5 6` is ₹4,756.00, and paise are reached only through `.`
+ * (`4 7 5 6 . 5` is ₹4,756.50). It used to append every tap as a paise digit, so a driver typing the
+ * ₹4,756 on a bill recorded ₹47.56 while the web field on the same screen took rupees (DOS-060).
+ * Clear is not a grid key in money mode: it sits beside Done, and `.` takes its place in the grid.
+ */
+export const MONEY_PAD_KEYS = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '.',
+  '0',
+  'back',
+] as const
+
+export type MoneyPadKey = (typeof MONEY_PAD_KEYS)[number] | 'clear'
+
+/**
+ * Ten rupee digits and two paise digits: ₹9,99,99,99,999.99 is 999999999999 paise, the same 12-digit
+ * ceiling the pad has always had, and far inside `Number.MAX_SAFE_INTEGER`.
+ */
+const PAD_RUPEE_DIGITS = 10
+
+/**
+ * What the pad shows for an amount already in the field: `475600` -> `"4756"`, `3584312` ->
+ * `"35843.12"`, `null` -> `""`. Whole rupees carry no `.00`, so the next digit typed is a rupee. The
+ * pad has no minus key, so it shows the size of the amount, as it always did.
+ */
+export function padEntryFromPaise(value: number | null): string {
+  if (value === null) return ''
+  const abs = Math.abs(Math.trunc(value))
+  return abs % 100 === 0 ? String(abs / 100) : toEditableRupees(abs)
+}
+
+/** The integer paise a pad entry means, through the same parser as the web field; `""` is `null`. */
+export function paiseFromPadEntry(entry: string): number | null {
+  const result = parseRupees(entry)
+  return result.ok ? result.paise : null
+}
+
+/**
+ * One key press on the money pad, the way a calculator takes it: `.` once (`0.` on an empty entry), at
+ * most two digits after it and ten before it, a lone leading `0` replaced by the next digit, ⌫ drops
+ * the last character and Clear empties the entry. A key the entry cannot take is ignored.
+ */
+export function pressMoneyPadKey(entry: string, key: MoneyPadKey): string {
+  if (key === 'clear') return ''
+  if (key === 'back') return entry.slice(0, -1)
+  const dot = entry.indexOf('.')
+  if (key === '.') {
+    if (dot !== -1) return entry
+    return entry === '' ? '0.' : `${entry}.`
+  }
+  if (dot !== -1) return entry.length - dot > 2 ? entry : `${entry}${key}`
+  if (entry === '0') return key
+  return entry.length >= PAD_RUPEE_DIGITS ? entry : `${entry}${key}`
+}
+
+/**
+ * The entry a pad shows, decided on every render from what was typed and the value the parent holds.
+ *
+ * While the two agree, the typed text wins, so a pending `4756.` survives the parent storing 475600.
+ * When they disagree, the parent wins: a screen that falls back to a default (`amount ?? owed`) or
+ * changes the value from outside shows that value, never a figure that is not what gets recorded.
+ */
+export function reconcilePadEntry(entry: string, value: number | null): string {
+  return paiseFromPadEntry(entry) === value ? entry : padEntryFromPaise(value)
+}
+
+/**
+ * The pad's live preview, exactly as typed, with the rupees grouped the Indian way: `""` -> `"₹0"`,
+ * `"4756"` -> `"₹4,756"`, `"4756."` -> `"₹4,756."`, `"4756.5"` -> `"₹4,756.5"`.
+ */
+export function formatPadEntry(entry: string): string {
+  const dot = entry.indexOf('.')
+  const rupees = dot === -1 ? entry : entry.slice(0, dot)
+  const fraction = dot === -1 ? '' : entry.slice(dot)
+  return `${formatMoney(Number(rupees) * 100).slice(0, -3)}${fraction}`
+}
+
 /** Axis and chip abbreviation: `420000000` -> `"₹42L"`. Money is abbreviated ONLY on an axis (UX-00 section 12). */
 export function abbreviateMoney(value: number): string {
   const rupees = Math.trunc(value) / 100

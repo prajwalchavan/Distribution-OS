@@ -1,13 +1,28 @@
 /**
  * UX-00 sections 6.3 and 6.4 for React Native: `<Money>`, `<RupeeInput>`, `<NumberPad>`, `<QtyStepper>`.
  *
- * Integer paise in, integer paise out. The pad appends DIGITS (1 2 3 4 -> ₹12.34), so no float and no
- * locale parser ever stands between the loader's thumb and the ledger.
+ * Integer paise in, integer paise out. In `money` mode the pad enters RUPEES and reaches paise only
+ * after `.` (4 7 5 6 -> ₹4,756.00; 4 7 5 6 . 5 -> ₹4,756.50), and the typed entry goes through
+ * `parseRupees` / `fromRupees`, so no float stands between the driver's thumb and the ledger. In
+ * `count` mode the pad appends digits (1 2 3 4 -> 1234).
  */
 import { useEffect, useState } from 'react'
 import { Modal, Pressable, TextInput as RNTextInput, View } from 'react-native'
 
-import { formatMoney, parseRupees, speakMoney, splitMoney, toEditableRupees } from '../money.js'
+import {
+  formatMoney,
+  formatPadEntry,
+  MONEY_PAD_KEYS,
+  padEntryFromPaise,
+  paiseFromPadEntry,
+  parseRupees,
+  pressMoneyPadKey,
+  reconcilePadEntry,
+  speakMoney,
+  splitMoney,
+  toEditableRupees,
+  type MoneyPadKey,
+} from '../money.js'
 import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
@@ -141,6 +156,14 @@ export function NumberPad({
   const keyHeight = Math.max(sizeTokens.floor, 64)
   const keyGap = theme.touch === 'floor' ? gap.warehouse : space[3]
   const digits = value === null ? '' : String(Math.abs(Math.trunc(value)))
+  /*
+   * Money mode keeps what was TYPED, because `4756.` is not a number yet, and decides what it shows
+   * from that and `value` on every render (`reconcilePadEntry`), never in an effect: an effect on
+   * `value` does not fire when a screen falls back to the same number (`amount ?? owed`), and the
+   * preview would then read ₹0 while the field still holds what is owed.
+   */
+  const [entry, setEntry] = useState(() => (mode === 'money' ? padEntryFromPaise(value) : ''))
+  const current = mode === 'money' ? reconcilePadEntry(entry, value) : ''
 
   const press = (key: (typeof KEYS)[number]): void => {
     if (key === 'clear') return onChange(null)
@@ -152,6 +175,44 @@ export function NumberPad({
     if (next.length > 12) return
     onChange(Number(next))
   }
+
+  const pressMoney = (key: MoneyPadKey): void => {
+    const next = pressMoneyPadKey(current, key)
+    setEntry(next)
+    onChange(paiseFromPadEntry(next))
+  }
+
+  const padKey = (key: string, onPress: () => void): React.JSX.Element => (
+    <Pressable
+      key={key}
+      accessibilityRole="button"
+      accessibilityLabel={key}
+      onPress={onPress}
+      style={{
+        flex: 1,
+        height: keyHeight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: radius.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border.strong,
+        backgroundColor: theme.colors.bg.surface,
+      }}
+    >
+      <Txt field="title" desk="pageTitle" numeric>
+        {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
+      </Txt>
+    </Pressable>
+  )
+
+  const done = (
+    <Button
+      label={doneLabel ?? theme.t('action.done')}
+      variant="primary"
+      size="floor"
+      onPress={onDone}
+    />
+  )
 
   return (
     <View
@@ -184,9 +245,12 @@ export function NumberPad({
         field="keypad"
         desk="kpi"
         numeric
+        accessibilityLabel={
+          mode === 'money' ? speakMoney(paiseFromPadEntry(current) ?? 0, theme.t) : undefined
+        }
         style={{ ...typeStyle(typeField.keypad), textAlign: 'right', marginVertical: space[4] }}
       >
-        {mode === 'money' ? formatMoney(value ?? 0) : String(value ?? 0)}
+        {mode === 'money' ? formatPadEntry(current) : String(value ?? 0)}
       </Txt>
       {/*
        * THREE ROWS OF THREE, LAID OUT WITH FLEX — never `width: '30%'` inside a wrapping row.
@@ -201,40 +265,41 @@ export function NumberPad({
       <View style={{ gap: keyGap }}>
         {[0, 3, 6, 9].map((from) => (
           <View key={from} style={{ flexDirection: 'row', gap: keyGap }}>
-            {KEYS.slice(from, from + 3).map((key) => (
-              <Pressable
-                key={key}
-                accessibilityRole="button"
-                accessibilityLabel={key}
-                onPress={() => {
-                  press(key)
-                }}
-                style={{
-                  flex: 1,
-                  height: keyHeight,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: radius.sm,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border.strong,
-                  backgroundColor: theme.colors.bg.surface,
-                }}
-              >
-                <Txt field="title" desk="pageTitle" numeric>
-                  {key === 'clear' ? theme.t('action.clear') : key === 'back' ? '⌫' : key}
-                </Txt>
-              </Pressable>
-            ))}
+            {mode === 'money'
+              ? MONEY_PAD_KEYS.slice(from, from + 3).map((key) =>
+                  padKey(key, () => {
+                    pressMoney(key)
+                  }),
+                )
+              : KEYS.slice(from, from + 3).map((key) =>
+                  padKey(key, () => {
+                    press(key)
+                  }),
+                )}
           </View>
         ))}
       </View>
+      {/*
+       * Money mode: Clear sits beside Done, because `.` took its place in the grid. It empties only
+       * the pad's entry; nothing is recorded until the screen's own button. Each native Button
+       * shrinks to half the row (`flexShrink: 1`), so the pad is no taller than the count pad.
+       */}
       <View style={{ marginTop: keyGap }}>
-        <Button
-          label={doneLabel ?? theme.t('action.done')}
-          variant="primary"
-          size="floor"
-          onPress={onDone}
-        />
+        {mode === 'money' ? (
+          <View style={{ flexDirection: 'row', gap: keyGap }}>
+            <Button
+              label={theme.t('action.clear')}
+              variant="secondary"
+              size="floor"
+              onPress={() => {
+                pressMoney('clear')
+              }}
+            />
+            {done}
+          </View>
+        ) : (
+          done
+        )}
       </View>
     </View>
   )
