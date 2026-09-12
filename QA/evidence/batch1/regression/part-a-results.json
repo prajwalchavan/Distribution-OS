@@ -1,0 +1,1457 @@
+{
+ "walks": [
+  {
+   "group": "warehouse",
+   "checks": [
+    {
+     "id": "DOS-039",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. Before confirming, saved the godown on_hand of all 23 lots taken by the pack rows of the sheet's 5 orders, the vehicle's 7 balances, and godown ledger totals (db-039-before.txt at 01:03:59 IST; re-taken right before the confirm in db-039-before-immediate.txt). 2. Load \u2192 sheet 'MH-05-AB-1234 \u00b7 12 Sep \u00b7 5 orders \u00b7 38 cartons \u00b7 draft' (374f2089). 3. Counted 35 on the blind pad \u2192 Done \u2192 typed a variance note \u2192 'Send the vehicle out' \u2192 dialog \u2192 'Send the vehicle out'. 4. Reloaded the sheet at desk and phone widths. 5. Re-ran the snapshot.",
+     "expected": "No 400 'insufficient stock'. The sheet is confirmed and a challan is issued. SO-0869/0871/0875/0876/0878 become dispatched. The sheet writes no ledger rows, because countedVanStock was empty, and the godown on_hand of the packed lots is unchanged.",
+     "actual": "POST /warehouse/load-sheets/374f2089\u2026/confirm returned 200; the request carried countedPackages 35 and countedVanStock []. The toast read 'Vehicle checked out'. The sheet reads confirmed with 'Expected 38 / Counted 35', the variance note and 'Print the challan'.\nDB after:\n- load_sheets: status confirmed, counted 35, challan DC-0083.\n- delivery_challans: DC-0083 has 23 lines and 5,926 pc, equal to the orders' pack rows (5,926 pc over 23 lots).\n- stock_ledger: 0 rows with ref_type 'load_sheet' for the sheet, and 0 rows of any kind written on those lots or the vehicle since the before snapshot.\n- Balances: all 23 godown balances are identical, including lot 56f53711 at 0 (the one that failed in Phase 1) and cb5df43d at 5,999. All 7 vehicle balances are identical. Godown ledger is 4,902 rows / net 77,069 both before and after.\n- Orders: all 5 went packed\u2192dispatched (event dispatch, 01:07:22 IST). Invoices unchanged (INV/0836, 0837, 0839, 0840 issued; INV/0838 paid).",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/db-039-before.txt",
+      "QA/evidence/batch1/regression/web-warehouse/db-039-before-immediate.txt",
+      "QA/evidence/batch1/regression/web-warehouse/039-01-load-list.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-02-draft-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-03-count-35.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-04-variance-note.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-05-send-dialog.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-06-after-send.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-07-confirmed-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-09-load-list-after.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-039-confirm-response.json",
+      "QA/evidence/batch1/regression/web-warehouse/db-039-after.txt"
+     ],
+     "dbOrApi": "POST :3004/warehouse/load-sheets/374f2089-b8fd-720e-907c-8380307948ab/confirm \u2192 200 (api-039-confirm-response.json).\nSELECT count(*) FROM stock_ledger WHERE ref_type='load_sheet' AND ref_id='374f2089\u2026' \u2192 0.\nSELECT on_hand FROM stock_balances for the 23 pack lots at godown 01a0947d-7a96\u2026 \u2192 identical before and after.\nSELECT challan_no, jsonb_array_length(lines) FROM delivery_challans WHERE load_sheet_id=\u2026 \u2192 DC-0083 | 23.\norder_state_transitions \u2192 5 \u00d7 packed\u2192dispatched.",
+     "note": "Only this one sheet was confirmed.\nNot run, because of the one-sheet rule:\n- the surplus sheet 1e5181b6;\n- the verifier's positive van-stock API case (a manager-created sheet with vanStock).\nTrip TRIP-NEXT (72649337) was already 'active', with stop 1 'arrived', from the Phase 1 DOS-043 probe; the confirm did not change it. The dialog still says 'Stock moves to the vehicle'; the string was left unchanged by design. See the new finding: the app always sends countedVanStock []."
+    },
+    {
+     "id": "DOS-039",
+     "platform": "web-phone 390x844",
+     "status": "NOT TESTED",
+     "user": "dinesh.patil (confirmed sheet view); bharat.jadhav (warehouse, sai-distributors) for the draft walk",
+     "steps": "1. At 390\u00d7844, opened the confirmed sheet 374f2089 as dinesh.patil. 2. Cleared the browser session and signed in as bharat.jadhav. 3. Opened the approved draft 1720dd92 (MH-05-BQ-4471) at 390\u00d7844. 4. Counted 24 \u2192 Done \u2192 'Send the vehicle out' \u2192 the dialog opened \u2192 Cancel.",
+     "expected": "The confirm outcome at phone width, same as at desk.",
+     "actual": "The confirm itself was not executed at phone width: only one load sheet may be confirmed in this run, and it was confirmed at desk.\nWhat was observed:\n- The confirmed sheet renders at phone width with Expected 38 / Counted 35 / Print the challan.\n- The draft sheet renders with no horizontal scroll (scrollWidth 390); the 'Send the vehicle out' bar button is 358\u00d776 at y=666.\n- The dialog shows '24 cartons leave on MH-05-BQ-4471\u2026'.\n- Cancel sent no POST to /load-sheets/, and the sheet is still draft in the DB.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/039-08-confirmed-sheet-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-10-other-tenant-draft-sheet-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-11-count-24-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-12-send-dialog-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-13-cancelled-still-draft-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-039-phone-walk-and-van-stock-usage.txt",
+      "QA/evidence/batch1/regression/web-warehouse/db-final-state-of-my-records.txt"
+     ],
+     "dbOrApi": "SELECT status, counted_packages, challan_no FROM load_sheets WHERE id='1720dd92-c311-7860-bae2-8c80ba18ee14' \u2192 draft | 24 | NULL (01:25:38 IST).\nSELECT count(*) FROM stock_ledger WHERE ref_id='1720dd92\u2026' \u2192 0.\nNo POST to /load-sheets/ was captured during the walk.",
+     "note": "The server-side fix is proven at desk; the result is not inferred for the phone. The phone dialog's two buttons measured 185\u00d732 and 84\u00d732 (new P3 finding)."
+    },
+    {
+     "id": "DOS-040",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. Pick \u2192 selected SO-0884 \u2192 Make a wave, which created PICK-0080 (6 lot rows: 4, 1, 2, 5, 9, 3 pc).\n2. Inspected the not-started sheet.\n3. API with a warehouse token, before Start:\n   - /sync/upload of a pick on PICK-0080 row RCP20260612;\n   - the same on a PICK-0079 row (a picked wave), with its current values.\n4. Pressed 'Start picking'.\n5. Pressed Picked on line 1.\n6. Opened Home and the attention tray.",
+     "expected": "- An open wave shows 'This sheet has not been started' with only 'Start picking': no Picked/Short, Scan or 'Take it to packing'.\n- A device pick on an open wave is refused as picklist_not_started ('start it before picking').\n- A pick on a picked wave is still refused as picklist_closed.\n- Start returns 200: chip 'picking', Picked/Short on every row, Scan and 'Take it to packing' back.\n- The first pick is accepted and recorded, with no tray item.",
+     "actual": "- Not started: chip 'open', 'This sheet has not been started', 6 rows, 0 Picked, 0 Short, no Scan, no 'Take it to packing', 1 'Start picking'.\n- API probe 1: accepted 0, rejected picklist_not_started, 'Picklist PICK-0080 has not been started; start it before picking'.\n- API probe 2: picklist_closed, 'Picklist PICK-0079 is picked; it is no longer being picked'. The PICK-0079 row is unchanged (96/96).\n- Start: 200 {status: picking}; chip 'picking', 6 Picked, 6 Short, Scan and 'Take it to packing' present.\n- Picked on line 1: /sync/upload returned accepted 1, rejected []; header '1 of 6 picked'.\n- DB: PICK-0080 status picking, started_at 01:12:15. SO-0884 went confirmed\u2192picking (start_picking, actor dinesh). Row RCP20260612 picked 4, picked_at 01:12:16. 0 new pick_lines sync_errors.\n- Home 'WAVES ON THE FLOOR' lists PICK-0080 '4 of 24 pc picked'. The tray reads Waiting 0 / Refused 0.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/040-01-pick-queue-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-02-so0884-selected.png",
+      "QA/evidence/batch1/regression/web-warehouse/log-040-create-wave-so0884.txt",
+      "QA/evidence/batch1/regression/web-warehouse/040-03-sheet-not-started-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-040-sync-pick-on-open-PICK-0080.json",
+      "QA/evidence/batch1/regression/web-warehouse/api-040-sync-pick-on-picked-PICK-0079.json",
+      "QA/evidence/batch1/regression/web-warehouse/db-040-rows-after-api-probes.txt",
+      "QA/evidence/batch1/regression/web-warehouse/db-040-probe-sync-ops.txt",
+      "QA/evidence/batch1/regression/web-warehouse/api-040-start-PICK-0080.json",
+      "QA/evidence/batch1/regression/web-warehouse/040-08-sheet-started-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-040-first-pick-upload.json",
+      "QA/evidence/batch1/regression/web-warehouse/040-09-first-line-picked-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-040-after-start-and-pick.txt",
+      "QA/evidence/batch1/regression/web-warehouse/040-11-home-waves-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-12-attention-tray-desk.png"
+     ],
+     "dbOrApi": "POST :3004/warehouse/picklists \u2192 200 (service log req-p3).\nPOST :3004/sync/upload \u2192 rejected picklist_not_started (PICK-0080) and picklist_closed (PICK-0079); both are durable in sync_ops and sync_errors.\nPOST /warehouse/picklists/01a09721-afc8-76a2-ae96-9160d3594ab7/start \u2192 200.\nSELECT status, started_at FROM picklists \u2192 picking | 01:12:15.\nSELECT to_state, event FROM order_state_transitions (SO-0884) \u2192 picking | start_picking.\nSELECT picked_qty_pcs, picked_at FROM pick_lines WHERE id='01a09721-b008-75a8\u2026' \u2192 4 | 01:12:16.",
+     "note": "Adjacent spot (verifier residual 1), observed on PICK-0082 and PICK-0083: for 33\u201357 s after 'Make a wave' the sheet shows 'Nothing here yet \u00b7 0 of 0 picked' with Scan and an ENABLED 'Take it to packing' before Start appears. Logged as a new P3 finding."
+    },
+    {
+     "id": "DOS-040",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. At 390\u00d7844, measured the not-started PICK-0080.\n2. Went offline inside one script (context offline + offline event), waited 2.5 s and 10 s, then came back online.\n3. After Start (pressed at desk), re-measured the started sheet at 390\u00d7844.",
+     "expected": "- At phone width the not-started sheet shows only Start and the not-started line, with no horizontal scroll.\n- Offline: Start is disabled with 'Starting a sheet needs a signal'.\n- Online again: Start is enabled.\n- Started: Picked/Short and the bar actions fit the phone.",
+     "actual": "- Not started: scrollWidth 390; 'This sheet has not been started' at y=242; 'Start picking' 358\u00d776 at y=666; 0 Picked/Short, no Scan, no 'Take it to packing'.\n- Offline: Start disabled with 'Starting a sheet needs a signal' at 2.5 s (it flipped on the offline event) and still at 10 s.\n- Back online: enabled, no reason text.\n- Started: first-row Picked and Short 146\u00d776 at y=509; Scan and 'Take it to packing' 163\u00d776 in the bottom bar; no horizontal scroll.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/040-04-sheet-not-started-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-05-start-offline-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-06-start-offline-phone-10s.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-07-start-back-online-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/040-10-sheet-started-phone.png"
+     ],
+     "dbOrApi": "Same wave as desk: SELECT status FROM picklists WHERE picklist_no='PICK-0080' \u2192 open before Start, picking after (db-040-probe-sync-ops.txt, db-040-after-start-and-pick.txt).",
+     "note": "The Start tap itself was made at desk width. The phone checks cover the layout and the offline gate. Offline was simulated with Playwright setOffline plus the window offline event."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. Pick \u2192 SO-0883 \u2192 Make a wave, which created PICK-0082: one order line of 48 pc on 4 lot rows (GK20260602 13, GK20260609 3, GK20260623 20, GK20260630 12). Pressed Start.\n2. API, on the 20-pc row:\n   - HTTP POST /warehouse/picklists/{id}/pick with pickedQtyPcs 34 and 'Damaged carton';\n   - the same as a /sync/upload op;\n   - SQL on the row;\n   - HTTP pick of exactly 20.\n3. W5, on the 3-pc row: Short \u2192 keyed 2,0 \u2192 pressed Short \u2192 watched /sync/upload for 5 s \u2192 Clear \u2192 2 \u2192 'Not on the rack' \u2192 Short.\n4. After the wave closed (DOS-042 steps): Pack \u2192 SO-0883 \u2192 'Pack and bill' (1 carton) \u2192 confirm.",
+     "expected": "- The server refuses a row pick above its ask: 400 over HTTP, pick_rejected over sync, row unchanged. An exact pick is accepted.\n- The Short sheet shows 'Requested 3 pc'; at 20 it shows the brick over-ask line, refuses to save and uploads nothing. At 2 the line goes and Short saves.\n- The order can then be packed and billed, with ledger rows equal to the picked pieces.",
+     "actual": "- HTTP over-ask: 400 'batch GK20260623 on PICK-0082 asks for 20 pcs; 34 were picked'.\n- Sync over-ask: 200 with accepted 0, rejected pick_rejected (same message) and a sync_errors row.\n- The row stayed 0 / NULL / NULL with the same updated_at after both. The HTTP pick of 20 returned 200 (picked 20, wave still picking). pick_lines still has 4 rows: no split row.\n- W5 at 20: the sheet showed 'Requested 3 pc'; the pad showed 20; brick line 'This batch asks for 3 pc. Count again \u2014 more cannot be saved on this line.'. Pressing Short made 0 /sync/upload requests in 5 s; the sheet stayed open with '0 waiting to send'.\n- W5 at 2: the brick line was gone; Short \u2192 /sync/upload accepted 1. The row reads picked 2, short_reason 'Not on the rack', picked_at 01:16:06.\n- Pack: 200, invoice INV/9008 \u20b9569.00 issued, 35 pc invoiced, short-packed, 1 carton. stock_ledger pack/sale \u221213, \u22122, \u221220 on the three picked lots and none on the 0-pc lot. Balances 0/1/0 on hand with reservations released; 0 negative balances in the tenant. SO-0883 packed, order line picked_qty 35 of 48, PICK-0082 packed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/041-01-so0883-selected.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-create-wave-so0883.json",
+      "QA/evidence/batch1/regression/web-warehouse/db-041-PICK-0082-rows-initial.txt",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-start-PICK-0082.json",
+      "QA/evidence/batch1/regression/web-warehouse/041-04-PICK-0082-started-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-http-pick-34-of-20.json",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-sync-pick-34-of-20.json",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-http-pick-20-of-20.json",
+      "QA/evidence/batch1/regression/web-warehouse/db-041-api-probe-row-states.json",
+      "QA/evidence/batch1/regression/web-warehouse/041-05-short-sheet-open-3pc-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-06-short-20-of-3-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-07-short-refused-sheet-stays-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-08-short-2-not-on-rack-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-ui-short-2-of-3-upload.json",
+      "QA/evidence/batch1/regression/web-warehouse/041-09-short-2-saved-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-041-after-ui-short-2.txt",
+      "QA/evidence/batch1/regression/web-warehouse/db-041-before-pack-SO0883.txt",
+      "QA/evidence/batch1/regression/web-warehouse/041-14-pack-SO0883-screen-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-15-pack-and-bill-dialog-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-041-pack-and-bill-SO0883.json",
+      "QA/evidence/batch1/regression/web-warehouse/041-16-packed-and-billed-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-041-after-pack-SO0883.txt"
+     ],
+     "dbOrApi": "POST :3004/warehouse/picklists/01a09725-59d4-75ef-b394-00cbd634ff63/pick {pickedQtyPcs:34} \u2192 400; {pickedQtyPcs:20} \u2192 200.\nPOST /sync/upload \u2192 rejected pick_rejected.\nSELECT picked_qty_pcs, short_reason, picked_at FROM pick_lines \u2192 as above.\nPOST /warehouse/orders/01a09598-954f-7333-b0b1-bdac0006de22/pack \u2192 200, INV/9008.\nSELECT qty_delta FROM stock_ledger WHERE ref_id=SO-0883 \u2192 \u221213, \u22122, \u221220.\nSELECT count(*) FROM stock_balances WHERE on_hand<0 OR reserved<0 \u2192 0.",
+     "note": "Not exercised, and not reachable today:\n- a Short on a row whose upload was refused (the pre-filled over-ask case);\n- the manager M20 half, which is left to the manager walk.\nThe pack list counted 48 pc for SO-0883 before packing; that is the open DOS-050, not part of this batch."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. PICK-0082 started, at 390\u00d7844.\n2. Short on the 12-pc row (GK20260630) \u2192 Clear \u2192 keyed 2,0.\n3. Pressed Short and watched /sync/upload for 5 s.\n4. Closed the sheet without saving.",
+     "expected": "The phone Short sheet refuses 20 of 12 with the brick over-ask line and uploads nothing.",
+     "actual": "- The sheet showed 'Requested 12 pc', the pad 20, and the over-ask line 'This batch asks for 12 pc. Count again \u2014 more cannot be saved on this line.' in the DOM.\n- Pressing Short made 0 /sync/upload requests in 5 s; the sheet stayed open. Close dismissed it; the row stayed unrecorded in the DB (picked 0, picked_at NULL at 01:17:19).\n- The over-ask line is laid out at y=836\u2013880, past the bottom of the 844-px viewport, under the Short button (y=728\u2013804). Only a sliver of red text is visible, so the refused press looks like nothing happened (new P3 finding).",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/041-10-short-sheet-12pc-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-11-short-20-of-12-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-12-short-refused-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042-intermediate-3-of-4.txt"
+     ],
+     "dbOrApi": "SELECT picked_qty_pcs, short_reason, picked_at FROM pick_lines WHERE id='01a09725-59f9-7503-aa54-eca6c465bc96' \u2192 0 | NULL | NULL after the refused phone Short (db-042-intermediate-3-of-4.txt).",
+     "note": "The refusal behaviour, which is the fix, holds on the phone. The valid save after a refusal was exercised at desk."
+    },
+    {
+     "id": "DOS-042",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "On PICK-0082 (SO-0883, one line on 4 lot rows):\n1. The GK20260609 3-pc row was shorted to 2 with 'Not on the rack' (UI).\n2. The GK20260623 20-pc row was picked in full (API).\n3. Picked on the GK20260602 13-pc row (UI).\n4. The GK20260630 12-pc row was left untouched; checked the DB and the screen.\n5. Short on that row with 0 and 'Batch held back'.\n6. Checked the screen, Refresh, full reload and the tray, then the DB.",
+     "expected": "- While one asked lot row of a shorted line is unrecorded, the wave stays picking with completed_at NULL: header 'N-1 of N', 'Take it to packing' disabled.\n- Shorting the last row with 0 is accepted (no tray item); that row has picked_at set.\n- The wave becomes picked with completed_at set: 'N of N', 'Take it to packing' enabled.",
+     "actual": "- At 3 of 4: picklists.status picking, completed_at NULL; the 12-pc row 0 / NULL / NULL. Screen '3 of 4 picked', chip 'picking', 'Take it to packing' disabled with '1 line not yet picked'.\n- Short 0 'Batch held back': /sync/upload accepted 1. The row reads picked 0, short_reason 'Batch held back', picked_at 01:17:59.481.\n- Wave: picked, completed_at 01:17:59.484.\n- Screen (no reload): '4 of 4 picked', chip 'picked', 'Take it to packing' enabled, 0 waiting. Same after Refresh and after a full reload. Tray: Waiting 0 / Refused 0.\n- The wave then packed and billed (35 of 48 pc; see DOS-041).",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/041-09-short-2-saved-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-042-ui-pick-13-upload.json",
+      "QA/evidence/batch1/regression/web-warehouse/042-02-three-of-four-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042-intermediate-3-of-4.txt",
+      "QA/evidence/batch1/regression/web-warehouse/042-03-short-0-batch-held-back-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-042-ui-short-0-upload.json",
+      "QA/evidence/batch1/regression/web-warehouse/042-04-four-of-four-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/042-05-four-of-four-reloaded-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/042-07-attention-tray-empty-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042-final-4-of-4.txt"
+     ],
+     "dbOrApi": "SELECT status, completed_at FROM picklists WHERE id='01a09725-59d4-75ef-b394-00cbd634ff63' \u2192 picking | NULL (01:17:19), then picked | 01:17:59.484.\nSELECT picked_qty_pcs, short_reason, picked_at FROM pick_lines \u2192 13 | \u2013 | 01:16:57; 2 | Not on the rack | 01:16:06; 20 | \u2013 | 01:15:44; 0 | Batch held back | 01:17:59.\nsync_errors for these rows, other than the deliberate DOS-041 API probe \u2192 0.",
+     "note": "PICK-0079's old wrongly-closed state is not repaired (expected; verified on a fresh wave). Scenario B (a refused op on screen) is recorded as its own probe below."
+    },
+    {
+     "id": "DOS-042",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, tarsun)",
+     "steps": "1. At 390\u00d7844 on PICK-0082, pressed Picked on the 13-pc row, leaving the 12-pc row unrecorded.\n2. Measured the header, chip and bar.\n3. After the last row was shorted (at desk), reloaded and shot again at 390\u00d7844.",
+     "expected": "The phone shows one truth: 'N-1 of N', chip 'picking' and 'Take it to packing' disabled while a row is unrecorded; then 'N of N', chip 'picked' and the button enabled. There is no 'picked' badge next to '1 line not yet picked' (the Phase 1 p-02 symptom).",
+     "actual": "- Picked on the 13-pc row: accepted 1.\n- Phone: '3 of 4 picked', chip 'picking', 'Take it to packing' disabled (163\u00d776 at y=644) with '1 line not yet picked'. DB at the same moment: picking, completed_at NULL.\n- After the final short and a reload at 390\u00d7844: '4 of 4 picked', chip 'picked'. DB: picked.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/042-01-three-of-four-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-042-ui-pick-13-upload.json",
+      "QA/evidence/batch1/regression/web-warehouse/db-042-intermediate-3-of-4.txt",
+      "QA/evidence/batch1/regression/web-warehouse/042-06-four-of-four-reloaded-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042-final-4-of-4.txt"
+     ],
+     "dbOrApi": "SELECT status, completed_at FROM picklists WHERE picklist_no='PICK-0082' \u2192 picking | NULL while the phone showed 3 of 4 (01:17:19); picked | 01:17:59 afterwards.",
+     "note": "The final 'Short 0, Batch held back' tap was made at desk width; the before and after phone screens were verified at 390\u00d7844."
+    },
+    {
+     "id": "DOS-042 probe B (refused op on screen)",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "dinesh.patil (browser device) + dinesh.patil API as a second device",
+     "steps": "1. Pick \u2192 SO-0881 \u2192 Make a wave, which created PICK-0083 (7 rows). Waited for Start, then pressed Start.\n2. Browser offline \u2192 Picked on row X (SB20260531, 15 pc), queued with 1 waiting.\n3. The second device (API) recorded all 7 rows in full, and the wave closed (picked).\n4. Browser online \u2192 captured the device's upload \u2192 sampled the sheet every 0.9 s for 13 s.\n5. Opened the tray in-app, went back, pressed Refresh.",
+     "expected": "The refused op is not counted as picked: row X returns under To pick, the count excludes it, 'Take it to packing' stays disabled, and the tray shows the refusal. After a pull the row shows the server's copy.",
+     "actual": "- The device upload was rejected with code 'stale', not picklist_closed: the other device had already changed the row, so the LWW veto answers first.\n- Right after the rejection: header '0 of 7 picked', row X had its Picked button back, 'Take it to packing' disabled, strip '1 need attention'.\n- About 0.9 s later the automatic pull painted the server's copy: '7 of 7 picked' and the button enabled. The server really had X picked (15 pc, wave picked at 01:21:53).\n- Tray: 'Refused 1 \u2014 This pick lines changed on the server after your copy; open it again \u00b7 pick_lines \u00b7 stale' with 'Try it again' / 'Throw it away'.\n- On this screen (Start pressed here) the chip kept reading 'picking' beside '7 of 7 picked' for all 13 s sampled. It read 'picked' only after leaving and returning (new P3 finding).",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/042b-01-new-wave-before-pull-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-042b-create-wave-so0881.json",
+      "QA/evidence/batch1/regression/web-warehouse/042b-02-offline-picked-X-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/api-042b-other-device-picks-every-row.json",
+      "QA/evidence/batch1/regression/web-warehouse/api-042b-device-upload-after-close.json",
+      "QA/evidence/batch1/regression/web-warehouse/042b-03-just-after-rejection-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/042b-04-after-rejection-13s-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/042b-05-attention-tray-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/042b-06-after-refresh-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042b-timeline.json"
+     ],
+     "dbOrApi": "POST /warehouse/picklists/01a0972c-2d49-7417-9738-66edc95f2f21/pick (all 7 rows) \u2192 200, status picked.\nPOST /sync/upload from the browser \u2192 rejected 'stale'.\nSELECT status, completed_at FROM picklists \u2192 picked | 01:21:53.125.\nSELECT code FROM sync_errors WHERE row_id='01a0972c-2d72-7223-b7c6-e0a82e74bfd3' \u2192 stale.",
+     "note": "The 'shows as todo' state lasted about 1 s, only until the pull repainted the server's real copy. That is correct here, because the server did record the row. The tray wording ('This pick lines changed\u2026') is raw sync text; that is the open DOS-029/046 area, not logged again."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Phone Short sheet: the 'this batch asks for N pc' refusal line is laid out below the fold, so pressing Short looks like nothing happened",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Warehouse",
+     "platform": "Web, phone 390x844 (warehouse app :5176)",
+     "steps": "1. Sign in as dinesh.patil. Open a started wave (PICK-0082) at 390\u00d7844.\n2. Press Short on a lot row asking 12 pc (GK20260630).\n3. Key 2, 0 on the pad.\n4. Press Short.",
+     "expected": "The reason the save is refused ('This batch asks for 12 pc. Count again\u2026') is visible without scrolling, next to the figure or the Short button. Alternatively Short is visibly disabled with that reason.",
+     "actual": "The over-ask line exists in the sheet but is laid out at y=836\u2013880 in an 844-px viewport, below the Short button (y=728\u2013804). Only a sliver of red text shows at the bottom edge; the reason chips are scrolled off the top. Pressing Short does nothing visible: no upload, the sheet stays open. At 1280\u00d7800 the same line is fully visible.",
+     "businessImpact": "A picker on the phone, the warehouse's main device, taps Short repeatedly and sees nothing happen. They may think the app has frozen, abandon the line, or re-key blindly. The refusal is correct (DOS-041), but it is not explained where the thumb is.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/041-11-short-20-of-12-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-12-short-refused-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-06-short-20-of-3-desk.png"
+     ],
+     "suggestedFix": "In frontend/warehouse-app/app/pick/[id].tsx, render the w5-short-over line above the pad, beside 'Requested N pc'. Alternatively pass disabled + disabledReason to the pad's done button when overAsk. At minimum, scroll the line into view when overAsk turns true."
+    },
+    {
+     "title": "A freshly made wave opens as 'Nothing here yet \u00b7 0 of 0 picked' with Scan and an enabled 'Take it to packing' for up to a minute before Start appears",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Warehouse",
+     "platform": "Web, desk 1280x800 (the pick sheet waits on a sync pull, so likely every platform; only web was walked)",
+     "steps": "1. Sign in as dinesh.patil. Pick tab.\n2. Select a confirmed order (SO-0881; also seen with SO-0883) \u2192 Make a wave.\n3. Watch the sheet the app navigates to.",
+     "expected": "The new sheet shows its lines and 'Start picking' at once, or a 'Getting the sheet\u2026' state with no actions.",
+     "actual": "- 1.6 s after the 200 create reply, PICK-0083's screen read 'Picklist / Nothing here yet / 0 of 0 picked'.\n- The bottom bar showed Scan and 'Take it to packing', ENABLED (disabled=false).\n- 'Start picking' and the 7 lines appeared only 57 s after creation; PICK-0082 took 33 s.\n- Cause (verifier residual 1): W4 navigates to /pick/{id} straight after picklists.create without triggering a pull. The sheet's status is unknown (picks locked), but no Start is offered and the not-started bar is not used.",
+     "businessImpact": "Every new wave leaves the picker on an empty sheet for 30\u201360 s whose primary button invites them to 'Take it to packing'. They may walk to the packing bench with nothing picked, or believe the wave failed and ask the desk to raise another. It costs time on every wave.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/042b-01-new-wave-before-pull-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042b-timeline.json",
+      "QA/evidence/batch1/regression/web-warehouse/041-02-so0883-sheet-not-started-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/041-03-so0883-sheet-after-pull-desk.png"
+     ],
+     "suggestedFix": "In pick/index.tsx onSuccess, call engine.sync('picklist-created') before or while navigating, or seed the local picklists and pick_lines rows from the create reply. In pick/[id].tsx, while liveStatus is undefined, show a waiting line and hide Scan and 'Take it to packing', as already done for the not-started state."
+    },
+    {
+     "title": "After 'Start picking' the sheet's status chip keeps saying 'picking' next to 'N of N picked' until the screen is reopened",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Warehouse",
+     "platform": "Web, desk 1280x800",
+     "steps": "1. As dinesh.patil, make a wave (SO-0881 \u2192 PICK-0083) and press 'Start picking' on its sheet.\n2. Stay on that screen while every row gets recorded; here one row by this device and the rest by a second device through the API, so the server closes the wave.\n3. Watch the header after the next pull.",
+     "expected": "Once the local picklists row reads 'picked', the chip says 'picked', matching the count and the enabled 'Take it to packing'.",
+     "actual": "- Server: PICK-0083 status picked, completed_at 01:21:53.\n- For all 13 s sampled after the pull, the screen showed '7 of 7 picked' with 'Take it to packing' enabled and the chip 'picking'.\n- The chip read 'picked' only after navigating away and back.\n- In pick/[id].tsx, liveStatus = startedHere ?? sheet.status keeps the Start reply's 'picking' for as long as the screen stays mounted. The DOS-040 verifier noted this; it was not logged.",
+     "businessImpact": "This is a smaller instance of the 'three truths on one sheet' problem DOS-042 fixed: the count says done while the badge says still picking. A picker or supervisor glancing at the badge may think lines are still open.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/042b-04-after-rejection-13s-desk.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-042b-timeline.json",
+      "QA/evidence/batch1/regression/web-warehouse/042b-06-after-refresh-desk.png"
+     ],
+     "suggestedFix": "Use startedHere only while the local row is still 'open' or undefined. For example, liveStatus = sheet?.status === 'open' || sheet === null ? (startedHere ?? sheet?.status) : sheet.status. Alternatively clear the start mutation's data once the local row moves past 'open'."
+    },
+    {
+     "title": "Load-out in the warehouse app always sends countedVanStock [] and has no van-stock count, so after DOS-039 a sheet's van stock can never be moved to the vehicle from the app",
+     "category": "missing-feature",
+     "priority": "P2",
+     "role": "Warehouse",
+     "platform": "Web (warehouse app :5176); the code path is shared by Android and iOS",
+     "steps": "1. As dinesh.patil, open an approved draft load sheet (374f2089) \u2192 count cartons \u2192 'Send the vehicle out' \u2192 confirm.\n2. Read the confirm request body.\n3. Look for any van-stock count control on the sheet screen (W7).",
+     "expected": "When a sheet carries van stock (lots listed with source 'van' under 'What goes on the vehicle'), the crew counts those lots and the app sends them as countedVanStock. Since DOS-039, that is the only stock load-out moves.",
+     "actual": "- The confirm body was {countedPackages:35, countedVanStock:[], challanId, varianceNote}; frontend/warehouse-app/app/load/[id].tsx:81 hard-codes `countedVanStock: []`.\n- W7 offers only a carton count pad, on desk and phone and on both tenants' sheets walked.\n- dos_qa has 6 trips with van_sales_enabled but no load sheet with non-empty van_stock today. The consequence on a van-stock sheet was therefore NOT executed here, because only one sheet could be confirmed.",
+     "businessImpact": "The consequence below follows from the merged DOS-039 server rule and was not executed on a van-stock sheet. With DOS-039 merged, a van-sales trip loaded through the app would leave the godown with the van-sale stock still booked at the godown and none on the vehicle. Van sales from the vehicle would then be refused or drive balances wrong, while the godown shows goods that physically left.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/api-039-confirm-response.json",
+      "QA/evidence/batch1/regression/web-warehouse/039-03-count-35.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-11-count-24-phone.png",
+      "QA/evidence/batch1/regression/web-warehouse/db-039-phone-walk-and-van-stock-usage.txt"
+     ],
+     "suggestedFix": "Add a van-stock count step to W7: list the source='van' lots with a count pad each, and send them as countedVanStock. Until that exists, refuse or warn on confirm when the sheet's van_stock is non-empty. Then walk the verifier's positive van-stock case (a sheet with vanStock 12 pc \u2192 exactly one transfer_out/transfer_in pair)."
+    },
+    {
+     "title": "The irreversible load-out confirm dialog puts 'Send the vehicle out' and 'Cancel' on 32-px-high buttons on a phone",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Warehouse",
+     "platform": "Web, phone 390x844",
+     "steps": "1. As a warehouse user at 390\u00d7844, open an approved draft load sheet (1720dd92, MH-05-BQ-4471).\n2. Count the cartons \u2192 'Send the vehicle out'.\n3. Measure the dialog's buttons.",
+     "expected": "The dialog's buttons are thumb-sized like the rest of the warehouse app (bar buttons are 76 px high): the confirm is a primary button that cannot be missed or mis-tapped.",
+     "actual": "The dialog 'Check out MH-05-BQ-4471? \u2026 This cannot be undone.' shows 'Cancel' at 84\u00d732 and 'Send the vehicle out' at 185\u00d732, side by side at y=468. The button that opened the dialog was 358\u00d776.",
+     "businessImpact": "At the godown gate, with gloves or a hurried thumb, a 32-px pair of adjacent buttons for a step that cannot be undone is easy to mis-tap in either direction.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-warehouse/039-12-send-dialog-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-warehouse/039-11-count-24-phone.png"
+     ],
+     "suggestedFix": "Give the @dos/ui web Dialog phone-width button sizing, full-width stacked with the 76 px primary used elsewhere, below 1024 px. Check the native Dialog for the same."
+    }
+   ],
+   "dataTouched": "All changes were made through the product UI or its API; no SQL writes.\n\nLoad sheet 374f2089-b8fd-720e-907c-8380307948ab (tarsun, MH-05-AB-1234, trip TRIP-NEXT 72649337), confirmed on web at 01:07:22 IST:\n- counted 35 of 38, with variance note 'QA regression DOS-039: counted 35 of 38 cartons at the gate';\n- challan DC-0083 issued (delivery_challans 01a0971f-da77-779f-9dc7-3b07db2bce36, 23 lines, value_paise 15014700);\n- SO-0869, SO-0871, SO-0875, SO-0876, SO-0878 moved packed\u2192dispatched;\n- no stock_ledger rows; trip and stops unchanged.\n\nWaves and orders:\n- PICK-0080 (01a09721-afc8-76a2-ae96-9160d3594ab7) from SO-0884: created and started. SO-0884 moved confirmed\u2192picking. Row RCP20260612 picked 4/4; the other 5 rows (1, 2, 5, 9, 3 pc) are unpicked, and the wave is LEFT IN 'picking', available to the manager M20 walk.\n- PICK-0082 (01a09725-59d4-75ef-b394-00cbd634ff63) from SO-0883: created and started. Rows: GK20260602 13 picked (UI); GK20260609 2 of 3 short 'Not on the rack' (UI); GK20260623 20 picked (API HTTP); GK20260630 0 of 12 short 'Batch held back' (UI). The wave closed as picked, then was packed in W6: 1 carton, short-packed, invoice INV/9008 \u20b9569.00 issued (35 pc), stock_ledger pack/sale \u221213/\u22122/\u221220. SO-0883 and PICK-0082 are now packed.\n- PICK-0083 (01a0972c-2d49-7417-9738-66edc95f2f21) from SO-0881: created and started in the UI; all 7 rows recorded in full by an API call. The wave is picked; SO-0881 is picking and was NOT packed.\n\nsync_ops / sync_errors rows (all unresolved):\n- 01a09723-e06f-753d-b02b-f0b300e0de7e: picklist_not_started, PICK-0080 row.\n- 01a09723-e0b8-799c-9af7-e6b65b1be013: picklist_closed on PICK-0079 row 01a094c0-82f0-725d; the row was not changed.\n- 01a09727-83ab-79e4-b2ce-8cffd4e8f769: pick_rejected, 34 of 20, PICK-0082.\n- 01a0972d-1bf7-756d-a5df-17c2da361cdb: stale, browser device, PICK-0083 row 01a0972c-2d72-7223.\n\nSessions:\n- dinesh.patil API logins: 3 on device 0e64e3ab-a161-41cc-b615-ef4a6bbf5698 and 1 on a random device (scenario B).\n- dinesh.patil web sign-ins: 2.\n- bharat.jadhav (sai-distributors) web sign-in: 1.\n\nRead only, nothing written: sai sheet 1720dd92 was opened, 24 keyed and the send dialog cancelled; it is still draft, with no POST sent. Sheets 1720dd92 and 1e5181b6 stay draft for others.",
+   "environmentProblems": "- pw.mjs 'login' waits for the sign-in form, so it times out when the shared page already holds a session. I had to clear cookies and localStorage in the page before signing in as bharat.jadhav.\n- My first capture of the wave-create reply used a filter that excluded '/warehouse/picklists' (the path contains '/pick'), so it timed out after 30 s. The wave was created correctly (warehouse-service log req-p3 \u2192 200) and the walk continued; this is a harness mistake, not a product issue.\n- The web build keeps the sync outbox in memory ('Held in memory only \u2014 a reload empties this device'), so tray checks had to use in-app navigation, not reloads.\n- Playwright offline does not survive between pw.mjs processes, so the offline scenarios each ran inside one 'do' script.\n- The warehouse-service log shows no 5xx during the walk. The 409/400 on picklist 01a09724-c03e\u2026 at 01:12:43 IST, SO-0888/SO-0889, a POST /orders/\u2026/cancel on :3004 and PICK-0081 belong to parallel walkers and were left alone.\n- INV/9008 was the number issued to SO-0883, after seed invoices INV/08xx; I did not investigate the series.\n- The browser on :9341 was stopped at the end."
+  },
+  {
+   "group": "retailer",
+   "checks": [
+    {
+     "id": "DOS-094",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ramesh.gupta (Shree Ganesh Kirana R-0001, Tarsun Enterprise)",
+     "steps": "1. Signed in at http://localhost:5178 and opened Money due (\u20b935,843.00, 6 open bills). 2. Tapped Pay everything: the Pay screen showed \u20b935,843.00. Tapped Start the payment and captured POST :3006/receivables/payments/initiate. 3. Tapped Open a UPI app. 4. Opened a fresh Pay screen, ticked only INV/0433 (bottom bar \u20b94,561.00) and tapped Start the payment. 5. Next to the fix: Money due \u2192 INV/0433 Pay this bill \u2192 'Scan to pay' sheet \u2192 Start the payment. 6. Second shop: fatima.shaikh (R-0010) Pay everything \u2192 Start the payment.",
+     "expected": "The intent has exactly one upi://pay? prefix, and upiIntentUrl equals upiQrPayload. pa=tarsun@okhdfcbank, pn=Tarsun Enterprise. am is the amount the shop chose (35843.00 for all bills, 4561.00 for INV/0433 alone). tr and tn both carry the PAY-<12> reference the screen tells the shop to quote, and tr=INV never appears. The outbox amount equals am\u00d7100. The invoices' stored snapshots do not change, no receipt is created, and initiate does not return 500 for a tenant with a logo. On the web no 'no UPI app' hint appears (by design).",
+     "actual": "All bills: HTTP 200, upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=35843.00&tr=PAY-5c0672c7d3e5&tn=PAY-5c0672c7d3e5&cu=INR. One prefix, qr==intent, payeeVpa tarsun@okhdfcbank, payeeName Tarsun Enterprise. The screen reads 'Paying Tarsun Enterprise \u20b935,843.00', 'Quote this reference: PAY-5c0672c7d3e5' and 'This covers 6 bills'. INV/0433 only: the request sent amountPaise 456100 with invoiceIds [ca0bcd44\u2026]; reply am=4561.00&tr=PAY-5c9dfb7fcb7c&tn=PAY-5c9dfb7fcb7c; screen \u20b94,561.00 with the same reference. Open a UPI app opened no popup: the tab sent a upi:// navigation and stayed on /pay, and no r5-no-upi-app hint appeared (expected on web). fatima.shaikh: retailerId 20059d26 (her own shop), am=720804.00, tr=tn=PAY-1d7ee34b537e, 12 bills.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/094-01-money-due.png",
+      "QA/evidence/batch1/regression/web-retailer/094-02-pay-screen-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-03-intent-all-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-094-03-initiate-all-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/094-04-open-upi-web-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-05-pay-one-bill-ticked-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-06-intent-inv0433-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-094-06-initiate-inv0433-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/094-07-pay-this-bill-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-08-pay-this-bill-lands-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-15-intent-all-fatima-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-094-15-initiate-all-fatima-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/api-094-00-outstanding-before.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-094-00-intents-before.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-094-03-intent-all-desk.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-094-06-intent-inv0433-and-invariants.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-final-invariants.txt"
+     ],
+     "dbOrApi": "SELECT FROM outbox_events WHERE event_type='PaymentIntentCreated': PAY-5c0672c7d3e5 amountPaise 3584300 with 6 invoiceIds; PAY-5c9dfb7fcb7c 456100 with [ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e]; PAY-1d7ee34b537e 72080400 with 12 (aggregate 20059d26). SELECT upi_qr_payload FROM invoices: INV/0433 still am=10119.00&tr=INV-0433 and INV/0753 still am=5472.00&tr=INV-0753 (unchanged). SELECT count(*) FROM receipts WHERE received_by IN (ramesh, fatima) = 0; R-0001 receipts 25 before and after. tenant_settings: tarsun has branding.logo_object_key, and initiate answered 200.",
+     "note": "1. pa is now percent-encoded (tarsun%40okhdfcbank); the old snapshots carried a literal @. That is valid URI encoding, but no real UPI app could be tried on this Mac. 2. The no-VPA branch (r5-no-vpa) was not exercised: every tenant in dos_qa has upi_vpa set. 3. Next to the fix but outside its scope: the per-bill 'Scan to pay' sheet (billing.invoices.upiQr) shows the correct open amount (am=4561.00) but still uses tr=INV-0433, and its Start the payment opens /pay with nothing ticked (new finding). The web has no QR image (new finding). 'This covers 1 bills' is a plural slip. receivables.outstanding.get still returns the newest bill's snapshot upiQrPayload (am=5472.00&tr=INV-0753), which no screen reads (api-094-00). 4. DOS-096 (pre-GST You pay) is not merged and was not judged. 5. Three intents dated 01:07:48 IST (PAY-baa19eda49c7, PAY-0f8c756eb47e, PAY-94ecc69201bd) predate this walk and are not mine."
+    },
+    {
+     "id": "DOS-094",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ramesh.gupta (R-0001, Tarsun)",
+     "steps": "1. Set the viewport to 390\u00d7844 and opened Money due. 2. Tapped Pay everything, then Start the payment, capturing the initiate reply. 3. Opened a fresh Pay screen, ticked INV/0433 only and tapped Start the payment. 4. Measured page scroll width and the Open a UPI app button.",
+     "expected": "Same intent shape as on desk: one prefix, am equal to the chosen amount, tr and tn equal to the PAY reference shown on screen, no tr=INV. No horizontal page scroll.",
+     "actual": "All bills: 200, am=35843.00&tr=PAY-c978af6c6fdb&tn=PAY-c978af6c6fdb&cu=INR, qr==intent, payee 'Tarsun Enterprise tarsun@okhdfcbank'. Screen: 'Quote this reference: PAY-c978af6c6fdb'. INV/0433 only: am=4561.00&tr=PAY-aca184beb353&tn=PAY-aca184beb353, and the screen shows the same reference. Page scrollWidth is 390 (no page scroll), and Open a UPI app is 358\u00d769. The raw upi string does not break inside and is visibly clipped at the right edge (covered by a new finding).",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/094-09-money-due-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/094-10-pay-screen-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/094-11-intent-all-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/net-094-11-initiate-all-phone.json",
+      "QA/evidence/batch1/regression/web-retailer/094-12-pay-one-bill-ticked-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/094-13-intent-inv0433-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/net-094-13-initiate-inv0433-phone.json",
+      "QA/evidence/batch1/regression/web-retailer/db-094-11-intent-all-phone.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-094-13-intent-inv0433-phone.txt"
+     ],
+     "dbOrApi": "SELECT FROM outbox_events WHERE payload->>'paymentRef' IN ('PAY-c978af6c6fdb','PAY-aca184beb353'): 3584300 with 6 bills, and 456100 with [ca0bcd44\u2026]. Both match am\u00d7100.",
+     "note": "The web on a phone cannot open a UPI app either, and it shows no hint (links.web always reports true). The Android and iOS r5-no-upi-app hint belongs to another platform lane and was not tested here."
+    },
+    {
+     "id": "DOS-095",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ramesh.gupta (R-0001, Tarsun); fatima.shaikh (R-0010) as a second shop",
+     "steps": "1. Opened Money due \u2192 Statement (default 'Last 90 days', 2026-06-16..2026-09-13 on business date 2026-09-13), recording every GET /receivables/ledger. 2. Counted r6-row-* entries and compared the last balance with r6-closing. 3. Switched to 'This year', then 'Last 30 days'. 4. Rewrote limit to 12 with page.route and reloaded. 5. Rewrote limit to 10 and reloaded. 6. API: read the window at limit 200, then again by following cursors at limit 12, and compared. 7. SQL: counted the shop's documents in the window. 8. fatima.shaikh statement.",
+     "expected": "Every entry of the window is listed, including RCPT-0668/0672/0693/0687. The last running balance equals the closing balance and no r6-partial shows. With limit 12, several GETs follow the cursor and all entries show. With limit 10 (5-page cap), the closing shows a dash and the r6-partial note appears.",
+     "actual": "Last 90 days: exactly one GET ?from=2026-06-16&to=2026-09-13&limit=200 returning 53 items with nextCursor null. 53 rows, first INV/0034, last RCPT-0687 balance \u20b935,843.00; Closing balance \u20b935,843.00; opening \u20b95,242.00; RCPT-0668, 0672, 0687 and 0693 all shown; r6-partial absent. This year: 1 GET, 54 rows, last balance equals closing \u20b935,843.00. Last 30 days: 1 GET, 28 rows, opening \u20b951,849.00, last balance equals closing \u20b935,843.00. limit=12: 5 GETs (calls 2\u20135 carry cursor=), 53 rows, closing \u20b935,843.00 equals the last balance, no partial note. limit=10: 5 GETs (the 5th still has a cursor), 50 rows ending RCPT-0668 \u20b951,355.00, closing '\u2014', and the partial note reads 'This period has more entries than one statement can show. Pick a shorter period.' fatima.shaikh: 1 GET, 58 rows, last balance equals closing \u20b97,20,804.00, no partial.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/095-01-statement-d90-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-095-01-statement-d90-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/095-02-statement-fy-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/095-03-statement-d30-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/095-04-statement-d90-limit12-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/095-05-statement-d90-limit10-partial-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-095-02-statement-ranges-and-page-limits-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/095-09-statement-d90-fatima-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/api-095-01-ledger-d90-limit200.txt",
+      "QA/evidence/batch1/regression/web-retailer/api-095-02-ledger-d90-default.txt",
+      "QA/evidence/batch1/regression/web-retailer/api-095-03-page-chain-check.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-095-01-documents-in-window.txt"
+     ],
+     "dbOrApi": "API GET :3006/receivables/ledger/34191c43\u2026?from=2026-06-16&to=2026-09-13&limit=200 returns 53 items, nextCursor null, opening 524200, closing 3584300, last balancePaise 3584300. Default limit returns 50 items plus a cursor, so the old screen would still have lost the tail. Following cursors at limit 12 gives 5 pages and 53 items in the same order as the single read, with 0 duplicates and a continuous running balance (FY: 54 and 54, also identical). SQL on the window: invoices 24 (issued 2 + partially_paid 4 + paid 18), receipts 25 (collected 24 + deposited 1), credit_notes 4 issued, total 53, matching the screen.",
+     "note": "The window moved with the business date (2026-06-16..09-13), so Last 90 days now holds 53 entries, not the finding's 54; 'This year' still shows 54, as the finding did. The service-down retry path was not tested: stopping retailer-service would break the parallel retailer walkers."
+    },
+    {
+     "id": "DOS-095",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ramesh.gupta (R-0001, Tarsun)",
+     "steps": "1. Set the viewport to 390\u00d7844 and opened Statement (Last 90 days) with the ledger GETs recorded. 2. Scrolled to the last entry and the closing panel.",
+     "expected": "All entries are listed, the last balance equals the closing balance, no partial note appears and the page does not scroll sideways.",
+     "actual": "One GET limit=200 returning 53 items with nextCursor null. 53 rows; the end of the list reads RCPT-0659 \u20b963,535 \u2192 RCPT-0668 \u20b951,355 \u2192 RCPT-0672 \u20b945,797 \u2192 RCPT-0693 \u20b940,286 \u2192 RCPT-0687 \u20b935,843.00, directly above 'Closing balance \u20b935,843.00'. No r6-partial; scrollWidth 390.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/095-06-statement-d90-phone-top.png",
+      "QA/evidence/batch1/regression/web-retailer/095-07-statement-d90-phone-end.png",
+      "QA/evidence/batch1/regression/web-retailer/095-08-statement-d90-phone-full.png",
+      "QA/evidence/batch1/regression/web-retailer/net-095-06-statement-d90-phone.json"
+     ],
+     "dbOrApi": "Same API reply as on desk: 53 items, closing 3584300 equal to the last balancePaise (api-095-01), and SQL document count 53 (db-095-01).",
+     "note": "The statement renders in a non-virtualised Stack; 53 to 58 rows scrolled without trouble at this width. The 1,000-entry Pixel case belongs to the Android lane."
+    },
+    {
+     "id": "DOS-099",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ramesh.gupta (R-0001, Tarsun)",
+     "steps": "1. Opened My bills \u2192 INV/0753; the PDF was ready, with Open the bill and Print shown. 2. Wrapped window.open to log its arguments, then tapped Open the bill. 3. Tapped Print. 4. Opened Receipts \u2192 RCPT-0687 \u2192 Open the receipt. 5. Fetched each exact URL the page opened with curl. 6. Repeated Print and Open in a separate full Chromium 145 with Playwright's --disable-popup-blocking removed, to see whether a real popup blocker stops Print.",
+     "expected": "The bill opens in a new tab from the service origin (http://127.0.0.1:3006/storage/\u2026invoice/<id>.pdf) as application/pdf. Print reaches the PDF (it falls back to a tab when the frame is cross-origin). The receipt PDF opens from :3006.",
+     "actual": "Open the bill called window.open('http://127.0.0.1:3006/storage/tenant/01a0947d\u2026/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=\u2026&signature=\u2026', '_blank', 'noopener,noreferrer'). curl on that exact URL: 200 application/pdf, 21,269 bytes, %PDF-1.4. Print: the hidden iframe loaded application/pdf from :3006 and the kit then opened the same absolute URL in a tab. In chrome-headless-shell (no PDF viewer) this took 8.0 s. In full Chromium 145 with the popup blocker on, the tab opened 233 ms after the tap and was not blocked (Open: 146 ms). Open the receipt opened http://127.0.0.1:3006/storage/\u2026/documents/receipt/700d45c2-ada4-7f36-8075-b79b94cf2806.pdf; curl: 200 application/pdf, 20,257 bytes, %PDF-1.4. The tenant logo still loads from :3006 (image/jpeg). The app tab stayed on the bill and receipts screens.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/099-01-my-bills-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-02-bill-inv0753-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-03-after-open-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-04-after-print-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-05-receipts-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-06-receipt-rcpt0687-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-09-bill-after-open-print-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/099-11-print-full-chromium-popup-blocker-on.png",
+      "QA/evidence/batch1/regression/web-retailer/net-099-01-open-print-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/net-099-02-window-open-urls.json",
+      "QA/evidence/batch1/regression/web-retailer/net-099-03-print-full-chromium-popup-blocker-on.json",
+      "QA/evidence/batch1/regression/web-retailer/api-099-01-invoice-pdf-inv0753.txt",
+      "QA/evidence/batch1/regression/web-retailer/api-099-02-curl-opened-urls.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-099-00-receipts.txt"
+     ],
+     "dbOrApi": "API GET :3006/invoices/a924ae38\u2026/pdf?copy=original&format=a4 returns {status:'ready', url:'/storage/tenant/\u2026/invoice/a924ae38\u2026.pdf?expires\u2026'}. The API still answers a service-relative URL and the app now absolutises it. SELECT pdf_object_key FROM invoices WHERE invoice_no='INV/0753' = tenant/01a0947d\u2026/documents/invoice/a924ae38\u2026.pdf. SELECT pdf_object_key FROM receipts WHERE receipt_no='RCPT-0687' = tenant/\u2026/documents/receipt/700d45c2\u2026.pdf.",
+     "note": "Headless-shell artefacts, not product defects: PDFs arrive as downloads (no viewer) and Print's frame never fires load, so the 8 s fallback runs there; the full-Chromium run shows the real path. Next to the fix: the proof-of-delivery photo on the same bill screen still uses a relative URL and is broken (new finding; the implementer flagged it as adjacent). The first-open 'still making the PDF' part of the finding was not re-tested: INV/0753 and RCPT-0687 already had PDFs."
+    },
+    {
+     "id": "DOS-099",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ramesh.gupta (R-0001, Tarsun)",
+     "steps": "1. Set the viewport to 390\u00d7844 and opened My bills \u2192 INV/0753. 2. Logged window.open and tapped Open the bill, then Print. 3. Opened Receipts \u2192 RCPT-0687 \u2192 Open the receipt. 4. Fetched the opened URLs with curl.",
+     "expected": "Open and Print hand the browser the absolute :3006 PDF URL, and the receipt opens the same way.",
+     "actual": "Open the bill called window.open('http://127.0.0.1:3006/storage/\u2026/invoice/a924ae38\u2026.pdf?expires=1789245002&signature=4b35\u2026'); curl: 200 application/pdf, 21,269 bytes, %PDF-1.4. Print opened a tab with the same absolute URL (8.0 s fallback in headless shell). Open the receipt opened http://127.0.0.1:3006/storage/\u2026/receipt/700d45c2\u2026.pdf; curl: 200 application/pdf, 20,257 bytes, %PDF-1.4. The phone layout shows Open the bill and Print under FROM, with Pay this bill in the bottom bar.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/099-07-my-bills-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/099-08-bill-inv0753-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/099-09-bill-after-open-print-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/099-10-receipt-rcpt0687-sheet-phone.png",
+      "QA/evidence/batch1/regression/web-retailer/net-099-02-window-open-urls.json",
+      "QA/evidence/batch1/regression/web-retailer/api-099-02-curl-opened-urls.txt"
+     ],
+     "dbOrApi": "curl of the exact phone-run URLs: invoice 200 application/pdf %PDF-1.4, receipt 200 application/pdf %PDF-1.4 (api-099-02).",
+     "note": "This is a phone-width web browser. The Android share-sheet and file-name fix (INV-0753.pdf) of DOS-057+099 belongs to the Android lane and was not tested here."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Retailer bill screen: the proof-of-delivery photo never loads on the web; the POD readUrl is service-relative and resolves against the app's own origin",
+     "category": "bug",
+     "priority": "P2",
+     "role": "Retailer",
+     "platform": "Web (desk 1280x800; the same <Img> is used at phone widths)",
+     "steps": "1. Sign in as ramesh.gupta at http://localhost:5178 and open My bills \u2192 INV/0753. Scroll to PROOF OF DELIVERY. 2. The panel reads 'Delivered \u00b7 3 Sep, 10:40 am \u00b7 Signed for by Jayesh Shah', followed by a broken image showing only its alt text 'Photograph taken at your shop'. 3. DOM: img[data-testid=r4-pod-dfab2672\u2026] src='/storage/demo/pod/c68cd7c9\u2026/a924ae38\u2026.jpg?expires\u2026&signature\u2026', complete=true, naturalWidth=0. The browser requested http://localhost:5178/storage/demo/pod/\u2026 and got 200 text/html (the app's own page). 4. Real photo taken by the delivery app (INV/0830, R-0013): manager GET :3002/delivery/deliveries/3ef9bd1e\u2026 returns readUrl '/storage/tenant/01a0947d\u2026/pod/3ef9bd1e\u2026/01a09725\u2026.jpg?expires\u2026'. That path on localhost:5178 gives 200 text/html; on 127.0.0.1:3002 it gives 200 image/jpeg, 20,817 bytes. 5. Seed: 825 of the 831 Tarsun pod_evidence photo keys are demo/\u2026 keys with no stored object; the service answers 404 JSON even at its own origin.",
+     "expected": "The shop sees the photo the driver took. The client absolutises readUrl with absoluteUrl(), as DOS-099 now does for the bill PDF and as the tenant logo already did. Seeded POD keys point at objects that exist.",
+     "actual": "Every bill with a POD photo shows a broken image in the retailer web app. For real photos the cause is the relative URL; on the demo data the object is missing as well.",
+     "businessImpact": "A POD photo exists to settle 'I never received it'. When a shopkeeper disputes a delivery, the retailer app shows him a broken image in place of the photo taken at his counter, so the distributor's proof never reaches the customer and every dispute becomes a phone call. It is the same class as DOS-099; the DOS-057+099 implementer listed it as an adjacent defect, but it had no finding id.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/new-01-bill-pod-photo-broken-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/net-099-01-open-print-desk.json",
+      "QA/evidence/batch1/regression/web-retailer/api-new-01-pod-photo-origins.txt",
+      "QA/evidence/batch1/regression/web-retailer/api-new-01-pod-readurl-real-key.txt",
+      "QA/evidence/batch1/regression/web-retailer/db-new-01-pod-evidence.txt"
+     ],
+     "suggestedFix": "In frontend/retailer-app/app/bills/[id].tsx, pass absoluteUrl(proof.readUrl) to <Img>. Extend frontend/libs/ui/src/document-urls.test.ts to cover Img sources built from readUrl, and grep the other six apps for raw readUrl images. For the demo data, store placeholder JPEGs under the demo/pod keys or null those keys, so the screen shows 'no photo' rather than a broken image."
+    },
+    {
+     "title": "Money due \u2192 'Pay this bill' \u2192 'Start the payment' forgets the bill: the Pay screen opens with nothing ticked and the whole \u20b935,843 prefilled",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Retailer",
+     "platform": "Web desk 1280x800 (same routing code at every width)",
+     "steps": "1. Sign in as ramesh.gupta and open Money due. On INV/0433 (\u20b94,561.00 left of \u20b910,119.00), tap 'Pay this bill'. 2. The 'SCAN TO PAY' sheet shows \u20b94,561.00 and upi://pay?\u2026am=4561.00&tr=INV-0433&cu=INR. 3. Tap 'Start the payment' in the sheet. 4. /pay opens with the amount field at 35843.00, all six bills unticked, and a bottom bar reading 'How much are you paying \u20b935,843.00'. 5. Code: dues.tsx r3-qr-pay and bills/[id].tsx r4-pay both call router.push('/pay') with no bill id, and pay.tsx reads no route params.",
+     "expected": "The Pay screen opens with INV/0433 ticked and \u20b94,561.00, so Start the payment asks for that bill only.",
+     "actual": "Nothing is ticked and the full dues are prefilled. Tapping Start the payment here mints an intent for \u20b935,843 across 6 bills (as PAY-5c0672c7d3e5 did).",
+     "businessImpact": "A shopkeeper who chose to pay one bill is one tap away from being asked for everything he owes. He either gives up, or pays an amount he did not mean to, and the office allocates it oldest-first rather than to the bill he picked. The amount is visible before the tap, so a careful user can re-tick the bill; that is the workaround.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/094-07-pay-this-bill-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-08-pay-this-bill-lands-desk.png"
+     ],
+     "suggestedFix": "Push /pay?bill=<id> from dues.tsx (r3-qr-pay) and bills/[id].tsx (r4-pay), and have pay.tsx preselect that bill with its open amount. Consider having the sheet mint the PAY intent itself, so the shop is not given two different references (INV-0433 in the sheet, PAY-\u2026 on the Pay screen) for the same payment."
+    },
+    {
+     "title": "Web pay screens give a shop nothing to scan or tap: no QR image, a raw upi:// string clipped on a phone, and 'Open a UPI app' does nothing visible",
+     "category": "missing-feature",
+     "priority": "P2",
+     "role": "Retailer",
+     "platform": "Web desk 1280x800 and web phone 390x844",
+     "steps": "1. Desk: Money due \u2192 Pay this bill (INV/0433). The sheet is titled 'SCAN TO PAY' and says 'Scan this in any UPI app', but shows only \u20b94,561.00 and the text upi://pay?pa=tarsun%40okhdfcbank\u2026; there is no QR image. 2. Pay everything \u2192 Start the payment. The intent panel shows the same raw string as text and no QR. 3. Tap 'Open a UPI app'. No tab opens: the page sends a navigation to upi://pay?\u2026, which a desktop browser cannot handle, and shows no message (links.web always reports success, so the r5-no-upi-app hint never shows on web). 4. Phone 390\u00d7844: the raw string does not break inside, so its middle (\u2026&am=35843.00&tr=PAY-\u2026) is clipped at the right edge.",
+     "expected": "A scannable QR of the intent, so a shop on a counter PC can pay from its phone. A copyable string that wraps. On web, a line telling the shop to scan the QR or pay the VPA when the UPI hand-off cannot be confirmed.",
+     "actual": "There is no QR anywhere on web. The only scannable thing on a 'Scan to pay' sheet is plain text, tapping Open a UPI app gives no feedback, and on a phone the string cannot even be read.",
+     "businessImpact": "A shopkeeper using the web app cannot pay the distributor online from these screens, so collection falls back to cash or cheque at the next delivery and money comes in later. DOS-094's suggested fix and the cross-role friction list (QA/findings/08, Retailer) both name this, but it has no finding id, and the DOS-094 implementer left it out of scope.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-retailer/094-07-pay-this-bill-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-03-intent-all-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-04-open-upi-web-desk.png",
+      "QA/evidence/batch1/regression/web-retailer/094-11-intent-all-phone.png"
+     ],
+     "suggestedFix": "Add a dependency-free QR component to @dos/ui that renders the intent string as SVG, and use it in r3-qr-sheet and r5-intent (web at least). Let the raw string break anywhere and add a Copy button. On web, show a static hint under Open a UPI app ('On a computer, scan the QR with your phone's UPI app, or pay <vpa> and quote the reference')."
+    }
+   ],
+   "dataTouched": "All changes went through the product (UI or API); no SQL writes. PaymentIntentCreated outbox rows created by the Pay screen (intents only: no receipt, no journal, no bill state change). ramesh.gupta, R-0001 Shree Ganesh Kirana, Tarsun: PAY-5c0672c7d3e5 (outbox 01a09739-484d, \u20b935,843, 6 bills, desk); PAY-5c9dfb7fcb7c (01a0973a-4fa6, \u20b94,561, INV/0433, desk); PAY-c978af6c6fdb (01a0973d-3cbd, \u20b935,843, 6 bills, phone); PAY-aca184beb353 (01a0973d-f97e, \u20b94,561, INV/0433, phone); PAY-b47051fbf36d (created 01:48:16 IST, \u20b935,843, 6 bills: an accidental re-run while a fatima sign-in timed out; evidence renamed *-ramesh-rerun-*). fatima.shaikh, R-0010 Balaji Wholesale Stores, Tarsun: PAY-1d7ee34b537e (01:49:18 IST, \u20b97,20,804, 12 bills). Sign-ins, each adding an auth session / device row: API POST /auth/login ramesh.gupta \u00d73 and vikas.kadam \u00d71 (read-only GETs after); browser sign-ins ramesh.gupta \u00d73 (harness \u00d72, full-Chromium script \u00d71) and fatima.shaikh \u00d71. Read-only API calls only: outstanding, ledger, invoice pdf, manager deliveries list/get for INV/0830. No PDF render was requested (INV/0753 and RCPT-0687 were already rendered). Evidence written under QA/evidence/batch1/regression/web-retailer/.",
+   "environmentProblems": "1. My pw-server on CDP :9342 hung once (connectOverCDP timeout) right after the 'Open a UPI app' step sent a upi:// navigation. I killed only the :9342 pw-server and Chromium pair (other walkers' pw-servers left alone), relaunched it and signed in again; the harness is now stopped. 2. chrome-headless-shell has no PDF viewer: PDFs arrive as downloads and the Print iframe never fires load, so the kit's 8 s fallback runs there. Print and Open were re-checked in a separate full Chromium 145 with popup blocking on. 3. The first fatima.shaikh sign-in timed out because the stored ramesh session signed in on its own, so that run was ramesh (renamed *-ramesh-rerun-*). I cleared the browser's storage and signed fatima in properly. 4. Business date 2026-09-13 moves the Last 90 days window to 06-16..09-13 (53 entries against the finding's 54); 'This year' still shows 54. 5. Not testable here: the r5-no-vpa branch (every tenant has upi_vpa), a real UPI app opening a percent-encoded pa, and the statement's service-down retry (stopping retailer-service would break parallel walkers)."
+  },
+  {
+   "group": "delivery",
+   "checks": [
+    {
+     "id": "DOS-058",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. Signed in on http://localhost:5177 and opened Today \u2192 Stop 8 Laxmi Narayan Stores \u2192 Deliver this bill (INV/0830).\n2. On Sunbake Butter Cookies 75 g, pressed '\u2212' once (432 \u2192 360 pc, 72 pc taken back).\n3. Read the reason controls and caption, then tapped Damaged, Past its date and Shop refused it in turn.\n4. Opened D4 fresh: '\u2212' once, Damaged, photographed the signed bill (JPEG through the file chooser), 'Bill signed by' = 'Shopkeeper at counter', then Record the delivery, with the POST captured.\n5. SELECT on credit notes, credit_note_lines, stock_ledger and delivery_lines.",
+     "expected": "- One reason row (Shop refused it | Damaged | Past its date) with a caption.\n- Damaged or Past its date \u2192 'Into the damaged / expiry bin'; Shop refused it \u2192 'Can be sold again'.\n- The request carries returnedSaleable:false with reason 'damaged'; response 200.\n- The credit note says return_damaged and its line is saleable=false.\n- stock_ledger has sale_return_damaged into 'Damaged / expiry bin' and no sale_return_saleable on the vehicle.",
+     "actual": "- After '\u2212': exactly one reason control (d4-reason-88a690ee\u2026) reading 'Shop refused it | Damaged | Past its date'. The old 'Damaged \u2014 into the damaged bin' chip row is gone.\n- Captions: after '\u2212' 'Can be sold again'; Damaged 'Into the damaged / expiry bin'; Past its date 'Into the damaged / expiry bin'; Shop refused it 'Can be sold again'.\n- Record: POST :3005/delivery/deliveries \u2192 200. Line 88a690ee = {deliveredQtyPcs:360, returnedQtyPcs:72, returnedSaleable:false, reason:'damaged'}; the other two lines were full with no reason.\n- Response: outcome partial, CN/9004 reason return_damaged, total \u20b91,268.00.\n- DB: CN/9004 line qty_pcs 72, saleable=false. One stock_ledger row since T0: reason sale_return_damaged, qty_delta +72, location 'Damaged / expiry bin', ref CN/9004. No sale_return_saleable row.\n- delivery_lines tenant-wide in the last hour with returned>0, reason damaged/expired and saleable=true: 0. Stop 8 = partial.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d058-01-stop8-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-02-d4-open-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-03-after-minus-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-04-damaged-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-05-past-its-date-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-06-shop-refused-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-13-ready-to-record-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-14-after-record-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-15-stop8-after-record-fresh-session-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-web-d4-visual-desk.txt",
+      "QA/evidence/batch1/regression/web-delivery/d058-api-web-record-damaged.txt",
+      "QA/evidence/batch1/regression/web-delivery/d058-db-before-record.txt",
+      "QA/evidence/batch1/regression/web-delivery/d058-db-after-record.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3005/delivery/deliveries \u2192 200, returnedSaleable:false, reason 'damaged', creditNote {CN/9004, return_damaged, 126800}. SELECT credit_note_lines \u2192 {qty_pcs:72, saleable:false}. SELECT stock_ledger WHERE created_at >= T0 \u2192 'Damaged / expiry bin' | reason sale_return_damaged | qty_delta 72 | ref_type credit_note. SELECT count(*) FROM delivery_lines WHERE created_at > now()-1h AND returned_qty_pcs>0 AND reason IN (damaged,expired) AND returned_saleable \u2192 0.",
+     "note": "- Stale stop screen: in the recording session, 2.5 s after Record the stop screen still read 'At the shop' with 'Deliver this bill' (d058-14). A fresh session reads 'Part delivered \u00b7 This stop is finished' with no Deliver button (d058-15). That matches open DOS-063 (not in this batch), so it is not a regression.\n- The worker rendered CN/9004's PDF 8 s after the delivery.\n- Not tested: the implementer's adjacent risks (a) a mixed damaged + refused return keeping header reason return_saleable, and (b) the desk creditNotes.create path. Each needs its own bill.\n- The POD readUrl in the record response is relative ('/storage/\u2026'), the DOS-099 residual the implementer flagged. The delivery app does not display it."
+    },
+    {
+     "id": "DOS-058",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "At 390\u00d7844: Stop 8 \u2192 Deliver this bill (INV/0830) \u2192 '\u2212' once on Sunbake Butter Cookies 75 g. Checked the reason controls, tapped Damaged, Past its date and Shop refused it, and measured chip boxes and page overflow. Visual only: Record was not pressed at this width, because the stop can be recorded once and was recorded at desk.",
+     "expected": "One chip row with a caption under it that follows the reason, laid out within the phone width.",
+     "actual": "- Reason controls on the page: 1.\n- Chips sit in one row at x=35/159/249 (widths 122/89/106, height 69), inside 390 px, with no horizontal page overflow.\n- 'Shop refused it' and 'Past its date' wrap to two lines inside their chips and stay readable.\n- Captions: after '\u2212' 'Can be sold again' \u2192 Damaged 'Into the damaged / expiry bin' \u2192 Past its date 'Into the damaged / expiry bin' \u2192 Shop refused it 'Can be sold again'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d058-07-stop8-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-08-d4-open-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-09-after-minus-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-10-damaged-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-11-past-its-date-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-12-shop-refused-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d058-web-d4-visual-phone.txt"
+     ],
+     "dbOrApi": "No write at this width. The server side is proven by the API probes (400 return_not_saleable) and the desk record (CN/9004 return_damaged, saleable=false).",
+     "note": "Record at phone width was not exercised; the payload is built by the same component as at desk."
+    },
+    {
+     "id": "DOS-058",
+     "platform": "api",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. Confirmed return_not_saleable is in backend/libs/core/dist; the delivery service on :3005 started 00:57 IST.\n2. POST :3005/delivery/deliveries on planned delivery 3ef9bd1e\u2026 (INV/0830, Stop 8, TRIP-ACTIVE) with one line: invoiceLineId 88a690ee\u2026, delivered 360, returned 72, returnedSaleable:true, reason 'damaged'.\n3. Repeated with reason 'expired'.\n4. SELECT on credit notes, stop state and delivery row.",
+     "expected": "400 with data.code 'return_not_saleable' and invoiceLineId, for both reasons. Nothing written: 0 credit notes on INV/0830, Stop 8 still arrived.",
+     "actual": "- damaged \u2192 HTTP 400 {code:'return_not_saleable', invoiceLineId:'88a690ee-05d7-7410-ad6c-b47411c564ca', reason:'damaged'}, message 'Sunbake Butter Cookies 75 g: damaged goods go to the damaged bin, not back on sale'.\n- expired \u2192 the same 400 with reason 'expired'.\n- After both: credit_notes on INV/0830 = 0, stop 8 = arrived, deliveries on stop 8 = 1 with outcome NULL.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d058-api-probe-damaged.txt",
+      "QA/evidence/batch1/regression/web-delivery/d058-api-probe-expired.txt",
+      "QA/evidence/batch1/regression/web-delivery/d058-db-after-api-probe.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3005/delivery/deliveries \u00d72 \u2192 400 return_not_saleable. SELECT count(*) FROM credit_notes WHERE invoice_id=INV/0830 \u2192 0; trip_stops.state \u2192 arrived.",
+     "note": "The probe was guarded so it could not use up Stop 8 with the pre-fix behaviour."
+    },
+    {
+     "id": "DOS-061",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. Home (D1) at 1280\u00d7800.\n2. Your other trips \u2192 TRIP-NEXT.\n3. /trip/start?tripId=dda35990-f442-7931-8da4-5808f09a33b6 by URL, then tapped d2-open-trip.\n4. /trip/start with no parameter, then tapped d2-open-trip.\n5. Opened /expenses.\n6. SELECT trips, load_sheets and stop counts for the driver.",
+     "expected": "- Home context 'TRIP-ACTIVE \u00b7 12 Sep 2026', '9 of 10 stops done', next stop = the arrived one, 'Load on board' DC-0081 '64 cartons on board' Confirmed.\n- TRIP-NEXT under Your other trips opens /day?tripId=72649337\u2026.\n- Start for an active trip shows 'This trip has already left \u2014 open its stops', no odometer/float form and no godown sentence, and leads to /day?tripId=dda35990\u2026; the same with no parameter.\n- Expenses names TRIP-ACTIVE.",
+     "actual": "- Home: 'TRIP-ACTIVE \u00b7 12 Sep 2026 \u00b7 Today's trip \u00b7 On the road \u00b7 9 of 10 stops done \u00b7 MH-05-AB-1234'.\n- Next stop: Laxmi Narayan Stores \u20b922,508.00, At the shop.\n- 'Load on board \u00b7 Godown confirmed the load 11 Sep, 12:15 pm \u00b7 DC-0081 \u00b7 64 cartons on board \u00b7 Confirmed'.\n- Your other trips: TRIP-NEXT \u2192 http://localhost:5177/day?tripId=72649337-4c50-7033-a988-ca5cf4406f9c.\n- /trip/start?tripId=dda35990\u2026: consent panel (agreed chip) and bottom button d2-open-trip 'This trip has already left \u2014 open its stops'. No odometer/float text, no 'godown has to load' text, no 'Start the trip' button. Tap \u2192 /day?tripId=dda35990\u2026.\n- /trip/start with no parameter: same button, same destination.\n- /expenses context: 'TRIP-ACTIVE'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d061-01-home-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-01-home-desk.txt",
+      "QA/evidence/batch1/regression/web-delivery/d061-02-other-trip-next-opens-day.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-03-start-by-url-active.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-04-open-its-stops-lands-day.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-05-start-no-param.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-06-expenses-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-db-trips.txt"
+     ],
+     "dbOrApi": "SELECT trips (driver ganesh.more, open) \u2192 TRIP-ACTIVE 2026-09-12 active; TRIP-NEXT 2026-09-14 active. load_sheets \u2192 DC-0081 confirmed 64/64 (TRIP-ACTIVE); draft 38 with no challan (TRIP-NEXT). trip_stops done/total \u2192 TRIP-ACTIVE 9/10, TRIP-NEXT 0/5 at the time of the home check.",
+     "note": "- Business date is 13 Sep and no trip is dated today, so the 'earliest active' branch picked TRIP-ACTIVE, which is correct. The warehouse walker dispatched a load at 01:07 (outbox LoadSheetConfirmed); no new trip for ganesh.more appeared (re-queried).\n- Not observed: the draft-sheet wording ('planned \u2014 not loaded yet'). It only shows on the home when a trip with a draft sheet is current, which needs TRIP-ACTIVE checked in; that step is reserved for a template copy.\n- Not run: withdraw/agree consent, so ganesh.more's consent is unchanged for the Android pass.\n- TRIP-NEXT's end-of-day screen still offers 'Check in the vehicle' and 'Hand \u20b92,500.00 to the cashier'. That is the plan's open question, and DOS-043 is not merged.\n- Offline reach of the trip is the Android pass."
+    },
+    {
+     "id": "DOS-061",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. At 390\u00d7844: Home.\n2. /trip/start?tripId=dda35990\u2026 \u2192 tapped 'open its stops'.\n3. Home \u2192 Your other trips \u2192 TRIP-NEXT.\n4. Expenses \u2192 Toll, amount 120, note 'QA regression DOS-061 toll Kalyan bypass' \u2192 Record the expense, with the POST captured.\n5. SELECT trip_expenses before and after.",
+     "expected": "- Same trip choice and routing at phone width.\n- Today's expense lands on the trip being driven (TRIP-ACTIVE), not the 14 Sep TRIP-NEXT.",
+     "actual": "- Home: 'TRIP-ACTIVE \u00b7 12 Sep 2026 \u00b7 Today's trip \u00b7 On the road \u00b7 9 of 10 stops done'; 'Load on board \u00b7 DC-0081 \u00b7 64 cartons on board \u00b7 Confirmed'.\n- Start: consent panel plus a bottom bar with 'This trip has already left \u2014 open its stops'. No odometer/float form, no godown sentence. Tap \u2192 /day?tripId=dda35990\u2026.\n- TRIP-NEXT row \u2192 /day?tripId=72649337\u2026.\n- Expenses context 'TRIP-ACTIVE'. POST :3005/delivery/expenses {tripId:'dda35990-f442-7931-8da4-5808f09a33b6', kind:'toll', amountPaise:12000} \u2192 200. Screen: 'Expense recorded' and 'Spent on this trip \u20b9120.00'.\n- DB: new row 01a09721-ccb9-7255-ae72-283a1b3dfaa2 on TRIP-ACTIVE, toll, 12000, recorded_by ganesh.more. The Phase 1 \u20b9500 diesel stays on TRIP-NEXT.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d061-07-home-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-08-start-active-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-09-open-stops-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-10-expense-filled-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-11-expense-recorded-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-12-other-trips-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-13-trip-next-day-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d061-api-expense-record.txt",
+      "QA/evidence/batch1/regression/web-delivery/d061-db-expenses-before.txt",
+      "QA/evidence/batch1/regression/web-delivery/d061-db-expenses-after.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3005/delivery/expenses \u2192 200 {tripId:dda35990\u2026, amountPaise:12000}. SELECT trip_expenses JOIN trips \u2192 '01a09721\u2026 | TRIP-ACTIVE | 2026-09-12 | toll | 12000 | ganesh.more'.",
+     "note": "Cosmetic: on the phone Expenses screen the sticky header partly covers the 'What for' heading after scrolling. That is not part of DOS-061 and not logged."
+    },
+    {
+     "id": "DOS-057",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. /share/89e7513d-3068-762d-8e9a-6060dca8d19f (D9, INV/0826, Joshi Kirana Stores).\n2. Open, Print, Send on WhatsApp, recording window.open calls and every :300x or /storage request.\n3. Tapped CN/9003 \u2192 paper sheet \u2192 Open \u2192 Close.\n4. Tapped RCPT-0626 \u2192 sheet; closed and re-tapped every 15 s until it was ready \u2192 Open \u2192 Send.\n5. Fetched each opened signed URL to check its content type.",
+     "expected": "- Open and Print \u2192 a PDF tab from the API origin :3005, not the app origin.\n- Send in desk Chrome \u2192 the PDF tab opens at once, toast 'Nothing was sent', no /storage fetch before the tab.\n- CN/9003 \u2192 sheet, GET /credit-notes/<id> then GET /files/read-url?objectKey=\u2026credit_note\u2026, Open shows the PDF.\n- RCPT-0626 \u2192 'The office is still making this PDF', rendered within about 60 s, then Open/Print/Send work.",
+     "actual": "- Invoice buttons d9-open, d9-print and d9-share were all enabled.\n- Open \u2192 window.open('http://127.0.0.1:3005/storage/tenant/\u2026/documents/invoice/89e7513d\u2026.pdf?expires=\u2026&signature=\u2026'); that URL \u2192 200 application/pdf, 21,840 B, starts '%PDF-'.\n- Print \u2192 the same absolute URL was loaded, then opened in a tab (the cross-origin fallback) \u2192 200 application/pdf.\n- Send \u2192 navigator.canShare is absent in this browser, so the PDF tab opened straight away. The only /storage request was the tab's own document request (no fetch before it). Toast 'Nothing was sent'.\n- CN/9003 \u2192 sheet 'CN/9003 | Close | Open | Print | Send on WhatsApp'. Requests: GET :3005/credit-notes/01a09532-f82f-736d-8bbc-e444a8b3cd48, then GET :3005/files/read-url?objectKey=tenant%2F\u2026%2Fcredit_note%2F01a09532\u2026.pdf. Open \u2192 200 application/pdf, 20,550 B.\n- RCPT-0626 first tap (01:20:43 IST) \u2192 'RCPT-0626 | Close | The office is still making this PDF', via GET :3005/receipts/9f03dd6b\u2026/document?format=a5.\n- Outbox receipt:9f03dd6b\u2026:a5:original was created 01:20:40 and published 01:21:22 (worker 'document rendered'); pdf_object_key set.\n- Re-tap at 01:21:55 \u2192 Open/Print/Send. Open \u2192 200 application/pdf, 20,263 B. Send \u2192 PDF tab plus 'Nothing was sent', and the sheet closed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d057-01-d9-inv0826-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-02-d9-after-share-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-03-cn9003-sheet-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-04-rcpt0626-first-tap-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-05-rcpt0626-reopened-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-06-rcpt0626-after-send-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-web-d9-invoice-open-print-share-desk.txt",
+      "QA/evidence/batch1/regression/web-delivery/d057-web-d9-cn-receipt-desk.txt",
+      "QA/evidence/batch1/regression/web-delivery/d057-db-rcpt0626-render-poll.txt"
+     ],
+     "dbOrApi": "GET signed http://127.0.0.1:3005/storage/\u2026/invoice/89e7513d\u2026.pdf \u2192 200 application/pdf (%PDF-). GET :3005/credit-notes/01a09532\u2026 then GET :3005/files/read-url?objectKey=\u2026credit_note\u2026 \u2192 PDF 200. SELECT receipts RCPT-0626 \u2192 pdf_object_key tenant/\u2026/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf. outbox_events receipt:9f03dd6b\u2026:a5:original created 01:20:40.73, published 01:21:22.1.",
+     "note": "- Print: in headless Chromium the fallback tab opened about 8 s after the tap, because the iframe never completed the print path. In a real desk Chrome a window.open that late may be popup-blocked. That cannot be seen headless; it is the plan's accepted risk 1.\n- Headless Chromium has no PDF viewer, so the tab's page URL reads ':'. Each PDF was proven by fetching the exact signed URL the app opened.\n- The Web Share file hand-over (Android Chrome, Safari) cannot be exercised on desk Chromium.\n- D9's receipt list is the shop's last 10, not the trip's (open DOS-065, not in batch)."
+    },
+    {
+     "id": "DOS-057",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. At 390\u00d7844: /share/89e7513d\u2026 (INV/0826) \u2192 Open, then Send on WhatsApp.\n2. CN/9003 sheet \u2192 Open.\n3. /share/78c9f631-0300-7c18-92a2-834147f645d7 (INV/0832, Anand Bhavan) \u2192 first tap on RCPT-0701, the receipt recorded at the door 5 min earlier \u2192 Open \u2192 Send.",
+     "expected": "- Papers open from :3005 at phone width.\n- A receipt recorded at the door is ready on the first tap: its render was queued at issue.",
+     "actual": "- INV/0826 Open and Send \u2192 window.open of the absolute :3005 signed URL \u2192 200 application/pdf, 21,840 B; toast 'Nothing was sent'.\n- CN/9003 sheet \u2192 Open/Print/Send; Open \u2192 200 application/pdf, 20,550 B.\n- INV/0832 D9 lists RCPT-0701 first ('Cash \u00b7 13 Sep, 1:25 am \u00b7 \u20b92,843.00').\n- First tap (01:30:38 IST) \u2192 the sheet already shows Open/Print/Send (no 'still making'), via GET /receipts/01a09730\u2026/document?format=a5.\n- Open \u2192 200 application/pdf, 20,233 B. Send \u2192 PDF tab plus 'Nothing was sent'; the sheet closed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d057-07-d9-inv0826-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-07-d9-inv0826-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-08-cn9003-sheet-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-09-d9-inv0832-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-10-rcpt0701-first-tap-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d057-11-rcpt0701-after-send-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-d057-d061-web-phone-nonmutating.txt",
+      "QA/evidence/batch1/regression/web-delivery/d057-web-d9-rcpt0701-first-tap-phone.txt"
+     ],
+     "dbOrApi": "GET signed :3005 storage URLs for the invoice, CN/9003 and RCPT-0701 \u2192 200 application/pdf (%PDF-). SELECT receipts RCPT-0701 \u2192 pdf_object_key set before the tap; the render request was published 01:25:22.",
+     "note": "This is web at phone width, not the native share sheet, which belongs to the Android and iOS passes."
+    },
+    {
+     "id": "DOS-057",
+     "platform": "db",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "Recorded a new doorstep cash collection through D5 (Stop 3 Anand Bhavan Provision, \u20b92,843 \u2192 RCPT-0701), then ran read-only SELECTs on receipts and outbox_events.",
+     "expected": "- One DocumentRenderRequested row for receipt:<id>:a5:original, queued in the same transaction as the receipt (queued_at = receipt created_at).\n- Published within about a minute.\n- pdf_object_key = tenant/\u2026/documents/receipt/<id>.pdf.",
+     "actual": "- Exactly one row: aggregate_id receipt:01a09730-2e39-7179-a747-6ac2734d5218:a5:original, event_type DocumentRenderRequested, payload {kind:receipt, format:a5, copy:original, requestedBy: ganesh.more}.\n- created_at 2026-09-13 01:25:12.320857+05:30, equal to the receipt's created_at (comparison = t).\n- published_at 01:25:22.29 (9.97 s lag), attempts 0, no error.\n- receipts.pdf_object_key = tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d057-d060-db-rcpt0701.txt",
+      "QA/evidence/batch1/regression/web-delivery/d057-d060-db-new-receipt.txt"
+     ],
+     "dbOrApi": "SELECT \u2026 FROM outbox_events WHERE aggregate_id LIKE 'receipt:01a09730-2e39-7179-a747-6ac2734d5218%' \u2192 1 row, published 01:25:22.29. SELECT o.created_at = r.created_at, o.published_at - r.created_at \u2192 t, 00:00:09.969. SELECT pdf_object_key FROM receipts \u2192 \u2026/receipt/01a09730\u2026.pdf.",
+     "note": "d057-d060-db-new-receipt.txt shows 'no receipt yet' only because that poll's start time was 4 s after the receipt was created (a race in my script). The by-id re-query is the authoritative evidence."
+    },
+    {
+     "id": "DOS-060",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "At 1280\u00d7800: Stop 3 Anand Bhavan Provision \u2192 Take money (D5, Cash). Inspected the amount field, typed 22508, replaced it with 2843.5, then cleared it. No record at this width.",
+     "expected": "The web amount field takes rupees (22508 means \u20b922,508) and Record the payment enables; the web RupeeInput is unchanged by the fix.",
+     "actual": "- The field is INPUT type=text inputmode=decimal.\n- Empty \u2192 'Record the payment' disabled.\n- '22508' \u2192 field shows 22508, Record enabled.\n- '2843.5' \u2192 accepted, Record enabled.\n- Cleared \u2192 disabled again.\n- 'Owed on the bills here \u20b92,843.00' is printed above the field and never pre-filled.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d060-01-stop3-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-02-d5-empty-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-03-d5-typed-22508-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-04-d5-typed-2843.5-desk.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-d057-d061-web-phone-nonmutating.txt"
+     ],
+     "dbOrApi": "No write at desk. The value actually recorded is proven at phone width (amountPaise 284300 \u2192 RCPT-0701 amount_paise 284300).",
+     "note": "The defect was the native NumberPad, which the Android and iOS passes cover. This check is web parity only."
+    },
+    {
+     "id": "DOS-060",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "ganesh.more (Delivery, Tarsun)",
+     "steps": "1. At 390\u00d7844: Stop 3 Anand Bhavan Provision \u2192 Take money \u2192 Cash.\n2. Clicked the amount field and pressed keys 2-8-4-3 (real key presses) \u2192 Record the payment, with the POST captured.\n3. SELECT receipts, collections and allocations.\n4. Earlier non-mutating try: typed 4756 \u2192 Record enabled.",
+     "expected": "Typing 2843 for a \u20b92,843 bill records \u20b92,843.00 (284300 paise), not \u20b928.43.",
+     "actual": "- Field value '2843', Record enabled.\n- POST :3005/delivery/collections {mode:'cash', amountPaise:284300, stopId:6c4c742c\u2026, tripId:dda35990\u2026} \u2192 200.\n- Response receipt RCPT-0701 amountPaise 284300, allocatedPaise 284300.\n- DB: receipts RCPT-0701 amount_paise 284300, mode cash, status collected, trip TRIP-ACTIVE. collections row amount_paise 284300 on stop 3. allocations 284300.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-delivery/d060-05-d5-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-06-d5-typed-4756-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-07-stop3-phone.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-08-d5-typed-2843-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-09-after-record-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-delivery/d060-api-web-phone-cash-2843.txt",
+      "QA/evidence/batch1/regression/web-delivery/d060-db-before-collection.txt",
+      "QA/evidence/batch1/regression/web-delivery/d057-d060-db-rcpt0701.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3005/delivery/collections \u2192 200 receiptNo RCPT-0701 amountPaise 284300. SELECT receipts WHERE id='01a09730-2e39-7179-a747-6ac2734d5218' \u2192 'RCPT-0701 | 284300 | cash | collected'. SELECT collections WHERE receipt_id=\u2026 \u2192 amount_paise 284300.",
+     "note": "- Allocation: the \u20b92,843 was allocated oldest-first to INV/0354 (21 Jul). INV/0832, the bill on this stop, stays 'issued' while D5 said 'Owed on the bills here \u20b92,843.00'. That is open DOS-062 (not in batch).\n- After Record, the stop screen still read 'Owes \u20b935,548.00' while the API outstanding was \u20b932,705. That is open DOS-063 (not in batch).\n- Neither is a regression of DOS-060."
+    }
+   ],
+   "newFindings": [],
+   "dataTouched": "All writes went through the product (web app or its API) as ganesh.more in tenant tarsun, on dos_qa.\n1. Expense 01a09721-ccb9-7255-ae72-283a1b3dfaa2: toll \u20b9120.00 (12000 paise) on TRIP-ACTIVE dda35990-f442-7931-8da4-5808f09a33b6, note 'QA regression DOS-061 toll Kalyan bypass'. TRIP-ACTIVE's cash to hand over is now \u20b9120 lower.\n2. Delivery on TRIP-ACTIVE Stop 8, Laxmi Narayan Stores (stop 49acc96c-933b-7f45-b5bb-63d01d3b2e7f, delivery 3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab, INV/0830):\n   - Outcome partial: Sunbake Butter Cookies 75 g delivered 360 pc, 72 pc returned as damaged; other lines full. Receiver 'Shopkeeper at counter'.\n   - POD photo object tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg plus a geo evidence row.\n   - Stop 8 is now 'partial'. TRIP-ACTIVE has no open bill left.\n   - CN/9004 (01a09725-3800-716a-baa5-ba5c40ba715a): return_damaged, \u20b91,268.00, PDF rendered.\n   - stock_ledger 01a09725-3818-706c-9b20-7428496bdebb: sale_return_damaged +72 pc, lot 0128aea6-a6cb-76bc-9a2e-fab7a0ff73b6, into 'Damaged / expiry bin'.\n   - For the Android pass: DOS-058's D4 visual check needs another open bill (TRIP-NEXT stops 1\u20135 still have open bills). DOS-060's UPI on Stop 8 still works (collections only need the trip active), but INV/0830 now has \u20b921,240 left after CN/9004.\n3. Cash receipt RCPT-0701 (01a09730-2e39-7179-a747-6ac2734d5218):\n   - \u20b92,843.00 cash from Anand Bhavan Provision R-0043 at TRIP-ACTIVE Stop 3 (collection 01a09730-1de6-70c7-8f13-1498595a4b67).\n   - Allocated by the product to INV/0354 (allocation 01a09730-2e62-75c6-82bd-ee980c72a189); INV/0354 still partially_paid with \u20b986 open; INV/0832 still issued.\n   - Receipt PDF rendered. RCPT numbering series moved to next_no 702.\n4. RCPT-0626 (9f03dd6b-ef52-7176-9439-4e44339c3286, Joshi Kirana): a DocumentRenderRequested outbox row was created by opening it on D9, and it now has a pdf_object_key.\n5. Two DOS-058 API probes returned 400 and wrote nothing.\n6. Sign-ins: one API login and two web logins for ganesh.more (harness restart), so new auth_sessions / device rows.\n7. Nothing was mutated by SQL. Scratch file only: the JPEG used as the POD photo in the session scratchpad.",
+   "environmentProblems": "1. The headless Chromium harness on CDP :9343 hung once. connectOverCDP timed out after my own `pw.mjs do` script crashed inside a Playwright request listener (Request.frame() on a navigation request) while a PDF popup was open. I killed only my :9343 pw-server and Chromium, relaunched, and signed in again. The :9341 walker was not touched. At the end both :9343 pw-server processes (the old one had not exited) were stopped and the port is closed.\n2. Headless Chromium has no PDF viewer: a PDF tab opens as a download and its page URL reads ':'. I proved each PDF by fetching the exact signed URL the app passed to window.open (200, application/pdf, %PDF-).\n3. navigator.canShare is absent in this Chromium, so the Web Share file path (Android Chrome, Safari) could not be exercised on web.\n4. Whether a late Print fallback tab would be popup-blocked in a real, non-headless Chrome cannot be observed headless.\n5. One of my own DB polls started 4 s after the receipt it waited for and printed 'no receipt yet'; a by-id re-query replaced it.\n6. Bash runs on Node 22; this does not affect Playwright."
+  },
+  {
+   "group": "sales-owner",
+   "checks": [
+    {
+     "id": "DOS-073",
+     "platform": "api",
+     "status": "PASS",
+     "user": "rahul.deshmukh (probe), amit.pawar and vikas.kadam (controls)",
+     "steps": "1. Amit via API: POST :3003/orders (R-0051 Rameshwar General Store, 24 pc Campa Cola 750 ml) then /submit \u2192 SO-0894 (Y, 01a0973f-1152-7e10-85f7-4d66444f277d), auto-confirmed. 2. Rahul's token: GET /orders/Y; GET /orders/D (Amit's draft 39c6f032-\u2026); GET /orders/<random uuidv7>. 3. Rahul: GET /orders?salespersonId=<Amit>&limit=50 and GET /orders?limit=50. 4. Rahul: POST /orders/Y/cancel, POST /orders/Y/lines, POST /orders/D/lines, POST /orders/D/submit. 5. Rahul: POST /sync/upload with a sales_orders PUT on D and a sales_order_lines PUT for D. 6. DB after-checks. 7. Controls: Amit GET Y; vikas GET :3002/orders?salespersonId=<Amit>; Amit cancels Y.",
+     "expected": "Every probe on a colleague's order answers 404 with the same shape as a random id; lists hold only Rahul's orders; the sync upload accepts nothing; Y and D unchanged; the owner of the order and the manager are unaffected.",
+     "actual": "GET Y, GET D and GET random all 404 'order <id> not found'. Both list calls 200 with 50 items, all salespersonId = Rahul (8760e17e\u2026), no Amit ids, no nulls. cancel Y, lines Y, lines D and submit D all 404. sync/upload 200 accepted 0: header PUT rejected 'retailer_required', line PUT rejected 'order_not_found'. DB: Y still confirmed with cancelled_at null, transitions only by amit.pawar, reservation 25 pc still pending; D still draft with the same 5 line ids and updated_at 12 Sep 12:50:47; outbox for Y only OrderSubmitted and OrderConfirmed. Controls: Amit GET Y 200; vikas's list 200 with 50 of Amit's orders; Amit's own cancel of Y 200 \u2192 cancelled, reservation voided.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-api-probes.txt"
+     ],
+     "dbOrApi": "select order_no,state,cancelled_at from sales_orders where id='01a0973f-1152-7e10-85f7-4d66444f277d' \u2192 SO-0894|confirmed|null (before control); order_state_transitions on Y \u2192 amit.pawar only; reservations on Y \u2192 25|pending; sales_order_lines for D \u2192 5 rows unchanged; outbox_events for Y \u2192 OrderSubmitted, OrderConfirmed",
+     "note": "The sync header probe got 'retailer_required' rather than the verifier's predicted 'conflict' because my op carried no retailerId; nothing was accepted either way. The residual that warehouse and delivery logins can still cancel any order is DOS-115, logged by the security walker. Final state of Y: cancelled by Amit as the positive control."
+    },
+    {
+     "id": "DOS-073",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "1. Sign in to the sales app :5175 at 1280\u00d7800. 2. Orders tab, capture the list and the GET /orders response. 3. Open Amit's order Y directly at /orders/01a0973f-1152-7e10-85f7-4d66444f277d.",
+     "expected": "My orders lists only Rahul's orders; Amit's order cannot be opened.",
+     "actual": "My orders lists 18 of Rahul's orders (SO-0893\u2026SO-9001); SO-0894 (Amit) is absent. The direct URL shows 'Order \u2014 That order is not on this phone', and the network log shows 404 GET :3003/orders/01a0973f-\u2026.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-01-sales-home-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-02-rahul-orders-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-03-rahul-opens-amit-order-url.png"
+     ],
+     "dbOrApi": "Browser network: 404 GET http://127.0.0.1:3003/orders/01a0973f-1152-7e10-85f7-4d66444f277d; API GET /orders?limit=50 as Rahul \u2192 50 items, all salespersonId 8760e17e\u2026",
+     "note": "Every full page load logs 401 GET /sync/manifest before the refresh; that is DOS-089, not this fix."
+    },
+    {
+     "id": "DOS-073",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "1. Resize the sales app to 390\u00d7844. 2. Open /orders/<Amit's Y>. 3. Open the Orders tab.",
+     "expected": "The same scoping on the phone layout.",
+     "actual": "'That order is not on this phone' (404 on GET /orders/Y). The Orders list shows 18 order numbers, none of them SO-0894.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-04-rahul-amit-order-url-phone.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-073-05-rahul-orders-phone.png"
+     ],
+     "dbOrApi": "Browser network: 404 GET :3003/orders/01a0973f-1152-7e10-85f7-4d66444f277d",
+     "note": ""
+    },
+    {
+     "id": "DOS-075",
+     "platform": "api",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "POST :3003/pricing/quote for Shree Ganesh Kirana (34191c43\u2026, tier C), pricingDate 2026-09-13, Annapurna Sunflower Refined Oil 1 L pouch (934dd63c\u2026): (a) qtyPcs 240; (b) qtyPcs 204.",
+     "expected": "(a) grossPaise 2873760, orderRules [order_pct 57475, rule 6ac23a1a\u2026], the same share in lines[0].appliedRules, discountPaise 57475, netPaise 2816285. (b) orderRules [].",
+     "actual": "(a) HTTP 200: gross 2873760, discount 57475, net 2816285, orderRules [{ruleId 6ac23a1a-ce35-76d2-a002-3a7888fc1c65, v1, order_pct, 57475}], lines[0].appliedRules the same. (b) HTTP 200: gross 2442696, discount 0, orderRules [].",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/api-quotes.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3003/pricing/quote \u2192 200 (bodies saved in api-quotes.txt)",
+     "note": "The scheme is valid until 21 Sep 2026."
+    },
+    {
+     "id": "DOS-075",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "1. Sales app :5175 \u2192 Beat \u2192 Shree Ganesh Kirana \u2192 Take order. 2. Search 'Annapurna Sunflower Refined Oil 1 L' \u2192 Add a case \u2192 open the line \u2192 '+' 19 times \u2192 20 cs = 240 pc. 3. Read This order and the footer. 4. Place order and capture POST /orders and /submit. 5. SQL on the new order.",
+     "expected": "The device footer shows 'Schemes on this order \u2212\u20b9574.75'. After the server re-prices at submit: subtotal 2873760, discount 57475, and applied_rules on the line carrying order_pct 57475.",
+     "actual": "The line reads \u20b9119.74/pc \u00b7 12 pc case, \u20b928,162.85, \u2212\u20b9574.75. 'Schemes on this order \u2212\u20b9574.75'; footer 'Items 1 \u00b7 20 cs \u20b928,162.85 before GST'. Placed as SO-0895 (01a09744-98c7-71b7-b319-a11d9f20428c): POST /orders 200 and /submit 200. DB: subtotal_paise 2873760, discount_paise 57475, tax 140814, total 2957100; line entered 20 case = 240 pc, rate 11974, applied_rules [{order_pct, 6ac23a1a\u2026, 57475}]. State submitted with a credit_limit approval, because the shop is strict and overdue.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-01-shop-card-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-05-oil-20cs-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-08-placed-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-place-order-network.json",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-db-SO-0895.txt"
+     ],
+     "dbOrApi": "select subtotal_paise,discount_paise,total_paise from sales_orders where id='01a09744-98c7-71b7-b319-a11d9f20428c' \u2192 2873760|57475|2957100; sales_order_lines.applied_rules \u2192 [{order_pct 57475}]",
+     "note": "Only 19 cs were available, so the screen warned 'rest short-supplied'. My first add loop wrongly added 20 other items because the search clears after an add; that draft was cleared before placing, and no server draft remained (SQL). After the check SO-0895 was cancelled by Rahul via API, and its credit_limit gate expired."
+    },
+    {
+     "id": "DOS-075",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "With the 20-case oil basket on the order screen, resize to 390\u00d7844 and scroll to the line.",
+     "expected": "The same scheme figures on the phone layout.",
+     "actual": "Header chip 'Schemes \u20b9574.75'; the line reads \u20b928,162.85 with \u2212\u20b9574.75; 'Schemes on this order \u2212\u20b9574.75'; footer 'Items 1 \u00b7 20 cs \u20b928,162.85 before GST'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-06-oil-20cs-phone-viewport.png"
+     ],
+     "dbOrApi": "Same order as the desk check: SO-0895 subtotal 2873760, discount 57475",
+     "note": "The order was placed from the desk layout, not the phone one."
+    },
+    {
+     "id": "DOS-076",
+     "platform": "api",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "POST :3003/pricing/quote for Shree Ganesh Kirana, pricingDate 2026-09-13: (a) Campa 750 ml \u00d748 + Rajwadi Lemon Soda 250 ml \u00d724; (b) Campa \u00d748 + Too Yumm Karare 60 g \u00d748; (c) Rajwadi \u00d7480 + Too Yumm \u00d748.",
+     "expected": "(a) cashDiscountPaise 307, bps 150. (b) 1409, bps 200. (c) bps 150, rule 2bdf40c6\u2026, 5828. The cash discount counts only the scoped brand's lines.",
+     "actual": "(a) 200: cashDiscountBps 150, cashDiscountPaise 307, orderRules [cash_discount_pct 2bdf40c6\u2026 307]. (b) 200: bps 200, 1409, orderRules [663ad71e\u2026 1409]. (c) 200: bps 150, 5828, rule 2bdf40c6-1bb6-743e-9ee6-6a444fbc6855. Line totals: a 130704 net, b 180720 net, c 458976 net.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/api-quotes.txt"
+     ],
+     "dbOrApi": "POST http://127.0.0.1:3003/pricing/quote \u00d73 \u2192 200",
+     "note": "The retailer-app R7 'Paying early takes \u20b9X off' line belongs to the retailer group's walk and was not walked here."
+    },
+    {
+     "id": "DOS-076",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "1. Shree Ganesh Kirana shop card: read the scheme list. 2. Take order: Campa Cola 750 ml 2 cs + Too Yumm Karare 60 g 1 cs (basket b). 3. Read the lines and footer. 4. Clear without placing.",
+     "expected": "No visible change: the sales app prices lines and schemes as before, shows no cash discount, and its net equals the server quote.",
+     "actual": "The card lists 'Too Yumm \u2014 2% cash discount' and 'Rajwadi sodas \u2014 1.5% cash discount'. Lines: Campa \u20b922.97/pc, \u20b91,102.56, 2 pc free; Too Yumm \u20b9704.64. Footer \u20b91,807.20 before GST, equal to quote (b) netPaise 180720. No cash-discount text anywhere on the screen. Cleared back to 'Nothing on this order yet'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-01-shop-card-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-076-01-basket-b-desk.png"
+     ],
+     "dbOrApi": "Quote (b) netPaise 180720 = footer \u20b91,807.20; no order placed",
+     "note": "The footer read 'Items 2 \u00b7 4 cs' for 3 cases; logged as a new P3 finding, not part of this fix."
+    },
+    {
+     "id": "DOS-076",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "The same basket b at 390\u00d7844, scrolled to the lines.",
+     "expected": "The same totals on the phone layout.",
+     "actual": "Footer 'Items 2 \u00b7 4 cs \u20b91,807.20'; no cash-discount deduction shown.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-076-02-basket-b-phone-viewport.png"
+     ],
+     "dbOrApi": "Quote (b) netPaise 180720",
+     "note": ""
+    },
+    {
+     "id": "DOS-077",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "rahul.deshmukh",
+     "steps": "1. Shree Ganesh Kirana \u2192 Take order at 1280\u00d7800. 2. Read the Add items rows and measure the first six rows' name column, chip and 'Add a case' button. 3. Compare with Phase 1 web evidence p-03/s-09.",
+     "expected": "Each row shows name, brand \u00b7 case size, 'N cs available' and a label-width 'Add a case' inside the row, as in Phase 1.",
+     "actual": "Rows read 'Campa Cola 1 L / Campa \u00b7 24 pc case / 18 cs available / Add a case', and so on, the same sequence as p-03/s-09 (171 items). Name column 750\u2013774 px, not clipped. Button 115 px wide, right edge 1251 inside the row edge 1263.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-01-order-entry-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-row-measurements.json"
+     ],
+     "dbOrApi": "n/a (layout); DOM measurements saved in DOS-077-row-measurements.json",
+     "note": "The defect under test was Android; Android and iOS were not walked by this web walker."
+    },
+    {
+     "id": "DOS-077",
+     "platform": "web-phone 390x844",
+     "status": "FAIL",
+     "user": "rahul.deshmukh",
+     "steps": "1. Laxmi Narayan Stores \u2192 Take order at 390\u00d7844. 2. Scroll to Add items. 3. Measure the rows; take a viewport screenshot.",
+     "expected": "The rows show a readable name (up to 2 lines), brand \u00b7 case and stock chip, with a label-width 'Add a case', and nothing regressed.",
+     "actual": "The DOM carries name, pack and chip, and the button is label-width (115 px, right edge 361 inside the row's 373). But the visible name column is only 32\u201356 px wide and clipped ('Camp / Col\u2026', pack 'Cam\u2026'): the stock chip takes 142\u2013166 px of the 356 px row. A rep cannot tell Campa Cola 1 L from 2 L or 200 ml.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-05-catalog-rows-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-04-search-row-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-row-measurements.json"
+     ],
+     "dbOrApi": "n/a (layout); phone390 rows: nameColW 44/56/56/56/32/56, nameClipped true",
+     "note": "Not proven to be a regression of this batch: Phase 1 phone evidence (p-03) captured only the top of the screen, so the pre-fix phone rows cannot be compared. Logged as a new P2 ux finding."
+    },
+    {
+     "id": "DOS-001",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "sunil.tarsun",
+     "steps": "1. Owner app :5173 at 1280\u00d7800 \u2192 Today \u2192 'Money owed, by age'. 2. Money \u2192 the same widget. 3. GET :3001/reporting/dashboard/owner. 4. SQL sums of retailer_outstanding_summary.",
+     "expected": "All six rungs identical on both screens and equal to the live sums; 90+ non-zero.",
+     "actual": "Today: 0\u20137 23,03,430.00 \u00b7 8\u201315 6,86,688.50 \u00b7 16\u201330 7,99,017.50 \u00b7 31\u201360 4,92,990.00 \u00b7 61\u201390 90,203.00 \u00b7 90+ 25,962.00. Money shows the identical six. API 200: ageing.b90plus 2596200, detail keys include ageingB90plus = 2596200.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-01-today-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-02-money-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-api-dashboard-owner.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-db-owner-summary.txt"
+     ],
+     "dbOrApi": "select sum(bucket_0_7_paise)\u2026sum(bucket_90_plus_paise) from retailer_outstanding_summary where tenant_id='01a0947d\u2026' \u2192 230343000|68668850|79901750|49299000|9020300|2596200",
+     "note": "90+ is now \u20b925,962 (the seed had \u20b935,144) because Phase 1 collections moved money; the widget follows the live number."
+    },
+    {
+     "id": "DOS-001",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "sunil.tarsun",
+     "steps": "Resize to 390\u00d7844 on Money, then on Today, and read 'Money owed, by age'.",
+     "expected": "The same six rungs at phone width.",
+     "actual": "Money and Today both read 23,03,430.00 / 6,86,688.50 / 7,99,017.50 / 4,92,990.00 / 90,203.00 / 90+ 25,962.00.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-03-money-phone.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-04-today-phone.png"
+     ],
+     "dbOrApi": "Same SQL as desk: 90+ = 2596200",
+     "note": ""
+    },
+    {
+     "id": "DOS-001",
+     "platform": "db",
+     "status": "PASS",
+     "user": "dos (read-only SQL)",
+     "steps": "1. Read owner_summary.detail keys and as_of for tarsun, sai-distributors and kalyan-agencies in dos_qa. 2. Read pgboss.job for reporting.rollup. 3. For comparison, read the same rows in dos_batch1_template and dos_b1_e2e.",
+     "expected": "detail holds ageingB90plus (not ageingB90Plus) and equals the live 90+ sum; state whether the worker rewrote it.",
+     "actual": "dos_qa: tarsun as_of 01:30:24 (again 02:00:25) has ageingB90plus 2596200 and no ageingB90Plus key; sai 2460200 and kalyan 2595350, the same shape. All were written by the worker: reporting.rollup.tenant jobs completed 01:30:22\u201301:30:34 and 02:00:23\u201302:00:35. dos_qa was last seeded 12 Sep 12:51, before the fix. The seed-written row survives in dos_batch1_template and dos_b1_e2e: as_of 12 Sep 18:00, key ageingB90Plus = 3514400 (tarsun), no ageingB90plus.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-db-owner-summary.txt"
+     ],
+     "dbOrApi": "select t.slug,s.as_of,s.detail ? 'ageingB90Plus',s.detail ? 'ageingB90plus',s.detail->>'ageingB90plus' from owner_summary s join tenants t \u2026 \u2192 tarsun|2026-09-13 02:00:25|f|t|2596200 (dos_qa); tarsun|2026-09-12 18:00|t|f| (dos_batch1_template)",
+     "note": "What the owner sees on dos_qa is the worker's correctly-keyed rollup, not the corrected seed. The rollup rewrote the row before I first looked (about 01:35), so the seed-written row was never observed live on the merged code."
+    },
+    {
+     "id": "DOS-001-seed",
+     "platform": "db",
+     "status": "NOT TESTED",
+     "user": "n/a",
+     "steps": "Looked for any database seeded with the fixed seed-demo code.",
+     "expected": "A freshly seeded owner_summary row carries ageingB90plus.",
+     "actual": "No such database exists: dos_qa, dos_batch1_template, dos_b1_e2e and dos_b1_l5 were all seeded before bc1f809. Re-seeding is outside this walker's rules.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-001-db-owner-summary.txt"
+     ],
+     "dbOrApi": "dos_b1_e2e / dos_b1_l5 owner_summary: as_of 2026-09-12 18:00, stray ageingB90Plus present",
+     "note": "The seed key change is covered only by backend/libs/database/src/seed-demo.test.ts; it needs a re-seed of a scratch database to observe."
+    },
+    {
+     "id": "DOS-005",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "rahul.deshmukh (creates), sunil.tarsun (decides)",
+     "steps": "1. Rahul, sales web: Sai Krupa Super Bazar (indicate) \u2192 Campa Cola 1 L 1 cs \u2192 Ask a rate \u20b925.00 against \u20b928.07 ('Over your limit \u2014 the office decides') \u2192 Place order \u2192 SO-0896. 2. Rahul: Mahalaxmi General Stores \u2192 Campa Cola 2 L 1 cs \u2192 ask \u20b945.54 against \u20b951.17 \u2192 SO-0897. 3. Owner Approvals \u2192 All / Order approvals / Rate requests: count rows per bargain. 4. Open the SO-0896 Bargain row, write a note, Reject, confirm. 5. Reload and recount. 6. SQL. 7. Rahul opens SO-0896 in the sales app.",
+     "expected": "One named row per bargain in every segment, no unnamed 'Bargain / \u2014' rows; the decision goes through approvals.decide and decides the bargain request too; the rep sees it refused.",
+     "actual": "SO-0896's gate is approvals 01a09748-0341\u2026 kind bargain, entity_type bargain_request, entity_id = bargain 01a09747-1a25\u2026. All has 12 rows: Om Sai \u20b939.58 \u00d71, SO-0897 Bargain \u20b945.54 \u00d71, SO-0896 Bargain \u20b925.00 \u00d71, standalone Shree Ganesh \u20b913.00 \u00d71, standalone Mahalaxmi \u20b922.28 \u00d71, no unnamed rows. Rate requests has 5 rows, each bargain once. Reject \u2192 POST :3001/approvals/01a09748-0341-72e9-af7b-656783fcb16c/decide 200. DB: approval rejected by sunil.tarsun with the note; bargain_requests 01a09747-1a25\u2026 rejected, decided_by sunil, same note; SO-0896 cancelled with cancel_reason approval_rejected (transition by sunil.tarsun, OrderCancelled outbox). After reload SO-0896 appears 0 times in all three segments. The rep's detail reads 'Cancelled \u00b7 Rate change \u00b7 Decided 13 Sep, 1:58 am \u00b7 Refused'. Approving SO-0897's bargain row likewise decided its bargain: approved, approved_rate_paise 4554, decided_by sunil.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-03-after-ask-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-10-owner-approvals-default-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-11-owner-order-approvals-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-12-owner-rate-requests-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-21-reject-confirm-dialog-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-22-after-reject-all-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-22-after-reject-rate-requests-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-31-rep-sees-SO-0896-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-reject-SO-0896-network.json",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-db-SO-0896-before.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-db-SO-0896-after-reject.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-api-owner-approvals-pending.txt"
+     ],
+     "dbOrApi": "select status,decided_by from approvals where id='01a09748-0341\u2026' \u2192 rejected|sunil; select status,note from bargain_requests where id='01a09747-1a25\u2026' \u2192 rejected|'QA DOS-005 regression: list rate holds'; select state,cancel_reason from sales_orders where order_no='SO-0896' \u2192 cancelled|approval_rejected",
+     "note": "Owner half only; the manager half is walked later. Om Sai's seed gate 29e03a4b was viewed, not decided, and is left for the manager walk. The Person column shows a raw id 'd1dafe6b' for shop-placed orders SO-0885/0886/0887 (DOS-004 area, not merged). Today 'Needs you' also lists Om Sai once."
+    },
+    {
+     "id": "DOS-005",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "sunil.tarsun",
+     "steps": "Owner Approvals \u2192 All at 390\u00d7844.",
+     "expected": "One row per bargain on the phone list.",
+     "actual": "Rows: Om Sai Provision Store Bargain 39.58; SO-0897 Bargain 45.54; SO-0897 Over credit limit 1,375.00; SO-0896 Bargain 25.00; SO-0895, SO-0887, SO-0886, SO-0885, SO-0882, SO-0879 Over credit limit; Shree Ganesh Kirana Bargain 13.00; Mahalaxmi General Stores Bargain 22.28. Each bargain appears once.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-13-owner-approvals-all-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-13-owner-approvals-all-phone.png"
+     ],
+     "dbOrApi": "GET :3001/approvals?status=pending&limit=50 \u2192 10 items, one bargain_request gate per order bargain",
+     "note": "The list was checked at phone width; the reject and approve decisions were made at desk width."
+    },
+    {
+     "id": "DOS-020",
+     "platform": "web-desk 1280x800",
+     "status": "PASS",
+     "user": "sunil.tarsun",
+     "steps": "1. Owner Orders ?q=SO-0897 (Mahalaxmi, strict and overdue, gates credit_limit and bargain) \u2192 open the panel. 2. Read Confirm order; press key 1; force-click Confirm while watching POSTs. 3. On Approvals, approve SO-0897 Bargain with a note. 4. Reopen the panel; SQL snapshot. 5. Approve SO-0897 Over credit limit (the last gate) with a note. 6. Reopen the panel; SQL; the rep's view.",
+     "expected": "Confirm is disabled while approvals are pending and says so; key 1 does nothing; deciding one gate leaves the order submitted; deciding the last gate confirms the order through the approval decision and reserves stock.",
+     "actual": "Confirm is disabled (disabled=true, aria-disabled) with 'Waiting on Over credit limit \u00b7 Bargain. Decide it on Approvals; the last approval confirms the order.' Key 1 and the forced click sent no POST to :3001 and opened no dialog. The register's Waiting on column reads 'Over credit limit, Bargain'. After the bargain approval (decide 200): the panel reads 'Waiting on Over credit limit.'; DB at 01:59:33 shows the order submitted, credit_limit pending, 0 reservations. Last approval: POST /approvals/01a09748-eb36-726e-9fd6-963549eab069/decide 200 \u2192 SO-0897 confirmed at 01:59:53. Transition submitted\u2192confirmed, event confirm, actor sunil.tarsun. Both approvals approved by sunil with the typed notes; 5 reservation rows totalling 24 pc; OrderConfirmed outbox. The row left Approvals. The panel shows State Confirmed and Confirm disabled with the reason 'State'. The rep sees 'Confirmed \u00b7 Credit limit Approved \u00b7 Rate change Approved'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-02-mahalaxmi-placed-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-10-owner-order-panel-SO-0897-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-11-owner-after-key1-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-22-panel-after-bargain-approved-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-30-approvals-one-gate-left-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-31-approve-credit-dialog-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-32-approvals-after-last-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-33-panel-after-last-approval-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-40-rep-sees-SO-0897-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-before.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-bargain-approve.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-last-approval.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-approve-bargain-SO-0897-network.json",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-approve-credit-SO-0897-network.json",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-api-owner-SO-0897-before.json"
+     ],
+     "dbOrApi": "select state,confirmed_at from sales_orders where order_no='SO-0897' \u2192 confirmed|01:59:53.393; order_state_transitions \u2192 submitted|confirmed|confirm|sunil.tarsun; select count(*),sum(qty) from reservations \u2026 \u2192 5|24",
+     "note": "Owner half only. Not in this batch and unchanged: no audit_log rows for the confirm or either decision (DOS-028), and Mahalaxmi's credit_limit_paise is still 5000000 after approving 'Over credit limit' (DOS-006). New finding: the confirmed line keeps the pre-bargain rate \u20b951.17 after the \u20b945.54 bargain was approved. 'Stock held 5' counts reservation rows, not pieces (new P3)."
+    },
+    {
+     "id": "DOS-020",
+     "platform": "web-phone 390x844",
+     "status": "PASS",
+     "user": "sunil.tarsun",
+     "steps": "At 390\u00d7844: owner Orders ?q=SO-0897 \u2192 tap the order \u2192 scroll to Confirm order (while both gates were pending).",
+     "expected": "The same disabled Confirm and the same reason on the phone sheet.",
+     "actual": "Confirm order is disabled (disabled=true) with 'Waiting on Over credit limit \u00b7 Bargain. Decide it on Approvals; the last approval confirms the order.' below it.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-12-owner-order-panel-phone-viewport.png"
+     ],
+     "dbOrApi": "GET :3001/orders/01a09748-9152-72c8-b71b-20fb66e8867f \u2192 state submitted, approvals credit_limit pending + bargain pending",
+     "note": "The decisions were made at desk width."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Approving a rate request on Approvals confirms the order at the old rate, not the approved one",
+     "category": "business-logic",
+     "priority": "P1",
+     "role": "Owner (shop and rep affected)",
+     "platform": "Web (owner app :5173, sales app :5175) + Backend (orders.approvals.decide)",
+     "steps": "1. rahul.deshmukh, sales web: Mahalaxmi General Stores \u2192 Take order \u2192 Campa Cola 2 L 1 cs (rate now \u20b951.17) \u2192 Ask a rate \u20b945.54 ('Over your limit \u2014 the office decides') \u2192 Place order \u2192 SO-0897 submitted with gates credit_limit and bargain. 2. sunil.tarsun, owner Approvals \u2192 SO-0897 Bargain \u2192 note \u2192 Approve (POST /approvals/01a09748-eb36-726f-80cd-50cd5ac54ff3/decide 200) \u2192 bargain_requests 01a09748-91be-702d-98df-44f7e0ed5309 approved, approved_rate_paise 4554. 3. Approve SO-0897 Over credit limit (the last gate) \u2192 order confirmed 01:59:53, 5 reservations / 24 pc. 4. SQL on sales_order_lines; Rahul opens SO-0897 in the sales app.",
+     "expected": "When the bargain gate is approved, the order line is re-priced at the approved \u20b945.54/pc (24 pc = \u20b91,092.96 before GST) before the order is confirmed and stock reserved, or the confirm waits until it is.",
+     "actual": "sales_order_lines: list_rate_paise 5117, rate_paise 5117, line_total_paise 137545, applied_rules []. sales_orders subtotal 122808, total 137500 (\u20b91,375.00). The rep's detail shows 'Campa Cola 2 L \u00b7 1 cs \u00b7 \u20b951.17/pc' directly under 'Rate change \u00b7 Decided 13 Sep, 1:59 am \u00b7 Approved'. No re-price happened between the decision and the confirm. The bill was not generated in this walk; per the DOS-005 implementer note, invoices copy the order line rate (not verified here).",
+     "businessImpact": "The owner says yes to \u20b945.54, the rep tells the shopkeeper it is approved, and the shop is charged \u20b951.17: \u20b9135 over on one case, 11% on the line. Every rate request approved on a held order is silently lost and turns into a dispute at delivery or collection.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-last-approval.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-40-rep-sees-SO-0897-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-33-panel-after-last-approval-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-approve-bargain-SO-0897-network.json"
+     ],
+     "suggestedFix": "In the approval decide path, when a bargain_request gate is approved, re-price the order's lines through priceOrder() with the approved bargain (the device's bargain step) in the same transaction, before confirmInTx reserves stock. Add a spec asserting rate_paise = approved_rate_paise and applied_rules carries the bargain after the last approval. The implementer already flagged this as a candidate in the DOS-005 follow-ups."
+    },
+    {
+     "title": "A shop's own cancellation leaves the order's approvals pending, and the owner can neither approve nor reject them",
+     "category": "bug",
+     "priority": "P2",
+     "role": "Owner (shop cancels)",
+     "platform": "Backend (orders.cancel under the retailer role, retailer-service :3006) + Web owner app :5173",
+     "steps": "1. fatima.shaikh (retailer, tenant tarsun) via retailer-service: POST /orders draft for R-0010 Balaji Wholesale Stores (24 pc Campa Cola 750 ml); POST /pricing/bargains asked 2014 against list 2263 with orderId; POST /orders/{id}/submit \u2192 SO-0898 (01a09754-da7f-73b5-84b2-2539fdc5d8b7) submitted with approval 01a09754-db92-712c-8693-b77fc5f360ad (bargain / bargain_request) pending. 2. POST /orders/{id}/cancel \u2192 200, state cancelled. 3. SQL on approvals and bargain_requests. 4. Owner GET :3001/approvals?status=pending, then owner Approvals screen. 5. Owner POST /approvals/01a09754-db92\u2026/decide approve, then reject. Control: salesperson rahul.deshmukh cancels his own held SO-0895 \u2192 its credit_limit approval turns 'expired' in the same second.",
+     "expected": "A shop's cancel expires the order's pending approvals, exactly as the rep's cancel does, and they leave the owner's queue.",
+     "actual": "After the shop's cancel the approval stays 'pending' and the bargain stays 'requested'. The owner's API queue still lists it, and the Approvals screen shows an SO-0898 row. Approve \u2192 409 'order: cannot apply \"confirm\" in state \"cancelled\"'. Reject \u2192 409 'order: cannot apply \"cancel\" in state \"cancelled\"'. Both leave it pending, so it can never be cleared. SO-0886 and SO-0887 (cancelled by ramesh.gupta on 12 Sep) are in the same state and sit under owner Today 'Needs you' as 'Waiting for owner'. pg_policies: approvals_read is USING actor_role <> 'retailer', so cancelInTx's UPDATE approvals SET status='expired' WHERE order_id=\u2026 AND status='pending' matches no row when the actor is the shop.",
+     "businessImpact": "The owner's first screen and Approvals queue fill with requests nobody can decide, one more for every held order a shop cancels. Real requests get buried and the pending-approvals count is inflated.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/NEW-retailer-cancel-leaves-approval-pending.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/NEW-01-owner-approvals-stale-SO-0898-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-005-30-owner-today-after-decisions-desk.png"
+     ],
+     "suggestedFix": "Run the approval-expiry statement in cancelInTx under a context that can see the rows: a SECURITY DEFINER function, or withSystem for that one statement, or a retailer SELECT policy limited to its own orders. Make decide on a gate whose order is already cancelled or closed mark the gate expired instead of answering 409. Repair the existing stale rows (SO-0886, SO-0887, SO-0898). Add a rls.test/spec case for a retailer cancel of a held order."
+    },
+    {
+     "title": "Sales web app at phone width: catalog rows clip the item name to 4\u20135 letters",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Sales Rep",
+     "platform": "Web (sales app :5175) at 390\u00d7844",
+     "steps": "1. rahul.deshmukh at 390\u00d7844 \u2192 Beat \u2192 Laxmi Narayan Stores \u2192 Take order. 2. Scroll to 'Add items'. 3. Measure the first six rows (DOM bounding boxes).",
+     "expected": "The item name is readable (up to 2 lines) and 'brand \u00b7 N pc case' is visible, as at 1280 px.",
+     "actual": "Name column 32\u201356 px wide and clipped: 'Camp / Col\u2026' with the pack line 'Cam\u2026' / 'Camp\u2026'. In the 356 px row the stock chip ('18 cs available') takes 142\u2013166 px and 'Add a case' 115 px. At 1280 px the same column is 750\u2013774 px and not clipped.",
+     "businessImpact": "On a phone browser the rep cannot tell Campa Cola 1 L from 2 L or 200 ml before tapping 'Add a case': the same blind-add risk DOS-077 removed on Android. Whether this predates the DOS-077 change could not be established, because Phase 1 phone evidence captured only the top of the screen.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-05-catalog-rows-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-04-search-row-phone-viewport.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-077-row-measurements.json"
+     ],
+     "suggestedFix": "Below the desk breakpoint, move the availability onto the meta line ('Campa \u00b7 24 pc case \u00b7 18 cs') or let the trailing chip and button wrap under the name. Give the name column a minimum width. Add a 390 px layout check for frontend/sales-app/app/orders/new.tsx catalog rows."
+    },
+    {
+     "title": "Order footer counts cases with the first line's case size",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Sales Rep",
+     "platform": "Web (sales app :5175), desk and phone",
+     "steps": "1. rahul.deshmukh \u2192 Shree Ganesh Kirana \u2192 Take order. 2. Add Campa Cola 750 ml 2 cs (24 pc case) and Too Yumm Karare 60 g 1 cs (48 pc case). 3. Read the footer.",
+     "expected": "'Items 2 \u00b7 3 cs' (or the piece total when case sizes differ).",
+     "actual": "'Items 2 \u00b7 4 cs': 96 pc divided by the first line's 24. An order of 21 lines of one case each with mixed case sizes read 'Items 21 \u00b7 45 cs + 3 pcs'. Code: new.tsx:266 formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)); caseSizeOf returns lines[0]'s case size (new.tsx:519\u2013523).",
+     "businessImpact": "The rep reads a wrong case count back to the shopkeeper just before placing: a small error, but on the number people check.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-076-01-basket-b-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-076-01-basket-b-desk.txt",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-075-03-oil-20cs-desk.txt"
+     ],
+     "suggestedFix": "Sum whole cases per line with each line's own case size (and the leftover pieces per line), or show only pieces when the lines' case sizes differ."
+    },
+    {
+     "title": "Owner order panel 'Stock held' shows the number of reservation rows, not the pieces held",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Owner",
+     "platform": "Web (owner app :5173)",
+     "steps": "1. Owner Orders \u2192 SO-0897 after it was confirmed (1 cs Campa Cola 2 L = 24 pc). 2. Read 'Stock held'.",
+     "expected": "'24 pc' (1 cs) held for the order.",
+     "actual": "'Stock held 5': the five reservation rows (lots) that together hold 24 pc. owner-app/app/orders/index.tsx:322 renders String(reservations.data?.items.length ?? 0).",
+     "businessImpact": "The owner reads 5 as a quantity when checking what a confirmed order has taken from stock.",
+     "evidence": [
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-33-panel-after-last-approval-desk.png",
+      "QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-last-approval.txt"
+     ],
+     "suggestedFix": "Show the summed reservation qty formatted with the line case size (e.g. '1 cs \u00b7 24 pc'), or label the count as lots."
+    }
+   ],
+   "dataTouched": "All in dos_qa, tenant tarsun, created through the product UI or API.\n\n- SO-0894 (01a0973f-1152-7e10-85f7-4d66444f277d): amit.pawar via API, R-0051 Rameshwar General Store, 24 pc Campa Cola 750 ml. Confirmed, then cancelled by Amit as the DOS-073 positive control; reservation 25 pc voided.\n- SO-0895 (01a09744-98c7-71b7-b319-a11d9f20428c): rahul.deshmukh via sales web, R-0001 Shree Ganesh Kirana, 20 cs Annapurna Sunflower Refined Oil 1 L pouch.\n  - Submitted, held on credit_limit approval 01a09745-6c43-7253-8bbd-b744cffac8b7.\n  - Later cancelled by Rahul via API; the approval is expired and nothing was reserved.\n- SO-0896 (01a09747-19ae-7674-a86f-d14b67643aff): Rahul via sales web, R-0004 Sai Krupa Super Bazar, 1 cs Campa Cola 1 L.\n  - Bargain 01a09747-1a25-7320-92bf-42c36d8d5225 (asked 2500 against 2807).\n  - Approval 01a09748-0341-72e9-af7b-656783fcb16c rejected by sunil.tarsun, which rejected the bargain; order cancelled (approval_rejected).\n- SO-0897 (01a09748-9152-72c8-b71b-20fb66e8867f): Rahul via sales web, R-0003 Mahalaxmi General Stores, 1 cs Campa Cola 2 L.\n  - Bargain 01a09748-91be-702d-98df-44f7e0ed5309 approved at 4554.\n  - Approvals 01a09748-eb36-726f-80cd-50cd5ac54ff3 (bargain) and 01a09748-eb36-726e-9fd6-963549eab069 (credit_limit) approved by sunil.tarsun.\n  - Order CONFIRMED with 5 reservation rows = 24 pc. It is left confirmed as evidence and will appear in the warehouse and billing queues.\n- SO-0898 (01a09754-da7f-73b5-84b2-2539fdc5d8b7): fatima.shaikh via retailer-service API, R-0010 Balaji Wholesale Stores, 24 pc Campa Cola 750 ml.\n  - Bargain 01a09754-dac1-74cf-bd82-59bb9b55fc6f still requested (asked 2014).\n  - Order cancelled by fatima. Approval 01a09754-db92-712c-8693-b77fc5f360ad is stuck pending: owner approve and reject both answered 409 and changed nothing.\n- Rahul's DOS-073 sync/upload probe left two rejected ops in sync_ops (opIds qa-073-h-7eca6850\u2026 and qa-073-l-afc91fb0\u2026).\n- Amit's draft 39c6f032-fd27-7d15-b761-79cded32d0f8 was probed but is unchanged.\n- No other records changed:\n  - no server-side drafts (two sales-web drafts were cleared before placing);\n  - Om Sai's seed bargain gate 29e03a4b is untouched;\n  - SO-0879/0882/0885/0886/0887 were only viewed.\n- API sign-ins added device sessions: rahul.deshmukh \u00d75, sunil.tarsun \u00d75, amit.pawar \u00d73, vikas.kadam \u00d71, fatima.shaikh \u00d71.",
+   "environmentProblems": "Harness problems only, none of them product defects:\n- `pw.mjs login` timed out when the owner app was already signed in from earlier in the same Chromium profile (no sign-in form). I navigated directly instead.\n- The order screen's search clears after \"Add a case\", so my first 20-click loop added 20 different catalog rows. The draft was cleared before placing and no server draft was left.\n- On the owner Orders register a Playwright click on the order-number text did not open the panel; clicking the `<tr>` did.\n- Full-page screenshots of the Expo web apps capture only the viewport because the scroll container is internal, so phone evidence uses scrolled viewport shots.\n- Every page load logs a 401 on /sync/manifest before the refresh; that is the known DOS-089.\n- Android and iOS were out of scope for this web walker.\n- The headless Chromium on :9344 was stopped at the end."
+  },
+  {
+   "group": "security",
+   "checks": [
+    {
+     "id": "DOS-073",
+     "platform": "api",
+     "status": "PASS",
+     "user": "amit.pawar (salesperson, tarsun) against orders of rahul.deshmukh; controls rahul.deshmukh, vikas.kadam",
+     "steps": "1. As rahul on sales-service :3003, created and submitted fixture X = SO-0888 (R-0004, 6 pc, auto-confirmed) and created draft D (R-0007). 2. As amit on :3003: GET /orders/X, POST /orders/X/cancel, /orders/X/lines, /orders/X/submit; GET /orders/D, POST /orders/D/lines, /submit, /cancel; GET a random UUIDv7 for shape. 3. GET /orders?limit=200 (with no filter, with salespersonId=rahul, with retailerId=X's shop, q=SO-0888), paging every cursor. 4. POST /sync/upload with a sales_orders PUT on D (note 'HIJACKED'), a sales_order_lines PUT for D (99 pc) and a sales_orders PUT on X. 5. Controls: amit GET own draft 39c6f032; rahul GET X; vikas GET :3002/orders?salespersonId=amit and GET X; rahul cancels his own draft D.",
+     "expected": "Every get/cancel/setLines/submit is 404, with the same shape as an unknown id. Lists hold only amit's orders. Sync returns 2xx with rejections and applies nothing. Owners and the desk still reach the orders.",
+     "actual": "All 8 mutations and reads returned 404 with body 'order <id> not found', identical to the random id. List over 2 pages: 383 items, all salespersonId = amit (DB count 383), both with and without salespersonId=rahul. retailerId filter and q=SO-0888 return []. Sync returned 200, accepted 0: D header 'conflict', D line 'order_not_found', X header 'conflict'. DB: X still confirmed with note and line unchanged, D unchanged, 0 transitions by amit, 0 rows with amit's line id, sync_ops outcome ok:false, sync_errors rows written. Controls: 200, 200, 50 of amit's orders for the manager, 200, and rahul's own cancel 200.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/fx-01-rahul-create-X-R0004.txt",
+      "QA/evidence/batch1/regression/api-security/fx-02-rahul-submit-X.txt",
+      "QA/evidence/batch1/regression/api-security/fx-03-rahul-create-draft-D-R0007.txt",
+      "QA/evidence/batch1/regression/api-security/a-01-amit-get-rahul-order-X.txt",
+      "QA/evidence/batch1/regression/api-security/a-02-amit-get-random-id-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-03-amit-cancel-rahul-order-X.txt",
+      "QA/evidence/batch1/regression/api-security/a-04-amit-setlines-rahul-order-X.txt",
+      "QA/evidence/batch1/regression/api-security/a-05-amit-submit-rahul-order-X.txt",
+      "QA/evidence/batch1/regression/api-security/a-06-amit-get-rahul-draft-D.txt",
+      "QA/evidence/batch1/regression/api-security/a-07-amit-setlines-rahul-draft-D.txt",
+      "QA/evidence/batch1/regression/api-security/a-08-amit-submit-rahul-draft-D.txt",
+      "QA/evidence/batch1/regression/api-security/a-09-amit-cancel-rahul-draft-D.txt",
+      "QA/evidence/batch1/regression/api-security/a-10-amit-list-orders.txt",
+      "QA/evidence/batch1/regression/api-security/a-11-amit-list-orders-salesperson-rahul.txt",
+      "QA/evidence/batch1/regression/api-security/a-12-amit-list-orders-retailer-of-X.txt",
+      "QA/evidence/batch1/regression/api-security/a-13-amit-list-orders-q-SO0888.txt",
+      "QA/evidence/batch1/regression/api-security/a-14-amit-sync-upload-rahul-orders.txt",
+      "QA/evidence/batch1/regression/api-security/a-15-db-after-amit-probes.txt",
+      "QA/evidence/batch1/regression/api-security/a-16-amit-get-own-draft-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-17-rahul-get-own-order-X-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-18-manager-list-amit-orders-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-19-manager-get-X-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-20-rahul-cancel-own-draft-D-control.txt",
+      "QA/evidence/batch1/regression/api-security/a-21-amit-list-all-pages-summary.txt"
+     ],
+     "dbOrApi": "SELECT order_no,state,note,updated_at FROM sales_orders WHERE id IN (X,D) \u2192 SO-0888 confirmed / draft, both unchanged since 01:08:09. SELECT count(*) FROM order_state_transitions WHERE order_id IN (X,D) AND actor_id=amit \u2192 0. SELECT count(*) FROM sales_order_lines WHERE id=<amit line> \u2192 0. sync_ops for amit's device \u2192 3 rows ok:false. SELECT count(*) FROM sales_orders WHERE salesperson_id=amit \u2192 383, equal to the paged API count.",
+     "note": "Documented residual that is still present, not a regression: a sync PUT carrying a colleague's order id answers 'conflict \u2026 already exists', which reveals that the id exists."
+    },
+    {
+     "id": "DOS-073-residual-warehouse-delivery",
+     "platform": "api",
+     "status": "FAIL",
+     "user": "dinesh.patil (warehouse, :3004), ganesh.more (delivery, :3005); fixtures by rahul.deshmukh",
+     "steps": "1. As rahul, created and submitted B = SO-0889 (R-0015) and B2 = SO-0891 (R-0011); both auto-confirmed. 2. dinesh POST :3004/orders/B/cancel. 3. ganesh POST :3005/orders/B2/cancel. 4. GET :3004/orders?limit=200 and :3005/orders?limit=200; dinesh GET B2 and ganesh GET B. 5. Extra: rahul created draft E; dinesh POST :3004/orders/E/lines (6 pc \u2192 2 pc); ganesh POST :3005/orders/E/submit.",
+     "expected": "Neither role has any business with these orders: cancel, setLines and submit should be refused (403/404), and the list should not expose every rep's orders.",
+     "actual": "Both cancels returned 200 with state cancelled. DB: cancel transitions under actor_id dinesh (5b6fbe87\u2026) and ganesh (7b2db500\u2026); reservations voided; OrderCancelled outbox events; order_cancelled WhatsApp to +919820021437 and SMS to +918655015314 were sent to the shops. Both lists returned 200 with 200 items and nextCursor from 52 shops and every rep (rahul 90, amit 82, others). Single GETs returned 200. The warehouse re-lined E (200) and delivery submitted it (200), so E became SO-0893, auto-confirmed with transitions under ganesh.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/fx-04-rahul-create-B-R0015.txt",
+      "QA/evidence/batch1/regression/api-security/fx-05-rahul-submit-B.txt",
+      "QA/evidence/batch1/regression/api-security/fx-08-rahul-create-B2-R0011.txt",
+      "QA/evidence/batch1/regression/api-security/fx-09-rahul-submit-B2.txt",
+      "QA/evidence/batch1/regression/api-security/b-01-warehouse-list-all-orders.txt",
+      "QA/evidence/batch1/regression/api-security/b-02-delivery-list-all-orders.txt",
+      "QA/evidence/batch1/regression/api-security/b-03-warehouse-cancel-rahul-order-B.txt",
+      "QA/evidence/batch1/regression/api-security/b-04-delivery-cancel-rahul-order-B2.txt",
+      "QA/evidence/batch1/regression/api-security/b-05-warehouse-get-order-B2.txt",
+      "QA/evidence/batch1/regression/api-security/b-06-delivery-get-order-B.txt",
+      "QA/evidence/batch1/regression/api-security/b-07-db-after-warehouse-delivery-cancel.txt",
+      "QA/evidence/batch1/regression/api-security/fx-12-rahul-create-draft-E-R0015.txt",
+      "QA/evidence/batch1/regression/api-security/b-08-warehouse-setlines-rahul-draft-E.txt",
+      "QA/evidence/batch1/regression/api-security/b-09-delivery-submit-rahul-draft-E.txt",
+      "QA/evidence/batch1/regression/api-security/b-10-db-after-warehouse-setlines-delivery-submit.txt",
+      "QA/evidence/batch1/regression/api-security/b-11-db-messages-reservations.txt"
+     ],
+     "dbOrApi": "order_state_transitions for B: cancel confirmed\u2192cancelled, actor 5b6fbe87 (dinesh.patil), 01:09:55.846. For B2: cancel, actor 7b2db500 (ganesh.more), 01:09:55.906. reservations joined through sales_order_lines \u2192 voided. outbox_events OrderCancelled \u00d72. messages: order_cancelled whatsapp +919820021437, sms +918655015314, status sent. E: submit and confirm transitions, actor 7b2db500, line qty 2.",
+     "note": "The DOS-073 verifier flagged this residual as not fixed ('warehouse and delivery logins can still cancel, re-line, submit, get and list any order'). It is not a regression caused by the batch. Logged as a new finding with full evidence."
+    },
+    {
+     "id": "DOS-020",
+     "platform": "api",
+     "status": "PASS",
+     "user": "vikas.kadam (manager, :3002); fixture by rahul.deshmukh",
+     "steps": "1. As rahul, created and submitted C = SO-0890 for R-0014 (strict, overdue) \u2192 submitted with pending approval 01a09720-9453 (credit_limit). 2. vikas GET /orders/C. 3. vikas POST /orders/C/confirm. 4. SQL on order, approval and transitions. 5. vikas POST /approvals/01a09720-9453\u2026/decide {decision: approve, note}. 6. SQL again, including reservations.",
+     "expected": "Confirm returns 409 with data.code approval_required and nothing changes. Deciding the last approval confirms the order and reserves stock.",
+     "actual": "Confirm returned 409 CONFLICT with data.code approval_required, approvals [{id 01a09720-9453\u2026, kind credit_limit}] and the message 'SO-0890 is waiting on 1 decision(s) (credit limit)\u2026'. Afterwards the order was still submitted, the approval still pending with decided_by null, and the only transition was submit. Decide returned 200 with approval approved and order.state confirmed. DB: approved by a1cbd424 (vikas) with the typed note; confirm transition by vikas at 01:09:40.679; reservation of 6 pc created at that same instant; OrderConfirmed outbox row.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/fx-06-rahul-create-C-R0014.txt",
+      "QA/evidence/batch1/regression/api-security/fx-07-rahul-submit-C.txt",
+      "QA/evidence/batch1/regression/api-security/c-01-manager-get-C-before.txt",
+      "QA/evidence/batch1/regression/api-security/c-02-manager-confirm-C-with-pending-approval.txt",
+      "QA/evidence/batch1/regression/api-security/c-03-db-after-refused-confirm.txt",
+      "QA/evidence/batch1/regression/api-security/c-04-manager-decide-approval-approve.txt",
+      "QA/evidence/batch1/regression/api-security/c-05-db-after-decide.txt",
+      "QA/evidence/batch1/regression/api-security/c-06-db-reservations-outbox-C.txt",
+      "QA/evidence/batch1/regression/api-security/b-11-db-messages-reservations.txt"
+     ],
+     "dbOrApi": "SELECT state FROM sales_orders WHERE id=C \u2192 submitted after the 409, confirmed after decide. approvals \u2192 pending/null, then approved/a1cbd424/note. reservations JOIN sales_order_lines WHERE order_id=C \u2192 1 row pending 6 pc, created 01:09:40.679388, the same timestamp as the confirm transition.",
+     "note": "c-03 and c-06 contain a failed first query against a table name that does not exist (stock_reservations, reservations.order_id). The correct reservations query is in b-11."
+    },
+    {
+     "id": "DOS-040",
+     "platform": "api",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, :3004)",
+     "steps": "1. Created fixture W = SO-0892 (R-0027, 6 pc) as rahul. 2. dinesh POST :3004/warehouse/picklists {orderIds:[W]} \u2192 PICK-0081 open, one row asking for 6 pc of lot GK20260721. 3. POST /warehouse/picklists/PICK-0081/pick for that row before starting. 4. POST /sync/upload with a pick_lines PUT for the same row. 5. SQL. 6. POST /start.",
+     "expected": "The HTTP pick is refused with a 'start it first' message and the sync op comes back as a picklist_not_started sync error. Nothing is written.",
+     "actual": "HTTP returned 409 CONFLICT 'picklist PICK-0081 is open; start it before picking'. Sync returned 200 with accepted 0 and rejected code picklist_not_started 'Picklist PICK-0081 has not been started; start it before picking' (Hindi text included). DB: picklist open, pick_line picked 0, SO-0892 still confirmed, one sync_errors row picklist_not_started. Start then returned 200 with status picking.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/fx-10-rahul-create-W-R0027.txt",
+      "QA/evidence/batch1/regression/api-security/fx-11-rahul-submit-W.txt",
+      "QA/evidence/batch1/regression/api-security/d-01-warehouse-create-wave-on-W.txt",
+      "QA/evidence/batch1/regression/api-security/d-02-http-pick-on-unstarted-wave.txt",
+      "QA/evidence/batch1/regression/api-security/d-03-sync-pick-on-unstarted-wave.txt",
+      "QA/evidence/batch1/regression/api-security/d-04-db-after-unstarted-picks.txt",
+      "QA/evidence/batch1/regression/api-security/d-05-start-wave.txt"
+     ],
+     "dbOrApi": "SELECT status FROM picklists \u2192 open. pick_lines requested 6, picked 0, picked_at null. sync_errors WHERE device_id=<probe device> \u2192 picklist_not_started.",
+     "note": "The HTTP refusal carries no data.code; only the message names the start step. The machine code picklist_not_started exists only on the sync path."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "api",
+     "status": "PASS",
+     "user": "dinesh.patil (warehouse, :3004)",
+     "steps": "1. On started PICK-0081, POST /pick with pickedQtyPcs 20 on the row asking for 6, shortReason 'Damaged carton'. 2. The same pick as a /sync/upload pick_lines PUT. 3. SQL. 4. Control: POST /pick with exactly 6 on the row.",
+     "expected": "HTTP 400 and a pick_rejected sync error; the row stays unchanged; an exact pick is accepted.",
+     "actual": "HTTP returned 400 BAD_REQUEST 'batch GK20260721 on PICK-0081 asks for 6 pcs; 20 were picked'. Sync returned 200 with accepted 0 and rejected code pick_rejected carrying the same message. DB: pick_line still picked 0, short_reason null. The exact pick returned 200: picklist moved to picked, picked 6, SO-0892 picking.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/d-06-http-pick-above-row-ask.txt",
+      "QA/evidence/batch1/regression/api-security/d-07-sync-pick-above-row-ask.txt",
+      "QA/evidence/batch1/regression/api-security/d-08-db-after-over-ask.txt",
+      "QA/evidence/batch1/regression/api-security/d-09-http-pick-exact-all-rows.txt",
+      "QA/evidence/batch1/regression/api-security/d-10-db-after-exact-picks.txt"
+     ],
+     "dbOrApi": "pick_lines WHERE picklist_id=PICK-0081 \u2192 6|0 after both refusals and 6|6 after the exact pick. sync_errors \u2192 pick_rejected row.",
+     "note": "Only the split-row case is untested (a new id asks for 0); the verifier notes it as out of scope."
+    },
+    {
+     "id": "DOS-058",
+     "platform": "api",
+     "status": "PASS",
+     "user": "ganesh.more (delivery, :3005, driver of TRIP-NEXT)",
+     "steps": "1. Target: TRIP-NEXT (active), stop 5 (R-0056, pending), INV/0836, line Campa Cola 1 L (48 + 2 free). 2. POST :3005/delivery/deliveries with line 1 = delivered 49, returned 1, returnedSaleable true, reason damaged. Every body also carried a line 2 with a nonexistent invoiceLineId, so the request could never be recorded even if the fix were missing. 3. The same with reason expired. 4. Controls: reason refused + saleable true, and reason damaged + saleable false. 5. The same three as deliveries PUT ops over /sync/upload. 6. SQL before and after.",
+     "expected": "damaged or expired with returnedSaleable true \u2192 400 return_not_saleable (a sync rejection offline); the controls pass that check; nothing is written.",
+     "actual": "damaged \u2192 400 with data.code return_not_saleable, message 'Campa Cola 1 L: damaged goods go to the damaged bin, not back on sale'. expired \u2192 400 return_not_saleable. Both controls got past the check and failed on the ghost line ('does not belong to invoice INV/0836'). Sync returned 200 with accepted 0 and three rejections carrying the same messages. DB before and after: stop 5 pending, planned delivery outcome null, 0 delivery_lines, 0 credit notes on INV/0836.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/e-00-db-before-delivery-probes.txt",
+      "QA/evidence/batch1/regression/api-security/e-01-delivery-return-damaged-saleable-true.txt",
+      "QA/evidence/batch1/regression/api-security/e-02-delivery-return-expired-saleable-true.txt",
+      "QA/evidence/batch1/regression/api-security/e-03-control-return-refused-saleable-true.txt",
+      "QA/evidence/batch1/regression/api-security/e-04-control-return-damaged-saleable-false.txt",
+      "QA/evidence/batch1/regression/api-security/e-05-db-after-delivery-probes.txt",
+      "QA/evidence/batch1/regression/api-security/e-12-delivery-sync-upload-damaged-saleable.txt"
+     ],
+     "dbOrApi": "trip_stops b7a0e1c7 \u2192 pending before and after. deliveries 80252baf outcome null. count(delivery_lines) \u2192 0. count(credit_notes WHERE invoice_id=INV/0836) \u2192 0. sync_errors for the probe device \u2192 3 rows.",
+     "note": "Offline, the rejection code is the generic bad_request, not return_not_saleable; the device tray still shows the clear message. This check did not use up any stop."
+    },
+    {
+     "id": "DOS-058-residual-desk-credit-note",
+     "platform": "api",
+     "status": "FAIL",
+     "user": "vikas.kadam (manager, :3002); dinesh.patil packed my own fixture",
+     "steps": "1. Packed my own W = SO-0892 through POST :3004/warehouse/orders/W/pack \u2192 INV/9007 (6 pc, lot GK20260721); Godown on_hand 13. 2. vikas POST :3002/credit-notes {reason return_damaged, autoIssue true, lines [{invoiceLineId, qtyPcs 2}]} with saleable left at its default. 3. SQL. 4. Control: the same with saleable:false.",
+     "expected": "A return_damaged note sends the pieces to the damaged bin, or refuses a saleable line.",
+     "actual": "200: CN/9005 issued with reason return_damaged. credit_note_lines.saleable = t; stock_ledger sale_return_saleable +2 into Godown (kind warehouse); Godown on_hand 13 \u2192 15. Control CN/9006 with saleable:false: sale_return_damaged +2 into the Damaged / expiry bin.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/e-06-warehouse-pack-and-bill-W.txt",
+      "QA/evidence/batch1/regression/api-security/e-07-db-invoice-W-and-stock-before-credit-note.txt",
+      "QA/evidence/batch1/regression/api-security/e-08-manager-credit-note-return-damaged-default-lines.txt",
+      "QA/evidence/batch1/regression/api-security/e-09-db-after-credit-note-default-lines.txt",
+      "QA/evidence/batch1/regression/api-security/e-10-manager-credit-note-return-damaged-saleable-false-control.txt",
+      "QA/evidence/batch1/regression/api-security/e-11-db-after-credit-note-saleable-false.txt"
+     ],
+     "dbOrApi": "SELECT reason,l.name,qty_delta FROM stock_ledger JOIN locations WHERE ref_id=CN/9005 \u2192 sale_return_saleable | Godown | +2. credit_note_lines.saleable \u2192 t. stock_balances for the lot at Godown \u2192 15.",
+     "note": "The DOS-058 verifier named this as out of scope. It is not a regression of the batch; logged as a new finding. The manager-app UI was not tested for whether it sends saleable."
+    },
+    {
+     "id": "DOS-034",
+     "platform": "api",
+     "status": "PASS",
+     "user": "meena.joshi (accountant, :3002); vikas.kadam",
+     "steps": "1. meena POST :3002/receipts: cash \u20b910.00 for R-0027, no trip \u2192 RCPT-0700 collected. 2. POST /receipts/deposit {receiptIds [RC], depositedAt t1, key k1, id DEP1}. 3. Retry as the app does after a lost reply: new key, new batch id, depositedAt t2. 4. Same key k1 with a different depositedAt. 5. Exact replay of step 2. 6. vikas deposits again with a new key and a new id. 7. SQL on receipt and journals.",
+     "expected": "The second deposit is refused and the money is banked exactly once.",
+     "actual": "Step 2 returned 200 (updated 1, journal 01a09725-2700\u2026, \u20b910.00). Step 3 returned 409 'receipt RCPT-0700 is deposited, not collected'. Step 4 returned 409 'idempotencyKey was already used with a different request'. Step 5 returned 200 with the same journalEntryId (replay). Step 6 returned 409. DB: the receipt is deposited with deposited_at = t1 and ref QA-SEC-034; exactly 1 deposit journal entry across DEP1/DEP2/DEP3, lines BANK +1000 and CASH \u22121000.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/f-01-accountant-create-office-cash-receipt.txt",
+      "QA/evidence/batch1/regression/api-security/f-02-deposit-first.txt",
+      "QA/evidence/batch1/regression/api-security/f-03-deposit-retry-new-key-new-depositedAt.txt",
+      "QA/evidence/batch1/regression/api-security/f-04-deposit-retry-same-key-different-depositedAt.txt",
+      "QA/evidence/batch1/regression/api-security/f-05-deposit-exact-replay.txt",
+      "QA/evidence/batch1/regression/api-security/f-06-deposit-again-by-manager.txt",
+      "QA/evidence/batch1/regression/api-security/f-07-db-receipt-and-deposit-journals.txt"
+     ],
+     "dbOrApi": "SELECT count(*) FROM journal_entries WHERE ref_type='deposit' AND ref_id IN (DEP1,DEP2,DEP3) \u2192 1. Its journal_lines joined to accounts \u2192 BANK 1000, CASH \u22121000. receipts RCPT-0700 \u2192 deposited.",
+     "note": "The money is protected, but a retry after a lost reply shows the user a 409 instead of the original success; the verifier already noted this UX gap. Trip cash receipts were deliberately not used."
+    },
+    {
+     "id": "DOS-094",
+     "platform": "api",
+     "status": "PASS",
+     "user": "ramesh.gupta (retailer, tarsun, R-0001 Shree Ganesh Kirana, :3006)",
+     "steps": "1. GET /receivables/outstanding/R-0001?includeBills=true \u2192 \u20b935,843.00 across 6 bills; INV/0433 has \u20b94,561 of \u20b910,119 open. 2. POST /receivables/payments/initiate with no amount (pay everything). 3. initiate {invoiceIds [INV/0433], amountPaise 456100}. 4. initiate {amountPaise 1000000}. 5. Parsed upiQrPayload and upiIntentUrl. 6. SQL: outbox rows, receipts, invoice snapshots.",
+     "expected": "Exactly one 'upi://pay?' prefix; am equals the chosen amount; tr equals the PAY reference; cu=INR.",
+     "actual": "Pay everything: am=35843.00, tr=tn=PAY-baa19eda49c7, cu=INR, one prefix, upiIntentUrl identical to the payload, pa tarsun@okhdfcbank, pn 'Tarsun Enterprise'. One bill: am=4561.00, tr=PAY-0f8c756eb47e, cu=INR. \u20b910,000: am=10000.00, tr=PAY-94ecc69201bd, cu=INR. No tr=INV anywhere. The outbox PaymentIntentCreated amountPaise matches am\u00d7100 for all three. 0 receipts created; invoice snapshots unchanged; no 500 for a tenant that has a logo.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/g-01-ramesh-outstanding-before.txt",
+      "QA/evidence/batch1/regression/api-security/g-02-initiate-pay-everything.txt",
+      "QA/evidence/batch1/regression/api-security/g-03-initiate-one-bill-INV0433-456100.txt",
+      "QA/evidence/batch1/regression/api-security/g-04-initiate-chosen-amount-1000000.txt",
+      "QA/evidence/batch1/regression/api-security/g-05-db-intents-outbox-receipts.txt"
+     ],
+     "dbOrApi": "SELECT payload->>'paymentRef', payload->>'amountPaise' FROM outbox_events WHERE event_type='PaymentIntentCreated' \u2192 PAY-baa19eda49c7|3584300, PAY-0f8c756eb47e|456100, PAY-94ecc69201bd|1000000. count(receipts for R-0001 in last 30 min) \u2192 0. invoices INV/0433 and INV/0753 upi_qr_payload still the old issue-time snapshot with updated_at 2026-09-12.",
+     "note": "Not in scope, recorded only: invoices.upi_qr_payload still holds the old malformed-style snapshot (pn M%2Fs., am = invoice total, tr=INV-\u2026); the verifier listed the paths that still read it."
+    },
+    {
+     "id": "probe-DOS-094-foreign-bill-id",
+     "platform": "api",
+     "status": "PASS",
+     "user": "fatima.shaikh (retailer, tarsun, R-0010, :3006)",
+     "steps": "POST /receivables/payments/initiate {invoiceIds: [INV/0433 of R-0001, ramesh's shop], amountPaise 456100}.",
+     "expected": "No other shop's bill data comes back, and the intent stays bound to fatima's own shop.",
+     "actual": "200 with retailerId R-0010 (her own shop) and bills [], so nothing about INV/0433 leaked. The intent carries PAY-c6c9e5f01ab1 with am=4561.00.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/g-06-retailer-initiate-with-other-shop-invoice.txt",
+      "QA/evidence/batch1/regression/api-security/z-01-db-final-fixture-state.txt"
+     ],
+     "dbOrApi": "outbox_events PaymentIntentCreated PAY-c6c9e5f01ab1 \u2192 retailerId 20059d26 (R-0010), amountPaise 456100.",
+     "note": "The foreign bill id is dropped silently while the amount is kept, and the amount is not capped at dues. The DOS-094 follow-ups already list this; not filed again."
+    },
+    {
+     "id": "permission-matrix-not-weakened",
+     "platform": "api",
+     "status": "PASS",
+     "user": "n/a (repository + CI log)",
+     "steps": "1. git diff c5c6e03 HEAD -- backend/libs/contracts/src/permissions.ts, plus --stat and a git log over that range. 2. Read QA/14-regression-results.md \u00a70b and grepped the merged-main CI backend test log for the permission-matrix suites and the per-package totals.",
+     "expected": "No role added to any procedure. describePermissionMatrix passes in CI on merged main.",
+     "actual": "The diff is empty (0 lines) and no commit between c5c6e03 and HEAD 2c4b721 touches permissions.ts. Contract changes are limited to delivery.ts, orders.ts, pricing.ts and warehouse.ts. \u00a70b records backend test exit 0 with 2,417 passed and 0 failed. The CI log shows permission-matrix suites for admin (15 procedures), delivery (252), manager (337), owner (337), retailer (183), sales (196) and warehouse (245), each \u00d7 8 roles + anonymous, and every service package 'Test Files 1 passed'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/h-01-permissions-diff.txt",
+      "QA/evidence/batch1/regression/api-security/h-02-ci-permission-matrix-excerpt.txt",
+      "QA/14-regression-results.md"
+     ],
+     "dbOrApi": "git diff c5c6e03 HEAD -- backend/libs/contracts/src/permissions.ts | wc -l \u2192 0",
+     "note": "merged-ci summary.txt shows 'backend readme exit=1' and 'drift exit=127'. \u00a70b explains both as harness issues (script ordering; GNU timeout is absent on macOS) that passed on re-run. The matrix being unchanged also means the warehouse/delivery order residual is untouched by this batch."
+    },
+    {
+     "id": "isolation-cross-tenant-owner",
+     "platform": "api",
+     "status": "PASS",
+     "user": "prakash.salunkhe (owner, sai-distributors) on owner-service :3001",
+     "steps": "GET /orders/{tarsun SO-0884}; GET /invoices/{tarsun OPEN/0006}; GET /orders?retailerId=<tarsun R-0013>; control GET /invoices/{sai OPEN/0005}.",
+     "expected": "404 for tarsun ids, an empty list, and 200 for his own tenant.",
+     "actual": "404 'order \u2026 not found'; 404 'invoice \u2026 not found'; 200 {items: [], nextCursor: null}; control 200.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/i-01-sai-owner-get-tarsun-order.txt",
+      "QA/evidence/batch1/regression/api-security/i-02-sai-owner-get-tarsun-invoice.txt",
+      "QA/evidence/batch1/regression/api-security/i-03-sai-owner-get-own-invoice-control.txt",
+      "QA/evidence/batch1/regression/api-security/i-04-sai-owner-list-orders-tarsun-retailer.txt"
+     ],
+     "dbOrApi": "HTTP 404/404/200 with empty items/200, as saved.",
+     "note": ""
+    },
+    {
+     "id": "isolation-cross-shop-retailer",
+     "platform": "api",
+     "status": "PASS",
+     "user": "fatima.shaikh (retailer, tarsun, R-0010) on retailer-service :3006",
+     "steps": "GET /invoices/{OPEN/0006 of R-0025}; GET its /pdf and /upi-qr; control GET /invoices/{INV/0838 of R-0010}.",
+     "expected": "404/403 for another shop's bill and 200 for her own.",
+     "actual": "404 'invoice \u2026 not found' for the invoice, the pdf and the upi-qr; own INV/0838 200.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/i-08-retailer-get-other-shop-invoice.txt",
+      "QA/evidence/batch1/regression/api-security/i-09-retailer-get-own-invoice-control.txt",
+      "QA/evidence/batch1/regression/api-security/i-10-retailer-get-other-shop-invoice-pdf.txt",
+      "QA/evidence/batch1/regression/api-security/i-11-retailer-get-other-shop-upi-qr.txt"
+     ],
+     "dbOrApi": "HTTP 404 \u00d73 and 200, as saved.",
+     "note": ""
+    },
+    {
+     "id": "isolation-sales-token-on-owner-service",
+     "platform": "api",
+     "status": "PASS",
+     "user": "rahul.deshmukh (salesperson) token on owner-service :3001",
+     "steps": "GET /orders?limit=1; GET /tenant-catalog/costs; POST /orders/{SO-0884, rahul's own confirmed order}/cancel. Then SQL on SO-0884.",
+     "expected": "403 before any business logic, and no effect on the order.",
+     "actual": "All three returned 403 'owner-service does not serve the salesperson role'. DB at 01:19: 0 cancel transitions ever on SO-0884; no idempotency row for the probe key. Its only transition since midnight is start_picking by dinesh.patil at 01:12:15 (PICK-0080, the parallel warehouse walker), which is unrelated to this probe.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/i-05-sales-token-on-owner-service-orders.txt",
+      "QA/evidence/batch1/regression/api-security/i-06-sales-token-on-owner-service-costs.txt",
+      "QA/evidence/batch1/regression/api-security/i-07-sales-token-on-owner-service-cancel-bogus.txt",
+      "QA/evidence/batch1/regression/api-security/i-12-db-SO0884-after-refused-owner-service-cancel.txt"
+     ],
+     "dbOrApi": "SELECT count(*) FROM order_state_transitions WHERE order_id=SO-0884 AND event='cancel' \u2192 0. SELECT count(*) FROM idempotency_keys WHERE key='sec-i07-owner-cancel-probe' \u2192 0.",
+     "note": ""
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Warehouse and delivery logins can cancel, re-line and submit any order in the distributorship (DOS-073 residual)",
+     "category": "security",
+     "priority": "P0",
+     "role": "Warehouse, Delivery",
+     "platform": "Backend API (warehouse-service :3004, delivery-service :3005); every client that holds such a token",
+     "steps": "1. As rahul.deshmukh on sales-service :3003, create and submit SO-0889 (R-0015 Ganpati General Stores) and SO-0891 (R-0011 Sai Baba Kirana); both auto-confirm with stock reserved. 2. As dinesh.patil (warehouse): POST http://127.0.0.1:3004/orders/01a09720-9222-79e0-84df-d32e045e090a/cancel {reason}. 3. As ganesh.more (delivery): POST http://127.0.0.1:3005/orders/01a09722-307c-780b-904e-906efd15dc0a/cancel {reason}. 4. As rahul, create draft 01a09726-51a8\u2026 (R-0015). dinesh POST :3004/orders/{id}/lines replaces 6 pc with 2 pc; ganesh POST :3005/orders/{id}/submit. 5. GET :3004/orders?limit=200 and :3005/orders?limit=200.",
+     "expected": "403/404. A godown picker or a van driver has no business cancelling, re-lining or submitting a rep's order, and should not browse every order of the tenant. The DOS-073 rule ('a salesperson reaches only its own orders') has no equivalent for these roles.",
+     "actual": "Every call returned 200. SO-0889 and SO-0891 are cancelled; order_state_transitions cancel rows carry actor_id 5b6fbe87 (dinesh.patil) and 7b2db500 (ganesh.more); reservations voided; OrderCancelled outbox events; order_cancelled WhatsApp to +919820021437 and SMS to +918655015314 were sent to the shops. The draft was re-lined by the warehouse and submitted by delivery, becoming SO-0893 auto-confirmed under ganesh's actor id. Both lists return 200 rows from every rep (rahul 90, amit 82, others) across 52 shops, with a next page. Cause per the DOS-073 verifier: ORDER_ROLES = STAFF, the matrix entry is ANY_MEMBER, both services mount `orders`, and callerReaches narrows only the salesperson role.",
+     "businessImpact": "Any godown or van login, including a lost driver's phone or a disgruntled helper, can silently cancel every confirmed order in the distributorship, or rewrite and confirm drafts. The shop receives an official 'order cancelled' message, stock is released, and the sale is lost. It is the same class of unauthorised order access as DOS-073 (P0), reachable from two more apps.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/b-01-warehouse-list-all-orders.txt",
+      "QA/evidence/batch1/regression/api-security/b-02-delivery-list-all-orders.txt",
+      "QA/evidence/batch1/regression/api-security/b-03-warehouse-cancel-rahul-order-B.txt",
+      "QA/evidence/batch1/regression/api-security/b-04-delivery-cancel-rahul-order-B2.txt",
+      "QA/evidence/batch1/regression/api-security/b-07-db-after-warehouse-delivery-cancel.txt",
+      "QA/evidence/batch1/regression/api-security/b-08-warehouse-setlines-rahul-draft-E.txt",
+      "QA/evidence/batch1/regression/api-security/b-09-delivery-submit-rahul-draft-E.txt",
+      "QA/evidence/batch1/regression/api-security/b-10-db-after-warehouse-setlines-delivery-submit.txt",
+      "QA/evidence/batch1/regression/api-security/b-11-db-messages-reservations.txt"
+     ],
+     "suggestedFix": "A founder/matrix decision is needed. Proposal: remove warehouse and delivery from orders.cancel, orders.setLines and orders.submit (and orders.create unless a van-sale flow needs it) in backend/libs/contracts/src/permissions.ts, or refuse those roles in the order service's reach check, and scope orders.list/get for them to what their work needs (orders on their picklists and trips). Add the cases to describePermissionMatrix and an orders spec, as DOS-073 did for the salesperson."
+    },
+    {
+     "title": "A desk credit note for damaged goods puts the pieces back into saleable stock unless each line explicitly says saleable:false",
+     "category": "business-logic",
+     "priority": "P1",
+     "role": "Manager (the endpoint also serves owner, accountant and delivery)",
+     "platform": "Backend API (manager-service :3002, POST /credit-notes); the manager-app UI was not tested",
+     "steps": "1. Own fixture: SO-0892 (R-0027 Gupta Kirana Stores) waved, picked and packed \u2192 INV/9007, 6 pc Balaji Masala Masti Wafers 45 g, lot GK20260721. Godown on_hand for the lot is 13. 2. As vikas.kadam: POST http://127.0.0.1:3002/credit-notes {id, invoiceId: INV/9007, reason: 'return_damaged', autoIssue: true, lines: [{id, invoiceLineId, qtyPcs: 2}]}, with saleable omitted as CreditNoteLineInput allows (default true). 3. Query credit_note_lines and stock_ledger for the note. 4. Control: the same request with saleable:false.",
+     "expected": "A note whose reason is return_damaged sends its pieces to the damaged bin, or the server refuses saleable:true with that reason. deliveries.record now does exactly that with 400 return_not_saleable (DOS-058).",
+     "actual": "200, CN/9005 issued with reason return_damaged, but credit_note_lines.saleable = true and stock_ledger shows sale_return_saleable +2 into Godown (kind warehouse); Godown on_hand 13 \u2192 15. Only with an explicit saleable:false (control CN/9006) did the pieces go to the Damaged / expiry bin as sale_return_damaged.",
+     "businessImpact": "Damaged returns booked at the desk become sellable stock and are picked for the next shop. The damaged bin, the brand damage claim and the stock valuation are understated, and a credit note labelled 'damaged' contradicts its own stock movement. It is the same outcome DOS-058 fixed at the doorstep, still reachable from the office.",
+     "evidence": [
+      "QA/evidence/batch1/regression/api-security/e-06-warehouse-pack-and-bill-W.txt",
+      "QA/evidence/batch1/regression/api-security/e-07-db-invoice-W-and-stock-before-credit-note.txt",
+      "QA/evidence/batch1/regression/api-security/e-08-manager-credit-note-return-damaged-default-lines.txt",
+      "QA/evidence/batch1/regression/api-security/e-09-db-after-credit-note-default-lines.txt",
+      "QA/evidence/batch1/regression/api-security/e-10-manager-credit-note-return-damaged-saleable-false-control.txt",
+      "QA/evidence/batch1/regression/api-security/e-11-db-after-credit-note-saleable-false.txt"
+     ],
+     "suggestedFix": "In billing.creditNotes.create/issue, derive each line's disposition from the reason (return_damaged \u2192 saleable false) or reject saleable:true with return_damaged (400 return_not_saleable, reusing isSaleableReturn). Stop defaulting CreditNoteLineInput.saleable to true for damage reasons. Add a billing spec, and check that the manager and owner credit-note screens send the disposition the user chose."
+    }
+   ],
+   "dataTouched": "All data created or changed through the product API in dos_qa, tenant tarsun. Orders by rahul.deshmukh, each 6 pc of variant a47e1049 (Balaji Masala Masti Wafers 45 g) unless noted: SO-0888 (01a09720-9174\u2026, R-0004, confirmed, 6 pc reserved, left confirmed); draft 01a09720-91c9\u2026 (R-0007, cancelled by rahul); SO-0889 (01a09720-9222\u2026, R-0015, cancelled by dinesh.patil, order_cancelled WhatsApp sent to +919820021437); SO-0890 (01a09720-9277\u2026, R-0014, credit_limit approval 01a09720-9453\u2026 approved by vikas.kadam, confirmed, 6 pc reserved); SO-0891 (01a09722-307c\u2026, R-0011, cancelled by ganesh.more, order_cancelled SMS sent to +918655015314); SO-0892 (01a09722-30c7\u2026, R-0027) waved on PICK-0081 (01a09724-c03e\u2026), picked and packed by dinesh.patil \u2192 INV/9007 (01a09728-9f08\u2026, \u20b998); SO-0893 (01a09726-51a8\u2026, R-0015, re-lined to 2 pc by dinesh.patil, submitted by ganesh.more, confirmed, 2 pc reserved). Credit notes against INV/9007 by vikas.kadam, both issued: CN/9005 (01a09728-9fb6\u2026, return_damaged, 2 pc restocked saleable into Godown lot GK20260721) and CN/9006 (01a09728-a095\u2026, return_damaged, 2 pc into the Damaged / expiry bin); INV/9007 is now partially_paid. Receipt RCPT-0700 (01a09725-2658-7018\u2026, cash \u20b910.00, R-0027, by meena.joshi) deposited once, batch 01a09725-2658-77ef\u2026, ref QA-SEC-034, journal entry 01a09725-2700\u2026. Payment intents (no money, 30-minute expiry): PAY-baa19eda49c7, PAY-0f8c756eb47e and PAY-94ecc69201bd for R-0001 (ramesh.gupta); PAY-c6c9e5f01ab1 for R-0010 (fatima.shaikh). Sync rejections only (nothing applied): sync_errors rows for amit.pawar's probe device (3), dinesh.patil's (picklist_not_started, pick_rejected) and ganesh.more's (3 bad_request). TRIP-NEXT stop 5 / INV/0836 was only hit with requests that were refused; state unchanged (pending, no delivery lines, no credit note). No SQL writes, no code, config or git changes.",
+   "environmentProblems": "None blocking. The session scratchpad is shared with the parallel walkers (another walker's login-ganesh.json appeared there), so the security helpers and tokens were kept in scratchpad/sec. SO-0884, used as the target of the 403 probe, was moved to picking by the warehouse walker at 01:12 (PICK-0080); I re-queried and attributed that change, and it is not a product defect. Some of my first read-only queries used wrong table or column names (sales_orders.number, stock_reservations, reservations.order_id, trip_state 'closed'); those error lines remain in a-15, b-07, c-03 and c-06, and the corrected queries follow in the same or later files (b-11). Access tokens last 15 minutes, so every batch signed in again. The merged-ci summary lists 'backend readme exit=1' and 'drift exit=127'; QA/14 \u00a70b already explains both as harness issues, not product faults."
+  }
+ ]
+}

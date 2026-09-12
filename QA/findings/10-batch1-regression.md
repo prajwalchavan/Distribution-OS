@@ -248,3 +248,102 @@ Suggested fix: Add a dependency-free QR component to @dos/ui that renders the in
 
 Found by: batch 1 regression web walk (retailer).
 
+### DOS-126 — Approving a rate request on Approvals confirms the order at the old rate, not the approved one
+Category: business-logic | Priority: P1 | Role: Owner (shop and rep affected) | Platform: Web (owner app :5173, sales app :5175) + Backend (orders.approvals.decide)
+
+```
+User: Owner (shop and rep affected)
+Platform: Web (owner app :5173, sales app :5175) + Backend (orders.approvals.decide)
+Environment: local dev, merged main after batch 1 lanes, dos_qa, 2026-09-13
+Steps:
+  1. rahul.deshmukh, sales web: Mahalaxmi General Stores → Take order → Campa Cola 2 L 1 cs (rate now ₹51.17) → Ask a rate ₹45.54 ('Over your limit — the office decides') → Place order → SO-0897 submitted with gates credit_limit and bargain. 2. sunil.tarsun, owner Approvals → SO-0897 Bargain → note → Approve (POST /approvals/01a09748-eb36-726f-80cd-50cd5ac54ff3/decide 200) → bargain_requests 01a09748-91be-702d-98df-44f7e0ed5309 approved, approved_rate_paise 4554. 3. Approve SO-0897 Over credit limit (the last gate) → order confirmed 01:59:53, 5 reservations / 24 pc. 4. SQL on sales_order_lines; Rahul opens SO-0897 in the sales app.
+Expected: When the bargain gate is approved, the order line is re-priced at the approved ₹45.54/pc (24 pc = ₹1,092.96 before GST) before the order is confirmed and stock reserved, or the confirm waits until it is.
+Actual: sales_order_lines: list_rate_paise 5117, rate_paise 5117, line_total_paise 137545, applied_rules []. sales_orders subtotal 122808, total 137500 (₹1,375.00). The rep's detail shows 'Campa Cola 2 L · 1 cs · ₹51.17/pc' directly under 'Rate change · Decided 13 Sep, 1:59 am · Approved'. No re-price happened between the decision and the confirm. The bill was not generated in this walk; per the DOS-005 implementer note, invoices copy the order line rate (not verified here).
+Business impact: The owner says yes to ₹45.54, the rep tells the shopkeeper it is approved, and the shop is charged ₹51.17: ₹135 over on one case, 11% on the line. Every rate request approved on a held order is silently lost and turns into a dispute at delivery or collection.
+Severity: P1
+Evidence: QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-last-approval.txt; QA/evidence/batch1/regression/web-sales-owner/DOS-020-40-rep-sees-SO-0897-desk.png; QA/evidence/batch1/regression/web-sales-owner/DOS-020-33-panel-after-last-approval-desk.png; QA/evidence/batch1/regression/web-sales-owner/DOS-020-approve-bargain-SO-0897-network.json
+Suggested fix: In the approval decide path, when a bargain_request gate is approved, re-price the order's lines through priceOrder() with the approved bargain (the device's bargain step) in the same transaction, before confirmInTx reserves stock. Add a spec asserting rate_paise = approved_rate_paise and applied_rules carries the bargain after the last approval. The implementer already flagged this as a candidate in the DOS-005 follow-ups.
+```
+
+Regression status: UNDER INVESTIGATION — an executed before/after probe (c5c6e03 vs merged main) is running; the verdict (regression of DOS-005/DOS-020 or pre-existing) will be added here.
+
+Found by: batch 1 regression web walk (sales + owner).
+
+### DOS-127 — A shop's own cancellation leaves the order's approvals pending, and the owner can neither approve nor reject them
+Category: bug | Priority: P2 | Role: Owner (shop cancels) | Platform: Backend (orders.cancel under the retailer role, retailer-service :3006) + Web owner app :5173
+
+```
+User: Owner (shop cancels)
+Platform: Backend (orders.cancel under the retailer role, retailer-service :3006) + Web owner app :5173
+Environment: local dev, merged main after batch 1 lanes, dos_qa, 2026-09-13
+Steps:
+  1. fatima.shaikh (retailer, tenant tarsun) via retailer-service: POST /orders draft for R-0010 Balaji Wholesale Stores (24 pc Campa Cola 750 ml); POST /pricing/bargains asked 2014 against list 2263 with orderId; POST /orders/{id}/submit → SO-0898 (01a09754-da7f-73b5-84b2-2539fdc5d8b7) submitted with approval 01a09754-db92-712c-8693-b77fc5f360ad (bargain / bargain_request) pending. 2. POST /orders/{id}/cancel → 200, state cancelled. 3. SQL on approvals and bargain_requests. 4. Owner GET :3001/approvals?status=pending, then owner Approvals screen. 5. Owner POST /approvals/01a09754-db92…/decide approve, then reject. Control: salesperson rahul.deshmukh cancels his own held SO-0895 → its credit_limit approval turns 'expired' in the same second.
+Expected: A shop's cancel expires the order's pending approvals, exactly as the rep's cancel does, and they leave the owner's queue.
+Actual: After the shop's cancel the approval stays 'pending' and the bargain stays 'requested'. The owner's API queue still lists it, and the Approvals screen shows an SO-0898 row. Approve → 409 'order: cannot apply "confirm" in state "cancelled"'. Reject → 409 'order: cannot apply "cancel" in state "cancelled"'. Both leave it pending, so it can never be cleared. SO-0886 and SO-0887 (cancelled by ramesh.gupta on 12 Sep) are in the same state and sit under owner Today 'Needs you' as 'Waiting for owner'. pg_policies: approvals_read is USING actor_role <> 'retailer', so cancelInTx's UPDATE approvals SET status='expired' WHERE order_id=… AND status='pending' matches no row when the actor is the shop.
+Business impact: The owner's first screen and Approvals queue fill with requests nobody can decide, one more for every held order a shop cancels. Real requests get buried and the pending-approvals count is inflated.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-sales-owner/NEW-retailer-cancel-leaves-approval-pending.txt; QA/evidence/batch1/regression/web-sales-owner/NEW-01-owner-approvals-stale-SO-0898-desk.png; QA/evidence/batch1/regression/web-sales-owner/DOS-005-30-owner-today-after-decisions-desk.png
+Suggested fix: Run the approval-expiry statement in cancelInTx under a context that can see the rows: a SECURITY DEFINER function, or withSystem for that one statement, or a retailer SELECT policy limited to its own orders. Make decide on a gate whose order is already cancelled or closed mark the gate expired instead of answering 409. Repair the existing stale rows (SO-0886, SO-0887, SO-0898). Add a rls.test/spec case for a retailer cancel of a held order.
+```
+
+Found by: batch 1 regression web walk (sales + owner).
+
+### DOS-128 — Sales web app at phone width: catalog rows clip the item name to 4–5 letters
+Category: ux | Priority: P2 | Role: Sales Rep | Platform: Web (sales app :5175) at 390×844
+
+```
+User: Sales Rep
+Platform: Web (sales app :5175) at 390×844
+Environment: local dev, merged main after batch 1 lanes, dos_qa, 2026-09-13
+Steps:
+  1. rahul.deshmukh at 390×844 → Beat → Laxmi Narayan Stores → Take order. 2. Scroll to 'Add items'. 3. Measure the first six rows (DOM bounding boxes).
+Expected: The item name is readable (up to 2 lines) and 'brand · N pc case' is visible, as at 1280 px.
+Actual: Name column 32–56 px wide and clipped: 'Camp / Col…' with the pack line 'Cam…' / 'Camp…'. In the 356 px row the stock chip ('18 cs available') takes 142–166 px and 'Add a case' 115 px. At 1280 px the same column is 750–774 px and not clipped.
+Business impact: On a phone browser the rep cannot tell Campa Cola 1 L from 2 L or 200 ml before tapping 'Add a case': the same blind-add risk DOS-077 removed on Android. Whether this predates the DOS-077 change could not be established, because Phase 1 phone evidence captured only the top of the screen.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/web-sales-owner/DOS-077-05-catalog-rows-phone-viewport.png; QA/evidence/batch1/regression/web-sales-owner/DOS-077-04-search-row-phone-viewport.png; QA/evidence/batch1/regression/web-sales-owner/DOS-077-row-measurements.json
+Suggested fix: Below the desk breakpoint, move the availability onto the meta line ('Campa · 24 pc case · 18 cs') or let the trailing chip and button wrap under the name. Give the name column a minimum width. Add a 390 px layout check for frontend/sales-app/app/orders/new.tsx catalog rows.
+```
+
+Regression status: NOT caused by batch 1 — the DOS-077 commit (f2a36ae) changed only the native Button width (fullWidth={false}); the web markup of the row is unchanged, so this web phone-width clipping predates the batch. Not re-executed on the pre-fix build.
+
+Found by: batch 1 regression web walk (sales + owner).
+
+### DOS-129 — Order footer counts cases with the first line's case size
+Category: ux | Priority: P3 | Role: Sales Rep | Platform: Web (sales app :5175), desk and phone
+
+```
+User: Sales Rep
+Platform: Web (sales app :5175), desk and phone
+Environment: local dev, merged main after batch 1 lanes, dos_qa, 2026-09-13
+Steps:
+  1. rahul.deshmukh → Shree Ganesh Kirana → Take order. 2. Add Campa Cola 750 ml 2 cs (24 pc case) and Too Yumm Karare 60 g 1 cs (48 pc case). 3. Read the footer.
+Expected: 'Items 2 · 3 cs' (or the piece total when case sizes differ).
+Actual: 'Items 2 · 4 cs': 96 pc divided by the first line's 24. An order of 21 lines of one case each with mixed case sizes read 'Items 21 · 45 cs + 3 pcs'. Code: new.tsx:266 formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)); caseSizeOf returns lines[0]'s case size (new.tsx:519–523).
+Business impact: The rep reads a wrong case count back to the shopkeeper just before placing: a small error, but on the number people check.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-sales-owner/DOS-076-01-basket-b-desk.png; QA/evidence/batch1/regression/web-sales-owner/DOS-076-01-basket-b-desk.txt; QA/evidence/batch1/regression/web-sales-owner/DOS-075-03-oil-20cs-desk.txt
+Suggested fix: Sum whole cases per line with each line's own case size (and the leftover pieces per line), or show only pieces when the lines' case sizes differ.
+```
+
+Found by: batch 1 regression web walk (sales + owner).
+
+### DOS-130 — Owner order panel 'Stock held' shows the number of reservation rows, not the pieces held
+Category: ux | Priority: P3 | Role: Owner | Platform: Web (owner app :5173)
+
+```
+User: Owner
+Platform: Web (owner app :5173)
+Environment: local dev, merged main after batch 1 lanes, dos_qa, 2026-09-13
+Steps:
+  1. Owner Orders → SO-0897 after it was confirmed (1 cs Campa Cola 2 L = 24 pc). 2. Read 'Stock held'.
+Expected: '24 pc' (1 cs) held for the order.
+Actual: 'Stock held 5': the five reservation rows (lots) that together hold 24 pc. owner-app/app/orders/index.tsx:322 renders String(reservations.data?.items.length ?? 0).
+Business impact: The owner reads 5 as a quantity when checking what a confirmed order has taken from stock.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/web-sales-owner/DOS-020-33-panel-after-last-approval-desk.png; QA/evidence/batch1/regression/web-sales-owner/DOS-020-db-SO-0897-after-last-approval.txt
+Suggested fix: Show the summed reservation qty formatted with the line case size (e.g. '1 cs · 24 pc'), or label the count as lots.
+```
+
+Found by: batch 1 regression web walk (sales + owner).
+
