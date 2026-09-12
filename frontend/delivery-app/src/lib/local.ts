@@ -26,6 +26,11 @@
 import { useSyncStatus, useTable } from '@dos/offline/react'
 import { useMemo } from 'react'
 
+import { today } from './dates'
+import { OPEN_TRIP_STATES, pickCurrentTrip as pickTrip } from './trip-choice'
+
+export { loadPanelTitleKey, loadSheetPackagesKey, tripEntryHref } from './trip-choice'
+
 // ---------------------------------------------------------------------------
 // The rows, exactly as `sync.pull` delivers them (snake_case, SQLite scalars)
 // ---------------------------------------------------------------------------
@@ -205,24 +210,27 @@ export function useHydrated(): boolean {
 // The trip
 // ---------------------------------------------------------------------------
 
-const OPEN_STATES = ['active', 'loading', 'planned', 'closing'] as const
-
 /**
  * The trip this crew member is on, from the device.
  *
  * "Today's" is deliberately not a date filter. `trips_read` already narrows a delivery actor to the
  * trips it is crew on, and a trip that left at six in the morning and is checked in at eleven at
  * night crosses the IST business date it was planned for — so the app opens on the OPEN trip
- * (`active` first, then `closing`, then a `loading` or `planned` one), and prints its date. A driver
- * whose van is on the road at 00:05 must not be told there is no trip today.
+ * (`active` first, then `loading`, then `planned`, then `closing`: a checked-in trip waits for the
+ * office and needs nothing from the crew), and prints its date. A driver whose van is on the road at
+ * 00:05 must not be told there is no trip today.
+ *
+ * Among open trips in the SAME state the one dated today wins, then the earliest (DOS-061): two
+ * active trips happen when the godown sends the next one out early, and the later-dated one is not
+ * the trip being driven. The rules live in `./trip-choice`.
  */
 export function useLocalTrips(): { rows: LocalTrip[]; loading: boolean } {
   return useTable<LocalTrip>(
     'trips',
     useMemo(
       () => ({
-        where: `state IN (${OPEN_STATES.map(() => '?').join(', ')})`,
-        params: [...OPEN_STATES],
+        where: `state IN (${OPEN_TRIP_STATES.map(() => '?').join(', ')})`,
+        params: [...OPEN_TRIP_STATES],
         orderBy: 'trip_date DESC, created_at DESC',
         limit: 50,
       }),
@@ -231,13 +239,9 @@ export function useLocalTrips(): { rows: LocalTrip[]; loading: boolean } {
   )
 }
 
-/** The open trip a crew member should be looking at, and the others behind it. */
+/** The open trip a crew member should be looking at, and the others behind it (IST today). */
 export function pickCurrentTrip(trips: readonly LocalTrip[]): LocalTrip | null {
-  const rank = (state: string): number => OPEN_STATES.indexOf(state as (typeof OPEN_STATES)[number])
-  const sorted = [...trips].sort(
-    (a, b) => rank(a.state) - rank(b.state) || (a.trip_date < b.trip_date ? 1 : -1),
-  )
-  return sorted[0] ?? null
+  return pickTrip(trips, today())
 }
 
 export function useLocalTrip(id: string | null): { trip: LocalTrip | null; loading: boolean } {

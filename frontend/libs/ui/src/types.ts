@@ -118,7 +118,9 @@ export interface RupeeInputProps extends Testable {
 
 /**
  * The full-screen pad a field app opens for money and for counts (UX-00 section 6.3; UX-01 W2, D6).
- * Digits are appended, never parsed from a float: in `money` mode `1 2 3 4` is 1234 paise.
+ * Never parsed from a float. In `money` mode the pad enters RUPEES (`4 7 5 6` is ₹4,756.00 = 475600
+ * paise) and reaches paise only after `.` (`4 7 5 6 . 5` is 475650), with Clear beside Done; in
+ * `count` mode digits are appended (`1 2 3 4` is 1234).
  */
 export interface NumberPadProps extends Testable {
   label: string

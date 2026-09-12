@@ -38,7 +38,7 @@ import {
 } from '@dos/ui'
 import { haptics } from '@dos/ui/platform'
 import { uuidv7 } from '@dos/domain'
-import type { DeliveryLineReason } from '@dos/contracts'
+import { isSaleableReturn, type DeliveryLineReason } from '@dos/contracts'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -259,12 +259,15 @@ export default function AtTheDoor(): React.JSX.Element {
       for (const line of lines.rows) {
         const existing = held[line.id]
         const billed = billedPieces(line)
+        const reason: DeliveryLineReason | null =
+          mode === 'full' ? null : (existing?.reason ?? 'refused')
         next[line.id] = {
           id: existing?.id ?? uuidv7(),
           deliveredQtyPcs: mode === 'full' ? billed : 0,
           returnedQtyPcs: mode === 'full' ? 0 : billed,
-          returnedSaleable: existing?.returnedSaleable ?? true,
-          reason: mode === 'full' ? null : (existing?.reason ?? 'refused'),
+          // where the pieces go follows the reason; nothing comes back on a full drop
+          returnedSaleable: isSaleableReturn(reason),
+          reason,
         }
       }
       return next
@@ -547,20 +550,9 @@ export default function AtTheDoor(): React.JSX.Element {
                         <Txt field="label" desk="meta" color={colors.text.secondary}>
                           {`${t('d4.takingBack')} · ${t('d.pieces', { pieces: returned })}`}
                         </Txt>
-                        <Segments
-                          testID={`d4-saleable-${line.id}`}
-                          items={[
-                            { id: 'saleable', label: t('d4.saleable') },
-                            { id: 'damaged', label: t('d4.damaged') },
-                          ]}
-                          value={entry?.returnedSaleable === false ? 'damaged' : 'saleable'}
-                          onChange={(id) => {
-                            set({
-                              returnedSaleable: id === 'saleable',
-                              reason: id === 'damaged' ? 'damaged' : (entry?.reason ?? 'refused'),
-                            })
-                          }}
-                        />
+                        {/* ONE decision (DOS-058): the reason decides where the pieces go. "Shop refused it"
+                            puts them back on the van; "Damaged" and "Past its date" send them to the damaged /
+                            expiry bin, and the server refuses a damaged or expired line marked saleable. */}
                         <Segments
                           testID={`d4-reason-${line.id}`}
                           items={LINE_REASONS.slice(0, 3).map((code) => ({
@@ -569,9 +561,18 @@ export default function AtTheDoor(): React.JSX.Element {
                           }))}
                           value={entry?.reason ?? 'refused'}
                           onChange={(id) => {
-                            set({ reason: id as DeliveryLineReason })
+                            const code = id as DeliveryLineReason
+                            set({ reason: code, returnedSaleable: isSaleableReturn(code) })
                           }}
                         />
+                        <Txt
+                          field="label"
+                          desk="meta"
+                          color={colors.text.secondary}
+                          testID={`d4-disposition-${line.id}`}
+                        >
+                          {entry?.returnedSaleable === false ? t('d4.damaged') : t('d4.saleable')}
+                        </Txt>
                       </Stack>
                     )}
                   </Stack>

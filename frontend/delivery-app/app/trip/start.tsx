@@ -38,7 +38,7 @@ import { useState } from 'react'
 import { GPS_NOTICE_VERSION } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { deviceId } from '../../src/api'
-import { pickCurrentTrip, useHydrated, useLocalTrips } from '../../src/lib/local'
+import { pickCurrentTrip, tripEntryHref, useHydrated, useLocalTrips } from '../../src/lib/local'
 import { Async, Field, FillingNote, Panel } from '../../src/lib/ui'
 
 export default function StartTrip(): React.JSX.Element {
@@ -148,6 +148,14 @@ export default function StartTrip(): React.JSX.Element {
   const odometerBad = odometer.trim() !== '' && (odometerKm === null || Number.isNaN(odometerKm))
   const state = detail?.state ?? localTrip?.state ?? 'planned'
   /*
+   * A TRIP THAT HAS ALREADY LEFT IS NOT STARTED HERE (DOS-061). On the road or checked in, the only
+   * thing this screen could do was a disabled "Start the trip" blaming the godown, over an odometer and
+   * float form nothing could ever send. It offers the way to the trip's stops instead. Not a redirect:
+   * Me → "I agree to be tracked" lands here with no trip in the route, and the notice above must stay
+   * answerable while a trip is out.
+   */
+  const onTheRoad = state === 'active' || state === 'closing'
+  /*
    * A GUESSED TRIP IS NEVER DEPARTED. With no `tripId` in the route this screen picks the trip out of
    * whatever the device holds, and until the first pull finishes that is a subset — measured in the
    * gate: `/` named TRIP-NEXT and this screen named TRIP-ACTIVE, with a live "Start the trip" under
@@ -170,27 +178,40 @@ export default function StartTrip(): React.JSX.Element {
         <StatusChip label={t('d1.tripState', { state: wordFor(t, state) })} family="neutral" />
       }
       bottomBar={
-        <Button
-          testID="d2-depart"
-          label={t('d2.depart')}
-          variant="primary"
-          size="floor"
-          fullWidth
-          loading={depart.status === 'pending'}
-          disabled={!canDepart || odometerBad}
-          disabledReason={
-            !granted
-              ? t('d2.consentNeeded')
-              : provisional
-                ? t('d.waitForFill')
-                : state !== 'loading'
-                  ? t('d2.mustLoadFirst')
-                  : t('d.unknown')
-          }
-          onPress={() => {
-            setConfirming(true)
-          }}
-        />
+        onTheRoad && tripId !== null ? (
+          <Button
+            testID="d2-open-trip"
+            label={t('d2.openTrip')}
+            variant="primary"
+            size="floor"
+            fullWidth
+            onPress={() => {
+              router.replace(tripEntryHref({ id: tripId, state }))
+            }}
+          />
+        ) : (
+          <Button
+            testID="d2-depart"
+            label={t('d2.depart')}
+            variant="primary"
+            size="floor"
+            fullWidth
+            loading={depart.status === 'pending'}
+            disabled={!canDepart || odometerBad}
+            disabledReason={
+              !granted
+                ? t('d2.consentNeeded')
+                : provisional
+                  ? t('d.waitForFill')
+                  : state !== 'loading'
+                    ? t('d2.mustLoadFirst')
+                    : t('d.unknown')
+            }
+            onPress={() => {
+              setConfirming(true)
+            }}
+          />
+        )
       }
       testID="d2-screen"
     >
@@ -249,32 +270,35 @@ export default function StartTrip(): React.JSX.Element {
             </Stack>
           </Panel>
 
-          <Panel title={t('d2.before')} testID="d2-form">
-            <Stack gap={4}>
-              <TextInput
-                testID="d2-odometer"
-                label={t('d2.odometer')}
-                value={odometer}
-                onChange={setOdometer}
-                keyboard="decimal"
-                maxLength={8}
-                {...(odometerBad ? { error: t('d2.odometer') } : {})}
-              />
-              <RupeeInput
-                testID="d2-cash"
-                label={t('d2.openingCash')}
-                helper={t('d2.openingCashHelp')}
-                value={cashPaise ?? detail?.openingCashPaise ?? null}
-                onChange={setCashPaise}
-              />
-              <Row gap={4} wrap>
-                <Field label={t('d.vehicle')}>{detail?.vehicleRegNo ?? t('d.unknown')}</Field>
-                <Field label={t('d8.stops')}>
-                  {String(detail?.plannedStops ?? localTrip?.planned_stops ?? 0)}
-                </Field>
-              </Row>
-            </Stack>
-          </Panel>
+          {/* Nothing typed here can be sent for a trip that has left, so it is not asked for. */}
+          {onTheRoad ? null : (
+            <Panel title={t('d2.before')} testID="d2-form">
+              <Stack gap={4}>
+                <TextInput
+                  testID="d2-odometer"
+                  label={t('d2.odometer')}
+                  value={odometer}
+                  onChange={setOdometer}
+                  keyboard="decimal"
+                  maxLength={8}
+                  {...(odometerBad ? { error: t('d2.odometer') } : {})}
+                />
+                <RupeeInput
+                  testID="d2-cash"
+                  label={t('d2.openingCash')}
+                  helper={t('d2.openingCashHelp')}
+                  value={cashPaise ?? detail?.openingCashPaise ?? null}
+                  onChange={setCashPaise}
+                />
+                <Row gap={4} wrap>
+                  <Field label={t('d.vehicle')}>{detail?.vehicleRegNo ?? t('d.unknown')}</Field>
+                  <Field label={t('d8.stops')}>
+                    {String(detail?.plannedStops ?? localTrip?.planned_stops ?? 0)}
+                  </Field>
+                </Row>
+              </Stack>
+            </Panel>
+          )}
 
           {state === 'planned' ? (
             <Stack gap={3}>

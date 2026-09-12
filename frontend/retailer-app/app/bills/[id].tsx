@@ -34,6 +34,7 @@ import {
 import { documents } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { absoluteUrl } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { addressLine } from '../../src/lib/shop'
 import { Async, Field, Panel, billFamily } from '../../src/lib/ui'
@@ -75,7 +76,9 @@ export default function BillDetail(): React.JSX.Element {
     { enabled: signedIn && deliveryId !== null },
   )
 
-  const url = pdf.data?.url ?? null
+  // Service-relative on the local storage driver: the browser would open this app's own page and
+  // the phone would refuse the path (DOS-099).
+  const url = absoluteUrl(pdf.data?.url)
   const filename = `${bill?.invoiceNo ?? 'bill'}.pdf`
   const proofs = delivery.data?.item.pod ?? []
 

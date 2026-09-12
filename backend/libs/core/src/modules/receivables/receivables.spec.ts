@@ -1201,6 +1201,64 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect((await call(app, rep, 'GET', `/receipts/${receiptId}/document`)).status).toBe(403)
   })
 
+  it('DOS-057: recording a receipt queues its A5 original for the PDF renderer in the same transaction, and a replay after that request was published queues nothing more', async () => {
+    const id = uuidv7()
+    const payload = {
+      idempotencyKey: `rcpt-paper-${run}`,
+      id,
+      retailerId: shop.g,
+      mode: 'cash',
+      amountPaise: 1_500,
+    }
+    type RenderRow = {
+      id: string
+      aggregate_type: string
+      payload: Record<string, unknown>
+      same_transaction: boolean
+    }
+    const renderRequests = async (): Promise<RenderRow[]> =>
+      (
+        await db.execute(sql`
+          select o.id, o.aggregate_type, o.payload, o.created_at = r.created_at as same_transaction
+            from outbox_events o
+            join receipts r on r.tenant_id = o.tenant_id and r.id = ${id}
+           where o.tenant_id = ${tenantId} and o.event_type = 'DocumentRenderRequested'
+             and o.aggregate_id = ${`receipt:${id}:a5:original`}`)
+      ).rows as RenderRow[]
+
+    const first = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', payload)
+    expect(first.status).toBe(200)
+    const queued = await renderRequests()
+    expect(queued).toHaveLength(1)
+    expect(queued[0]?.aggregate_type).toBe('document')
+    expect(queued[0]?.payload).toMatchObject({
+      tenantId,
+      kind: 'receipt',
+      id,
+      format: 'a5',
+      copy: 'original',
+      requestedBy: accountantId,
+    })
+    // `now()` is the transaction's start: the request and the receipt were written together.
+    expect(queued[0]?.same_transaction).toBe(true)
+
+    // The worker has taken it (published), so the unpublished-row dedupe can no longer hide a re-queue.
+    await db.execute(
+      sql`update outbox_events set published_at = now() where id = ${queued[0]?.id ?? ''}`,
+    )
+    const replay = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', payload)
+    expect(replay.status).toBe(200)
+    expect(replay.body.item.id).toBe(id)
+    // The same receipt id under a new key reaches recordReceipt's own replay return.
+    const sameId = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      ...payload,
+      idempotencyKey: `rcpt-paper-again-${run}`,
+    })
+    expect(sameId.status).toBe(200)
+    expect(sameId.body.item.id).toBe(id)
+    expect(await renderRequests()).toHaveLength(1)
+  })
+
   it('refuses every receivables procedure to the warehouse role', async () => {
     expect((await call(app, store, 'GET', '/receipts', { limit: 5 })).status).toBe(403)
     expect((await call(app, store, 'GET', '/receivables/outstanding', { limit: 5 })).status).toBe(

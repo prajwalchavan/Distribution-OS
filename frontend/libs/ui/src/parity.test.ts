@@ -334,3 +334,39 @@ describe('both shells clamp themselves to the viewport (UX-00 §8.2)', () => {
     expect(shellBody('DeskShell')).toContain("height: '100dvh'")
   })
 })
+
+/**
+ * DOS-060: the phone's amount pad counted paise (4 7 5 6 was ₹47.56) while the web field took rupees.
+ * The rupee-first rule lives in pure helpers in `money.ts` (pinned by money.test.ts); this pins that
+ * BOTH `<NumberPad>` renderers press their money keys through them. The native half is where the
+ * defect was seen and it cannot be imported under vitest, so, like the blocks above, this reads it.
+ */
+describe('<NumberPad> money mode goes through the shared rupee-first pad helpers', () => {
+  function padBody(renderer: 'web' | 'native'): string {
+    const source = readFileSync(join(here, renderer, 'money.tsx'), 'utf8')
+    const start = source.indexOf('export function NumberPad(')
+    expect(start, `NumberPad is not exported from ${renderer}/money.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('DOS-060: both NumberPad renderers route money-mode keys through the shared pad helpers (the native half cannot be imported under vitest)', () => {
+    for (const renderer of ['web', 'native'] as const) {
+      const body = padBody(renderer)
+      for (const helper of [
+        'MONEY_PAD_KEYS',
+        'padEntryFromPaise(value)',
+        'reconcilePadEntry(entry, value)',
+        'pressMoneyPadKey(',
+        'paiseFromPadEntry(',
+        'formatPadEntry(',
+      ]) {
+        expect(body, `${renderer} <NumberPad> does not use ${helper}`).toContain(helper)
+      }
+      // The paise-append reducer may still serve count mode, never the money preview.
+      expect(body, `${renderer} <NumberPad> still previews money from the raw value`).not.toContain(
+        'formatMoney(value ?? 0)',
+      )
+    }
+  })
+})
