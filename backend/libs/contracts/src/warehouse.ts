@@ -78,8 +78,9 @@ import { SellerBrandingSchema } from './tenancy.js'
  * is integer paise and appears in exactly two places — a load sheet's value and a challan's — and both
  * are SALE values. No shape below carries a purchase cost, a landed cost, a PTD or a margin: a picker
  * must never be able to back a purchase rate out of a screen. Dates are IST (`businessDate()`,
- * `financialYear()`), ids are client-generated UUIDv7, every list caps `limit` at 200 and pages on the
- * last row's id descending.
+ * `financialYear()`), ids are client-generated UUIDv7, every list caps `limit` at 200 and takes the last
+ * row's id as its cursor. `picklists.list` is ordered newest first by server creation time
+ * (`created_at desc, id desc`, DOS-023); the other lists are ordered by id descending.
  */
 
 const IsoDateSchema = z.iso.date()

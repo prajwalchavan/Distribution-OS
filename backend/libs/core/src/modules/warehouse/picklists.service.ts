@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, lt, lte, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CancelPicklistInput,
@@ -283,13 +283,25 @@ export class PicklistsService {
         input.tripId ? eq(picklists.tripId, input.tripId) : undefined,
         input.from ? gte(picklists.pickDate, input.from) : undefined,
         input.to ? lte(picklists.pickDate, input.to) : undefined,
-        input.cursor ? lt(picklists.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor sheet's own (created_at, id), read inside this tenant's transaction, so
+         * the comparison keeps Postgres's microseconds. No status filter in the subquery: a sheet whose
+         * status changed between two pages still anchors the next one. An unknown cursor matches nothing.
+         */
+        input.cursor
+          ? sql`(${picklists.createdAt}, ${picklists.id}) < (select c.created_at, c.id from picklists c where c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(picklists)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(picklists.id))
+        /*
+         * Newest first by SERVER time (DOS-023). Ids are made on the device and the demo seed's are
+         * hashes, so id order is not age: a wave made today sorted below most seeded sheets and fell
+         * off the first page.
+         */
+        .orderBy(desc(picklists.createdAt), desc(picklists.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const totals = await picklistTotals(

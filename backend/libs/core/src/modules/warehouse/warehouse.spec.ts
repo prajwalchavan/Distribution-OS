@@ -9,6 +9,7 @@ import {
   locations,
   manufacturers,
   memberships,
+  picklists,
   priceListItems,
   priceLists,
   products,
@@ -1907,8 +1908,9 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect((await call(app, owner, 'GET', `/warehouse/picklists/${picklistId}`)).status).toBe(200)
   })
 
-  // KEEP THIS THE LAST TEST: if it failed mid-way it would leave 12 available pieces on an
-  // earlier-expiry variantB lot, and FEFO in any later test would reserve them.
+  // KEEP THIS AFTER EVERY TEST THAT READS LOTS: if it failed mid-way it would leave 12 available
+  // pieces on an earlier-expiry variantB lot, and FEFO in any later test would reserve them. Only the
+  // DOS-023 test follows it, and that one asserts the order sheets are listed in, never a lot.
   it("DOS-039 sends out a sheet whose packed lot has nothing left in the godown instead of refusing 'insufficient stock'", async () => {
     // The pilot's first real load-out: every piece of the lot was sold at pack, so taking the packed
     // lot out of the godown again at confirm would drive on_hand below zero.
@@ -1970,5 +1972,93 @@ describeDb('warehouse (DATABASE_URL)', () => {
       expect.objectContaining({ lotId: soldOut, qtyPcs: 12 }),
     )
     expect(await orderState(id)).toBe('dispatched')
+  })
+
+  // KEEP THIS THE LAST TEST: it leaves one confirmed order on an open wave, which a later test that
+  // counts the queue or the live sheets would trip over.
+  it('DOS-023: picklists.list is newest first by creation time — a wave made now tops a sheet whose id sorts higher, and the cursor walks every sheet once in created_at order, with and without a status filter', async () => {
+    interface SheetPage {
+      items: { id: string; createdAt: string; status: string }[]
+      nextCursor: string | null
+    }
+    // A sheet shaped like the demo seed's: its id sorts above every real UUIDv7 (the seed's ids are
+    // hashes with no time in them) but it was made a day ago. Version 7 and variant b keep it a valid
+    // uuid, so the list's output schema accepts it.
+    const olderId = `ffffffff-ffff-7fff-bfff-0000${run}`
+    await db.insert(picklists).values({
+      id: olderId,
+      tenantId,
+      picklistNo: `PICK-D23-${run}`,
+      locationId: godown,
+      status: 'packed',
+      orderIds: [],
+      pickDate: '2026-06-01',
+      createdAt: new Date(Date.now() - 86_400_000),
+    })
+
+    const orderId = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos023')
+    const { id: newest, res } = await wave([orderId], 'dos023')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    const first = await call<SheetPage>(app, manager, 'GET', '/warehouse/picklists', { limit: 1 })
+    expect(first.status).toBe(200)
+    expect(first.body.items[0]?.id).toBe(newest)
+
+    /** Follows `nextCursor` to the end and returns every sheet in the order the pages gave them. */
+    const walk = async (
+      filter: { status?: string },
+      limit: number,
+    ): Promise<SheetPage['items']> => {
+      const seen: SheetPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 1000; pages += 1) {
+        const page = await call<SheetPage>(app, manager, 'GET', '/warehouse/picklists', {
+          ...filter,
+          limit,
+          cursor,
+        })
+        expect(page.status, JSON.stringify(page.body)).toBe(200)
+        seen.push(...page.body.items)
+        if (page.body.nextCursor === null) return seen
+        cursor = page.body.nextCursor
+      }
+      throw new Error('picklists.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: SheetPage['items']): void => {
+      const ids = items.map((item) => item.id)
+      expect(new Set(ids).size, 'no sheet comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(Date.parse(item.createdAt), `${item.id} after ${before.id}`).toBeLessThanOrEqual(
+            Date.parse(before.createdAt),
+          )
+      })
+    }
+    const countOf = async (status?: string): Promise<number> =>
+      (
+        (
+          await db.execute(
+            status === undefined
+              ? sql`select count(*)::int as n from picklists where tenant_id = ${tenantId}`
+              : sql`select count(*)::int as n from picklists
+                     where tenant_id = ${tenantId} and status = ${status}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    const all = await walk({}, 2)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    expect(all[0]?.id).toBe(newest)
+    expect(all.at(-1)?.id).toBe(olderId)
+
+    // The read Pick & pack sends: one status at a time, paged by the same cursor.
+    const packed = await walk({ status: 'packed' }, 1)
+    expect(packed.every((item) => item.status === 'packed')).toBe(true)
+    expectEachOnceNewestFirst(packed)
+    expect(packed).toHaveLength(await countOf('packed'))
+    expect(packed.length).toBeGreaterThanOrEqual(2)
+    expect(packed.at(-1)?.id).toBe(olderId)
   })
 })
