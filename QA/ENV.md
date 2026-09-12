@@ -222,3 +222,5 @@ Notes from the Admin walk (2026-09-12):
 - Fixture repair done by SQL in dos_qa after the probes: `update users set status='active' where username in ('dos.admin','qa.probe.owner')`.
   The probe tenant `qa-probe-support` stays (no delete in the product).
 - `timeout` does not exist on macOS; give the Bash tool its own timeout instead.
+
+- **Parallel walkers (2026-09-13):** `pw-server.mjs` and `pw.mjs` read `PW_PORT` (default 9333), so several walkers can each run their own headless Chromium: `PW_PORT=9341 nohup node pw-server.mjs > ~/.dos-qa-logs/logs/pw-9341.log 2>&1 &` then `PW_PORT=9341 EV_DIR=batch1/regression/web-x node pw.mjs …`. Android (one emulator, one :8081 proxy) and iOS (one simulator, one Appium) stay one walker at a time.

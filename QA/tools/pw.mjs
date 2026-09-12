@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const EV = fileURLToPath(new URL(`../evidence/${process.env.EV_DIR ?? 'phase1/owner'}/`, import.meta.url))
 mkdirSync(EV, { recursive: true })
 const [cmd, ...args] = process.argv.slice(2)
-const browser = await chromium.connectOverCDP('http://127.0.0.1:9333')
+const browser = await chromium.connectOverCDP(`http://127.0.0.1:${process.env.PW_PORT ?? '9333'}`)
 const ctx = browser.contexts()[0]
 const page = ctx.pages()[0]
 const consoleErrors = [], failed = []
