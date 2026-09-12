@@ -1,0 +1,82 @@
+DO
+Distribution OS
+Platform
+Platform
+Distributors
+Subscriptions
+Support
+DIRECTORY
+People
+Audit trail
+Account
+RO
+Rohit Nair (Distribution OS)
+Distribution OS staff
+Showing 5
+Support access
+Reload
+The console can only ask. The distributor’s own owner opens the window, in their own app, and it closes by itself. Every call made under a window is written to the audit trail.
+Open now
+Waiting for their owner
+All
+Distributorship	State	Scope	Asked by	Asked	Answered	Closes
+
+M/s. Tarsun Enterprise
+Ticket #4207: the August GST register does not tie to the sales register by ₹1,240. We would like to read the invoices and credit notes for August to find the difference.
+	Open now	
+Read only
+	
+Rohit Nair (Distribution OS)
+	
+12 Sep 2026, 12:51 pm
+	
+12 Sep 2026, 12:51 pm
+	28 d 17 h
+
+Kalyan Agencies
+Ticket #4182: three invoices from 2 September will not issue — "numbering series locked". We would like to read the numbering series and the invoice rows to see why.
+	Lapsed, no answer	
+Read only
+	
+Anita Rao (Distribution OS support)
+	
+12 Sep 2026, 12:51 pm
+	
+—
+	—
+
+Sai Distributors
+Ticket #4182: three invoices from 2 September will not issue — "numbering series locked". We would like to read the numbering series and the invoice rows to see why.
+	Lapsed, no answer	
+Read only
+	
+Anita Rao (Distribution OS support)
+	
+12 Sep 2026, 12:51 pm
+	
+—
+	—
+
+M/s. Tarsun Enterprise
+Ticket #4182: three invoices from 2 September will not issue — "numbering series locked". We would like to read the numbering series and the invoice rows to see why.
+	Lapsed, no answer	
+Read only
+	
+Anita Rao (Distribution OS support)
+	
+12 Sep 2026, 12:50 pm
+	
+—
+	—
+
+M/s. Tarsun Enterprise
+Ticket #3990: a delivery trip would not close — the crew reported a cash variance the app kept refusing. We would like to read the trip and its collections.
+	Closed	
+Read only
+	
+Rohit Nair (Distribution OS)
+	
+2 Sep 2026, 12:51 pm
+	
+2 Sep 2026, 12:51 pm
+	Closed 2 Sep 2026, 4:51 pm

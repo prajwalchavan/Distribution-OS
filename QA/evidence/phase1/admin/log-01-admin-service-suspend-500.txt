@@ -1,0 +1,41 @@
+{"level":30,"time":1789221379827,"pid":14664,"hostname":"prajwals-MacBook-Air.local","reqId":"req-2a","req":{"method":"POST","url":"/admin/tenants/9fdfb5da-324c-71a5-ae98-3840cc44ae1c/suspend","host":"127.0.0.1:3007","remoteAddress":"127.0.0.1","remotePort":64055},"msg":"incoming request"}
+DrizzleQueryError: Failed query: insert into "idempotency_keys" ("tenant_id", "key", "request_hash", "response", "platform_scoped", "created_at") values ($1, $2, $3, default, $4, default) on conflict do nothing returning "key"
+params: 4c547236-d6a3-4bb4-ac0d-2e67a5a3a488,qa-sup-suspend-34d7b254-0786-483e-846d-c0fba0b6dd23,b5efe4300a047e1181d2e60ce5620767dfe0be83cdad9fda63c11594cdb5b23c,true
+    at NodePgPreparedQuery.queryWithCache (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/pg-core/session.js:41:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:117:22
+    ... 4 lines matching cause stack trace ...
+    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/server/dist/shared/server.DEBcqOjg.mjs:111:22
+    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/server/dist/shared/server.CMf4nKky.mjs:82:34
+    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/server/dist/shared/server.CMf4nKky.mjs:47:22 {
+  query: 'insert into "idempotency_keys" ("tenant_id", "key", "request_hash", "response", "platform_scoped", "created_at") values ($1, $2, $3, default, $4, default) on conflict do nothing returning "key"',
+  params: [
+    '4c547236-d6a3-4bb4-ac0d-2e67a5a3a488',
+    'qa-sup-suspend-34d7b254-0786-483e-846d-c0fba0b6dd23',
+    'b5efe4300a047e1181d2e60ce5620767dfe0be83cdad9fda63c11594cdb5b23c',
+    true
+  ],
+  cause: error: insert or update on table "idempotency_keys" violates foreign key constraint "idempotency_keys_tenant_id_tenants_id_fk"
+      at /Users/prajwalchavan/Desktop/Distribution OS/backend/node_modules/pg/lib/client.js:694:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:124:18
+      at async NodePgPreparedQuery.queryWithCache (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/pg-core/session.js:39:16)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:117:22
+      at async runIdempotent (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/platform/idempotency.js:35:22)
+      at async NodePgSession.transaction (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+      at async next (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/server/dist/shared/server.DEBcqOjg.mjs:229:9)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/shared/dist/index.mjs:490:14
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/@orpc/server/dist/shared/server.DEBcqOjg.mjs:111:22 {
+    length: 296,
+    severity: 'ERROR',
+    code: '23503',
+    detail: 'Key is not present in table "tenants".',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: 'public',
+    table: 'idempotency_keys',
+    column: undefined,
+    dataType: undefined,

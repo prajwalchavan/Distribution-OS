@@ -1,0 +1,5 @@
+# dos.support (level 'support') trying super-only actions — 19:26:19
+support  500  POST http://127.0.0.1:3007/admin/tenants/9fdfb5da-324c-71a5-ae98-3840cc44ae1c/suspend  {"defined":false,"code":"INTERNAL_SERVER_ERROR","status":500,"message":"Internal server error"}
+support  200  POST http://127.0.0.1:3007/admin/subscriptions  {"item":{"id":"9439a08e-1255-7321-91f4-7a133aeedf3b","tenantId":"82f5c562-b7eb-7521-8e19-4aa6befc64f8","plan":"pro","status":"active","amountPaise":1,"billingInterval":"monthly","seats":10,"currentPeriodStart":"2026-09-1
+support  200  POST http://127.0.0.1:3007/admin/tenants  {"tenant":{"id":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","slug":"qa-probe-support","legalName":"QA Probe Support Pvt Ltd","gstin":null,"stateCode":"27","plan":"pilot","status":"active"},"owner":{"userId":"0e1daf47-3245-410
+support  404  POST http://127.0.0.1:3007/admin/users/0c74b10e-f56e-730c-8fd5-f0acf4db0a8b/disable  {"defined":false,"code":"NOT_FOUND","status":404,"message":"no user 7710b6e6-b24e-4a37-9578-147b618a0da4"}

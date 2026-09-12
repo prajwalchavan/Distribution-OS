@@ -1,0 +1,18 @@
+# support-level suspend/reactivate + disable, with the target id in the body — 19:30:27
+-- dos.support suspends qa-probe-support (body id = tenant id):
+{"item":{"id":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","slug":"qa-probe-support","legalName":"QA Probe Support Pvt Ltd","gstin":null,"stateCode":"27","plan":"pilot","status":"suspended"}}  [200]
+-- DB:
+qa-probe-support|suspended
+-- dos.admin reactivates (body id = tenant id):
+{"item":{"id":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","slug":"qa-probe-support","legalName":"QA Probe Support Pvt Ltd","gstin":null,"stateCode":"27","plan":"pilot","status":"active"}}  [200]
+-- DB:
+qa-probe-support|active
+-- dos.support disables qa.probe.owner (body id = user id):
+{"item":{"id":"0e1daf47-3245-4108-a175-4a6e8336de82","username":"qa.probe.owner","name":"QA Probe","phone":"+919999900001","locale":"en-IN","status":"disabled","platformRole":null,"mustChangePassword":true,"lockedUntil":null,"lastLoginAt":"2026-09-12T13:59:45.771Z","createdAt":"2026-09-12T13:56:19.988Z","memberships":[{"tenantId":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","tenantSlug":"qa-probe-suppor
+-- DB user:
+qa.probe.owner|disabled||t
+0
+-- disabled user signs in:
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"This account is disabled or has no active membership"}  [403]
+-- any way back? README endpoints mentioning enable/unlock:
+0

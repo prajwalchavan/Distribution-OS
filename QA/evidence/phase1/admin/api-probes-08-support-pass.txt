@@ -1,0 +1,34 @@
+# support pass flow (correct path) on approved window dc9b8792-2088-7404-ab13-c4815960952a — 19:33:21
+-- dos.admin mints a pass:
+{"pass":"eyJnIjoiZGM5Yjg3OTItMjA4OC03NDA0LWFiMTMtYzQ4MTU5NjA5NTJhIiwidCI6IjAxYTA5NDdkLTdhNzktNzVkMi1iZmZmLTk3ZTQ5OWE1OGQ0OSIsInUiOiJmYzQ5Y2ZiMi0yZmY0LTc4Y2ItYTlhNC0yZDcxYTczOGIxOTkiLCJzIjoicmVhZF9vbmx5IiwiZSI6MTc4OTIyMjEwMX0.LMeePeQSQnt69f6Tup623SVji8W494faPORKO3v6k62qhAtXhWufv0M8LeGSxo7ou91boxfRhviQHbN-rStnBA","tenantId":"01a0947d-7a79-75d2-bfff-97e499a58d49","tenantSlug":"tarsun","scope":"read_o
+pass len: 302
+{'pass': 'eyJnIjoiZGM5Yjg3OTItMjA4OC03NDA0LWFiMTMt', 'tenantId': '01a0947d-7a79-75d2-bfff-97e499a58d49', 'tenantSlug': 'tarsun', 'scope': 'read_only', 'expiresAt': '2026-09-12T14:08:21.000Z', 'grantExpiresAt': '2026-10-11T07:21:03.989Z'}
+-- read retailers on :3001 with the pass:
+200
+{"items":[{"id":"01a09594-3b4f-70df-a383-84b37ca65fa9","name":"Kalyan QA Kirana","ownerName":"Suresh QA","phone":"+919000000123","altPhone":null,"address":{"line1":"Shop 9, Rambaug Lane","area":"Ramba
+-- read purchase costs (back-office only) with the pass:
+200
+{"items":[{"id":"71621050-145b-7527-aa6d-3ea98e0fb3dc","variantId":"4cf8c0aa-3028-7155-957a-80108bf2a8fb","lotId":null,"supplierId":null,"purchaseRatePaise":1018,"landedCostPaise":1033,"ptdPaise":1018
+-- read the money: receivables/outstanding with the pass:
+200
+{"items":[{"retailerId":"20059d26-8301-7f2a-9f72-29cc39ce7753","code":"R-0010","name":"Balaji Wholesale Stores","beatId":"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b","outstandingPaise":72080400,"overduePais
+-- a WRITE with the pass:
+{"message":"this support window is read-only: the distributor approved a look, not a change","error":"Forbidden","statusCode":403}  [403]
+-- the pass on :3003 / :3002 / :3007:
+3003 sales: 403
+3002 manager: 403
+3007 admin with pass: 403
+-- pass used with dos.support's token (not the minter):
+403
+-- pass used with the OWNER's token on :3001 (should be ignored/ok):
+403
+-- dos.support mints on dos.admin's window:
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"That support window was granted to another administrator"}  [403]
+-- pass on the lapsed request:
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"M/s. Tarsun Enterprise has not approved this request yet. Their owner decides, from their own app."}  [403]
+-- pass on the expired window:
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"That support window has expired. Ask for a new one."}  [403]
+-- audit rows from the pass:
+support.read|dos.admin|tarsun|{"route": "GET /retailers", "scope": "read_only", "method": "GET", "grantId": "dc9b8792-2088-7404-ab13-c4815960952a", "outcome": "ok"}|19:33:21
+support.read|dos.admin|tarsun|{"route": "GET /tenant-catalog/costs", "scope": "read_only", "method": "GET", "grantId": "dc9b8792-2088-7404-ab13-c4815960952a", "outcome": "ok"}|19:33:21
+support.read|dos.admin|tarsun|{"route": "GET /receivables/outstanding", "scope": "read_only", "method": "GET", "grantId": "dc9b8792-2088-7404-ab13-c4815960952a", "outcome": "ok"}|19:33:21

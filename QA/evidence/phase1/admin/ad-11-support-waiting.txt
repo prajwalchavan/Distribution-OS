@@ -1,0 +1,22 @@
+DO
+Distribution OS
+Platform
+Platform
+Distributors
+Subscriptions
+Support
+DIRECTORY
+People
+Audit trail
+Account
+RO
+Rohit Nair (Distribution OS)
+Distribution OS staff
+Showing 0
+Support access
+Reload
+The console can only ask. The distributor’s own owner opens the window, in their own app, and it closes by itself. Every call made under a window is written to the audit trail.
+Open now
+Waiting for their owner
+All
+Nobody’s owner is being waited on

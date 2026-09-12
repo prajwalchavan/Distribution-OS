@@ -1,0 +1,100 @@
+DO
+Distribution OS
+Platform
+Platform
+Distributors
+Subscriptions
+Support
+DIRECTORY
+People
+Audit trail
+Account
+RO
+Rohit Nair (Distribution OS)
+Distribution OS staff
+Distributors
+M/s. Tarsun Enterprise
+Suspend this distributorship
+Active
+Pilot
+Subscription · Active
+STAFF LOGINS
+21
+SHOPS
+62
+ORDERS, 30 DAYS
+315
+BILLS, 30 DAYS
+299
+FILES STORED
+369 kB
+Counts only. Not one rupee of a distributor’s own trade is readable from this console.
+Who they are
+Distributorship
+M/s. Tarsun Enterprise
+Handle
+tarsun
+GSTIN
+27CNGPP9039R1ZX
+State
+Maharashtra
+On the platform since
+12 Sep 2026
+Last seen
+12 Sep 2026, 7:10 pm
+Subscription
+Change the plan
+Plan
+Pro
+State
+Active
+Price ₹
+₹4,999.00
+Monthly
+Seats
+25
+This period
+12 Sep 2026 — 12 Oct 2026
+Trial ends
+—
+Note
+Pilot customer, Kalyan West.
+Inside this distributorship
+A window is open until 11 Oct 2026, 12:51 pm, read only.
+Closes in 28 d 17 h
+Their service answered as their owner. Every call is in the audit trail.
+Read through the window
+The name they show their shops
+Tarsun Enterprise
+Distributorship
+M/s. Tarsun Enterprise
+GSTIN
+27CNGPP9039R1ZX
+Their invoice numbering, as their own service reports it
+CLAIM
+next CLM-25
+CN
+next CN/9004
+DC
+next DC-83
+EXT
+next 1
+GRN
+next GRN-129
+INV
+next INV/9007
+This read pass closes
+12 Sep 2026, 7:43 pm
+Read only: their service refuses a write from this window, and says so with a 403.
+What we have read under this window
+12 Sep 2026, 7:38 pm · GET /tenancy/numbering-series
+12 Sep 2026, 7:38 pm · GET /tenancy/branding
+12 Sep 2026, 7:33 pm · GET /receivables/outstanding
+12 Sep 2026, 7:33 pm · GET /tenant-catalog/costs
+12 Sep 2026, 7:33 pm · GET /retailers
+Hand the window back
+Hand this window back?
+The window shuts at once, before it was due to. Ask again if there is more to do.
+Cancel
+Hand it back
+Support access

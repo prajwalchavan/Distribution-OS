@@ -209,3 +209,16 @@ Notes from the Retailer walk (2026-09-12):
 - `pw-net.mjs` and the retailer service log are the fastest way to see relative vs absolute URLs coming back from the API (DOS-099).
 - A retailer API token: `POST /auth/login {username, password, deviceId:<uuid>}` on :3000; the login reply carries `tenant` (the
   first membership) — no `tenantId` is needed for a three-tenant user, the service picks the first.
+
+Notes from the Admin walk (2026-09-12):
+- Console accounts sign in at `POST /auth/platform/login` (no tenant); `QA/tools/tok.sh <scratchpad>` re-mints the four probe tokens
+  (dos.admin, dos.support, sunil.tarsun, prakash.salunkhe) — access tokens last 15 min, so a long API walk needs it every quarter hour.
+- The admin app's sign-in screen reads "Distribution OS console", so the title guards in `android-login.sh`/`ios-login.mjs` need
+  `android-login.sh admin 5179 dos.admin ""` and `ios-login.mjs 5179 dos.admin admin console`.
+- Per-record mutations on :3007 and :3001 (`suspend`, `reactivate`, `users/{id}/disable`, `support-grants/{id}/approve|revoke`)
+  act on the BODY `id`, not the path (DOS-112): send `id` = the target id or you get 500/404.
+- Support pass: `POST /auth/platform/support-pass {grantId}` → `pass`; send as `x-support-grant: <pass>` with the console token on
+  the distributor's own service (:3001). Lives 5 min.
+- Fixture repair done by SQL in dos_qa after the probes: `update users set status='active' where username in ('dos.admin','qa.probe.owner')`.
+  The probe tenant `qa-probe-support` stays (no delete in the product).
+- `timeout` does not exist on macOS; give the Bash tool its own timeout instead.

@@ -1,0 +1,13 @@
+# dos.support locks dos.admin (the super) — 19:52:23
+{"item":{"id":"fc49cfb2-2ff4-78cb-a9a4-2d71a738b199","username":"dos.admin","name":"Rohit Nair (Distribution OS)","phone":"+917000000100","locale":"en-IN","status":"disabled","platformRole":"platform_admin","mustChangePassword":false,"lockedUntil":null,"lastLo
+-- DB:
+dos.admin|disabled
+0
+-- dos.admin signs in:
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"This account is disabled or has no active membership"}  [403]
+-- restore (test DB fixture repair): dos.admin + qa.probe.owner back to active
+qa.probe.owner|active
+dos.admin|active
+UPDATE 2
+-- dos.admin signs in again:
+200

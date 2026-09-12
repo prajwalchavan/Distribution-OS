@@ -1,0 +1,4 @@
+subscription.updated|dos.support|sai-distributors|{"from": {"plan": "standard", "status": "trial", "amountPaise": 199900}, "plan": "pro", "s|19:26:19
+tenant.onboarded|dos.support|qa-probe-support|{"plan": "pilot", "slug": "qa-probe-support", "trialDays": 30, "ownerUserId": "0e1daf47-32|19:26:19
+tenant.suspended|dos.admin|qa-probe-support|{"to": "suspended", "from": "active", "reason": "QA: unpaid since onboarding — probe tenan|19:29:03
+tenant.reactivated|dos.admin|qa-probe-support|{"to": "active", "from": "suspended", "reason": "QA: probe done, letting them back"}|19:29:42

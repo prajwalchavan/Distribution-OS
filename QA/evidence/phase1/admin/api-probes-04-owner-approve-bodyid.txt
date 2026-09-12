@@ -1,0 +1,6 @@
+# owner approve with body id = grant id — 19:27:30
+-- 72 h (asked 4):
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"support asked for 4 hours; a window may be shortened, never lengthened","data":{"code":"window_too_long","requestedHours":4}}  [400]
+
+-- 2 h:
+{"defined":false,"code":"CONFLICT","status":409,"message":"that window has already closed; ask the console to raise a new request","data":{"code":"request_expired"}}  [409]

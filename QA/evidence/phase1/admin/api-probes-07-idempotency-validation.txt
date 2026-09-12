@@ -1,0 +1,11 @@
+# idempotency on POST /admin/subscriptions (probe tenant) — 19:32:35
+-- 1st call amount 99900:
+{"item":{"id":"0108ed2e-a8dc-4e96-91ff-e853cdc5f42d","tenantId":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","plan":"starter","status":"trialing","amountPaise":99900,"billingInterval":"monthly","seats":2,"c
+-- same key, same payload:
+{"item":{"id":"0108ed2e-a8dc-4e96-91ff-e853cdc5f42d","tenantId":"0ccdd8a0-43be-41b4-a06b-e714db9b65f7","plan":"starter","status":"trialing","amountPaise":99900,"billingInterval":"monthly","seats":2,"c
+-- same key, different amount 1:
+{"defined":false,"code":"CONFLICT","status":409,"message":"idempotencyKey was already used with a different request"}  [409]
+-- validation: negative amount, end before start, seats 0:
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"origin":"number","code":"too_small","minimum":0,"inclusive":true,"path":["amountPaise"],"message":"Too small: expected number to be >=0"},{"origin":"number","code":"too_small","minimum":0,"inclusive":false,"path":["seats"],"message":"Too small: expected number to be >0"}]}}  [400]
+-- validation: end before start only:
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"the billing period ends after it starts"}  [400]

@@ -1,0 +1,22 @@
+# API probes 2026-09-12 19:22:21 — who / status / url / first 160 chars
+admin  200  http://127.0.0.1:3007/admin/tenants  {"items":[{"id":"01a0947d-7a79-75d2-bfff-97e499a58d49","slug":"tarsun","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","plan":"p
+admin  200  http://127.0.0.1:3007/admin/tenants/01a0947d-7a79-75d2-bfff-97e499a58d49  {"item":{"id":"01a0947d-7a79-75d2-bfff-97e499a58d49","slug":"tarsun","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","plan":"pil
+admin  200  http://127.0.0.1:3007/admin/subscriptions  {"items":[{"id":"7b67b3f0-c10f-7a39-8aeb-afbe87a6e407","tenantId":"9fdfb5da-324c-71a5-ae98-3840cc44ae1c","plan":"standard","status":"trialing","amountPaise":199
+admin  200  http://127.0.0.1:3007/admin/support-grants  {"items":[{"id":"dc9b8792-2088-7404-ab13-c4815960952a","status":"approved","scope":"read_only","reason":"Ticket #4207: the August GST register does not tie to t
+admin  200  http://127.0.0.1:3007/admin/support-grants?status=requested  {"items":[{"id":"9b0fe886-fe2d-7d84-b89b-e235dfe44cac","status":"requested","scope":"read_only","reason":"Ticket #4182: three invoices from 2 September will not
+admin  200  http://127.0.0.1:3007/admin/users?limit=100  {"items":[{"id":"008fa1f5-ecd7-790e-8467-bcb88d4d3646","username":"sandeep.mane","name":"Sandeep Mane","phone":"+919810000014","locale":"mr-IN","status":"active
+admin  200  http://127.0.0.1:3007/admin/metrics  {"generatedAt":"2026-09-12T13:52:21.700Z","windowDays":30,"tenants":{"total":3,"active":3,"suspended":0,"closed":0},"tenantsByPlan":[{"plan":"pilot","count":1},
+admin  200  http://127.0.0.1:3007/admin/audit  {"items":[],"nextCursor":null}
+support  200  http://127.0.0.1:3007/admin/support-grants  {"items":[{"id":"dc9b8792-2088-7404-ab13-c4815960952a","status":"approved","scope":"read_only","reason":"Ticket #4207: the August GST register does not tie to t
+support  200  http://127.0.0.1:3007/admin/users?limit=5  {"items":[{"id":"008fa1f5-ecd7-790e-8467-bcb88d4d3646","username":"sandeep.mane","name":"Sandeep Mane","phone":"+919810000014","locale":"mr-IN","status":"active
+support  200  http://127.0.0.1:3007/admin/metrics  {"generatedAt":"2026-09-12T13:52:21.748Z","windowDays":30,"tenants":{"total":3,"active":3,"suspended":0,"closed":0},"tenantsByPlan":[{"plan":"pilot","count":1},
+## privilege probes
+owner-on-3007  403  http://127.0.0.1:3007/admin/tenants  {"message":"admin-service does not serve the owner role","error":"Forbidden","statusCode":403}
+owner-on-3007  403  http://127.0.0.1:3007/admin/metrics  {"message":"admin-service does not serve the owner role","error":"Forbidden","statusCode":403}
+admin-on-3001  403  http://127.0.0.1:3001/tenancy/support-grants  {"message":"owner-service does not serve the platform_admin role","error":"Forbidden","statusCode":403}
+admin-on-3001  403  http://127.0.0.1:3001/retailers?limit=5  {"message":"owner-service does not serve the platform_admin role","error":"Forbidden","statusCode":403}
+admin-on-3003  403  http://127.0.0.1:3003/orders?limit=5  {"message":"sales-service does not serve the platform_admin role","error":"Forbidden","statusCode":403}
+admin-on-3006  403  http://127.0.0.1:3006/retailers/me  {"message":"retailer-service does not serve the platform_admin role","error":"Forbidden","statusCode":403}
+admin-on-3002  404  http://127.0.0.1:3002/reporting/dashboard  {"message":"Cannot GET /reporting/dashboard","error":"Not Found","statusCode":404}
+support-on-3001  403  http://127.0.0.1:3001/tenancy/support-grants  {"message":"owner-service does not serve the platform_admin role","error":"Forbidden","statusCode":403}
+noauth-3007  401  http://127.0.0.1:3007/admin/tenants  {"message":"sign in required","error":"Unauthorized","statusCode":401}

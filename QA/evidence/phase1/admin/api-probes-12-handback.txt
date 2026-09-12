@@ -1,0 +1,22 @@
+# hand the window back from the console UI, then reuse the fresh pass — 19:39:08
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/admin/ad-32-handback-dialog.png (1798 chars text)
+|Hand this window back?|The window shuts at once, before it was due to. Ask again if there is more to do.|Cancel|Hand it back|Support access
+10	button	hand-back		Hand the window back
+11	button			Cancel
+12	button			Hand it back
+13	button	all-support		Support access
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/phase1/admin/ad-33-handed-back.png (964 chars text)
+|Lapsed, no answer|Our last ask lapsed at 12 Sep 2026, 4:50 pm without an answer, so it can no longer be opened. Ask again.|Ask for support access|Support access
+[console errors] Failed to load resource: the server responded with a status of 400 (Bad Request)
+[failed requests] 400 GET http://127.0.0.1:3007/admin/audit?tenantId=01a0947d-7a79-75d2-bfff-97e499a58d49&action=support.read&entityType=support&entityId=&limit=20
+-- fresh pass after hand-back:
+401
+{"message":"token expired","error":"Unauthorized","statusCode":401}
+-- DB grant:
+2026-09-12 19:39:11.982+05:30|fc49cfb2-2ff4-78cb-a9a4-2d71a738b199|Handed back from the Distribution OS console.
+-- audit:
+support.withdrawn|{"now": "revoked", "was": "approved", "reason": "Handed back from the Distribution OS console.", "grantId": "dc9b8792-20|19:39:11
+support.requested|{"hours": 4, "scope": "read_only", "reason": "QA ticket #9001: their September GST register does not tie; we would like |19:36:56
+subscription.updated|{"from": {"plan": "pro", "status": "active", "amountPaise": 1}, "plan": "standard", "status": "trialing", "amountPaise":|19:34:52
+# pass on the handed-back window — 19:39:51
+{"defined":true,"code":"FORBIDDEN","status":403,"message":"That support window has been closed"}  [403]

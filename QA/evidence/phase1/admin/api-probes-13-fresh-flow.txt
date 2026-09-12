@@ -1,0 +1,15 @@
+# fresh request 01a095f1-4504-75bf-a6d6-8138ce498982 end to end: Sai owner approves (API, 2 h) → console → pass → read → hand back — 19:48:04
+-- owner approves 2 h:
+{"item":{"id":"01a095f1-4504-75bf-a6d6-8138ce498982","status":"approved","scope":"read_only","reason":"QA ticket #9001: their September GST register does not tie; we would like to read invoices and credit notes.","requestedHours":4,"requestedBy":"fc49cfb2-2ff4-78cb-a9a4-2d71a738b199","requestedByNam
+-- console mints a pass:
+pass len 302
+{'tenantId': '82f5c562-b7eb-7521-8e19-4aa6befc64f8', 'tenantSlug': 'sai-distributors', 'scope': 'read_only', 'expiresAt': '2026-09-12T14:23:04.000Z', 'grantExpiresAt': '2026-09-12T16:06:56.804Z'}
+-- read Sai's numbering series with it:
+200
+{"fy":"2026-27","items":[{"seriesCode":"CLAIM","fy":"2026-27","prefix":"CLM-","startingNo":1,"nextNo":13,"allocationMode":"server","lockedAfterFirstIssue":true}
+-- the pass against TARSUN's data? (tenant bound):
+200
+retailers returned belong to: ['?'] ['Yashodhan Kirana', 'Nandivali Super Bazar']
+-- console hands the Sai window back (API, body id = grant id) — 19:49:42:
+{"item":{"id":"01a095f1-4504-75bf-a6d6-8138ce498982","status":"revoked","scope":"read_only","reason":"QA ticket #9001: their September GST register does not tie; we would like to read invoices and cre
+t|QA: flow complete

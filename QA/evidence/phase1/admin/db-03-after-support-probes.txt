@@ -1,0 +1,16 @@
+# DB after the support-level probes 19:27:16
+-- tenants:
+tarsun|pilot|active||
+sai-distributors|pro|active||
+kalyan-agencies|growth|active||
+qa-probe-support|pilot|active|2026-09-12 19:26:19.987+05:30|3b61926a-8879-730d-8f9c-9bb7026daee6
+-- sai subscription now:
+pro|active|1|10||2026-09-12|2026-10-12|QA probe by support level|3b61926a-8879-730d-8f9c-9bb7026daee6
+-- new tenant owner user:
+qa.probe.owner|active|t|owner|active
+-- new tenant subscription:
+-- platform_audit rows:
+subscription.updated|dos.support|sai-distributors|{"from": {"plan": "standard", "status": "trial", "amountPaise": 199900}, "plan": "pro", "status": "active", "amountPaise|2026-09-12 19:26:19.89086+05:30
+tenant.onboarded|dos.support|qa-probe-support|{"plan": "pilot", "slug": "qa-probe-support", "trialDays": 30, "ownerUserId": "0e1daf47-3245-4108-a175-4a6e8336de82"}|2026-09-12 19:26:19.988125+05:30
+-- kalyan status:
+kalyan-agencies|active

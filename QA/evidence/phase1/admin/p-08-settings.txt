@@ -1,0 +1,31 @@
+DO
+Distribution OS
+Platform
+⋯
+Distribution OS
+Account
+You
+Name
+Rohit Nair (Distribution OS)
+Username
+dos.admin
+Level
+Distribution OS staff
+Devices signed in as you
+Change your password
+Browser on Mac
+This device
+Web · signed in 12 Sep 2026, 7:18 pm · last used 12 Sep 2026, 7:24 pm
+QA curl admin
+Web · signed in 12 Sep 2026, 7:19 pm · last used 12 Sep 2026, 7:19 pm
+End this session
+Browser on Mac
+Web · signed in 12 Sep 2026, 12:53 pm · last used 12 Sep 2026, 12:53 pm
+End this session
+About
+Distribution OS console. Signs in at auth-service, reads admin-service, and reaches a distributor’s own service only through a window their owner opened.
+Sign out
+Platform
+Distributors
+Subscriptions
+Support

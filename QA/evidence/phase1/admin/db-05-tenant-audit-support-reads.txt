@@ -1,0 +1,10 @@
+# tenant-side audit_log: any trace of the support reads? — 19:37:44
+-- tarsun rows today:
+8
+-- rows mentioning support/platform today (any tenant):
+-- last 5 tarsun rows:
+retailer.update_own|retailer|18:50
+report.export.request|owner|13:27
+retailer.set_credit|owner|13:19
+retailer.set_credit|owner|13:18
+report.export.request|owner|13:18

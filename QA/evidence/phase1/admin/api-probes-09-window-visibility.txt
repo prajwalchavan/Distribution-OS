@@ -1,0 +1,12 @@
+# what the owner and the console see of the open window after three reads — 19:34:25
+-- owner list item for dc9b8792:
+{"id": "dc9b8792-2088-7404-ab13-c4815960952a", "status": "approved", "scope": "read_only", "reason": "Ticket #4207: the August GST register does not tie to the sales register by \u20b91,240. We would like to read the invoices and credit notes for August to find the difference.", "requestedHours": 72, "requestedBy": "fc49cfb2-2ff4-78cb-a9a4-2d71a738b199", "requestedByName": "Rohit Nair (Distribution OS)", "requestedAt": "2026-09-12T07:21:03.989Z", "decidedBy": "01a0947d-7a86-778d-9f1e-bf5e985f1c51", "decidedAt": "2026-09-12T07:21:03.989Z", "decisionNote": "Go ahead, read only please.", "expiresAt": "2026-10-11T07:21:03.989Z", "revokedBy": null, "revokedAt": null, "revokeReason": null, "active
+-- owner: is there a per-grant reads endpoint?
+| GET | `/tenancy/audit` | Who changed what: prices, credit, approvals, settings, exports, trace reads | owner, manager, accountant |
+| GET | `/tenancy/support-grants` | Requests from Distribution OS support to look inside this distributor | owner |
+| GET | `/delivery/vehicle-positions` | Where every vehicle is now — the live map (audited read) | owner, manager |
+| GET | `/delivery/trips/{id}/trace` | Replay a trip's track (audited read) | owner, manager |
+-- console detail supportGrants[0]:
+{"id": "dc9b8792-2088-7404-ab13-c4815960952a", "status": "approved", "scope": "read_only", "reason": "Ticket #4207: the August GST register does not tie to the sales register by \u20b91,240. We would like to read the invoices and credit notes for August to find the difference.", "requestedHours": 72, "requestedBy": "fc49cfb2-2ff4-78cb-a9a4-2d71a738b199", "requestedByName": "Distribution OS support", "requestedAt": "2026-09-12T07:21:03.989Z", "decidedBy": "01a0947d-7a86-778d-9f1e-bf5e985f1c51", "decidedAt": "2026-09-12T07:21:03.989Z", "decisionNote": "Go ahead, read only please.", "expiresAt": 
+-- console audit filtered?
+3 items; ['support.read', 'support.read', 'support.read']

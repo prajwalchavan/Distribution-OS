@@ -1,0 +1,540 @@
+DO
+Distribution OS
+Platform
+Platform
+Distributors
+Subscriptions
+Support
+DIRECTORY
+People
+Audit trail
+Account
+RO
+Rohit Nair (Distribution OS)
+Distribution OS staff
+Showing 52
+People
+One phone, one login, however many distributorships it belongs to. This is the only place in the product where that list exists — no distributor may learn that a phone appears in another one’s network.
+All
+Our own staff
+Locked out
+Name	Status	Mobile	Distributorships	Last signed in
+
+Sandeep Mane
+sandeep.mane
+	Active	
++919810000014
+	
+M/s. Tarsun Enterprise · Salesperson
+	
+Never
+
+
+Pilot Owner
+pilot.owner
+	Active	
++919000000001
+	
+M/s. Tarsun Enterprise · Owner
+	
+Never
+
+
+Anita Sonawane
+anita.sonawane
+	Active	
++919830000013
+	
+Kalyan Agencies · Salesperson
+	
+Never
+
+
+Suresh Chauhan
+suresh.chauhan
+	Active	
++919830000102
+	
+Kalyan Agencies · Shopkeeper
+	
+Never
+
+
+Sameer Ghadge
+sameer.ghadge
+	Active	
++919830000011
+	
+Kalyan Agencies · Salesperson
+	
+Never
+
+
+Iqbal Shaikh
+iqbal.shaikh
+	Active	
++919810000024
+	
+M/s. Tarsun Enterprise · Delivery
+	
+Never
+
+
+Kiran Mhatre
+kiran.mhatre
+	Active	
++919820000011
+	
+Sai Distributors · Salesperson
+	
+Never
+
+
+Santosh Kamble
+santosh.kamble
+	Active	
++919810000023
+	
+M/s. Tarsun Enterprise · Delivery
+	
+Never
+
+
+Swati Naik
+swati.naik
+	Active	
++919830000003
+	
+Kalyan Agencies · Accountant
+	
+Never
+
+
+Meena Joshi
+meena.joshi
+	Active	
++919810000003
+	
+M/s. Tarsun Enterprise · Accountant
+	
+12 Sep 2026, 2:27 pm
+
+
+Anil Tarsun
+anil.tarsun
+	Active	
++919810000004
+	
+M/s. Tarsun Enterprise · Owner
+	
+Never
+
+
+Deepak Thorat
+deepak.thorat
+	Active	
++919830000012
+	
+Kalyan Agencies · Salesperson
+	
+Never
+
+
+Anita Rao (Distribution OS support)
+dos.support
+	Distribution OS staff	
++917000000101
+	
+No distributorship
+	
+12 Sep 2026, 7:19 pm
+
+
+Arif Qureshi
+arif.qureshi
+	Active	
++919820000025
+	
+Sai Distributors · Delivery
+	
+Never
+
+
+Kavita Sawant
+kavita.sawant
+	Active	
++919810000032
+	
+M/s. Tarsun Enterprise · Warehouse
+	
+Never
+
+
+Pooja Shinde
+pooja.shinde
+	Active	
++919810000013
+	
+M/s. Tarsun Enterprise · Salesperson
+	
+Never
+
+
+Snehal Rane
+snehal.rane
+	Active	
++919810000005
+	
+M/s. Tarsun Enterprise · Manager
+	
+Never
+
+
+Neha Rane
+neha.rane
+	Active	
++919820000013
+	
+Sai Distributors · Salesperson
+	
+Never
+
+
+Sachin Dalvi
+sachin.dalvi
+	Active	
++919820000021
+	
+Sai Distributors · Delivery
+	
+Never
+
+
+Dinesh Patil
+dinesh.patil
+	Active	
++919810000031
+	
+M/s. Tarsun Enterprise · Warehouse
+	
+12 Sep 2026, 3:20 pm
+
+
+Prashant Gawde
+prashant.gawde
+	Active	
++919810000033
+	
+M/s. Tarsun Enterprise · Warehouse
+	
+Never
+
+
+Sanjay Bhosale
+sanjay.bhosale
+	Active	
++919820000002
+	
+Sai Distributors · Manager
+	
+Never
+
+
+Manisha Palve
+manisha.palve
+	Active	
++919830000032
+	
+Kalyan Agencies · Warehouse
+	
+Never
+
+
+Rohit Tare
+rohit.tare
+	Active	
++919820000024
+	
+Sai Distributors · Delivery
+	
+Never
+
+
+Ganesh More
+ganesh.more
+	Active	
++919810000021
+	
+M/s. Tarsun Enterprise · Delivery
+	
+12 Sep 2026, 5:01 pm
+
+
+Rahul Deshmukh
+rahul.deshmukh
+	Active	
++919810000011
+	
+M/s. Tarsun Enterprise · Salesperson
+	
+12 Sep 2026, 5:44 pm
+
+
+Amol Vaidya
+amol.vaidya
+	Active	
++919810000006
+	
+M/s. Tarsun Enterprise · Accountant
+	
+Never
+
+
+Vikas Kadam
+vikas.kadam
+	Active	
++919810000002
+	
+M/s. Tarsun Enterprise · Manager
+	
+12 Sep 2026, 3:13 pm
+
+
+Imran Sayyed
+imran.sayyed
+	Active	
++919820000022
+	
+Sai Distributors · Delivery
+	
+Never
+
+
+Nikhil Waghmare
+nikhil.waghmare
+	Active	
++919830000023
+	
+Kalyan Agencies · Delivery
+	
+Never
+
+
+Sunil Tarsun
+sunil.tarsun
+	Active	
++919810000001
+	
+M/s. Tarsun Enterprise · Owner
+	
+12 Sep 2026, 7:19 pm
+
+
+Prakash Salunkhe
+prakash.salunkhe
+	Active	
++919820000001
+	
+Sai Distributors · Owner
+	
+Never
+
+
+Vijay Salvi
+vijay.salvi
+	Active	
++919820000023
+	
+Sai Distributors · Delivery
+	
+Never
+
+
+Raju Yadav
+raju.yadav
+	Active	
++919810000022
+	
+M/s. Tarsun Enterprise · Delivery
+	
+Never
+
+
+Mahesh Sutar
+mahesh.sutar
+	Active	
++919810000026
+	
+M/s. Tarsun Enterprise · Delivery
+	
+Never
+
+
+Sunita Gaikwad
+sunita.gaikwad
+	Active	
++919820000032
+	
+Sai Distributors · Warehouse
+	
+Never
+
+
+Fatima Shaikh
+fatima.shaikh
+	Active	
++919810000102
+	
+2 distributorships
+	
+Never
+
+
+Ashok Kulkarni
+ashok.kulkarni
+	Active	
++919830000002
+	
+Kalyan Agencies · Manager
+	
+Never
+
+
+Nilesh Wagh
+nilesh.wagh
+	Active	
++919820000003
+	
+Sai Distributors · Accountant
+	
+Never
+
+
+Ramesh Gupta
+ramesh.gupta
+	Active	
++919810000101
+	
+3 distributorships
+	
+12 Sep 2026, 7:07 pm
+
+
+Pallavi More
+pallavi.more
+	Active	
++919820000014
+	
+Sai Distributors · Salesperson
+	
+Never
+
+
+Firoz Mulla
+firoz.mulla
+	Active	
++919830000022
+	
+Kalyan Agencies · Delivery
+	
+Never
+
+
+Ruksana Shaikh
+ruksana.shaikh
+	Active	
++919810000015
+	
+M/s. Tarsun Enterprise · Salesperson
+	
+Never
+
+
+Nitin Bhoir
+nitin.bhoir
+	Active	
++919830000001
+	
+Kalyan Agencies · Owner
+	
+Never
+
+
+Ravi Chormale
+ravi.chormale
+	Active	
++919830000031
+	
+Kalyan Agencies · Warehouse
+	
+Never
+
+
+Sagar Bhagat
+sagar.bhagat
+	Active	
++919820000012
+	
+Sai Distributors · Salesperson
+	
+Never
+
+
+Balu Shirke
+balu.shirke
+	Active	
++919830000021
+	
+Kalyan Agencies · Delivery
+	
+Never
+
+
+Amit Pawar
+amit.pawar
+	Active	
++919810000012
+	
+M/s. Tarsun Enterprise · Salesperson
+	
+Never
+
+
+Pravin Bhoite
+pravin.bhoite
+	Active	
++919830000024
+	
+Kalyan Agencies · Delivery
+	
+Never
+
+
+Rohit Nair (Distribution OS)
+dos.admin
+	Distribution OS staff	
++917000000100
+	
+No distributorship
+	
+12 Sep 2026, 7:19 pm
+
+
+Bharat Jadhav
+bharat.jadhav
+	Active	
++919820000031
+	
+Sai Distributors · Warehouse
+	
+Never
+
+
+Tanaji Bhosale
+tanaji.bhosale
+	Active	
++919810000025
+	
+M/s. Tarsun Enterprise · Delivery
+	
+Never

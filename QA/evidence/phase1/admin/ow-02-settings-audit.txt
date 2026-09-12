@@ -1,0 +1,117 @@
+Tarsun Enterprise
+owner
+Today
+6
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated 3 min ago
+ST
+Sunil Tarsun
+owner
+Sunil Tarsun
+Audit & security
+Audit & security
+Signed-in devices
+7 days
+30 days
+90 days
+Settings
+Imports
+Messages
+Audit
+When	Who	Role	Action	On
+
+12 Sep, 6:50 pm
+	
+d1dafe6b
+	
+Retailer
+	
+Retailer update own
+	
+Retailer
+
+
+12 Sep, 1:27 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+Report export request
+	
+Export jobs
+
+
+12 Sep, 1:19 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+Retailer set credit
+	
+Retailer
+
+
+12 Sep, 1:18 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+Retailer set credit
+	
+Retailer
+
+
+12 Sep, 1:18 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+Report export request
+	
+Export jobs
+
+
+12 Sep, 1:17 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+Report export request
+	
+Export jobs
+
+
+12 Sep, 1:00 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+GPS live map read
+	
+Vehicle positions
+
+
+12 Sep, 12:59 pm
+	
+Sunil Tarsun
+	
+Owner
+	
+GPS live map read
+	
+Vehicle positions
