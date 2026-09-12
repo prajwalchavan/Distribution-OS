@@ -427,6 +427,68 @@ describeDb('demo seed on an empty database', () => {
   }, 120_000)
 
   /**
+   * DOS-001. The owner's and the manager's Today read "Money owed, by age" from ONE row,
+   * `owner_summary.detail`, through `reporting.dashboard.owner`, and `pnpm db:seed` writes that row
+   * last of all for every distributor (`seedReportingClose`). Until the worker's next rollup rewrites
+   * it, the seed's keys are the dashboard's keys: a near miss (`ageingB90Plus`) reads as a missing key,
+   * so the home page said 90+ = 0.00 while Money -> Outstanding showed the real debt. This database is
+   * the spec's own, so no worker can rewrite the row between the seed and the query below.
+   */
+  it('DOS-001: the seeded owner_summary.detail carries every ageing bucket under the keys the owner dashboard reads (ageingB90plus included), equal to retailer_outstanding_summary, for all three distributors', async () => {
+    // So it also runs alone under `-t DOS-001`: both are idempotent, in `pnpm db:seed`'s order.
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+
+    // The keys `ReportingService.dashboardOwner()` reads through `fromDetail(...)`
+    // (libs/core/src/modules/reporting/reporting.service.ts), each ageing key beside the live bucket
+    // it must equal. Spelled out here rather than imported, so a drift fails as an assertion.
+    const rungs = [
+      ['ageingB0_7', 'b0_7'],
+      ['ageingB8_15', 'b8_15'],
+      ['ageingB16_30', 'b16_30'],
+      ['ageingB31_60', 'b31_60'],
+      ['ageingB61_90', 'b61_90'],
+      ['ageingB90plus', 'b90plus'],
+    ] as const
+    const ageingKeys: string[] = rungs.map(([key]) => key)
+    const readerKeys = [...ageingKeys, 'cashInTransitPaise']
+
+    const rows = (
+      await db.execute(sql`
+        SELECT t.slug, s.detail,
+               coalesce(sum(r.bucket_0_7_paise), 0)::bigint AS b0_7,
+               coalesce(sum(r.bucket_8_15_paise), 0)::bigint AS b8_15,
+               coalesce(sum(r.bucket_16_30_paise), 0)::bigint AS b16_30,
+               coalesce(sum(r.bucket_31_60_paise), 0)::bigint AS b31_60,
+               coalesce(sum(r.bucket_61_90_paise), 0)::bigint AS b61_90,
+               coalesce(sum(r.bucket_90_plus_paise), 0)::bigint AS b90plus
+          FROM tenants t
+          JOIN owner_summary s ON s.tenant_id = t.id
+          LEFT JOIN retailer_outstanding_summary r ON r.tenant_id = t.id
+         WHERE t.slug IN ('tarsun', 'sai-distributors', 'kalyan-agencies')
+         GROUP BY t.slug, s.detail
+         ORDER BY t.slug`)
+    ).rows as { slug: string; detail: Record<string, unknown> | null; [bucket: string]: unknown }[]
+    expect(rows.map((r) => r.slug)).toEqual(['kalyan-agencies', 'sai-distributors', 'tarsun'])
+
+    for (const row of rows) {
+      const { slug } = row
+      const keys = Object.keys(row.detail ?? {})
+      // every key the dashboard reads is there...
+      expect(keys, slug).toEqual(expect.arrayContaining(readerKeys))
+      // ...and no other spelling of an ageing bucket sits beside them
+      const strayAgeingKeys = keys.filter((k) => /^ageing/i.test(k) && !ageingKeys.includes(k))
+      expect({ slug, strayAgeingKeys }).toEqual({ slug, strayAgeingKeys: [] })
+      // each rung carries the tenant's live ageing money, as the number the dashboard accepts
+      const seeded = Object.fromEntries(rungs.map(([key]) => [key, row.detail?.[key] ?? null]))
+      const live = Object.fromEntries(rungs.map(([key, bucket]) => [key, Number(row[bucket])]))
+      expect({ slug, ...seeded }).toEqual({ slug, ...live })
+    }
+    // the 90+ comparison is not 0 = 0: the demo carries debt older than ninety days
+    expect(rows.some((r) => Number(r['b90plus']) > 0)).toBe(true)
+  }, 180_000)
+
+  /**
    * Module 13's console data, the last thing `pnpm db:seed` writes: the `dos.admin` account every
    * `/auth/platform/login` in the docs and in `pnpm smoke` uses, a subscription for every
    * distributor, and support windows in all three states an owner and a console can see — one live

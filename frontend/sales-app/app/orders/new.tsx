@@ -587,7 +587,13 @@ function SuggestionRow({
             figure
           />
         )}
-        <Button label={t('s3.addOneCase')} variant="secondary" onPress={onAdd} />
+        {/*
+         * `fullWidth={false}` on purpose, as in warehouse-app/app/pick/index.tsx: an inline row action
+         * sizes to its label. A kit `<Button>` fills its parent by default, and on native that
+         * `width: '100%'` claimed the whole row and left the growing name column beside it at 0 dp,
+         * so the phone drew only anonymous "Add a case" buttons (DOS-077).
+         */}
+        <Button label={t('s3.addOneCase')} variant="secondary" fullWidth={false} onPress={onAdd} />
       </Row>
     </Row>
   )

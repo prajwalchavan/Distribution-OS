@@ -53,6 +53,24 @@ export type DailyMix = Record<string, DailyMixEntry>
 export type DailyPaymentModeMix = Record<string, number>
 
 /**
+ * The keys `reporting.dashboard.owner` reads from `owner_summary.detail`, money in integer paise: cash
+ * still on a van and the tenant's open dues per ageing bucket. Two writers fill it, the worker's rollup
+ * (`refreshOwnerSummary`) and the demo seed (`seedReportingClose`), and one reader turns it into the
+ * `<AgeingBuckets>` tile; all three are typed against this, so a near miss (DOS-001: the seed wrote
+ * `ageingB90Plus` and the owner's Today showed 90+ as 0.00) is a compile error. A type alias rather
+ * than an interface, so it stays assignable to `Record<string, unknown>`, the contract's `detail`.
+ */
+export type OwnerSummaryDetail = {
+  cashInTransitPaise?: number
+  ageingB0_7?: number
+  ageingB8_15?: number
+  ageingB16_30?: number
+  ageingB31_60?: number
+  ageingB61_90?: number
+  ageingB90plus?: number
+}
+
+/**
  * The distributorship's day: sales, collections, dues, fulfilment and the last mile, one row per IST
  * business date. Everything a staff role may see (no cost, no margin). Beside the counters, three jsonb
  * mixes keyed by brand / category / beat and one by payment mode, so the owner's group-by charts are a
@@ -261,7 +279,7 @@ export const ownerSummary = pgTable(
     nearExpiryValuePaise: paise('near_expiry_value_paise').notNull().default(0),
     pendingApprovals: integer('pending_approvals').notNull().default(0),
     activeTrips: integer('active_trips').notNull().default(0),
-    detail: jsonb('detail'),
+    detail: jsonb('detail').$type<OwnerSummaryDetail>(),
   },
   (t) => [
     primaryKey({ columns: [t.tenantId] }),

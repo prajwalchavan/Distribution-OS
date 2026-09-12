@@ -158,6 +158,7 @@ export const SchemeScopeSchema = z
     'scope must be `all` or name at least one brand, category or variant',
   )
 export const SchemeSlabSchema = z.object({
+  /** Same unit as the scheme's `triggerMin` (paise when the unit is `inr`). */
   min: z.number().int().positive(),
   value: z.number().int().nonnegative(),
   freeVariantId: IdSchema.optional(),
@@ -171,6 +172,7 @@ export const SchemeApplicabilitySchema = z.object({
 const schemeEconomics = {
   scope: SchemeScopeSchema,
   triggerKind: SchemeTriggerKindSchema,
+  /** pieces (pcs), whole cases (case), or PAISE of gross in-scope line value (inr). */
   triggerMin: z.number().int().nonnegative(),
   triggerUnit: SchemeTriggerUnitSchema,
   slabs: z.array(SchemeSlabSchema).max(20).nullable(),
@@ -238,6 +240,7 @@ export const UpsertSchemeInput = MutationBase.extend({
   brandId: IdSchema.nullable().optional(),
   scope: SchemeScopeSchema,
   triggerKind: SchemeTriggerKindSchema,
+  /** pieces (pcs), whole cases (case), or PAISE of gross in-scope line value (inr). */
   triggerMin: z.number().int().nonnegative(),
   triggerUnit: SchemeTriggerUnitSchema,
   slabs: z.array(SchemeSlabSchema).max(20).nullable().optional(),

@@ -47,6 +47,7 @@ import {
   approvalFlags,
   asSystem,
   availablePcs,
+  callerReaches,
   createDraft,
   emitOrderEvent,
   isUniqueViolation,
@@ -156,7 +157,8 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        // DOS-073: reachability first, so a colleague's order is a 404 before this 409 reveals its state
+        const order = await this.lockReachableOrder(tx, input.id)
         if (order.state !== 'draft')
           throw new ORPCError('CONFLICT', {
             message: `order ${order.id} is ${order.state}; only a draft can be re-lined`,
@@ -235,7 +237,7 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order)
         const { item } = await this.submitInTx(tx, order, input.deviceId ?? null)
         return { item }
@@ -263,7 +265,7 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const flags = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds } = await approvalFlags(tx, order, lines)
     const [submitted] = await tx
       .update(salesOrders)
       .set({
@@ -285,23 +287,33 @@ export class OrdersService {
           : await this.confirmInTx(tx, next, deviceId)
       return { item: confirmed.item, flags }
     }
+    // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
+    // the gate decides the request and the queue holds one record per bargain (DOS-005).
     await tx.insert(approvals).values(
-      flags.map((kind) => ({
-        id: uuidv7(),
-        tenantId: ctx.tenantId,
-        kind,
-        orderId: next.id,
-        entityType: 'sales_order',
-        entityId: next.id,
-        requestedBy: ctx.actorId,
-        status: 'pending' as const,
-        payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
-      })),
+      flags.flatMap((kind) =>
+        (kind === 'bargain'
+          ? bargainIds.map((bargainId) => ({ entityType: 'bargain_request', entityId: bargainId }))
+          : [{ entityType: 'sales_order', entityId: next.id }]
+        ).map((entity) => ({
+          id: uuidv7(),
+          tenantId: ctx.tenantId,
+          kind,
+          orderId: next.id,
+          ...entity,
+          requestedBy: ctx.actorId,
+          status: 'pending' as const,
+          payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
+        })),
+      ),
     )
     return { item: await this.detail(tx, next), flags }
   }
 
-  /** Owner and manager confirm (docs/22 2026-09-05): it resolves approvals and reserves stock. */
+  /**
+   * Owner and manager confirm a submitted order that waits on nothing, which reserves its stock. Confirm never
+   * decides an approval (DOS-020): while any is pending it answers 409 `approval_required`, and each gate is
+   * decided through `ApprovalsService.decide`, whose last approval confirms the order.
+   */
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
     requireRole(MANAGEMENT)
     const db = requireDb(this.db)
@@ -315,19 +327,29 @@ export class OrdersService {
   }
 
   /**
-   * Confirm: pending approvals are resolved, then the authoritative stock check runs (the ATP the rep saw was
-   * only a hint). A line the location cannot cover is reserved short and reported — never refused, because the
-   * warehouse decides what to do with a shortage, not the API.
+   * Confirm. It never decides an approval: while any approval on the order is still pending it is refused with
+   * 409 `approval_required` naming each one, because an approval is decided only through
+   * `ApprovalsService.decide` (DOS-020). The gate reads the `approvals` rows, not `approval_flags`, and lives
+   * here rather than in `confirm()` so no caller can bring back a silent decision. Then the authoritative stock
+   * check runs (the ATP the rep saw was only a hint). A line the location cannot cover is reserved short and
+   * reported — never refused, because the warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
-    const ctx = currentTenant()
     if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
     const to = transition(order.state, 'confirm')
-    const now = new Date()
-    await tx
-      .update(approvals)
-      .set({ status: 'approved', decidedBy: ctx.actorId, decidedAt: now, updatedAt: now })
+    const waiting = await tx
+      .select({ id: approvals.id, kind: approvals.kind })
+      .from(approvals)
       .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending')))
+      .orderBy(asc(approvals.id))
+    if (waiting.length > 0) {
+      const kinds = waiting.map((w) => w.kind.replaceAll('_', ' ')).join(', ')
+      throw new ORPCError('CONFLICT', {
+        message: `${order.orderNo ?? order.id} is waiting on ${String(waiting.length)} decision(s) (${kinds}); approve or reject each in the approvals queue — the last approval confirms the order`,
+        data: { code: 'approval_required', approvals: waiting },
+      })
+    }
+    const now = new Date()
     const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
     const lines = await tx
       .select()
@@ -374,7 +396,7 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order, ['draft', 'submitted'])
         return { item: await this.cancelInTx(tx, order, input.reason, input.deviceId ?? null) }
       }),
@@ -520,7 +542,9 @@ export class OrdersService {
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const [order] = await tx.select().from(salesOrders).where(eq(salesOrders.id, input.id))
-      if (!order) throw new ORPCError('NOT_FOUND', { message: `order ${input.id} not found` })
+      // DOS-073: an order the caller does not reach reads exactly like one that does not exist
+      if (!order || !callerReaches(order))
+        throw new ORPCError('NOT_FOUND', { message: `order ${input.id} not found` })
       return { item: await this.detail(tx, order) }
     })
   }
@@ -543,6 +567,21 @@ export class OrdersService {
   async findOrder(tx: Db, id: string): Promise<OrderRow | undefined> {
     const [order] = await tx.select().from(salesOrders).where(eq(salesOrders.id, id))
     return order
+  }
+
+  /**
+   * `lockOrder` for the procedures a caller runs on its own orders: setLines, submit and cancel (DOS-073).
+   * An order the caller does not reach (`callerReaches`: a salesperson reaches only the orders credited to
+   * it) answers the same 404 as a missing id. The check runs before the lock, so a probe never holds a
+   * colleague's row; `salesperson_id` is set once at draft and never re-assigned, so it cannot change in
+   * between. Cross-module callers (approvals, billing, warehouse, delivery, AI drafts) keep the unscoped
+   * `lockOrder` and `findOrder`.
+   */
+  private async lockReachableOrder(tx: Db, id: string): Promise<OrderRow> {
+    const found = await this.findOrder(tx, id)
+    if (found && !callerReaches(found))
+      throw new ORPCError('NOT_FOUND', { message: `order ${id} not found` })
+    return this.lockOrder(tx, id)
   }
 
   detail(tx: Db, order: OrderRow): Promise<OrderDetail> {

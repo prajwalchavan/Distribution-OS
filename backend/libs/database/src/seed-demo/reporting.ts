@@ -961,7 +961,7 @@ export async function seedReportingClose(
         ageingB16_30: n(dues?.b16_30),
         ageingB31_60: n(dues?.b31_60),
         ageingB61_90: n(dues?.b61_90),
-        ageingB90Plus: n(dues?.b90_plus),
+        ageingB90plus: n(dues?.b90_plus),
       },
     })
     .onConflictDoUpdate({

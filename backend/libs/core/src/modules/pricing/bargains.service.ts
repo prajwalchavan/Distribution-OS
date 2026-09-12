@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, gt, isNull, or, type SQL } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, or, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   Bargain,
@@ -147,35 +147,63 @@ export class BargainsService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const [existing] = await tx
-          .select()
-          .from(bargainRequests)
-          .where(and(eq(bargainRequests.tenantId, ctx.tenantId), eq(bargainRequests.id, input.id)))
-        if (!existing)
-          throw new ORPCError('NOT_FOUND', { message: `Bargain ${input.id} not found` })
-        if (existing.status !== 'requested')
-          throw new ORPCError('CONFLICT', { message: `Bargain is already ${existing.status}` })
-        const approvedRate = input.approvedRatePaise ?? existing.askedRatePaise
-        if (input.decision === 'approve' && approvedRate > existing.listRatePaise)
-          throw new ORPCError('BAD_REQUEST', {
-            message: 'Approved rate cannot exceed the list rate',
-          })
-        const [row] = await tx
-          .update(bargainRequests)
-          .set({
-            status: input.decision === 'approve' ? 'approved' : 'rejected',
-            approvedRatePaise: input.decision === 'approve' ? approvedRate : null,
-            decidedBy: ctx.actorId,
-            decidedAt: new Date(),
-            note: input.note ?? existing.note,
-            updatedAt: new Date(),
-          })
-          .where(eq(bargainRequests.id, existing.id))
-          .returning()
-        if (!row) throw new Error('bargain decision returned nothing')
-        return { item: toBargain(row) }
+        const item = await this.decideInTx(tx, ctx, input)
+        if (!item) throw new Error('bargain decision returned nothing')
+        return { item }
       }),
     )
+  }
+
+  /**
+   * The decision inside the caller's transaction, shared with the approvals queue: a bargain gate
+   * (`approvals.entity_type = 'bargain_request'`) decides the request it names with the same answer, so the two
+   * records never disagree (DOS-005). The write is a compare-and-set on `status = 'requested'`: neither path
+   * locks the request row, and two desks deciding it at once must not both win. `ifStillRequested` is the
+   * gate's mode — a request already decided elsewhere keeps that outcome and the answer is null, not a 409.
+   */
+  async decideInTx(
+    tx: Db,
+    ctx: TenantContext,
+    input: Pick<DecideIn, 'id' | 'decision' | 'approvedRatePaise' | 'note'>,
+    opts: { ifStillRequested?: boolean } = {},
+  ): Promise<Bargain | null> {
+    const [existing] = await tx
+      .select()
+      .from(bargainRequests)
+      .where(and(eq(bargainRequests.tenantId, ctx.tenantId), eq(bargainRequests.id, input.id)))
+    if (!existing) throw new ORPCError('NOT_FOUND', { message: `Bargain ${input.id} not found` })
+    if (existing.status !== 'requested') {
+      if (opts.ifStillRequested) return null
+      throw new ORPCError('CONFLICT', { message: `Bargain is already ${existing.status}` })
+    }
+    const approvedRate = input.approvedRatePaise ?? existing.askedRatePaise
+    if (input.decision === 'approve' && approvedRate > existing.listRatePaise)
+      throw new ORPCError('BAD_REQUEST', {
+        message: 'Approved rate cannot exceed the list rate',
+      })
+    const now = new Date()
+    const [row] = await tx
+      .update(bargainRequests)
+      .set({
+        status: input.decision === 'approve' ? 'approved' : 'rejected',
+        approvedRatePaise: input.decision === 'approve' ? approvedRate : null,
+        decidedBy: ctx.actorId,
+        decidedAt: now,
+        note: input.note ?? existing.note,
+        updatedAt: now,
+      })
+      .where(and(eq(bargainRequests.id, existing.id), eq(bargainRequests.status, 'requested')))
+      .returning()
+    if (row) return toBargain(row)
+    // another decision on this request committed between the read above and this write
+    if (opts.ifStillRequested) return null
+    const [current] = await tx
+      .select({ status: bargainRequests.status })
+      .from(bargainRequests)
+      .where(eq(bargainRequests.id, existing.id))
+    throw new ORPCError('CONFLICT', {
+      message: `Bargain is already ${current?.status ?? 'decided'}`,
+    })
   }
 
   /** The shop reads the outcome of its own requests (RLS `bargain_requests_read` narrows it); staff read all. */
@@ -201,6 +229,32 @@ export class BargainsService {
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
   }
+}
+
+/**
+ * The requests an order's bargain gate waits on: still `requested`, for this shop and a variant on the order, and
+ * asked for this order or for no order at all (a standalone ask applies to every order of the shop). A plain
+ * function over the caller's transaction — the pattern orders already uses for receivables' credit check — so
+ * submit names each request on its gate without reading pricing's table itself (DOS-005).
+ */
+export async function pendingBargainsForOrder(
+  tx: Db,
+  p: { retailerId: string; orderId: string; variantIds: readonly string[] },
+): Promise<string[]> {
+  if (p.variantIds.length === 0) return []
+  const rows = await tx
+    .select({ id: bargainRequests.id })
+    .from(bargainRequests)
+    .where(
+      and(
+        eq(bargainRequests.retailerId, p.retailerId),
+        eq(bargainRequests.status, 'requested'),
+        inArray(bargainRequests.variantId, [...p.variantIds]),
+        or(isNull(bargainRequests.orderId), eq(bargainRequests.orderId, p.orderId)),
+      ),
+    )
+    .orderBy(asc(bargainRequests.id))
+  return rows.map((r) => r.id)
 }
 
 function toBargain(row: typeof bargainRequests.$inferSelect): Bargain {

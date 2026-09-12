@@ -10,7 +10,8 @@ import { pieces } from '../quantity.js'
  *   3. schemes stack; a non-stackable (or `final`) scheme applies alone — the engine picks whichever is worth
  *      more to the retailer: every stackable scheme together, or the single best exclusive one
  *   4. approved bargain last: the negotiated rate replaces the rate, the difference is a `bargain` rule
- *   5. cash discount is CONDITIONAL (realised at receipt, ADR 0004): reported, never deducted
+ *   5. cash discount is CONDITIONAL (realised at receipt, ADR 0004): the single offer worth most to the retailer,
+ *      computed on the net of its own in-scope lines; reported, never deducted
  *
  * Every applied rule is returned as an `AppliedRule` so the bill prints Free / Scheme % / Disc ₹ / Cash Dis %
  * exactly and claims reconstruct later. Money never loses a paisa: order-level rewards spread with `allocate()`.
@@ -37,6 +38,7 @@ export interface SchemeScope {
  * scheme whose free_qty / net_scheme_amount reward repeats for every multiple of `triggerMin` (a "12 + 1").
  */
 export interface SchemeSlab {
+  /** Same unit as the scheme's `triggerMin`: pieces, whole cases, or paise for `inr`. */
   min: number
   value: number
   freeVariantId?: string | undefined
@@ -57,8 +59,9 @@ export interface SchemeRule {
   scope: SchemeScope
   /** `qty` / `value`: measured per line. `mix`: measured over every in-scope line together (assortment). */
   triggerKind: SchemeTriggerKind
+  /** Pieces (`pcs`), whole cases (`case`) or PAISE of gross in-scope line value (`inr`: 2_500_000 = ₹25,000). */
   triggerMin: number
-  /** `pcs` | `case` (whole cases of the line's case size) | `inr` (rupees of gross line value). */
+  /** `pcs` | `case` (whole cases of the line's case size) | `inr` (paise of gross in-scope line value). */
   triggerUnit: SchemeTriggerUnit
   slabs?: readonly SchemeSlab[] | null | undefined
   rewardKind: SchemeRewardKind
@@ -165,8 +168,12 @@ export interface PriceOrderResult {
   lines: PricedLine[]
   /** Order-level rules (order_pct, mix-triggered schemes, cash discount) with their order totals. */
   orderRules: AppliedRule[]
-  /** Best cash-discount scheme in force. Conditional: realised at receipt, NOT deducted here. */
+  /**
+   * Rate of the cash-discount scheme in force worth most to the retailer (its amount decides, not its rate).
+   * Conditional: realised at receipt, NOT deducted here.
+   */
   cashDiscountBps: number
+  /** That rate on the net of the lines the winning scheme covers — a brand-scoped offer never pays on other lines. */
   cashDiscountPaise: Paise
   totals: {
     grossPaise: Paise
@@ -335,8 +342,12 @@ export function priceOrder(input: PriceOrderInput): PriceOrderResult {
     netPaise: sum(priced.map((l) => l.lineNetPaise)),
   }
 
-  // 5. cash discount: conditional, best one in force, reported only
+  // 5. cash discount: conditional, reported only. Each offer is worth its rate on the net of the lines it covers
+  //    (a brand-scoped scheme never pays on another brand's lines). The one worth most to the retailer wins, as in
+  //    chooseStack; equal amounts go to the higher rate, then to the earlier scheme (callers pass schemes in id order).
+  const netOf = new Map(priced.map((l) => [l.lineId, l.lineNetPaise]))
   let cashDiscountBps = 0
+  let cashDiscountPaise = paise(0)
   let cashDiscountRule: SchemeRule | undefined
   for (const scheme of schemes) {
     if (scheme.rewardKind !== 'cash_discount_pct') continue
@@ -347,13 +358,14 @@ export function priceOrder(input: PriceOrderInput): PriceOrderResult {
     const reward = evaluateTrigger(scheme, measure(scheme.triggerUnit, scope))
     if (!reward) continue
     const value = bps(reward.value, `scheme ${scheme.id} reward`)
-    if (value > cashDiscountBps) {
+    const amount = percentOf(sum(scope.map((l) => netOf.get(l.input.lineId) ?? paise(0))), value)
+    if (amount <= 0) continue
+    if (amount > cashDiscountPaise || (amount === cashDiscountPaise && value > cashDiscountBps)) {
       cashDiscountBps = value
+      cashDiscountPaise = amount
       cashDiscountRule = scheme
     }
   }
-  const cashDiscountPaise =
-    cashDiscountBps > 0 ? percentOf(totals.netPaise, cashDiscountBps) : paise(0)
   if (cashDiscountRule) {
     orderRules.push({
       ruleId: cashDiscountRule.id,
@@ -460,7 +472,7 @@ function measure(unit: SchemeTriggerUnit, lines: readonly LineState[]): number {
     case 'case':
       return lines.reduce((n, l) => n + Math.floor(l.input.qtyPcs / l.input.caseSize), 0)
     case 'inr':
-      return lines.reduce((n, l) => n + l.gross, 0) / 100
+      return lines.reduce((n, l) => n + l.gross, 0)
   }
 }
 

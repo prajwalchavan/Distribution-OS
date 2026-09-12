@@ -158,6 +158,8 @@ export const strings = {
   'm2.listRate': 'List rate',
   'm2.reservations': 'Held for this order',
   'm2.onlySubmitted': 'Only a submitted order can be confirmed',
+  'm2.decideFirst':
+    'Waiting on {what}. Approve or reject each one first; the last approval confirms the order.',
   'm2.nothingHeld': 'Nothing is held for this order',
   'm2.alreadyClosed': 'This order is already cancelled or delivered',
   'm2.schemeApplied': 'Scheme applied',

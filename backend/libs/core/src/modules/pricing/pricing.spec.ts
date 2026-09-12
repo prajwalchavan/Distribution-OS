@@ -546,6 +546,133 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(bad.status).toBe(400)
   })
 
+  it('DOS-075: an order-value scheme saved through the contract with a paise threshold (₹500 = 50_000) applies on quote above it and not below it', async () => {
+    // Priced on a 2031 date inside this scheme's own window, so the 2026 "12 + 1" (v1 only) is out of force;
+    // shopA's final override is v1 only and shopA has no approved bargain, so v2 prices at the default ₹20.
+    const orderValueId = uuidv7()
+    const saved = await call<{ item: Scheme }>(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-dos075-${run}`,
+      id: orderValueId,
+      name: 'Order value 2% over ₹500',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerMin: 50_000,
+      triggerUnit: 'inr',
+      rewardKind: 'order_pct',
+      rewardValue: 200,
+      validFrom: '2031-03-01',
+      validTo: '2031-03-31',
+    })
+    expect(saved.status).toBe(200)
+    expect(saved.body.item.triggerMin).toBe(50_000)
+
+    const quoteIn2031 = (qtyPcs: number) =>
+      call<Quote>(app, rep, 'POST', '/pricing/quote', {
+        retailerId: shopA,
+        pricingDate: '2031-03-15',
+        lines: [{ lineId: 'l1', variantId: v2, qtyPcs }],
+      })
+    const share = {
+      ruleId: orderValueId,
+      version: 1,
+      kind: 'scheme',
+      rewardKind: 'order_pct',
+      amountPaise: 1_200,
+    }
+
+    const above = await quoteIn2031(30) // ₹600
+    expect(above.status).toBe(200)
+    expect(above.body.totals.grossPaise).toBe(60_000)
+    expect(above.body.orderRules).toContainEqual(share)
+    expect(above.body.lines[0]?.discountPaise).toBe(1_200)
+    expect(above.body.lines[0]?.appliedRules).toContainEqual(share)
+    expect(above.body.totals.netPaise).toBe(58_800)
+
+    const below = await quoteIn2031(20) // ₹400
+    expect(below.status).toBe(200)
+    expect(below.body.totals.grossPaise).toBe(40_000)
+    expect(below.body.orderRules).toEqual([])
+    expect(below.body.totals.discountPaise).toBe(0)
+  })
+
+  it("DOS-076: pricing.quote reports a brand-scoped cash discount on that brand's lines only", async () => {
+    // A second brand under this run's manufacturer: Too Yumm Karare 60 g, case of 48, ₹14.75 on the default list.
+    const tooYummBrandId = uuidv7()
+    const tooYummProductId = uuidv7()
+    const v3 = uuidv7()
+    await db.insert(brands).values({ id: tooYummBrandId, manufacturerId, name: 'Too Yumm' })
+    await db.insert(products).values({
+      id: tooYummProductId,
+      manufacturerId,
+      brandId: tooYummBrandId,
+      name: 'Too Yumm Karare',
+      category: 'snacks',
+    })
+    await db.insert(productVariants).values({
+      id: v3,
+      productId: tooYummProductId,
+      name: 'Karare 60g',
+      netQty: 60,
+      netUnit: 'g',
+      defaultCaseSize: 48,
+      hsnCode: '19041090',
+    })
+    const priced = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      {
+        idempotencyKey: `pli-ty-${run}`,
+        priceListId: defaultListId,
+        items: [{ id: uuidv7(), variantId: v3, ratePaise: 1475 }],
+      },
+    )
+    expect(priced.status).toBe(200)
+
+    const schemeCdId = uuidv7()
+    const saved = await call<{ item: Scheme }>(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-cd-ty-${run}`,
+      id: schemeCdId,
+      name: 'Too Yumm 2% cash discount',
+      brandId: tooYummBrandId,
+      scope: { brandIds: [tooYummBrandId] },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 0,
+      rewardKind: 'cash_discount_pct',
+      rewardValue: 200,
+      validFrom: '2026-01-01',
+      validTo: '2026-12-31',
+    })
+    expect(saved.status).toBe(200)
+
+    // MOM v2 carries shopC's approved ₹16 bargain from the test above; only the Too Yumm line is in scope.
+    const q = await quoteFor(rep, shopC, [
+      { lineId: 'mom', variantId: v2, qtyPcs: 24 },
+      { lineId: 'ty', variantId: v3, qtyPcs: 48 },
+    ])
+    expect(q.status).toBe(200)
+    const mom = q.body.lines.find((l) => l.lineId === 'mom')
+    const ty = q.body.lines.find((l) => l.lineId === 'ty')
+    expect(mom?.lineNetPaise).toBeGreaterThan(0)
+    expect(ty?.lineNetPaise).toBe(70_800)
+    expect(ty?.discountPaise).toBe(0)
+    // 2% of the Too Yumm line's ₹708.00, not of the whole order; reported, never deducted
+    expect(q.body.cashDiscountBps).toBe(200)
+    expect(q.body.cashDiscountPaise).toBe(1_416)
+    expect(q.body.orderRules).toEqual([
+      {
+        ruleId: schemeCdId,
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'cash_discount_pct',
+        amountPaise: 1_416,
+      },
+    ])
+    expect(q.body.totals.netPaise).toBe(q.body.lines.reduce((n, l) => n + l.lineNetPaise, 0))
+  })
+
   it('refuses requests without tenant context', async () => {
     const res = await call(app, null, 'POST', '/pricing/quote', {
       retailerId: shopC,

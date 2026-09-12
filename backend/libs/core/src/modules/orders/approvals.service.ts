@@ -18,6 +18,7 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
+import { BargainsService } from '../pricing/index.js'
 import { toApproval, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
@@ -32,13 +33,15 @@ export const APPROVAL_REJECTED = 'approval_rejected'
 /**
  * The owner's approvals queue (docs/06): credit, bargain and below-floor gates raised at submit. Approving the
  * last one confirms the order (which reserves stock); rejecting any of them cancels it, because the rep must
- * see one clear outcome rather than an order stuck between states.
+ * see one clear outcome rather than an order stuck between states. A bargain gate names the request it waits on
+ * (`entity_type = 'bargain_request'`), and its decision decides that request in the same transaction (DOS-005).
  */
 @Injectable()
 export class ApprovalsService {
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
+    private readonly bargains: BargainsService,
   ) {}
 
   async list(input: ListIn): Promise<ListOut> {
@@ -93,6 +96,20 @@ export class ApprovalsService {
           })
           .where(eq(approvals.id, approval.id))
           .returning()
+        // The same answer decides the request a bargain gate names, so its Rate requests copy closes with it and
+        // the rep and the shop read the outcome (DOS-005). Approve takes the asked rate; a request already
+        // decided elsewhere keeps its outcome; a missing one is a 404 that rolls this decision back.
+        if (approval.kind === 'bargain' && approval.entityType === 'bargain_request')
+          await this.bargains.decideInTx(
+            tx,
+            ctx,
+            {
+              id: approval.entityId,
+              decision: input.decision,
+              ...(input.note ? { note: input.note } : {}),
+            },
+            { ifStillRequested: true },
+          )
         const item = toApproval(decided ?? approval)
         if (!approval.orderId) return { item, order: null }
 

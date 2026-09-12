@@ -151,6 +151,8 @@ export const strings = {
   'o5.placed': 'Placed',
   'o5.flags': 'Waiting on',
   'o5.confirm': 'Confirm order',
+  'o5.decideFirst':
+    'Waiting on {what}. Decide it on Approvals; the last approval confirms the order.',
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
   'o5.reservations': 'Stock held',

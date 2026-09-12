@@ -921,6 +921,8 @@ describeDb('reporting (DATABASE_URL)', () => {
     expect(mine.body.todayInvoicedPaise).toBe(777_000)
     expect(mine.body.cashInTransitPaise).toBe(12_500)
     expect(mine.body.ageing.b0_7).toBe(400_000)
+    // DOS-001: the 90+ rung reads detail.ageingB90plus
+    expect(mine.body.ageing.b90plus).toBe(200_000)
     expect(mine.body.last7Days.length).toBeGreaterThan(0)
 
     const fresh = await call<OwnerDashboard>(app, stranger, 'GET', '/reporting/dashboard/owner')

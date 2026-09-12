@@ -335,7 +335,11 @@ export const ordersContract = {
     .input(OrderGetInput)
     .output(OrderGetOutput),
   list: oc
-    .route({ method: 'GET', path: '/orders', summary: 'Orders (a retailer sees only its own)' })
+    .route({
+      method: 'GET',
+      path: '/orders',
+      summary: 'Orders (a retailer or a salesperson sees only its own)',
+    })
     .input(OrdersListInput)
     .output(OrdersListOutput),
   approvals: {

@@ -46,7 +46,7 @@ import type {
   TopBeatsInput,
   TopShopsInput,
 } from '@dos/contracts'
-import { withTenant, type Db } from '@dos/db'
+import { withTenant, type Db, type OwnerSummaryDetail } from '@dos/db'
 import { currentTenant, DB, DB_REPLICA, requireDb, requireRole } from '../../platform/index.js'
 import {
   deliveryPerformanceRows,
@@ -226,7 +226,7 @@ export class ReportingService {
       const days = await tenantDays(tx, addDays(day, -6), day)
       const todayRow = days.find((d) => d.day === day)
       const detail = (summary?.detail as Record<string, unknown> | null) ?? null
-      const fromDetail = (key: string): number => {
+      const fromDetail = (key: keyof OwnerSummaryDetail): number => {
         const value = detail?.[key]
         return typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : 0
       }

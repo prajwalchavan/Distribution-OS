@@ -1,19 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -29,16 +15,9 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import {
-  bargainRequests,
-  locations,
-  orderStateTransitions,
-  outboxEvents,
-  salesOrders,
-  type Db,
-} from '@dos/db'
+import { locations, orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import type { QuoteService } from '../pricing/index.js'
+import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
 import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
 import { ZERO_TOTALS } from './pricing-lines.js'
@@ -134,44 +113,31 @@ export function isUniqueViolation(err: unknown): boolean {
 /**
  * The gates that stand between `submitted` and `confirmed` (§6). Empty means the order confirms itself.
  *  - credit_limit: the shop's mode enforces and this order pushes it past its limit
- *  - bargain: a rate on this order is still waiting for a decision
+ *  - bargain: a rate on this order is still waiting for a decision; `bargainIds` lists the requests it waits on,
+ *    and submit raises one gate naming each, so deciding the gate decides that request (DOS-005)
  *  - below_floor: a line is charged under its tier price with nothing approved that explains it
  */
 export async function approvalFlags(
   tx: Db,
   order: OrderRow,
   lines: OrderLineRow[],
-): Promise<ApprovalKind[]> {
+): Promise<{ flags: ApprovalKind[]; bargainIds: string[] }> {
   const flags: ApprovalKind[] = []
   const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
   if (credit.breached) flags.push('credit_limit')
-  if (await hasPendingBargain(tx, order, lines)) flags.push('bargain')
+  const bargainIds = await pendingBargainsForOrder(tx, {
+    retailerId: order.retailerId,
+    orderId: order.id,
+    variantIds: [...new Set(lines.map((l) => l.variantId))],
+  })
+  if (bargainIds.length > 0) flags.push('bargain')
   const below = lines.some(
     (l) =>
       l.ratePaise < l.listRatePaise &&
       !l.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
   )
   if (below) flags.push('below_floor')
-  return flags
-}
-
-/** Pricing owns `bargain_requests`; this is a read-only peek until PricingModule exposes a lookup. */
-async function hasPendingBargain(tx: Db, order: OrderRow, lines: OrderLineRow[]): Promise<boolean> {
-  const variantIds = [...new Set(lines.map((l) => l.variantId))]
-  if (variantIds.length === 0) return false
-  const [row] = await tx
-    .select({ id: bargainRequests.id })
-    .from(bargainRequests)
-    .where(
-      and(
-        eq(bargainRequests.retailerId, order.retailerId),
-        eq(bargainRequests.status, 'requested'),
-        inArray(bargainRequests.variantId, variantIds),
-        or(isNull(bargainRequests.orderId), eq(bargainRequests.orderId, order.id)),
-      ),
-    )
-    .limit(1)
-  return row !== undefined
+  return { flags, bargainIds }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */
@@ -308,11 +274,30 @@ export async function emitOrderEvent(
 const istStart = (date: string): Date => new Date(`${date}T00:00:00.000+05:30`)
 const istEnd = (date: string): Date => new Date(`${date}T23:59:59.999+05:30`)
 
-/** A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query. */
+/**
+ * Whether the signed-in caller reaches this order through the order procedures (DOS-073). A salesperson
+ * reaches only the orders credited to it (`salesperson_id = me`), the same rule as the device pull in
+ * `orders.module.ts`. Staff RLS on `sales_orders` is tenant-wide on purpose (billing, warehouse, delivery
+ * and reporting read every order), so the rule lives here and not in a policy. No other role changes: a
+ * retailer stays with RLS plus `assertRetailerOwns`, the desk reaches the whole tenant. A caller that is
+ * not reached is answered exactly as for an id that does not exist.
+ */
+export function callerReaches(order: Pick<OrderRow, 'salespersonId'>): boolean {
+  const ctx = currentTenant()
+  return ctx.actorRole !== 'salesperson' || order.salespersonId === ctx.actorId
+}
+
+/**
+ * A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query.
+ * A salesperson's list is always its own (DOS-073, `callerReaches`): its `salespersonId` filter is forced
+ * to the caller, so naming a colleague cannot widen it.
+ */
 export async function listOrders(
   tx: Db,
   input: z.infer<typeof OrdersListInput>,
 ): Promise<z.infer<typeof OrdersListOutput>> {
+  const ctx = currentTenant()
+  const salespersonId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.salespersonId
   const filters: (SQL | undefined)[] = [
     input.state ? eq(salesOrders.state, input.state) : undefined,
     input.states && input.states.length > 0 ? inArray(salesOrders.state, input.states) : undefined,
@@ -321,7 +306,7 @@ export async function listOrders(
       ? inArray(salesOrders.state, ['submitted', 'confirmed', 'picking', 'packed', 'dispatched'])
       : undefined,
     input.retailerId ? eq(salesOrders.retailerId, input.retailerId) : undefined,
-    input.salespersonId ? eq(salesOrders.salespersonId, input.salespersonId) : undefined,
+    salespersonId ? eq(salesOrders.salespersonId, salespersonId) : undefined,
     input.from ? gte(salesOrders.createdAt, istStart(input.from)) : undefined,
     input.to ? lte(salesOrders.createdAt, istEnd(input.to)) : undefined,
     input.q

@@ -112,6 +112,12 @@ export default function OrderQueue(): React.JSX.Element {
     { enabled: selected !== null },
   )
   const order = detail.data?.item
+  /*
+   * The gates this order still waits on (DOS-020). Confirm never decides them — the server refuses a confirm
+   * while any is pending — so each one is approved or rejected by name in the panel, and the last approval is
+   * what confirms the order.
+   */
+  const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   /*
    * The credit line of UX-01 M4. It is asked with THIS order's own total, so `headroomPaise` is the
@@ -135,6 +141,15 @@ export default function OrderQueue(): React.JSX.Element {
 
   const approvals = useQuery(['approvals', 'pending'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 20 }),
+  )
+  /*
+   * Every pending bargain gate, past the 20-row page (DOS-005). A gate names the rate request it waits on and its
+   * decision decides that request, so the pair is one card, decided through the gate. The requests list is oldest
+   * first and the approvals list newest first; without every gate, a request could show alone and deciding it
+   * there would leave its order waiting on the gate.
+   */
+  const gates = useQuery(['approvals', 'pending', 'bargain'], () =>
+    api.api.orders.approvals.list({ status: 'pending', kind: 'bargain', limit: 200 }),
   )
   const bargains = useQuery(['bargains', 'requested'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 20 }),
@@ -170,7 +185,17 @@ export default function OrderQueue(): React.JSX.Element {
         ...(input.note === '' ? {} : { note: input.note }),
         idempotencyKey: meta.idempotencyKey,
       }),
-    { invalidates: [['approvals'], ['orders']] },
+    /* The last approval confirms the order and reserves its stock, so it refreshes what a confirm does. */
+    {
+      invalidates: [
+        ['approvals'],
+        ['bargains'],
+        ['orders'],
+        ['warehouse'],
+        ['billing'],
+        ['reporting'],
+      ],
+    },
   )
   const decideBargain = useMutation(
     (input: { id: string; decision: 'approve' | 'reject'; note: string }, meta) =>
@@ -229,7 +254,7 @@ export default function OrderQueue(): React.JSX.Element {
     ...(mayDecide && order !== undefined
       ? {
           1: () => {
-            if (order.state === 'submitted') setActing('confirm')
+            if (order.state === 'submitted' && waitingOn.length === 0) setActing('confirm')
           },
           2: () => {
             setActing('cancel')
@@ -265,21 +290,44 @@ export default function OrderQueue(): React.JSX.Element {
     return `${head} · ${t('m2.creditOver', { over: formatINR(paise(over)) })}`
   }
 
+  const pending = [
+    ...new Map(
+      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
+    ).values(),
+  ]
+  const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
+  const gated = new Set(
+    pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
+  )
   const waiting = [
-    ...(approvals.data?.items ?? []).map((row) => ({
-      id: row.id,
-      kind: 'approval' as const,
-      what: typeof row.payload.orderNo === 'string' ? row.payload.orderNo : word(row.kind),
-      why: word(row.kind),
-      amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
-    })),
-    ...(bargains.data?.items ?? []).map((row) => ({
-      id: row.id,
-      kind: 'bargain' as const,
-      what: names.retailer(row.retailerId),
-      why: t('m2.askedRate'),
-      amount: row.askedRatePaise,
-    })),
+    ...pending.map((row) => {
+      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
+      const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      return bargain === undefined
+        ? {
+            id: row.id,
+            kind: 'approval' as const,
+            what: orderNo ?? word(row.kind),
+            why: word(row.kind),
+            amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+          }
+        : {
+            id: row.id,
+            kind: 'approval' as const,
+            what: orderNo ?? names.retailer(bargain.retailerId),
+            why: t('m2.askedRate'),
+            amount: bargain.askedRatePaise,
+          }
+    }),
+    ...(bargains.data?.items ?? [])
+      .filter((row) => !gated.has(row.id))
+      .map((row) => ({
+        id: row.id,
+        kind: 'bargain' as const,
+        what: names.retailer(row.retailerId),
+        why: t('m2.askedRate'),
+        amount: row.askedRatePaise,
+      })),
   ]
 
   const [deciding, setDeciding] = useState<{
@@ -389,7 +437,7 @@ export default function OrderQueue(): React.JSX.Element {
 
         <Panel title={t('m2.approvals')} testID="orders-approvals">
           <Async
-            state={[approvals, bargains]}
+            state={[approvals, gates, bargains]}
             rows={4}
             empty={waiting.length === 0}
             emptyMessage={t('m2.empty')}
@@ -465,6 +513,59 @@ export default function OrderQueue(): React.JSX.Element {
                   {creditLine()}
                 </Txt>
               </Field>
+              {/*
+               * DOS-020: each pending gate by name, decided here with a note. The buttons follow the
+               * procedure they call, so the accountant reads the list and decides nothing; a credit gate's
+               * decision dialog carries the credit sentence, because deciding it is what releases the order.
+               */}
+              {waitingOn.length === 0 ? null : (
+                <Field label={t('m2.flags')}>
+                  <Stack gap={2} testID="order-waiting-on">
+                    {waitingOn.map((gate) => {
+                      const what = `${order.orderNo ?? ''} · ${word(gate.kind)}${
+                        gate.kind === 'credit_limit' ? ` · ${creditLine()}` : ''
+                      }`
+                      return (
+                        <Stack key={gate.id} gap={2} border="bottom" borderTone="faint" padY={2}>
+                          <Txt field="body" desk="body">
+                            {word(gate.kind)}
+                          </Txt>
+                          {can('orders.approvals.decide') ? (
+                            <Stack gap={2}>
+                              <Button
+                                label={t('m2.approve')}
+                                variant="primary"
+                                onPress={() => {
+                                  setDeciding({
+                                    id: gate.id,
+                                    kind: 'approval',
+                                    decision: 'approve',
+                                    what,
+                                  })
+                                }}
+                                testID={`order-approve-${gate.kind}`}
+                              />
+                              <Button
+                                label={t('m2.reject')}
+                                variant="destructive"
+                                onPress={() => {
+                                  setDeciding({
+                                    id: gate.id,
+                                    kind: 'approval',
+                                    decision: 'reject',
+                                    what,
+                                  })
+                                }}
+                                testID={`order-reject-${gate.kind}`}
+                              />
+                            </Stack>
+                          ) : null}
+                        </Stack>
+                      )
+                    })}
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('m2.state')}>
                 <StatusChip
                   label={word(order.state)}
@@ -524,8 +625,14 @@ export default function OrderQueue(): React.JSX.Element {
                     label={t('m2.confirm')}
                     variant="primary"
                     shortcut="1"
-                    disabled={order.state !== 'submitted'}
-                    disabledReason={t('m2.onlySubmitted')}
+                    disabled={order.state !== 'submitted' || waitingOn.length > 0}
+                    disabledReason={
+                      order.state !== 'submitted'
+                        ? t('m2.onlySubmitted')
+                        : t('m2.decideFirst', {
+                            what: waitingOn.map((a) => word(a.kind)).join(' · '),
+                          })
+                    }
                     onPress={() => {
                       setActing('confirm')
                     }}
@@ -585,6 +692,11 @@ export default function OrderQueue(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {acting === 'confirm' ? t('m2.confirmBody') : creditLine()}
             </Txt>
+            {acting === 'confirm' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {creditLine()}
+              </Txt>
+            ) : null}
             {acting === 'confirm' ? null : (
               <TextInput
                 label={t('m2.cancelReason')}
