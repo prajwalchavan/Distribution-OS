@@ -1,0 +1,582 @@
+{
+ "walks": [
+  {
+   "group": "android-sales-delivery",
+   "checks": [
+    {
+     "id": "DOS-077",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Sales Rep (rahul.deshmukh, tenant tarsun)",
+     "steps": "1. android-login.sh sales 5175 rahul.deshmukh Sales (Metro started 00:57 with --clear, after the merge). 2. Beat \u2192 Kalyan West Market \u2192 Laxmi Narayan Stores \u2192 Take order; swipe below 'Add items / On this phone: 171 items'; screenshot and uiautomator bounds. 3. Search 'Neelam' (tap field, adb input text, ESC); screenshot and bounds. 4. Offline: adb reverse --remove tcp:3000 and tcp:3003, force-stop and relaunch, reopen the same order entry; restore reverses. 5. Online at Shree Ganesh Kirana: search 'Sunflower' \u2192 'Add a case' on 'Annapurna Sunflower Refined Oil 1 L pouch' \u2192 'This order' line; step to 20 cs \u2192 Place order (SO-0901). 6. SELECT the new order line.",
+     "expected": "Every catalog row shows the item name (up to 2 lines), 'brand \u00b7 N pc case' and the 'N cs available' chip when online. A label-width 'Add a case' sits inside the row. Rows are named offline (no chip). A tap adds a line whose name matches, and the stored line carries that item, entered_unit case and source salesperson.",
+     "actual": "Rows are no longer blank. Online rows show name, pack and chip, with valid bounds, e.g. 'Campa Cola 2 L' [77,866][290,982], '7 cs available' [342,868][665,937], 'Campa \u00b7 24 pc case' [77,992][290,1040], and a label-width 'Add a case' [707,866][1004,1047] inside the card [45..1035]. The pre-fix full-width button (x\u2248108\u20131034) is gone. 'Neelam' search shows only Neelam rows, each named. Offline, the rows read in full ('Campa Cola 200 ml / Campa \u00b7 48 pc case') with no chip. 'Add a case' made the line 'Annapurna Sunflower Refined Oil 1 L pouch \u20b91,436.88 \u00b7 1 cs \u00b7 19 cs available'. SO-0901 line: variant 934dd63c (same item), entered_qty 20, entered_unit case, source salesperson. Residual: when the stock chip is shown, the name column is only ~180\u2013210 px, so names and packs are clipped ('Neelam An / ti-Dandru\u2026', 'Neelam \u00b7 2\u2026'; '5 ml sachet' reads 'Neelam / Anti-Da\u2026'). Logged as a new finding (Android counterpart of DOS-128), not a regression.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/sales-00-01-signed-in-home.png",
+      "QA/evidence/batch1/regression/android/sales-077-03-laxmi-shop-card.png",
+      "QA/evidence/batch1/regression/android/sales-077-04-order-entry-top.png",
+      "QA/evidence/batch1/regression/android/sales-077-05-catalog-rows.png",
+      "QA/evidence/batch1/regression/android/sales-077-05-catalog-rows-bounds.txt",
+      "QA/evidence/batch1/regression/android/sales-077-06-search-neelam.png",
+      "QA/evidence/batch1/regression/android/sales-077-07-neelam-rows.png",
+      "QA/evidence/batch1/regression/android/sales-077-07-neelam-rows-bounds.txt",
+      "QA/evidence/batch1/regression/android/sales-077-08-offline-home.png",
+      "QA/evidence/batch1/regression/android/sales-077-09-offline-catalog-rows.png",
+      "QA/evidence/batch1/regression/android/sales-075-04-after-first-case.png",
+      "QA/evidence/batch1/regression/android/sales-075-db-new-order.txt"
+     ],
+     "dbOrApi": "SELECT sales_orders/sales_order_lines for Shree Ganesh Kirana created in the last 10 min: SO-0901 line variant 934dd63c 'Annapurna Sunflower Refined Oil 1 L pouch', entered_qty 20, entered_unit case, pack_size_at_entry 12, source salesperson (sales-075-db-new-order.txt).",
+     "note": "'19 cs available' against 242 pc (20 cs) in the Godown is DOS-074/097, not merged: noted only. 'Add a case' clears the search box after each add, so repeat adds go through the line stepper."
+    },
+    {
+     "id": "DOS-075",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Sales Rep (rahul.deshmukh, tenant tarsun)",
+     "steps": "1. Beat \u2192 Shree Ganesh Kirana (tier C) \u2192 Take order \u2192 search 'Sunflower' \u2192 Add a case on Annapurna Sunflower Refined Oil 1 L pouch \u2192 open the line \u2192 'One case more' \u00d719 (20 cs = 240 pc). 2. Read the header chip, the line and the group footer on the device (device prices with @dos/domain). 3. Place order. 4. Server quote as Rahul: POST :3003/pricing/quote with the same basket (240 pc), plus a 204 pc control. 5. SELECT the new order and line.",
+     "expected": "Device: 'Schemes on this order \u2212\u20b9574.75' for 20 cs (gross \u20b928,737.60 \u2265 \u20b925,000). Server quote: orderRules [6ac23a1a order_pct 57475]; 204 pc gives orderRules []. Stored order: subtotal 2873760, discount 57475, and applied_rules contains order_pct 57475.",
+     "actual": "Device shows header chip 'Schemes \u20b9574.75', line '\u2212\u20b9574.75' at \u20b9119.74/pc (\u20b928,162.85 net), and group footer 'Schemes on this order \u2212\u20b9574.75'. Server quote 240 pc: grossPaise 2873760, discountPaise 57475, netPaise 2816285, orderRules [{ruleId 6ac23a1a-ce35-76d2-a002-3a7888fc1c65, version 1, rewardKind order_pct, amountPaise 57475}], same share in lines[0].appliedRules. Control 204 pc: gross 2442696, orderRules []. Placed as SO-0901 ('Order placed'), stored state submitted, subtotal_paise 2873760, discount_paise 57475, tax 140814, total 2957100. Line discount_bps 200, applied_rules [{kind scheme, ruleId 6ac23a1a\u2026, version 1, rewardKind order_pct, amountPaise 57475}]. A credit_limit approval was raised (shop over its \u20b950,000 strict limit), as expected.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/sales-075-01-shree-ganesh-card.png",
+      "QA/evidence/batch1/regression/android/sales-075-03-search-sunflower.png",
+      "QA/evidence/batch1/regression/android/sales-075-06-twenty-cases.png",
+      "QA/evidence/batch1/regression/android/sales-075-07-scheme-footer.png",
+      "QA/evidence/batch1/regression/android/sales-075-08-order-placed.png",
+      "QA/evidence/batch1/regression/android/sales-075-api-quote.txt",
+      "QA/evidence/batch1/regression/android/sales-075-db-before.txt",
+      "QA/evidence/batch1/regression/android/sales-075-db-new-order.txt"
+     ],
+     "dbOrApi": "API POST :3003/pricing/quote (Rahul token, pricingDate 2026-09-13) for 240 pc and 204 pc (sales-075-api-quote.txt). SELECT sales_orders, sales_order_lines and approvals for SO-0901 (sales-075-db-new-order.txt).",
+     "note": "SO-0901 was then cancelled by Rahul on the phone as the DOS-073 positive control. The scheme is valid only until 2026-09-21."
+    },
+    {
+     "id": "DOS-073",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Sales Rep (rahul.deshmukh, tenant tarsun); compared with amit.pawar",
+     "steps": "1. Orders tab \u2192 'All' filter; scroll 8 pages collecting every order number shown. 2. SELECT the salesperson of each number shown. 3. Deep link dos-sales://orders/84f1fe62-9b23-7e28-bc44-728ba08774e6 (Amit's SO-0872, picking). 4. API as Rahul: GET :3003/orders/<SO-0872>, GET /orders?salespersonId=<Amit>&limit=50, GET /orders?limit=50. 5. Positive control: Orders tab \u2192 own SO-0901 \u2192 detail \u2192 Cancel this order \u2192 Why 'duplicate' \u2192 Cancel order; SELECT the order, its transitions and approvals.",
+     "expected": "The list and detail show only orders credited to Rahul. Amit's order is not reachable (not on the phone / 404). Rahul can still open and cancel his own order.",
+     "actual": "The Android 'All' list showed 56 distinct numbers (SO-0803\u2026SO-0901, SO-9001). SQL: all 56 have salesperson rahul.deshmukh; none of Amit's recent SO-0894/0872/0869/0876/0870/0866/0854/0860/0859 appear. Deep link to SO-0872 \u2192 'That order is not on this phone'. API: GET /orders/<SO-0872> 404 'order \u2026 not found'; both lists answer 50 items, all salespersonId 8760e17e (Rahul). Own SO-0901 detail loaded (Submitted, Credit limit pending) and the cancel dialog worked. The order is now cancelled with reason 'duplicate' at 02:35:53, transition cancel submitted\u2192cancelled by rahul.deshmukh, and its credit_limit approval expired.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/sales-073-01-orders-list.png",
+      "QA/evidence/batch1/regression/android/sales-073-03-orders-all.png",
+      "QA/evidence/batch1/regression/android/sales-073-03-orders-all-pages.txt",
+      "QA/evidence/batch1/regression/android/sales-073-04-orders-all-scrolled.png",
+      "QA/evidence/batch1/regression/android/sales-073-05-deeplink-amit-SO-0872.png",
+      "QA/evidence/batch1/regression/android/sales-073-06-own-SO-0901-detail.png",
+      "QA/evidence/batch1/regression/android/sales-073-12-tab-path-cancel-dialog.png",
+      "QA/evidence/batch1/regression/android/sales-073-14-tab-path-reason-typed.png",
+      "QA/evidence/batch1/regression/android/sales-073-15-own-order-cancelled.png",
+      "QA/evidence/batch1/regression/android/sales-073-api-probes.txt",
+      "QA/evidence/batch1/regression/android/sales-073-db-rahul-vs-amit.txt",
+      "QA/evidence/batch1/regression/android/sales-073-db-list-owners.txt",
+      "QA/evidence/batch1/regression/android/sales-073-db-own-cancel.txt"
+     ],
+     "dbOrApi": "SELECT owners of the 56 order numbers on screen (all rahul.deshmukh). SELECT Amit's latest 10 orders. API GET /orders/{id} 404 and GET /orders lists with Rahul's token. SELECT SO-0901 state, order_state_transitions and approvals after the cancel.",
+     "note": "Two earlier cancel attempts on SO-0901 opened by adb deep link dropped back to the beat home when text was typed into the dialog; nothing was cancelled (DB unchanged). Not reproduced when the order was opened from the Orders tab, so it is recorded here as a likely adb-intent artefact, not a finding. The sibling DOS-115 (warehouse/delivery logins) is not in this group."
+    },
+    {
+     "id": "DOS-060",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Delivery (ganesh.more, tarsun) for the collection; sachin.dalvi (sai-distributors, planned trip) for the trip-start cash field",
+     "steps": "Collection: 1. android-login.sh delivery 5177 ganesh.more Delivery. 2. TRIP-ACTIVE \u2192 Stop 7 Nakshatra Kirana \u2192 Take money \u2192 Cash \u2192 Amount taken (keypad). 3. Tap 4 7 5 6; then . 5 0; an extra 5; \u232b\u00d73; Clear; Done. 4. Reopen, 4 7 5 6, Done \u2192 Record the payment. 5. SELECT receipts, collections and the outbox. Trip-start: 6. android-login.sh delivery 5177 sachin.dalvi Delivery \u2192 Your other trips \u2192 TRIP-NEXT (planned, float \u20b93,000) \u2192 Start the trip screen \u2192 'Cash handed to you' \u2192 keypad: 4 7 5 6, Clear, 4 7 5 6, \u232b\u00d78, Done. Start was not pressed (it is disabled for a draft sheet).",
+     "expected": "The keypad enters rupees: 4-7-5-6 previews \u20b94,756 and speaks '4756 rupees'. Paise only after '.', a third decimal digit is ignored, \u232b removes characters, Clear gives \u20b90. Done on empty leaves the field '\u2014' with Record disabled. The recorded receipt has amount_paise 475600. The trip-start pad also takes rupees.",
+     "actual": "Pad layout 1\u20139 / . 0 \u232b / [Clear | Done]. 4756 \u2192 preview '\u20b94,756' (content-desc '4756 rupees'). '. 5 0' \u2192 '\u20b94,756.50' ('4756 rupees 50 paise'); extra 5 ignored; \u232b\u00d73 \u2192 '\u20b94,756'; Clear \u2192 '\u20b90'; Done \u2192 field '\u2014' and 'Record the payment' DISABLED. Reopen + 4756 + Done \u2192 field '\u20b94,756.00'. Recorded RCPT-0703: amount_paise 475600, cash, collected, TRIP-ACTIVE, received_by ganesh; collections row amount_paise 475600 on stop 18ac4301. Shop dues went from \u20b921,069.00 to \u20b916,313.00. Trip-start pad: digits also enter as rupees, but the screen falls back to the planned float. It opens on \u20b93,000, and 4-7-5-6 appends to give '\u20b93,00,04,756'. Clear and \u232b-to-empty both snap back to '\u20b93,000', so no amount other than the plan can be entered. This is pre-existing (predicted in the implementer follow-ups), not caused by the batch; logged as a new finding. trips.opening_cash_paise stays 300000, trip still planned.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-060-01-stop7-nakshatra.png",
+      "QA/evidence/batch1/regression/android/delivery-060-02-take-money.png",
+      "QA/evidence/batch1/regression/android/delivery-060-03-keypad-open.png",
+      "QA/evidence/batch1/regression/android/delivery-060-03-keypad-open-nodes.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-04-keypad-4756.png",
+      "QA/evidence/batch1/regression/android/delivery-060-05-keypad-4756.50-extra5-ignored.png",
+      "QA/evidence/batch1/regression/android/delivery-060-06-keypad-back3-4756.png",
+      "QA/evidence/batch1/regression/android/delivery-060-07-keypad-clear-0.png",
+      "QA/evidence/batch1/regression/android/delivery-060-08-done-empty-record-disabled.png",
+      "QA/evidence/batch1/regression/android/delivery-060-08-done-empty-nodes.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-09-field-4756.00.png",
+      "QA/evidence/batch1/regression/android/delivery-060-10-recorded.png",
+      "QA/evidence/batch1/regression/android/delivery-060-db-before.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-db-after-record.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-23-sachin-trip-next-start.png",
+      "QA/evidence/batch1/regression/android/delivery-060-25-cash-pad-open.png",
+      "QA/evidence/batch1/regression/android/delivery-060-26-cash-pad-typed-4756.png",
+      "QA/evidence/batch1/regression/android/delivery-060-27-cash-pad-after-clear.png",
+      "QA/evidence/batch1/regression/android/delivery-060-29-cash-pad-back-to-empty.png",
+      "QA/evidence/batch1/regression/android/delivery-060-30-cash-field-after-done.png"
+     ],
+     "dbOrApi": "SELECT receipts (RCPT-0703 amount_paise 475600), collections (amount_paise 475600, stop 18ac4301, trip dda35990) and outbox_events (CollectionRecorded, ReceiptRecorded, DocumentRenderRequested) in delivery-060-db-after-record.txt. SELECT trips for sachin's TRIP-NEXT (planned, 300000) after the pad.",
+     "note": "Keypad title 'Amount taken' draws under the status-bar clock (DOS-069, not approved): noted only. After Clear + Done the empty field still carries the spoken label '4756 rupees' (new P3 finding)."
+    },
+    {
+     "id": "DOS-061",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Delivery (ganesh.more, tarsun); cross-checked with sachin.dalvi (sai-distributors)",
+     "steps": "1. Sign in as ganesh.more; read the home (business date 13 Sep; TRIP-ACTIVE 12 Sep active 10/10, TRIP-NEXT 14 Sep active 0/5). 2. Scroll to the load panel and 'Your other trips'; tap TRIP-NEXT. 3. Deep link dos-delivery://trip/start?tripId=dda35990\u2026 (TRIP-ACTIVE); dismiss the dev LogBox toast; tap 'This trip has already left \u2014 open its stops'. 4. dos-delivery://trip/start with no param. 5. Home \u2192 Add an expense (no record). 6. Offline: adb reverse --remove tcp:3000 and tcp:3005, force-stop and relaunch; home; tap TRIP-NEXT; restore reverses. 7. sachin.dalvi home and other trips.",
+     "expected": "Home picks the trip being driven (TRIP-ACTIVE \u00b7 12 Sep 2026); its confirmed sheet reads 'on board'. An on-the-road trip opens at its stops, never 'Start', with no odometer/float form. Start with no param routes the same way. Expenses name TRIP-ACTIVE. Offline, the home still shows TRIP-ACTIVE and TRIP-NEXT opens its stops. A draft sheet is never 'on board'.",
+     "actual": "Home: 'TRIP-ACTIVE \u00b7 12 Sep 2026 \u00b7 Today's trip \u00b7 On the road \u00b7 10 of 10 stops done'. Load panel 'Load on board \u00b7 Godown confirmed the load 11 Sep, 12:15 pm \u00b7 DC-0081 \u00b7 64 cartons on board \u00b7 Confirmed'. 'Your other trips: TRIP-NEXT \u00b7 Planned for 14 Sep 2026 \u00b7 On the road'. Tapping TRIP-NEXT opened 'TRIP-NEXT \u00b7 14 Sep 2026 \u00b7 End of day \u00b7 0 of 5 stops done' with its stops (City Light Provision\u2026), not Start. Start by link for TRIP-ACTIVE: 'Trip is On the road', consent panel, 0 EditText (no form), and bottom button 'This trip has already left \u2014 open its stops'. The tap landed on 'TRIP-ACTIVE \u00b7 End of day \u00b7 10 of 10'. Start with no param: same TRIP-ACTIVE screen and button. Expenses context 'TRIP-ACTIVE' (\u20b9120 toll). Offline relaunch: home 'TRIP-ACTIVE \u00b7 12 Sep 2026' from the phone's copy, and TRIP-NEXT opened its stops; only its cash summary needed a signal ('No connection\u2026'). sachin.dalvi: home 'TRIP-ACTIVE \u00b7 12 Sep 2026 \u00b7 3 of 10', load 'DC-0051 \u00b7 76 cartons on board \u00b7 Confirmed', other trip 'TRIP-NEXT \u00b7 Planned'. It opens the Start form, whose button is disabled with 'The godown has to load the vehicle before it can leave'. No 'on board' wording appeared for a draft sheet.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-00-01-signed-in-home.png",
+      "QA/evidence/batch1/regression/android/delivery-061-01-home.png",
+      "QA/evidence/batch1/regression/android/delivery-061-01-home.txt",
+      "QA/evidence/batch1/regression/android/delivery-061-02-home-page7.png",
+      "QA/evidence/batch1/regression/android/delivery-061-02-home-pages.txt",
+      "QA/evidence/batch1/regression/android/delivery-061-04-trip-next-opens.png",
+      "QA/evidence/batch1/regression/android/delivery-061-05-start-by-link-trip-active.png",
+      "QA/evidence/batch1/regression/android/delivery-061-07-start-no-param.png",
+      "QA/evidence/batch1/regression/android/delivery-061-09-open-its-stops-lands.png",
+      "QA/evidence/batch1/regression/android/delivery-061-10-expenses-context.png",
+      "QA/evidence/batch1/regression/android/delivery-061-14-offline-home.png",
+      "QA/evidence/batch1/regression/android/delivery-061-16-offline-trip-next-day.png",
+      "QA/evidence/batch1/regression/android/delivery-061-db-expenses.txt",
+      "QA/evidence/batch1/regression/android/delivery-db-baseline.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-21-sachin-home.png",
+      "QA/evidence/batch1/regression/android/delivery-060-22-sachin-home-pages.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-23-sachin-trip-next-start.png"
+     ],
+     "dbOrApi": "SELECT trips for ganesh.more and sachin.dalvi (dates, states, stops done). SELECT load_sheets (DC-0081 confirmed; TRIP-NEXT DC-0083 confirmed by the web DOS-039 regression at 01:07; sachin's TRIP-NEXT draft). SELECT trip_expenses on both ganesh trips (TRIP-ACTIVE toll \u20b9120 from the web regression; TRIP-NEXT diesel \u20b9500 is the pre-fix walk's). All in delivery-db-baseline.txt and delivery-061-db-expenses.txt.",
+     "note": "The draft-sheet label on the chosen trip ('N cartons planned \u2014 not loaded yet') could not be observed: ganesh's TRIP-NEXT sheet had been confirmed by the web regression, and sachin's draft trip is not the home trip. D8's offline error 'Something could not be completed\u2026 unknown' is DOS-068, not approved: noted. The first offline attempt hit a red screen caused by the emulator losing its network (see environmentProblems), not by the app."
+    },
+    {
+     "id": "DOS-058",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Delivery (ganesh.more, tarsun)",
+     "steps": "1. TRIP-NEXT \u2192 Stop 1 City Light Provision \u2192 Deliver this bill (INV/0831) \u2192 '\u2212' once on Godavari Cow Ghee 200 ml; tap Past its date / Shop refused it / Damaged and read the caption. Record was refused 409 (the bill's order SO-0862 is packed and not on DC-0083), so nothing was written. 2. API as ganesh: POST :3005/delivery/deliveries on INV/0831 with returnedSaleable:true + reason damaged, then + expired. 3. TRIP-NEXT \u2192 Stop 5 Meghana General Store (INV/0836, SO-0869 dispatched): GPS fix to the shop \u2192 I am at the shop \u2192 Deliver this bill \u2192 '\u2212' once on Campa Cola 750 ml (24 pc back) \u2192 Damaged \u2192 proof photo (system camera) \u2192 Record the delivery. 4. SELECT delivery_lines, credit note and lines, and stock_ledger since the tap.",
+     "expected": "One reason control (Shop refused it | Damaged | Past its date) with a caption: 'Can be sold again' for refused, 'Into the damaged / expiry bin' for Damaged and Past its date, and no second disposition row. The request carries returnedSaleable:false for Damaged. Credit note reason return_damaged with line saleable false; stock_ledger sale_return_damaged into 'Damaged / expiry bin', no sale_return_saleable row. The server refuses saleable:true with damaged/expired (400 return_not_saleable).",
+     "actual": "After '\u2212': 'Taken back \u00b7 24 pc', ONE segmented row [Shop refused it | Damaged | Past its date], caption 'Can be sold again'; only one 'Damaged' control on screen. Past its date \u2192 'Into the damaged / expiry bin'; Shop refused it \u2192 'Can be sold again'; Damaged \u2192 'Into the damaged / expiry bin' (same at Meghana). Meghana record: POST /delivery/deliveries 200 at 03:24:58. The delivery is partial. The Campa Cola 750 ml line has reason damaged, returned_qty_pcs 24, delivered 1, returned_saleable false; the other four lines are delivered in full. Credit note CN/9007: reason return_damaged, \u20b9772.00; its line qty 24, saleable false. stock_ledger since the tap has exactly one row: 'Damaged / expiry bin' sale_return_damaged +24, credit note CN/9007, lot cb5df43d. The lot's balances are Damaged bin 24, Vehicle 48 (unchanged), Godown 5999. Tenant-wide delivery_lines since the tap with damaged/expired and saleable true: 0. Stop 5 partial, and the screen updated to 'Part delivered \u00b7 Owes \u20b927,724.00' about 40 s later. API guard: saleable:true+damaged \u2192 400 {code return_not_saleable, 'Godavari Cow Ghee 200 ml: damaged goods go to the damaged bin, not back on sale'}; +expired \u2192 400 return_not_saleable. INV/0831 still has no delivery and no credit note after all attempts.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-058-02-d4-open.png",
+      "QA/evidence/batch1/regression/android/delivery-058-06-reason-row-visible.png",
+      "QA/evidence/batch1/regression/android/delivery-058-07-reason-past-its-date.png",
+      "QA/evidence/batch1/regression/android/delivery-058-07-reason-shop-refused-it.png",
+      "QA/evidence/batch1/regression/android/delivery-058-07-reason-damaged.png",
+      "QA/evidence/batch1/regression/android/delivery-058-17-d4-bottom-after-409.png",
+      "QA/evidence/batch1/regression/android/delivery-058-api-probes.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-db-safety-check.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-db-trip-next-deliverable.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-19-meghana-arrived.png",
+      "QA/evidence/batch1/regression/android/delivery-058-21-meghana-campa-damaged.png",
+      "QA/evidence/batch1/regression/android/delivery-058-23-meghana-before-record.png",
+      "QA/evidence/batch1/regression/android/delivery-058-24-meghana-after-record.png",
+      "QA/evidence/batch1/regression/android/delivery-058-25-meghana-stop-refresh-check.png",
+      "QA/evidence/batch1/regression/android/delivery-058-db-before-meghana.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-db-after-record-meghana.txt"
+     ],
+     "dbOrApi": "Service log POST /delivery/deliveries 200 (03:24:58) and 409 (03:06:00, INV/0831). SELECT deliveries, delivery_lines, credit_notes, credit_note_lines, stock_ledger (joined to locations) and stock_balances for lot cb5df43d since T0 2026-09-13 03:24:57. API probes 400 return_not_saleable (delivery-058-api-probes.txt).",
+     "note": "The first recording target (TRIP-NEXT stop 1, INV/0831) is undeliverable fixture data: its order was never dispatched (DOS-043 state, not merged). The app showed only the raw 409 'order: cannot apply \"deliver_partial\" in state \"packed\"' after the photo; logged as a new finding. A mixed-return claim header and the desk credit-note path (DOS-116) were not in scope."
+    },
+    {
+     "id": "DOS-057",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Delivery (ganesh.more, tarsun)",
+     "steps": "1. TRIP-ACTIVE \u2192 Stop 5 Joshi Kirana Stores \u2192 tap bill row INV/0826 \u2192 Send the papers (D9). 2. Open \u2192 screenshot the Android sheet \u2192 Back (nothing sent). 3. Send on WhatsApp \u2192 screenshot the sheet \u2192 Back. 4. Print \u2192 screenshot the Android print screen \u2192 Back. 5. CN/9003 row \u2192 paper sheet \u2192 Open \u2192 sheet \u2192 Back \u2192 Close. 6. Stop 7 Nakshatra Kirana \u2192 INV/0829 \u2192 D9 \u2192 RCPT-0703 (recorded on this phone at 02:55) \u2192 Open \u2192 sheet \u2192 Back. 7. Service log and logcat; SELECT pdf_object_key and outbox events.",
+     "expected": "Open and Send hand the PDF FILE (e.g. INV-0826.pdf) to the Android share sheet, with no relative /storage text and no 'URI is not absolute'. Print reaches the Android print framework with the PDF. Credit-note and receipt papers open. A receipt recorded at the door has its paper queued at issue and ready on the first tap.",
+     "actual": "Open \u2192 com.android.intentresolver 'Sharing 1 file \u00b7 INV-0826.pdf' (Quick Share, Print, Drive, Messages, Bluetooth); GET /storage/\u2026/invoice/89e7513d\u2026.pdf?expires= 200. Send on WhatsApp \u2192 same sheet with INV-0826.pdf and no link text; second GET 200. Logcat has no downloadFileAsync / 'URI is not absolute' error. Print \u2192 com.android.printspooler PrintActivity rendering the real TAX INVOICE INV/0826 (Page 1 of 1). CN/9003 \u2192 sheet [Open, Print, Send on WhatsApp, Close] \u2192 Open \u2192 'Sharing 1 file \u00b7 CN-9003.pdf'; GET /credit-notes/01a09532\u2026 200, /files/read-url 200, /storage/\u2026/credit_note/\u2026.pdf 200. RCPT-0703 \u2192 sheet ready on the first tap (no 'still making this PDF') \u2192 Open \u2192 'Sharing 1 file \u00b7 RCPT-0703.pdf'; GET /receipts/01a09783\u2026/document 200, /storage/\u2026/receipt/\u2026.pdf 200. Its DocumentRenderRequested (receipt:\u2026:a5:original) was created in the receipt's transaction at 02:55:47.77975 and published 02:56:24; receipts.pdf_object_key is set.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-057-01-stop5-joshi.png",
+      "QA/evidence/batch1/regression/android/delivery-057-02-d9-papers.png",
+      "QA/evidence/batch1/regression/android/delivery-057-03-open-share-sheet.png",
+      "QA/evidence/batch1/regression/android/delivery-057-03-open-share-sheet.txt",
+      "QA/evidence/batch1/regression/android/delivery-057-03-open-logcat.txt",
+      "QA/evidence/batch1/regression/android/delivery-057-05-send-share-sheet.png",
+      "QA/evidence/batch1/regression/android/delivery-057-05-send-share-sheet.txt",
+      "QA/evidence/batch1/regression/android/delivery-057-07-print-invoice.png",
+      "QA/evidence/batch1/regression/android/delivery-057-08-cn9003-sheet.png",
+      "QA/evidence/batch1/regression/android/delivery-057-09-cn9003-open-share-sheet.png",
+      "QA/evidence/batch1/regression/android/delivery-057-11-nakshatra-d9-receipts.png",
+      "QA/evidence/batch1/regression/android/delivery-057-12-rcpt0703-sheet-first-tap.png",
+      "QA/evidence/batch1/regression/android/delivery-057-13-rcpt0703-open-share-sheet.png",
+      "QA/evidence/batch1/regression/android/delivery-057-db-papers.txt",
+      "QA/evidence/batch1/regression/android/delivery-060-db-after-record.txt"
+     ],
+     "dbOrApi": "delivery-service log request/response pairs for /storage, /files/read-url, /credit-notes/{id} and /receipts/{id}/document (all 200). SELECT invoices/credit_notes/receipts pdf_object_key. SELECT outbox_events DocumentRenderRequested for RCPT-0703.",
+     "note": "No share target was tapped: every sheet was closed with Back. The 'Handed to the phone' toast was not visible in the text dump after Back, so it is not asserted. The retailer half (DOS-099) is outside this group. The printed invoice footer shows '?' for the em dash in the tenant's branding text (new P3 finding)."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Trip-start 'Cash handed to you' cannot hold any amount except the planned float: typing appends to \u20b93,000 and Clear snaps back",
+     "category": "bug",
+     "priority": "P1",
+     "role": "Delivery",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36); same screen code on iOS, not walked",
+     "steps": "1. Sign in to the delivery app as sachin.dalvi (Sai Distributors). 2. Home \u2192 Your other trips \u2192 TRIP-NEXT (planned, opening float \u20b93,000) \u2192 Start the trip \u2192 Before you leave \u2192 'Cash handed to you' (shows \u20b93,000.00). 3. Tap the field; the money keypad opens on \u20b93,000. 4. Tap 4 7 5 6. 5. Tap Clear, then 4 7 5 6 again. 6. Tap \u232b eight times. 7. Done.",
+     "expected": "A driver handed \u20b94,756 can enter \u20b94,756: Clear empties the pad, digits start a new amount, and the planned float is only a pre-fill he can replace.",
+     "actual": "Step 4 previews \u20b93,00,04,756 ('30004756 rupees'). Clear snaps back to \u20b93,000, and 4-7-5-6 again gives \u20b93,00,04,756. \u232b to empty also snaps back to \u20b93,000, and Done leaves \u20b93,000.00. The only enterable amounts are \u20b93,000 or numbers beginning with 3000. The screen passes value={cashPaise ?? detail?.openingCashPaise}, so onChange(null) falls back to the plan on every render (frontend/delivery-app/app/trip/start.tsx:290). Trip not started; trips.opening_cash_paise stays 300000.",
+     "businessImpact": "The opening float drives 'Cash the office expects' at check-in. A driver given a different float records \u20b93,000 (a false variance), or taps one digit and starts the trip with a float in crores. On a loaded trip Start is enabled, so the wrong float is written and every day-end reconciliation for that van is off. The retailer Pay screen uses the same `amount ?? owed` pattern (implementer follow-up), not walked here.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-060-23-sachin-trip-next-start.png",
+      "QA/evidence/batch1/regression/android/delivery-060-24-sachin-cash-field.png",
+      "QA/evidence/batch1/regression/android/delivery-060-25-cash-pad-open.png",
+      "QA/evidence/batch1/regression/android/delivery-060-26-cash-pad-typed-4756.png",
+      "QA/evidence/batch1/regression/android/delivery-060-27-cash-pad-after-clear.png",
+      "QA/evidence/batch1/regression/android/delivery-060-28-cash-pad-typed-after-clear.png",
+      "QA/evidence/batch1/regression/android/delivery-060-29-cash-pad-back-to-empty.png",
+      "QA/evidence/batch1/regression/android/delivery-060-30-cash-field-after-done.png"
+     ],
+     "suggestedFix": "Seed cashPaise once from openingCashPaise when the trip loads, and let null mean 'empty' (no render-time fallback). Alternatively, give the pad an explicit 'Use planned float \u20b93,000' chip. Apply the same pattern to retailer-app/app/pay.tsx. Add a render test: open pad on a pre-filled value, Clear, type 4756, expect \u20b94,756."
+    },
+    {
+     "title": "Android order entry: with the stock chip shown, item names and pack sizes are clipped, so variants cannot be told apart before 'Add a case'",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Sales Rep",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36); web phone width is DOS-128",
+     "steps": "1. rahul.deshmukh \u2192 Beat \u2192 Kalyan West Market \u2192 Laxmi Narayan Stores \u2192 Take order. 2. Scroll to the catalog; then search 'Neelam'. 3. Read the rows and the uiautomator bounds.",
+     "expected": "Each row shows the full variant name (up to 2 lines) and 'brand \u00b7 N pc case', as it does offline where no chip is drawn.",
+     "actual": "Online, the '18 cs available' chip [312..665] and 'Add a case' [707..1004] leave the name column 77..260/290 px (~70\u201380 dp). Rows read 'Campa / Cola 200 \u2026' with 'Campa \u00b7 48\u2026'; 'Neelam An / ti-Dandru\u2026' with 'Neelam \u00b7 2\u2026' (175 ml, 24 pc case); and 'Neelam / Anti-Da\u2026' with 'Neelam \u00b7 \u2026' (5 ml sachet, 480 pc case). A row without a chip (340 ml) and all offline rows show the full name and 'Neelam \u00b7 18 pc case'. The DOS-077 fix made rows visible; this residual was noted by the implementer.",
+     "businessImpact": "A rep on the phone cannot tell Neelam Anti-Dandruff 175 ml from the 5 ml sachet, or Campa Cola 200 ml from 2 L, before adding a case. He adds blind and must check 'This order'. Wrong-SKU cases go to the shop and come back as returns.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/sales-077-05-catalog-rows.png",
+      "QA/evidence/batch1/regression/android/sales-077-05-catalog-rows-bounds.txt",
+      "QA/evidence/batch1/regression/android/sales-077-07-neelam-rows.png",
+      "QA/evidence/batch1/regression/android/sales-077-07-neelam-rows-bounds.txt",
+      "QA/evidence/batch1/regression/android/sales-077-09-offline-catalog-rows.png"
+     ],
+     "suggestedFix": "Below the desk breakpoint, move availability onto the meta line ('Neelam \u00b7 24 pc case \u00b7 4 cs') or wrap chip and button under the name. Give the name column a minimum width. Fix together with DOS-128 in frontend/sales-app/app/orders/new.tsx."
+    },
+    {
+     "title": "Delivering a bill whose order was never dispatched fails only after the photo, with the raw message 'order: cannot apply \"deliver_partial\" in state \"packed\"'",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Delivery",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "steps": "1. ganesh.more \u2192 Your other trips \u2192 TRIP-NEXT \u2192 Stop 1 City Light Provision (INV/0831, order SO-0862 state packed, not in DC-0083's order_ids, both lots still in the Godown). 2. The stop screen offers 'Deliver this bill'; tap it. 3. Press '\u2212' on a line, choose a reason, photograph the signed bill, fill 'Bill signed by', Record the delivery.",
+     "expected": "The stop or bill screen says before the door that this bill is not on the van (not dispatched) and does not offer Deliver. If the server refuses, the driver reads a sentence he can act on.",
+     "actual": "Nothing marks the bill as not loaded; 'Deliver this bill' is enabled. After the photo upload, POST /delivery/deliveries answers 409 and the form shows, in red above the footer, 'order: cannot apply \"deliver_partial\" in state \"packed\"'. The Record button's accessibility state stays 'busy'. Nothing is written (INV/0831 has only its plan row, no credit note). An API replay with the same body gives the same 409 {from packed, event deliver_partial}.",
+     "businessImpact": "The driver stands at the shop with a signed bill and a photo, and the app gives him developer text. He cannot tell whether he or the godown is at fault, and the goods were never on his van. With DOS-043 still open (trips go active before loading), this reaches real stops.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-058-17-d4-bottom-after-409.png",
+      "QA/evidence/batch1/regression/android/delivery-058-17-d4-texts-bottom.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-api-probes.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-db-trip-next-deliverable.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-db-safety-check.txt"
+     ],
+     "suggestedFix": "Map order-state 409s from deliveries.record to driver sentences, e.g. 'This bill is still in the godown \u2014 it was not loaded on this van'. Mark such bills on D3 and disable Deliver when the order is not dispatched or not on the trip's confirmed sheet. Refuse stop planning or trip start for orders that are not on the load sheet (with DOS-043)."
+    },
+    {
+     "title": "Stop screen stays stale for ~40 s after a successful delivery, still offering 'Deliver this bill' with the old dues and no success message",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Delivery",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "steps": "1. ganesh.more \u2192 TRIP-NEXT \u2192 Stop 5 Meghana General Store \u2192 I am at the shop \u2192 Deliver this bill \u2192 return one case as Damaged \u2192 photo \u2192 Record the delivery. 2. Read the stop screen immediately, then again ~40 s later.",
+     "expected": "After a 200 the stop shows 'Part delivered', the new dues and 'This stop is finished', and a toast names the credit note.",
+     "actual": "At 03:25:0x (POST 200 at 03:24:58, CN/9007 written) the stop screen still read 'At the shop \u00b7 Owes \u20b928,496.00 \u00b7 INV/0836 Not started \u00b7 Deliver this bill \u00b7 Take money'. No toast was visible: onSuccess sets the toast on D4 and then router.replace()s away from it. At 03:25:38 it showed 'Part delivered \u00b7 Owes \u20b927,724.00 \u00b7 This stop is finished'.",
+     "businessImpact": "For up to a minute a driver sees the bill as undelivered and may deliver it again or tell the shop the wrong dues. A second record is refused by the server, adding confusion at the door.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-058-24-meghana-after-record.png",
+      "QA/evidence/batch1/regression/android/delivery-058-24-meghana-after-record.txt",
+      "QA/evidence/batch1/regression/android/delivery-058-25-meghana-stop-refresh-check.png",
+      "QA/evidence/batch1/regression/android/delivery-058-db-after-record-meghana.txt"
+     ],
+     "suggestedFix": "Write the returned stop and delivery (RecordDeliveryOutput.stop / item) into the local tables before navigating. Show the success toast on the destination screen, or pass it through the route."
+    },
+    {
+     "title": "Emptied amount field still announces the previous amount to screen readers ('\u2014' shown, '4756 rupees' spoken)",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Delivery",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "steps": "1. ganesh.more \u2192 Stop 7 Nakshatra Kirana \u2192 Take money \u2192 Cash \u2192 Amount taken. 2. Type 4 7 5 6, then Clear, then Done. 3. Read the accessibility node of the field.",
+     "expected": "The empty field's accessibility label says it is empty ('Amount taken, not entered').",
+     "actual": "The field shows '\u2014' and 'Record the payment' is DISABLED, but the node's content-desc is still '4756 rupees' ([76,1688][117,1757] '\u2014' '4756 rupees'). Whether this predates batch 1 was not established.",
+     "businessImpact": "A TalkBack user hears \u20b94,756 while nothing is entered, and cannot tell why Record is disabled. It is low impact for sighted drivers.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-060-08-done-empty-record-disabled.png",
+      "QA/evidence/batch1/regression/android/delivery-060-08-done-empty-nodes.txt"
+     ],
+     "suggestedFix": "Derive the field's accessibilityLabel from the current value (null \u2192 the 'empty' string) rather than the last non-null amount, and add a native render test."
+    },
+    {
+     "title": "Invoice and credit-note PDFs print '?' for the em dash in the tenant's own footer ('Tarsun Enterprise ? Wholesale & Distribution')",
+     "category": "bug",
+     "priority": "P3",
+     "role": "Delivery / Retailer / Accountant (anyone reading the paper)",
+     "platform": "Backend PDF renderer, seen in the Android print preview",
+     "steps": "1. ganesh.more \u2192 Stop 5 Joshi Kirana Stores \u2192 INV/0826 \u2192 Send the papers \u2192 Print. 2. Read the footer line of the rendered tax invoice. 3. Extract the text of the stored PDF and read tenant_settings branding.invoice_footer.",
+     "expected": "The footer reads 'Tarsun Enterprise \u2014 Wholesale & Distribution \u00b7 GSTIN 27CNGPP9039R1ZX'.",
+     "actual": "The print preview and the stored PDF text read 'Tarsun Enterprise ? Wholesale & Distribution \u00b7 GSTIN \u2026'. branding.invoice_footer contains U+2014, and pdf.ts documents that characters outside Latin-1 print '?'. The em dash exists in WinAnsi (0x97), yet it is replaced.",
+     "businessImpact": "Every paper the shop receives carries a visible encoding glitch in the distributor's own letterhead line. It is cosmetic, but it undermines the professional look of GST papers.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/delivery-057-07-print-invoice.png"
+     ],
+     "suggestedFix": "In backend/libs/core/src/documents/pdf.ts, map the cp1252 punctuation WinAnsi can hold (\u2014 \u2013 \u2018 \u2019 \u201c \u201d \u2022 \u2026) to their WinAnsi codes before the Latin-1 fallback. Optionally normalise tenant branding text on save."
+    }
+   ],
+   "dataTouched": "All changes went through the Android apps or their API as the named users; no SQL writes and no code, test, schema, seed or config changes.\n\nSales (rahul.deshmukh, tarsun):\n- SO-0901 created: Shree Ganesh Kirana, 20 cs Annapurna Sunflower Refined Oil 1 L pouch. Submitted at 02:28 with a credit_limit approval.\n- SO-0901 cancelled from the phone at 02:35 with reason 'duplicate'; its approval expired.\n- One extra 'Unnamed device' auth session for Rahul, from the API login used for the quote and probes.\n- Sales app data wiped by android-login.sh.\n\nDelivery (ganesh.more, tarsun):\n- RCPT-0703, \u20b94,756.00 cash, at TRIP-ACTIVE stop 7 Nakshatra Kirana (02:55). Allocated, PDF rendered, dues \u20b921,069 \u2192 \u20b916,313.\n- TRIP-NEXT stop 5 Meghana General Store: arrived at 03:21 (emulator GPS set to 19.246896, 73.136392).\n- INV/0836 recorded as a partial delivery at 03:24:58, with CN/9007 \u20b9772.00 return_damaged: 24 pc Campa Cola 750 ml into the Damaged / expiry bin (lot cb5df43d).\n- Two proof photos in backend/.storage/tenant/01a0947d\u2026/pod/: fb5a4b3c\u2026/01a09789\u2026.jpg is an orphan from the refused INV/0831 attempt; 80252baf\u2026/01a0979d\u2026.jpg belongs to the Meghana delivery.\n- INV/0831 (TRIP-NEXT stop 1): two app record attempts (409) and five API probes (400/409) refused, nothing written.\n- One extra 'Unnamed device' session for ganesh.\n- Location, camera and 'Location Accuracy: No thanks' answered on the emulator.\n\nsachin.dalvi (sai-distributors):\n- Signed in on the delivery app, which wiped ganesh's app session.\n- Opened TRIP-NEXT's Start screen and exercised the cash keypad. Start not pressed; the trip is still planned with opening_cash_paise 300000.\n\nSnapshot of the touched rows: QA/evidence/batch1/regression/android/zz-data-touched.txt.",
+   "environmentProblems": "1. The prescribed cleanup `lsof -ti tcp:8081 | xargs kill` also kills the emulator. It matches every process with a socket on 8081, and the emulator's own processes (qemu/netsimd) hold host sockets for the guest's 10.0.2.2:8081 bundle connection.\n   - ~02:36, same command before the delivery sign-in: the emulator lost its network soon after ('Active default network: none', ping 10.0.2.2 'Network is unreachable', mobile_data 0). The debug app showed a native red screen, loadJSBundleFromAssets, even online. `adb shell svc wifi enable; svc data enable` restored it within 2 s.\n   - 03:32:32, final cleanup: adb answered 'error: closed' and emulator-5554 went offline. The original qemu (PID 40627) was gone.\n   - Another Claude session (PID 58522) relaunched the same AVD headless at 03:32:44 (qemu PID 51453, -memory 3072 -no-window). boot_completed=1, adb shows 'device'. I did not start an emulator.\n   - One adb reverse entry present after that relaunch belongs to the other session and was left in place.\n   - Fix for the harness: use `lsof -ti tcp:8081 -sTCP:LISTEN | xargs kill` or `pkill -f proxy8081.mjs`.\n2. The dev build's LogBox toast ('Open debugger to view warnings', y\u22482209) sits on top of footer buttons ('This trip has already left \u2014 open its stops', 'Record the delivery') and swallows taps. Dismiss it with \u00d7 at (995,2208) first.\n3. Buttons and chips under the sticky footer report clipped uiautomator bounds (bottom < top). One mis-aimed tap sequence hit the footer; a DB safety check confirmed nothing was recorded.\n4. Screens opened by `adb shell am start -a VIEW dos-sales://orders/<id>` dropped to the beat home when text was typed into the cancel dialog, twice. The same dialog worked when the order was opened from the Orders tab. Suspected adb-intent artefact.\n5. zsh does not word-split `set -- $C`, so my first three DOS-058 API probes sent an empty reason (400 validation, nothing written). They were redone with explicit arguments.\n6. TRIP-NEXT stop 1 (INV/0831) cannot be delivered: order SO-0862 is packed and not on DC-0083 (a DOS-043 state, not merged). The DOS-058 record was therefore done at stop 5 Meghana (a dispatched order).\n7. The web walker was active at the same time (SO-0899/0900 approvals decided 02:24\u201302:28, RCPT-0702 reversal at 02:43, two unnumbered credit-note drafts at 02:32\u201302:33). None of my records were touched.\n\nFinal state:\n- adb reverse removed before the relaunch.\n- The :8081 proxy is stopped.\n- The emulator is running (relaunched) with the delivery app signed in as sachin.dalvi."
+  },
+  {
+   "group": "android-retailer-warehouse-owner",
+   "checks": [
+    {
+     "id": "DOS-094",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun, Shree Ganesh Kirana R-0001)",
+     "steps": "1. android-login.sh retailer 5178 ramesh.gupta Retailer. 2. \u22ef \u2192 Money due (You owe \u20b935,843.00, 6 bills) \u2192 Pay everything \u2192 Pay screen shows \u20b935,843.00 and the six bills \u2192 Start the payment. 3. Read the intent string and reference. 4. logcat -c, tap 'Open a UPI app' (the emulator has no UPI app). 5. Back \u2192 Pay everything \u2192 tick only INV/0433 (\u20b94,561.00 left of \u20b910,119.00) \u2192 Start the payment. 6. SELECT outbox_events PaymentIntentCreated for both PAY refs; receipts for R-0001 in the last hour; invoices.upi_qr_payload of INV/0433 and INV/0753.",
+     "expected": "One upi://pay? intent for the amount chosen, with the PAY reference in tr/tn; with no UPI app the phone shows the r5-no-upi-app hint instead of doing nothing.",
+     "actual": "Pay everything: 'Paying Tarsun Enterprise \u20b935,843.00' with upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=35843.00&tr=PAY-6a404dc1c6cb&tn=PAY-6a404dc1c6cb&cu=INR, a single prefix, and 'Quote this reference: PAY-6a404dc1c6cb'. Tapping 'Open a UPI app' fired one VIEW intent (ActivityTaskManager START act=android.intent.action.VIEW dat=upi://pay/... result code=-91), and the phone showed, in amber under the button: 'No UPI app opened on this phone. Pay tarsun@okhdfcbank from any UPI app and quote the reference below.' One bill (INV/0433 ticked): \u20b94,561.00, am=4561.00, tr=tn=PAY-f97f2fe653a0, 'This covers 1 bills'. DB: outbox PaymentIntentCreated PAY-6a404dc1c6cb amountPaise 3584300 across 6 invoiceIds, and PAY-f97f2fe653a0 amountPaise 456100 on [INV/0433]. 0 receipts created. The stored invoice payloads are unchanged (INV/0433 am=10119.00 tr=INV-0433; INV/0753 am=5472.00 tr=INV-0753) and are no longer used by the intent. Initiate did not 500 for this tenant, which has a branding logo.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/retailer-094-03-money-due.png",
+      "QA/evidence/batch1/regression/android/retailer-094-04-pay-screen.png",
+      "QA/evidence/batch1/regression/android/retailer-094-05-payment-started.png",
+      "QA/evidence/batch1/regression/android/retailer-094-06-open-upi-tapped.png",
+      "QA/evidence/batch1/regression/android/retailer-094-06-logcat-open-upi.txt",
+      "QA/evidence/batch1/regression/android/retailer-094-07-one-bill-ticked.png",
+      "QA/evidence/batch1/regression/android/retailer-094-08-one-bill-started.png",
+      "QA/evidence/batch1/regression/android/retailer-094-db-outbox-intents.txt"
+     ],
+     "dbOrApi": "outbox_events: PaymentIntentCreated|PAY-6a404dc1c6cb|3584300 (6 invoices); PaymentIntentCreated|PAY-f97f2fe653a0|456100 (1 invoice). receipts for R-0001 in the last hour: 0. GET :3006/receivables/outstanding/34191c43\u2026?includeBills=true \u2192 outstandingPaise 3584300, 6 open bills.",
+     "note": "A real GPay/PhonePe pre-filled with \u20b935,843 cannot be tested on this emulator. Pre-existing and not a regression: with a bill ticked, the disabled amount field still reads \u20b935,843.00 while the bottom bar and the intent use \u20b94,561.00 (new P3 finding below; code from edb56b4, 2026-09-07). Also seen, not re-reported: after the intent appears, the sticky 'Start the payment' bar stays on screen."
+    },
+    {
+     "id": "DOS-099",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun)",
+     "steps": "1. \u22ef \u2192 My bills \u2192 INV/0753 (\u20b95,472.00, To pay). 2. logcat -c, tap 'Open the bill'. 3. Look in the app cache with run-as and read the file's first bytes. 4. Back, then tap 'Print'. 5. API: GET :3006/invoices/a924ae38\u2026/pdf with the shop's token, then fetch the signed path on :3006.",
+     "expected": "The bill downloads and opens in the phone's share/preview sheet. No 'URI is not absolute' or downloadFileAsync error.",
+     "actual": "'Open the bill' opened the Android share sheet 'Sharing 1 file \u00b7 INV-0753.pdf' (Quick Share, Print, Drive, Messages, Bluetooth). logcat has ChooserActivity lines only, with no 'not absolute', downloadFileAsync or ReactNativeJS error. The app cache holds INV-0753.pdf, 21,269 bytes, starting %PDF-1.4, the same size the server returns (HTTP 200 application/pdf 21269B). Returning to the bill left no toast or LogBox over the buttons. 'Print' opened the system print dialog with a one-page preview of the real invoice (Tarsun logo, INV/0753, Shree Ganesh Kirana, 4 lines, TOTAL Rs 5,472.00). The API still returns a service-relative url (/storage/tenant/\u2026?expires&signature); the phone resolves it against the service origin, and the filename is flattened INV/0753 \u2192 INV-0753.pdf.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/retailer-099-01-my-bills.png",
+      "QA/evidence/batch1/regression/android/retailer-099-02-bill-inv-0753.png",
+      "QA/evidence/batch1/regression/android/retailer-099-03-open-the-bill.png",
+      "QA/evidence/batch1/regression/android/retailer-099-03-logcat-open-the-bill.txt",
+      "QA/evidence/batch1/regression/android/retailer-099-03-device-cache-pdf.txt",
+      "QA/evidence/batch1/regression/android/retailer-099-04-back-on-bill.png",
+      "QA/evidence/batch1/regression/android/retailer-099-05-print.png",
+      "QA/evidence/batch1/regression/android/retailer-099-api-invoice-pdf.json"
+     ],
+     "dbOrApi": "GET :3006/invoices/a924ae38-a82f-7ac8-8b3b-6ab11937e574/pdf \u2192 {status: ready, url: /storage/tenant/01a0947d\u2026/documents/invoice/a924ae38\u2026.pdf?expires=1789252247&signature=\u2026}; GET http://127.0.0.1:3006<url> \u2192 HTTP 200 application/pdf 21269B %PDF-1.4. Device: run-as in.distributionos.retailer ls cache \u2192 INV-0753.pdf 21269; head -c 8 \u2192 %PDF-1.4.",
+     "note": "The receipt PDF (DOS-057 half) was not exercised on the retailer Android app this pass. The print preview shows the em dash in the footer as '?'; that is already DOS-151, not re-reported."
+    },
+    {
+     "id": "DOS-095",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun)",
+     "steps": "1. \u22ef \u2192 Statement (default range 16 Jun 2026 \u2014 13 Sep 2026). 2. Scroll from top to bottom, dumping every page (12 pages captured) and collecting refNos and balances in order. 3. Compare with GET :3006/receivables/ledger/34191c43\u2026?from=2026-06-16&to=2026-09-13&limit=200 using the shop's token.",
+     "expected": "Every entry of the window is listed (more than 50), the running balance ends on the closing balance, and there is no partial note.",
+     "actual": "Opening balance \u20b95,242.00. The device lists 53 entries in exactly the API's order, first INV/0034, last \u2026 RCPT-0659 \u20b963,535.00 \u2192 RCPT-0668 \u20b951,355.00 \u2192 RCPT-0672 \u20b945,797.00 \u2192 RCPT-0693 \u20b940,286.00 \u2192 RCPT-0687 \u20b935,843.00, then 'Closing balance \u20b935,843.00' and the explain line, with no partial note. All 53 running balances on screen equal the API's balancePaise. The two first-pass mismatches (RCPT-0053, RCPT-0293) were my collector cutting context at a page edge; a second look found \u20b927,876.00 and \u20b964,951.00 on the next page, matching. The four receipts missing before the fix (RCPT-0668/0672/0693/0687) are all present.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/retailer-095-01-statement-top.png",
+      "QA/evidence/batch1/regression/android/retailer-095-02-statement-p00.png",
+      "QA/evidence/batch1/regression/android/retailer-095-02-statement-p11.png",
+      "QA/evidence/batch1/regression/android/retailer-095-02-statement-collected.json",
+      "QA/evidence/batch1/regression/android/retailer-095-03-compare-device-vs-api.txt",
+      "QA/evidence/batch1/regression/android/retailer-095-api-ledger-d90.json"
+     ],
+     "dbOrApi": "API ledger: openingPaise 524200, closingPaise 3584300, items 53, nextCursor null; last item RCPT-0687 balancePaise 3584300. Compare script: 'api items 53 device entries 53 same order: True'; balances 53/53 after the page-edge recheck.",
+     "note": "The window is one day later than the finding's (06-16..09-13), so 53 entries, not 54, as on the web regression. The \u226450-entry page-cap paths (limit rewrite) are web/Playwright checks and were not repeated on Android. Minor cosmetic only: RCPT-0668's amount column sits left of the others."
+    },
+    {
+     "id": "DOS-040",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (Tarsun)",
+     "steps": "1. android-login.sh warehouse 5176 dinesh.patil Warehouse. 2. Pick tab \u2192 select SO-0867 (Patil General Store, 337 pc, confirmed, on no wave, not the web chain's orders) \u2192 Make a wave. 3. Wait for the sheet to pull. 4. Tap a row card. 5. API probe while open: POST :3004/warehouse/picklists/{PICK-0089}/pick as dinesh.patil. 6. Tap 'Start picking'. 7. SELECT picklists, sales_orders, order_state_transitions.",
+     "expected": "An open sheet shows 'This sheet has not been started', rows without Picked/Short, and a bottom bar with only 'Start picking'; picks are refused until started; Start moves the sheet to picking and unlocks Picked/Short.",
+     "actual": "PICK-0089 (16 lot rows, 337 pc) opened with chip 'open', 'This sheet has not been started' and rows showing item/batch/expiry/MRP/pieces with no Picked/Short. The bottom bar held only 'Start picking': no Scan, no 'Take it to packing'. Tapping a row opened nothing. API pick on the open wave \u2192 HTTP 409 'picklist PICK-0089 is open; start it before picking'. After 'Start picking': chip 'picking', Picked/Short on every row, Scan and 'Take it to packing' (disabled, '16 lines not yet picked'). DB: picklists PICK-0089 status picking, started_at 03:55:37.024, completed_at NULL; SO-0867 picking; transition confirmed\u2192picking start_picking by dinesh.patil 03:55:36.92. Picks after start were accepted (sync_ops ok, no rejected ops).",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/warehouse-040-01-pick-queue.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-02-so0867-selected.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-03-new-wave-opened.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-04-not-started.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-05-row-tapped-while-open.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-06-after-start.png",
+      "QA/evidence/batch1/regression/android/warehouse-040-api-01-pick-on-open-wave.txt",
+      "QA/evidence/batch1/regression/android/warehouse-040-db-01-wave-created.txt",
+      "QA/evidence/batch1/regression/android/warehouse-040-db-03-after-start.txt"
+     ],
+     "dbOrApi": "POST :3004/warehouse/picklists/01a097b7-dd40-73eb-b179-49783c77063a/pick (open) \u2192 409 CONFLICT 'picklist PICK-0089 is open; start it before picking'. DB after Start: PICK-0089|picking|2026-09-13 03:55:37.024+05:30|NULL; SO-0867|picking; confirmed|picking|start_picking|dinesh.patil.",
+     "note": "The offline step (Start disabled with 'Starting a sheet needs a signal') was NOT TESTED: the services reach the phone through adb reverse, which airplane mode does not cut. Seen on Android, already filed: the freshly made wave first rendered 'Nothing here yet \u00b7 0 of 0 picked' with Scan and 'Take it to packing' for a few seconds (DOS-119)."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (Tarsun)",
+     "steps": "1. On started PICK-0089, press Short on the Chamak Detergent Powder 1 kg row 'Batch SC20260618 \u00b7 7 pc'. 2. Choose 'Damaged carton', Clear, key 2, 0. 3. Scroll the sheet and read below the pad. 4. Press Short. 5. SELECT pick_lines row and sync_ops. 6. Clear, key 5, press Short. 7. SELECT again.",
+     "expected": "The sheet refuses to save more than the batch row asks, and the refusal is visible; a figure within the ask saves.",
+     "actual": "Sheet: 'Requested 7 pc', pad 20. Below the Short button, in brick red: 'This batch asks for 7 pc. Count again \u2014 more cannot be saved on this line.' Pressing Short with 20 kept the sheet open. DB 10 s later: row 7|0|NULL|NULL unchanged, and no new sync_ops row. After Clear and 5, the brick line disappeared and Short saved: the sheet closed, the header read '1 of 16 picked', and the row left 'To pick'. DB: requested 7, picked 5, short_reason 'Damaged carton', picked_by dinesh.patil, picked_at 04:00:33.899; one sync_op {ok:true}.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/warehouse-041-01-short-sheet-7pc-row.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-02-pad-20-of-7.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-03-sheet-scrolled.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-04-short-pressed-20-refused.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-07-pad-5-of-7.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-08-after-short-5-saved.png",
+      "QA/evidence/batch1/regression/android/warehouse-041-db-02-after-refused-save.txt",
+      "QA/evidence/batch1/regression/android/warehouse-041-db-03-after-short-5.txt"
+     ],
+     "dbOrApi": "pick_lines 01a097b7-dc26-72a6 before: 7|0||; after refused 20: 7|0||; after Short 5: 7|5|Damaged carton|dinesh.patil|2026-09-13 04:00:33.899+05:30. sync_ops: only 01a097be-6a98\u2026 {ok:true} at 04:00:33.",
+     "note": "The refusal line is visible only after scrolling the sheet. On first open, the Short button itself and the pad's last row sit below the scroll viewport, behind the pinned Close button; that is logged as a new P2 finding, distinct from DOS-118 (web phone). A first attempt keyed after the layout reflowed and missed (warehouse-041-06-missed-taps-pad-0.png); nothing was saved."
+    },
+    {
+     "id": "DOS-042",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (Tarsun)",
+     "steps": "1. PICK-0089, order line 1 (Chamak 1 kg) sits on 4 lot rows: SC20260604 1 pc, SC20260618 7 pc (already shorted 5, 'Damaged carton'), SC20260702 2 pc, SC20260716 2 pc. 2. Press Picked on every other row (15 recorded), leaving SC20260716 untouched. 3. SELECT picklists and pick_lines; read the screen. 4. Short SC20260716 with 0 and 'Batch held back'. 5. SELECT again; read the screen.",
+     "expected": "While a short line still has an unrecorded asking row, the wave stays picking with completed_at NULL and 'Take it to packing' stays disabled. Once that row is recorded, the wave becomes picked.",
+     "actual": "At 15 of 16: screen '15 of 16 picked', chip 'picking', 'Take it to packing' DISABLED with '1 line not yet picked'. DB: PICK-0089 picking, completed_at NULL, 15/16 recorded, SC20260716 0/NULL/NULL; no rejected sync ops. After Short 0 'Batch held back' on SC20260716: DB PICK-0089 picked, completed_at 04:28:34.552; row 2|0|Batch held back|04:28:34.537; line 1 totals 1+5+2+0 = 8 pc. Screen '16 of 16 picked', 'Take it to packing' enabled.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/warehouse-042-01-fifteen-of-sixteen.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-db-01-fifteen-of-sixteen.txt",
+      "QA/evidence/batch1/regression/android/warehouse-042-11-sheet-after-fast-fling.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-12-after-last-short-saved.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-db-02-after-last-short.txt",
+      "QA/evidence/batch1/regression/android/warehouse-042-sheet-scroll-measure.txt"
+     ],
+     "dbOrApi": "At 15/16: PICK-0089|picking|NULL; recorded 15 of 16, 333 pc. After last short: PICK-0089|picked|2026-09-13 04:28:34.552+05:30; 1|SC20260716|2|0|Batch held back|2026-09-13 04:28:34.537+05:30.",
+     "note": "The first last-row Short attempt failed because of the hidden Short button. The tap at its laid-out centre (540,2184) hit Close and discarded the entry (warehouse-042-04-after-last-short.png, DB still NULL). Slow drags did not scroll the sheet; only a 250-ms fling exposed Short. See new finding. Seen on Android, already filed: after completion the chip still read 'picking' next to '16 of 16 picked' (DOS-120). Not packed: SO-0867 stays in picking. Rejected-op probe B (two devices) was not run on Android."
+    },
+    {
+     "id": "DOS-001",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun (Tarsun)",
+     "steps": "1. android-login.sh owner 5173 sunil.tarsun Owner. 2. Today \u2192 scroll to 'Money owed, by age'. 3. Money tab \u2192 'Money owed, by age'. 4. API GET :3001/reporting/dashboard/owner with an owner token. 5. SELECT per-tenant bucket sums from retailer_outstanding_summary and the owner_summary ageing keys.",
+     "expected": "Today's 90+ shows the real 90+ debt, equal to Money and to the live sum (\u20b925,962 for Tarsun), with all six buckets matching.",
+     "actual": "Today: 0\u20137 22,76,528.00 \u00b7 8\u201315 6,86,008.50 \u00b7 16\u201330 8,32,936.50 \u00b7 31\u201360 5,00,785.00 \u00b7 61\u201390 90,203.00 \u00b7 90+ 25,962.00. Money \u2192 Outstanding shows the identical six. API ageing b90plus 2596200 and detail.ageingB90plus 2596200 (all six equal the screen). Live SQL tarsun buckets 227652800/68600850/83293650/50078500/9020300/2596200. owner_summary as_of 04:15 has ageingB90plus 2596200 and no stray ageingB90Plus key (also sai 2460200, kalyan 2595350).",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/owner-001-00-signed-in-today.png",
+      "QA/evidence/batch1/regression/android/owner-001-01-today-ageing.png",
+      "QA/evidence/batch1/regression/android/owner-001-02-money-ageing.png",
+      "QA/evidence/batch1/regression/android/owner-001-api-01-dashboard-owner.json",
+      "QA/evidence/batch1/regression/android/owner-001-db-01-ageing-live.txt"
+     ],
+     "dbOrApi": "GET :3001/reporting/dashboard/owner \u2192 ageing {b0_7 227652800, b8_15 68600850, b16_30 83293650, b31_60 50078500, b61_90 9020300, b90plus 2596200}. SQL tarsun|227652800|68600850|83293650|50078500|9020300|2596200; owner_summary stray=f b90=2596200.",
+     "note": "The dev-build LogBox toast ('Can't perform a React state update on a component that hasn't mounted yet', already recorded at QA/findings/03-walkthrough-warehouse.md:385) sits over the owner tab bar and swallowed one tap on Money (owner-001-02x-logbox-opened-by-toast.png). Dismissed, then re-done."
+    },
+    {
+     "id": "DOS-005",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun (Tarsun); fixture created by salesperson amit.pawar through the sales API",
+     "steps": "1. Fixture on my own record: POST :3003/orders as amit.pawar for R-0051 Rameshwar General Store (indicate mode), 1 case Campa Cola 2 L at list \u20b950.92 \u2192 POST /pricing/bargains asked \u20b944.80 with orderId \u2192 POST /orders/{id}/submit \u2192 SO-0910 submitted, approvalFlags [bargain]. 2. Owner app \u2192 Today \u2192 Approvals: count rows in All, Order approvals and Rate requests. 3. Open the SO-0910 row. 4. Approve it with a note (step shared with DOS-020). 5. SELECT approvals and bargain_requests.",
+     "expected": "One named row per bargain in each segment, with no unnamed 'bargain_request / \u2014' duplicate; one decision closes both the gate and the bargain request.",
+     "actual": "All: Om Sai Provision Store Bargain 39.58 \u00d71, SO-0910 Bargain 44.80 \u00d71, SO-0898 Bargain 20.14 \u00d71, then credit-limit rows, with no unnamed duplicates. Order approvals: the same three bargain rows, once each. Rate requests: Om Sai, SO-0910, SO-0898, Shree Ganesh Kirana 13.00, Mahalaxmi General Stores 22.28, once each. SO-0910 panel: Kind Bargain, Person Amit Pawar, List rate \u20b950.92, Asked rate \u20b944.80, note box, Approve/Reject. One Approve on Android: approvals 01a097dc-4fcf approved by sunil.tarsun at 04:44:12.569 with the note, and bargain_requests 01a097dc-4e7b approved with approved_rate_paise 4480, decided_by sunil.tarsun at 04:44:12.579 with the same note. The row disappeared from All. Om Sai's approval was opened and left pending.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/owner-005-api-01-fixture-order-with-bargain.txt",
+      "QA/evidence/batch1/regression/android/owner-005-db-01-before-decision.txt",
+      "QA/evidence/batch1/regression/android/owner-005-01-approvals.png",
+      "QA/evidence/batch1/regression/android/owner-005-02-rate-requests.png",
+      "QA/evidence/batch1/regression/android/owner-005-03-order-approvals.png",
+      "QA/evidence/batch1/regression/android/owner-005-04-so0910-approval-panel.png",
+      "QA/evidence/batch1/regression/android/owner-020-10-after-approve.png",
+      "QA/evidence/batch1/regression/android/owner-020-db-02-after-approve.txt"
+     ],
+     "dbOrApi": "Before: approvals 01a097dc-4fcf|bargain|bargain_request|01a097dc-4e7b\u2026|pending; bargain_requests 01a097dc-4e7b|requested|5092|4480. After one Approve: approvals approved|sunil.tarsun|04:44:12.569|note; bargain_requests approved|5092|4480|4480|sunil.tarsun|04:44:12.579|note.",
+     "note": "DOS-004 (not merged): order-gated bargain rows are named by order number (SO-0910), not shop; note only. SO-0886/SO-0887 are cancelled but their credit-limit approvals are still listed (already DOS-127)."
+    },
+    {
+     "id": "DOS-020",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun (Tarsun)",
+     "steps": "1. Orders \u2192 Submitted \u2192 SO-0910 (Rameshwar General Store, \u20b91,369.00) \u2192 fling the panel to the buttons. 2. Tap 'Confirm order'. 3. SELECT SO-0910 state and reservations. 4. Approvals \u2192 SO-0910 \u2192 type note 'QA android DOS-020 approve fixture bargain' \u2192 Approve \u2192 dialog \u2192 Approve. 5. SELECT approvals, bargain_requests, sales_orders, order_state_transitions, reservations. 6. Orders \u2192 Confirmed \u2192 SO-0910 panel.",
+     "expected": "While the approval is pending, Confirm is disabled and says the last approval confirms the order; the tap does nothing. Deciding the last approval confirms the order through that decision, by the owner, never silently.",
+     "actual": "Panel: 'Confirm order' DISABLED, with 'Waiting on Bargain. Decide it on Approvals; the last approval confirms the order.' under it; 'Release stock' disabled, 'Cancel order' enabled. Tapping the disabled Confirm opened no dialog; DB SO-0910 submitted, 0 reservations, approval pending. Approve dialog: 'Approve SO-0910 \u00b7 Bargain \u00b7 \u20b944.80 \u00b7 QA android DOS-020 approve fixture bargain \u00b7 Approve / Cancel'. After Approve: approval approved (sunil.tarsun, note), bargain approved at 4480, and SO-0910 submitted\u2192confirmed, event confirm, actor sunil.tarsun at 04:44:12.532 in the same second as the decision. 2 reservation rows / 24 pc. Orders \u2192 Confirmed \u2192 SO-0910 panel reads State Confirmed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/owner-020-02-orders-submitted.png",
+      "QA/evidence/batch1/regression/android/owner-020-03-so0910-panel.png",
+      "QA/evidence/batch1/regression/android/owner-020-04-so0910-confirm-disabled.png",
+      "QA/evidence/batch1/regression/android/owner-020-05-tapped-disabled-confirm.png",
+      "QA/evidence/batch1/regression/android/owner-020-db-01-after-disabled-confirm-tap.txt",
+      "QA/evidence/batch1/regression/android/owner-020-09-approve-dialog.png",
+      "QA/evidence/batch1/regression/android/owner-020-10-after-approve.png",
+      "QA/evidence/batch1/regression/android/owner-020-db-02-after-approve.txt",
+      "QA/evidence/batch1/regression/android/owner-020-12-so0910-panel-confirmed.png"
+     ],
+     "dbOrApi": "After disabled tap: SO-0910|submitted|; reservations 0; approval pending. After Approve: transitions draft|submitted|submit|amit.pawar and submitted|confirmed|confirm|sunil.tarsun|2026-09-13 04:44:12.532; sales_orders SO-0910|confirmed|04:44:12.644; reservations 2 rows, 24 pc, state pending.",
+     "note": "The line stayed at \u20b950.92 (rate 5092, applied_rules []) although \u20b944.80 was approved; that is DOS-126, proven pre-existing, not re-reported. 'Stock held 2' counts reservation rows (DOS-130). The approve dialog on the last approval does not say it will confirm the order and reserve stock, and nothing says so afterwards; logged as a P3 UX finding (the order panel does say it beforehand). The manager-app Approve/Reject inside the order sheet was not in this group's scope and was not run."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Android W5 Short sheet: the Short (save) button and the pad's last row sit below the sheet's scroll viewport, behind 'Close'; tapping where Short is laid out closes the sheet and discards the entry",
+     "category": "bug",
+     "priority": "P2",
+     "role": "Warehouse",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36, 1080x2400)",
+     "steps": "1. Sign in as dinesh.patil on the warehouse app and open a started wave (PICK-0089). 2. Press Short on a lot row (e.g. SC20260716, 2 pc), choose 'Batch held back', leave the pad at 0. 3. Look for the Short button: only the pad rows 1\u20139, a 48-px sliver of Clear/0/\u232b, and 'Close' are visible. 4. Drag the sheet up slowly (adb swipe 1180\u2192560 over 900 ms, 900\u2192300 over 1000 ms, 1700\u2192700 over 1000 ms): it does not scroll. 5. Tap where uiautomator reports Short (540,2184): Close is on top, the sheet shuts, nothing is saved. 6. Only a fast fling (1150\u2192450 in 250 ms) scrolls the sheet and brings Short to y 1834\u20132033, where it saves.",
+     "expected": "The Short button, the whole keypad and any refusal line are visible without scrolling on a common phone, or the sheet reliably scrolls under a normal drag, and 'Close' never overlaps the save action.",
+     "actual": "uiautomator bounds: ScrollView [42,521][1038,2075]; Button 'Short' top 2293, clipped at 2075 (entirely below the viewport); Button 'Close' [42,2117][1038,2317]; keypad row 4 [..,2027][..,2075]. Slow drags do not scroll the sheet. A tap at Short's laid-out centre hits Close and discards the pieces and reason. PICK-0089 row SC20260716 stayed picked_at NULL and the wave stayed picking until the fling path was found. The same happened on the 7-pc row: Short was hidden until an over-ask figure was keyed and the sheet scrolled.",
+     "businessImpact": "The picker's main device is an Android phone, and recording a short is part of every wave. On a 412-dp-wide Pixel 7 (cheaper phones are shorter) the save button of the Short sheet cannot be seen. A picker who drags gently finds nothing to press, and one who taps near the bottom closes the sheet and loses what he typed. The wave cannot close (DOS-042 rule) until the short is recorded, so the order waits at the rack.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/warehouse-042-02-short-sheet-last-row-0.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-03-short-sheet-scrolled.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-04-after-last-short.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-06-swipe-a.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-07-swipe-b.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-11-sheet-after-fast-fling.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-12-after-last-short-saved.png",
+      "QA/evidence/batch1/regression/android/warehouse-042-sheet-scroll-measure.txt",
+      "QA/evidence/batch1/regression/android/warehouse-041-01-short-sheet-7pc-row.png"
+     ],
+     "suggestedFix": "In frontend/libs/ui/src/native/feedback.tsx (Sheet) inset the scroll content by the pinned footer's height (or put Close inside the scroll content), so no child is laid out behind the footer. In frontend/warehouse-app/app/pick/[id].tsx make the W5 Short sheet compact: put the reason chips and the 'Requested N pc' line on one row, use a shorter pad, and render the over-ask line next to the figure (DOS-118). Blame: the sheet dates from 335a11c9. DOS-041 (475092f) added expected/expectedLabel, which uses 127 px (y 884\u20131011) and pushed Short further down; by the same bounds the button top would still sit at about 2166, below the 2075 viewport, without it (inference from the measured bounds, not run on the pre-batch build)."
+    },
+    {
+     "title": "Owner Approvals: a note typed for one approval carries into the next approval opened, and is sent with that decision",
+     "category": "bug",
+     "priority": "P3",
+     "role": "Owner",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36); same component on web",
+     "steps": "1. Sign in as sunil.tarsun. Today \u2192 Approvals \u2192 open SO-0910 (Bargain). 2. Type a note in 'Note for the person who asked'. 3. Close the panel without deciding. 4. Open a different approval (Om Sai Provision Store, Bargain). 5. Read its note box.",
+     "expected": "Each approval opens with an empty note box; a note typed for one request never appears on another.",
+     "actual": "Om Sai's panel opened with 'QA android DOS-020 approve fixture bargain' already in the note box (EditText text identical). Re-opening SO-0910 showed it again, and an earlier ESC-closed attempt had left partial text that a new tap inserted into, garbling the note. In frontend/owner-app/app/approvals.tsx the note state is cleared only after a successful decision (line ~171, setNote('')); the Sheet's onClose (line ~268) clears only `selected`. Code from 5a13a64 (2026-09-06), so it predates batch 1.",
+     "businessImpact": "An owner who writes 'No, list rate holds this month' on one rep's bargain, closes it and opens another request can approve or reject the second one with the first note attached. The note is shown to the rep who asked ('the person who asked will read it'), so the wrong explanation reaches the wrong person.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/owner-020-06-note-typed.png",
+      "QA/evidence/batch1/regression/android/owner-020-06-note-clean.png",
+      "QA/evidence/batch1/regression/android/owner-020-08-om-sai-panel-note-carried.png",
+      "QA/evidence/batch1/regression/android/owner-020-08-om-sai-panel-note-carried.txt"
+     ],
+     "suggestedFix": "In frontend/owner-app/app/approvals.tsx call setNote('') whenever `selected` changes (in the Sheet onClose and in the row onPress), or key the note by approval id. Apply the same check to the manager app's decision dialog."
+    },
+    {
+     "title": "Retailer Pay screen: ticking bills disables the amount field but it keeps showing the full dues, contradicting the bottom bar and the intent",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Retailer",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36); same screen on web",
+     "steps": "1. Sign in as ramesh.gupta, Money due \u2192 Pay everything. 2. Tick only INV/0433 (\u20b94,561.00). 3. Read 'How much are you paying' at the top and in the bottom bar. 4. Start the payment.",
+     "expected": "The amount field shows the ticked total (\u20b94,561.00), or is replaced by 'Paying for 1 bill: \u20b94,561.00', so the screen shows one amount.",
+     "actual": "The top field (disabled, but not visibly different) still reads \u20b935,843.00 with 'Leave it as it is to pay everything you owe', while the bottom bar reads 'How much are you paying \u20b94,561.00'. The intent correctly uses \u20b94,561.00 (am=4561.00, PAY-f97f2fe653a0). pay.tsx: value={amount ?? owed} with disabled={chosen.length > 0}; payable uses chosenTotal. From edb56b4 (2026-09-07), predates batch 1.",
+     "businessImpact": "A shopkeeper sees two different amounts under the same label and may untick, re-tick or abandon the payment. It is a small trust dent on the one screen where money leaves his account.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/retailer-094-07-one-bill-ticked.png",
+      "QA/evidence/batch1/regression/android/retailer-094-08-one-bill-started.png"
+     ],
+     "suggestedFix": "In frontend/retailer-app/app/pay.tsx show value={chosen.length > 0 ? chosenTotal : (amount ?? owed)} and swap the helper text to 'Total of the bills you ticked' while bills are chosen; render the disabled state visibly."
+    },
+    {
+     "title": "Owner approve dialog on an order's last approval does not say it will confirm the order and reserve stock, and nothing says so afterwards",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Owner",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36); same dialog on web",
+     "steps": "1. Sign in as sunil.tarsun. Approvals \u2192 open SO-0910 (its only pending approval is the bargain). 2. Type a note \u2192 Approve. 3. Read the dialog. 4. Approve. 5. Look at the Approvals list; open Orders.",
+     "expected": "On the last pending approval the dialog states the consequence ('Approving this confirms SO-0910 for Rameshwar General Store and holds 24 pc'), and after the decision the owner sees 'SO-0910 confirmed'.",
+     "actual": "The dialog reads only 'Approve SO-0910 \u00b7 Bargain \u00b7 \u20b944.80 \u00b7 <note> \u00b7 Approve / Cancel'. After Approve the row vanishes with no message, while in the same second SO-0910 moved submitted\u2192confirmed (actor sunil.tarsun) and 24 pc were reserved. The consequence is stated only on the order panel's disabled Confirm reason, which the owner does not see from Approvals.",
+     "businessImpact": "DOS-020's purpose was that a decision never confirms an order silently. On the Approvals screen, where owners actually decide, the confirmation and stock hold still happen without a word, so an owner who meant only to allow a rate learns later that the order is confirmed and stock is held.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/owner-020-09-approve-dialog.png",
+      "QA/evidence/batch1/regression/android/owner-020-10-after-approve.png",
+      "QA/evidence/batch1/regression/android/owner-020-db-02-after-approve.txt",
+      "QA/evidence/batch1/regression/android/owner-020-04-so0910-confirm-disabled.png"
+     ],
+     "suggestedFix": "In frontend/owner-app/app/approvals.tsx (and the manager order sheet), when the approval is the order's last pending one, add a line to the confirm dialog: 'This is the last decision: SO-xxxx will be confirmed and its stock held'. After success, show a toast naming the confirmed order. The decide reply already returns order.state."
+    }
+   ],
+   "dataTouched": "All data changes went through the apps or their APIs on dos_qa; there were no SQL writes. RETAILER ramesh.gupta (Tarsun, R-0001): two UPI payment intents created in the app, PAY-6a404dc1c6cb (\u20b935,843, 6 bills) and PAY-f97f2fe653a0 (\u20b94,561, INV/0433). No receipts; outstanding still \u20b935,843. INV-0753.pdf downloaded into the retailer app's cache on the emulator; print dialog opened and backed out. WAREHOUSE dinesh.patil: wave PICK-0089 made in the app from SO-0867 (Patil General Store) and started, so SO-0867 went confirmed\u2192picking. All 16 rows recorded: 14 picked in full, SC20260618 short 5 of 7 'Damaged carton', SC20260716 short 0 of 2 'Batch held back'. PICK-0089 is now picked (completed 04:28:34). NOT packed, so SO-0867 stays picking with its reservations. One API pick probe on the open wave was refused 409 and wrote nothing. OWNER: fixture order SO-0910 created through the sales API as amit.pawar for R-0051 Rameshwar General Store (1 case Campa Cola 2 L, list \u20b950.92, bargain request asked \u20b944.80, submitted). Approved on Android by sunil.tarsun with the note 'QA android DOS-020 approve fixture bargain': approval 01a097dc-4fcf and bargain 01a097dc-4e7b are approved, SO-0910 is confirmed with 24 pc reserved (2 rows). Om Sai's pending bargain approval was opened, not decided. Curl API sessions minted for ramesh.gupta, dinesh.patil, sunil.tarsun and amit.pawar (no web sessions signed out). android-login.sh wiped app data of the retailer, warehouse and owner APKs. Final state: QA/evidence/batch1/regression/android/zz-android-walker-final-db-state.txt.",
+   "environmentProblems": "1. The prescribed proxy kill, `lsof -ti tcp:8081 | xargs kill`, also kills the emulator: qemu-system-aarch64-headless holds the host socket to 127.0.0.1:8081 that the apps' 10.0.2.2:8081 bundle fetch uses. Running it between the warehouse and owner apps took emulator-5554 offline ('adb: device offline', owner APK install failed). Another workflow's watchdog (scratchpad emu-watchdog.sh) cold-restarted it: log '04:29:45 emulator down \u2014 restarting', '04:30:14 emulator back'. From then on only `pkill -f \"node .*proxy8081.mjs\"` was used, including the final cleanup. adb reverse --remove-all is done, :8081 has no listener, and emulator-5554 is left running. QA/ENV.md \u00a75.6 and the walker brief should replace the lsof kill. 2. uiautomator on these RN builds puts Pressable labels in content-desc with empty text, and the owner list rows expose only a combined content-desc ('SO-0910, Bargain, 44 rupees 80 paise'); ad-hoc helpers had to match content-desc. 3. RN sheets on Android do not scroll under slow adb drags (\u2265900 ms); only fast flings scroll them. That cost several retries and is recorded as a product finding for the Short sheet. 4. KEYCODE_ESCAPE (111), which android-login.sh uses to hide the keyboard, also closes an open sheet or modal. Use KEYCODE_BACK only while `dumpsys input_method` reports mInputShown=true. 5. The dev-build LogBox toast sits over the owner app's bottom tab bar and swallowed one tap (dismissed; known dev warning). 6. NOT TESTED: DOS-040's offline 'Starting a sheet needs a signal' state (services reach the phone through adb reverse, which airplane mode does not cut; toggling device network was also avoided) and DOS-042 probe B (needs two devices). iOS was not in this group."
+  }
+ ]
+}

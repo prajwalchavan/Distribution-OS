@@ -184,7 +184,23 @@ Evidence: `QA/evidence/batch1/regression/android/`; results `QA/evidence/batch1/
 
 The two defects that existed only on native are fixed on Android: DOS-077 (catalog rows no longer blank; names and packs show, though narrow beside the stock chip — DOS-147) and DOS-060 (the pad enters rupees: 4-7-5-6 → ₹4,756, paise only after "."). Environment note: the emulator went down twice during this pass because the walker prompt's proxy cleanup `lsof -ti tcp:8081 | xargs kill` also kills the emulator's own processes (a QA harness mistake, now recorded in QA/ENV.md); it was restarted and a watchdog keeps it up for the rest of the pass.
 
-**Android part 2 — retailer, warehouse, owner:** running. **Android manager app (DOS-020/021/023/025/029/034/041 M20):** after the DOS-029 merge. **iOS:** after Android.
+**Android part 2 — retailer, warehouse and owner apps, same emulator, 2026-09-13 ~03:35–04:50 IST.** 9 PASS · 0 FAIL. Results: `QA/evidence/batch1/regression/android-1-results.json`.
+
+| Fix | User | Status | What was seen | First evidence |
+|---|---|---|---|---|
+| DOS-094 | Retailer | **PASS** | Pay everything: 'Paying Tarsun Enterprise ₹35,843.00' with … | `QA/evidence/batch1/regression/android/retailer-094-03-money-due.png` |
+| DOS-099 | Retailer | **PASS** | 'Open the bill' opened the Android share sheet 'Sharing 1 file · INV-0753.pdf' (Quick Share, Print, Drive, Messages, Bluetooth). logcat has … | `QA/evidence/batch1/regression/android/retailer-099-01-my-bills.png` |
+| DOS-095 | Retailer | **PASS** | Opening balance ₹5,242.00. The device lists 53 entries in exactly the API's order, first INV/0034, last … RCPT-0659 ₹63,535.00 → RCPT-0668 ₹51,355.00 … | `QA/evidence/batch1/regression/android/retailer-095-01-statement-top.png` |
+| DOS-040 | Warehouse | **PASS** | PICK-0089 (16 lot rows, 337 pc) opened with chip 'open', 'This sheet has not been started' and rows showing item/batch/expiry/MRP/pieces with no … | `QA/evidence/batch1/regression/android/warehouse-040-01-pick-queue.png` |
+| DOS-041 | Warehouse | **PASS** | Sheet: 'Requested 7 pc', pad 20. Below the Short button, in brick red: 'This batch asks for 7 pc. Count again — more cannot be saved on this line.' … | `QA/evidence/batch1/regression/android/warehouse-041-01-short-sheet-7pc-row.png` |
+| DOS-042 | Warehouse | **PASS** | At 15 of 16: screen '15 of 16 picked', chip 'picking', 'Take it to packing' DISABLED with '1 line not yet picked'. DB: PICK-0089 picking, … | `QA/evidence/batch1/regression/android/warehouse-042-01-fifteen-of-sixteen.png` |
+| DOS-001 | Owner | **PASS** | Today: 0–7 22,76,528.00 · 8–15 6,86,008.50 · 16–30 8,32,936.50 · 31–60 5,00,785.00 · 61–90 90,203.00 · 90+ 25,962.00. Money → Outstanding shows the … | `QA/evidence/batch1/regression/android/owner-001-00-signed-in-today.png` |
+| DOS-005 | Owner | **PASS** | All: Om Sai Provision Store Bargain 39.58 ×1, SO-0910 Bargain 44.80 ×1, SO-0898 Bargain 20.14 ×1, then credit-limit rows, with no unnamed duplicates. … | `QA/evidence/batch1/regression/android/owner-005-api-01-fixture-order-with-bargain.txt` |
+| DOS-020 | Owner | **PASS** | Panel: 'Confirm order' DISABLED, with 'Waiting on Bargain. Decide it on Approvals; the last approval confirms the order.' under it; 'Release stock' … | `QA/evidence/batch1/regression/android/owner-020-02-orders-submitted.png` |
+
+Every merged fix outside the manager app holds on Android: 16 of 16. The emulator went down once more from the same proxy-kill command and the watchdog restarted it within 30 s (04:29:45 → 04:30:14).
+
+**Android manager app (DOS-020/005/021/023/025/029/034/041 M20) and iOS (all apps):** walked against the DOS-029 manager build served from its branch on :5274 (DOS-029 + the DOS-135 repair), so no walker loses its app to a reload; the branch is merged into main after the last device walk — the merged manager-app files are the same files that were walked.
 
 ### 4. Business regression — orders, inventory, payments, outstanding, delivery and reports reconcile
 

@@ -806,3 +806,79 @@ Suggested fix: In backend/libs/core/src/documents/pdf.ts, map the cp1252 punctua
 
 Found by: batch 1 regression, Android pass (sales + delivery).
 
+### DOS-152 — Android W5 Short sheet: the Short (save) button and the pad's last row sit below the sheet's scroll viewport, behind 'Close'; tapping where Short is laid out closes the sheet and discards the entry
+Category: bug | Priority: P2 | Role: Warehouse | Platform: Android (Pixel_7_API_36 emulator, API 36, 1080x2400)
+
+```
+User: Warehouse
+Platform: Android (Pixel_7_API_36 emulator, API 36, 1080x2400)
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as dinesh.patil on the warehouse app and open a started wave (PICK-0089). 2. Press Short on a lot row (e.g. SC20260716, 2 pc), choose 'Batch held back', leave the pad at 0. 3. Look for the Short button: only the pad rows 1–9, a 48-px sliver of Clear/0/⌫, and 'Close' are visible. 4. Drag the sheet up slowly (adb swipe 1180→560 over 900 ms, 900→300 over 1000 ms, 1700→700 over 1000 ms): it does not scroll. 5. Tap where uiautomator reports Short (540,2184): Close is on top, the sheet shuts, nothing is saved. 6. Only a fast fling (1150→450 in 250 ms) scrolls the sheet and brings Short to y 1834–2033, where it saves.
+Expected: The Short button, the whole keypad and any refusal line are visible without scrolling on a common phone, or the sheet reliably scrolls under a normal drag, and 'Close' never overlaps the save action.
+Actual: uiautomator bounds: ScrollView [42,521][1038,2075]; Button 'Short' top 2293, clipped at 2075 (entirely below the viewport); Button 'Close' [42,2117][1038,2317]; keypad row 4 [..,2027][..,2075]. Slow drags do not scroll the sheet. A tap at Short's laid-out centre hits Close and discards the pieces and reason. PICK-0089 row SC20260716 stayed picked_at NULL and the wave stayed picking until the fling path was found. The same happened on the 7-pc row: Short was hidden until an over-ask figure was keyed and the sheet scrolled.
+Business impact: The picker's main device is an Android phone, and recording a short is part of every wave. On a 412-dp-wide Pixel 7 (cheaper phones are shorter) the save button of the Short sheet cannot be seen. A picker who drags gently finds nothing to press, and one who taps near the bottom closes the sheet and loses what he typed. The wave cannot close (DOS-042 rule) until the short is recorded, so the order waits at the rack.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/android/warehouse-042-02-short-sheet-last-row-0.png; QA/evidence/batch1/regression/android/warehouse-042-03-short-sheet-scrolled.png; QA/evidence/batch1/regression/android/warehouse-042-04-after-last-short.png; QA/evidence/batch1/regression/android/warehouse-042-06-swipe-a.png; QA/evidence/batch1/regression/android/warehouse-042-07-swipe-b.png; QA/evidence/batch1/regression/android/warehouse-042-11-sheet-after-fast-fling.png; QA/evidence/batch1/regression/android/warehouse-042-12-after-last-short-saved.png; QA/evidence/batch1/regression/android/warehouse-042-sheet-scroll-measure.txt; QA/evidence/batch1/regression/android/warehouse-041-01-short-sheet-7pc-row.png
+Suggested fix: In frontend/libs/ui/src/native/feedback.tsx (Sheet) inset the scroll content by the pinned footer's height (or put Close inside the scroll content), so no child is laid out behind the footer. In frontend/warehouse-app/app/pick/[id].tsx make the W5 Short sheet compact: put the reason chips and the 'Requested N pc' line on one row, use a shorter pad, and render the over-ask line next to the figure (DOS-118). Blame: the sheet dates from 335a11c9. DOS-041 (475092f) added expected/expectedLabel, which uses 127 px (y 884–1011) and pushed Short further down; by the same bounds the button top would still sit at about 2166, below the 2075 viewport, without it (inference from the measured bounds, not run on the pre-batch build).
+```
+
+Found by: batch 1 regression, Android pass (retailer + warehouse + owner).
+
+### DOS-153 — Owner Approvals: a note typed for one approval carries into the next approval opened, and is sent with that decision
+Category: bug | Priority: P3 | Role: Owner | Platform: Android (Pixel_7_API_36 emulator, API 36); same component on web
+
+```
+User: Owner
+Platform: Android (Pixel_7_API_36 emulator, API 36); same component on web
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as sunil.tarsun. Today → Approvals → open SO-0910 (Bargain). 2. Type a note in 'Note for the person who asked'. 3. Close the panel without deciding. 4. Open a different approval (Om Sai Provision Store, Bargain). 5. Read its note box.
+Expected: Each approval opens with an empty note box; a note typed for one request never appears on another.
+Actual: Om Sai's panel opened with 'QA android DOS-020 approve fixture bargain' already in the note box (EditText text identical). Re-opening SO-0910 showed it again, and an earlier ESC-closed attempt had left partial text that a new tap inserted into, garbling the note. In frontend/owner-app/app/approvals.tsx the note state is cleared only after a successful decision (line ~171, setNote('')); the Sheet's onClose (line ~268) clears only `selected`. Code from 5a13a64 (2026-09-06), so it predates batch 1.
+Business impact: An owner who writes 'No, list rate holds this month' on one rep's bargain, closes it and opens another request can approve or reject the second one with the first note attached. The note is shown to the rep who asked ('the person who asked will read it'), so the wrong explanation reaches the wrong person.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/owner-020-06-note-typed.png; QA/evidence/batch1/regression/android/owner-020-06-note-clean.png; QA/evidence/batch1/regression/android/owner-020-08-om-sai-panel-note-carried.png; QA/evidence/batch1/regression/android/owner-020-08-om-sai-panel-note-carried.txt
+Suggested fix: In frontend/owner-app/app/approvals.tsx call setNote('') whenever `selected` changes (in the Sheet onClose and in the row onPress), or key the note by approval id. Apply the same check to the manager app's decision dialog.
+```
+
+Found by: batch 1 regression, Android pass (retailer + warehouse + owner).
+
+### DOS-154 — Retailer Pay screen: ticking bills disables the amount field but it keeps showing the full dues, contradicting the bottom bar and the intent
+Category: ux | Priority: P3 | Role: Retailer | Platform: Android (Pixel_7_API_36 emulator, API 36); same screen on web
+
+```
+User: Retailer
+Platform: Android (Pixel_7_API_36 emulator, API 36); same screen on web
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as ramesh.gupta, Money due → Pay everything. 2. Tick only INV/0433 (₹4,561.00). 3. Read 'How much are you paying' at the top and in the bottom bar. 4. Start the payment.
+Expected: The amount field shows the ticked total (₹4,561.00), or is replaced by 'Paying for 1 bill: ₹4,561.00', so the screen shows one amount.
+Actual: The top field (disabled, but not visibly different) still reads ₹35,843.00 with 'Leave it as it is to pay everything you owe', while the bottom bar reads 'How much are you paying ₹4,561.00'. The intent correctly uses ₹4,561.00 (am=4561.00, PAY-f97f2fe653a0). pay.tsx: value={amount ?? owed} with disabled={chosen.length > 0}; payable uses chosenTotal. From edb56b4 (2026-09-07), predates batch 1.
+Business impact: A shopkeeper sees two different amounts under the same label and may untick, re-tick or abandon the payment. It is a small trust dent on the one screen where money leaves his account.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/retailer-094-07-one-bill-ticked.png; QA/evidence/batch1/regression/android/retailer-094-08-one-bill-started.png
+Suggested fix: In frontend/retailer-app/app/pay.tsx show value={chosen.length > 0 ? chosenTotal : (amount ?? owed)} and swap the helper text to 'Total of the bills you ticked' while bills are chosen; render the disabled state visibly.
+```
+
+Found by: batch 1 regression, Android pass (retailer + warehouse + owner).
+
+### DOS-155 — Owner approve dialog on an order's last approval does not say it will confirm the order and reserve stock, and nothing says so afterwards
+Category: ux | Priority: P3 | Role: Owner | Platform: Android (Pixel_7_API_36 emulator, API 36); same dialog on web
+
+```
+User: Owner
+Platform: Android (Pixel_7_API_36 emulator, API 36); same dialog on web
+Environment: local dev, merged main, dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as sunil.tarsun. Approvals → open SO-0910 (its only pending approval is the bargain). 2. Type a note → Approve. 3. Read the dialog. 4. Approve. 5. Look at the Approvals list; open Orders.
+Expected: On the last pending approval the dialog states the consequence ('Approving this confirms SO-0910 for Rameshwar General Store and holds 24 pc'), and after the decision the owner sees 'SO-0910 confirmed'.
+Actual: The dialog reads only 'Approve SO-0910 · Bargain · ₹44.80 · <note> · Approve / Cancel'. After Approve the row vanishes with no message, while in the same second SO-0910 moved submitted→confirmed (actor sunil.tarsun) and 24 pc were reserved. The consequence is stated only on the order panel's disabled Confirm reason, which the owner does not see from Approvals.
+Business impact: DOS-020's purpose was that a decision never confirms an order silently. On the Approvals screen, where owners actually decide, the confirmation and stock hold still happen without a word, so an owner who meant only to allow a rate learns later that the order is confirmed and stock is held.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/owner-020-09-approve-dialog.png; QA/evidence/batch1/regression/android/owner-020-10-after-approve.png; QA/evidence/batch1/regression/android/owner-020-db-02-after-approve.txt; QA/evidence/batch1/regression/android/owner-020-04-so0910-confirm-disabled.png
+Suggested fix: In frontend/owner-app/app/approvals.tsx (and the manager order sheet), when the approval is the order's last pending one, add a line to the confirm dialog: 'This is the last decision: SO-xxxx will be confirmed and its stock held'. After success, show a toast naming the confirmed order. The decide reply already returns order.state.
+```
+
+Found by: batch 1 regression, Android pass (retailer + warehouse + owner).
+
