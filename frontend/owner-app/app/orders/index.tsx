@@ -140,6 +140,11 @@ export default function Orders(): React.JSX.Element {
 
   const rows = list.data?.items ?? []
   const order = detail.data?.item
+  /*
+   * DOS-020: confirm never decides an approval, so an order still waiting on one is released on Approvals,
+   * where the last approval confirms it — the button says so instead of answering a silent 409.
+   */
+  const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   const columns: readonly RegisterColumn<Order>[] = [
     textColumn('orderNo', t('o5.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
@@ -331,8 +336,12 @@ export default function Orders(): React.JSX.Element {
               <Button
                 label={t('o5.confirm')}
                 variant="primary"
-                disabled={order.state !== 'submitted'}
-                disabledReason={t('o5.state')}
+                disabled={order.state !== 'submitted' || waitingOn.length > 0}
+                disabledReason={
+                  waitingOn.length > 0
+                    ? t('o5.decideFirst', { what: waitingOn.map((a) => word(a.kind)).join(' · ') })
+                    : t('o5.state')
+                }
                 onPress={() => {
                   setConfirming('confirm')
                 }}

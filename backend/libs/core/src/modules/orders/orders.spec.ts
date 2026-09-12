@@ -1,7 +1,8 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { uuidv7 } from '@dos/domain'
 import {
+  approvals,
   bootstrapTenant,
   createDb,
   createPool,
@@ -63,7 +64,13 @@ type Detail = {
   cancelReason: string | null
   lines: Line[]
   transitions: { event: string; toState: string; actorId: string; deviceId: string | null }[]
-  approvals: { id: string; kind: string; status: string }[]
+  approvals: {
+    id: string
+    kind: string
+    status: string
+    decidedBy: string | null
+    decisionNote: string | null
+  }[]
 }
 type Shortage = { lineId: string; requestedPcs: number; reservedPcs: number; shortQtyPcs: number }
 
@@ -76,13 +83,16 @@ describeDb('orders (DATABASE_URL)', () => {
   const ownerId = uuidv7()
   const repId = uuidv7()
   const shopUserId = uuidv7()
+  const managerId = uuidv7()
   const retailerA = uuidv7() // credit mode `indicate`, linked to shopUserId
   const retailerB = uuidv7() // credit mode `strict` with a ₹10 limit
+  const retailerC = uuidv7() // credit mode `stop` with a ₹10 limit (DOS-020)
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
+  const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
   const ownerCtx: TenantContext = { tenantId, actorId: ownerId, actorRole: 'owner' }
   const asOwner = <T>(fn: (tx: Db) => Promise<T>) =>
     tenantStorage.run(ownerCtx, () => withTenant(db, ownerCtx, fn))
@@ -104,11 +114,14 @@ describeDb('orders (DATABASE_URL)', () => {
       { id: ownerId, phone: `+91904${run}1`, name: 'Owner' },
       { id: repId, phone: `+91904${run}2`, name: 'Rep' },
       { id: shopUserId, phone: `+91904${run}3`, name: 'Shopkeeper' },
+      // `+91904${run}4` is the DOS-073 block's second rep; phones are unique platform-wide
+      { id: managerId, phone: `+91904${run}5`, name: 'Manager' },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
       { id: uuidv7(), tenantId, userId: repId, role: 'salesperson' },
       { id: uuidv7(), tenantId, userId: shopUserId, role: 'retailer' },
+      { id: uuidv7(), tenantId, userId: managerId, role: 'manager' },
     ])
     await bootstrapTenant(db, tenantId)
 
@@ -178,6 +191,17 @@ describeDb('orders (DATABASE_URL)', () => {
         stateCode: '27',
         tier: 'C',
         creditMode: 'strict',
+        creditLimitPaise: 1000,
+      },
+      {
+        id: retailerC,
+        tenantId,
+        code: `R3-${run}`,
+        name: `Shop C ${run}`,
+        phone: `+91905${run}3`,
+        stateCode: '27',
+        tier: 'C',
+        creditMode: 'stop',
         creditLimitPaise: 1000,
       },
     ])
@@ -653,8 +677,152 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(lines[0]?.n).toBe(1)
   })
 
-  it('reserves what exists and reports the shortage instead of refusing the order', async () => {
-    // retailer B is `strict` and over its limit, so this one waits at `submitted` for an explicit confirm
+  it("DOS-020: confirm on a credit-stop shop's order refuses while approvals are pending and decides none of them", async () => {
+    // Retailer C is on credit `stop` and over its ₹10 limit, so submit holds the order on a `credit_limit` gate.
+    // A second gate (below floor) is written as a fixture row the way the demo seed writes one: the engine in
+    // this spec cannot price a line below its floor.
+    const id = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos020-create-${run}`,
+      id,
+      retailerId: retailerC,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    expect(drafted.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${id}/submit`, {
+      idempotencyKey: `dos020-submit-${run}`,
+    })
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+    const belowFloor = uuidv7()
+    await db.insert(approvals).values({
+      id: belowFloor,
+      tenantId,
+      kind: 'below_floor',
+      orderId: id,
+      entityType: 'order',
+      entityId: id,
+      requestedBy: repId,
+      status: 'pending',
+      payload: { flag: 'below_floor' },
+    })
+
+    try {
+      const gates = async () =>
+        (await db.select().from(approvals).where(eq(approvals.orderId, id))).sort((a, b) =>
+          a.id.localeCompare(b.id),
+        )
+      const creditLimit = (await gates()).find((a) => a.kind === 'credit_limit')?.id ?? ''
+      expect(creditLimit).not.toBe('')
+
+      const refused = await call<{
+        message: string
+        data?: { code?: string; approvals?: { id: string; kind: string }[] }
+      }>(app, manager, 'POST', `/orders/${id}/confirm`, { idempotencyKey: `dos020-confirm-${run}` })
+      expect(refused.status).toBe(409)
+      expect(refused.body.data?.code).toBe('approval_required')
+      expect(
+        [...(refused.body.data?.approvals ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
+      ).toEqual(
+        [
+          { id: creditLimit, kind: 'credit_limit' },
+          { id: belowFloor, kind: 'below_floor' },
+        ].sort((a, b) => a.id.localeCompare(b.id)),
+      )
+      expect(refused.body.message).toMatch(/credit limit/)
+      expect(refused.body.message).toMatch(/below floor/)
+
+      // nothing was decided, confirmed, held or announced by the refused call
+      const after = await gates()
+      expect(after).toHaveLength(2)
+      for (const gate of after)
+        expect(gate).toMatchObject({
+          status: 'pending',
+          decidedBy: null,
+          decidedAt: null,
+          decisionNote: null,
+        })
+      const orderRow = (await db.execute(sql`select state from sales_orders where id = ${id}`))
+        .rows as { state: string }[]
+      expect(orderRow).toEqual([{ state: 'submitted' }])
+      const held = (
+        await db.execute(
+          sql`select count(*)::int as n from reservations r
+                join sales_order_lines l on l.id = r.order_line_id
+               where l.order_id = ${id}`,
+        )
+      ).rows as { n: number }[]
+      expect(held[0]?.n).toBe(0)
+      const trail = (
+        await db.execute(
+          sql`select event from order_state_transitions where order_id = ${id} order by occurred_at, id`,
+        )
+      ).rows as { event: string }[]
+      expect(trail.map((t) => t.event)).toEqual(['submit'])
+      const events = (
+        await db.execute(
+          sql`select event_type from outbox_events where aggregate_id = ${id} order by id`,
+        )
+      ).rows as { event_type: string }[]
+      expect(events.map((e) => e.event_type)).not.toContain('OrderConfirmed')
+
+      // the explicit path: each gate is decided by name, with a note, and the last approval confirms the order
+      type Decided = { item: { status: string }; order: Detail | null }
+      const first = await call<Decided>(app, manager, 'POST', `/approvals/${creditLimit}/decide`, {
+        idempotencyKey: `dos020-decide-credit-${run}`,
+        decision: 'approve',
+        note: 'owner agreed once',
+      })
+      expect(first.status).toBe(200)
+      expect(first.body.item.status).toBe('approved')
+      expect(first.body.order?.state).toBe('submitted')
+
+      const last = await call<Decided>(app, manager, 'POST', `/approvals/${belowFloor}/decide`, {
+        idempotencyKey: `dos020-decide-floor-${run}`,
+        decision: 'approve',
+        note: 'rate agreed with the brand',
+      })
+      expect(last.status).toBe(200)
+      expect(last.body.order?.state).toBe('confirmed')
+      expect(last.body.order?.transitions.map((t) => t.event)).toEqual(['submit', 'confirm'])
+      expect(
+        (last.body.order?.approvals ?? [])
+          .map(({ kind, status, decidedBy, decisionNote }) => ({
+            kind,
+            status,
+            decidedBy,
+            decisionNote,
+          }))
+          .sort((a, b) => a.kind.localeCompare(b.kind)),
+      ).toEqual([
+        {
+          kind: 'below_floor',
+          status: 'approved',
+          decidedBy: managerId,
+          decisionNote: 'rate agreed with the brand',
+        },
+        {
+          kind: 'credit_limit',
+          status: 'approved',
+          decidedBy: managerId,
+          decisionNote: 'owner agreed once',
+        },
+      ])
+    } finally {
+      // give back anything a confirm held, so the shortage arithmetic of the next test is untouched either way
+      await call(app, owner, 'POST', `/orders/${id}/cancel`, {
+        idempotencyKey: `dos020-cleanup-${run}`,
+        reason: 'test cleanup',
+      })
+    }
+  })
+
+  it('reserves what exists and reports the shortage instead of refusing the order (DOS-020: gate decided before confirm)', async () => {
+    // Retailer B is `strict` and over its limit, so submit holds this one on a `credit_limit` approval. Confirm
+    // never decides an approval (DOS-020) and no product call leaves an order `submitted` with nothing pending,
+    // so the gate is marked decided as a fixture: only a direct confirm reports `shortages`.
     const id = uuidv7()
     const line = uuidv7()
     const draft = await call(app, rep, 'POST', '/orders', {
@@ -669,6 +837,16 @@ describeDb('orders (DATABASE_URL)', () => {
       idempotencyKey: `submit-short-${run}`,
     })
     expect(submitted.body.item.state).toBe('submitted')
+    await db
+      .update(approvals)
+      .set({
+        status: 'approved',
+        decidedBy: ownerId,
+        decidedAt: new Date(),
+        decisionNote: 'decided before confirm',
+        updatedAt: new Date(),
+      })
+      .where(eq(approvals.orderId, id))
 
     expect(
       (await call(app, rep, 'POST', `/orders/${id}/confirm`, { idempotencyKey: `c-rep-${run}` }))
@@ -687,7 +865,14 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(confirmed.body.shortages).toEqual([
       { lineId: line, variantId: variantA, requestedPcs: 90, reservedPcs: 76, shortQtyPcs: 14 },
     ])
-    expect(confirmed.body.item.approvals.every((a) => a.status === 'approved')).toBe(true)
+    // confirm left the gate exactly as it was decided: it decides nothing itself
+    expect(
+      confirmed.body.item.approvals.map(({ status, decidedBy, decisionNote }) => ({
+        status,
+        decidedBy,
+        decisionNote,
+      })),
+    ).toEqual([{ status: 'approved', decidedBy: ownerId, decisionNote: 'decided before confirm' }])
     const balances = (
       await db.execute(
         sql`select reserved from stock_balances where tenant_id = ${tenantId} and location_id = ${godown}`,

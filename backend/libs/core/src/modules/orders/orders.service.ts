@@ -303,7 +303,11 @@ export class OrdersService {
     return { item: await this.detail(tx, next), flags }
   }
 
-  /** Owner and manager confirm (docs/22 2026-09-05): it resolves approvals and reserves stock. */
+  /**
+   * Owner and manager confirm a submitted order that waits on nothing, which reserves its stock. Confirm never
+   * decides an approval (DOS-020): while any is pending it answers 409 `approval_required`, and each gate is
+   * decided through `ApprovalsService.decide`, whose last approval confirms the order.
+   */
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
     requireRole(MANAGEMENT)
     const db = requireDb(this.db)
@@ -317,19 +321,29 @@ export class OrdersService {
   }
 
   /**
-   * Confirm: pending approvals are resolved, then the authoritative stock check runs (the ATP the rep saw was
-   * only a hint). A line the location cannot cover is reserved short and reported — never refused, because the
-   * warehouse decides what to do with a shortage, not the API.
+   * Confirm. It never decides an approval: while any approval on the order is still pending it is refused with
+   * 409 `approval_required` naming each one, because an approval is decided only through
+   * `ApprovalsService.decide` (DOS-020). The gate reads the `approvals` rows, not `approval_flags`, and lives
+   * here rather than in `confirm()` so no caller can bring back a silent decision. Then the authoritative stock
+   * check runs (the ATP the rep saw was only a hint). A line the location cannot cover is reserved short and
+   * reported — never refused, because the warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
-    const ctx = currentTenant()
     if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
     const to = transition(order.state, 'confirm')
-    const now = new Date()
-    await tx
-      .update(approvals)
-      .set({ status: 'approved', decidedBy: ctx.actorId, decidedAt: now, updatedAt: now })
+    const waiting = await tx
+      .select({ id: approvals.id, kind: approvals.kind })
+      .from(approvals)
       .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending')))
+      .orderBy(asc(approvals.id))
+    if (waiting.length > 0) {
+      const kinds = waiting.map((w) => w.kind.replaceAll('_', ' ')).join(', ')
+      throw new ORPCError('CONFLICT', {
+        message: `${order.orderNo ?? order.id} is waiting on ${String(waiting.length)} decision(s) (${kinds}); approve or reject each in the approvals queue — the last approval confirms the order`,
+        data: { code: 'approval_required', approvals: waiting },
+      })
+    }
+    const now = new Date()
     const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
     const lines = await tx
       .select()

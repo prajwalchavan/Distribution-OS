@@ -4984,7 +4984,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
     'Points at a draft order; a dispatched or delivered order cannot be cancelled.',
   'orders.confirm': (ctx) =>
     ctx.submittedOrderId
-      ? 'Points at a submitted order; confirming reserves stock.'
+      ? 'Points at a submitted order. While any of its approvals is pending the call answers 409 approval_required; decide each with POST /approvals/{id}/decide (the last approval confirms the order).'
       : 'No submitted order in the demo data: submit one first, then confirm it.',
   'orders.approvals.decide': (ctx) =>
     ctx.approvalId

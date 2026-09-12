@@ -112,6 +112,12 @@ export default function OrderQueue(): React.JSX.Element {
     { enabled: selected !== null },
   )
   const order = detail.data?.item
+  /*
+   * The gates this order still waits on (DOS-020). Confirm never decides them — the server refuses a confirm
+   * while any is pending — so each one is approved or rejected by name in the panel, and the last approval is
+   * what confirms the order.
+   */
+  const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   /*
    * The credit line of UX-01 M4. It is asked with THIS order's own total, so `headroomPaise` is the
@@ -170,7 +176,8 @@ export default function OrderQueue(): React.JSX.Element {
         ...(input.note === '' ? {} : { note: input.note }),
         idempotencyKey: meta.idempotencyKey,
       }),
-    { invalidates: [['approvals'], ['orders']] },
+    /* The last approval confirms the order and reserves its stock, so it refreshes what a confirm does. */
+    { invalidates: [['approvals'], ['orders'], ['warehouse'], ['billing'], ['reporting']] },
   )
   const decideBargain = useMutation(
     (input: { id: string; decision: 'approve' | 'reject'; note: string }, meta) =>
@@ -229,7 +236,7 @@ export default function OrderQueue(): React.JSX.Element {
     ...(mayDecide && order !== undefined
       ? {
           1: () => {
-            if (order.state === 'submitted') setActing('confirm')
+            if (order.state === 'submitted' && waitingOn.length === 0) setActing('confirm')
           },
           2: () => {
             setActing('cancel')
@@ -465,6 +472,59 @@ export default function OrderQueue(): React.JSX.Element {
                   {creditLine()}
                 </Txt>
               </Field>
+              {/*
+               * DOS-020: each pending gate by name, decided here with a note. The buttons follow the
+               * procedure they call, so the accountant reads the list and decides nothing; a credit gate's
+               * decision dialog carries the credit sentence, because deciding it is what releases the order.
+               */}
+              {waitingOn.length === 0 ? null : (
+                <Field label={t('m2.flags')}>
+                  <Stack gap={2} testID="order-waiting-on">
+                    {waitingOn.map((gate) => {
+                      const what = `${order.orderNo ?? ''} · ${word(gate.kind)}${
+                        gate.kind === 'credit_limit' ? ` · ${creditLine()}` : ''
+                      }`
+                      return (
+                        <Stack key={gate.id} gap={2} border="bottom" borderTone="faint" padY={2}>
+                          <Txt field="body" desk="body">
+                            {word(gate.kind)}
+                          </Txt>
+                          {can('orders.approvals.decide') ? (
+                            <Stack gap={2}>
+                              <Button
+                                label={t('m2.approve')}
+                                variant="primary"
+                                onPress={() => {
+                                  setDeciding({
+                                    id: gate.id,
+                                    kind: 'approval',
+                                    decision: 'approve',
+                                    what,
+                                  })
+                                }}
+                                testID={`order-approve-${gate.kind}`}
+                              />
+                              <Button
+                                label={t('m2.reject')}
+                                variant="destructive"
+                                onPress={() => {
+                                  setDeciding({
+                                    id: gate.id,
+                                    kind: 'approval',
+                                    decision: 'reject',
+                                    what,
+                                  })
+                                }}
+                                testID={`order-reject-${gate.kind}`}
+                              />
+                            </Stack>
+                          ) : null}
+                        </Stack>
+                      )
+                    })}
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('m2.state')}>
                 <StatusChip
                   label={word(order.state)}
@@ -524,8 +584,14 @@ export default function OrderQueue(): React.JSX.Element {
                     label={t('m2.confirm')}
                     variant="primary"
                     shortcut="1"
-                    disabled={order.state !== 'submitted'}
-                    disabledReason={t('m2.onlySubmitted')}
+                    disabled={order.state !== 'submitted' || waitingOn.length > 0}
+                    disabledReason={
+                      order.state !== 'submitted'
+                        ? t('m2.onlySubmitted')
+                        : t('m2.decideFirst', {
+                            what: waitingOn.map((a) => word(a.kind)).join(' · '),
+                          })
+                    }
                     onPress={() => {
                       setActing('confirm')
                     }}
@@ -585,6 +651,11 @@ export default function OrderQueue(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {acting === 'confirm' ? t('m2.confirmBody') : creditLine()}
             </Txt>
+            {acting === 'confirm' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {creditLine()}
+              </Txt>
+            ) : null}
             {acting === 'confirm' ? null : (
               <TextInput
                 label={t('m2.cancelReason')}
