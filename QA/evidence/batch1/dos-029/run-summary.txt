@@ -1,0 +1,8 @@
+02:05:45 services red up on dos_b1_e2e
+02:05:54 app red bundle 200 (2abb27e Merge QA batch 1 lane L4 (orders): DOS-073, DOS-075,)
+02:08:19 e2e red exit=1 (0 all held · 1 assertions failed · 2 precondition missing)
+02:08:22 db dos_b1_e2e recreated from template
+02:08:25 services green up on dos_b1_e2e
+02:08:33 app green bundle 200 (d600ab8 fix(DOS-029): manager app keeps a refused write's di)
+02:08:52 e2e green exit=2 (0 all held · 1 assertions failed · 2 precondition missing)
+02:08:53 DONE
