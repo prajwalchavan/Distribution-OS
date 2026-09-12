@@ -1,12 +1,12 @@
 Stage: 1
-Current phase: 0 — Understand the system & get it running
-Status: in progress (closing) — web 8/8 signed in, iOS headless input proven, Android owner+sales proven, remaining Android apps re-running with the fixed driver; realistic seed being built (workflow wf_aed556b2-d40)
+Current phase: 1 — Real-user walkthrough
+Status: in progress
 Roles walked: none
 Roles remaining: Owner, Manager, Warehouse, Delivery, Sales Rep, Retailer, Admin
-Completed phases: none
+Completed phases: 0
 Open P0: none
 Open P1: none
-Approved & unimplemented: realistic demo seed (founder 2026-09-08: "drop it, create new seed, more realistic one") — in progress in backend/libs/database/src/seed-demo
-Blocked: none (iOS input unblocked 2026-09-08 via Appium/WDA + iOS 18.3.1 platform)
-Next action: finish Android sign-ins (manager, warehouse, delivery, retailer, admin), land + verify the realistic seed, re-seed dos, commit seed separately, then Phase 1 — Owner walkthrough with the six-place money trace
-Last updated: 2026-09-08 06:40 IST
+Approved & unimplemented: none
+Blocked: none. iOS input works (Appium/WDA). Founder wants Fable tokens spent on testing, not fixtures — no more seed work.
+Next action: walk the Owner role (web first, then Pixel 7) on dos_qa; do the six-place money trace on one delivered order. Services must run with DATABASE_URL=…/dos_qa (QA/tools/start-services.sh does this); the old `dos` still holds the previous seed — founder may drop it.
+Last updated: 2026-09-12
