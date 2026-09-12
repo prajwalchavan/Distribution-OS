@@ -1,0 +1,366 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b1-probe-after/backend/libs/core
+
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > prints the two candidate outcomes
+PROBE_EXPECT approved: rate 4554 line_total 122412 | list: rate 5117 line_total 137545
+
+ ✓ src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > prints the two candidate outcomes 1ms
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S1 Approvals tab: bargain gate approved first, then the credit gate (the SO-0897 walk)
+PROBE S1 {"id":"S1","title":"approvals: bargain gate, then credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+ × src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S1 Approvals tab: bargain gate approved first, then the credit gate (the SO-0897 walk) 545ms
+   → sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+   → sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+   → applied_rules carries a bargain rule: expected false to be true // Object.is equality
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S2 Approvals tab: credit gate approved first, the bargain gate last (its decision confirms)
+PROBE S2 {"id":"S2","title":"approvals: credit gate, then bargain gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S3 Rate requests tab approves the request, then the Approvals tab clears the gates
+PROBE S3 {"id":"S3","title":"rate requests approve, then approvals: bargain gate, credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S4 Rate requests tab approves the request, then the manager's direct orders.confirm
+PROBE S4 {"id":"S4","title":"rate requests approve, then manager orders.confirm","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"manager orders.confirm","status":409,"orderStateAfter":null,"code":"approval_required","message":"SO-0004 is waiting on 2 decision(s) (credit limit, bargain); approve or reject each in the approvals queue — the last approval confirms the order"}],"order":{"state":"submitted","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:pending","bargain:bargain_request:pending"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":0}
+
+ × src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S2 Approvals tab: credit gate approved first, the bargain gate last (its decision confirms) 207ms
+   → sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+   → sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+   → applied_rules carries a bargain rule: expected false to be true // Object.is equality
+ × src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S3 Rate requests tab approves the request, then the Approvals tab clears the gates 58ms
+   → sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+   → sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+   → applied_rules carries a bargain rule: expected false to be true // Object.is equality
+ ✓ src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S4 Rate requests tab approves the request, then the manager's direct orders.confirm 43ms
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S5 bargain is the ONLY gate (indicate shop): approving it on the Approvals tab confirms the order
+PROBE S5 {"id":"S5","title":"single bargain gate, approvals: bargain gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["bargain"]},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C1 control: the request is approved BEFORE the rep creates the order, then the credit gate
+PROBE C1 {"id":"C1","title":"rate approved before create, then approvals: credit gate","chargedAt":"APPROVED","rateAtCreate":4554,"flagsAtSubmit":["credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"rep orders.create","status":200,"ratePaise":4554},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":13512,"taxPaise":13116,"totalPaise":122400},"line":{"listRatePaise":5117,"ratePaise":4554,"discountPaise":13512,"taxPaise":13116,"lineTotalPaise":122412,"appliedRules":[{"kind":"bargain","ruleId":"01a09767-8692-720b-9e25-f2eb1b8f1d88","version":1,"amountPaise":13512}],"priceLocked":true},"gates":["credit_limit:sales_order:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C2 control: the request is approved AFTER create but BEFORE submit, then the credit gate
+PROBE C2 {"id":"C2","title":"rate approved between create and submit, then approvals: credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}
+
+ × src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S5 bargain is the ONLY gate (indicate shop): approving it on the Approvals tab confirms the order 45ms
+   → sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+   → sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+   → applied_rules carries a bargain rule: expected false to be true // Object.is equality
+ ✓ src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C1 control: the request is approved BEFORE the rep creates the order, then the credit gate 36ms
+stdout | src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL)
+PROBE_SUMMARY [{"id":"S1","title":"approvals: bargain gate, then credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24},{"id":"S2","title":"approvals: credit gate, then bargain gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24},{"id":"S3","title":"rate requests approve, then approvals: bargain gate, credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"submitted"},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved","bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24},{"id":"S4","title":"rate requests approve, then manager orders.confirm","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain","credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit","bargain"]},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"manager orders.confirm","status":409,"orderStateAfter":null,"code":"approval_required","message":"SO-0004 is waiting on 2 decision(s) (credit limit, bargain); approve or reject each in the approvals queue — the last approval confirms the order"}],"order":{"state":"submitted","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:pending","bargain:bargain_request:pending"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":0},{"id":"S5","title":"single bargain gate, approvals: bargain gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["bargain"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["bargain"]},{"path":"owner orders.approvals.decide(bargain)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["bargain:bargain_request:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24},{"id":"C1","title":"rate approved before create, then approvals: credit gate","chargedAt":"APPROVED","rateAtCreate":4554,"flagsAtSubmit":["credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"rep orders.create","status":200,"ratePaise":4554},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":13512,"taxPaise":13116,"totalPaise":122400},"line":{"listRatePaise":5117,"ratePaise":4554,"discountPaise":13512,"taxPaise":13116,"lineTotalPaise":122412,"appliedRules":[{"kind":"bargain","ruleId":"01a09767-8692-720b-9e25-f2eb1b8f1d88","version":1,"amountPaise":13512}],"priceLocked":true},"gates":["credit_limit:sales_order:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24},{"id":"C2","title":"rate approved between create and submit, then approvals: credit gate","chargedAt":"LIST","rateAtCreate":5117,"flagsAtSubmit":["credit_limit"],"steps":[{"path":"rep pricing.bargains.request","status":200,"bargain":"requested"},{"path":"rep orders.create","status":200,"ratePaise":5117},{"path":"owner pricing.bargains.decide","status":200,"bargainStatusAfter":"approved","approvedRatePaise":4554},{"path":"rep orders.submit","status":200,"state":"submitted","flags":["credit_limit"]},{"path":"owner orders.approvals.decide(credit_limit)","status":200,"orderStateAfter":"confirmed"}],"order":{"state":"confirmed","subtotalPaise":122808,"discountPaise":0,"taxPaise":14737,"totalPaise":137500},"line":{"listRatePaise":5117,"ratePaise":5117,"discountPaise":0,"taxPaise":14737,"lineTotalPaise":137545,"appliedRules":[],"priceLocked":false},"gates":["credit_limit:sales_order:approved"],"bargain":{"status":"approved","askedRatePaise":4554,"approvedRatePaise":4554},"reservedPcs":24}]
+
+ × src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C2 control: the request is approved AFTER create but BEFORE submit, then the credit gate 64ms
+   → sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+   → sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+   → applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S1 Approvals tab: bargain gate approved first, then the credit gate (the SO-0897 walk)
+AssertionError: sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+
+- Expected
++ Received
+
+- 4554
++ 5117
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:401:70
+    399|     expect.soft(snap.bargain.status, 'bargain_requests.status').toBe('…
+    400|     expect.soft(snap.bargain.approvedRatePaise, 'bargain_requests.appr…
+    401|     expect.soft(snap.line.ratePaise, 'sales_order_lines.rate_paise').t…
+       |                                                                      ^
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:430:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S1 Approvals tab: bargain gate approved first, then the credit gate (the SO-0897 walk)
+AssertionError: sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+
+- Expected
++ Received
+
+- 122412
++ 137545
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:404:8
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+    404|       .toBe(APPROVED_LINE_TOTAL)
+       |        ^
+    405|     expect
+    406|       .soft(
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:430:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S1 Approvals tab: bargain gate approved first, then the credit gate (the SO-0897 walk)
+AssertionError: applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:410:8
+    408|         'applied_rules carries a bargain rule',
+    409|       )
+    410|       .toBe(true)
+       |        ^
+    411|     expect.soft(snap.reservedPcs, 'pieces reserved at confirm').toBe(C…
+    412|   }
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:430:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S2 Approvals tab: credit gate approved first, the bargain gate last (its decision confirms)
+AssertionError: sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+
+- Expected
++ Received
+
+- 4554
++ 5117
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:401:70
+    399|     expect.soft(snap.bargain.status, 'bargain_requests.status').toBe('…
+    400|     expect.soft(snap.bargain.approvedRatePaise, 'bargain_requests.appr…
+    401|     expect.soft(snap.line.ratePaise, 'sales_order_lines.rate_paise').t…
+       |                                                                      ^
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:440:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S2 Approvals tab: credit gate approved first, the bargain gate last (its decision confirms)
+AssertionError: sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+
+- Expected
++ Received
+
+- 122412
++ 137545
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:404:8
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+    404|       .toBe(APPROVED_LINE_TOTAL)
+       |        ^
+    405|     expect
+    406|       .soft(
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:440:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S2 Approvals tab: credit gate approved first, the bargain gate last (its decision confirms)
+AssertionError: applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:410:8
+    408|         'applied_rules carries a bargain rule',
+    409|       )
+    410|       .toBe(true)
+       |        ^
+    411|     expect.soft(snap.reservedPcs, 'pieces reserved at confirm').toBe(C…
+    412|   }
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:440:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S3 Rate requests tab approves the request, then the Approvals tab clears the gates
+AssertionError: sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+
+- Expected
++ Received
+
+- 4554
++ 5117
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:401:70
+    399|     expect.soft(snap.bargain.status, 'bargain_requests.status').toBe('…
+    400|     expect.soft(snap.bargain.approvedRatePaise, 'bargain_requests.appr…
+    401|     expect.soft(snap.line.ratePaise, 'sales_order_lines.rate_paise').t…
+       |                                                                      ^
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:451:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S3 Rate requests tab approves the request, then the Approvals tab clears the gates
+AssertionError: sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+
+- Expected
++ Received
+
+- 122412
++ 137545
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:404:8
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+    404|       .toBe(APPROVED_LINE_TOTAL)
+       |        ^
+    405|     expect
+    406|       .soft(
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:451:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S3 Rate requests tab approves the request, then the Approvals tab clears the gates
+AssertionError: applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:410:8
+    408|         'applied_rules carries a bargain rule',
+    409|       )
+    410|       .toBe(true)
+       |        ^
+    411|     expect.soft(snap.reservedPcs, 'pieces reserved at confirm').toBe(C…
+    412|   }
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:451:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S5 bargain is the ONLY gate (indicate shop): approving it on the Approvals tab confirms the order
+AssertionError: sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+
+- Expected
++ Received
+
+- 4554
++ 5117
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:401:70
+    399|     expect.soft(snap.bargain.status, 'bargain_requests.status').toBe('…
+    400|     expect.soft(snap.bargain.approvedRatePaise, 'bargain_requests.appr…
+    401|     expect.soft(snap.line.ratePaise, 'sales_order_lines.rate_paise').t…
+       |                                                                      ^
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:478:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S5 bargain is the ONLY gate (indicate shop): approving it on the Approvals tab confirms the order
+AssertionError: sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+
+- Expected
++ Received
+
+- 122412
++ 137545
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:404:8
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+    404|       .toBe(APPROVED_LINE_TOTAL)
+       |        ^
+    405|     expect
+    406|       .soft(
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:478:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > S5 bargain is the ONLY gate (indicate shop): approving it on the Approvals tab confirms the order
+AssertionError: applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:410:8
+    408|         'applied_rules carries a bargain rule',
+    409|       )
+    410|       .toBe(true)
+       |        ^
+    411|     expect.soft(snap.reservedPcs, 'pieces reserved at confirm').toBe(C…
+    412|   }
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:478:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C2 control: the request is approved AFTER create but BEFORE submit, then the credit gate
+AssertionError: sales_order_lines.rate_paise: expected 5117 to be 4554 // Object.is equality
+
+- Expected
++ Received
+
+- 4554
++ 5117
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:401:70
+    399|     expect.soft(snap.bargain.status, 'bargain_requests.status').toBe('…
+    400|     expect.soft(snap.bargain.approvedRatePaise, 'bargain_requests.appr…
+    401|     expect.soft(snap.line.ratePaise, 'sales_order_lines.rate_paise').t…
+       |                                                                      ^
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:503:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C2 control: the request is approved AFTER create but BEFORE submit, then the credit gate
+AssertionError: sales_order_lines.line_total_paise: expected 137545 to be 122412 // Object.is equality
+
+- Expected
++ Received
+
+- 122412
++ 137545
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:404:8
+    402|     expect
+    403|       .soft(snap.line.lineTotalPaise, 'sales_order_lines.line_total_pa…
+    404|       .toBe(APPROVED_LINE_TOTAL)
+       |        ^
+    405|     expect
+    406|       .soft(
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:503:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/15]⎯
+
+ FAIL  src/modules/orders/bargain-rate-probe.spec.ts > bargain rate probe (DATABASE_URL) > C2 control: the request is approved AFTER create but BEFORE submit, then the credit gate
+AssertionError: applied_rules carries a bargain rule: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ expectApprovedRateCharged src/modules/orders/bargain-rate-probe.spec.ts:410:8
+    408|         'applied_rules carries a bargain rule',
+    409|       )
+    410|       .toBe(true)
+       |        ^
+    411|     expect.soft(snap.reservedPcs, 'pieces reserved at confirm').toBe(C…
+    412|   }
+ ❯ src/modules/orders/bargain-rate-probe.spec.ts:503:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 3 passed (8)
+   Start at  02:25:35
+   Duration  3.59s (transform 1.34s, setup 601ms, import 1.61s, tests 1.31s, environment 0ms)
+
+undefined
+/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b1-probe-after/backend/libs/core:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run '--reporter=verbose' src/modules/orders/bargain-rate-probe.spec.ts
+vitest exit=1
