@@ -125,11 +125,14 @@ as any founder decision and this page is republished from it.</p>
     C --&gt; W1[Fulfilment queue by beat / trip]
     W1 --&gt; W2[Picklist consolidated by SKU, FEFO lots] --&gt; W3[Pick actual lots → picking]
     W3 --&gt; W4[Pack per order → packed&lt;br/&gt;short-packs are pack rows, never order edits]
-    W4 --&gt; W5[GST invoice issued at pack&lt;br/&gt;tenant series, own name and logo, UPI QR]
-    W5 --&gt; W6[Load sheet + delivery challan&lt;br/&gt;crew count confirmed by PIN → dispatched&lt;br/&gt;stock: warehouse → vehicle]
+    W4 --&gt; W5[GST invoice issued at pack&lt;br/&gt;tenant series, own name and logo, UPI QR&lt;br/&gt;packed goods leave the godown here, once]
+    W5 --&gt; W6[Load sheet approved by the manager + delivery challan&lt;br/&gt;crew count confirmed by PIN&lt;br/&gt;only free van stock moves: warehouse → vehicle]
+  end
+  subgraph T [Departure · owner, manager or delivery crew]
+    W6 --&gt; T1[Trip departs → orders dispatched&lt;br/&gt;never while the load sheet is a draft;&lt;br/&gt;the warehouse role cannot depart a trip]
   end
   subgraph D [Delivery app · crew]
-    W6 --&gt; D1[Trip: next stop, maps hand-off]
+    T1 --&gt; D1[Trip: next stop, maps hand-off]
     D1 --&gt; D2{At the door}
     D2 -- all --&gt; D3[Delivered + proof of delivery]
     D2 -- part --&gt; D4[Partial: per-line qty, reason → credit note]
@@ -171,7 +174,7 @@ as any founder decision and this page is republished from it.</p>
     DESK[Owner / manager / accountant&lt;br/&gt;payment received at the office]
     SP[Salesperson]:::no
   end
-  DL &amp; RT &amp; DESK --&gt; RC[Receipt: append-only, client receipt no,&lt;br/&gt;allocated bill-to-bill oldest first unless tagged]
+  DL &amp; RT &amp; DESK --&gt; RC[Receipt: append-only, client receipt no,&lt;br/&gt;receipt number never repeats per series and FY,&lt;br/&gt;allocated bill-to-bill oldest first unless tagged]
   RC --&gt; J[(Double-entry journal&lt;br/&gt;must balance at commit, enforced in the database)]
   RC --&gt; OUT[Retailer outstanding + ageing buckets&lt;br/&gt;0-7 · 8-15 · 16-30 · 31-60 · 61-90 · 90+]
   CHQ[Cheque] --&gt; DEP[Deposited] --&gt; BNC{Bounced?}
@@ -195,6 +198,7 @@ as any founder decision and this page is republished from it.</p>
   DB--&gt;&gt;Svc: rows the policy allows for that tenant and role
   App-&gt;&gt;Auth: POST /auth/refresh (reuse of an old refresh token revokes the session)
   App-&gt;&gt;Auth: POST /auth/switch-tenant (retailer or staff with several distributors)</pre></div>
+<p><strong>Platform console levels (founder, 2026-09-12).</strong> The console's token role is always <code>platform_admin</code>; its level narrows what it may do, and the server enforces it on every console action: <strong>super</strong> does everything (onboard, suspend and reactivate, plans, lock and unlock logins, support access); <strong>support</strong> reads everything and may only ask for and hand back support access to a distributor; <strong>billing</strong> reads everything and may only change a distributor's plan.</p>
 <p>OTP (SMS / WhatsApp) is a <strong>later enhancement layered on top</strong> of username + password, not a replacement. Distribution OS branding appears only on the sign-in screen; inside every app and on every printed document the distributor sees their <strong>own</strong> name and logo.</p>
 <h2 id="8-founder-decisions-register-dated-newest-last">8. Founder decisions register (dated; newest last)</h2>
 <div class="tablewrap"><table>
@@ -242,12 +246,18 @@ as any founder decision and this page is republished from it.</p>
 <tr><td>2026-09-07</td><td><strong>Every finished app is pushed, not just committed.</strong> The moment an app's gate is green and the build log is updated, the snapshot is committed AND <code>git push origin main</code> runs; the same for the backend, which is already fully pushed. The founder wants the remote to always hold every completed piece, so a dead laptop costs nothing.</td><td>frontend chain: commit + push per app slice; CLAUDE.md session protocol</td></tr>
 <tr><td>2026-09-07</td><td><strong>FRONTEND COMPLETE: all seven apps built and gated green</strong> — owner, manager (accountant on it), sales, warehouse, delivery, retailer and admin, each one Expo codebase serving website + Android + iOS, each verified by an independent gate that walked every screen at desk and phone widths against the live services and the pilot database.</td><td><code>frontend/&lt;role&gt;-app</code>; docs/18 status table; <code>docs/28-running-it-locally.md</code></td></tr>
 <tr><td>2026-09-07</td><td><strong>Fable runs the end-to-end test.</strong> The chain's own F10 end-to-end gate was stopped after the seventh app went green; the founder will drive E2E from a Fable session instead, as the architect role already defines. Nobody re-launches that gate unasked.</td><td><code>scratchpad/dos-frontend.js</code> F10 stopped; E2E opens the next session</td></tr>
+<tr><td>2026-09-12</td><td><strong>QA batch 1 approved.</strong> The 4 P0 and the 30 P1 findings on the order-to-cash chain (QA/findings/09-phase-1-approval-gate.md) are fixed before the cross-role end-to-end phase; the other P1, P2 and P3 wait for the QA backlog. Every subagent runs on Opus; Fable reviews only contract, permission and schema changes, and says when to switch.</td></tr>
+<tr><td>2026-09-12</td><td><strong>Console levels are enforced (QA DOS-106).</strong> super: everything. support: read everything, ask for and hand back support access, nothing else. billing: read everything, change a distributor's plan, nothing else. Only super onboards, suspends, reactivates, locks or unlocks.</td></tr>
+<tr><td>2026-09-12</td><td><strong>Only the owner, the manager and the delivery crew send a trip out (QA DOS-043).</strong> The warehouse role keeps creating trips, adding stops and starting loading, but can no longer depart a trip, and no trip departs while its load sheet is still a draft.</td></tr>
+<tr><td>2026-09-12</td><td><strong>"Send statement" sends a short text now (QA DOS-007).</strong> A WhatsApp/SMS summary with the balance, the overdue amount and a UPI pay link; the PDF statement comes later.</td></tr>
+<tr><td>2026-09-12</td><td><strong>An offline doorstep delivery carries its proof photo inside the queued operation (QA DOS-056).</strong> The photo uploads with the delivery when the network returns; the separate photo staging queue of docs/27 §15 is not built, and docs/27 §15 is updated with the fix.</td></tr>
+<tr><td>2026-09-12</td><td><strong>Receipt numbers never repeat (QA DOS-032, DOS-059).</strong> Unique per distributor, series and financial year, enforced by the database; a collision is refused (409 online, a sync rejection offline). The QA database <code>dos_qa</code> is rebuilt from the fixed seed once this lands; the founder's own <code>dos</code> database is the founder's call.</td></tr>
 </tbody></table></div>
 <h2 id="9-non-negotiables-never-list">9. Non-negotiables (never list)</h2>
 <ol><li>Purchase cost, landed cost and margin are never readable by salesperson, warehouse, delivery or retailer roles — database policy plus tests.</li><li>The salesperson never records a receipt.</li><li>Stock ledger and journal lines are append-only; balances are derived; every mutation carries an idempotency key and a client UUIDv7 id.</li><li>An issued invoice is never edited; corrections are credit or debit notes; a cancelled invoice keeps its number.</li><li>A brand-DMS sale (FieldAssist) is never re-invoiced; it is imported and linked to the brand's invoice number.</li><li>Document intake never commits on its own; a human reviews before GRN.</li><li>State columns change only through the state machines.</li><li>Offline upload never answers 4xx; rejections are recorded and shown, never lost.</li><li>A tenant never sees another tenant's rows; a retailer sees only the rows linked to their own shop.</li><li>Distribution OS branding never appears inside a distributor's documents.</li></ol>
 <h2 id="10-open-questions-for-the-founder">10. Open questions for the founder</h2>
 <p>Deferred requirements and enhancements are kept in <code>docs/25-phase-2-enhancements.md</code> (mirrored on the Confluence page "Phase 2 &amp; Future Enhancements"); the Confluence space mirrors this file page by page from <code>docs/confluence/*.md</code> (see its README).</p>
-<ul><li>A screen never imports <code>react-native</code> or <code>react-dom</code> directly; only <code>@dos/ui</code> (and expo-router, <code>@dos/api-client</code>, <code>@dos/offline</code>, <code>@dos/domain</code>, <code>@dos/contracts</code>). This is what keeps one screen working on web, Android and iOS.</li><li>Invoice series at cut-over from TradeEzee (continue the old numbers or start fresh)? Configurable either way; answer needed before go-live.</li><li>Sample exports from TradeEzee (party master, item master, outstanding) whenever convenient — the importer does not wait for them.</li><li>Which shops in the pilot are under the GST composition scheme, if any.</li><li>After development (founder, 2026-09-05): install everything needed to run all apps end to end on the Mac and hand over a clear,</li></ul>
+<ul><li>A screen never imports <code>react-native</code> or <code>react-dom</code> directly; only <code>@dos/ui</code> (and expo-router, <code>@dos/api-client</code>, <code>@dos/offline</code>, <code>@dos/domain</code>, <code>@dos/contracts</code>). This is what keeps one screen working on web, Android and iOS.</li><li>Invoice series at cut-over from TradeEzee (continue the old numbers or start fresh)? Configurable either way; answer needed before go-live.</li><li>Sample exports from TradeEzee (party master, item master, outstanding) whenever convenient — the importer does not wait for them.</li><li>Which shops in the pilot are under the GST composition scheme, if any.</li><li>(QA DOS-075) Should a "bills over ₹X" scheme threshold count the lines already under an exclusive scheme, while still not rewarding them? Today it does not.</li><li>(QA DOS-057, DOS-099) Papers sent to shops are shared as files from the phone. A long-lived single-document link would need a public endpoint and a security decision: wanted?</li><li>(QA DOS-023) Lists sort by record id today; should every list sort by server time instead, as one convention?</li><li>(QA DOS-043) May a trip depart before its planned date, or only on it?</li><li>After development (founder, 2026-09-05): install everything needed to run all apps end to end on the Mac and hand over a clear,</li></ul>
 <p>written view of how the pieces run together (what starts, in which order, which port, which sign-in). Tracked in docs/18.</p>
 <h2 id="11-change-log">11. Change log</h2>
 <div class="tablewrap"><table>
@@ -274,5 +284,6 @@ as any founder decision and this page is republished from it.</p>
 <tr><td>2026-09-06</td><td>§8: autonomy grant recorded</td><td>Founder: "if anything in background is stopped … restart it on your own … install anything … blocker you can fix it"</td></tr>
 <tr><td>2026-09-07</td><td>§8: every completed app is pushed to <code>origin/main</code> as soon as its gate is green, not only committed</td><td>Founder: "make sure to push code of all done BE and FE to git / After Each App is done push it"</td></tr>
 <tr><td>2026-09-07</td><td>§8: frontend complete (seven apps gated green); the E2E pass is Fable's, so the chain's F10 gate was stopped rather than run</td><td>Founder: "if whole development is done I want Fable to do the E2E test / Now just do the basics and close it"</td></tr>
+<tr><td>2026-09-12</td><td>§4, §6, §7, §8, §10: QA batch 1 decisions (console levels; who departs a trip; statement as text; offline photo inside the queued delivery; receipt numbers unique per series and FY). §4 corrected to the built design: packed goods leave the godown at pack and load-out moves only free van stock (QA DOS-039, a correction, not a new decision). Four open questions from the fix plans</td></tr>
 </tbody></table></div>
 </main>
