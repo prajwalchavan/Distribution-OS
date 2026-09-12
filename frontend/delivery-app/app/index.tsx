@@ -10,7 +10,8 @@
  *
  * "Today's" is deliberately the OPEN trip, not a date match: a van that leaves at six in the morning
  * is checked in after the IST business date has turned, and a driver whose trip is still out must
- * never be told there is no trip today. The trip's own date is printed instead of assumed.
+ * never be told there is no trip today. The trip's own date is printed instead of assumed. Among open
+ * trips in the same state the one dated today wins, then the earliest (DOS-061).
  */
 import { useSession } from '@dos/api-client/react'
 import { useSyncStatus, useTable } from '@dos/offline/react'
@@ -38,8 +39,11 @@ import {
   addressLine,
   bool,
   isStopTerminal,
+  loadPanelTitleKey,
+  loadSheetPackagesKey,
   nextOpenStop,
   pickCurrentTrip,
+  tripEntryHref,
   useHydrated,
   useLocalRetailers,
   useLocalStops,
@@ -305,7 +309,11 @@ export default function TodaysTrip(): React.JSX.Element {
         </Panel>
 
         <Panel
-          title={t('d1.load')}
+          /*
+           * "Load on board" only once the godown has confirmed a sheet (DOS-061): a draft sheet is
+           * built but nothing has moved, and the heading used to claim otherwise over it.
+           */
+          title={t(loadPanelTitleKey(sheets.rows.map((sheet) => sheet.status)))}
           /*
            * The meta says the CONFIRMATION, and only when there is a sheet to confirm. It used to
            * fall back to "The godown has not confirmed a load sheet for this trip" — the same
@@ -332,24 +340,28 @@ export default function TodaysTrip(): React.JSX.Element {
             waitingMessage={t('d.filling')}
           >
             <Group>
-              {sheets.rows.map((sheet) => (
-                <ListRow
-                  key={sheet.id}
-                  testID={`d1-sheet-${sheet.id}`}
-                  primary={sheet.challan_no ?? longDate(sheet.sheet_date)}
-                  secondary={
-                    sheet.expected_packages === null
-                      ? undefined
-                      : pl(t, 'd1.packages', sheet.expected_packages)
-                  }
-                  trailing={
-                    <StatusChip
-                      label={wordFor(t, sheet.status)}
-                      family={sheet.confirmed_at === null ? 'ochre' : 'moss'}
-                    />
-                  }
-                />
-              ))}
+              {sheets.rows.map((sheet) => {
+                /* Only a confirmed sheet is cartons on board; a cancelled one has no carton line. */
+                const packagesKey = loadSheetPackagesKey(sheet.status)
+                return (
+                  <ListRow
+                    key={sheet.id}
+                    testID={`d1-sheet-${sheet.id}`}
+                    primary={sheet.challan_no ?? longDate(sheet.sheet_date)}
+                    secondary={
+                      sheet.expected_packages === null || packagesKey === null
+                        ? undefined
+                        : pl(t, packagesKey, sheet.expected_packages)
+                    }
+                    trailing={
+                      <StatusChip
+                        label={wordFor(t, sheet.status)}
+                        family={sheet.confirmed_at === null ? 'ochre' : 'moss'}
+                      />
+                    }
+                  />
+                )
+              })}
             </Group>
           </LocalAsync>
         </Panel>
@@ -435,8 +447,12 @@ export default function TodaysTrip(): React.JSX.Element {
                   primary={one.trip_no ?? t('d.trip')}
                   secondary={t('d1.plannedFor', { date: longDate(one.trip_date) })}
                   trailing={<StatusChip label={wordFor(t, one.state)} family="neutral" />}
+                  /*
+                   * A trip that has left opens its stops, never the Start screen, which can only
+                   * refuse it (DOS-061); a trip still before the road goes to Start as before.
+                   */
                   onPress={() => {
-                    router.push(`/trip/start?tripId=${one.id}`)
+                    router.push(tripEntryHref(one))
                   }}
                 />
               ))}
