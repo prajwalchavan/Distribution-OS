@@ -445,6 +445,12 @@ export const strings = {
   'm8.detail': 'Credit note {no}',
   'm8.lines': 'Lines',
   'm8.onlyDraft': 'Only a draft note can be issued or cancelled',
+  'm8.piecesToCredit': 'Pieces to credit',
+  'm8.leftToCredit': '{left} pc left to credit',
+  'm8.nothingLeft': 'Already credited in full',
+  'm8.overLeft': 'Only {left} pc left to credit on this line',
+  'm8.wholePieces': 'Type whole pieces, like 5 or 40',
+  'm8.fixPieces': 'Fix the pieces marked in red first',
 
   // --- M11 Brand-DMS bills -------------------------------------------------------------------------
   'm11.tab': 'Brand DMS',

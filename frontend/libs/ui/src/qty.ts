@@ -95,6 +95,26 @@ export function qtyState(input: {
   return 'default'
 }
 
+export type PiecesParseResult =
+  | { readonly ok: true; readonly pieces: number }
+  | { readonly ok: false; readonly reason: 'empty' | 'unparseable' }
+
+/**
+ * Parses a piece count the way a person types it: `5`, ` 40 `, `1,200`. Whole pieces only. `1.5`, `-3`,
+ * `5abc` and `1e3` are `unparseable`, never truncated the way `Number.parseInt` would read them. It never
+ * throws either: the caller decides what to show. The pieces twin of `parseRupees`, for a field that
+ * counts what is not a whole case (a credit note's 5 of a line's 40 pc).
+ */
+export function parsePieces(text: string): PiecesParseResult {
+  const trimmed = text.trim()
+  if (trimmed === '') return { ok: false, reason: 'empty' }
+  const normalised = trimmed.replace(/[,\s]/g, '')
+  if (!/^\d+$/.test(normalised)) return { ok: false, reason: 'unparseable' }
+  const pieces = Number(normalised)
+  if (!Number.isSafeInteger(pieces)) return { ok: false, reason: 'unparseable' }
+  return { ok: true, pieces }
+}
+
 /** `40 cs available`, from `sellable_stock` pieces. Whole cases only — a shop orders in cases. */
 export function availableLine(
   availablePieces: number,

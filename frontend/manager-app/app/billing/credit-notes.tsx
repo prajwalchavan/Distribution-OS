@@ -10,18 +10,22 @@
  * its quantities are the ones the shop was charged, and the person here says how many of each are
  * coming back and whether they are saleable. Nothing is retyped and nothing is derived.
  *
+ * How many pieces are LEFT to credit on a line is the server's own rule (`piecesLeftToCredit` in
+ * @dos/domain): billed plus free, less every note on the bill that is not cancelled. The field says
+ * that figure and refuses more before anything is sent; if the server still refuses, its sentence sits
+ * right above the Draft button.
+ *
  * The accountant may draft, issue and cancel here — this is the money desk (`creditNotes.*` is
  * BACK_OFFICE + delivery in the matrix, unlike `invoices.cancel`).
  */
 import type { CreditNoteListItem, CreditNoteReason } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { uuidv7 } from '@dos/domain'
+import { creditedPiecesByLine, piecesLeftToCredit, uuidv7 } from '@dos/domain'
 import {
   Button,
   Dialog,
   ListRow,
   Money,
-  QtyStepper,
   Register,
   Screen,
   Search,
@@ -31,6 +35,9 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  billLineQty,
+  formatCount,
+  parsePieces,
   useColors,
   useStrings,
   type RegisterColumn,
@@ -91,8 +98,12 @@ export default function CreditNotes(): React.JSX.Element {
   const [billQuery, setBillQuery] = useState('')
   const [billId, setBillId] = useState<string | null>(null)
   const [kind, setKind] = useState<CreditNoteReason>('return_saleable')
-  /** Pieces coming back, per invoice line. Absent = not returned, so the line is not sent. */
-  const [returning, setReturning] = useState<Readonly<Record<string, number>>>({})
+  /**
+   * Pieces coming back per invoice line, AS TYPED. Empty or absent = not returned, so the line is not
+   * sent. Kept as text so a wrong entry stays on screen with its error, never silently clamped or
+   * truncated (UX-00 §6.3).
+   */
+  const [returning, setReturning] = useState<Readonly<Record<string, string>>>({})
 
   const span = rangeOf(range)
   const list = useQuery(['creditNotes', span.from, span.to], () =>
@@ -114,6 +125,23 @@ export default function CreditNotes(): React.JSX.Element {
     ['invoices', 'get', billId ?? 'none'],
     () => api.api.billing.invoices.get({ id: billId ?? '' }),
     { enabled: billId !== null },
+  )
+  /*
+   * The notes already on the picked bill, so each line can say how many pieces are left to credit. The
+   * bill lists its notes by id and state only; a draft counts and a cancelled note does not, so only the
+   * live ones are read, and a bill with no notes makes no call. The query keeps the notes as JSON, never
+   * a Map: the cache repaints from stored values.
+   */
+  const priorIds = (bill.data?.item.creditNotes ?? [])
+    .filter((ref) => ref.state !== 'cancelled')
+    .map((ref) => ref.id)
+  const prior = useQuery(
+    ['creditNotes', 'onBill', billId ?? 'none', ...priorIds],
+    () =>
+      Promise.all(
+        priorIds.map((id) => api.api.billing.creditNotes.get({ id }).then((r) => r.item)),
+      ),
+    { enabled: billId !== null && bill.data !== undefined },
   )
 
   const create = useMutation(
@@ -177,13 +205,42 @@ export default function CreditNotes(): React.JSX.Element {
     },
   ]
 
-  const draftLines = (bill.data?.item.lines ?? [])
-    .filter((line) => (returning[line.id] ?? 0) > 0)
-    .map((line) => ({
-      invoiceLineId: line.id,
-      qtyPcs: returning[line.id] ?? 0,
-      ratePaise: line.ratePaise,
+  const credited = creditedPiecesByLine(prior.data ?? [])
+  /** Every bill line with what is left to credit on it, what was typed against it and what is wrong. */
+  const entries = (bill.data?.item.lines ?? []).map((line) => {
+    // Clamped for display only; the server refuses anything above its own figure either way.
+    const left = Math.max(0, piecesLeftToCredit(line, credited.get(line.id) ?? 0))
+    const text = returning[line.id] ?? ''
+    const parsed = parsePieces(text)
+    const pieces = parsed.ok ? parsed.pieces : 0
+    const error = parsed.ok
+      ? pieces > left
+        ? t('m8.overLeft', { left: formatCount(left) })
+        : undefined
+      : parsed.reason === 'unparseable'
+        ? t('m8.wholePieces')
+        : undefined
+    return { line, left, text, pieces, error }
+  })
+  const draftLines = entries
+    .filter((entry) => entry.error === undefined && entry.pieces > 0)
+    .map((entry) => ({
+      invoiceLineId: entry.line.id,
+      qtyPcs: entry.pieces,
+      ratePaise: entry.line.ratePaise,
     }))
+  /** A typed entry that is not a whole count, or is above what is left: nothing is sent until it is fixed. */
+  const invalid = entries.some((entry) => entry.error !== undefined)
+  /*
+   * The cache starts a new key as `idle`, so between the bill arriving and the read of its notes starting,
+   * `prior.isLoading` is false with no data. Reading that as "nothing credited" would show the full figure
+   * for a frame, so the lines wait until the notes are in.
+   */
+  const priorPending =
+    billId !== null &&
+    bill.data !== undefined &&
+    prior.data === undefined &&
+    prior.error === undefined
 
   const commit = (): void => {
     if (selected === null || acting === null) return
@@ -313,6 +370,8 @@ export default function CreditNotes(): React.JSX.Element {
           setDrafting(false)
           setBillId(null)
           setReturning({})
+          // One bill's refusal must never show against the next one.
+          create.reset()
         }}
         title={t('m8.draft')}
         testID="draft-note-panel"
@@ -343,6 +402,7 @@ export default function CreditNotes(): React.JSX.Element {
                 onPress={() => {
                   setBillId(row.id)
                   setReturning({})
+                  create.reset()
                 }}
               />
             ))}
@@ -371,32 +431,62 @@ export default function CreditNotes(): React.JSX.Element {
               {t('app.selectRow')}
             </Txt>
           ) : (
-            <Async state={[bill]} rows={4}>
+            <Async
+              state={[
+                bill,
+                {
+                  isLoading: prior.isLoading || priorPending,
+                  error: prior.error,
+                  refetch: prior.refetch,
+                },
+              ]}
+              rows={4}
+            >
               <Stack gap={4}>
-                {(bill.data?.item.lines ?? []).map((line) => (
+                {entries.map(({ line, left, text, error }) => (
                   <Stack key={line.id} gap={2} border="bottom" borderTone="faint" padY={3}>
                     <Txt field="body" desk="body" numberOfLines={1}>
                       {line.description}
                     </Txt>
+                    {/* Billed pieces AND free goods: both can come back, so both are shown. */}
                     <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
-                      {`${String(line.qtyPcs)} ${word('pcs')}`}
+                      {billLineQty(line, t)}
                     </Txt>
-                    <QtyStepper
-                      testID={`return-${line.id}`}
-                      pieces={returning[line.id] ?? 0}
-                      caseSize={line.caseSize ?? 1}
-                      availablePieces={line.qtyPcs}
-                      onChange={(pieces) => {
-                        setReturning((current) => ({ ...current, [line.id]: pieces }))
+                    {/*
+                     * Typed pieces, not the order-entry stepper: a return is rarely a whole case (5 of a
+                     * line's 40 pc at a case of 120), and the stepper's "Not ordered" and "cs available"
+                     * words describe stock, not a bill.
+                     */}
+                    <TextInput
+                      label={t('m8.piecesToCredit')}
+                      keyboard="decimal"
+                      maxLength={7}
+                      value={text}
+                      onChange={(value) => {
+                        setReturning((current) => ({ ...current, [line.id]: value }))
                       }}
+                      state={left === 0 ? 'disabled' : undefined}
+                      helper={
+                        left > 0
+                          ? t('m8.leftToCredit', { left: formatCount(left) })
+                          : t('m8.nothingLeft')
+                      }
+                      error={error}
+                      testID={`return-${line.id}`}
                     />
                   </Stack>
                 ))}
+                {/* The server's refusal sits directly above the button it answers, never below the fold. */}
+                {create.error === undefined ? null : (
+                  <Txt field="label" desk="meta" color={colors.status.brick.fg}>
+                    {create.error.message}
+                  </Txt>
+                )}
                 <Button
                   label={t('m8.draft')}
                   variant="primary"
-                  disabled={draftLines.length === 0}
-                  disabledReason={t('app.nothingChanged')}
+                  disabled={draftLines.length === 0 || invalid}
+                  disabledReason={invalid ? t('m8.fixPieces') : t('app.nothingChanged')}
                   loading={create.status === 'pending'}
                   onPress={() => {
                     void create
@@ -408,17 +498,12 @@ export default function CreditNotes(): React.JSX.Element {
                           setReturning({})
                         },
                         () => {
-                          /* the error is shown by the mutation's own state */
+                          /* the error is shown by the mutation's own state, above this button */
                         },
                       )
                   }}
                   testID="note-create"
                 />
-                {create.error === undefined ? null : (
-                  <Txt field="label" desk="meta" color={colors.status.brick.fg}>
-                    {create.error.message}
-                  </Txt>
-                )}
               </Stack>
             </Async>
           )}
