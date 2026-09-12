@@ -409,22 +409,26 @@ class Fixtures {
   /**
    * `retailerId` non-null means the caller is a shopkeeper: it sees only its own shop, and only the
    * orders its own app placed, so the fixture is narrowed the same way the service narrows it.
+   * `salespersonId` non-null means the caller is a rep: it reaches only the orders credited to it
+   * (DOS-073), so the fixture is narrowed to those.
    */
-  orderInState = (state: string, retailerId?: string | null) =>
+  orderInState = (state: string, retailerId?: string | null, salespersonId?: string | null) =>
     this.liveScalar(
       `select id from sales_orders
         where tenant_id = $1 and state::text = $2
           and ($3::text is null or (retailer_id = $3::text and source::text = 'retailer_app'))
+          and ($4::text is null or salesperson_id = $4::text)
         order by created_at desc limit 1`,
-      [this.tenantId, state, retailerId ?? null],
+      [this.tenantId, state, retailerId ?? null, salespersonId ?? null],
     )
-  anyOrderId = (retailerId?: string | null) =>
+  anyOrderId = (retailerId?: string | null, salespersonId?: string | null) =>
     this.liveScalar(
       `select id from sales_orders
         where tenant_id = $1
           and ($2::text is null or (retailer_id = $2::text and source::text = 'retailer_app'))
+          and ($3::text is null or salesperson_id = $3::text)
         order by created_at desc limit 1`,
-      [this.tenantId, retailerId ?? null],
+      [this.tenantId, retailerId ?? null, salespersonId ?? null],
     )
   /** Statuses are 'counting' | 'reconciled' | 'posted' | 'cancelled' — nothing is ever 'open'/'counted'. */
   grnInStatus = (statuses: string[]) =>
@@ -833,6 +837,11 @@ interface GenContext {
    * uses it, so a 404 from this harness means a real fault, not "you asked for someone else's row".
    */
   scopeRetailerId: string | null
+  /**
+   * The rep's own user id for a salesperson sign-in, null otherwise. The orders service keeps a rep to
+   * the orders credited to it (DOS-073), so an order fixture for a rep is narrowed the same way.
+   */
+  scopeSalespersonId: string | null
   /** The resolved request path, folded into generated ids so two orders never share a line id. */
   urlSeed: string
   /** Values the operation's override already decided, keyed by property name. */
@@ -1331,11 +1340,19 @@ async function planFor(
     case 'orders.setLines':
       // Lines are only editable while the order is a draft, so walk the one this run just created.
       return {
-        pathParams: { id: chain.orderId ?? (await fx.orderInState('draft', ctx.scopeRetailerId)) },
+        pathParams: {
+          id:
+            chain.orderId ??
+            (await fx.orderInState('draft', ctx.scopeRetailerId, ctx.scopeSalespersonId)),
+        },
       }
     case 'orders.submit':
       return {
-        pathParams: { id: chain.orderId ?? (await fx.orderInState('draft', ctx.scopeRetailerId)) },
+        pathParams: {
+          id:
+            chain.orderId ??
+            (await fx.orderInState('draft', ctx.scopeRetailerId, ctx.scopeSalespersonId)),
+        },
       }
     case 'orders.confirm':
       return {
@@ -1345,10 +1362,18 @@ async function planFor(
       }
     case 'orders.cancel':
       return {
-        pathParams: { id: chain.orderId ?? (await fx.orderInState('draft', ctx.scopeRetailerId)) },
+        pathParams: {
+          id:
+            chain.orderId ??
+            (await fx.orderInState('draft', ctx.scopeRetailerId, ctx.scopeSalespersonId)),
+        },
       }
     case 'orders.get':
-      return { pathParams: { id: chain.orderId ?? (await fx.anyOrderId(ctx.scopeRetailerId)) } }
+      return {
+        pathParams: {
+          id: chain.orderId ?? (await fx.anyOrderId(ctx.scopeRetailerId, ctx.scopeSalespersonId)),
+        },
+      }
     case 'orders.repeatLast':
       return {
         pinned: {
@@ -2322,6 +2347,8 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
 
   const scopeRetailerId =
     session.role === 'retailer' ? await fx.linkedRetailerFor(target.username) : null
+  const scopeSalespersonId =
+    session.role === 'salesperson' ? await fx.userIdOf(target.username) : null
   const chain: RunChain = {
     refreshToken: null,
     platformRefreshToken: null,
@@ -2367,6 +2394,7 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       fx,
       role: session.role,
       scopeRetailerId,
+      scopeSalespersonId,
       urlSeed: op.path,
       pinned: {},
       post: (path, body) =>

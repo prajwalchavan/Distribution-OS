@@ -840,4 +840,320 @@ describeDb('orders (DATABASE_URL)', () => {
     ).rows as { transitions: number; events: number }[]
     return rows[0]
   }
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-073: staff RLS on `sales_orders` is tenant-wide on purpose (billing, warehouse, delivery and reporting
+  // read it), so the order procedures themselves must keep a salesperson to the orders credited to it — the
+  // same `salesperson_id = me` rule the device pull applies. A colleague's order answers exactly like an id
+  // nobody holds, before any state check can reveal it, and nothing is written.
+
+  describe('DOS-073 a salesperson reaches only the orders credited to it', () => {
+    const rep2Id = uuidv7()
+    const rep2: Actor = { tenantId, actorId: rep2Id, role: 'salesperson' }
+    const rep2Confirmed = uuidv7()
+    const rep2ConfirmedLine = uuidv7()
+    const rep2Draft = uuidv7()
+    const rep2DraftLine = uuidv7()
+    const rep2Orders = [rep2Confirmed, rep2Draft]
+
+    beforeAll(async () => {
+      await db.insert(users).values({ id: rep2Id, phone: `+91904${run}4`, name: 'Second rep' })
+      await db
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId, userId: rep2Id, role: 'salesperson' })
+      // Every piece of variant A is held by now (100 of 100), so rep2's order needs stock of its own for its
+      // reservation — the thing a wrongful cancel would release — to exist at all.
+      const inventory = app.get(InventoryService)
+      await asOwner(async (tx) => {
+        const { lot } = await inventory.findOrCreateLot(tx, {
+          variantId: variantA,
+          batchNo: `DOS073-${run}`,
+          mrpPaise: 4000,
+        })
+        await inventory.post(tx, [
+          {
+            lotId: lot.id,
+            locationId: godown,
+            qtyDelta: 5,
+            reason: 'opening',
+            idempotencyKey: `open-${run}-dos073`,
+          },
+        ])
+      })
+      // rep2's confirmed order (retailer A is `indicate`, so submit confirms it and holds the piece)…
+      const drafted = await call<{ item: Detail }>(app, rep2, 'POST', '/orders', {
+        idempotencyKey: `dos073-create-confirmed-${run}`,
+        id: rep2Confirmed,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [
+          { id: rep2ConfirmedLine, variantId: variantA, enteredQty: 1, enteredUnit: 'piece' },
+        ],
+      })
+      expect(drafted.status).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep2,
+        'POST',
+        `/orders/${rep2Confirmed}/submit`,
+        { idempotencyKey: `dos073-submit-confirmed-${run}` },
+      )
+      expect(submitted.body.item.state).toBe('confirmed')
+      // …and a draft with one line, so a wrongful submit would be a real write rather than a 400
+      const draft = await call<{ item: Detail }>(app, rep2, 'POST', '/orders', {
+        idempotencyKey: `dos073-create-draft-${run}`,
+        id: rep2Draft,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: rep2DraftLine, variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+      })
+      expect(draft.body.item.state).toBe('draft')
+    })
+
+    type ErrorBody = { message: string; code?: string; status?: number }
+
+    /** The same call against a random id nobody holds, then against `id`: both must be the same 404. */
+    const expectAnswersLikeMissing = async (
+      method: 'GET' | 'POST',
+      path: (id: string) => string,
+      id: string,
+      body: (tag: string) => Record<string, unknown> | undefined,
+    ) => {
+      const missingId = uuidv7()
+      const missing = await call<ErrorBody>(app, rep, method, path(missingId), body('missing'))
+      const refused = await call<ErrorBody>(app, rep, method, path(id), body('refused'))
+      expect(missing.status).toBe(404)
+      expect(missing.body.message).toBe(`order ${missingId} not found`)
+      expect(refused.status).toBe(404)
+      expect(refused.body).toEqual({
+        ...missing.body,
+        message: missing.body.message.replace(missingId, id),
+      })
+    }
+
+    /** Everything a wrongful cancel, re-line, submit or re-head would change on rep2's two orders. */
+    const snapshot = async () => {
+      const orders = (
+        await db.execute(
+          sql`select id, state, order_no, cancelled_at, cancel_reason, note, total_paise, updated_at
+                from sales_orders where id in (${rep2Confirmed}, ${rep2Draft}) order by id`,
+        )
+      ).rows as { id: string; state: string; cancelled_at: unknown; note: string | null }[]
+      const lines = (
+        await db.execute(
+          sql`select id, order_id, qty_pcs from sales_order_lines
+               where order_id in (${rep2Confirmed}, ${rep2Draft}) order by id`,
+        )
+      ).rows as { id: string; order_id: string }[]
+      const held = (
+        await db.execute(
+          sql`select r.order_line_id, r.qty, r.state from reservations r
+                join sales_order_lines l on l.id = r.order_line_id
+               where l.order_id in (${rep2Confirmed}, ${rep2Draft}) order by r.id`,
+        )
+      ).rows as { order_line_id: string; qty: number; state: string }[]
+      const transitions = (
+        await db.execute(
+          sql`select order_id, event, actor_id from order_state_transitions
+               where order_id in (${rep2Confirmed}, ${rep2Draft}) order by id`,
+        )
+      ).rows as { order_id: string; event: string; actor_id: string }[]
+      const events = (
+        await db.execute(
+          sql`select aggregate_id, event_type from outbox_events
+               where aggregate_id in (${rep2Confirmed}, ${rep2Draft}) order by id`,
+        )
+      ).rows as { aggregate_id: string; event_type: string }[]
+      return { orders, lines, held, transitions, events }
+    }
+
+    it("DOS-073: a salesperson cannot cancel, re-line or submit another rep's order — 404 with the missing-id message, checked before the draft-state 409, nothing written", async () => {
+      const before = await snapshot()
+      const oneLine = () => [
+        { id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' },
+      ]
+
+      // the finding's probe: cancel a colleague's CONFIRMED order
+      await expectAnswersLikeMissing(
+        'POST',
+        (id) => `/orders/${id}/cancel`,
+        rep2Confirmed,
+        (tag) => ({
+          idempotencyKey: `dos073-cancel-${tag}-${run}`,
+          reason: 'DOS-073 probe: cancelling another rep’s confirmed order',
+        }),
+      )
+      // re-lining a colleague's CONFIRMED order is a 404, not the 409 that would reveal its state
+      await expectAnswersLikeMissing(
+        'POST',
+        (id) => `/orders/${id}/lines`,
+        rep2Confirmed,
+        (tag) => ({
+          idempotencyKey: `dos073-lines-confirmed-${tag}-${run}`,
+          lines: oneLine(),
+        }),
+      )
+      // a colleague's DRAFT can be neither re-lined nor submitted
+      await expectAnswersLikeMissing(
+        'POST',
+        (id) => `/orders/${id}/lines`,
+        rep2Draft,
+        (tag) => ({
+          idempotencyKey: `dos073-lines-draft-${tag}-${run}`,
+          lines: oneLine(),
+        }),
+      )
+      await expectAnswersLikeMissing(
+        'POST',
+        (id) => `/orders/${id}/submit`,
+        rep2Draft,
+        (tag) => ({
+          idempotencyKey: `dos073-submit-draft-${tag}-${run}`,
+        }),
+      )
+
+      // nothing written: states, lines, the held piece, the audit trail and the outbox are all as they were
+      const after = await snapshot()
+      expect(after).toEqual(before)
+      const orderRow = (id: string) => after.orders.find((o) => o.id === id)
+      expect(orderRow(rep2Confirmed)).toMatchObject({ state: 'confirmed', cancelled_at: null })
+      expect(orderRow(rep2Draft)).toMatchObject({ state: 'draft', cancelled_at: null })
+      expect(after.held).toEqual([{ order_line_id: rep2ConfirmedLine, qty: 1, state: 'pending' }])
+      expect(after.lines.filter((l) => l.order_id === rep2Draft).map((l) => l.id)).toEqual([
+        rep2DraftLine,
+      ])
+      expect(after.transitions.filter((t) => t.actor_id === repId)).toEqual([])
+      expect(after.events.map((e) => e.event_type)).not.toContain('OrderCancelled')
+
+      // positive control: the rep the order is credited to still cancels it, and the held piece goes back
+      const own = await call<{ item: Detail }>(
+        app,
+        rep2,
+        'POST',
+        `/orders/${rep2Confirmed}/cancel`,
+        {
+          idempotencyKey: `dos073-cancel-own-${run}`,
+          reason: 'shop changed its mind',
+        },
+      )
+      expect(own.status).toBe(200)
+      expect(own.body.item.state).toBe('cancelled')
+      expect((await snapshot()).held).toEqual([
+        { order_line_id: rep2ConfirmedLine, qty: 1, state: 'voided' },
+      ])
+    })
+
+    it("DOS-073: a salesperson reads only its own orders — get answers 404 and list ignores another rep's salespersonId", async () => {
+      for (const id of rep2Orders)
+        await expectAnswersLikeMissing(
+          'GET',
+          (x) => `/orders/${x}`,
+          id,
+          () => undefined,
+        )
+
+      type Listed = { items: { id: string; salespersonId: string | null }[] }
+      // asking for the colleague by name does not widen the list
+      const asked = await call<Listed>(app, rep, 'GET', '/orders', {
+        salespersonId: rep2Id,
+        limit: 200,
+      })
+      expect(asked.status).toBe(200)
+      expect(asked.body.items.map((o) => o.id)).toContain(orderOne)
+      expect(asked.body.items.every((o) => o.salespersonId === repId)).toBe(true)
+      // and the unfiltered list is the rep's own: no colleague's order, no shop order credited to nobody
+      const unfiltered = await call<Listed>(app, rep, 'GET', '/orders', { limit: 200 })
+      expect(unfiltered.status).toBe(200)
+      const ids = unfiltered.body.items.map((o) => o.id)
+      expect(ids).toContain(orderOne)
+      for (const id of [...rep2Orders, shopOrder]) expect(ids).not.toContain(id)
+      expect(unfiltered.body.items.every((o) => o.salespersonId === repId)).toBe(true)
+
+      // positive controls: rep2 reads its own orders, and the desk still lists them by rep
+      const ownGet = await call<{ item: Detail }>(app, rep2, 'GET', `/orders/${rep2Draft}`)
+      expect(ownGet.status).toBe(200)
+      expect(ownGet.body.item.lines.map((l) => l.id)).toEqual([rep2DraftLine])
+      const ownList = await call<Listed>(app, rep2, 'GET', '/orders', { limit: 200 })
+      expect(ownList.body.items.map((o) => o.id).sort()).toEqual([...rep2Orders].sort())
+      const desk = await call<Listed>(app, owner, 'GET', '/orders', {
+        salespersonId: rep2Id,
+        limit: 200,
+      })
+      expect(desk.status).toBe(200)
+      expect(desk.body.items.map((o) => o.id).sort()).toEqual([...rep2Orders].sort())
+    })
+
+    it("DOS-073: a device upload cannot re-head or re-line another rep's draft", async () => {
+      const before = await snapshot()
+      type Uploaded = {
+        accepted: number
+        replayed: number
+        rejected: { opId: string; code: string }[]
+      }
+      const res = await call<Uploaded>(app, rep, 'POST', '/sync/upload', {
+        protocol: 1,
+        deviceId: `dos073-device-${run}`,
+        ops: [
+          {
+            opId: `dos073-so-${run}`,
+            op: 'PUT',
+            table: 'sales_orders',
+            id: rep2Draft,
+            data: { retailer_id: retailerA, state: 'draft', note: 'DOS-073 re-head' },
+          },
+          {
+            opId: `dos073-sol-${run}`,
+            op: 'PUT',
+            table: 'sales_order_lines',
+            id: uuidv7(),
+            data: {
+              order_id: rep2Draft,
+              variant_id: variantA,
+              entered_qty: 1,
+              entered_unit: 'case',
+            },
+          },
+        ],
+      })
+      expect(res.status).toBe(200)
+      expect(res.body.accepted).toBe(0)
+      expect(res.body.rejected.map((r) => [r.opId, r.code])).toEqual([
+        [`dos073-so-${run}`, 'conflict'],
+        [`dos073-sol-${run}`, 'order_not_found'],
+      ])
+      expect(await snapshot()).toEqual(before)
+
+      // positive control: rep2's own device still edits its own draft, header and lines
+      const own = await call<Uploaded>(app, rep2, 'POST', '/sync/upload', {
+        protocol: 1,
+        deviceId: `dos073-device2-${run}`,
+        ops: [
+          {
+            opId: `dos073-own-so-${run}`,
+            op: 'PUT',
+            table: 'sales_orders',
+            id: rep2Draft,
+            data: { retailer_id: retailerA, state: 'draft', note: 'DOS-073 own edit' },
+          },
+          {
+            opId: `dos073-own-sol-${run}`,
+            op: 'PUT',
+            table: 'sales_order_lines',
+            id: uuidv7(),
+            data: {
+              order_id: rep2Draft,
+              variant_id: variantA,
+              entered_qty: 1,
+              entered_unit: 'piece',
+            },
+          },
+        ],
+      })
+      expect(own.body.rejected).toEqual([])
+      expect(own.body.accepted).toBe(2)
+      const edited = await snapshot()
+      expect(edited.orders.find((o) => o.id === rep2Draft)?.note).toBe('DOS-073 own edit')
+      expect(edited.lines.filter((l) => l.order_id === rep2Draft)).toHaveLength(2)
+    })
+  })
 })

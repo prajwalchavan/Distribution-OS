@@ -47,6 +47,7 @@ import {
   approvalFlags,
   asSystem,
   availablePcs,
+  callerReaches,
   createDraft,
   emitOrderEvent,
   isUniqueViolation,
@@ -156,7 +157,8 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        // DOS-073: reachability first, so a colleague's order is a 404 before this 409 reveals its state
+        const order = await this.lockReachableOrder(tx, input.id)
         if (order.state !== 'draft')
           throw new ORPCError('CONFLICT', {
             message: `order ${order.id} is ${order.state}; only a draft can be re-lined`,
@@ -235,7 +237,7 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order)
         const { item } = await this.submitInTx(tx, order, input.deviceId ?? null)
         return { item }
@@ -374,7 +376,7 @@ export class OrdersService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        const order = await this.lockOrder(tx, input.id)
+        const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order, ['draft', 'submitted'])
         return { item: await this.cancelInTx(tx, order, input.reason, input.deviceId ?? null) }
       }),
@@ -520,7 +522,9 @@ export class OrdersService {
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const [order] = await tx.select().from(salesOrders).where(eq(salesOrders.id, input.id))
-      if (!order) throw new ORPCError('NOT_FOUND', { message: `order ${input.id} not found` })
+      // DOS-073: an order the caller does not reach reads exactly like one that does not exist
+      if (!order || !callerReaches(order))
+        throw new ORPCError('NOT_FOUND', { message: `order ${input.id} not found` })
       return { item: await this.detail(tx, order) }
     })
   }
@@ -543,6 +547,21 @@ export class OrdersService {
   async findOrder(tx: Db, id: string): Promise<OrderRow | undefined> {
     const [order] = await tx.select().from(salesOrders).where(eq(salesOrders.id, id))
     return order
+  }
+
+  /**
+   * `lockOrder` for the procedures a caller runs on its own orders: setLines, submit and cancel (DOS-073).
+   * An order the caller does not reach (`callerReaches`: a salesperson reaches only the orders credited to
+   * it) answers the same 404 as a missing id. The check runs before the lock, so a probe never holds a
+   * colleague's row; `salesperson_id` is set once at draft and never re-assigned, so it cannot change in
+   * between. Cross-module callers (approvals, billing, warehouse, delivery, AI drafts) keep the unscoped
+   * `lockOrder` and `findOrder`.
+   */
+  private async lockReachableOrder(tx: Db, id: string): Promise<OrderRow> {
+    const found = await this.findOrder(tx, id)
+    if (found && !callerReaches(found))
+      throw new ORPCError('NOT_FOUND', { message: `order ${id} not found` })
+    return this.lockOrder(tx, id)
   }
 
   detail(tx: Db, order: OrderRow): Promise<OrderDetail> {

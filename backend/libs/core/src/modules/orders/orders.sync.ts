@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm'
 import type { SyncOp } from '@dos/contracts'
 import { salesOrderLines, salesOrders, type Db } from '@dos/db'
 import { SyncRejection } from '../sync/index.js'
+import { callerReaches } from './orders.internals.js'
 import type { OrdersService } from './orders.service.js'
 import type { EnteredLine, EnteredUnit } from './pricing-lines.js'
 
@@ -51,7 +52,11 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
       'A device may only upload a draft order; submit it online',
       'डिवाइस से केवल ड्राफ्ट ऑर्डर भेजा जा सकता है',
     )
-  const existing = await orders.findOrder(tx, op.id)
+  // DOS-073: an order credited to another rep is not this device's to re-head, nor to learn the state of.
+  // It counts as absent, so the op falls through to `insertDraft`, whose id clash answers `conflict`: the
+  // same answer a shop gets for an order id it cannot see.
+  const found = await orders.findOrder(tx, op.id)
+  const existing = found && callerReaches(found) ? found : undefined
   if (existing && existing.state !== 'draft')
     throw new SyncRejection(
       'order_not_draft',
@@ -100,7 +105,8 @@ export async function applyLineSync(tx: Db, op: SyncOp, orders: OrdersService): 
       'लाइन किस ऑर्डर की है, पता नहीं',
     )
   const order = await orders.findOrder(tx, orderId)
-  if (!order)
+  // DOS-073: a colleague's draft is as unknown to a device as it is to `orders.setLines` (404)
+  if (!order || !callerReaches(order))
     throw new SyncRejection(
       'order_not_found',
       `Order ${orderId} has not arrived yet`,

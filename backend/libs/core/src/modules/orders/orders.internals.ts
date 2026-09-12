@@ -308,11 +308,30 @@ export async function emitOrderEvent(
 const istStart = (date: string): Date => new Date(`${date}T00:00:00.000+05:30`)
 const istEnd = (date: string): Date => new Date(`${date}T23:59:59.999+05:30`)
 
-/** A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query. */
+/**
+ * Whether the signed-in caller reaches this order through the order procedures (DOS-073). A salesperson
+ * reaches only the orders credited to it (`salesperson_id = me`), the same rule as the device pull in
+ * `orders.module.ts`. Staff RLS on `sales_orders` is tenant-wide on purpose (billing, warehouse, delivery
+ * and reporting read every order), so the rule lives here and not in a policy. No other role changes: a
+ * retailer stays with RLS plus `assertRetailerOwns`, the desk reaches the whole tenant. A caller that is
+ * not reached is answered exactly as for an id that does not exist.
+ */
+export function callerReaches(order: Pick<OrderRow, 'salespersonId'>): boolean {
+  const ctx = currentTenant()
+  return ctx.actorRole !== 'salesperson' || order.salespersonId === ctx.actorId
+}
+
+/**
+ * A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query.
+ * A salesperson's list is always its own (DOS-073, `callerReaches`): its `salespersonId` filter is forced
+ * to the caller, so naming a colleague cannot widen it.
+ */
 export async function listOrders(
   tx: Db,
   input: z.infer<typeof OrdersListInput>,
 ): Promise<z.infer<typeof OrdersListOutput>> {
+  const ctx = currentTenant()
+  const salespersonId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.salespersonId
   const filters: (SQL | undefined)[] = [
     input.state ? eq(salesOrders.state, input.state) : undefined,
     input.states && input.states.length > 0 ? inArray(salesOrders.state, input.states) : undefined,
@@ -321,7 +340,7 @@ export async function listOrders(
       ? inArray(salesOrders.state, ['submitted', 'confirmed', 'picking', 'packed', 'dispatched'])
       : undefined,
     input.retailerId ? eq(salesOrders.retailerId, input.retailerId) : undefined,
-    input.salespersonId ? eq(salesOrders.salespersonId, input.salespersonId) : undefined,
+    salespersonId ? eq(salesOrders.salespersonId, salespersonId) : undefined,
     input.from ? gte(salesOrders.createdAt, istStart(input.from)) : undefined,
     input.to ? lte(salesOrders.createdAt, istEnd(input.to)) : undefined,
     input.q
