@@ -40,6 +40,16 @@ Logs: session scratchpad `baseline/*.log` (summarised here; not kept in the repo
 
 No test that passed at the baseline fails on merged main. Six existing tests were changed by the fixes; each is reviewed in `QA/13-change-log.md` (five encoded the defect, one fixture unit).
 
+
+**Which code the walkers actually used (checked 2026-09-13 ~05:15 IST, because QA's Metro servers run with `CI=1` and never reload):**
+the seven main Metro servers (:5173–:5179) were started at 00:57:56 IST from the main checkout — after the last lane merge (2abb27e, 00:51:23)
+and the README regeneration (0a9deac, 00:56:53); the only later main-tree changes before any walk were QA documents and QA tools. Runtime
+observations that exist only in post-fix code confirm it: the warehouse sheet's "This sheet has not been started" + "Start picking" (DOS-040),
+one return-reason control (DOS-058), the statement's single `limit=200` read (DOS-095), and a label-width "Add a case" on web and Android (DOS-077).
+A text search of the served sales bundle for the DOS-077 comment and prop was inconclusive (comments are stripped, props reformatted), so the
+runtime observations are the evidence. The :5174 manager server serves main without DOS-029 (0 `useRefusal` in its bundle, as expected); the
+DOS-029 manager build walked on web and Android is the :5274 server started at 02:14:43 from the DOS-029 worktree at d600ab8.
+
 ### 1. Focused regression — the fixes, re-walked in the running product
 
 **Part A — web (desk 1280×800 and phone 390×844) outside the manager app, 2026-09-13 00:55–02:25 IST, dos_qa, Opus walkers with their own browsers.**
