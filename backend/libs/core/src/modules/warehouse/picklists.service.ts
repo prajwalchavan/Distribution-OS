@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, lt, lte, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CancelPicklistInput,
@@ -283,13 +283,25 @@ export class PicklistsService {
         input.tripId ? eq(picklists.tripId, input.tripId) : undefined,
         input.from ? gte(picklists.pickDate, input.from) : undefined,
         input.to ? lte(picklists.pickDate, input.to) : undefined,
-        input.cursor ? lt(picklists.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor sheet's own (created_at, id), read inside this tenant's transaction, so
+         * the comparison keeps Postgres's microseconds. No status filter in the subquery: a sheet whose
+         * status changed between two pages still anchors the next one. An unknown cursor matches nothing.
+         */
+        input.cursor
+          ? sql`(${picklists.createdAt}, ${picklists.id}) < (select c.created_at, c.id from picklists c where c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(picklists)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(picklists.id))
+        /*
+         * Newest first by SERVER time (DOS-023). Ids are made on the device and the demo seed's are
+         * hashes, so id order is not age: a wave made today sorted below most seeded sheets and fell
+         * off the first page.
+         */
+        .orderBy(desc(picklists.createdAt), desc(picklists.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const totals = await picklistTotals(
@@ -513,9 +525,13 @@ export class PicklistsService {
    *    is how a split across two lots is recorded;
    *  - Σ picked per order line may never exceed Σ requested (400) — over-picking is a counting mistake,
    *    not a business decision;
+   *  - a row the wave created (requested > 0) may not take more than its own ask (400); extra pieces from
+   *    another batch go on a split row (DOS-041);
    *  - a later-expiry lot is recorded with `fefo_override` and a WARNING, never a refusal;
-   *  - a short line with a reason is complete; a short line without one leaves the sheet `picking`,
-   *    because the picker has not finished walking the rack yet.
+   *  - a fully picked line is complete whichever rows carried the pieces; a short line is complete only
+   *    once it has a reason AND every lot row the wave asked it on has been recorded (picked or shorted),
+   *    so a short on one lot never explains a lot row nobody walked to (DOS-042). Until then the sheet
+   *    stays `picking`, because the picker has not finished walking the rack yet.
    */
   async applyPicks(
     tx: Db,
@@ -568,6 +584,16 @@ export class PicklistsService {
       if (lot.variantId !== template.variantId)
         throw new ORPCError('BAD_REQUEST', {
           message: `lot ${pick.lotId} is a different product from line ${pick.orderLineId}`,
+        })
+      // DOS-041: a row the wave created asks for its line's share on ONE batch, so it may not take more
+      // than that share even while the line as a whole is still under — the pack would then take the
+      // extra pieces from a lot that was never asked to hold them and refuse the whole order. The ask is
+      // the STORED row's: a new id is a split row, which asks for nothing of its own and stays bounded by
+      // the line total below.
+      const asked = byId.get(pick.id)?.requestedQtyPcs ?? 0
+      if (asked > 0 && pick.pickedQtyPcs > asked)
+        throw new ORPCError('BAD_REQUEST', {
+          message: `batch ${lot.batchNo || pick.lotId} on ${sheet.picklistNo ?? sheet.id} asks for ${asked} pcs; ${pick.pickedQtyPcs} were picked`,
         })
       const override = await this.isFefoOverride(
         tx,
@@ -778,16 +804,33 @@ export class PicklistsService {
     }
   }
 
-  /** `picked` once every order line is either fully picked or explained; otherwise still `picking`. */
+  /**
+   * `picked` once every order line is done; otherwise still `picking`.
+   *
+   *  - A FULLY picked line is done whichever rows carried the pieces: a split recorded under a new id
+   *    (an API client may record a whole line that way) leaves the wave's own rows unstamped and has no
+   *    missing pieces.
+   *  - A SHORT line is done only when it picked something, has a reason, and every lot row the wave
+   *    asked it on (`requestedQtyPcs > 0`) has been recorded, picked or shorted (`pickedAt` set). A short
+   *    on one lot must not explain a lot row nobody touched (DOS-042): the wave would close and the
+   *    device, which accepts picks only on `picking`, could no longer record that row.
+   */
   private async refreshCompletion(
     tx: Db,
     sheet: PicklistRow,
     working: Map<string, PickLineRow>,
   ): Promise<void> {
-    const totals = [...this.perLineTotals(working).values()]
+    const unrecorded = new Set<string>()
+    for (const row of working.values())
+      if (row.requestedQtyPcs > 0 && row.pickedAt === null) unrecorded.add(row.orderLineId)
+    const totals = [...this.perLineTotals(working)]
     const done =
       totals.length > 0 &&
-      totals.every((t) => t.picked >= t.requested || (t.picked > 0 && t.shortReason !== null))
+      totals.every(
+        ([orderLineId, t]) =>
+          t.picked >= t.requested ||
+          (t.picked > 0 && t.shortReason !== null && !unrecorded.has(orderLineId)),
+      )
     if (!done || sheet.status === 'picked') return
     await this.updatePicklist(tx, sheet.id, { status: 'picked', completedAt: new Date() })
   }

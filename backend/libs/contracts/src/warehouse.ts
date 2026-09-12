@@ -78,8 +78,9 @@ import { SellerBrandingSchema } from './tenancy.js'
  * is integer paise and appears in exactly two places — a load sheet's value and a challan's — and both
  * are SALE values. No shape below carries a purchase cost, a landed cost, a PTD or a margin: a picker
  * must never be able to back a purchase rate out of a screen. Dates are IST (`businessDate()`,
- * `financialYear()`), ids are client-generated UUIDv7, every list caps `limit` at 200 and pages on the
- * last row's id descending.
+ * `financialYear()`), ids are client-generated UUIDv7, every list caps `limit` at 200 and takes the last
+ * row's id as its cursor. `picklists.list` is ordered newest first by server creation time
+ * (`created_at desc, id desc`, DOS-023); the other lists are ordered by id descending.
  */
 
 const IsoDateSchema = z.iso.date()
@@ -565,8 +566,9 @@ export const RecordPickLineInput = z.object({
 /**
  * What was actually taken off the rack. PAPER ONLY — no `stock_ledger` row is written here; the pieces
  * leave at pack, so a half-picked wave abandoned at 6 pm leaves the ledger untouched. Σ `pickedQtyPcs`
- * per order line may not exceed the requested pieces (400) and a short line needs a `shortReason`;
- * taking a later-expiry lot is a warning, never a refusal.
+ * per order line may not exceed the requested pieces (400), and a row the wave created may not take
+ * more than its own `requestedQtyPcs` (400; a new `id` is a split row, which asks for nothing of its
+ * own); a short line needs a `shortReason`; taking a later-expiry lot is a warning, never a refusal.
  */
 export const RecordPickInput = MutationBase.extend({
   id: IdSchema,
@@ -700,8 +702,9 @@ export const ApproveLoadSheetOutput = LoadSheetItemOutput
  * `approval_required` otherwise): the e-way bill gate (400 `ewb_required` above the tenant's threshold
  * with no number), the crew's blind package count (a variance needs a `varianceNote` and records
  * `pinVerifiedBy = approvedBy`), the van stock replaced by what was counted, a `transfer_out` +
- * `transfer_in` pair per lot keyed `load:<sheetId>:<lotId>:out|in`, the `DC` challan issued, and every
- * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
+ * `transfer_in` pair per counted van-stock lot keyed `load:<sheetId>:<lotId>:out|in` (the packed orders'
+ * pieces already left as `sale` at pack), the `DC` challan issued, and every packed order
+ * `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,

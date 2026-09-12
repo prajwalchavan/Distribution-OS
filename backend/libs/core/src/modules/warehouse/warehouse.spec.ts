@@ -9,6 +9,7 @@ import {
   locations,
   manufacturers,
   memberships,
+  picklists,
   priceListItems,
   priceLists,
   products,
@@ -986,7 +987,14 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(await ledgerFor(sheetId)).toHaveLength(0)
   })
 
-  it('confirms: stock moves godown to vehicle once, DC-0001 is issued and the orders dispatch', async () => {
+  it('DOS-039 confirms: only the counted van stock moves godown → vehicle, the packed lots stay where pack left them, DC-0001 is issued and the orders dispatch', async () => {
+    // Pack already sold the order's pieces out of the godown (PackingService: stock leaves exactly
+    // once); the load-out moves only the counted van stock. Read the balances, never hard-code them.
+    const godownBefore = {
+      early: (await balanceOf(lotEarly, godown)).on_hand,
+      late: (await balanceOf(lotLate, godown)).on_hand,
+      b: (await balanceOf(lotB, godown)).on_hand,
+    }
     challanId = uuidv7()
     const res = await call<{ item: LoadSheetBody; challan: ChallanBody; dispatched: string[] }>(
       app,
@@ -1021,13 +1029,23 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(challan.lines.every((l) => l.gstBps === 1200)).toBe(true)
     expect(challan.gstPaise).toBeGreaterThan(0)
 
-    // exactly one transfer_out and one transfer_in per lot
+    // exactly one transfer_out and one transfer_in, for the counted van stock only (lotB): the packed
+    // order's lots (lotEarly, lotLate) left as `sale` at pack and are not taken from the godown again
     const rows = await ledgerFor(sheetId)
-    expect(rows.filter((r) => r.reason === 'transfer_out')).toHaveLength(3)
-    expect(rows.filter((r) => r.reason === 'transfer_in')).toHaveLength(3)
+    expect(rows).toHaveLength(2)
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { reason: 'transfer_out', qty_delta: -12, lot_id: lotB, location_id: godown },
+        { reason: 'transfer_in', qty_delta: 12, lot_id: lotB, location_id: van },
+      ]),
+    )
     expect(rows.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
+    expect((await balanceOf(lotEarly, godown)).on_hand).toBe(godownBefore.early)
+    expect((await balanceOf(lotLate, godown)).on_hand).toBe(godownBefore.late)
+    expect((await balanceOf(lotB, godown)).on_hand).toBe(godownBefore.b - 12)
+    expect((await balanceOf(lotEarly, van)).on_hand).toBe(0)
+    expect((await balanceOf(lotLate, van)).on_hand).toBe(0)
     expect((await balanceOf(lotB, van)).on_hand).toBe(12)
-    expect((await balanceOf(lotLate, van)).on_hand).toBe(18)
     expect(await outboxTypes(sheetId)).toEqual(['LoadSheetApproved', 'LoadSheetConfirmed'])
     expect(await outboxTypes(challanId)).toEqual(['DeliveryChallanIssued'])
   })
@@ -1226,7 +1244,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
       },
     )
     expect(closed.status).toBe(200)
-    expect(closed.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
+    expect(closed.body.rejected.map((r) => r.code)).toEqual(['picklist_not_started'])
 
     await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
       idempotencyKey: `start-sync-${run}`,
@@ -1261,6 +1279,472 @@ describeDb('warehouse (DATABASE_URL)', () => {
       await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${row?.id ?? ''}`)
     ).rows as { picked_qty_pcs: number }[]
     expect(stored[0]?.picked_qty_pcs).toBe(12)
+  })
+
+  it("DOS-040: a device pick on a wave nobody has started is refused as picklist_not_started with 'start it before picking' (never 'no longer being picked') and is accepted once the wave is started", async () => {
+    const target = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos040')
+    const waved = await wave([target], 'dos040')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    expect(row?.requestedQtyPcs).toBe(12)
+    const upload = (opId: string) => ({
+      protocol: 1,
+      deviceId: `dev-dos040-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: row?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: row?.orderLineId ?? '',
+            lot_id: row?.lotId ?? '',
+            picked_qty_pcs: 12,
+          },
+        },
+      ],
+    })
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const pickedPieces = async (): Promise<number | undefined> =>
+      (
+        (await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${row?.id ?? ''}`))
+          .rows as { picked_qty_pcs: number }[]
+      )[0]?.picked_qty_pcs
+
+    // the picker taps Picked on a sheet the desk raised and nobody started
+    const openOpId = `op-dos040-open-${run}`
+    const refused = await call<UploadBody>(app, packer, 'POST', '/sync/upload', upload(openOpId))
+    expect(refused.status).toBe(200)
+    expect(refused.body.rejected).toHaveLength(1)
+    expect(refused.body.rejected[0]?.code).toBe('picklist_not_started')
+    expect(refused.body.rejected[0]?.messageEn).toMatch(/start it before picking/)
+    expect(refused.body.rejected[0]?.messageEn).not.toMatch(/no longer being picked/)
+    const logged = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and op_id = ${openOpId}`,
+      )
+    ).rows as { code: string }[]
+    expect(logged.map((r) => r.code)).toEqual(['picklist_not_started'])
+    const sheet = (await db.execute(sql`select status from picklists where id = ${waved.id}`))
+      .rows as { status: string }[]
+    expect(sheet[0]?.status).toBe('open')
+    expect(await pickedPieces()).toBe(0)
+
+    // the Start step the sheet now offers, then the same pick under a new op
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `start-dos040-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    const accepted = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos040-started-${run}`),
+    )
+    expect(accepted.status).toBe(200)
+    expect(accepted.body.accepted).toBe(1)
+    expect(accepted.body.rejected).toEqual([])
+    expect(await pickedPieces()).toBe(12)
+  })
+
+  it("DOS-040 guard: splitting the gate leaves every other closed status alone — a device pick on a cancelled wave is still picklist_closed 'no longer being picked'", async () => {
+    const target = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos040-guard')
+    const waved = await wave([target], 'dos040-guard')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    const cancelled = await call<{ item: PicklistBody }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/picklists/${waved.id}/cancel`,
+      { idempotencyKey: `cancel-dos040-${run}`, reason: 'DOS-040 guard' },
+    )
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item.status).toBe('cancelled')
+
+    const res = await call<{ accepted: number; rejected: { code: string; messageEn: string }[] }>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      {
+        protocol: 1,
+        deviceId: `dev-dos040-guard-${run}`,
+        ops: [
+          {
+            opId: `op-dos040-cancelled-${run}`,
+            op: 'PUT',
+            table: 'pick_lines',
+            id: row?.id ?? '',
+            data: {
+              picklist_id: waved.id,
+              order_line_id: row?.orderLineId ?? '',
+              lot_id: row?.lotId ?? '',
+              picked_qty_pcs: 12,
+            },
+          },
+        ],
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(0)
+    expect(res.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
+    expect(res.body.rejected[0]?.messageEn).toMatch(/is cancelled; it is no longer being picked/)
+  })
+
+  // DOS-042: a wave closes only when every SHORT line has had every lot row it was asked on recorded.
+  // Each test holds 12 pcs (one case) on its OWN 10-pc lot plus 2 pcs from the next lot, so the order
+  // line gets two asking rows. The expiries strictly descend from test to test (A > B > C), so FEFO
+  // takes each test's own lot first even if an earlier one stopped part-way; rows are found by lot,
+  // never by index.
+  type Dos042Line = PickLineBody & { pickedAt: string | null }
+  type Dos042Sheet = Omit<PicklistBody, 'lines'> & {
+    completedAt: string | null
+    lines: Dos042Line[]
+  }
+
+  async function dos042Wave(tag: 'A' | 'B' | 'C', expiryDate: string) {
+    const inventory = app.get(InventoryService)
+    const lotId = await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `DOS042-${tag}-${run}`,
+        mrpPaise: 2000,
+        expiryDate,
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 10,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-dos042-${tag}`,
+        },
+      ])
+      return lot.id
+    })
+    const orderId = await placeOrder([{ variantId: variantB, cases: 1 }], `dos042-${tag}`)
+    const waved = await wave([orderId], `dos042-${tag}`)
+    expect(waved.res.status).toBe(200)
+    const own = waved.res.body.item.lines.find((l) => l.lotId === lotId)
+    const orderLine = own?.orderLineId ?? ''
+    const rows = waved.res.body.item.lines.filter((l) => l.orderLineId === orderLine)
+    const other = rows.find((l) => l.lotId !== lotId)
+    // the precondition the defect needs: ONE order line asked on TWO lots
+    expect(rows).toHaveLength(2)
+    expect(own?.requestedQtyPcs).toBe(10)
+    expect(other?.requestedQtyPcs).toBe(2)
+    expect(other?.lotId).not.toBeNull()
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `start-dos042-${tag}-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    return {
+      picklistId: waved.id,
+      orderLineId: orderLine,
+      own: { id: own?.id ?? '', lotId },
+      other: { id: other?.id ?? '', lotId: other?.lotId ?? '' },
+    }
+  }
+
+  it('DOS-042: a short on one lot does not close the wave while another lot row of the same line is untouched (picklists.pick)', async () => {
+    const w = await dos042Wave('A', '2027-03-31')
+
+    const shorted = await call<{ item: Dos042Sheet }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-a-short-${run}`,
+        lines: [
+          {
+            id: w.own.id,
+            orderLineId: w.orderLineId,
+            lotId: w.own.lotId,
+            pickedQtyPcs: 5,
+            shortReason: 'Not on the rack',
+          },
+        ],
+      },
+    )
+    expect(shorted.status).toBe(200)
+    // 5 of 12 with a reason, but the 2-pc row on the other lot has not been walked yet
+    expect(shorted.body.item.status).toBe('picking')
+    expect(shorted.body.item.completedAt).toBeNull()
+
+    const rest = await call<{ item: Dos042Sheet }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-a-rest-${run}`,
+        lines: [
+          { id: w.other.id, orderLineId: w.orderLineId, lotId: w.other.lotId, pickedQtyPcs: 2 },
+        ],
+      },
+    )
+    expect(rest.status).toBe(200)
+    expect(rest.body.item.status).toBe('picked')
+    expect(rest.body.item.completedAt).not.toBeNull()
+  })
+
+  it('DOS-042: the device can still short the untouched lot row, and the wave closes only once every lot row of the short line is recorded (sync upload)', async () => {
+    const w = await dos042Wave('B', '2027-03-30')
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const upload = (
+      opId: string,
+      row: { id: string; lotId: string },
+      pickedQtyPcs: number,
+      shortReason: string,
+    ) => ({
+      protocol: 1,
+      deviceId: `dev-dos042-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: row.id,
+          data: {
+            picklist_id: w.picklistId,
+            order_line_id: w.orderLineId,
+            lot_id: row.lotId,
+            picked_qty_pcs: pickedQtyPcs,
+            short_reason: shortReason,
+          },
+        },
+      ],
+    })
+    const sheetNow = async (): Promise<Dos042Sheet> =>
+      (
+        await call<{ item: Dos042Sheet }>(
+          app,
+          packer,
+          'GET',
+          `/warehouse/picklists/${w.picklistId}`,
+        )
+      ).body.item
+
+    const first = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos042-b-short-${run}`, w.own, 5, 'Not on the rack'),
+    )
+    expect(first.status).toBe(200)
+    expect(first.body.rejected).toEqual([])
+    expect(first.body.accepted).toBe(1)
+    expect((await sheetNow()).status).toBe('picking')
+
+    // the picker shorts the row nobody had touched: accepted, not picklist_closed
+    const last = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos042-b-held-${run}`, w.other, 0, 'Batch held back'),
+    )
+    expect(last.status).toBe(200)
+    expect(last.body.rejected).toEqual([])
+    expect(last.body.accepted).toBe(1)
+    const closed = await sheetNow()
+    expect(closed.status).toBe('picked')
+    expect(closed.completedAt).not.toBeNull()
+    const stored = (
+      await db.execute(
+        sql`select picked_qty_pcs, short_reason, picked_at from pick_lines where id = ${w.other.id}`,
+      )
+    ).rows as { picked_qty_pcs: number; short_reason: string | null; picked_at: Date | null }[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+    expect(stored[0]?.short_reason).toBe('Batch held back')
+    expect(stored[0]?.picked_at).not.toBeNull()
+  })
+
+  it('DOS-042 guard: a line picked in full through split rows alone (new ids, as the manager app records it) still closes the wave', async () => {
+    const w = await dos042Wave('C', '2027-03-29')
+
+    // every counted row under a NEW id: what manager-app/app/fulfilment/pack.tsx (M20) sent before
+    // DOS-041, and still a valid API split — rows under new ids ask 0, so no per-row ask applies
+    const res = await call<{ item: Dos042Sheet }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/picklists/${w.picklistId}/pick`,
+      {
+        idempotencyKey: `pick-dos042-c-${run}`,
+        lines: [
+          { id: uuidv7(), orderLineId: w.orderLineId, lotId: w.own.lotId, pickedQtyPcs: 10 },
+          { id: uuidv7(), orderLineId: w.orderLineId, lotId: w.other.lotId, pickedQtyPcs: 2 },
+        ],
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.item.status).toBe('picked')
+    const rows = res.body.item.lines.filter((l) => l.orderLineId === w.orderLineId)
+    expect(rows).toHaveLength(4)
+    // the wave's own asking rows were never stamped: the full count alone closes the line
+    expect(rows.find((l) => l.id === w.own.id)?.pickedAt).toBeNull()
+    expect(rows.find((l) => l.id === w.other.id)?.pickedAt).toBeNull()
+  })
+
+  // DOS-041: a lot row the wave created may not take more than its OWN ask, even while its order line
+  // is still under the line total. One order of two cases (24 pcs) holds 6 pcs on a 6-pc TINY lot and
+  // 18 on lotB, so the line has two asking rows; rows are found by lot, never by index. TINY expires
+  // after every DOS-042 lot and after DOS-039's SOLDOUT (2027-06-30) but before lotB, so FEFO holds it
+  // first here and never ahead of SOLDOUT in the last test, even if this one stops part-way.
+  let dos041Picklist = ''
+  let dos041Order = ''
+  let dos041OrderLine = ''
+  let tinyLot = ''
+  let tinyRow = ''
+  let bRow = ''
+
+  it("DOS-041 refuses a pick above its own batch row's ask while the order line is still under its total", async () => {
+    const inventory = app.get(InventoryService)
+    await asOwner(async (tx) => {
+      const tiny = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `TINY-${run}`,
+        mrpPaise: 2000,
+        expiryDate: '2028-01-31',
+      })
+      tinyLot = tiny.lot.id
+      await inventory.post(tx, [
+        {
+          lotId: tinyLot,
+          locationId: godown,
+          qtyDelta: 6,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-tiny`,
+        },
+      ])
+    })
+    dos041Order = await placeOrder([{ variantId: variantB, cases: 2 }], 'dos041')
+    const waved = await wave([dos041Order], 'dos041')
+    expect(waved.res.status).toBe(200)
+    dos041Picklist = waved.id
+    const tiny = waved.res.body.item.lines.find((l) => l.lotId === tinyLot)
+    dos041OrderLine = tiny?.orderLineId ?? ''
+    const rows = waved.res.body.item.lines.filter((l) => l.orderLineId === dos041OrderLine)
+    const b = rows.find((l) => l.lotId === lotB)
+    // the precondition the defect needs: ONE order line asking 24 over a 6-pc row and an 18-pc row
+    expect(rows).toHaveLength(2)
+    expect(tiny?.requestedQtyPcs).toBe(6)
+    expect(b?.requestedQtyPcs).toBe(18)
+    tinyRow = tiny?.id ?? ''
+    bRow = b?.id ?? ''
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/start`,
+      { idempotencyKey: `start-dos041-${run}` },
+    )
+    expect(started.status).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+
+    // 20 on the 6-pc TINY row: the LINE (20 of 24) is still under its total, the ROW is not
+    const over = await call<{ message: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/pick`,
+      {
+        idempotencyKey: `pick-dos041-over-${run}`,
+        lines: [
+          {
+            id: tinyRow,
+            orderLineId: dos041OrderLine,
+            lotId: tinyLot,
+            pickedQtyPcs: 20,
+            shortReason: 'Damaged carton',
+          },
+        ],
+      },
+    )
+    expect(over.status).toBe(400)
+    expect(over.body.message).toMatch(/asks for 6/)
+    const stored = (
+      await db.execute(sql`select picked_qty_pcs, picked_at from pick_lines where id = ${tinyRow}`)
+    ).rows as { picked_qty_pcs: number; picked_at: Date | null }[]
+    expect(stored).toHaveLength(1)
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+    expect(stored[0]?.picked_at).toBeNull()
+  })
+
+  it("DOS-041 a device pick above its batch row's ask comes back pick_rejected, never 4xx, and the corrected picks then pack", async () => {
+    const upload = await call<{
+      accepted: number
+      rejected: { code: string; messageEn: string }[]
+    }>(app, packer, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `dev-dos041-${run}`,
+      ops: [
+        {
+          opId: `op-dos041-${run}`,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: tinyRow,
+          data: {
+            picklist_id: dos041Picklist,
+            order_line_id: dos041OrderLine,
+            lot_id: tinyLot,
+            picked_qty_pcs: 20,
+            short_reason: 'Damaged carton',
+          },
+        },
+      ],
+    })
+    expect(upload.status).toBe(200)
+    expect(upload.body.accepted).toBe(0)
+    expect(upload.body.rejected.map((r) => r.code)).toEqual(['pick_rejected'])
+    expect(upload.body.rejected[0]?.messageEn).toMatch(/asks for 6/)
+    const stored = (
+      await db.execute(sql`select picked_qty_pcs from pick_lines where id = ${tinyRow}`)
+    ).rows as { picked_qty_pcs: number }[]
+    expect(stored[0]?.picked_qty_pcs).toBe(0)
+
+    // the picker counts again: each batch row takes exactly what it asks, and the wave closes
+    const corrected = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${dos041Picklist}/pick`,
+      {
+        idempotencyKey: `pick-dos041-corrected-${run}`,
+        lines: [
+          { id: tinyRow, orderLineId: dos041OrderLine, lotId: tinyLot, pickedQtyPcs: 6 },
+          { id: bRow, orderLineId: dos041OrderLine, lotId: lotB, pickedQtyPcs: 18 },
+        ],
+      },
+    )
+    expect(corrected.status).toBe(200)
+    expect(corrected.body.item.status).toBe('picked')
+
+    const { res } = await packOrder(dos041Order, 'dos041')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const sale = (await ledgerFor(dos041Order)).filter((r) => r.reason === 'sale')
+    expect(sale).toHaveLength(2)
+    const deltaByLot = new Map(sale.map((r) => [r.lot_id, r.qty_delta]))
+    expect(deltaByLot.get(tinyLot)).toBe(-6)
+    expect(deltaByLot.get(lotB)).toBe(-18)
+    expect(await balanceOf(tinyLot, godown)).toEqual({ on_hand: 0, reserved: 0 })
   })
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -1422,5 +1906,159 @@ describeDb('warehouse (DATABASE_URL)', () => {
       404,
     )
     expect((await call(app, owner, 'GET', `/warehouse/picklists/${picklistId}`)).status).toBe(200)
+  })
+
+  // KEEP THIS AFTER EVERY TEST THAT READS LOTS: if it failed mid-way it would leave 12 available
+  // pieces on an earlier-expiry variantB lot, and FEFO in any later test would reserve them. Only the
+  // DOS-023 test follows it, and that one asserts the order sheets are listed in, never a lot.
+  it("DOS-039 sends out a sheet whose packed lot has nothing left in the godown instead of refusing 'insufficient stock'", async () => {
+    // The pilot's first real load-out: every piece of the lot was sold at pack, so taking the packed
+    // lot out of the godown again at confirm would drive on_hand below zero.
+    const inventory = app.get(InventoryService)
+    const soldOut = await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `SOLDOUT-${run}`,
+        mrpPaise: 2000,
+        expiryDate: '2027-06-30',
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 12,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-soldout`,
+        },
+      ])
+      return lot.id
+    })
+
+    const id = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos039')
+    const packed = await packOrder(id, 'dos039', packer, 1)
+    expect(packed.res.status).toBe(200)
+    expect((await balanceOf(soldOut, godown)).on_hand).toBe(0)
+
+    const sheet2 = uuidv7()
+    const built = await call<{ item: LoadSheetBody }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `sheet-dos039-${run}`,
+        id: sheet2,
+        toLocationId: van,
+        orderIds: [id],
+      },
+    )
+    expect(built.status).toBe(200)
+    expect(built.body.item.expectedPackages).toBe(1)
+
+    const res = await call<{ item: LoadSheetBody; challan: ChallanBody; dispatched: string[] }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheet2}/confirm`,
+      { idempotencyKey: `confirm-dos039-${run}`, countedPackages: 1, challanId: uuidv7() },
+    )
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    expect(res.body.item.status).toBe('confirmed')
+    expect(res.body.dispatched).toEqual([id])
+    expect(await ledgerFor(sheet2)).toHaveLength(0)
+    expect((await balanceOf(soldOut, godown)).on_hand).toBe(0)
+    expect((await balanceOf(soldOut, van)).on_hand).toBe(0)
+    expect(res.body.challan.lines).toContainEqual(
+      expect.objectContaining({ lotId: soldOut, qtyPcs: 12 }),
+    )
+    expect(await orderState(id)).toBe('dispatched')
+  })
+
+  // KEEP THIS THE LAST TEST: it leaves one confirmed order on an open wave, which a later test that
+  // counts the queue or the live sheets would trip over.
+  it('DOS-023: picklists.list is newest first by creation time — a wave made now tops a sheet whose id sorts higher, and the cursor walks every sheet once in created_at order, with and without a status filter', async () => {
+    interface SheetPage {
+      items: { id: string; createdAt: string; status: string }[]
+      nextCursor: string | null
+    }
+    // A sheet shaped like the demo seed's: its id sorts above every real UUIDv7 (the seed's ids are
+    // hashes with no time in them) but it was made a day ago. Version 7 and variant b keep it a valid
+    // uuid, so the list's output schema accepts it.
+    const olderId = `ffffffff-ffff-7fff-bfff-0000${run}`
+    await db.insert(picklists).values({
+      id: olderId,
+      tenantId,
+      picklistNo: `PICK-D23-${run}`,
+      locationId: godown,
+      status: 'packed',
+      orderIds: [],
+      pickDate: '2026-06-01',
+      createdAt: new Date(Date.now() - 86_400_000),
+    })
+
+    const orderId = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos023')
+    const { id: newest, res } = await wave([orderId], 'dos023')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    const first = await call<SheetPage>(app, manager, 'GET', '/warehouse/picklists', { limit: 1 })
+    expect(first.status).toBe(200)
+    expect(first.body.items[0]?.id).toBe(newest)
+
+    /** Follows `nextCursor` to the end and returns every sheet in the order the pages gave them. */
+    const walk = async (
+      filter: { status?: string },
+      limit: number,
+    ): Promise<SheetPage['items']> => {
+      const seen: SheetPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 1000; pages += 1) {
+        const page = await call<SheetPage>(app, manager, 'GET', '/warehouse/picklists', {
+          ...filter,
+          limit,
+          cursor,
+        })
+        expect(page.status, JSON.stringify(page.body)).toBe(200)
+        seen.push(...page.body.items)
+        if (page.body.nextCursor === null) return seen
+        cursor = page.body.nextCursor
+      }
+      throw new Error('picklists.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: SheetPage['items']): void => {
+      const ids = items.map((item) => item.id)
+      expect(new Set(ids).size, 'no sheet comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(Date.parse(item.createdAt), `${item.id} after ${before.id}`).toBeLessThanOrEqual(
+            Date.parse(before.createdAt),
+          )
+      })
+    }
+    const countOf = async (status?: string): Promise<number> =>
+      (
+        (
+          await db.execute(
+            status === undefined
+              ? sql`select count(*)::int as n from picklists where tenant_id = ${tenantId}`
+              : sql`select count(*)::int as n from picklists
+                     where tenant_id = ${tenantId} and status = ${status}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    const all = await walk({}, 2)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    expect(all[0]?.id).toBe(newest)
+    expect(all.at(-1)?.id).toBe(olderId)
+
+    // The read Pick & pack sends: one status at a time, paged by the same cursor.
+    const packed = await walk({ status: 'packed' }, 1)
+    expect(packed.every((item) => item.status === 'packed')).toBe(true)
+    expectEachOnceNewestFirst(packed)
+    expect(packed).toHaveLength(await countOf('packed'))
+    expect(packed.length).toBeGreaterThanOrEqual(2)
+    expect(packed.at(-1)?.id).toBe(olderId)
   })
 })

@@ -178,8 +178,9 @@ export const packConfirmations = pgTable(
 ).enableRLS()
 
 /**
- * What goes onto a vehicle: packed orders plus van-sale stock, by lot. Confirming the sheet posts the
- * `transfer_out`/`transfer_in` pair godown → vehicle, issues the Rule 55 challan and dispatches the orders.
+ * What goes onto a vehicle: packed orders plus van-sale stock, by lot. Confirming the sheet moves the
+ * counted van stock godown → vehicle as a `transfer_out`/`transfer_in` pair (the packed orders' pieces
+ * already left as `sale` at pack), issues the Rule 55 challan and dispatches the orders.
  *
  * THE MANAGER'S PIN IS GIVEN IN THE MANAGER APP (founder, 2026-09-05, docs/22 §8): the warehouse phone
  * builds the sheet and counts the cartons, the manager approves it from their own device, and only then

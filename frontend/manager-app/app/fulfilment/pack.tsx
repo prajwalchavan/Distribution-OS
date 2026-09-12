@@ -15,7 +15,6 @@
  * §6.4 names for exactly this and the only one that speaks cases and pieces at once.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { uuidv7 } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -63,8 +62,19 @@ export default function PickAndPack(): React.JSX.Element {
   const [packages, setPackages] = useState('1')
   const [confirming, setConfirming] = useState<'pick' | 'pack' | null>(null)
 
-  const sheets = useQuery(['warehouse', 'picklists'], () =>
-    api.api.warehouse.picklists.list({ limit: 50 }),
+  /*
+   * One read per live status, asked of the server (DOS-023), as the warehouse home does. Filtering
+   * one unfiltered page of 50 here dropped every live sheet that page left out, and the tab said
+   * "Nothing to pick or pack" while a wave was being picked.
+   */
+  const pickingSheets = useQuery(['warehouse', 'picklists', 'status', 'picking'], () =>
+    api.api.warehouse.picklists.list({ status: 'picking', limit: 50 }),
+  )
+  const openSheets = useQuery(['warehouse', 'picklists', 'status', 'open'], () =>
+    api.api.warehouse.picklists.list({ status: 'open', limit: 50 }),
+  )
+  const pickedSheets = useQuery(['warehouse', 'picklists', 'status', 'picked'], () =>
+    api.api.warehouse.picklists.list({ status: 'picked', limit: 50 }),
   )
   const detail = useQuery(
     ['warehouse', 'picklists', 'get', sheetId ?? 'none'],
@@ -79,7 +89,7 @@ export default function PickAndPack(): React.JSX.Element {
     (
       input: {
         id: string
-        lines: readonly { orderLineId: string; lotId: string; pickedQtyPcs: number }[]
+        lines: readonly { id: string; orderLineId: string; lotId: string; pickedQtyPcs: number }[]
       },
       meta,
     ) =>
@@ -87,7 +97,12 @@ export default function PickAndPack(): React.JSX.Element {
         id: input.id,
         idempotencyKey: meta.idempotencyKey,
         lines: input.lines.map((line) => ({
-          id: uuidv7(),
+          /*
+           * The sheet's OWN row id, so the count updates the row this screen shows and the server holds
+           * it to that row's ask (DOS-041). A fresh id inserted an ask-0 split row beside it on every
+           * record, left the shown row at its old count, and slipped past the per-row rule.
+           */
+          id: line.id,
           orderLineId: line.orderLineId,
           lotId: line.lotId,
           pickedQtyPcs: line.pickedQtyPcs,
@@ -107,14 +122,12 @@ export default function PickAndPack(): React.JSX.Element {
     { invalidates: [['warehouse'], ['orders'], ['billing'], ['inventory'], ['reporting']] },
   )
 
-  const activeSheets = (sheets.data?.items ?? []).filter(
-    (row) => row.status === 'open' || row.status === 'picking',
-  )
+  const activeSheets = [...(pickingSheets.data?.items ?? []), ...(openSheets.data?.items ?? [])]
   /**
    * "Ready to pack" is a sheet that has been PICKED and not yet packed. `packed` means every order
    * on the wave already has a pack confirmation, so it belongs in the history below, not the queue.
    */
-  const readyToPack = (sheets.data?.items ?? []).filter((row) => row.status === 'picked')
+  const readyToPack = pickedSheets.data?.items ?? []
 
   const lines = sheet?.lines ?? []
   const touched = lines.filter((line) => counts[line.id] !== undefined && line.lotId !== null)
@@ -128,6 +141,7 @@ export default function PickAndPack(): React.JSX.Element {
         .mutateAsync({
           id: sheetId,
           lines: touched.map((line) => ({
+            id: line.id,
             orderLineId: line.orderLineId,
             lotId: line.lotId as string,
             pickedQtyPcs: counts[line.id] ?? 0,
@@ -179,7 +193,7 @@ export default function PickAndPack(): React.JSX.Element {
         <Stack gap={6}>
           <Panel title={t('m20.sheet')} testID="pack-sheets">
             <Async
-              state={[sheets]}
+              state={[pickingSheets, openSheets]}
               rows={4}
               empty={activeSheets.length === 0}
               emptyMessage={t('m20.empty')}
@@ -254,7 +268,7 @@ export default function PickAndPack(): React.JSX.Element {
         <Stack gap={6}>
           <Panel title={t('m20.readyToPack')} testID="pack-ready">
             <Async
-              state={[sheets]}
+              state={[pickedSheets]}
               rows={4}
               empty={readyToPack.length === 0}
               emptyMessage={t('m20.empty')}

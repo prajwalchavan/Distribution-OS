@@ -387,6 +387,9 @@ export const strings = {
   'm7.noBill': 'No bill yet',
   'm7.alreadyApproved': 'This sheet is already approved',
   'm7.onlyDraft': 'Only a draft sheet can be cancelled',
+  'm7.waiting': 'Not out of the godown yet',
+  'm7.waitingEmpty': 'No load sheet is waiting',
+  'm7.history': 'Checked out and cancelled',
 
   // --- M6 Billing desk -----------------------------------------------------------------------------
   'm6.tab': 'Billing desk',

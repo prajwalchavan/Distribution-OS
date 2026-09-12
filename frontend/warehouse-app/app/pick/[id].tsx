@@ -16,7 +16,15 @@
  *
  * There is no Save step (UX-00 §9.4). "Confirm" only exists to close the sheet in the reader's mind;
  * the pieces have already been recorded, one tap at a time.
+ *
+ * THERE IS A START STEP (DOS-040). A wave the desk raises is `open`, and the device handler accepts a
+ * pick only on a `picking` sheet — starting moves every order `confirmed → picking` and takes away the
+ * manager's cancel, so it is an online call (`warehouse.picklists.start`), never a side effect of a
+ * queued pick. Until the device knows the sheet has started (the Start reply, or the next pull) the
+ * rows show what to pick but carry no Picked / Short, and the bottom bar holds only "Start picking":
+ * a tap that could only ever be refused is never queued.
  */
+import { useApi, useMutation } from '@dos/api-client/react'
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Box,
@@ -57,6 +65,7 @@ export default function PickingSheet(): React.JSX.Element {
   const params = useLocalSearchParams<{ id: string }>()
   const picklistId = typeof params.id === 'string' ? params.id : ''
 
+  const api = useApi()
   const engine = useSyncEngine()
   const status = useSyncStatus()
   const hydrated = useHydrated()
@@ -64,11 +73,47 @@ export default function PickingSheet(): React.JSX.Element {
   const { rows, loading } = useLocalPickLines(picklistId)
   const recordPick = useRecordPick()
 
+  const start = useMutation(
+    (id: string, meta) =>
+      api.api.warehouse.picklists.start({ id, idempotencyKey: meta.idempotencyKey }),
+    {
+      invalidates: [['picklists']],
+      onSuccess: () => {
+        haptics.success()
+        void engine?.sync('picklist-started')
+      },
+      onError: () => {
+        haptics.error()
+      },
+    },
+  )
+  /*
+   * The Start reply wins until the next pull repaints the local row: `engine.sync` returns early while
+   * a pull is already running, so the local `picklists` row can still read `open` after a start that
+   * succeeded. The reply counts only for THIS sheet, in case the router reuses the screen for another id.
+   * An unknown status locks too: the `pick_lines` rows can land a pull page before their sheet row.
+   */
+  const startedHere =
+    start.data !== undefined && start.data.item.id === picklistId
+      ? start.data.item.status
+      : undefined
+  const liveStatus = startedHere ?? sheet?.status
+  const notStarted = liveStatus === 'open'
+  const locked = liveStatus === undefined || notStarted
+
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
   const [shortReason, setShortReason] = useState<string>(REASON_KEYS[0])
   const [scanNote, setScanNote] = useState<string | null>(null)
   const [view, setView] = useState<'todo' | 'all'>('todo')
+  /*
+   * DOS-041: a batch row the wave asked N pieces of can never save more than N — the server refuses it,
+   * because the pack would take the extra pieces from a lot that was never asked to hold them. The pad
+   * still takes every key (UX-00 §6.3, no silent clamping): over the ask it says why, and Short refuses
+   * to save. A split row asks for nothing of its own (0) and is bounded by its line, as on the server.
+   */
+  const ask = shortFor?.line.requested_qty_pcs ?? 0
+  const overAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) > ask
 
   const picked = rows.filter((row) => row.state !== 'todo').length
   const shown = useMemo(
@@ -79,6 +124,7 @@ export default function PickingSheet(): React.JSX.Element {
 
   /** A tap that means "all of it came off the rack" — the common case, one tap, no keypad. */
   const pickInFull = (row: PickRow): void => {
+    if (locked) return
     haptics.success()
     void recordPick({
       line: row.line,
@@ -89,7 +135,11 @@ export default function PickingSheet(): React.JSX.Element {
 
   const saveShort = (): void => {
     const row = shortFor
-    if (row === null) return
+    if (row === null || locked) return
+    if (overAsk) {
+      haptics.error()
+      return
+    }
     haptics.warning()
     void recordPick({
       line: row.line,
@@ -102,6 +152,7 @@ export default function PickingSheet(): React.JSX.Element {
 
   /** Scanning is a convenience, never the only way: every row is reachable by thumb (docs/23 §4.1). */
   const scan = (): void => {
+    if (locked) return
     void camera.scan().then((code) => {
       if (code === null) {
         setScanNote(t('w.scanNothing'))
@@ -123,7 +174,10 @@ export default function PickingSheet(): React.JSX.Element {
       context={sheet === null ? t('w5.title') : t('w5.progress', { picked, total: rows.length })}
       chips={
         sheet === null ? undefined : (
-          <StatusChip label={sheet.status} family={workFamily(sheet.status)} />
+          <StatusChip
+            label={liveStatus ?? sheet.status}
+            family={workFamily(liveStatus ?? sheet.status)}
+          />
         )
       }
       testID="w5-screen"
@@ -148,35 +202,64 @@ export default function PickingSheet(): React.JSX.Element {
           <Txt field="moneyM" desk="cell" numeric>
             {t('w5.progress', { picked, total: rows.length })}
           </Txt>
-          <Row gap={8} wrap>
-            <Box grow>
-              <Button
-                label={t('w.openScanner')}
-                variant="secondary"
-                onPress={scan}
-                disabled={!camera.available}
-                {...(camera.available ? {} : { disabledReason: t('w.scanUnavailable') })}
-                testID="w5-scan"
-              />
-            </Box>
-            <Box grow>
-              <Button
-                label={t('w5.confirm')}
-                variant="primary"
-                disabled={left > 0}
-                {...(left > 0 ? { disabledReason: pl(t, 'w5.linesLeft', left) } : {})}
-                onPress={() => {
-                  haptics.success()
-                  router.push('/pack')
-                }}
-                testID="w5-confirm"
-              />
-            </Box>
-          </Row>
+          {/*
+           * Not started: ONE action. Scan is hidden rather than disabled, because the kit prints a
+           * disabled button's reason beneath it — the not-started sentence would be said twice on a
+           * phone, over the scanner's own "unavailable" reason.
+           */}
+          {notStarted ? (
+            <Button
+              label={t('w5.start')}
+              variant="primary"
+              loading={start.status === 'pending'}
+              disabled={!status.online}
+              {...(status.online ? {} : { disabledReason: t('w5.startOffline') })}
+              onPress={() => {
+                start.mutate(picklistId)
+              }}
+              testID="w5-start"
+            />
+          ) : (
+            <Row gap={8} wrap>
+              <Box grow>
+                <Button
+                  label={t('w.openScanner')}
+                  variant="secondary"
+                  onPress={scan}
+                  disabled={!camera.available}
+                  {...(camera.available ? {} : { disabledReason: t('w.scanUnavailable') })}
+                  testID="w5-scan"
+                />
+              </Box>
+              <Box grow>
+                <Button
+                  label={t('w5.confirm')}
+                  variant="primary"
+                  disabled={left > 0}
+                  {...(left > 0 ? { disabledReason: pl(t, 'w5.linesLeft', left) } : {})}
+                  onPress={() => {
+                    haptics.success()
+                    router.push('/pack')
+                  }}
+                  testID="w5-confirm"
+                />
+              </Box>
+            </Row>
+          )}
         </Stack>
       }
     >
       <Stack gap={5}>
+        {notStarted ? (
+          <Txt field="body" desk="body" testID="w5-not-started">
+            {t('w5.notStarted')}
+          </Txt>
+        ) : null}
+        {start.error === undefined ? null : (
+          <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-start-error">
+            {`${t('w5.startFailed')}: ${start.error.message}`}
+          </Txt>
+        )}
         {picked === 0 ? null : (
           <Segments
             testID="w5-view"
@@ -220,6 +303,7 @@ export default function PickingSheet(): React.JSX.Element {
               <PickLineCard
                 key={row.line.id}
                 row={row}
+                locked={locked}
                 onPicked={() => {
                   pickInFull(row)
                 }}
@@ -272,10 +356,17 @@ export default function PickingSheet(): React.JSX.Element {
             mode="count"
             label={t('w5.enterPieces')}
             value={shortPieces}
+            expected={ask > 0 ? ask : null}
+            expectedLabel={t('w5.bin', { pieces: ask })}
             onChange={setShortPieces}
             doneLabel={t('w5.short')}
             onDone={saveShort}
           />
+          {overAsk ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
+              {t('w5.overAsk', { pieces: ask })}
+            </Txt>
+          ) : null}
         </Stack>
       </Sheet>
     </Screen>
@@ -289,13 +380,19 @@ export default function PickingSheet(): React.JSX.Element {
  * It is not a `<ListRow>`: that row carries one figure and one chip, and this one carries a lot line,
  * a quantity in two units and two full-width actions — which is exactly the case §6.6 says to compose
  * rather than to force.
+ *
+ * The actions are HIDDEN while the sheet is locked, not disabled: the kit prints `disabledReason` under
+ * every disabled button, so two per row would repeat one sentence down the whole sheet.
  */
 function PickLineCard({
   row,
+  locked,
   onPicked,
   onShort,
 }: {
   row: PickRow
+  /** The sheet is not known to be started: show what to pick, offer no Picked / Short (DOS-040). */
+  locked: boolean
   onPicked: () => void
   onShort: () => void
 }): React.JSX.Element {
@@ -351,7 +448,7 @@ function PickLineCard({
             <StatusChip label={t('w.savedOnDevice')} family="clay" />
           ) : null}
         </Row>
-      ) : (
+      ) : locked ? null : (
         /*
          * UX-00 §9.4 draws these SIDE BY SIDE — "[ Picked ] [ Short ], 76 dp primary-per-row ·
          * secondary, 25 dp gap [UX-01 W1]". A kit `<Button>` at any field size defaults to

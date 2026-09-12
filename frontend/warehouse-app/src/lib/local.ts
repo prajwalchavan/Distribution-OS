@@ -82,7 +82,10 @@ export interface PickRow {
   mrpPaise: number | null
   /** True when an earlier-expiry lot was available and this one was taken anyway. */
   fefoOverride: boolean
-  /** Picked, short with a reason, or still to do. */
+  /**
+   * Picked, short with a reason, or still to do. A row whose write the server REFUSED
+   * (`_pending = 'rejected'`) is still to do, whatever this device wrote into it (DOS-042).
+   */
   state: 'todo' | 'picked' | 'short'
 }
 
@@ -241,12 +244,19 @@ export function useLocalPickLines(
         caseSize: caseSize > 0 ? caseSize : 1,
         mrpPaise: lot?.mrp_paise ?? variant?.mrp_paise ?? null,
         fefoOverride: BOOL(line.fefo_override),
+        /*
+         * DOS-042: a refused write is not a pick. The engine keeps the values this device wrote
+         * optimistically and only marks the row `rejected`, so reading them would count the row as
+         * picked and enable "Take it to packing" until the next pull replaced it with the server's copy.
+         */
         state:
-          line.short_reason !== null && line.short_reason !== ''
-            ? 'short'
-            : line.picked_qty_pcs >= line.requested_qty_pcs && line.requested_qty_pcs > 0
-              ? 'picked'
-              : 'todo',
+          line._pending === 'rejected'
+            ? 'todo'
+            : line.short_reason !== null && line.short_reason !== ''
+              ? 'short'
+              : line.picked_qty_pcs >= line.requested_qty_pcs && line.requested_qty_pcs > 0
+                ? 'picked'
+                : 'todo',
       }
     })
     return built.sort((a, b) => {
