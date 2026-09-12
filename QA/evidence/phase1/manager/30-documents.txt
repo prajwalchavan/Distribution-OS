@@ -1,0 +1,146 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+7.14 edits per ten lines
+Documents to review
+Supplier bills
+Documents
+Gate count
+Supplier	Bill no.	Bill date	Amount ₹	Lines	Must fix	Unmatched	Waiting	Locked by
+
+Guiltfree Industries — Gurugram
+	
+FA/TY/26-27/1187
+	
+12 Sep 2026
+	9,854.00	
+2
+	Needs review	
+0
+	
+6 h
+	
+—
+
+
+Alan's Food Products — Bhiwandi
+	
+ALA/26-27/00491
+	
+12 Sep 2026
+	10,896.00	
+3
+	Needs review	
+0
+	
+5 h
+	
+Being reviewed by Sunil Tarsun
+
+
+Reliance Consumer Products — Kalyan Depot
+	
+REL/26-27/00495
+	
+12 Sep 2026
+	3,45,530.00	
+3
+	Extracted	
+0
+	
+4 h
+	
+—
+
+
+Guiltfree Industries — Gurugram
+	
+GFI/26-27/00489
+	
+12 Sep 2026
+	21,773.00	
+4
+	2	
+2
+	
+5 h
+	
+Being reviewed by Vikas Kadam
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GUR/26-27/00490
+	
+11 Sep 2026
+	44,218.00	
+4
+	Reviewed	
+0
+	
+29 h
+	
+—
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GUR/26-27/00496
+	
+12 Sep 2026
+	44,218.00	
+4
+	Extracted	
+0
+	
+3 h
+	
+—
+
+
+MOM Foods — Bikaner
+	
+—
+	
+—
+	—	
+—
+	Failed	
+0
+	
+47 h
+	
+—
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GKA/26-27/00500
+	
+5 Sep 2026
+	44,218.00	
+4
+	1	
+0
+	
+70 h
+	
+—
+
+8 rows								

@@ -1,0 +1,48 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+9 left to bill
+Billing desk
+Billing desk
+Bills issued
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Billing desk
+9 confirmed orders
+SO-0867
+Confirmed
+5,367.00
+SO-0868
+Confirmed
+17,736.00
+SO-9001
+Packed
+2,327.00
+SO-0870
+Confirmed
+7,361.00
+SO-9003
+Confirmed
+35.00
+SO-0872
+Being picked
+90,319.00
+SO-0873
+Confirmed
+12,837.00
+SO-0874
+Being picked
+7,690.00
+SO-0877
+Confirmed
+17,531.00
+Packed, not billed
+0 packs already gone out
+Nothing waiting to be billed
+Today
+Orders
+Fulfilment
+Billing

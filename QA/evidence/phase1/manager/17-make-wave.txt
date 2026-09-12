@@ -1,0 +1,788 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Fulfilment
+Waves
+Pick & pack
+Load-out
+Waiting to be picked
+Khadakpada
+Station Road
+Kalyan West Market
+Birla College Road
+Order	Shop	Beat	Lines	Pieces	Confirmed	On the sheet
+
+SO-0877
+	
+Bhosale Traders
+	
+Khadakpada
+	
+3
+	750	
+12 Sep
+	Yes
+
+SO-0850
+	
+Ambika Provision Store
+	
+Station Road
+	
+3
+	390	
+10 Sep
+	No
+
+SO-0873
+	
+Shree Ganesh Kirana
+	
+Station Road
+	
+4
+	163	
+12 Sep
+	No
+
+SO-9003
+	
+Vitthal Traders
+	
+Kalyan West Market
+	
+1
+	2	
+12 Sep
+	No
+
+SO-0870
+	
+Nutan Kirana Stores
+	
+Birla College Road
+	
+3
+	158	
+12 Sep
+	No
+
+SO-9001
+	
+Mahalaxmi General Stores
+	
+Station Road
+	
+1
+	72	
+10 Sep
+	No
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+Kalyan West Market
+	
+5
+	566	
+12 Sep
+	No
+
+SO-0867
+	
+Patil General Store
+	
+Kalyan West Market
+	
+4
+	337	
+12 Sep
+	No
+
+SO-0845
+	
+Nutan Kirana Stores
+	
+Birla College Road
+	
+2
+	256	
+10 Sep
+	No
+9				2694		
+The picker gets one sheet, in FEFO order, for every order you tick.
+Picking sheets
+Sheet no.	State	Orders	Asked	Picked	Picker	Pick date
+
+PICK-0047
+	Packed	
+15
+	
+5611
+	
+5611
+	
+Dinesh Patil
+	
+7 Aug
+
+
+PICK-0077
+	Picked	
+12
+	
+5519
+	
+5519
+	
+Dinesh Patil
+	
+11 Sep
+
+
+PICK-0009
+	Packed	
+9
+	
+3233
+	
+3233
+	
+Dinesh Patil
+	
+24 Jun
+
+
+PICK-0071
+	Packed	
+15
+	
+5636
+	
+5636
+	
+Dinesh Patil
+	
+4 Sep
+
+
+PICK-0019
+	Packed	
+14
+	
+7067
+	
+7067
+	
+Dinesh Patil
+	
+6 Jul
+
+
+PICK-0067
+	Packed	
+14
+	
+8321
+	
+8321
+	
+Dinesh Patil
+	
+31 Aug
+
+
+PICK-0062
+	Packed	
+11
+	
+17300
+	
+17300
+	
+Kavita Sawant
+	
+25 Aug
+
+
+PICK-0012
+	Packed	
+13
+	
+7574
+	
+7574
+	
+Kavita Sawant
+	
+27 Jun
+
+
+PICK-0001
+	Packed	
+8
+	
+3662
+	
+3662
+	
+Dinesh Patil
+	
+15 Jun
+
+
+PICK-0013
+	Packed	
+11
+	
+11199
+	
+11199
+	
+Dinesh Patil
+	
+29 Jun
+
+
+PICK-0011
+	Packed	
+15
+	
+5339
+	
+5339
+	
+Dinesh Patil
+	
+26 Jun
+
+
+PICK-0016
+	Packed	
+10
+	
+6690
+	
+6690
+	
+Kavita Sawant
+	
+2 Jul
+
+
+PICK-0064
+	Packed	
+13
+	
+4244
+	
+4244
+	
+Kavita Sawant
+	
+27 Aug
+
+
+PICK-0007
+	Packed	
+12
+	
+8754
+	
+8754
+	
+Dinesh Patil
+	
+22 Jun
+
+
+PICK-0065
+	Packed	
+14
+	
+8205
+	
+8205
+	
+Dinesh Patil
+	
+28 Aug
+
+
+PICK-0061
+	Packed	
+7
+	
+6033
+	
+6033
+	
+Dinesh Patil
+	
+24 Aug
+
+
+PICK-0037
+	Packed	
+11
+	
+6304
+	
+6304
+	
+Dinesh Patil
+	
+27 Jul
+
+
+PICK-0005
+	Packed	
+13
+	
+5143
+	
+5143
+	
+Dinesh Patil
+	
+19 Jun
+
+
+PICK-0072
+	Packed	
+11
+	
+6625
+	
+6625
+	
+Kavita Sawant
+	
+5 Sep
+
+
+PICK-0041
+	Packed	
+16
+	
+10451
+	
+10451
+	
+Dinesh Patil
+	
+31 Jul
+
+
+PICK-0025
+	Packed	
+9
+	
+6282
+	
+6282
+	
+Dinesh Patil
+	
+13 Jul
+
+
+PICK-0028
+	Packed	
+6
+	
+1602
+	
+1602
+	
+Kavita Sawant
+	
+16 Jul
+
+
+PICK-0029
+	Packed	
+18
+	
+9599
+	
+9599
+	
+Dinesh Patil
+	
+17 Jul
+
+
+PICK-0002
+	Packed	
+6
+	
+1894
+	
+1894
+	
+Kavita Sawant
+	
+16 Jun
+
+
+PICK-0018
+	Packed	
+11
+	
+6504
+	
+6504
+	
+Kavita Sawant
+	
+4 Jul
+
+
+PICK-0073
+	Packed	
+10
+	
+7852
+	
+7852
+	
+Dinesh Patil
+	
+7 Sep
+
+
+PICK-0027
+	Packed	
+9
+	
+6680
+	
+6680
+	
+Dinesh Patil
+	
+15 Jul
+
+
+PICK-0006
+	Packed	
+10
+	
+4491
+	
+4491
+	
+Kavita Sawant
+	
+20 Jun
+
+
+PICK-0051
+	Packed	
+10
+	
+5543
+	
+5543
+	
+Dinesh Patil
+	
+12 Aug
+
+
+PICK-0020
+	Packed	
+12
+	
+4985
+	
+4985
+	
+Kavita Sawant
+	
+7 Jul
+
+
+PICK-0045
+	Packed	
+11
+	
+3845
+	
+3845
+	
+Dinesh Patil
+	
+5 Aug
+
+
+PICK-0059
+	Packed	
+17
+	
+7721
+	
+7721
+	
+Dinesh Patil
+	
+21 Aug
+
+
+PICK-0053
+	Packed	
+15
+	
+7284
+	
+7284
+	
+Dinesh Patil
+	
+14 Aug
+
+
+PICK-0050
+	Packed	
+8
+	
+2432
+	
+2432
+	
+Kavita Sawant
+	
+11 Aug
+
+
+PICK-0026
+	Packed	
+13
+	
+9075
+	
+9075
+	
+Kavita Sawant
+	
+14 Jul
+
+
+PICK-0031
+	Packed	
+12
+	
+7851
+	
+7851
+	
+Dinesh Patil
+	
+20 Jul
+
+
+PICK-0033
+	Packed	
+10
+	
+3610
+	
+3610
+	
+Dinesh Patil
+	
+22 Jul
+
+
+PICK-0063
+	Packed	
+12
+	
+6499
+	
+6499
+	
+Dinesh Patil
+	
+26 Aug
+
+
+PICK-0003
+	Packed	
+9
+	
+4574
+	
+4574
+	
+Dinesh Patil
+	
+17 Jun
+
+
+PICK-0044
+	Packed	
+7
+	
+3172
+	
+3172
+	
+Kavita Sawant
+	
+4 Aug
+
+
+PICK-0069
+	Packed	
+10
+	
+3832
+	
+3832
+	
+Dinesh Patil
+	
+2 Sep
+
+
+PICK-0068
+	Packed	
+12
+	
+7622
+	
+7622
+	
+Kavita Sawant
+	
+1 Sep
+
+
+PICK-0043
+	Packed	
+12
+	
+7501
+	
+7501
+	
+Dinesh Patil
+	
+3 Aug
+
+
+PICK-0017
+	Packed	
+14
+	
+5107
+	
+5107
+	
+Dinesh Patil
+	
+3 Jul
+
+
+PICK-0074
+	Packed	
+11
+	
+5470
+	
+5470
+	
+Kavita Sawant
+	
+8 Sep
+
+
+PICK-0040
+	Packed	
+9
+	
+5996
+	
+5996
+	
+Kavita Sawant
+	
+30 Jul
+
+
+PICK-0042
+	Packed	
+11
+	
+7785
+	
+7785
+	
+Kavita Sawant
+	
+1 Aug
+
+
+PICK-0075
+	Packed	
+11
+	
+3509
+	
+3509
+	
+Dinesh Patil
+	
+9 Sep
+
+
+PICK-0060
+	Packed	
+9
+	
+4176
+	
+4176
+	
+Kavita Sawant
+	
+22 Aug
+
+
+PICK-0038
+	Packed	
+6
+	
+2194
+	
+2194
+	
+Kavita Sawant
+	
+28 Jul
+Make a picking sheet
+1 orders · 750 pc
+The picker gets one sheet, in FEFO order, for every order you tick.
+Cancel
+Make a picking sheet
+1 orders · 750 pc
+Make a picking sheet

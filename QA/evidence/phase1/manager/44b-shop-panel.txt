@@ -1,0 +1,866 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone
+
+R-0046
+	
+Khan General Store
+	
+Kolsewadi
+	
+D
+	
+Pays on delivery
+	0.00	Blocked	
++918976068981
+
+
+R-0009
+	
+Ambika Provision Store
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918291012313
+
+
+R-0011
+	
+Sai Baba Kirana
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++918655015314
+
+
+R-0040
+	
+Shubhalabh Stores
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++917021059776
+
+
+R-0020
+	
+Joshi Kirana Stores
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++917021029160
+
+
+R-0018
+	
+Patil General Store
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,50,000.00	Blocked	
++919821026123
+
+
+R-0010
+	
+Balaji Wholesale Stores
+	
+Station Road
+	
+A
+	
+Credit
+	10,00,000.00	Warn only	
++919867013861
+
+
+R-0012
+	
+Vitthal Traders
+	
+Kalyan West Market
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918080016866
+
+
+R-0029
+	
+Iyer Provision Store
+	
+Khadakpada
+	
+D
+	
+Pays in advance
+	0.00	Blocked	
++918291042877
+
+
+R-0034
+	
+City Light Provision
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918452050546
+
+
+R-0025
+	
+Yadav General Store
+	
+Khadakpada
+	
+C
+	
+Credit
+	40,000.00	Blocked	
++919004036836
+
+
+R-0001
+	
+Shree Ganesh Kirana
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919892000001
+
+
+R-0003
+	
+Mahalaxmi General Stores
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919619003067
+
+
+R-0037
+	
+Sharma Kirana Stores
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++917738055152
+
+
+R-0047
+	
+Mangal Traders
+	
+Kolsewadi
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919930070506
+
+
+R-0048
+	
+Dnyandeep Stores
+	
+Kolsewadi
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++918879072033
+
+
+R-0027
+	
+Gupta Kirana Stores
+	
+Khadakpada
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919930039901
+
+
+R-0059
+	
+Gurukrupa Provision
+	
+Birla College Road
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919322088865
+
+
+R-0017
+	
+Deshmukh Kirana
+	
+Kalyan West Market
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++917738024559
+
+
+R-0023
+	
+Bhosale Traders
+	
+Khadakpada
+	
+B
+	
+Credit
+	60,000.00	Warn only	
++919619033779
+
+
+R-0013
+	
+Laxmi Narayan Stores
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,50,000.00	Warn only	
++919769018420
+
+
+R-9024
+	
+Surat Sales Agency
+	
+—
+	
+B
+	
+Credit
+	2,00,000.00	Warn only	
++919824000024
+
+
+R-0028
+	
+Singh General Store
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918879041388
+
+
+R-0060
+	
+Vasudha Stores
+	
+Birla College Road
+	
+C
+	
+Credit
+	40,000.00	Blocked	
++917021090416
+
+
+R-0057
+	
+Hariom Kirana Bhandar
+	
+Birla College Road
+	
+B
+	
+Credit
+	1,50,000.00	Blocked	
++917738085769
+
+
+R-0014
+	
+Ekvira Kirana
+	
+Kalyan West Market
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918452019976
+
+
+R-0008
+	
+Krishna Kirana Stores
+	
+Station Road
+	
+D
+	
+Pays on delivery
+	0.00	Blocked	
++918879010767
+
+
+R-0016
+	
+Navjeevan Super Bazar
+	
+Kalyan West Market
+	
+A
+	
+Credit
+	2,00,000.00	Warn only	
++919702022997
+
+
+R-0055
+	
+Ashirwad Provision
+	
+Birla College Road
+	
+C
+	
+Credit
+	10,000.00	Needs approval	
++919820082681
+
+
+R-0019
+	
+More Provision Store
+	
+Kalyan West Market
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919322027592
+
+
+R-0031
+	
+Prerna Super Market
+	
+Godrej Hill
+	
+A
+	
+Credit
+	6,00,000.00	Warn only	
++918655045958
+
+
+R-0058
+	
+Birla Road Kirana Mart
+	
+Birla College Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919821087316
+
+
+R-0038
+	
+Rukmini Provision
+	
+Godrej Hill
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919821056659
+
+
+R-0030
+	
+Reddy Traders
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919867044465
+
+
+R-0024
+	
+Chavan Kirana Stores
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919920035258
+
+
+R-0007
+	
+Ganesh General Store
+	
+Station Road
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919930009223
+
+
+R-0053
+	
+Sahyadri Super Bazar
+	
+Birla College Road
+	
+A
+	
+Credit
+	10,00,000.00	Warn only	
++919769079698
+
+
+R-0026
+	
+Mishra Provision Store
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918976038319
+
+
+R-0050
+	
+Nakshatra Kirana
+	
+Kolsewadi
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919867075093
+
+
+R-0054
+	
+Nutan Kirana Stores
+	
+Birla College Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918452081237
+
+
+R-0051
+	
+Rameshwar General Store
+	
+Birla College Road
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++918655076626
+
+
+R-0041
+	
+Trimurti General Store
+	
+Kolsewadi
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919892061289
+
+
+R-0042
+	
+Vaibhav Kirana Mart
+	
+Kolsewadi
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919167062804
+
+
+R-0004
+	
+Sai Krupa Super Bazar
+	
+Station Road
+	
+A
+	
+Credit
+	6,00,000.00	Warn only	
++919920004603
+
+
+R-0032
+	
+Ansari Kirana Stores
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918080047550
+
+
+R-0005
+	
+Jai Bhavani Stores
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919004006141
+
+
+R-0015
+	
+Ganpati General Stores
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919820021437
+
+
+R-0036
+	
+Friends Corner Stores
+	
+Godrej Hill
+	
+C
+	
+Credit
+	40,000.00	Blocked	
++919702053647
+
+
+R-0045
+	
+Kolsewadi Corner Store
+	
+Kolsewadi
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919004067458
+
+
+R-0056
+	
+Meghana General Store
+	
+Birla College Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919702084224
+
+
+R-0002
+	
+Om Sai Provision Store
+	
+Station Road
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919167001533
+
+
+R-0021
+	
+Kadam Stores
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919892030633
+
+
+R-0052
+	
+Karve Provision
+	
+Birla College Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918080078161
+
+
+R-0044
+	
+Sujata Stores
+	
+Kolsewadi
+	
+C
+	
+Credit
+	10,000.00	Needs approval	
++919920065840
+
+
+R-0033
+	
+New Bombay Stores
+	
+Godrej Hill
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++919769049047
+
+
+R-0006
+	
+Shivshakti Traders
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918976007681
+
+
+R-0022
+	
+Pawar General Store
+	
+Khadakpada
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919167032205
+
+
+R-0039
+	
+Gavhane Kirana
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919322058265
+
+
+R-0035
+	
+Metro Kirana Bazar
+	
+Godrej Hill
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919820052144
+
+
+R-0043
+	
+Anand Bhavan Provision
+	
+Kolsewadi
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919619064321
+
+60 rows							
+Patil General Store
+Close
+Code
+R-0018
+Beat
+Kalyan West Market
+Phone
++919821026123
+GSTIN
+27WPNPP6055Y1ZU
+Owes ₹
+₹60,422.50
+6042250 overdue
+Oldest bill
+17 Jul 2026
+How they buy
+Usually pays in 17 days
+Last order 12 Sep
+Statement of account
+Invoice · INV/0037
+19 Jun 2026
+₹17,197.00
+Invoice · INV/0105
+26 Jun 2026
+₹19,106.00
+Invoice · INV/0175
+3 Jul 2026
+₹22,789.00
+Receipt · RCPT-0040
+6 Jul 2026
+₹21,682.00
+Receipt · RCPT-0043
+7 Jul 2026
+₹13,667.00
+Invoice · INV/0204
+7 Jul 2026
+₹21,561.00
+Invoice · INV/0232
+10 Jul 2026
+₹28,368.00
+Invoice · INV/0275
+14 Jul 2026
+₹37,011.00
+Invoice · INV/0315
+17 Jul 2026
+₹42,580.00
+Receipt · RCPT-0097
+18 Jul 2026
+₹41,778.00
+Invoice · INV/0349
+21 Jul 2026
+₹49,457.00
+Invoice · INV/0434
+31 Jul 2026
+₹57,228.00
+Change the credit terms
+Send the statement
+Link the shopkeeper

@@ -117,3 +117,20 @@ Notes learned this phase:
 - Android: the first bundle still triggers "System UI isn't responding"; `android-login.sh` waits for the sign-in form, so tap *Wait* (`ui.py text Wait`) and it proceeds. Owner APK signed in fine after that. Remove `adb reverse` afterwards (`adb reverse --remove-all`).
 - iOS: `ios-login.mjs 5173 sunil.tarsun owner` worked first time with Appium already on :4723 and the simulator booted headlessly (`xcrun simctl boot <udid>`); Expo Go's gear overlay sits over the "⋯" menu in screenshots.
 - `psql` path must be exported (`export PATH=/opt/homebrew/opt/postgresql@17/bin:$PATH`); zsh does not word-split a `$P` command string — define a function instead.
+
+Notes from the Manager walk (2026-09-12):
+- `pw-server.mjs` can hang between sessions (CDP socket connects, no answer → `connectOverCDP: Timeout 30000ms`). Kill `pw-server.mjs`
+  and the `remote-debugging-port=9333` Chromium, relaunch, then sign in again — the old page is lost.
+- Side panels are `.dos-backdrop` overlays (`data-testid` = `invoice-panel`, `wave-dialog`, …). While one is open, page-level
+  locators resolve but the click is intercepted; target the button INSIDE the overlay (`page.locator('.dos-backdrop').last().getByRole(...)`)
+  or press Escape first. Confirm dialogs stack a second backdrop over the panel.
+- To see WHY a mutation did nothing, wrap the click in `page.waitForResponse(r => r.request().method() === 'POST' …)` and read
+  `resp.text()` — the app shows no error text (DOS-029). pw.mjs still prints `[failed requests]` per command.
+- After an uncaught ApiError in the dev build, Expo leaves an empty `#error-overlay` that intercepts every pointer event
+  (Playwright: "intercepts pointer events", `isVisible()` false). Reload the page.
+- `refs` indexes shift between roles (the accountant's rail has fewer links) — filter by `data-testid` (3rd column), not by index.
+- A manager API token: `POST /auth/login {username, password, deviceId:<uuid>}` on :3000 (deviceId must be a UUID); 15 min life.
+- The worker died once during the walk (log stopped, no process); restarted with `DATABASE_URL=…/dos_qa pnpm --filter @dos/worker dev`.
+  A first pgrep pattern missed the surviving old pnpm wrapper and produced a duplicate worker — check `pgrep -fl "@dos/worker"` before starting one.
+- Android: after `android-login.sh`, drive with `ui.py text <label>` + `adb shell input tap`; the bottom tabs are Today/Orders/Fulfilment/Billing,
+  the rest is behind "⋯". Row cells with no text show as "￼" in `ui.py texts` (e.g. the hidden shop-name column).

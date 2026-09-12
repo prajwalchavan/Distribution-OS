@@ -1,0 +1,2241 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Receipts
+7 days
+30 days
+90 days
+Export CSV
+Record a payment
+Receipts
+Day-end
+Claims
+Receipt no.	Shop	Mode	Amount ₹	On account ₹	State	Received	Taken by
+
+RCPT-VAN-0001
+	
+Ambika Provision Store
+	
+Cash
+	12,569.00	0.00	Collected	
+12 Sep
+	
+Ganesh More
+
+
+RCPT-0699
+	
+Prerna Super Market
+	
+UPI
+	71,780.10	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0698
+	
+Balaji Wholesale Stores
+	
+Cash
+	98,992.72	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0697
+	
+New Bombay Stores
+	
+Bank transfer
+	28,759.08	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0696
+	
+Jai Bhavani Stores
+	
+Cash
+	6,990.00	0.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0695
+	
+Mahalaxmi General Stores
+	
+UPI
+	12,307.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0694
+	
+Metro Kirana Bazar
+	
+Cash
+	4,746.00	4,746.00	Collected	
+12 Sep
+	
+Amit Pawar
+
+
+RCPT-0693
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,511.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0692
+	
+Shubhalabh Stores
+	
+Cash
+	7,224.00	0.00	Collected	
+12 Sep
+	
+Amit Pawar
+
+
+RCPT-0691
+	
+Chavan Kirana Stores
+	
+Cash
+	3,716.00	3,716.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0690
+	
+Kadam Stores
+	
+Cash
+	1,818.00	1,818.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0689
+	
+Deshmukh Kirana
+	
+Cash
+	5,281.00	0.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0688
+	
+Pawar General Store
+	
+Cash
+	4,914.00	0.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0687
+	
+Shree Ganesh Kirana
+	
+Cash
+	4,443.00	0.00	Collected	
+12 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0686
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	45,511.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0685
+	
+Prerna Super Market
+	
+UPI
+	16,010.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0684
+	
+Balaji Wholesale Stores
+	
+UPI
+	72,158.77	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0683
+	
+Ambika Provision Store
+	
+UPI
+	12,686.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-CHQ-0001
+	
+Dnyandeep Stores
+	
+Cheque
+	29,952.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-0682
+	
+Gavhane Kirana
+	
+UPI
+	4,425.00	0.00	Collected	
+12 Sep
+	
+Meena Joshi
+
+
+RCPT-9004
+	
+Krishna Kirana Stores
+	
+Cash
+	582.00	0.00	Collected	
+11 Sep
+	
+Ganesh More
+
+
+RCPT-0681
+	
+Sai Krupa Super Bazar
+	
+Cash
+	31,416.00	0.00	Collected	
+11 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0680
+	
+Vaibhav Kirana Mart
+	
+Cheque
+	19,213.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0679
+	
+Birla Road Kirana Mart
+	
+UPI
+	1,490.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0678
+	
+Deshmukh Kirana
+	
+Cash
+	1,359.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0677
+	
+Om Sai Provision Store
+	
+UPI
+	5,833.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-CHQ-0005-R
+	
+Bhosale Traders
+	
+Cheque
+	-28,250.00	0.00	Cancelled	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-OA-0001
+	
+Om Sai Provision Store
+	
+Cash
+	500.00	500.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0676
+	
+Prerna Super Market
+	
+Cheque
+	13,299.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0675
+	
+Kolsewadi Corner Store
+	
+Cash
+	1,871.00	0.00	Collected	
+11 Sep
+	
+Amit Pawar
+
+
+RCPT-0674
+	
+Kolsewadi Corner Store
+	
+UPI
+	1,165.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-0673
+	
+Ganesh General Store
+	
+Cash
+	18,590.00	0.00	Collected	
+11 Sep
+	
+Sandeep Mane
+
+
+RCPT-0672
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,558.00	0.00	Collected	
+11 Sep
+	
+Sandeep Mane
+
+
+RCPT-VAN-0002
+	
+Ansari Kirana Stores
+	
+Cash
+	3,848.00	0.00	Collected	
+11 Sep
+	
+Raju Yadav
+
+
+RCPT-VAN-0004
+	
+Prerna Super Market
+	
+Cash
+	75,010.00	0.00	Collected	
+11 Sep
+	
+Ganesh More
+
+
+RCPT-VAN-0003
+	
+Sai Krupa Super Bazar
+	
+Cash
+	61,109.00	0.00	Collected	
+11 Sep
+	
+Santosh Kamble
+
+
+RCPT-0671
+	
+Vaibhav Kirana Mart
+	
+UPI
+	11,044.00	0.00	Collected	
+11 Sep
+	
+Meena Joshi
+
+
+RCPT-FLD-0001
+	
+Sai Krupa Super Bazar
+	
+Cash
+	1,74,322.00	0.00	Collected	
+10 Sep
+	
+Ganesh More
+
+
+RCPT-0670
+	
+Gurukrupa Provision
+	
+Cash
+	27,572.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0669
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	28,757.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0668
+	
+Shree Ganesh Kirana
+	
+UPI
+	12,180.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0667
+	
+Chavan Kirana Stores
+	
+UPI
+	4,927.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0666
+	
+Ganesh General Store
+	
+UPI
+	4,960.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0665
+	
+More Provision Store
+	
+UPI
+	1,578.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0664
+	
+Mangal Traders
+	
+UPI
+	7,894.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0663
+	
+Prerna Super Market
+	
+Cheque
+	73,598.98	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0662
+	
+Deshmukh Kirana
+	
+UPI
+	5,951.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0661
+	
+Balaji Wholesale Stores
+	
+UPI
+	34,086.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0660
+	
+Metro Kirana Bazar
+	
+Cheque
+	8,038.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0659
+	
+Shree Ganesh Kirana
+	
+Cash
+	1,809.00	0.00	Collected	
+10 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0658
+	
+Rameshwar General Store
+	
+Cash
+	16,244.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0657
+	
+Rameshwar General Store
+	
+Cash
+	15,071.00	0.00	Collected	
+10 Sep
+	
+Amit Pawar
+
+
+RCPT-CHQ-0002
+	
+Rameshwar General Store
+	
+Cheque
+	29,456.00	0.00	Collected	
+10 Sep
+	
+Meena Joshi
+
+
+RCPT-0656
+	
+Karve Provision
+	
+Cash
+	2,116.00	0.00	Collected	
+10 Sep
+	
+Pooja Shinde
+
+
+RCPT-FLD-0002
+	
+Sahyadri Super Bazar
+	
+Cash
+	61,693.00	0.00	Collected	
+9 Sep
+	
+Ganesh More
+
+
+RCPT-0655
+	
+Iyer Provision Store
+	
+Cash
+	4,323.00	0.00	Collected	
+9 Sep
+	
+Santosh Kamble
+
+
+RCPT-0654
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,279.00	0.00	Collected	
+9 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-OA-0002
+	
+Bhosale Traders
+	
+UPI
+	1,250.00	1,250.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-0653
+	
+Ekvira Kirana
+	
+Cash
+	3,758.00	0.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-0652
+	
+Mishra Provision Store
+	
+Cash
+	1,104.00	0.00	Collected	
+9 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0651
+	
+Meghana General Store
+	
+Cash
+	5,888.00	0.00	Collected	
+9 Sep
+	
+Amit Pawar
+
+
+RCPT-0650
+	
+Shivshakti Traders
+	
+UPI
+	1,471.00	0.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-0649
+	
+Trimurti General Store
+	
+UPI
+	952.00	0.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-0648
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	85,924.80	0.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-0647
+	
+Ambika Provision Store
+	
+UPI
+	1,563.00	0.00	Collected	
+9 Sep
+	
+Meena Joshi
+
+
+RCPT-FLD-0003
+	
+Balaji Wholesale Stores
+	
+Cash
+	60,707.00	0.00	Collected	
+8 Sep
+	
+Ganesh More
+
+
+RCPT-0646
+	
+Shivshakti Traders
+	
+UPI
+	2,036.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0645
+	
+Khan General Store
+	
+UPI
+	5,045.00	0.00	Collected	
+8 Sep
+	
+Iqbal Shaikh
+
+
+RCPT-0644
+	
+Ganpati General Stores
+	
+Cash
+	13,544.58	0.00	Collected	
+8 Sep
+	
+Ganesh More
+
+
+RCPT-0643
+	
+Rameshwar General Store
+	
+Cash
+	27,293.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0642
+	
+Sahyadri Super Bazar
+	
+Cash
+	29,477.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0641
+	
+Gavhane Kirana
+	
+UPI
+	12,554.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0640
+	
+Chavan Kirana Stores
+	
+Cash
+	7,642.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0639
+	
+New Bombay Stores
+	
+UPI
+	10,084.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0638
+	
+More Provision Store
+	
+Cash
+	2,521.00	0.00	Collected	
+8 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0637
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	1,09,548.07	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0636
+	
+Nutan Kirana Stores
+	
+Cheque
+	5,969.00	0.00	Banked	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0635
+	
+Karve Provision
+	
+Cash
+	3,791.00	0.00	Collected	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0634
+	
+Mishra Provision Store
+	
+Cash
+	1,421.00	0.00	Collected	
+8 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-ERR-0001-R
+	
+Mahalaxmi General Stores
+	
+Cash
+	-2,000.00	-2,000.00	Cancelled	
+8 Sep
+	
+Meena Joshi
+
+
+RCPT-0633
+	
+New Bombay Stores
+	
+Bank transfer
+	20,035.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-ERR-0001
+	
+Mahalaxmi General Stores
+	
+Cash
+	2,000.00	2,000.00	Cancelled	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0632
+	
+Ekvira Kirana
+	
+UPI
+	10,203.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0631
+	
+Shubhalabh Stores
+	
+UPI
+	4,249.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-OA-0003
+	
+Dnyandeep Stores
+	
+Cash
+	2,000.00	2,000.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0630
+	
+Gavhane Kirana
+	
+Cheque
+	9,231.00	0.00	Banked	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0629
+	
+Sai Krupa Super Bazar
+	
+UPI
+	36,081.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0628
+	
+Meghana General Store
+	
+UPI
+	636.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0627
+	
+Chavan Kirana Stores
+	
+UPI
+	4,205.00	0.00	Collected	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0626
+	
+Joshi Kirana Stores
+	
+Cash
+	8,137.00	0.00	Collected	
+7 Sep
+	
+Pooja Shinde
+
+
+RCPT-0625
+	
+New Bombay Stores
+	
+Cheque
+	12,213.74	0.00	Banked	
+7 Sep
+	
+Meena Joshi
+
+
+RCPT-0624
+	
+Kadam Stores
+	
+Cash
+	464.00	0.00	Collected	
+7 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0623
+	
+Rukmini Provision
+	
+Cash
+	29,224.00	0.00	Collected	
+7 Sep
+	
+Amit Pawar
+
+
+RCPT-9001
+	
+Surat Sales Agency
+	
+Bank transfer
+	7,534.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0622
+	
+Ansari Kirana Stores
+	
+Cash
+	6,574.00	0.00	Collected	
+5 Sep
+	
+Amit Pawar
+
+
+RCPT-0621
+	
+Bhosale Traders
+	
+UPI
+	12,558.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0620
+	
+New Bombay Stores
+	
+UPI
+	25,141.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0619
+	
+Pawar General Store
+	
+Cash
+	4,225.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0618
+	
+Metro Kirana Bazar
+	
+UPI
+	7,137.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0617
+	
+Mangal Traders
+	
+Cash
+	8,836.00	0.00	Collected	
+5 Sep
+	
+Amit Pawar
+
+
+RCPT-OA-0004
+	
+Jai Bhavani Stores
+	
+UPI
+	2,750.00	2,750.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0616
+	
+Sai Baba Kirana
+	
+Cheque
+	12,911.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0615
+	
+Kolsewadi Corner Store
+	
+Bank transfer
+	6,619.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0614
+	
+Navjeevan Super Bazar
+	
+Cheque
+	26,326.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0613
+	
+Kadam Stores
+	
+UPI
+	8,745.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0612
+	
+Sharma Kirana Stores
+	
+Cash
+	8,426.00	0.00	Collected	
+5 Sep
+	
+Amit Pawar
+
+
+RCPT-0611
+	
+Balaji Wholesale Stores
+	
+UPI
+	46,655.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0610
+	
+City Light Provision
+	
+Bank transfer
+	10,295.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0609
+	
+Rukmini Provision
+	
+Cash
+	22,773.00	0.00	Collected	
+5 Sep
+	
+Amit Pawar
+
+
+RCPT-0608
+	
+Balaji Wholesale Stores
+	
+UPI
+	47,755.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0607
+	
+Sharma Kirana Stores
+	
+Cheque
+	4,561.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0606
+	
+Gupta Kirana Stores
+	
+Cheque
+	10,239.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0605
+	
+Bhosale Traders
+	
+UPI
+	15,973.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0604
+	
+Reddy Traders
+	
+UPI
+	846.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0603
+	
+Metro Kirana Bazar
+	
+Cheque
+	4,417.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-CHQ-0003
+	
+Bhosale Traders
+	
+Cheque
+	29,066.00	0.00	Banked	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0602
+	
+Prerna Super Market
+	
+UPI
+	57,780.00	0.00	Collected	
+5 Sep
+	
+Meena Joshi
+
+
+RCPT-0601
+	
+Mishra Provision Store
+	
+Cash
+	3,502.00	0.00	Collected	
+5 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0600
+	
+Vaibhav Kirana Mart
+	
+Cash
+	14,224.00	0.00	Collected	
+5 Sep
+	
+Amit Pawar
+
+
+RCPT-0599
+	
+Mishra Provision Store
+	
+UPI
+	2,213.00	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0598
+	
+Trimurti General Store
+	
+Cheque
+	4,129.00	0.00	Banked	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0597
+	
+More Provision Store
+	
+Cheque
+	6,804.00	0.00	Banked	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0596
+	
+New Bombay Stores
+	
+UPI
+	13,106.00	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0595
+	
+More Provision Store
+	
+UPI
+	7,962.00	0.00	Collected	
+4 Sep
+	
+Santosh Kamble
+
+
+RCPT-0594
+	
+Nakshatra Kirana
+	
+Cash
+	1,446.00	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0593
+	
+Shree Ganesh Kirana
+	
+Cash
+	1,226.00	0.00	Collected	
+4 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0592
+	
+Gupta Kirana Stores
+	
+Cash
+	7,120.00	0.00	Collected	
+4 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0591
+	
+Gurukrupa Provision
+	
+Cheque
+	27,056.00	0.00	Banked	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0590
+	
+Vaibhav Kirana Mart
+	
+Cheque
+	12,561.00	0.00	Banked	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0589
+	
+Dnyandeep Stores
+	
+Cash
+	6,657.00	0.00	Collected	
+4 Sep
+	
+Amit Pawar
+
+
+RCPT-0588
+	
+Ansari Kirana Stores
+	
+Cheque
+	12,602.00	0.00	Banked	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0587
+	
+Anand Bhavan Provision
+	
+Cash
+	9,934.00	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0586
+	
+Sharma Kirana Stores
+	
+Cash
+	6,209.00	0.00	Collected	
+4 Sep
+	
+Amit Pawar
+
+
+RCPT-0585
+	
+New Bombay Stores
+	
+Cash
+	15,276.00	0.00	Collected	
+4 Sep
+	
+Amit Pawar
+
+
+RCPT-0584
+	
+Dnyandeep Stores
+	
+UPI
+	10,484.00	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0583
+	
+Balaji Wholesale Stores
+	
+UPI
+	89,047.72	0.00	Collected	
+4 Sep
+	
+Meena Joshi
+
+
+RCPT-0582
+	
+Mahalaxmi General Stores
+	
+Bank transfer
+	5,616.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0581
+	
+Karve Provision
+	
+UPI
+	11,216.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0580
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	24,880.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0579
+	
+Rameshwar General Store
+	
+Cash
+	8,440.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-OA-0005
+	
+More Provision Store
+	
+Cash
+	3,400.00	3,400.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0578
+	
+Bhosale Traders
+	
+Cash
+	14,116.90	0.00	Collected	
+3 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0577
+	
+Navjeevan Super Bazar
+	
+Cash
+	34,214.00	0.00	Collected	
+3 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0576
+	
+Sahyadri Super Bazar
+	
+Cash
+	35,502.00	0.00	Collected	
+3 Sep
+	
+Amit Pawar
+
+
+RCPT-0575
+	
+Mishra Provision Store
+	
+Bank transfer
+	7,057.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0574
+	
+Prerna Super Market
+	
+UPI
+	36,706.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0573
+	
+Kolsewadi Corner Store
+	
+UPI
+	1,827.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0572
+	
+Dnyandeep Stores
+	
+UPI
+	23,898.00	0.00	Collected	
+3 Sep
+	
+Meena Joshi
+
+
+RCPT-0571
+	
+Prerna Super Market
+	
+Cash
+	44,209.00	0.00	Collected	
+2 Sep
+	
+Amit Pawar
+
+
+RCPT-0570
+	
+Rukmini Provision
+	
+Cash
+	18,859.12	0.00	Collected	
+2 Sep
+	
+Ganesh More
+
+
+RCPT-0569
+	
+Rukmini Provision
+	
+UPI
+	15,364.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0568
+	
+Kolsewadi Corner Store
+	
+Cash
+	2,995.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0567
+	
+Ganpati General Stores
+	
+Bank transfer
+	19,642.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0566
+	
+New Bombay Stores
+	
+UPI
+	11,504.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0565
+	
+New Bombay Stores
+	
+Cash
+	19,513.00	0.00	Collected	
+2 Sep
+	
+Amit Pawar
+
+
+RCPT-0564
+	
+Sharma Kirana Stores
+	
+UPI
+	10,187.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0563
+	
+Vaibhav Kirana Mart
+	
+Bank transfer
+	27,888.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0562
+	
+Mishra Provision Store
+	
+Bank transfer
+	5,796.00	0.00	Collected	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-CHQ-0004
+	
+Navjeevan Super Bazar
+	
+Cheque
+	28,398.00	0.00	Banked	
+2 Sep
+	
+Meena Joshi
+
+
+RCPT-0561
+	
+Dnyandeep Stores
+	
+Cash
+	23,863.00	0.00	Collected	
+1 Sep
+	
+Sandeep Mane
+
+
+RCPT-0560
+	
+Om Sai Provision Store
+	
+UPI
+	4,462.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0559
+	
+Shree Ganesh Kirana
+	
+Bank transfer
+	10,137.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-OA-0006
+	
+Singh General Store
+	
+UPI
+	4,100.00	4,100.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0558
+	
+Prerna Super Market
+	
+Cash
+	52,538.78	0.00	Collected	
+1 Sep
+	
+Amit Pawar
+
+
+RCPT-0557
+	
+More Provision Store
+	
+Bank transfer
+	10,229.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0556
+	
+Shree Ganesh Kirana
+	
+Bank transfer
+	7,650.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0555
+	
+Sahyadri Super Bazar
+	
+Cash
+	1,10,793.00	0.00	Collected	
+1 Sep
+	
+Amit Pawar
+
+
+RCPT-0554
+	
+Dnyandeep Stores
+	
+UPI
+	10,416.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0553
+	
+Nutan Kirana Stores
+	
+Cash
+	1,290.00	0.00	Collected	
+1 Sep
+	
+Amit Pawar
+
+
+RCPT-0552
+	
+Prerna Super Market
+	
+Cash
+	76,571.00	0.00	Collected	
+1 Sep
+	
+Amit Pawar
+
+
+RCPT-0551
+	
+Balaji Wholesale Stores
+	
+Cash
+	72,522.00	0.00	Collected	
+1 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0550
+	
+Pawar General Store
+	
+Cash
+	2,649.00	0.00	Collected	
+1 Sep
+	
+Rahul Deshmukh
+
+
+RCPT-0549
+	
+Ganpati General Stores
+	
+Bank transfer
+	21,081.00	0.00	Collected	
+1 Sep
+	
+Meena Joshi
+
+
+RCPT-0548
+	
+Navjeevan Super Bazar
+	
+Bank transfer
+	31,938.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0547
+	
+Krishna Kirana Stores
+	
+Cash
+	8,542.00	0.00	Collected	
+31 Aug
+	
+Raju Yadav
+
+
+RCPT-0546
+	
+Trimurti General Store
+	
+Cash
+	3,617.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0545
+	
+New Bombay Stores
+	
+Cash
+	14,191.00	0.00	Collected	
+31 Aug
+	
+Amit Pawar
+
+
+RCPT-0544
+	
+Balaji Wholesale Stores
+	
+Cash
+	73,122.00	0.00	Collected	
+31 Aug
+	
+Rahul Deshmukh
+
+
+RCPT-0543
+	
+Shree Ganesh Kirana
+	
+Cash
+	7,162.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0542
+	
+Mahalaxmi General Stores
+	
+UPI
+	7,094.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0541
+	
+Metro Kirana Bazar
+	
+UPI
+	1,602.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0540
+	
+Gavhane Kirana
+	
+UPI
+	9,051.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0539
+	
+Pawar General Store
+	
+Bank transfer
+	6,944.00	0.00	Collected	
+31 Aug
+	
+Meena Joshi
+
+
+RCPT-0538
+	
+City Light Provision
+	
+UPI
+	2,935.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0537
+	
+Sahyadri Super Bazar
+	
+Bank transfer
+	71,069.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0536
+	
+Birla Road Kirana Mart
+	
+Cash
+	12,854.00	0.00	Collected	
+29 Aug
+	
+Ganesh More
+
+
+RCPT-0535
+	
+Prerna Super Market
+	
+UPI
+	68,589.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0534
+	
+Mishra Provision Store
+	
+Cash
+	1,694.00	0.00	Collected	
+29 Aug
+	
+Rahul Deshmukh
+
+
+RCPT-0533
+	
+Kadam Stores
+	
+Cash
+	668.00	0.00	Collected	
+29 Aug
+	
+Rahul Deshmukh
+
+
+RCPT-0532
+	
+City Light Provision
+	
+UPI
+	1,581.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-OA-0007
+	
+Sharma Kirana Stores
+	
+Cash
+	4,800.00	4,800.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0531
+	
+Deshmukh Kirana
+	
+Cash
+	4,085.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0530
+	
+Gupta Kirana Stores
+	
+Cash
+	8,343.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0529
+	
+Prerna Super Market
+	
+Cash
+	33,427.00	0.00	Collected	
+29 Aug
+	
+Amit Pawar
+
+
+RCPT-0528
+	
+Ekvira Kirana
+	
+Bank transfer
+	6,937.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0527
+	
+Ansari Kirana Stores
+	
+Cash
+	4,439.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0526
+	
+Shubhalabh Stores
+	
+Cash
+	5,585.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0525
+	
+Chavan Kirana Stores
+	
+UPI
+	3,343.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0524
+	
+Reddy Traders
+	
+UPI
+	5,529.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+
+RCPT-0523
+	
+Shivshakti Traders
+	
+UPI
+	4,467.00	0.00	Collected	
+29 Aug
+	
+Meena Joshi
+
+200+			58,58,369.06	34,080.00			
+Money from a shop
+Close
+Cash
+UPI
+Cheque
+How much came in?
+₹
+Reference
+Oldest bill first unless you say otherwise.
+Record a payment
+Pick a shop first

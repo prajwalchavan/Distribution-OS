@@ -1,0 +1,162 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Tally export
+Export jobs
+Names in Tally
+Already pushed
+7 days
+30 days
+90 days
+Queue an export
+Registers
+Tally
+Team
+What	State	Rows	Taken by	Asked for	Download
+
+Claim sheet
+	Succeeded	
+3
+	
+Vikas Kadam
+	
+4 Jul
+	
+claim-sheet.xlsx
+
+
+Tally XML
+	Succeeded	
+61
+	
+Meena Joshi
+	
+5 Sep
+	
+tally-2026-06-15-to-2026-06-21.xml
+
+
+GST sales register (CSV)
+	Succeeded	
+12
+	
+Meena Joshi
+	
+11 Sep
+	
+gst-sales-2026-09-01-to-2026-09-12.csv
+
+
+Daily sales (CSV)
+	Succeeded	
+12
+	
+Sunil Tarsun
+	
+10 Sep
+	
+daily-sales-2026-08-30-to-2026-09-12.csv
+
+
+Stock value (CSV)
+	Succeeded	
+191
+	
+Sunil Tarsun
+	
+12 Sep
+	
+stock-value.csv
+
+
+Outstanding (Excel)
+	Succeeded	
+60
+	
+Sunil Tarsun
+	
+12 Sep
+	
+outstanding-2026-09-12.xlsx
+
+
+GST purchase register (CSV)
+	Failed	
+—
+	
+Meena Joshi
+	
+9 Sep
+	
+gst-purchase-2026-09-01-to-2026-09-12.csv
+
+
+GSTR-1 JSON
+	Succeeded	
+288
+	
+Meena Joshi
+	
+12 Sep
+	
+gstr1-2026-08-09-to-2026-09-08.json
+
+
+Daily sales (CSV)
+	Succeeded	
+26
+	
+Sunil Tarsun
+	
+12 Sep
+	
+daily-sales-2026-08-14-to-2026-09-12.csv
+
+
+GST sales register (CSV)
+	Succeeded	
+49
+	
+Sunil Tarsun
+	
+12 Sep
+	
+gst-sales-2026-06-15-to-2026-09-12.csv
+
+
+GST sales register (CSV)
+	Succeeded	
+49
+	
+Sunil Tarsun
+	
+12 Sep
+	
+gst-sales-2026-06-15-to-2026-09-12.csv
+
+
+Claim sheet
+	Succeeded	
+10
+	
+Vikas Kadam
+	
+4 Sep
+	
+claim-sheet.xlsx
+
+12 rows					

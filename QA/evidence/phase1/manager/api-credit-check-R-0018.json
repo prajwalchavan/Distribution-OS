@@ -1,0 +1,1 @@
+{"retailerId":"1fdb8d1c-3941-7406-a1b5-f3f97e07b598","creditMode":"stop","paymentTerms":"POST_FULFILLMENT","creditLimitPaise":15000000,"creditLimitBills":0,"creditDays":14,"outstandingPaise":6960450,"openBills":9,"oldestDueDate":"2026-06-11","overdueDays":93,"orderTotalPaise":536700,"headroomPaise":7502850,"breached":true,"reasons":["overdue_days_exceeded"]}

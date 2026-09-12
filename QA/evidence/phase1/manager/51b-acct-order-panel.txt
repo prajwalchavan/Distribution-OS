@@ -1,0 +1,143 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+✓ Submitted
+✓ Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Confirmed
+Filters (2)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0877
+	
+Bhosale Traders
+	
+Rahul Deshmukh
+	17,531.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0873
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	12,837.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-9003
+	
+Vitthal Traders
+	
+—
+	35.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0870
+	
+Nutan Kirana Stores
+	
+Amit Pawar
+	7,361.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+Rahul Deshmukh
+	17,736.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0867
+	
+Patil General Store
+	
+Rahul Deshmukh
+	5,367.00	Confirmed	
+—
+	
+12 Sep
+
+6 rows			60,867.00			
+j / k move · Enter open
+Waiting for a decision
+Bargain
+Bargain
+—
+The money desk reads this register; the manager makes the changes.
+Om Sai Provision Store
+Asked rate
+₹39.58
+The money desk reads this register; the manager makes the changes.
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+The money desk reads this register; the manager makes the changes.
+Order SO-0870
+Close
+Shop
+Nutan Kirana Stores
+Credit
+Owes ₹34,995.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit
+State
+Confirmed
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 24 pc
+₹1,730.07
+2 Inner · 24 pc
+Free goods
+₹429.62
+3 cs · 108 pc
+₹5,200.82
+Subtotal
+₹6,007.32
+Discount
+₹0.00
+GST
+₹1,353.19
+Total
+₹7,361.00
+The money desk reads this register; the manager makes the changes.

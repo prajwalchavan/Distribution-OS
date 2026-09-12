@@ -1,0 +1,76 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+1
+Fulfilment
+Billing
+8
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated 1 min ago
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0867
+	
+Patil General Store
+	
+Rahul Deshmukh
+	5,367.00	Submitted	
+—
+	
+12 Sep
+
+1 rows			5,367.00			
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Below floor price
+Below floor price
+—
+Approve
+Reject
+Over credit limit
+Over credit limit
+—
+Approve
+Reject
+Bargain
+Bargain
+—
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject

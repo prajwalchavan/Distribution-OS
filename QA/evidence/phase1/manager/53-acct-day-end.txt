@@ -1,0 +1,1853 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Day-end
+Receipts
+Day-end
+Claims
+CASH TO BANK
+₹41,05,511.52
+more than 200 rows
+CHEQUES IN HAND
+₹1,73,556.98
+6 rows
+TRIPS COMING BACK
+0
+Cash and cheques in hand
+Receipt no.	Shop	Mode	Amount ₹	Received	To bank
+
+RCPT-0696
+	
+Patil General Store
+	
+Cash
+	9,182.00	
+12 Sep
+	No
+
+RCPT-VAN-0001
+	
+Ambika Provision Store
+	
+Cash
+	12,569.00	
+12 Sep
+	No
+
+RCPT-0699
+	
+Prerna Super Market
+	
+UPI
+	71,780.10	
+12 Sep
+	No
+
+RCPT-0698
+	
+Balaji Wholesale Stores
+	
+Cash
+	98,992.72	
+12 Sep
+	No
+
+RCPT-0697
+	
+New Bombay Stores
+	
+Bank transfer
+	28,759.08	
+12 Sep
+	No
+
+RCPT-0696
+	
+Jai Bhavani Stores
+	
+Cash
+	6,990.00	
+12 Sep
+	No
+
+RCPT-0695
+	
+Mahalaxmi General Stores
+	
+UPI
+	12,307.00	
+12 Sep
+	No
+
+RCPT-0694
+	
+Metro Kirana Bazar
+	
+Cash
+	4,746.00	
+12 Sep
+	No
+
+RCPT-0693
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,511.00	
+12 Sep
+	No
+
+RCPT-0692
+	
+Shubhalabh Stores
+	
+Cash
+	7,224.00	
+12 Sep
+	No
+
+RCPT-0691
+	
+Chavan Kirana Stores
+	
+Cash
+	3,716.00	
+12 Sep
+	No
+
+RCPT-0690
+	
+Kadam Stores
+	
+Cash
+	1,818.00	
+12 Sep
+	No
+
+RCPT-0689
+	
+Deshmukh Kirana
+	
+Cash
+	5,281.00	
+12 Sep
+	No
+
+RCPT-0688
+	
+Pawar General Store
+	
+Cash
+	4,914.00	
+12 Sep
+	No
+
+RCPT-0687
+	
+Shree Ganesh Kirana
+	
+Cash
+	4,443.00	
+12 Sep
+	No
+
+RCPT-0686
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	45,511.00	
+12 Sep
+	No
+
+RCPT-0685
+	
+Prerna Super Market
+	
+UPI
+	16,010.00	
+12 Sep
+	No
+
+RCPT-0684
+	
+Balaji Wholesale Stores
+	
+UPI
+	72,158.77	
+12 Sep
+	No
+
+RCPT-0683
+	
+Ambika Provision Store
+	
+UPI
+	12,686.00	
+12 Sep
+	No
+
+RCPT-CHQ-0001
+	
+Dnyandeep Stores
+	
+Cheque
+	29,952.00	
+12 Sep
+	No
+
+RCPT-0682
+	
+Gavhane Kirana
+	
+UPI
+	4,425.00	
+12 Sep
+	No
+
+RCPT-9004
+	
+Krishna Kirana Stores
+	
+Cash
+	582.00	
+11 Sep
+	No
+
+RCPT-0681
+	
+Sai Krupa Super Bazar
+	
+Cash
+	31,416.00	
+11 Sep
+	No
+
+RCPT-0680
+	
+Vaibhav Kirana Mart
+	
+Cheque
+	19,213.00	
+11 Sep
+	No
+
+RCPT-0679
+	
+Birla Road Kirana Mart
+	
+UPI
+	1,490.00	
+11 Sep
+	No
+
+RCPT-0678
+	
+Deshmukh Kirana
+	
+Cash
+	1,359.00	
+11 Sep
+	No
+
+RCPT-0677
+	
+Om Sai Provision Store
+	
+UPI
+	5,833.00	
+11 Sep
+	No
+
+RCPT-OA-0001
+	
+Om Sai Provision Store
+	
+Cash
+	500.00	
+11 Sep
+	No
+
+RCPT-0676
+	
+Prerna Super Market
+	
+Cheque
+	13,299.00	
+11 Sep
+	No
+
+RCPT-0675
+	
+Kolsewadi Corner Store
+	
+Cash
+	1,871.00	
+11 Sep
+	No
+
+RCPT-0674
+	
+Kolsewadi Corner Store
+	
+UPI
+	1,165.00	
+11 Sep
+	No
+
+RCPT-0673
+	
+Ganesh General Store
+	
+Cash
+	18,590.00	
+11 Sep
+	No
+
+RCPT-0672
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,558.00	
+11 Sep
+	No
+
+RCPT-VAN-0002
+	
+Ansari Kirana Stores
+	
+Cash
+	3,848.00	
+11 Sep
+	No
+
+RCPT-VAN-0004
+	
+Prerna Super Market
+	
+Cash
+	75,010.00	
+11 Sep
+	No
+
+RCPT-VAN-0003
+	
+Sai Krupa Super Bazar
+	
+Cash
+	61,109.00	
+11 Sep
+	No
+
+RCPT-0671
+	
+Vaibhav Kirana Mart
+	
+UPI
+	11,044.00	
+11 Sep
+	No
+
+RCPT-FLD-0001
+	
+Sai Krupa Super Bazar
+	
+Cash
+	1,74,322.00	
+10 Sep
+	No
+
+RCPT-0670
+	
+Gurukrupa Provision
+	
+Cash
+	27,572.00	
+10 Sep
+	No
+
+RCPT-0669
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	28,757.00	
+10 Sep
+	No
+
+RCPT-0668
+	
+Shree Ganesh Kirana
+	
+UPI
+	12,180.00	
+10 Sep
+	No
+
+RCPT-0667
+	
+Chavan Kirana Stores
+	
+UPI
+	4,927.00	
+10 Sep
+	No
+
+RCPT-0666
+	
+Ganesh General Store
+	
+UPI
+	4,960.00	
+10 Sep
+	No
+
+RCPT-0665
+	
+More Provision Store
+	
+UPI
+	1,578.00	
+10 Sep
+	No
+
+RCPT-0664
+	
+Mangal Traders
+	
+UPI
+	7,894.00	
+10 Sep
+	No
+
+RCPT-0663
+	
+Prerna Super Market
+	
+Cheque
+	73,598.98	
+10 Sep
+	No
+
+RCPT-0662
+	
+Deshmukh Kirana
+	
+UPI
+	5,951.00	
+10 Sep
+	No
+
+RCPT-0661
+	
+Balaji Wholesale Stores
+	
+UPI
+	34,086.00	
+10 Sep
+	No
+
+RCPT-0660
+	
+Metro Kirana Bazar
+	
+Cheque
+	8,038.00	
+10 Sep
+	No
+
+RCPT-0659
+	
+Shree Ganesh Kirana
+	
+Cash
+	1,809.00	
+10 Sep
+	No
+
+RCPT-0658
+	
+Rameshwar General Store
+	
+Cash
+	16,244.00	
+10 Sep
+	No
+
+RCPT-0657
+	
+Rameshwar General Store
+	
+Cash
+	15,071.00	
+10 Sep
+	No
+
+RCPT-CHQ-0002
+	
+Rameshwar General Store
+	
+Cheque
+	29,456.00	
+10 Sep
+	No
+
+RCPT-0656
+	
+Karve Provision
+	
+Cash
+	2,116.00	
+10 Sep
+	No
+
+RCPT-FLD-0002
+	
+Sahyadri Super Bazar
+	
+Cash
+	61,693.00	
+9 Sep
+	No
+
+RCPT-0655
+	
+Iyer Provision Store
+	
+Cash
+	4,323.00	
+9 Sep
+	No
+
+RCPT-0654
+	
+Shree Ganesh Kirana
+	
+Cash
+	5,279.00	
+9 Sep
+	No
+
+RCPT-OA-0002
+	
+Bhosale Traders
+	
+UPI
+	1,250.00	
+9 Sep
+	No
+
+RCPT-0653
+	
+Ekvira Kirana
+	
+Cash
+	3,758.00	
+9 Sep
+	No
+
+RCPT-0652
+	
+Mishra Provision Store
+	
+Cash
+	1,104.00	
+9 Sep
+	No
+
+RCPT-0651
+	
+Meghana General Store
+	
+Cash
+	5,888.00	
+9 Sep
+	No
+
+RCPT-0650
+	
+Shivshakti Traders
+	
+UPI
+	1,471.00	
+9 Sep
+	No
+
+RCPT-0649
+	
+Trimurti General Store
+	
+UPI
+	952.00	
+9 Sep
+	No
+
+RCPT-0648
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	85,924.80	
+9 Sep
+	No
+
+RCPT-0647
+	
+Ambika Provision Store
+	
+UPI
+	1,563.00	
+9 Sep
+	No
+
+RCPT-FLD-0003
+	
+Balaji Wholesale Stores
+	
+Cash
+	60,707.00	
+8 Sep
+	No
+
+RCPT-0646
+	
+Shivshakti Traders
+	
+UPI
+	2,036.00	
+8 Sep
+	No
+
+RCPT-0645
+	
+Khan General Store
+	
+UPI
+	5,045.00	
+8 Sep
+	No
+
+RCPT-0644
+	
+Ganpati General Stores
+	
+Cash
+	13,544.58	
+8 Sep
+	No
+
+RCPT-0643
+	
+Rameshwar General Store
+	
+Cash
+	27,293.00	
+8 Sep
+	No
+
+RCPT-0642
+	
+Sahyadri Super Bazar
+	
+Cash
+	29,477.00	
+8 Sep
+	No
+
+RCPT-0641
+	
+Gavhane Kirana
+	
+UPI
+	12,554.00	
+8 Sep
+	No
+
+RCPT-0640
+	
+Chavan Kirana Stores
+	
+Cash
+	7,642.00	
+8 Sep
+	No
+
+RCPT-0639
+	
+New Bombay Stores
+	
+UPI
+	10,084.00	
+8 Sep
+	No
+
+RCPT-0638
+	
+More Provision Store
+	
+Cash
+	2,521.00	
+8 Sep
+	No
+
+RCPT-0637
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	1,09,548.07	
+8 Sep
+	No
+
+RCPT-0635
+	
+Karve Provision
+	
+Cash
+	3,791.00	
+8 Sep
+	No
+
+RCPT-0634
+	
+Mishra Provision Store
+	
+Cash
+	1,421.00	
+8 Sep
+	No
+
+RCPT-0633
+	
+New Bombay Stores
+	
+Bank transfer
+	20,035.00	
+7 Sep
+	No
+
+RCPT-0632
+	
+Ekvira Kirana
+	
+UPI
+	10,203.00	
+7 Sep
+	No
+
+RCPT-0631
+	
+Shubhalabh Stores
+	
+UPI
+	4,249.00	
+7 Sep
+	No
+
+RCPT-OA-0003
+	
+Dnyandeep Stores
+	
+Cash
+	2,000.00	
+7 Sep
+	No
+
+RCPT-0629
+	
+Sai Krupa Super Bazar
+	
+UPI
+	36,081.00	
+7 Sep
+	No
+
+RCPT-0628
+	
+Meghana General Store
+	
+UPI
+	636.00	
+7 Sep
+	No
+
+RCPT-0627
+	
+Chavan Kirana Stores
+	
+UPI
+	4,205.00	
+7 Sep
+	No
+
+RCPT-0626
+	
+Joshi Kirana Stores
+	
+Cash
+	8,137.00	
+7 Sep
+	No
+
+RCPT-0624
+	
+Kadam Stores
+	
+Cash
+	464.00	
+7 Sep
+	No
+
+RCPT-0623
+	
+Rukmini Provision
+	
+Cash
+	29,224.00	
+7 Sep
+	No
+
+RCPT-9001
+	
+Surat Sales Agency
+	
+Bank transfer
+	7,534.00	
+5 Sep
+	No
+
+RCPT-0622
+	
+Ansari Kirana Stores
+	
+Cash
+	6,574.00	
+5 Sep
+	No
+
+RCPT-0621
+	
+Bhosale Traders
+	
+UPI
+	12,558.00	
+5 Sep
+	No
+
+RCPT-0620
+	
+New Bombay Stores
+	
+UPI
+	25,141.00	
+5 Sep
+	No
+
+RCPT-0619
+	
+Pawar General Store
+	
+Cash
+	4,225.00	
+5 Sep
+	No
+
+RCPT-0618
+	
+Metro Kirana Bazar
+	
+UPI
+	7,137.00	
+5 Sep
+	No
+
+RCPT-0617
+	
+Mangal Traders
+	
+Cash
+	8,836.00	
+5 Sep
+	No
+
+RCPT-OA-0004
+	
+Jai Bhavani Stores
+	
+UPI
+	2,750.00	
+5 Sep
+	No
+
+RCPT-0615
+	
+Kolsewadi Corner Store
+	
+Bank transfer
+	6,619.00	
+5 Sep
+	No
+
+RCPT-0613
+	
+Kadam Stores
+	
+UPI
+	8,745.00	
+5 Sep
+	No
+
+RCPT-0612
+	
+Sharma Kirana Stores
+	
+Cash
+	8,426.00	
+5 Sep
+	No
+
+RCPT-0611
+	
+Balaji Wholesale Stores
+	
+UPI
+	46,655.00	
+5 Sep
+	No
+
+RCPT-0610
+	
+City Light Provision
+	
+Bank transfer
+	10,295.00	
+5 Sep
+	No
+
+RCPT-0609
+	
+Rukmini Provision
+	
+Cash
+	22,773.00	
+5 Sep
+	No
+
+RCPT-0608
+	
+Balaji Wholesale Stores
+	
+UPI
+	47,755.00	
+5 Sep
+	No
+
+RCPT-0605
+	
+Bhosale Traders
+	
+UPI
+	15,973.00	
+5 Sep
+	No
+
+RCPT-0604
+	
+Reddy Traders
+	
+UPI
+	846.00	
+5 Sep
+	No
+
+RCPT-0602
+	
+Prerna Super Market
+	
+UPI
+	57,780.00	
+5 Sep
+	No
+
+RCPT-0601
+	
+Mishra Provision Store
+	
+Cash
+	3,502.00	
+5 Sep
+	No
+
+RCPT-0600
+	
+Vaibhav Kirana Mart
+	
+Cash
+	14,224.00	
+5 Sep
+	No
+
+RCPT-0599
+	
+Mishra Provision Store
+	
+UPI
+	2,213.00	
+4 Sep
+	No
+
+RCPT-0596
+	
+New Bombay Stores
+	
+UPI
+	13,106.00	
+4 Sep
+	No
+
+RCPT-0595
+	
+More Provision Store
+	
+UPI
+	7,962.00	
+4 Sep
+	No
+
+RCPT-0594
+	
+Nakshatra Kirana
+	
+Cash
+	1,446.00	
+4 Sep
+	No
+
+RCPT-0593
+	
+Shree Ganesh Kirana
+	
+Cash
+	1,226.00	
+4 Sep
+	No
+
+RCPT-0592
+	
+Gupta Kirana Stores
+	
+Cash
+	7,120.00	
+4 Sep
+	No
+
+RCPT-0589
+	
+Dnyandeep Stores
+	
+Cash
+	6,657.00	
+4 Sep
+	No
+
+RCPT-0587
+	
+Anand Bhavan Provision
+	
+Cash
+	9,934.00	
+4 Sep
+	No
+
+RCPT-0586
+	
+Sharma Kirana Stores
+	
+Cash
+	6,209.00	
+4 Sep
+	No
+
+RCPT-0585
+	
+New Bombay Stores
+	
+Cash
+	15,276.00	
+4 Sep
+	No
+
+RCPT-0584
+	
+Dnyandeep Stores
+	
+UPI
+	10,484.00	
+4 Sep
+	No
+
+RCPT-0583
+	
+Balaji Wholesale Stores
+	
+UPI
+	89,047.72	
+4 Sep
+	No
+
+RCPT-0582
+	
+Mahalaxmi General Stores
+	
+Bank transfer
+	5,616.00	
+3 Sep
+	No
+
+RCPT-0581
+	
+Karve Provision
+	
+UPI
+	11,216.00	
+3 Sep
+	No
+
+RCPT-0580
+	
+Balaji Wholesale Stores
+	
+Bank transfer
+	24,880.00	
+3 Sep
+	No
+
+RCPT-0579
+	
+Rameshwar General Store
+	
+Cash
+	8,440.00	
+3 Sep
+	No
+
+RCPT-OA-0005
+	
+More Provision Store
+	
+Cash
+	3,400.00	
+3 Sep
+	No
+
+RCPT-0578
+	
+Bhosale Traders
+	
+Cash
+	14,116.90	
+3 Sep
+	No
+
+RCPT-0577
+	
+Navjeevan Super Bazar
+	
+Cash
+	34,214.00	
+3 Sep
+	No
+
+RCPT-0576
+	
+Sahyadri Super Bazar
+	
+Cash
+	35,502.00	
+3 Sep
+	No
+
+RCPT-0575
+	
+Mishra Provision Store
+	
+Bank transfer
+	7,057.00	
+3 Sep
+	No
+
+RCPT-0574
+	
+Prerna Super Market
+	
+UPI
+	36,706.00	
+3 Sep
+	No
+
+RCPT-0573
+	
+Kolsewadi Corner Store
+	
+UPI
+	1,827.00	
+3 Sep
+	No
+
+RCPT-0572
+	
+Dnyandeep Stores
+	
+UPI
+	23,898.00	
+3 Sep
+	No
+
+RCPT-0571
+	
+Prerna Super Market
+	
+Cash
+	44,209.00	
+2 Sep
+	No
+
+RCPT-0570
+	
+Rukmini Provision
+	
+Cash
+	18,859.12	
+2 Sep
+	No
+
+RCPT-0569
+	
+Rukmini Provision
+	
+UPI
+	15,364.00	
+2 Sep
+	No
+
+RCPT-0568
+	
+Kolsewadi Corner Store
+	
+Cash
+	2,995.00	
+2 Sep
+	No
+
+RCPT-0567
+	
+Ganpati General Stores
+	
+Bank transfer
+	19,642.00	
+2 Sep
+	No
+
+RCPT-0566
+	
+New Bombay Stores
+	
+UPI
+	11,504.00	
+2 Sep
+	No
+
+RCPT-0565
+	
+New Bombay Stores
+	
+Cash
+	19,513.00	
+2 Sep
+	No
+
+RCPT-0564
+	
+Sharma Kirana Stores
+	
+UPI
+	10,187.00	
+2 Sep
+	No
+
+RCPT-0563
+	
+Vaibhav Kirana Mart
+	
+Bank transfer
+	27,888.00	
+2 Sep
+	No
+
+RCPT-0562
+	
+Mishra Provision Store
+	
+Bank transfer
+	5,796.00	
+2 Sep
+	No
+
+RCPT-0561
+	
+Dnyandeep Stores
+	
+Cash
+	23,863.00	
+1 Sep
+	No
+
+RCPT-0560
+	
+Om Sai Provision Store
+	
+UPI
+	4,462.00	
+1 Sep
+	No
+
+RCPT-0559
+	
+Shree Ganesh Kirana
+	
+Bank transfer
+	10,137.00	
+1 Sep
+	No
+
+RCPT-OA-0006
+	
+Singh General Store
+	
+UPI
+	4,100.00	
+1 Sep
+	No
+
+RCPT-0558
+	
+Prerna Super Market
+	
+Cash
+	52,538.78	
+1 Sep
+	No
+
+RCPT-0557
+	
+More Provision Store
+	
+Bank transfer
+	10,229.00	
+1 Sep
+	No
+
+RCPT-0556
+	
+Shree Ganesh Kirana
+	
+Bank transfer
+	7,650.00	
+1 Sep
+	No
+
+RCPT-0555
+	
+Sahyadri Super Bazar
+	
+Cash
+	1,10,793.00	
+1 Sep
+	No
+
+RCPT-0554
+	
+Dnyandeep Stores
+	
+UPI
+	10,416.00	
+1 Sep
+	No
+
+RCPT-0553
+	
+Nutan Kirana Stores
+	
+Cash
+	1,290.00	
+1 Sep
+	No
+
+RCPT-0552
+	
+Prerna Super Market
+	
+Cash
+	76,571.00	
+1 Sep
+	No
+
+RCPT-0551
+	
+Balaji Wholesale Stores
+	
+Cash
+	72,522.00	
+1 Sep
+	No
+
+RCPT-0550
+	
+Pawar General Store
+	
+Cash
+	2,649.00	
+1 Sep
+	No
+
+RCPT-0549
+	
+Ganpati General Stores
+	
+Bank transfer
+	21,081.00	
+1 Sep
+	No
+
+RCPT-0548
+	
+Navjeevan Super Bazar
+	
+Bank transfer
+	31,938.00	
+31 Aug
+	No
+
+RCPT-0547
+	
+Krishna Kirana Stores
+	
+Cash
+	8,542.00	
+31 Aug
+	No
+
+RCPT-0546
+	
+Trimurti General Store
+	
+Cash
+	3,617.00	
+31 Aug
+	No
+
+RCPT-0545
+	
+New Bombay Stores
+	
+Cash
+	14,191.00	
+31 Aug
+	No
+
+RCPT-0544
+	
+Balaji Wholesale Stores
+	
+Cash
+	73,122.00	
+31 Aug
+	No
+
+RCPT-0543
+	
+Shree Ganesh Kirana
+	
+Cash
+	7,162.00	
+31 Aug
+	No
+
+RCPT-0542
+	
+Mahalaxmi General Stores
+	
+UPI
+	7,094.00	
+31 Aug
+	No
+
+RCPT-0541
+	
+Metro Kirana Bazar
+	
+UPI
+	1,602.00	
+31 Aug
+	No
+
+RCPT-0540
+	
+Gavhane Kirana
+	
+UPI
+	9,051.00	
+31 Aug
+	No
+
+RCPT-0539
+	
+Pawar General Store
+	
+Bank transfer
+	6,944.00	
+31 Aug
+	No
+
+RCPT-0538
+	
+City Light Provision
+	
+UPI
+	2,935.00	
+29 Aug
+	No
+
+RCPT-0537
+	
+Sahyadri Super Bazar
+	
+Bank transfer
+	71,069.00	
+29 Aug
+	No
+
+RCPT-0536
+	
+Birla Road Kirana Mart
+	
+Cash
+	12,854.00	
+29 Aug
+	No
+
+RCPT-0535
+	
+Prerna Super Market
+	
+UPI
+	68,589.00	
+29 Aug
+	No
+
+RCPT-0534
+	
+Mishra Provision Store
+	
+Cash
+	1,694.00	
+29 Aug
+	No
+
+RCPT-0533
+	
+Kadam Stores
+	
+Cash
+	668.00	
+29 Aug
+	No
+
+RCPT-0532
+	
+City Light Provision
+	
+UPI
+	1,581.00	
+29 Aug
+	No
+
+RCPT-OA-0007
+	
+Sharma Kirana Stores
+	
+Cash
+	4,800.00	
+29 Aug
+	No
+
+RCPT-0531
+	
+Deshmukh Kirana
+	
+Cash
+	4,085.00	
+29 Aug
+	No
+
+RCPT-0530
+	
+Gupta Kirana Stores
+	
+Cash
+	8,343.00	
+29 Aug
+	No
+
+RCPT-0529
+	
+Prerna Super Market
+	
+Cash
+	33,427.00	
+29 Aug
+	No
+
+RCPT-0528
+	
+Ekvira Kirana
+	
+Bank transfer
+	6,937.00	
+29 Aug
+	No
+
+RCPT-0527
+	
+Ansari Kirana Stores
+	
+Cash
+	4,439.00	
+29 Aug
+	No
+
+RCPT-0526
+	
+Shubhalabh Stores
+	
+Cash
+	5,585.00	
+29 Aug
+	No
+
+RCPT-0525
+	
+Chavan Kirana Stores
+	
+UPI
+	3,343.00	
+29 Aug
+	No
+
+RCPT-0524
+	
+Reddy Traders
+	
+UPI
+	5,529.00	
+29 Aug
+	No
+
+RCPT-0523
+	
+Shivshakti Traders
+	
+UPI
+	4,467.00	
+29 Aug
+	No
+
+RCPT-0522
+	
+Shree Ganesh Kirana
+	
+UPI
+	1,923.00	
+29 Aug
+	No
+
+RCPT-0521
+	
+Joshi Kirana Stores
+	
+UPI
+	25,516.00	
+29 Aug
+	No
+
+RCPT-0520
+	
+Sahyadri Super Bazar
+	
+UPI
+	1,06,661.00	
+29 Aug
+	No
+
+RCPT-0519
+	
+Ekvira Kirana
+	
+UPI
+	1,189.00	
+29 Aug
+	No
+
+RCPT-0518
+	
+Reddy Traders
+	
+UPI
+	2,962.00	
+29 Aug
+	No
+
+RCPT-0517
+	
+Om Sai Provision Store
+	
+Cash
+	27,750.00	
+29 Aug
+	No
+
+RCPT-0516
+	
+Nakshatra Kirana
+	
+Cash
+	5,140.00	
+29 Aug
+	No
+
+RCPT-0515
+	
+Sahyadri Super Bazar
+	
+Bank transfer
+	92,882.00	
+29 Aug
+	No
+
+RCPT-0514
+	
+Sahyadri Super Bazar
+	
+UPI
+	70,696.00	
+29 Aug
+	No
+
+RCPT-0512
+	
+Vitthal Traders
+	
+UPI
+	4,223.00	
+29 Aug
+	No
+
+RCPT-0511
+	
+Vitthal Traders
+	
+UPI
+	5,000.00	
+29 Aug
+	No
+
+RCPT-0510
+	
+Khan General Store
+	
+UPI
+	8,139.00	
+28 Aug
+	No
+
+RCPT-0509
+	
+Shree Ganesh Kirana
+	
+UPI
+	3,783.00	
+28 Aug
+	No
+
+RCPT-0508
+	
+Mangal Traders
+	
+Cash
+	4,552.00	
+28 Aug
+	No
+
+RCPT-OA-0008
+	
+Mangal Traders
+	
+UPI
+	5,000.00	
+28 Aug
+	No
+
+RCPT-0506
+	
+Prerna Super Market
+	
+Bank transfer
+	34,410.00	
+28 Aug
+	No
+
+RCPT-0505
+	
+Prerna Super Market
+	
+UPI
+	18,433.00	
+28 Aug
+	No
+more than 200 rows			86,55,913.52		
+Cheques in hand
+Dnyandeep Stores
+RCPT-CHQ-0001 · Bank of Maharashtra
+₹29,952.00
+Vaibhav Kirana Mart
+RCPT-0680 · Bank of Maharashtra
+₹19,213.00
+Prerna Super Market
+RCPT-0676 · Bank of Maharashtra
+₹13,299.00
+Prerna Super Market
+RCPT-0663 · HDFC Bank
+₹73,598.98
+Metro Kirana Bazar
+RCPT-0660 · Bank of Maharashtra
+₹8,038.00
+Rameshwar General Store
+RCPT-CHQ-0002 · HDFC Bank
+₹29,456.00
+Trips coming back
+No trip is waiting to be settled

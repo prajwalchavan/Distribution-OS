@@ -1,0 +1,2226 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Messages
+Sent
+Shops wrote to us
+Wording
+Send to a beat
+What	Channel	Shop	State	Sent	Failed
+
+Order confirmed
+	
+SMS
+	
+Kolsewadi Corner Store
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Sent	
+8 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ambika Provision Store
+	Read	
+10 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sharma Kirana Stores
+	Read	
+12 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Read	
+11 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Joshi Kirana Stores
+	Read	
+30 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Krishna Kirana Stores
+	Read	
+29 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ambika Provision Store
+	Delivered	
+24 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Joshi Kirana Stores
+	Read	
+11 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Khan General Store
+	Delivered	
+21 Jul
+	
+—
+
+
+Payment received
+	
+SMS
+	
+Birla Road Kirana Mart
+	Delivered	
+1 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Read	
+17 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vitthal Traders
+	Delivered	
+2 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gurukrupa Provision
+	Read	
+1 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Rameshwar General Store
+	Delivered	
+20 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kadam Stores
+	Read	
+20 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Read	
+12 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Delivered	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Sent	
+9 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganesh General Store
+	Read	
+29 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Dnyandeep Stores
+	Read	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Read	
+23 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gurukrupa Provision
+	Read	
+10 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Om Sai Provision Store
+	Read	
+31 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Sent	
+19 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Delivered	
+12 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Prerna Super Market
+	Read	
+15 Jul
+	
+—
+
+
+Delivery proof
+	
+SMS
+	
+Reddy Traders
+	Delivered	
+17 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Read	
+6 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Bhosale Traders
+	Delivered	
+29 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Patil General Store
+	Read	
+21 Jul
+	
+—
+
+
+Bill issued
+	
+SMS
+	
+Ansari Kirana Stores
+	Delivered	
+15 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Sent	
+24 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Meghana General Store
+	Read	
+15 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Meghana General Store
+	Read	
+1 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Read	
+4 Jul
+	
+—
+
+
+Scheme announcement
+	
+WhatsApp
+	
+Shivshakti Traders
+	Delivered	
+9 Sep
+	
+—
+
+
+Order cancelled
+	
+SMS
+	
+New Bombay Stores
+	Delivered	
+11 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sai Krupa Super Bazar
+	Read	
+18 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Meghana General Store
+	Read	
+18 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganesh General Store
+	Read	
+24 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ambika Provision Store
+	Sent	
+3 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Rameshwar General Store
+	Read	
+13 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gavhane Kirana
+	Read	
+21 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Navjeevan Super Bazar
+	Read	
+4 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Pawar General Store
+	Read	
+27 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+New Bombay Stores
+	Read	
+31 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sai Baba Kirana
+	Read	
+7 Sep
+	
+—
+
+
+Order cancelled
+	
+SMS
+	
+Joshi Kirana Stores
+	Delivered	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Delivered	
+14 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gurukrupa Provision
+	Delivered	
+15 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Rukmini Provision
+	Read	
+3 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Karve Provision
+	Read	
+7 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nutan Kirana Stores
+	Delivered	
+31 Jul
+	
+—
+
+
+Delivery proof
+	
+SMS
+	
+Vaibhav Kirana Mart
+	Delivered	
+19 Jun
+	
+—
+
+
+Delivery proof
+	
+SMS
+	
+Mangal Traders
+	Delivered	
+16 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Pawar General Store
+	Read	
+9 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Reddy Traders
+	Read	
+17 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Read	
+5 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nutan Kirana Stores
+	Delivered	
+10 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sharma Kirana Stores
+	Read	
+22 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Friends Corner Stores
+	Read	
+22 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Read	
+15 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Read	
+5 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Ansari Kirana Stores
+	Read	
+8 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sahyadri Super Bazar
+	Delivered	
+23 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Anand Bhavan Provision
+	Read	
+17 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Patil General Store
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Deshmukh Kirana
+	Delivered	
+21 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganesh General Store
+	Read	
+22 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ambika Provision Store
+	Delivered	
+17 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gavhane Kirana
+	Read	
+9 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Trimurti General Store
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Rameshwar General Store
+	Read	
+26 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Khan General Store
+	Delivered	
+20 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganesh General Store
+	Delivered	
+30 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Birla Road Kirana Mart
+	Delivered	
+27 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Jai Bhavani Stores
+	Delivered	
+23 Jul
+	
+—
+
+
+Payment received
+	
+SMS
+	
+New Bombay Stores
+	Delivered	
+24 Jun
+	
+—
+
+
+Order cancelled
+	
+SMS
+	
+Rukmini Provision
+	Delivered	
+5 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Sent	
+7 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gavhane Kirana
+	Delivered	
+13 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Sent	
+27 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Read	
+14 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Delivered	
+19 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gurukrupa Provision
+	Read	
+21 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Anand Bhavan Provision
+	Delivered	
+7 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Read	
+4 Sep
+	
+—
+
+
+Bill issued
+	
+SMS
+	
+Anand Bhavan Provision
+	Delivered	
+16 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Delivered	
+27 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Om Sai Provision Store
+	Read	
+13 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Deshmukh Kirana
+	Delivered	
+16 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Read	
+13 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Dnyandeep Stores
+	Delivered	
+23 Jun
+	
+—
+
+
+Delivery proof
+	
+WhatsApp
+	
+Hariom Kirana Bhandar
+	Delivered	
+18 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nutan Kirana Stores
+	Read	
+12 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Krishna Kirana Stores
+	Delivered	
+6 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Iyer Provision Store
+	Delivered	
+29 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Read	
+26 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Read	
+1 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Navjeevan Super Bazar
+	Delivered	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Read	
+5 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vaibhav Kirana Mart
+	Delivered	
+9 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Delivered	
+31 Aug
+	
+—
+
+
+Delivery proof
+	
+WhatsApp
+	
+Ganpati General Stores
+	Delivered	
+16 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Laxmi Narayan Stores
+	Delivered	
+11 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Shubhalabh Stores
+	Read	
+19 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vaibhav Kirana Mart
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sahyadri Super Bazar
+	Read	
+12 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+More Provision Store
+	Read	
+7 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kolsewadi Corner Store
+	Delivered	
+28 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Mangal Traders
+	Read	
+16 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Read	
+11 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Sent	
+23 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Dnyandeep Stores
+	Read	
+30 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sahyadri Super Bazar
+	Read	
+20 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Delivered	
+7 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Deshmukh Kirana
+	Read	
+18 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Navjeevan Super Bazar
+	Read	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Jai Bhavani Stores
+	Delivered	
+18 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shree Ganesh Kirana
+	Delivered	
+18 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Trimurti General Store
+	Delivered	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kadam Stores
+	Delivered	
+29 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Prerna Super Market
+	Read	
+24 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Laxmi Narayan Stores
+	Read	
+8 Sep
+	
+—
+
+
+Order cancelled
+	
+SMS
+	
+Rukmini Provision
+	Delivered	
+28 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sharma Kirana Stores
+	Read	
+6 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Sent	
+3 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Sent	
+8 Sep
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Prerna Super Market
+	Delivered	
+2 Sep
+	
+—
+
+
+Delivery proof
+	
+WhatsApp
+	
+Prerna Super Market
+	Delivered	
+15 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Prerna Super Market
+	Sent	
+19 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Birla Road Kirana Mart
+	Read	
+29 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+New Bombay Stores
+	Delivered	
+24 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+New Bombay Stores
+	Read	
+2 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vitthal Traders
+	Delivered	
+28 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shivshakti Traders
+	Sent	
+23 Jul
+	
+—
+
+
+Delivery proof
+	
+SMS
+	
+New Bombay Stores
+	Delivered	
+19 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Singh General Store
+	Delivered	
+1 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Read	
+10 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Hariom Kirana Bhandar
+	Read	
+23 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sahyadri Super Bazar
+	Read	
+27 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Krishna Kirana Stores
+	Delivered	
+17 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sharma Kirana Stores
+	Delivered	
+15 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Bhosale Traders
+	Read	
+2 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vaibhav Kirana Mart
+	Sent	
+21 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nakshatra Kirana
+	Read	
+17 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kadam Stores
+	Read	
+12 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Delivered	
+18 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Shivshakti Traders
+	Delivered	
+24 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Delivered	
+18 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Read	
+21 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Jai Bhavani Stores
+	Delivered	
+6 Jul
+	
+—
+
+
+Bill issued
+	
+WhatsApp
+	
+Sai Krupa Super Bazar
+	Delivered	
+15 Jun
+	
+—
+
+
+Order cancelled
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Delivered	
+31 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Read	
+19 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Deshmukh Kirana
+	Delivered	
+3 Jul
+	
+—
+
+
+Order cancelled
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Delivered	
+26 Jun
+	
+—
+
+
+Payment received
+	
+SMS
+	
+Khan General Store
+	Delivered	
+23 Jun
+	
+—
+
+
+Payment received
+	
+WhatsApp
+	
+Om Sai Provision Store
+	Delivered	
+3 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nakshatra Kirana
+	Read	
+18 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Rukmini Provision
+	Sent	
+24 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kolsewadi Corner Store
+	Read	
+21 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Jai Bhavani Stores
+	Delivered	
+7 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Delivered	
+12 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Meghana General Store
+	Sent	
+18 Jul
+	
+—
+
+
+Scheme announcement
+	
+In the app
+	
+10fc2bd5-539e-7494-873a-b7ee6bb961d4
+	Delivered	
+9 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gupta Kirana Stores
+	Delivered	
+18 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+More Provision Store
+	Read	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Nakshatra Kirana
+	Delivered	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ambika Provision Store
+	Delivered	
+23 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kolsewadi Corner Store
+	Read	
+28 Jul
+	
+—
+
+
+Payment received
+	
+SMS
+	
+Deshmukh Kirana
+	Delivered	
+18 Jun
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Khan General Store
+	Sent	
+31 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Read	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ganpati General Stores
+	Read	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Delivered	
+22 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+New Bombay Stores
+	Sent	
+10 Aug
+	
+—
+
+
+Order needs approval
+	
+In the app
+	
+a66bacc8-4212-73e1-b75f-405af2960e36
+	Delivered	
+12 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Anand Bhavan Provision
+	Read	
+29 Aug
+	
+—
+
+
+Scheme announcement
+	
+In the app
+	
+b16c590d-3b76-7929-a5b6-557a56b31c9a
+	Delivered	
+9 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Khan General Store
+	Delivered	
+17 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vaibhav Kirana Mart
+	Read	
+10 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Sai Krupa Super Bazar
+	Read	
+17 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gavhane Kirana
+	Read	
+4 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Meghana General Store
+	Delivered	
+30 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Kadam Stores
+	Read	
+5 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Chavan Kirana Stores
+	Sent	
+11 Jul
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Balaji Wholesale Stores
+	Delivered	
+29 Jun
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Read	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Deshmukh Kirana
+	Delivered	
+25 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Sharma Kirana Stores
+	Delivered	
+29 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vitthal Traders
+	Read	
+1 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Vasudha Stores
+	Sent	
+9 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Iyer Provision Store
+	Delivered	
+4 Jul
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+Gurukrupa Provision
+	Delivered	
+4 Sep
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+New Bombay Stores
+	Read	
+3 Aug
+	
+—
+
+
+Order confirmed
+	
+WhatsApp
+	
+Ekvira Kirana
+	Read	
+3 Aug
+	
+—
+
+
+Order confirmed
+	
+SMS
+	
+City Light Provision
+	Read	
+6 Jul
+	
+—
+
+200 rows					

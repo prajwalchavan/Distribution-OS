@@ -1,0 +1,1179 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Inbound
+Supplier bills
+Documents
+Gate count
+Bills
+✓ Goods received
+Findings
+Purchase orders
+Receipt no.	Godown	State	Counted	Posted
+
+GRN-0025
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0073
+	
+Godown
+	Posted	
+30 Jul
+	
+30 Jul
+
+
+GRN-0113
+	
+Godown
+	Posted	
+1 Sep
+	
+1 Sep
+
+
+GRN-0081
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0105
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0124
+	
+Godown
+	Posted	
+6 Sep
+	
+6 Sep
+
+
+GRN-0111
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0089
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0006
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0031
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0084
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0044
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0003
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0023
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0106
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0078
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0116
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0058
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0112
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0095
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0004
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0034
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0001
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0110
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0067
+	
+Godown
+	Posted	
+25 Jul
+	
+25 Jul
+
+
+GRN-0041
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0096
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0101
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0065
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0011
+	
+Godown
+	Posted	
+16 Jun
+	
+16 Jun
+
+
+GRN-0100
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0125
+	
+Godown
+	Posted	
+8 Sep
+	
+8 Sep
+
+
+GRN-0039
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0119
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0060
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0049
+	
+Godown
+	Posted	
+13 Jul
+	
+13 Jul
+
+
+GRN-0080
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0069
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0007
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0029
+	
+Godown
+	Posted	
+30 Jun
+	
+30 Jun
+
+
+GRN-0114
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0045
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0098
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0109
+	
+Godown
+	Posted	
+27 Aug
+	
+27 Aug
+
+
+GRN-0040
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0002
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0022
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0050
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0024
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0070
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0099
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0083
+	
+Godown
+	Posted	
+6 Aug
+	
+6 Aug
+
+
+GRN-0010
+	
+Godown
+	Posted	
+13 Jun
+	
+13 Jun
+
+
+GRN-0026
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0085
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0059
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0055
+	
+Godown
+	Posted	
+18 Jul
+	
+18 Jul
+
+
+GRN-0092
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0126
+	
+Godown
+	Posted	
+9 Sep
+	
+9 Sep
+
+
+GRN-0021
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0061
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0046
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0017
+	
+Godown
+	Posted	
+20 Jun
+	
+20 Jun
+
+
+GRN-0051
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0005
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0013
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0028
+	
+Godown
+	Posted	
+27 Jun
+	
+27 Jun
+
+
+GRN-0030
+	
+Godown
+	Posted	
+30 Jun
+	
+30 Jun
+
+
+GRN-0087
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0056
+	
+Godown
+	Posted	
+20 Jul
+	
+20 Jul
+
+
+GRN-0128
+	
+Godown
+	Posted	
+10 Sep
+	
+10 Sep
+
+
+GRN-0052
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0091
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0035
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0108
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0102
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0093
+	
+Godown
+	Posted	
+15 Aug
+	
+15 Aug
+
+
+GRN-0027
+	
+Godown
+	Posted	
+25 Jun
+	
+25 Jun
+
+
+GRN-0079
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0075
+	
+Godown
+	Posted	
+31 Jul
+	
+31 Jul
+
+
+GRN-0038
+	
+Godown
+	Posted	
+7 Jul
+	
+7 Jul
+
+
+GRN-0076
+	
+Godown
+	Posted	
+3 Aug
+	
+3 Aug
+
+
+GRN-0057
+	
+Godown
+	Posted	
+20 Jul
+	
+20 Jul
+
+
+GRN-0019
+	
+Godown
+	Posted	
+22 Jun
+	
+22 Jun
+
+
+GRN-0054
+	
+Godown
+	Posted	
+16 Jul
+	
+16 Jul
+
+
+GRN-0107
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0020
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0018
+	
+Godown
+	Posted	
+20 Jun
+	
+20 Jun
+
+
+GRN-0053
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0104
+	
+Godown
+	Posted	
+24 Aug
+	
+24 Aug
+
+
+GRN-0032
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0097
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0063
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0082
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0012
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0074
+	
+Godown
+	Posted	
+30 Jul
+	
+30 Jul
+
+
+GRN-0120
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0066
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0077
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0121
+	
+Godown
+	Posted	
+3 Sep
+	
+3 Sep
+
+
+GRN-0117
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0088
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0042
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0014
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0037
+	
+Godown
+	Posted	
+4 Jul
+	
+4 Jul
+
+
+GRN-0072
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0033
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0068
+	
+Godown
+	Posted	
+28 Jul
+	
+28 Jul
+
+
+GRN-0115
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0071
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0036
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0118
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0016
+	
+Godown
+	Posted	
+19 Jun
+	
+19 Jun
+
+
+GRN-0064
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0103
+	
+Godown
+	Posted	
+21 Aug
+	
+21 Aug
+
+
+GRN-0015
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0090
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0047
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0123
+	
+Godown
+	Posted	
+5 Sep
+	
+5 Sep
+
+
+GRN-0094
+	
+Godown
+	Posted	
+18 Aug
+	
+18 Aug
+
+
+GRN-0086
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0048
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0009
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0008
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0122
+	
+Godown
+	Posted	
+5 Sep
+	
+5 Sep
+
+
+GRN-0062
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0043
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0127
+	
+Godown
+	Posted	
+9 Sep
+	
+9 Sep

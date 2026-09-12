@@ -1,0 +1,26 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Gate count
+Supplier bills
+Documents
+Gate count
+Count what actually came off the lorry. The expected figure is hidden until you have counted.
+Which receipt are you counting?
+No goods receipt is open

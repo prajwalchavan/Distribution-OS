@@ -1,0 +1,722 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated 3 min ago
+VK
+Vikas Kadam
+manager
+Credit notes
+7 days
+30 days
+90 days
+Draft a credit note
+Billing desk
+Credit notes
+Brand DMS
+Note no.	Date	Shop	Against bill	Why	Taxable ₹	Amount ₹	State
+
+CN/0035
+	
+25 Aug 2026
+	
+Vaibhav Kirana Mart
+	
+INV/0664
+	
+Short delivered
+	357.42	375.00	Issued
+
+CN/0028
+	
+12 Aug 2026
+	
+Sharma Kirana Stores
+	
+INV/0546
+	
+Short delivered
+	137.82	193.00	Issued
+
+CN/0001
+	
+17 Jun 2026
+	
+Krishna Kirana Stores
+	
+INV/0015
+	
+Short delivered
+	138.54	194.00	Issued
+
+CN/0046
+	
+9 Sep 2026
+	
+Pawar General Store
+	
+INV/0813
+	
+Short delivered
+	338.55	399.00	Issued
+
+CN/0061
+	
+14 Aug 2026
+	
+Balaji Wholesale Stores
+	
+INV/0527
+	
+Scheme settlement
+	111.36	131.00	Issued
+
+CN/0030
+	
+17 Aug 2026
+	
+Sai Krupa Super Bazar
+	
+INV/0585
+	
+Short delivered
+	509.76	602.00	Issued
+
+CN/0056
+	
+23 Aug 2026
+	
+Om Sai Provision Store
+	
+INV/0619
+	
+Return, saleable
+	597.90	598.00	Issued
+
+CN/0052
+	
+16 Aug 2026
+	
+Sahyadri Super Bazar
+	
+INV/0576
+	
+Rate difference
+	960.00	1,133.00	Issued
+
+CN/0057
+	
+22 Aug 2026
+	
+Metro Kirana Bazar
+	
+INV/0639
+	
+Rate difference
+	144.00	170.00	Issued
+
+CN/0048
+	
+10 Sep 2026
+	
+Balaji Wholesale Stores
+	
+INV/0819
+	
+Short delivered
+	472.32	496.00	Issued
+
+CN/0042
+	
+3 Sep 2026
+	
+Shivshakti Traders
+	
+INV/0756
+	
+Short delivered
+	176.16	208.00	Issued
+
+CN/0060
+	
+5 Aug 2026
+	
+Sahyadri Super Bazar
+	
+INV/0460
+	
+Scheme settlement
+	491.40	516.00	Issued
+
+CN/0011
+	
+10 Jul 2026
+	
+Navjeevan Super Bazar
+	
+INV/0236
+	
+Short delivered
+	171.60	202.00	Issued
+
+CN/0036
+	
+25 Aug 2026
+	
+Gurukrupa Provision
+	
+INV/0665
+	
+Short delivered
+	101.46	142.00	Issued
+
+CN/0032
+	
+21 Aug 2026
+	
+Bhosale Traders
+	
+INV/0635
+	
+Short delivered
+	225.75	266.00	Issued
+
+CN/0058
+	
+27 Aug 2026
+	
+Ganesh General Store
+	
+INV/0654
+	
+Return, saleable
+	700.80	827.00	Issued
+
+CN/0047
+	
+10 Sep 2026
+	
+Birla Road Kirana Mart
+	
+INV/0818
+	
+Short delivered
+	235.14	277.00	Issued
+
+CN/9002
+	
+20 Aug 2026
+	
+Shree Ganesh Kirana
+	
+INV/0617
+	
+Rate difference
+	96.00	134.00	Issued
+
+CN/0010
+	
+6 Jul 2026
+	
+Jai Bhavani Stores
+	
+INV/0187
+	
+Short delivered
+	68.04	95.00	Issued
+
+CN/0023
+	
+28 Jul 2026
+	
+Kolsewadi Corner Store
+	
+INV/0412
+	
+Short delivered
+	137.82	193.00	Issued
+
+CN/0017
+	
+15 Jul 2026
+	
+Kadam Stores
+	
+INV/0292
+	
+Short delivered
+	898.92	944.00	Issued
+
+CN/0005
+	
+22 Jun 2026
+	
+Ganesh General Store
+	
+INV/0060
+	
+Short delivered
+	170.10	238.00	Issued
+
+CN/0033
+	
+22 Aug 2026
+	
+Gurukrupa Provision
+	
+INV/0649
+	
+Short delivered
+	514.98	608.00	Issued
+
+CN/0026
+	
+3 Aug 2026
+	
+Mahalaxmi General Stores
+	
+INV/0467
+	
+Short delivered
+	175.08	207.00	Issued
+
+CN/0016
+	
+14 Jul 2026
+	
+Ekvira Kirana
+	
+INV/0285
+	
+Short delivered
+	137.82	193.00	Issued
+
+CN/0024
+	
+31 Jul 2026
+	
+Kolsewadi Corner Store
+	
+INV/0442
+	
+Short delivered
+	273.06	322.00	Issued
+
+CN/0029
+	
+15 Aug 2026
+	
+Rameshwar General Store
+	
+INV/0580
+	
+Short delivered
+	399.24	471.00	Issued
+
+CN/0038
+	
+28 Aug 2026
+	
+New Bombay Stores
+	
+INV/0699
+	
+Short delivered
+	135.78	190.00	Issued
+
+CN/0041
+	
+3 Sep 2026
+	
+Rameshwar General Store
+	
+INV/0754
+	
+Short delivered
+	309.76	347.00	Issued
+
+CN/0006
+	
+25 Jun 2026
+	
+Balaji Wholesale Stores
+	
+INV/0094
+	
+Short delivered
+	66.36	93.00	Issued
+
+CN/0019
+	
+21 Jul 2026
+	
+Anand Bhavan Provision
+	
+INV/0354
+	
+Short delivered
+	299.12	353.00	Issued
+
+CN/0051
+	
+14 Aug 2026
+	
+Gupta Kirana Stores
+	
+INV/0538
+	
+Return, damaged
+	137.12	192.00	Issued
+
+CN/0055
+	
+21 Aug 2026
+	
+Bhosale Traders
+	
+INV/0614
+	
+Return, damaged
+	361.28	426.00	Issued
+
+CN/0002
+	
+17 Jun 2026
+	
+Metro Kirana Bazar
+	
+INV/0021
+	
+Short delivered
+	101.07	142.00	Issued
+
+CN/0021
+	
+25 Jul 2026
+	
+Chavan Kirana Stores
+	
+INV/0397
+	
+Short delivered
+	172.08	241.00	Issued
+
+CN/0045
+	
+8 Sep 2026
+	
+Sai Baba Kirana
+	
+INV/0794
+	
+Short delivered
+	457.01	480.00	Issued
+
+CN/0031
+	
+19 Aug 2026
+	
+City Light Provision
+	
+INV/0612
+	
+Short delivered
+	67.38	94.00	Issued
+
+CN/0025
+	
+3 Aug 2026
+	
+Karve Provision
+	
+INV/0461
+	
+Short delivered
+	359.22	377.00	Issued
+
+CN/0037
+	
+27 Aug 2026
+	
+Shree Ganesh Kirana
+	
+INV/0680
+	
+Short delivered
+	181.92	215.00	Issued
+
+CN/0027
+	
+12 Aug 2026
+	
+Ansari Kirana Stores
+	
+INV/0540
+	
+Short delivered
+	68.16	95.00	Issued
+
+CN/0003
+	
+19 Jun 2026
+	
+Chavan Kirana Stores
+	
+INV/0042
+	
+Short delivered
+	136.50	191.00	Issued
+
+CN/0004
+	
+20 Jun 2026
+	
+Hariom Kirana Bhandar
+	
+INV/0050
+	
+Short delivered
+	270.63	319.00	Issued
+
+CN/0044
+	
+7 Sep 2026
+	
+Ambika Provision Store
+	
+INV/0786
+	
+Short delivered
+	68.76	96.00	Issued
+
+CN/0013
+	
+10 Jul 2026
+	
+Prerna Super Market
+	
+INV/0244
+	
+Short delivered
+	135.78	190.00	Issued
+
+CN/0043
+	
+4 Sep 2026
+	
+Gurukrupa Provision
+	
+INV/0767
+	
+Short delivered
+	137.16	192.00	Issued
+
+CN/0007
+	
+25 Jun 2026
+	
+Gurukrupa Provision
+	
+INV/0095
+	
+Short delivered
+	952.11	1,066.00	Issued
+
+CN/9001
+	
+3 Aug 2026
+	
+Shree Ganesh Kirana
+	
+INV/0468
+	
+Return, saleable
+	407.76	571.00	Issued
+
+CN/0054
+	
+19 Aug 2026
+	
+Ganpati General Stores
+	
+INV/0589
+	
+Return, damaged
+	182.88	256.00	Issued
+
+CN/0014
+	
+14 Jul 2026
+	
+Nakshatra Kirana
+	
+INV/0280
+	
+Short delivered
+	956.94	1,072.00	Issued
+
+CN/0012
+	
+10 Jul 2026
+	
+City Light Provision
+	
+INV/0239
+	
+Short delivered
+	137.82	193.00	Issued
+
+CN/0008
+	
+27 Jun 2026
+	
+Iyer Provision Store
+	
+INV/0124
+	
+Short delivered
+	127.08	150.00	Issued
+
+CN/0015
+	
+14 Jul 2026
+	
+Laxmi Narayan Stores
+	
+INV/0281
+	
+Short delivered
+	198.48	198.00	Issued
+
+CN/0018
+	
+20 Jul 2026
+	
+Balaji Wholesale Stores
+	
+INV/0334
+	
+Short delivered
+	271.80	304.00	Issued
+
+CN/0053
+	
+20 Aug 2026
+	
+Metro Kirana Bazar
+	
+INV/0586
+	
+Return, saleable
+	254.25	356.00	Issued
+
+CN/0039
+	
+1 Sep 2026
+	
+More Provision Store
+	
+INV/0739
+	
+Short delivered
+	273.06	322.00	Issued
+
+CN/0049
+	
+19 Jul 2026
+	
+Prerna Super Market
+	
+INV/0310
+	
+Return, damaged
+	712.48	841.00	Issued
+
+CN/0059
+	
+27 Aug 2026
+	
+Chavan Kirana Stores
+	
+INV/0673
+	
+Rate difference
+	96.60	101.00	Issued
+
+CN/0050
+	
+6 Aug 2026
+	
+Prerna Super Market
+	
+INV/0486
+	
+Rate difference
+	432.00	510.00	Issued
+
+CN/0009
+	
+3 Jul 2026
+	
+Sharma Kirana Stores
+	
+INV/0164
+	
+Short delivered
+	496.62	586.00	Issued
+
+CN/0034
+	
+24 Aug 2026
+	
+Prerna Super Market
+	
+INV/0651
+	
+Short delivered
+	154.38	154.00	Issued
+
+CN/0040
+	
+2 Sep 2026
+	
+Reddy Traders
+	
+INV/0740
+	
+Short delivered
+	68.04	95.00	Issued
+
+CN/0020
+	
+24 Jul 2026
+	
+Trimurti General Store
+	
+INV/0379
+	
+Short delivered
+	173.88	205.00	Issued
+
+CN/0022
+	
+27 Jul 2026
+	
+Shree Ganesh Kirana
+	
+INV/0402
+	
+Short delivered
+	1,251.82	1,402.00	Issued
+63						22,749.00	

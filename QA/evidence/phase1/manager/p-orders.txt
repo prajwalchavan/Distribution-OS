@@ -1,0 +1,39 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+No order is waiting
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Bargain
+Bargain
+—
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Today
+Orders
+Fulfilment
+Billing

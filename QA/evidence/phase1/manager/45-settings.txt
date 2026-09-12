@@ -1,0 +1,56 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+My account
+Name
+Vikas Kadam
+Role
+Manager
+Change password
+Devices signed in
+Device	Platform	Signed in	Last used	This device
+
+Browser on Mac
+	
+Web
+	
+12 Sep, 1:48 pm
+	
+12 Sep, 2:22 pm
+	This device
+
+Unnamed device
+	
+Web
+	
+12 Sep, 1:56 pm
+	
+12 Sep, 1:56 pm
+	
+
+Browser on Mac
+	
+Web
+	
+12 Sep, 12:52 pm
+	
+12 Sep, 12:52 pm
+	
+3 rows				
+That device will have to sign in again with a password.

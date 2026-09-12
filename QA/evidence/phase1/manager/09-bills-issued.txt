@@ -1,0 +1,1433 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+9 left to bill
+Billing desk
+Billing desk
+Bills issued
+7 days
+30 days
+90 days
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Bill no.	Date	Shop	Taxable ₹	GST ₹	Total ₹	Still due ₹	Payment
+
+INV/0634
+	
+21 Aug 2026
+	
+Sharma Kirana Stores
+	8,874.34	1,312.88	10,187.00	0.00	Paid
+
+INV/0572
+	
+14 Aug 2026
+	
+Ganpati General Stores
+	18,231.34	4,072.20	22,304.00	22,304.00	Issued
+
+INV/0822
+	
+10 Sep 2026
+	
+Mahalaxmi General Stores
+	10,749.58	1,557.46	12,307.00	0.00	Paid
+
+INV/0803
+	
+8 Sep 2026
+	
+Ganpati General Stores
+	12,491.23	1,329.44	13,821.00	0.00	Paid
+
+INV/0614
+	
+19 Aug 2026
+	
+Bhosale Traders
+	19,549.86	3,953.90	23,504.00	23,078.00	Part paid
+
+INV/0696
+	
+28 Aug 2026
+	
+Mangal Traders
+	6,736.59	1,157.57	7,894.00	0.00	Paid
+
+INV/0609
+	
+19 Aug 2026
+	
+Mishra Provision Store
+	1,537.74	615.11	2,153.00	1,049.00	Part paid
+
+INV/0622
+	
+20 Aug 2026
+	
+Nutan Kirana Stores
+	2,839.20	511.06	3,350.00	0.00	Paid
+
+INV/0606
+	
+19 Aug 2026
+	
+Pawar General Store
+	560.98	224.39	785.00	785.00	Issued
+
+INV/0594
+	
+17 Aug 2026
+	
+Ambika Provision Store
+	2,387.24	632.67	3,020.00	1,457.00	Part paid
+
+INV/0650
+	
+24 Aug 2026
+	
+Ambika Provision Store
+	9,599.28	3,087.17	12,686.00	0.00	Paid
+
+INV/0811
+	
+9 Sep 2026
+	
+Metro Kirana Bazar
+	3,486.99	1,258.78	4,746.00	4,746.00	Issued
+
+INV/0677
+	
+26 Aug 2026
+	
+Metro Kirana Bazar
+	4,539.48	1,697.31	6,237.00	0.00	Paid
+
+INV/0608
+	
+19 Aug 2026
+	
+Gavhane Kirana
+	7,574.40	3,029.77	10,604.00	0.00	Paid
+
+INV/0800
+	
+8 Sep 2026
+	
+Shree Ganesh Kirana
+	4,744.69	534.06	5,279.00	0.00	Paid
+
+INV/0647
+	
+22 Aug 2026
+	
+Shree Ganesh Kirana
+	10,925.76	1,635.25	12,561.00	0.00	Paid
+
+INV/0686
+	
+27 Aug 2026
+	
+Pawar General Store
+	3,374.88	850.05	4,225.00	0.00	Paid
+
+INV/0716
+	
+31 Aug 2026
+	
+Om Sai Provision Store
+	7,071.12	1,871.72	8,943.00	8,943.00	Issued
+
+INV/0725
+	
+31 Aug 2026
+	
+Shivshakti Traders
+	2,571.78	354.76	2,927.00	891.00	Part paid
+
+INV/0569
+	
+14 Aug 2026
+	
+Dnyandeep Stores
+	17,907.77	3,709.21	21,617.00	0.00	Paid
+
+INV/0815
+	
+10 Sep 2026
+	
+Nutan Kirana Stores
+	3,246.96	1,016.82	4,264.00	4,264.00	Issued
+
+INV/0618
+	
+20 Aug 2026
+	
+Birla Road Kirana Mart
+	4,091.52	783.42	4,875.00	4,875.00	Issued
+
+INV/0658
+	
+25 Aug 2026
+	
+More Provision Store
+	1,701.36	275.58	1,977.00	1,977.00	Issued
+
+INV/0566
+	
+14 Aug 2026
+	
+Deshmukh Kirana
+	3,511.23	878.72	4,390.00	0.00	Paid
+
+INV/0761
+	
+4 Sep 2026
+	
+Ansari Kirana Stores
+	2,607.78	956.16	3,564.00	3,564.00	Issued
+
+INV/0812
+	
+9 Sep 2026
+	
+Ansari Kirana Stores
+	1,482.33	385.81	1,868.00	1,868.00	Issued
+
+INV/0690
+	
+27 Aug 2026
+	
+Rameshwar General Store
+	11,294.51	3,776.25	15,071.00	0.00	Paid
+
+INV/0778
+	
+5 Sep 2026
+	
+Chavan Kirana Stores
+	8,063.70	1,299.18	9,363.00	9,363.00	Issued
+
+INV/0638
+	
+21 Aug 2026
+	
+Anand Bhavan Provision
+	8,917.44	3,346.21	12,264.00	12,264.00	Issued
+
+INV/0776
+	
+5 Sep 2026
+	
+Gupta Kirana Stores
+	6,847.52	1,205.72	8,053.00	8,053.00	Issued
+
+INV/0754
+	
+3 Sep 2026
+	
+Rameshwar General Store
+	24,757.20	5,045.96	29,803.00	0.00	Paid
+
+INV/0765
+	
+4 Sep 2026
+	
+Nutan Kirana Stores
+	8,658.59	3,135.22	11,794.00	11,794.00	Issued
+
+INV/0659
+	
+25 Aug 2026
+	
+Ekvira Kirana
+	11,483.28	1,378.00	12,861.00	0.00	Paid
+
+INV/0764
+	
+4 Sep 2026
+	
+More Provision Store
+	7,108.75	853.04	7,962.00	0.00	Paid
+
+INV/0810
+	
+9 Sep 2026
+	
+City Light Provision
+	5,130.99	1,125.57	6,257.00	6,257.00	Issued
+
+INV/0757
+	
+4 Sep 2026
+	
+Kolsewadi Corner Store
+	815.76	119.48	935.00	935.00	Issued
+
+INV/0623
+	
+20 Aug 2026
+	
+Jai Bhavani Stores
+	3,306.24	820.80	4,127.00	4,127.00	Issued
+
+INV/0760
+	
+4 Sep 2026
+	
+City Light Provision
+	716.40	166.81	883.00	883.00	Issued
+
+INV/0836
+	
+12 Sep 2026
+	
+Meghana General Store
+	5,766.20	1,309.95	7,076.00	7,076.00	Issued
+
+INV/0679
+	
+26 Aug 2026
+	
+Shubhalabh Stores
+	4,631.28	953.57	5,585.00	0.00	Paid
+
+INV/0672
+	
+26 Aug 2026
+	
+Balaji Wholesale Stores
+	74,532.23	13,275.95	87,808.00	87,808.00	Issued
+
+INV/0648
+	
+22 Aug 2026
+	
+Bhosale Traders
+	19,917.80	3,654.10	23,572.00	0.00	Paid
+
+INV/0583
+	
+15 Aug 2026
+	
+Karve Provision
+	10,926.40	1,566.46	12,493.00	0.00	Paid
+
+INV/0710
+	
+29 Aug 2026
+	
+Sahyadri Super Bazar
+	49,685.00	6,994.46	56,679.00	56,679.00	Issued
+
+INV/0798
+	
+8 Sep 2026
+	
+Dnyandeep Stores
+	24,202.13	5,750.00	29,952.00	0.00	Paid
+
+INV/0792
+	
+7 Sep 2026
+	
+Gavhane Kirana
+	369.60	147.83	517.00	517.00	Issued
+
+INV/0839
+	
+12 Sep 2026
+	
+Rameshwar General Store
+	14,260.03	3,766.54	18,027.00	18,027.00	Issued
+
+INV/0751
+	
+3 Sep 2026
+	
+Navjeevan Super Bazar
+	24,455.59	2,343.64	26,799.00	26,799.00	Issued
+
+INV/0635
+	
+21 Aug 2026
+	
+Bhosale Traders
+	19,719.81	3,542.52	23,262.00	0.00	Paid
+
+INV/0837
+	
+12 Sep 2026
+	
+Kadam Stores
+	10,580.45	2,126.71	12,707.00	12,707.00	Issued
+
+INV/0655
+	
+24 Aug 2026
+	
+New Bombay Stores
+	21,992.40	3,398.52	25,391.00	25,391.00	Issued
+
+INV/0689
+	
+27 Aug 2026
+	
+Meghana General Store
+	6,184.48	517.36	6,702.00	6,702.00	Issued
+
+INV/0714
+	
+31 Aug 2026
+	
+New Bombay Stores
+	13,086.73	2,757.19	15,844.00	15,844.00	Issued
+
+INV/0667
+	
+25 Aug 2026
+	
+Deshmukh Kirana
+	4,985.78	1,389.81	6,376.00	6,376.00	Issued
+
+INV/0610
+	
+19 Aug 2026
+	
+Rukmini Provision
+	11,499.83	3,864.44	15,364.00	0.00	Paid
+
+INV/0703
+	
+28 Aug 2026
+	
+Gavhane Kirana
+	916.98	295.95	1,213.00	1,213.00	Issued
+
+INV/0756
+	
+3 Sep 2026
+	
+Shivshakti Traders
+	1,422.72	256.10	1,679.00	0.00	Paid
+
+INV/0825
+	
+11 Sep 2026
+	
+Vaibhav Kirana Mart
+	6,498.97	1,356.86	7,856.00	7,856.00	Issued
+
+INV/0771
+	
+4 Sep 2026
+	
+Laxmi Narayan Stores
+	34,204.55	6,109.30	40,314.00	40,314.00	Issued
+
+INV/0704
+	
+28 Aug 2026
+	
+Shree Ganesh Kirana
+	3,184.81	597.93	3,783.00	0.00	Paid
+
+INV/0603
+	
+18 Aug 2026
+	
+Dnyandeep Stores
+	21,363.29	3,853.55	25,217.00	25,217.00	Issued
+
+INV/0823
+	
+10 Sep 2026
+	
+Gurukrupa Provision
+	13,701.36	3,292.30	16,994.00	16,994.00	Issued
+
+INV/0613
+	
+19 Aug 2026
+	
+Sharma Kirana Stores
+	3,231.05	1,130.36	4,361.00	4,361.00	Issued
+
+INV/0630
+	
+21 Aug 2026
+	
+Vaibhav Kirana Mart
+	18,749.47	2,495.92	21,245.00	21,245.00	Issued
+
+INV/0570
+	
+14 Aug 2026
+	
+Prerna Super Market
+	47,590.60	10,036.02	57,627.00	57,627.00	Issued
+
+INV/0662
+	
+25 Aug 2026
+	
+Navjeevan Super Bazar
+	37,517.89	8,714.18	46,232.00	46,232.00	Issued
+
+INV/0698
+	
+28 Aug 2026
+	
+Sharma Kirana Stores
+	5,162.94	619.56	5,783.00	5,783.00	Issued
+
+INV/0639
+	
+21 Aug 2026
+	
+Metro Kirana Bazar
+	6,936.67	1,589.58	8,526.00	3,939.00	Part paid
+
+INV/0723
+	
+31 Aug 2026
+	
+Prerna Super Market
+	48,113.66	5,497.75	53,611.00	0.00	Paid
+
+INV/0834
+	
+11 Sep 2026
+	
+Nutan Kirana Stores
+	9,855.04	2,719.49	12,575.00	12,575.00	Issued
+
+INV/0564
+	
+14 Aug 2026
+	
+More Provision Store
+	1,867.56	653.62	2,521.00	0.00	Paid
+
+INV/0818
+	
+10 Sep 2026
+	
+Birla Road Kirana Mart
+	6,461.28	1,342.97	7,804.00	7,527.00	Part paid
+
+INV/0758
+	
+4 Sep 2026
+	
+Shubhalabh Stores
+	6,428.40	796.02	7,224.00	0.00	Paid
+
+INV/0785
+	
+7 Sep 2026
+	
+Sai Baba Kirana
+	72,478.64	12,784.03	85,263.00	85,263.00	Issued
+
+INV/0565
+	
+14 Aug 2026
+	
+Shubhalabh Stores
+	7,152.00	2,621.45	9,773.00	9,773.00	Issued
+
+INV/0787
+	
+7 Sep 2026
+	
+Prerna Super Market
+	65,155.28	9,945.77	75,101.00	0.00	Paid
+
+INV/0588
+	
+17 Aug 2026
+	
+Gavhane Kirana
+	6,709.69	2,341.69	9,051.00	0.00	Paid
+
+INV/0670
+	
+26 Aug 2026
+	
+Gavhane Kirana
+	7,823.04	1,408.14	9,231.00	0.00	Paid
+
+INV/0713
+	
+29 Aug 2026
+	
+Birla Road Kirana Mart
+	11,340.28	1,513.72	12,854.00	0.00	Paid
+
+INV/0804
+	
+9 Sep 2026
+	
+Iyer Provision Store
+	3,595.04	728.37	4,323.00	0.00	Paid
+
+INV/0665
+	
+25 Aug 2026
+	
+Gurukrupa Provision
+	4,502.66	1,130.55	5,633.00	5,491.00	Part paid
+
+INV/0631
+	
+21 Aug 2026
+	
+Rukmini Provision
+	13,512.14	3,546.43	17,059.00	17,059.00	Issued
+
+INV/0794
+	
+8 Sep 2026
+	
+Sai Baba Kirana
+	23,489.46	4,990.83	28,480.00	28,000.00	Part paid
+
+INV/0745
+	
+2 Sep 2026
+	
+Metro Kirana Bazar
+	4,122.89	1,190.12	5,313.00	5,313.00	Issued
+
+INV/0730
+	
+1 Sep 2026
+	
+Vitthal Traders
+	1,792.46	454.91	2,247.00	2,247.00	Issued
+
+INV/0587
+	
+17 Aug 2026
+	
+Shree Ganesh Kirana
+	5,507.71	745.37	6,253.00	6,253.00	Issued
+
+INV/0720
+	
+31 Aug 2026
+	
+Sai Krupa Super Bazar
+	31,544.80	3,898.28	35,443.00	35,443.00	Issued
+
+INV/0657
+	
+25 Aug 2026
+	
+Khan General Store
+	5,541.60	2,216.63	7,758.00	0.00	Paid
+
+INV/0669
+	
+26 Aug 2026
+	
+Kadam Stores
+	1,590.07	227.60	1,818.00	1,818.00	Issued
+
+INV/0833
+	
+11 Sep 2026
+	
+Khan General Store
+	648.04	259.20	907.00	907.00	Issued
+
+INV/0684
+	
+27 Aug 2026
+	
+Krishna Kirana Stores
+	5,740.62	1,004.55	6,745.00	0.00	Paid
+
+INV/0589
+	
+17 Aug 2026
+	
+Ganpati General Stores
+	9,766.46	3,017.35	12,784.00	12,528.00	Part paid
+
+INV/0784
+	
+7 Sep 2026
+	
+Ganesh General Store
+	24,045.36	3,949.00	27,994.00	27,994.00	Issued
+
+INV/0642
+	
+22 Aug 2026
+	
+Gupta Kirana Stores
+	13,558.08	2,995.04	16,553.00	16,553.00	Issued
+
+INV/0644
+	
+22 Aug 2026
+	
+Gavhane Kirana
+	2,484.36	447.18	2,932.00	0.00	Paid
+
+INV/0586
+	
+17 Aug 2026
+	
+Metro Kirana Bazar
+	5,243.32	844.28	6,088.00	5,732.00	Part paid
+
+INV/0641
+	
+22 Aug 2026
+	
+Reddy Traders
+	2,142.74	203.40	2,346.00	2,346.00	Issued
+
+INV/0601
+	
+18 Aug 2026
+	
+Mangal Traders
+	6,987.29	1,849.18	8,836.00	0.00	Paid
+
+INV/0753
+	
+3 Sep 2026
+	
+Shree Ganesh Kirana
+	4,343.64	1,127.96	5,472.00	5,472.00	Issued
+
+INV/0793
+	
+8 Sep 2026
+	
+Vaibhav Kirana Mart
+	9,407.20	1,778.12	11,185.00	11,185.00	Issued
+
+INV/0688
+	
+27 Aug 2026
+	
+Birla Road Kirana Mart
+	1,166.76	322.88	1,490.00	0.00	Paid
+
+INV/0602
+	
+18 Aug 2026
+	
+Nakshatra Kirana
+	10,639.98	1,915.20	12,555.00	12,555.00	Issued
+
+INV/0673
+	
+26 Aug 2026
+	
+Chavan Kirana Stores
+	3,518.40	197.26	3,716.00	3,615.00	Part paid
+
+INV/0576
+	
+15 Aug 2026
+	
+Sahyadri Super Bazar
+	48,778.74	12,924.10	61,703.00	60,570.00	Part paid
+
+INV/0748
+	
+2 Sep 2026
+	
+Rukmini Provision
+	14,877.98	4,366.35	19,244.00	0.00	Paid
+
+INV/0759
+	
+4 Sep 2026
+	
+Ekvira Kirana
+	8,649.44	1,553.68	10,203.00	0.00	Paid
+
+INV/0699
+	
+28 Aug 2026
+	
+New Bombay Stores
+	23,753.05	3,095.40	26,848.00	26,658.00	Part paid
+
+INV/0579
+	
+15 Aug 2026
+	
+Chavan Kirana Stores
+	9,760.32	1,756.86	11,517.00	3,875.00	Part paid
+
+INV/0814
+	
+9 Sep 2026
+	
+Shree Ganesh Kirana
+	10,604.46	1,575.56	12,180.00	0.00	Paid
+
+INV/0671
+	
+26 Aug 2026
+	
+Rameshwar General Store
+	23,480.40	3,812.14	27,293.00	0.00	Paid
+
+INV/0562
+	
+14 Aug 2026
+	
+Khan General Store
+	4,282.56	669.06	4,952.00	0.00	Paid
+
+INV/0743
+	
+2 Sep 2026
+	
+Bhosale Traders
+	12,495.59	1,909.14	14,405.00	0.00	Paid
+
+INV/9001
+	
+22 Aug 2026
+	
+Surat Sales Agency
+	6,384.96	1,149.29	7,534.00	0.00	Paid
+
+INV/0828
+	
+11 Sep 2026
+	
+Metro Kirana Bazar
+	3,763.62	783.50	4,547.00	4,547.00	Issued
+
+INV/0780
+	
+5 Sep 2026
+	
+Karve Provision
+	5,721.94	1,808.26	7,530.00	7,530.00	Issued
+
+INV/0575
+	
+15 Aug 2026
+	
+Gurukrupa Provision
+	25,541.90	2,029.82	27,572.00	0.00	Paid
+
+INV/0580
+	
+15 Aug 2026
+	
+Rameshwar General Store
+	13,553.98	3,359.09	16,913.00	16,442.00	Part paid
+
+INV/0616
+	
+19 Aug 2026
+	
+Gupta Kirana Stores
+	11,955.11	2,306.34	14,261.00	14,261.00	Issued
+
+INV/0683
+	
+27 Aug 2026
+	
+Ambika Provision Store
+	5,412.30	823.10	6,235.00	6,235.00	Issued
+
+INV/0577
+	
+15 Aug 2026
+	
+Pawar General Store
+	8,655.09	3,202.46	11,858.00	0.00	Paid
+
+INV/0678
+	
+26 Aug 2026
+	
+Gupta Kirana Stores
+	6,565.47	1,840.95	8,406.00	8,406.00	Issued
+
+INV/0796
+	
+8 Sep 2026
+	
+Laxmi Narayan Stores
+	25,996.42	4,889.19	30,886.00	30,886.00	Issued
+
+INV/0799
+	
+8 Sep 2026
+	
+Ekvira Kirana
+	3,416.73	341.74	3,758.00	0.00	Paid
+
+INV/0666
+	
+25 Aug 2026
+	
+Sai Krupa Super Bazar
+	2,28,637.57	61,898.38	2,90,536.00	1,16,214.00	Part paid
+
+INV/0781
+	
+5 Sep 2026
+	
+Gurukrupa Provision
+	15,166.23	4,119.82	19,286.00	19,286.00	Issued
+
+INV/0736
+	
+1 Sep 2026
+	
+Trimurti General Store
+	7,843.53	1,330.77	9,174.00	9,174.00	Issued
+
+INV/0663
+	
+25 Aug 2026
+	
+Kolsewadi Corner Store
+	3,586.11	1,279.44	4,866.00	0.00	Paid
+
+INV/0735
+	
+1 Sep 2026
+	
+Dnyandeep Stores
+	11,171.76	2,613.99	13,786.00	13,786.00	Issued
+
+INV/0777
+	
+5 Sep 2026
+	
+Deshmukh Kirana
+	4,524.04	1,588.92	6,113.00	6,113.00	Issued
+
+INV/0715
+	
+31 Aug 2026
+	
+Ambika Provision Store
+	2,562.53	592.68	3,155.00	3,155.00	Issued
+
+INV/0770
+	
+4 Sep 2026
+	
+Navjeevan Super Bazar
+	35,422.08	6,771.78	42,194.00	42,194.00	Issued
+
+INV/0604
+	
+18 Aug 2026
+	
+Vitthal Traders
+	3,560.46	1,124.61	4,685.00	0.00	Paid
+
+INV/0612
+	
+19 Aug 2026
+	
+City Light Provision
+	587.96	114.42	702.00	608.00	Part paid
+
+INV/0695
+	
+28 Aug 2026
+	
+Sai Baba Kirana
+	21,144.66	3,504.87	24,650.00	24,650.00	Issued
+
+INV/0826
+	
+11 Sep 2026
+	
+Joshi Kirana Stores
+	11,667.47	3,294.50	14,962.00	14,962.00	Issued
+
+INV/0740
+	
+2 Sep 2026
+	
+Reddy Traders
+	1,341.48	536.60	1,878.00	1,783.00	Part paid
+
+INV/0591
+	
+17 Aug 2026
+	
+Krishna Kirana Stores
+	1,074.48	157.20	1,232.00	0.00	Paid
+
+INV/0615
+	
+19 Aug 2026
+	
+Metro Kirana Bazar
+	4,150.88	938.08	5,089.00	5,089.00	Issued
+
+INV/0692
+	
+27 Aug 2026
+	
+Jai Bhavani Stores
+	3,019.32	928.51	3,948.00	3,948.00	Issued
+
+INV/0685
+	
+27 Aug 2026
+	
+Sahyadri Super Bazar
+	32,474.01	7,159.62	39,634.00	39,634.00	Issued
+
+INV/0790
+	
+7 Sep 2026
+	
+City Light Provision
+	9,121.24	1,903.43	11,025.00	11,025.00	Issued
+
+INV/0624
+	
+21 Aug 2026
+	
+Dnyandeep Stores
+	20,648.88	2,981.94	23,631.00	13,215.00	Part paid
+
+INV/0750
+	
+3 Sep 2026
+	
+Sai Krupa Super Bazar
+	22,482.45	4,524.17	27,007.00	27,007.00	Issued
+
+INV/0694
+	
+28 Aug 2026
+	
+Ansari Kirana Stores
+	9,549.18	3,052.95	12,602.00	0.00	Paid
+
+INV/0840
+	
+12 Sep 2026
+	
+Gupta Kirana Stores
+	8,547.48	2,258.38	10,806.00	10,806.00	Issued
+
+INV/0649
+	
+22 Aug 2026
+	
+Gurukrupa Provision
+	16,787.61	2,633.96	19,422.00	18,814.00	Part paid
+
+INV/0599
+	
+18 Aug 2026
+	
+Ekvira Kirana
+	3,787.68	812.41	4,600.00	4,600.00	Issued
+
+INV/0734
+	
+1 Sep 2026
+	
+Navjeevan Super Bazar
+	24,003.76	4,394.72	28,398.00	0.00	Paid
+
+INV/0821
+	
+10 Sep 2026
+	
+Jai Bhavani Stores
+	9,298.25	1,127.26	10,426.00	3,436.00	Part paid
+
+INV/0752
+	
+3 Sep 2026
+	
+Karve Provision
+	4,110.00	1,644.00	5,754.00	5,754.00	Issued
+
+INV/0775
+	
+5 Sep 2026
+	
+Mishra Provision Store
+	1,610.64	289.90	1,901.00	1,901.00	Issued
+
+INV/0620
+	
+20 Aug 2026
+	
+Rameshwar General Store
+	15,090.60	1,153.02	16,244.00	0.00	Paid
+
+INV/0830
+	
+11 Sep 2026
+	
+Laxmi Narayan Stores
+	18,148.10	4,359.54	22,508.00	22,508.00	Issued
+
+INV/9003
+	
+11 Sep 2026
+	
+Krishna Kirana Stores
+	415.62	166.25	582.00	0.00	Paid
+
+INV/0726
+	
+31 Aug 2026
+	
+Metro Kirana Bazar
+	4,146.62	700.89	4,848.00	4,848.00	Issued
+
+INV/0558
+	
+14 Aug 2026
+	
+New Bombay Stores
+	13,372.83	1,949.03	15,322.00	15,322.00	Issued
+
+INV/0560
+	
+14 Aug 2026
+	
+Birla Road Kirana Mart
+	815.52	268.07	1,084.00	0.00	Paid
+
+INV/0632
+	
+21 Aug 2026
+	
+Nakshatra Kirana
+	6,719.65	1,935.14	8,655.00	3,515.00	Part paid
+
+INV/0719
+	
+31 Aug 2026
+	
+Rukmini Provision
+	13,959.72	2,494.26	16,454.00	16,454.00	Issued
+
+INV/0807
+	
+9 Sep 2026
+	
+Gavhane Kirana
+	8,221.20	2,692.64	10,914.00	10,914.00	Issued
+
+INV/0600
+	
+18 Aug 2026
+	
+Sai Baba Kirana
+	11,300.05	1,610.78	12,911.00	0.00	Paid
+
+INV/0611
+	
+19 Aug 2026
+	
+New Bombay Stores
+	17,985.18	2,050.28	20,035.00	0.00	Paid
+
+INV/0627
+	
+21 Aug 2026
+	
+Mangal Traders
+	3,251.52	1,300.62	4,552.00	0.00	Paid
+
+INV/0744
+	
+2 Sep 2026
+	
+Shubhalabh Stores
+	3,206.77	1,042.30	4,249.00	0.00	Paid
+
+INV/0820
+	
+10 Sep 2026
+	
+Ambika Provision Store
+	9,399.44	3,169.40	12,569.00	0.00	Paid
+
+INV/0832
+	
+11 Sep 2026
+	
+Anand Bhavan Provision
+	2,533.94	308.78	2,843.00	2,843.00	Issued
+
+INV/0619
+	
+20 Aug 2026
+	
+Om Sai Provision Store
+	5,892.96	1,626.37	7,519.00	6,921.00	Part paid
+
+INV/0687
+	
+27 Aug 2026
+	
+Gurukrupa Provision
+	25,106.76	3,013.81	28,121.00	28,121.00	Issued
+
+INV/0584
+	
+17 Aug 2026
+	
+New Bombay Stores
+	8,808.55	2,405.65	11,214.00	11,214.00	Issued
+
+INV/0782
+	
+5 Sep 2026
+	
+Meghana General Store
+	2,392.24	529.68	2,922.00	2,922.00	Issued
+
+INV/0567
+	
+14 Aug 2026
+	
+Metro Kirana Bazar
+	3,670.44	1,415.15	5,086.00	5,086.00	Issued
+
+INV/0711
+	
+29 Aug 2026
+	
+Nutan Kirana Stores
+	5,102.46	866.21	5,969.00	0.00	Paid
+
+INV/0727
+	
+31 Aug 2026
+	
+Laxmi Narayan Stores
+	34,995.00	9,183.46	44,178.00	44,178.00	Issued
+
+INV/0749
+	
+2 Sep 2026
+	
+New Bombay Stores
+	10,045.84	2,416.82	12,463.00	0.00	Paid
+
+INV/0813
+	
+9 Sep 2026
+	
+Pawar General Store
+	2,041.38	667.58	2,709.00	2,310.00	Part paid
+
+INV/0681
+	
+27 Aug 2026
+	
+Om Sai Provision Store
+	4,180.74	602.88	4,784.00	4,784.00	Issued
+
+INV/0646
+	
+22 Aug 2026
+	
+Kadam Stores
+	6,246.08	2,498.43	8,745.00	0.00	Paid
+
+INV/0797
+	
+8 Sep 2026
+	
+Deshmukh Kirana
+	4,685.88	1,874.35	6,560.00	6,560.00	Issued
+
+INV/0691
+	
+27 Aug 2026
+	
+Mahalaxmi General Stores
+	9,267.00	1,091.36	10,358.00	10,358.00	Issued
+
+INV/0773
+	
+5 Sep 2026
+	
+Joshi Kirana Stores
+	16,110.17	3,871.09	19,981.00	19,981.00	Issued
+
+INV/0559
+	
+14 Aug 2026
+	
+Rukmini Provision
+	14,687.82	2,592.58	17,280.00	17,280.00	Issued
+
+INV/0592
+	
+17 Aug 2026
+	
+Balaji Wholesale Stores
+	52,714.25	8,786.52	61,501.00	36,621.00	Part paid
+
+INV/0805
+	
+9 Sep 2026
+	
+New Bombay Stores
+	25,336.21	4,010.14	29,346.00	0.00	Paid
+
+INV/0598
+	
+18 Aug 2026
+	
+Joshi Kirana Stores
+	10,963.57	2,623.10	13,587.00	13,587.00	Issued
+
+INV/0835
+	
+11 Sep 2026
+	
+Rukmini Provision
+	22,210.74	4,370.46	26,581.00	26,581.00	Issued
+
+INV/0755
+	
+3 Sep 2026
+	
+New Bombay Stores
+	9,469.08	1,239.48	10,709.00	10,709.00	Issued
+
+INV/0802
+	
+8 Sep 2026
+	
+Khan General Store
+	4,000.51	1,044.14	5,045.00	0.00	Paid
+
+INV/0779
+	
+5 Sep 2026
+	
+Rameshwar General Store
+	19,084.20	3,744.17	22,828.00	22,828.00	Issued
+
+INV/0724
+	
+31 Aug 2026
+	
+Shree Ganesh Kirana
+	7,240.73	2,896.29	10,137.00	0.00	Paid
+
+INV/0593
+	
+17 Aug 2026
+	
+Prerna Super Market
+	39,135.06	5,074.29	44,209.00	0.00	Paid
+
+INV/0738
+	
+1 Sep 2026
+	
+Deshmukh Kirana
+	5,091.27	859.78	5,951.00	0.00	Paid
+
+INV/0769
+	
+4 Sep 2026
+	
+Vitthal Traders
+	10,140.00	1,313.76	11,454.00	11,454.00	Issued
+
+INV/0789
+	
+7 Sep 2026
+	
+Sharma Kirana Stores
+	7,900.83	990.38	8,891.00	8,891.00	Issued
+
+INV/0633
+	
+21 Aug 2026
+	
+Khan General Store
+	971.70	202.36	1,174.00	0.00	Paid
+
+INV/0621
+	
+20 Aug 2026
+	
+Balaji Wholesale Stores
+	85,903.96	15,275.11	1,01,179.00	40,472.00	Part paid
+
+INV/0729
+	
+1 Sep 2026
+	
+Kolsewadi Corner Store
+	7,768.52	2,285.50	10,054.00	10,054.00	Issued
+
+INV/0732
+	
+1 Sep 2026
+	
+Birla Road Kirana Mart
+	1,993.76	296.58	2,290.00	2,290.00	Issued
+
+INV/0762
+	
+4 Sep 2026
+	
+Gavhane Kirana
+	9,540.14	1,286.32	10,826.00	10,826.00	Issued
+
+INV/0808
+	
+9 Sep 2026
+	
+Reddy Traders
+	4,667.54	677.11	5,345.00	5,345.00	Issued
+
+INV/0746
+	
+2 Sep 2026
+	
+Pawar General Store
+	4,284.12	819.86	5,104.00	5,104.00	Issued
+200+							
+j / k move · Enter open · p print

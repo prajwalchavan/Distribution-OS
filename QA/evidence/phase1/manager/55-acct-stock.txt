@@ -1,0 +1,3943 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Where	On hand	Held	Free	Expires
+
+Campa Cola 1 L
+	
+RCP20260807
+	
+Godown
+	
+8
+	
+0
+	
+8
+	4 May 2027
+
+Chamak Detergent Bar 250 g
+	
+SC20260604
+	
+Godown
+	
+14
+	
+0
+	
+14
+	3 Jun 2028
+
+Godavari Cow Ghee 500 ml
+	
+GD20260720
+	
+Godown
+	
+5
+	
+0
+	
+5
+	20 Jul 2027
+
+Rajwadi Jeera Masala Soda 1.25 L
+	
+RJ20260730
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Apr 2027
+
+Neelam Herbal Toothpaste 100 g
+	
+B20260902
+	
+Godown
+	
+432
+	
+0
+	
+432
+	1 Sep 2028
+
+Annapurna Kolam Rice 5 kg
+	
+B20260902
+	
+Godown
+	
+43
+	
+0
+	
+43
+	30 May 2027
+
+Rajwadi Jeera Masala Soda 1.25 L
+	
+B20260729
+	
+Godown
+	
+12
+	
+0
+	
+12
+	25 Apr 2027
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+B20260902
+	
+Godown
+	
+240
+	
+0
+	
+240
+	30 May 2027
+
+Sunbake Butter Cookies 75 g
+	
+SB20260830
+	
+Godown
+	
+144
+	
+0
+	
+144
+	27 Apr 2027
+
+Campa Lemon 750 ml
+	
+RCP20260703
+	
+Godown
+	
+5
+	
+0
+	
+5
+	30 Mar 2027
+
+Konkan Bhajani Chivda 100 g
+	
+B20260902
+	
+Godown
+	
+468
+	
+0
+	
+468
+	31 Dec 2026
+
+Annapurna Toor Dal 500 g
+	
+AN20260606
+	
+Godown
+	
+3
+	
+3
+	
+0
+	3 Mar 2027
+
+Chamak Detergent Powder 4 kg
+	
+B20260902
+	
+Godown
+	
+28
+	
+0
+	
+28
+	1 Sep 2028
+
+Sunbake Marie Light 300 g
+	
+SB20260719
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Mar 2027
+
+Konkan Roasted Peanut Masala 150 g
+	
+KC20260731
+	
+Godown
+	
+36
+	
+0
+	
+36
+	28 Nov 2026
+
+Konkan Farsan Mix 100 g
+	
+KC20260717
+	
+Godown
+	
+106
+	
+0
+	
+106
+	14 Nov 2026
+
+Godavari Toned UHT Milk 500 ml
+	
+GD20260806
+	
+Godown
+	
+24
+	
+0
+	
+24
+	4 Dec 2026
+
+Balaji Simply Salted Wafers 45 g
+	
+B20260823
+	
+Godown
+	
+42
+	
+0
+	
+42
+	20 Jan 2027
+
+Sunbake Marie Light 300 g
+	
+SB20260830
+	
+Godown
+	
+180
+	
+0
+	
+180
+	27 Apr 2027
+
+Godavari Dairy Whitener 200 g
+	
+GD20260629
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Mar 2027
+
+Sunbake Butter Cookies 75 g
+	
+SB20260607
+	
+Godown
+	
+14
+	
+0
+	
+14
+	2 Feb 2027
+
+Sunbake Marie Light 150 g
+	
+SB20260621
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Feb 2027
+
+Godavari Fresh Paneer 500 g
+	
+GD20260611
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Jun 2026
+
+Godavari Fresh Paneer 500 g
+	
+GD20260611
+	
+Damaged / expiry bin
+	
+8
+	
+0
+	
+8
+	26 Jun 2026
+
+Sunbake Elaichi Cream 120 g
+	
+SB20260705
+	
+Godown
+	
+12
+	
+0
+	
+12
+	2 Mar 2027
+
+Too Yumm Karare 60 g
+	
+TY20260720
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Jan 2027
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+AN20260808
+	
+Godown
+	
+0
+	
+0
+	
+0
+	5 May 2027
+
+MOM Roasted Makhana Himalayan Salt 12 g
+	
+B20260902
+	
+Godown
+	
+90
+	
+0
+	
+90
+	30 May 2027
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260725
+	
+Godown
+	
+15
+	
+0
+	
+15
+	21 Jan 2027
+
+Too Yumm Karare 60 g
+	
+TY20260710
+	
+Godown
+	
+7
+	
+0
+	
+7
+	6 Jan 2027
+
+Rajwadi Lemon Soda 500 ml
+	
+RJ20260820
+	
+Godown
+	
+48
+	
+0
+	
+48
+	17 May 2027
+
+Rajwadi Lemon Soda 1.25 L
+	
+RJ20260621
+	
+Godown
+	
+12
+	
+0
+	
+12
+	18 Mar 2027
+
+Chamak Detergent Powder 1 kg
+	
+B20260909
+	
+Godown
+	
+134
+	
+0
+	
+134
+	8 Sep 2028
+
+Chamak Detergent Bar 250 g
+	
+B20260902
+	
+Godown
+	
+322
+	
+0
+	
+322
+	1 Sep 2028
+
+Chamak Detergent Bar 250 g
+	
+B20260902
+	
+Damaged / expiry bin
+	
+6
+	
+0
+	
+6
+	1 Sep 2028
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+RJ20260830
+	
+Godown
+	
+0
+	
+0
+	
+0
+	27 May 2027
+
+Neelam Sandal Soap 3 x 100 g pack
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	28 Jul 2028
+
+Konkan Aloo Bhujia 400 g
+	
+B20260729
+	
+Godown
+	
+100
+	
+0
+	
+100
+	26 Nov 2026
+
+Rajwadi Jeera Masala Soda 500 ml
+	
+RJ20260621
+	
+Godown
+	
+0
+	
+0
+	
+0
+	18 Mar 2027
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260811
+	
+Godown
+	
+48
+	
+0
+	
+48
+	8 Jan 2027
+
+Too Yumm Karare 60 g
+	
+TY20260531
+	
+Godown
+	
+0
+	
+0
+	
+0
+	27 Nov 2026
+
+Campa Orange 1 L
+	
+RCP20260529
+	
+Godown
+	
+0
+	
+0
+	
+0
+	23 Feb 2027
+
+Sunbake Glucose 55 g
+	
+SB20260712
+	
+Godown
+	
+32
+	
+0
+	
+32
+	9 Mar 2027
+
+Rajwadi Jeera Masala Soda 500 ml
+	
+RJ20260611
+	
+Godown
+	
+0
+	
+0
+	
+0
+	8 Mar 2027
+
+Neelam Coconut Hair Oil 200 ml
+	
+B20260902
+	
+Godown
+	
+163
+	
+0
+	
+163
+	1 Sep 2028
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+RJ20260611
+	
+Godown
+	
+16
+	
+0
+	
+16
+	8 Mar 2027
+
+Sunbake Choco Chip Cookies 40 g
+	
+SB20260802
+	
+Godown
+	
+0
+	
+0
+	
+0
+	30 Mar 2027
+
+Sunbake Salted Cracker 200 g
+	
+SB20260802
+	
+Godown
+	
+36
+	
+0
+	
+36
+	30 Mar 2027
+
+Too Yumm Veggie Stix 70 g
+	
+TY20260819
+	
+Godown
+	
+48
+	
+2
+	
+46
+	15 Feb 2027
+
+Campa Orange 200 ml
+	
+RCP20260710
+	
+Godown
+	
+0
+	
+0
+	
+0
+	6 Apr 2027
+
+Sunbake Marie Light 75 g
+	
+SB20260607
+	
+Godown
+	
+12
+	
+0
+	
+12
+	2 Feb 2027
+
+Godavari Dahi 400 g
+	
+GD20260806
+	
+Godown
+	
+0
+	
+0
+	
+0
+	27 Aug 2026
+
+Godavari Dahi 400 g
+	
+B20260830
+	
+Godown
+	
+40
+	
+0
+	
+40
+	20 Sep 2026
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260613
+	
+Godown
+	
+0
+	
+0
+	
+0
+	10 Mar 2027
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260804
+	
+Godown
+	
+0
+	
+0
+	
+0
+	1 Jan 2027
+
+Godavari Dahi 400 g
+	
+GD20260801
+	
+Godown
+	
+0
+	
+0
+	
+0
+	22 Aug 2026
+
+MOM Roasted Makhana Peri Peri 60 g
+	
+MOM20260526
+	
+Godown
+	
+36
+	
+0
+	
+36
+	20 Feb 2027
+
+MOM Roasted Makhana Peri Peri 60 g
+	
+MOM20260526
+	
+Damaged / expiry bin
+	
+12
+	
+0
+	
+12
+	20 Feb 2027
+
+Sunbake Salted Cracker 200 g
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Mar 2027
+
+Campa Orange 200 ml
+	
+RCP20260731
+	
+Godown
+	
+7
+	
+0
+	
+7
+	27 Apr 2027
+
+Rajwadi Aamras Mango Drink 200 ml
+	
+RJ20260621
+	
+Godown
+	
+0
+	
+0
+	
+0
+	18 Dec 2026
+
+Godavari Dahi 200 g
+	
+B20260812
+	
+Godown
+	
+30
+	
+0
+	
+30
+	2 Sep 2026
+
+Campa Cola 500 ml
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Apr 2027
+
+Chamak Dishwash Bar 300 g
+	
+SC20260730
+	
+Godown
+	
+0
+	
+0
+	
+0
+	29 Jul 2028
+
+Sunbake Glucose 32 g
+	
+B20260729
+	
+Godown
+	
+636
+	
+0
+	
+636
+	26 Mar 2027
+
+Campa Cola 500 ml
+	
+RCP20260529
+	
+Godown
+	
+0
+	
+0
+	
+0
+	23 Feb 2027
+
+Campa Orange 500 ml
+	
+RCP20260717
+	
+Godown
+	
+6
+	
+0
+	
+6
+	13 Apr 2027
+
+Sunbake Elaichi Cream 60 g
+	
+B20260902
+	
+Godown
+	
+384
+	
+0
+	
+384
+	30 Apr 2027
+
+Konkan Aloo Bhujia 42 g
+	
+B20260729
+	
+Godown
+	
+480
+	
+0
+	
+480
+	26 Nov 2026
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260721
+	
+Godown
+	
+0
+	
+0
+	
+0
+	18 Dec 2026
+
+Campa Orange 750 ml
+	
+RCP20260724
+	
+Godown
+	
+4
+	
+0
+	
+4
+	20 Apr 2027
+
+Too Yumm Karare 60 g
+	
+B20260909
+	
+Godown
+	
+619
+	
+0
+	
+619
+	8 Mar 2027
+
+Too Yumm Karare 60 g
+	
+B20260909
+	
+Vehicle MH-05-AB-1234
+	
+48
+	
+0
+	
+48
+	8 Mar 2027
+
+Campa Cola 1 L
+	
+RCP20260612
+	
+Godown
+	
+4
+	
+0
+	
+4
+	9 Mar 2027
+
+Campa Orange 750 ml
+	
+B20260614
+	
+Godown
+	
+8
+	
+8
+	
+0
+	11 Mar 2027
+
+Godavari Fresh Paneer 500 g
+	
+GD20260705
+	
+Godown
+	
+0
+	
+0
+	
+0
+	20 Jul 2026
+
+Godavari Fresh Paneer 500 g
+	
+GD20260705
+	
+Damaged / expiry bin
+	
+2
+	
+0
+	
+2
+	20 Jul 2026
+
+Sunbake Glucose 110 g
+	
+SB20260823
+	
+Godown
+	
+36
+	
+0
+	
+36
+	20 Apr 2027
+
+Godavari Flavoured Milk Rose 180 ml
+	
+B20260605
+	
+Godown
+	
+54
+	
+0
+	
+54
+	3 Oct 2026
+
+Godavari Cow Ghee 500 ml
+	
+GD20260620
+	
+Godown
+	
+0
+	
+0
+	
+0
+	20 Jun 2027
+
+Annapurna Toor Dal 500 g
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Apr 2027
+
+Campa Orange 750 ml
+	
+RCP20260619
+	
+Godown
+	
+5
+	
+5
+	
+0
+	16 Mar 2027
+
+Annapurna Thick Poha 1 kg
+	
+AN20260801
+	
+Godown
+	
+0
+	
+0
+	
+0
+	28 Apr 2027
+
+Campa Cola 200 ml
+	
+RCP20260619
+	
+Godown
+	
+17
+	
+0
+	
+17
+	16 Mar 2027
+
+Too Yumm Veggie Stix 70 g
+	
+TY20260827
+	
+Godown
+	
+138
+	
+0
+	
+138
+	23 Feb 2027
+
+Too Yumm Veggie Stix 70 g
+	
+TY20260827
+	
+Damaged / expiry bin
+	
+6
+	
+0
+	
+6
+	23 Feb 2027
+
+Konkan Kerala Banana Chips 40 g
+	
+B20260902
+	
+Godown
+	
+288
+	
+0
+	
+288
+	31 Dec 2026
+
+MOM Roasted Makhana Himalayan Salt 12 g
+	
+MOM20260707
+	
+Godown
+	
+180
+	
+180
+	
+0
+	3 Apr 2027
+
+Konkan Masala Khakhra 180 g
+	
+KC20260828
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Dec 2026
+
+Campa Orange 200 ml
+	
+RCP20260626
+	
+Godown
+	
+4
+	
+0
+	
+4
+	23 Mar 2027
+
+Godavari Toned UHT Milk 1 L
+	
+GD20260714
+	
+Godown
+	
+2
+	
+0
+	
+2
+	11 Nov 2026
+
+Campa Lemon 500 ml
+	
+RCP20260619
+	
+Godown
+	
+4
+	
+0
+	
+4
+	16 Mar 2027
+
+Sunbake Glucose 55 g
+	
+SB20260809
+	
+Godown
+	
+0
+	
+0
+	
+0
+	6 Apr 2027
+
+Godavari Toned UHT Milk 1 L
+	
+B20260909
+	
+Godown
+	
+120
+	
+0
+	
+120
+	7 Jan 2027
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260818
+	
+Godown
+	
+96
+	
+0
+	
+96
+	15 Jan 2027
+
+Annapurna Red Chilli Powder 100 g
+	
+AN20260627
+	
+Godown
+	
+0
+	
+0
+	
+0
+	27 Jun 2027
+
+Rajwadi Lemon Soda 250 ml
+	
+RJ20260820
+	
+Godown
+	
+96
+	
+0
+	
+96
+	17 May 2027
+
+Masti Oye Classic Salted 30 g
+	
+AF20260716
+	
+Godown
+	
+0
+	
+0
+	
+0
+	13 Dec 2026
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260704
+	
+Godown
+	
+7
+	
+0
+	
+7
+	31 Dec 2026
+
+Campa Lemon 200 ml
+	
+RCP20260605
+	
+Godown
+	
+1
+	
+0
+	
+1
+	2 Mar 2027
+
+Neelam Herbal Toothpaste 200 g
+	
+B20260902
+	
+Godown
+	
+342
+	
+0
+	
+342
+	1 Sep 2028
+
+Konkan Aloo Bhujia 42 g
+	
+B20260902
+	
+Godown
+	
+480
+	
+0
+	
+480
+	31 Dec 2026
+
+Konkan Roasted Peanut Masala 150 g
+	
+KC20260814
+	
+Godown
+	
+36
+	
+0
+	
+36
+	12 Dec 2026
+
+Too Yumm Multigrain Chips 60 g
+	
+TY20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Jan 2027
+
+Sunbake Digestive Hi-Fibre 100 g
+	
+B20260729
+	
+Godown
+	
+90
+	
+0
+	
+90
+	26 Mar 2027
+
+Neelam Handwash 200 ml pump
+	
+SC20260702
+	
+Godown
+	
+24
+	
+0
+	
+24
+	1 Jul 2028
+
+Balaji Masala Masti Wafers 45 g
+	
+B20260909
+	
+Godown
+	
+602
+	
+0
+	
+602
+	6 Feb 2027
+
+Annapurna Sulphurless Sugar 1 kg
+	
+AN20260815
+	
+Godown
+	
+20
+	
+0
+	
+20
+	12 May 2027
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+B20260614
+	
+Godown
+	
+0
+	
+0
+	
+0
+	11 Dec 2026
+
+Godavari Dahi 1 kg
+	
+GD20260822
+	
+Godown
+	
+0
+	
+0
+	
+0
+	12 Sep 2026
+
+Rajwadi Jeera Masala Soda 1.25 L
+	
+B20260902
+	
+Godown
+	
+60
+	
+0
+	
+60
+	30 May 2027
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260811
+	
+Godown
+	
+0
+	
+0
+	
+0
+	8 Jan 2027
+
+Balaji Chataka Pataka Wafers 45 g
+	
+B20260729
+	
+Godown
+	
+19
+	
+0
+	
+19
+	26 Dec 2026
+
+Godavari Cow Ghee 1 L
+	
+GD20260617
+	
+Godown
+	
+0
+	
+0
+	
+0
+	17 Jun 2027
+
+Neelam Prickly Heat Talc 100 g
+	
+SC20260618
+	
+Godown
+	
+2
+	
+0
+	
+2
+	17 Jun 2028
+
+Neelam Prickly Heat Talc 100 g
+	
+SC20260618
+	
+Damaged / expiry bin
+	
+16
+	
+0
+	
+16
+	17 Jun 2028
+
+Sunbake Marie Light 150 g
+	
+SB20260719
+	
+Godown
+	
+12
+	
+12
+	
+0
+	16 Mar 2027
+
+Godavari Fresh Paneer 500 g
+	
+B20260908
+	
+Godown
+	
+24
+	
+0
+	
+24
+	23 Sep 2026
+
+Neelam Cold Cream 30 g
+	
+B20260902
+	
+Godown
+	
+720
+	
+0
+	
+720
+	1 Sep 2028
+
+Campa Lemon 200 ml
+	
+RCP20260731
+	
+Godown
+	
+10
+	
+0
+	
+10
+	27 Apr 2027
+
+Rajwadi Aamras Mango Drink 200 ml
+	
+RJ20260721
+	
+Godown
+	
+0
+	
+0
+	
+0
+	17 Jan 2027
+
+Annapurna Thick Poha 500 g
+	
+AN20260606
+	
+Godown
+	
+8
+	
+0
+	
+8
+	3 Mar 2027
+
+Annapurna Sulphurless Sugar 5 kg
+	
+AN20260704
+	
+Godown
+	
+0
+	
+0
+	
+0
+	31 Mar 2027
+
+Neelam Coconut Hair Oil 500 ml
+	
+B20260729
+	
+Godown
+	
+100
+	
+0
+	
+100
+	28 Jul 2028
+
+Neelam Coconut Hair Oil 100 ml
+	
+B20260902
+	
+Godown
+	
+301
+	
+0
+	
+301
+	1 Sep 2028
+
+Godavari Cow Ghee 200 ml
+	
+GD20260614
+	
+Godown
+	
+0
+	
+0
+	
+0
+	14 Jun 2027
+
+Sunbake Glucose 55 g
+	
+SB20260607
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Feb 2027
+
+Campa Lemon 750 ml
+	
+RCP20260612
+	
+Godown
+	
+0
+	
+0
+	
+0
+	9 Mar 2027
+
+Chamak Detergent Powder 4 kg
+	
+SC20260521
+	
+Godown
+	
+0
+	
+0
+	
+0
+	20 May 2028
+
+Campa Orange 750 ml
+	
+B20260909
+	
+Godown
+	
+357
+	
+0
+	
+357
+	6 Jun 2027
+
+Campa Orange 750 ml
+	
+B20260909
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+0
+	
+24
+	6 Jun 2027
+
+Masti Oye Tomato Twist 30 g
+	
+AF20260702
+	
+Godown
+	
+0
+	
+0
+	
+0
+	29 Nov 2026
+
+Chamak Detergent Powder 4 kg
+	
+SC20260604
+	
+Godown
+	
+2
+	
+0
+	
+2
+	3 Jun 2028
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260606
+	
+Godown
+	
+0
+	
+0
+	
+0
+	3 Mar 2027
+
+Too Yumm Makhana Himalayan Salt 20 g
+	
+B20260729
+	
+Godown
+	
+72
+	
+0
+	
+72
+	25 Apr 2027
+
+Campa Cola 2 L
+	
+RCP20260605
+	
+Godown
+	
+7
+	
+0
+	
+7
+	2 Mar 2027
+
+Godavari Flavoured Milk Chocolate 180 ml
+	
+B20260902
+	
+Godown
+	
+56
+	
+0
+	
+56
+	31 Dec 2026
+
+Sunbake Glucose 250 g
+	
+SB20260726
+	
+Godown
+	
+12
+	
+0
+	
+12
+	23 Mar 2027
+
+Annapurna Bombay Rava 500 g
+	
+AN20260801
+	
+Godown
+	
+20
+	
+0
+	
+20
+	28 Apr 2027
+
+Neelam Neem Soap 100 g
+	
+SC20260730
+	
+Godown
+	
+72
+	
+0
+	
+72
+	29 Jul 2028
+
+Neelam Coconut Hair Oil 500 ml
+	
+B20260902
+	
+Godown
+	
+100
+	
+0
+	
+100
+	1 Sep 2028
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260815
+	
+Godown
+	
+0
+	
+0
+	
+0
+	12 May 2027
+
+Godavari Flavoured Milk Chocolate 180 ml
+	
+B20260525
+	
+Godown
+	
+54
+	
+0
+	
+54
+	22 Sep 2026
+
+Neelam Sandal Soap 100 g
+	
+SC20260521
+	
+Godown
+	
+27
+	
+0
+	
+27
+	20 May 2028
+
+Godavari Toned UHT Milk 500 ml
+	
+GD20260723
+	
+Godown
+	
+0
+	
+0
+	
+0
+	20 Nov 2026
+
+Sunbake Elaichi Cream 120 g
+	
+SB20260621
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Feb 2027
+
+Neelam Herbal Toothpaste 200 g
+	
+SC20260521
+	
+Godown
+	
+8
+	
+0
+	
+8
+	20 May 2028
+
+MOM Roasted Makhana Peri Peri 60 g
+	
+B20260902
+	
+Godown
+	
+60
+	
+0
+	
+60
+	30 May 2027
+
+Godavari Toned UHT Milk 1 L
+	
+GD20260908
+	
+Godown
+	
+36
+	
+0
+	
+36
+	6 Jan 2027
+
+Godavari Kesar Shrikhand 200 g
+	
+B20260814
+	
+Godown
+	
+120
+	
+0
+	
+120
+	13 Sep 2026
+
+Godavari Cow Ghee 1 L
+	
+GD20260711
+	
+Godown
+	
+0
+	
+0
+	
+0
+	11 Jul 2027
+
+Campa Lemon 500 ml
+	
+RCP20260717
+	
+Godown
+	
+13
+	
+0
+	
+13
+	13 Apr 2027
+
+Godavari Cow Ghee 200 ml
+	
+GD20260804
+	
+Godown
+	
+4
+	
+0
+	
+4
+	4 Aug 2027
+
+Neelam Coconut Hair Oil 100 ml
+	
+SC20260730
+	
+Godown
+	
+48
+	
+0
+	
+48
+	29 Jul 2028
+
+Annapurna Besan 500 g
+	
+B20251204
+	
+Godown
+	
+20
+	
+0
+	
+20
+	31 Aug 2026
+
+Neelam Prickly Heat Talc 300 g
+	
+B20260604
+	
+Godown
+	
+7
+	
+0
+	
+7
+	3 Jun 2028
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260718
+	
+Godown
+	
+3
+	
+0
+	
+3
+	14 Apr 2027
+
+Sunbake Bourbon Cream 120 g
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Mar 2027
+
+Balaji Ratlami Sev 200 g
+	
+GK20260825
+	
+Godown
+	
+30
+	
+0
+	
+30
+	23 Dec 2026
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260609
+	
+Godown
+	
+3
+	
+0
+	
+3
+	6 Nov 2026
+
+Neelam Sandal Soap 100 g
+	
+SC20260604
+	
+Godown
+	
+0
+	
+0
+	
+0
+	3 Jun 2028
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260828
+	
+Godown
+	
+144
+	
+0
+	
+144
+	25 Jan 2027
+
+Godavari Dahi 1 kg
+	
+GD20260716
+	
+Godown
+	
+0
+	
+0
+	
+0
+	6 Aug 2026
+
+Godavari Dahi 1 kg
+	
+GD20260716
+	
+Damaged / expiry bin
+	
+2
+	
+0
+	
+2
+	6 Aug 2026
+
+Annapurna Bombay Rava 1 kg
+	
+AN20260711
+	
+Godown
+	
+12
+	
+0
+	
+12
+	7 Apr 2027
+
+Chamak Toilet Cleaner 1 L
+	
+B20260729
+	
+Godown
+	
+60
+	
+0
+	
+60
+	28 Jul 2028
+
+Chamak Toilet Cleaner 500 ml
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	28 Jul 2028
+
+Sunbake Orange Cream 120 g
+	
+SB20260809
+	
+Godown
+	
+15
+	
+15
+	
+0
+	6 Apr 2027
+
+Annapurna Besan 500 g
+	
+AN20260620
+	
+Godown
+	
+12
+	
+0
+	
+12
+	17 Mar 2027
+
+Godavari Table Butter 100 g
+	
+GD20260816
+	
+Godown
+	
+48
+	
+0
+	
+48
+	12 Feb 2027
+
+Sunbake Marie Light 150 g
+	
+SB20260614
+	
+Godown
+	
+0
+	
+0
+	
+0
+	9 Feb 2027
+
+Campa Cola 2 L
+	
+RCP20260731
+	
+Godown
+	
+24
+	
+0
+	
+24
+	27 Apr 2027
+
+Godavari Cow Ghee 1 L
+	
+GD20260816
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Aug 2027
+
+Campa Orange 200 ml
+	
+RCP20260703
+	
+Godown
+	
+0
+	
+0
+	
+0
+	30 Mar 2027
+
+Chamak Detergent Powder 1 kg
+	
+SC20260521
+	
+Godown
+	
+0
+	
+0
+	
+0
+	20 May 2028
+
+Godavari Flavoured Milk Rose 180 ml
+	
+GD20260716
+	
+Godown
+	
+0
+	
+0
+	
+0
+	13 Nov 2026
+
+Annapurna Garam Masala 50 g
+	
+B20260604
+	
+Godown
+	
+0
+	
+0
+	
+0
+	4 Jun 2027
+
+Campa Lemon 2 L
+	
+B20260902
+	
+Godown
+	
+218
+	
+0
+	
+218
+	30 May 2027
+
+Konkan Bhajani Chivda 100 g
+	
+KC20260703
+	
+Godown
+	
+12
+	
+0
+	
+12
+	31 Oct 2026
+
+Campa Cola 500 ml
+	
+RCP20260731
+	
+Godown
+	
+0
+	
+0
+	
+0
+	27 Apr 2027
+
+Godavari Table Butter 100 g
+	
+GD20260620
+	
+Godown
+	
+0
+	
+0
+	
+0
+	17 Dec 2026
+
+Annapurna Sulphurless Sugar 5 kg
+	
+AN20260808
+	
+Godown
+	
+0
+	
+0
+	
+0
+	5 May 2027
+
+Konkan Aloo Bhujia 200 g
+	
+B20260909
+	
+Godown
+	
+515
+	
+0
+	
+515
+	7 Jan 2027
+
+Too Yumm Makhana Himalayan Salt 20 g
+	
+TY20260827
+	
+Godown
+	
+90
+	
+0
+	
+90
+	24 May 2027
+
+Rajwadi Jeera Masala Soda 500 ml
+	
+RJ20260721
+	
+Godown
+	
+38
+	
+38
+	
+0
+	17 Apr 2027
+
+Godavari Table Butter 500 g
+	
+GD20260825
+	
+Godown
+	
+3
+	
+0
+	
+3
+	21 Feb 2027
+
+Campa Lemon 750 ml
+	
+B20260614
+	
+Godown
+	
+5
+	
+0
+	
+5
+	11 Mar 2027
+
+Too Yumm Karare 60 g
+	
+B20260823
+	
+Godown
+	
+96
+	
+0
+	
+96
+	19 Feb 2027
+
+Rajwadi Lemon Soda 250 ml
+	
+RJ20260730
+	
+Godown
+	
+48
+	
+0
+	
+48
+	26 Apr 2027
+
+Sunbake Orange Cream 120 g
+	
+SB20260531
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Jan 2027
+
+Sunbake Digestive Hi-Fibre 100 g
+	
+B20260902
+	
+Godown
+	
+348
+	
+0
+	
+348
+	30 Apr 2027
+
+Masti Oye Tomato Twist 30 g
+	
+B20260729
+	
+Godown
+	
+96
+	
+0
+	
+96
+	26 Dec 2026
+
+Neelam Herbal Toothpaste 50 g
+	
+SC20260521
+	
+Godown
+	
+66
+	
+0
+	
+66
+	20 May 2028
+
+Godavari Cow Ghee 200 ml
+	
+GD20260625
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Jun 2027
+
+Annapurna Bombay Rava 1 kg
+	
+B20260729
+	
+Godown
+	
+12
+	
+0
+	
+12
+	25 Apr 2027
+
+Balaji Ratlami Sev 200 g
+	
+GK20260804
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Dec 2026
+
+Campa Cola 200 ml
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Apr 2027
+
+Rajwadi Aamras Mango Drink 600 ml
+	
+B20260902
+	
+Godown
+	
+168
+	
+0
+	
+168
+	1 Mar 2027
+
+Campa Orange 500 ml
+	
+RCP20260814
+	
+Godown
+	
+96
+	
+0
+	
+96
+	11 May 2027
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260714
+	
+Godown
+	
+0
+	
+0
+	
+0
+	11 Dec 2026
+
+Campa Lemon 200 ml
+	
+RCP20260710
+	
+Godown
+	
+12
+	
+0
+	
+12
+	6 Apr 2027
+
+Konkan Aloo Bhujia 200 g
+	
+KC20260605
+	
+Godown
+	
+0
+	
+0
+	
+0
+	3 Oct 2026
+
+Sunbake Glucose 55 g
+	
+SB20260802
+	
+Godown
+	
+0
+	
+0
+	
+0
+	30 Mar 2027
+
+Campa Lemon 1 L
+	
+RCP20260717
+	
+Godown
+	
+12
+	
+0
+	
+12
+	13 Apr 2027
+
+Too Yumm Karare 60 g
+	
+B20260614
+	
+Godown
+	
+0
+	
+0
+	
+0
+	11 Dec 2026
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+RJ20260730
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Apr 2027
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+RJ20260730
+	
+Damaged / expiry bin
+	
+16
+	
+0
+	
+16
+	26 Apr 2027
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260811
+	
+Godown
+	
+0
+	
+0
+	
+0
+	8 Jan 2027
+
+Annapurna Besan 1 kg
+	
+AN20260808
+	
+Godown
+	
+0
+	
+0
+	
+0
+	5 May 2027
+
+Rajwadi Aamras Mango Drink 600 ml
+	
+RJ20260730
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Jan 2027
+
+Konkan Kerala Banana Chips 150 g
+	
+B20260729
+	
+Godown
+	
+180
+	
+0
+	
+180
+	26 Nov 2026
+
+Godavari Table Butter 100 g
+	
+GD20260810
+	
+Godown
+	
+23
+	
+0
+	
+23
+	6 Feb 2027
+
+Campa Lemon 1 L
+	
+RCP20260731
+	
+Godown
+	
+5
+	
+0
+	
+5
+	27 Apr 2027
+
+Konkan Masala Khakhra 180 g
+	
+KC20260703
+	
+Godown
+	
+12
+	
+0
+	
+12
+	31 Oct 2026
+
+Campa Cola 500 ml
+	
+RCP20260605
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Mar 2027
+
+Godavari Masala Chaas 1 L
+	
+GD20260623
+	
+Godown
+	
+0
+	
+0
+	
+0
+	14 Jul 2026
+
+Godavari Masala Chaas 1 L
+	
+GD20260623
+	
+Damaged / expiry bin
+	
+9
+	
+0
+	
+9
+	14 Jul 2026
+
+Rajwadi Aamras Mango Drink 200 ml
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Jan 2027
+
+Annapurna Thick Poha 1 kg
+	
+AN20260704
+	
+Godown
+	
+0
+	
+0
+	
+0
+	31 Mar 2027
+
+Godavari Fresh Paneer 200 g
+	
+GD20260702
+	
+Godown
+	
+0
+	
+0
+	
+0
+	17 Jul 2026
+
+Campa Orange 200 ml
+	
+RCP20260605
+	
+Godown
+	
+1
+	
+0
+	
+1
+	2 Mar 2027
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260606
+	
+Godown
+	
+3
+	
+0
+	
+3
+	3 Dec 2026
+
+Sunbake Choco Chip Cookies 40 g
+	
+SB20260628
+	
+Godown
+	
+0
+	
+0
+	
+0
+	23 Feb 2027
+
+Masti Oye Classic Salted 30 g
+	
+AF20260702
+	
+Godown
+	
+21
+	
+0
+	
+21
+	29 Nov 2026
+
+Rajwadi Lemon Soda 1.25 L
+	
+RJ20260701
+	
+Godown
+	
+0
+	
+0
+	
+0
+	28 Mar 2027
+
+Campa Orange 500 ml
+	
+RCP20260619
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Mar 2027
+
+Godavari Cow Ghee 500 ml
+	
+GD20260726
+	
+Godown
+	
+3
+	
+0
+	
+3
+	26 Jul 2027
+
+Godavari Fresh Paneer 500 g
+	
+GD20260711
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Jul 2026
+
+Godavari Fresh Paneer 500 g
+	
+GD20260711
+	
+Damaged / expiry bin
+	
+4
+	
+0
+	
+4
+	26 Jul 2026
+
+Annapurna Turmeric Powder 100 g
+	
+AN20260815
+	
+Godown
+	
+0
+	
+0
+	
+0
+	15 Aug 2027
+
+Annapurna Chana Dal 500 g
+	
+AN20260815
+	
+Godown
+	
+64
+	
+0
+	
+64
+	12 May 2027
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+B20260909
+	
+Godown
+	
+120
+	
+0
+	
+120
+	8 Mar 2027
+
+Annapurna Besan 500 g
+	
+AN20260627
+	
+Godown
+	
+0
+	
+0
+	
+0
+	24 Mar 2027
+
+Chamak Toilet Cleaner 1 L
+	
+B20260902
+	
+Godown
+	
+45
+	
+0
+	
+45
+	1 Sep 2028
+
+Sunbake Marie Light 75 g
+	
+SB20260614
+	
+Godown
+	
+96
+	
+0
+	
+96
+	9 Feb 2027
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260905
+	
+Godown
+	
+24
+	
+0
+	
+24
+	4 Mar 2027
+
+Sunbake Bourbon Cream 300 g
+	
+B20260729
+	
+Godown
+	
+18
+	
+0
+	
+18
+	26 Mar 2027
+
+Masti Oye Classic Salted 30 g
+	
+B20260902
+	
+Godown
+	
+240
+	
+0
+	
+240
+	30 Jan 2027
+
+Campa Lemon 750 ml
+	
+RCP20260807
+	
+Godown
+	
+0
+	
+0
+	
+0
+	4 May 2027
+
+Campa Orange 1 L
+	
+RCP20260703
+	
+Godown
+	
+3
+	
+0
+	
+3
+	30 Mar 2027
+
+Godavari Flavoured Milk Chocolate 180 ml
+	
+GD20260705
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Nov 2026
+
+Godavari Toned UHT Milk 500 ml
+	
+B20260902
+	
+Godown
+	
+28
+	
+0
+	
+28
+	31 Dec 2026
+
+Annapurna Bombay Rava 500 g
+	
+AN20260704
+	
+Godown
+	
+1
+	
+0
+	
+1
+	31 Mar 2027
+
+Konkan Ratlami Sev 180 g
+	
+KC20260828
+	
+Godown
+	
+216
+	
+0
+	
+216
+	26 Dec 2026
+
+Sunbake Elaichi Cream 120 g
+	
+SB20260531
+	
+Godown
+	
+12
+	
+0
+	
+12
+	26 Jan 2027
+
+Campa Cola 750 ml
+	
+RCP20260605
+	
+Godown
+	
+4
+	
+0
+	
+4
+	2 Mar 2027
+
+Campa Cola 750 ml
+	
+RCP20260612
+	
+Godown
+	
+1
+	
+0
+	
+1
+	9 Mar 2027
+
+Neelam Rose Soap 3 x 100 g pack
+	
+B20260902
+	
+Godown
+	
+166
+	
+0
+	
+166
+	1 Sep 2028
+
+Too Yumm Veggie Stix 70 g
+	
+TY20260620
+	
+Godown
+	
+31
+	
+31
+	
+0
+	17 Dec 2026
+
+Annapurna Bombay Rava 500 g
+	
+B20251227
+	
+Godown
+	
+40
+	
+0
+	
+40
+	23 Sep 2026
+
+Neelam Neem Soap 100 g
+	
+SC20260618
+	
+Godown
+	
+24
+	
+0
+	
+24
+	17 Jun 2028
+
+Campa Lemon 1 L
+	
+B20260902
+	
+Godown
+	
+3
+	
+0
+	
+3
+	30 May 2027
+
+Annapurna Sunflower Refined Oil 5 L jar
+	
+B20260729
+	
+Godown
+	
+20
+	
+0
+	
+20
+	25 Jan 2027
+
+Godavari Cow Ghee 500 ml
+	
+GD20260729
+	
+Godown
+	
+3
+	
+0
+	
+3
+	29 Jul 2027
+
+Rajwadi Aamras Mango Drink 600 ml
+	
+RJ20260711
+	
+Godown
+	
+8
+	
+0
+	
+8
+	7 Jan 2027
+
+Rajwadi Lemon Soda 500 ml
+	
+B20260902
+	
+Godown
+	
+96
+	
+0
+	
+96
+	30 May 2027
+
+Campa Lemon 200 ml
+	
+RCP20260814
+	
+Godown
+	
+0
+	
+0
+	
+0
+	11 May 2027
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260707
+	
+Godown
+	
+20
+	
+0
+	
+20
+	4 Dec 2026
+
+Rajwadi Lemon Soda 500 ml
+	
+RJ20260810
+	
+Godown
+	
+24
+	
+0
+	
+24
+	7 May 2027
+
+Independence Packaged Drinking Water 1 L
+	
+B20260902
+	
+Godown
+	
+120
+	
+0
+	
+120
+	2 Sep 2027
+
+Neelam Neem Soap 100 g
+	
+SC20260521
+	
+Godown
+	
+47
+	
+0
+	
+47
+	20 May 2028
+
+Annapurna Turmeric Powder 500 g
+	
+AN20260704
+	
+Godown
+	
+3
+	
+0
+	
+3
+	4 Jul 2027
+
+Campa Lemon 1 L
+	
+RCP20260612
+	
+Godown
+	
+7
+	
+0
+	
+7
+	9 Mar 2027
+
+Godavari Toned UHT Milk 500 ml
+	
+GD20260825
+	
+Godown
+	
+24
+	
+0
+	
+24
+	23 Dec 2026
+
+Sunbake Glucose 55 g
+	
+B20260909
+	
+Godown
+	
+1516
+	
+0
+	
+1516
+	7 May 2027
+
+Campa Lemon 200 ml
+	
+RCP20260619
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Mar 2027
+
+Annapurna Toor Dal 1 kg
+	
+AN20260905
+	
+Godown
+	
+84
+	
+0
+	
+84
+	2 Jun 2027
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260623
+	
+Godown
+	
+20
+	
+0
+	
+20
+	20 Nov 2026
+
+Neelam Herbal Toothpaste 200 g
+	
+SC20260618
+	
+Godown
+	
+10
+	
+0
+	
+10
+	17 Jun 2028
+
+Sunbake Glucose 110 g
+	
+SB20260628
+	
+Godown
+	
+1
+	
+0
+	
+1
+	23 Feb 2027
+
+Godavari Table Butter 500 g
+	
+GD20260806
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Feb 2027
+
+Too Yumm Veggie Stix 70 g
+	
+TY20260531
+	
+Godown
+	
+5
+	
+5
+	
+0
+	27 Nov 2026
+
+Annapurna Basmati Classic 1 kg
+	
+B20260729
+	
+Godown
+	
+4
+	
+0
+	
+4
+	25 Apr 2027
+
+Godavari Cow Ghee 1 L
+	
+GD20260629
+	
+Godown
+	
+0
+	
+0
+	
+0
+	29 Jun 2027
+
+Godavari Full Cream UHT Milk 500 ml
+	
+GD20260711
+	
+Godown
+	
+9
+	
+0
+	
+9
+	8 Nov 2026
+
+Sunbake Elaichi Cream 60 g
+	
+B20260729
+	
+Godown
+	
+480
+	
+0
+	
+480
+	26 Mar 2027
+
+Too Yumm Makhana Himalayan Salt 20 g
+	
+TY20260630
+	
+Godown
+	
+42
+	
+0
+	
+42
+	27 Mar 2027
+
+Annapurna Besan 1 kg
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	25 Apr 2027
+
+Sunbake Marie Light 150 g
+	
+B20260909
+	
+Godown
+	
+1038
+	
+123
+	
+915
+	7 May 2027
+
+Sunbake Choco Chip Cookies 40 g
+	
+SB20260809
+	
+Godown
+	
+144
+	
+0
+	
+144
+	6 Apr 2027
+
+Chamak Dishwash Gel 750 ml
+	
+B20260604
+	
+Godown
+	
+0
+	
+0
+	
+0
+	3 Jun 2028
+
+Godavari Cow Ghee 500 ml
+	
+GD20260816
+	
+Godown
+	
+0
+	
+0
+	
+0
+	16 Aug 2027
+
+Konkan Aloo Bhujia 200 g
+	
+KC20260731
+	
+Godown
+	
+0
+	
+0
+	
+0
+	28 Nov 2026
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+AN20260905
+	
+Godown
+	
+9
+	
+0
+	
+9
+	2 Jun 2027
+
+Rajwadi Jeera Masala Soda 250 ml
+	
+RJ20260601
+	
+Godown
+	
+0
+	
+0
+	
+0
+	26 Feb 2027
+
+Neelam Neem Soap 100 g
+	
+SC20260604
+	
+Godown
+	
+42
+	
+0
+	
+42
+	3 Jun 2028
+
+Godavari Toned UHT Milk 1 L
+	
+GD20260810
+	
+Godown
+	
+2
+	
+0
+	
+2
+	8 Dec 2026
+
+Godavari Fresh Paneer 500 g
+	
+GD20260720
+	
+Godown
+	
+0
+	
+0
+	
+0
+	4 Aug 2026
+
+Godavari Fresh Paneer 500 g
+	
+GD20260720
+	
+Damaged / expiry bin
+	
+5
+	
+0
+	
+5
+	4 Aug 2026
+
+Godavari Cow Ghee 500 ml
+	
+B20260614
+	
+Godown
+	
+0
+	
+0
+	
+0
+	14 Jun 2027
+
+Annapurna Turmeric Powder 500 g
+	
+B20260729
+	
+Godown
+	
+0
+	
+0
+	
+0
+	29 Jul 2027
+
+Godavari Cow Ghee 500 ml
+	
+GD20260614
+	
+Godown
+	
+3
+	
+0
+	
+3
+	14 Jun 2027
+
+Godavari Masala Chaas 200 ml
+	
+GD20260827
+	
+Godown
+	
+30
+	
+0
+	
+30
+	17 Sep 2026
+
+Godavari Cow Ghee 500 ml
+	
+GD20260623
+	
+Godown
+	
+0
+	
+0
+	
+0
+	23 Jun 2027
+
+Rajwadi Lemon Soda 1.25 L
+	
+RJ20260820
+	
+Godown
+	
+0
+	
+0
+	
+0
+	17 May 2027
+
+Neelam Sandal Soap 3 x 100 g pack
+	
+SC20260716
+	
+Godown
+	
+0
+	
+0
+	
+0
+	15 Jul 2028
+
+Godavari Toned UHT Milk 1 L
+	
+GD20260804
+	
+Godown
+	
+0
+	
+0
+	
+0
+	2 Dec 2026
+
+Rajwadi Jeera Masala Soda 1.25 L
+	
+RJ20260601
+	
+Godown
+	
+5
+	
+0
+	
+5
+	26 Feb 2027
+
+Campa Cola 750 ml
+	
+B20260515
+	
+Godown
+	
+81
+	
+0
+	
+81
+	9 Feb 2027
+
+Campa Cola 750 ml
+	
+B20260515
+	
+Vehicle MH-05-AB-1234
+	
+0
+	
+0
+	
+0
+	9 Feb 2027
+300+						
+Why is it being adjusted?
+Adjust stock
+Campa Cola 1 L · RCP20260807
+On hand 8
+Adjusted by hand
+Damaged
+Expired
+Pieces
+Why is it being adjusted?
+Note
+Move stock
+Cancel
+Adjust the stock

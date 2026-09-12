@@ -1,0 +1,55 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Inbound
+Supplier bills
+Documents
+Gate count
+Bills
+Goods received
+✓ Findings
+Purchase orders
+Finding	Pieces	State	Note	Date
+Extra received	
+10
+	Accepted	
+Annapurna Chakki Fresh Atta 5 kg: 2 bags over the invoice; mill asked us to keep them on the next bill.
+	
+12 Sep
+
+Damaged	
+30
+	Supplier credited us	
+Balaji Ratlami Sev 200 g: 1 case crushed in transit, credited by supplier.
+	
+12 Sep
+
+Short received	
+72
+	Open	
+Godavari Fresh Paneer 200 g: Whole line refused at the gate: crate arrived at 11 °C, cold chain broken.
+	
+12 Sep
+
+Short received	
+24
+	Claimed from the brand	
+Campa Cola 750 ml: 1 case short against invoice on gate count.
+	
+12 Sep

@@ -1,0 +1,203 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Team performance
+7 days
+30 days
+90 days
+Registers
+Tally
+Team
+Strike rate by person
+0%
+20%
+40%
+60%
+80%
+Sandeep M…
+Meena Jos…
+Pooja Shi…
+Ganesh Mo…
+Rahul Des…
+Ruksana S…
+Amit Pawar
+14 Aug — 12 Sep
+Leaderboard
+Order value
+Shops billed
+Money collected
+0%
+25%
+50%
+75%
+100%
+Rahul Deshmukh
+Amit Pawar
+Ganesh More
+Of each target · 1 Sep — 30 Sep
+Team performance
+Person	Beat	Visits	Orders	Strike rate	Order value ₹	Collected ₹
+
+Sandeep Mane
+	
+Station Road
+	
+18
+	
+8
+	44%	2,25,963.00	48,011.00
+
+Meena Joshi
+	
+—
+	
+0
+	
+0
+	0%	0.00	3,98,092.67
+
+Pooja Shinde
+	
+Station Road
+	
+21
+	
+6
+	29%	41,192.00	19,381.00
+
+Ganesh More
+	
+—
+	
+0
+	
+0
+	0%	0.00	12,569.00
+
+Rahul Deshmukh
+	
+Station Road
+	
+175
+	
+93
+	51%	12,98,752.00	4,69,719.90
+
+Ruksana Shaikh
+	
+Khadakpada
+	
+9
+	
+4
+	44%	51,216.00	7,027.00
+
+Amit Pawar
+	
+Godrej Hill
+	
+219
+	
+136
+	62%	20,97,627.00	7,31,294.78
+7 rows		442	247		37,14,750.00	
+Shops being lost
+Shop	Beat	Last order	Orders	Risk
+
+Sujata Stores
+	
+Kolsewadi
+	
+—
+	
+0
+	70%
+
+Shantai Provision Store
+	
+Kolsewadi
+	
+—
+	
+0
+	70%
+
+Ashirwad Provision
+	
+Birla College Road
+	
+—
+	
+0
+	70%
+
+Friends Corner Stores
+	
+Godrej Hill
+	
+31 Jul
+	
+0
+	55%
+
+Hariom Kirana Bhandar
+	
+Birla College Road
+	
+1 Aug
+	
+0
+	55%
+
+Vasudha Stores
+	
+Birla College Road
+	
+11 Jul
+	
+0
+	55%
+
+Yadav General Store
+	
+Khadakpada
+	
+11 Jul
+	
+0
+	55%
+
+Iyer Provision Store
+	
+Khadakpada
+	
+9 Sep
+	
+1
+	30%
+
+Patil General Store
+	
+Kalyan West Market
+	
+12 Sep
+	
+1
+	30%
+Targets

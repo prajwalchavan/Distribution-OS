@@ -1,0 +1,1838 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Registers
+7 days
+30 days
+90 days
+Registers
+Tally
+Team
+GSTR-1 for Sep 2026 is due on the 11th — 29 days left
+Sales register
+GST summary
+Purchase register
+Collections
+Outstanding
+Trial balance
+✓ Day book
+Daily sales
+Date	Document	Narration	Value ₹	Taken by
+
+12 Sep 2026
+	
+Receipt
+	
+Doorstep cash on a live trip (Ganesh More)
+	12,569.00	
+Ganesh More
+
+
+12 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0811 (Metro Kirana Bazar)
+	4,746.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0758 (Shubhalabh Stores)
+	7,224.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0838 (Balaji Wholesale Stores)
+	1,01,531.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Invoice
+	
+Invoice INV/0839 to Rameshwar General Store
+	18,167.45	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0650 (Ambika Provision Store)
+	12,686.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0817 (Shree Ganesh Kirana)
+	5,511.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0577 (Pawar General Store)
+	4,914.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0673 (Chavan Kirana Stores)
+	3,716.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0805 (New Bombay Stores)
+	29,346.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0492 (Shree Ganesh Kirana)
+	4,443.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Invoice
+	
+Invoice INV/0838 to Balaji Wholesale Stores
+	1,07,150.05	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0669 (Kadam Stores)
+	1,818.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0596 (Deshmukh Kirana)
+	5,281.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0244 (Prerna Super Market)
+	16,010.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0366 (Balaji Wholesale Stores)
+	45,511.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0821 (Jai Bhavani Stores)
+	6,990.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0819 (Balaji Wholesale Stores)
+	74,009.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0608 (Gavhane Kirana)
+	4,425.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Cheque 560021 from Dnyandeep Stores
+	29,952.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Invoice
+	
+Invoice INV/0837 to Kadam Stores
+	12,707.16	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Invoice
+	
+Invoice INV/0840 to Gupta Kirana Stores
+	10,907.20	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0822 (Mahalaxmi General Stores)
+	12,307.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Invoice
+	
+Invoice INV/0836 to Meghana General Store
+	7,076.15	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0824 (Prerna Super Market)
+	73,245.00	
+Meena Joshi
+
+
+12 Sep 2026
+	
+Receipt
+	
+receipt RCPT-0696
+	9,182.00	
+Vikas Kadam
+
+
+11 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0314 (Vaibhav Kirana Mart)
+	19,213.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Doorstep cash on a live trip (Santosh Kamble)
+	61,109.00	
+Santosh Kamble
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0826 to Joshi Kirana Stores
+	15,031.34	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Cheque 560025 returned unpaid (Bhosale Traders)
+	28,600.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0833 to Khan General Store
+	907.24	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0437 (Prerna Super Market)
+	13,299.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0832 to Anand Bhavan Provision
+	2,843.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0426 (Om Sai Provision Store)
+	5,833.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0688 (Birla Road Kirana Mart)
+	1,490.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0427 (Ganesh General Store)
+	18,590.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Receipt against van-sale
+	582.00	
+Ganesh More
+
+
+11 Sep 2026
+	
+Receipt
+	
+Doorstep cash on a live trip (Raju Yadav)
+	3,848.00	
+Raju Yadav
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0827 to Ansari Kirana Stores
+	2,610.09	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0835 to Rukmini Provision
+	26,972.13	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0828 to Metro Kirana Bazar
+	4,547.12	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Deposit
+	
+Cheques banked, DEP/2026/0117
+	57,464.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0829 to Nakshatra Kirana
+	4,880.84	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Doorstep cash on a live trip (Ganesh More)
+	75,010.00	
+Ganesh More
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0824 to Prerna Super Market
+	76,717.98	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+On-account payment from Om Sai Provision Store
+	500.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0693 (Kolsewadi Corner Store)
+	1,165.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0433 (Shree Ganesh Kirana)
+	5,558.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0663 (Kolsewadi Corner Store)
+	1,871.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0352 (Deshmukh Kirana)
+	1,359.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0664 (Vaibhav Kirana Mart)
+	11,044.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0830 to Laxmi Narayan Stores
+	22,769.46	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0834 to Nutan Kirana Stores
+	12,575.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0831 to City Light Provision
+	7,425.57	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/9003 to Krishna Kirana Stores
+	582.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0495 (Sai Krupa Super Bazar)
+	31,416.00	
+Meena Joshi
+
+
+11 Sep 2026
+	
+Invoice
+	
+Invoice INV/0825 to Vaibhav Kirana Mart
+	8,090.23	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0819 to Balaji Wholesale Stores
+	75,934.20	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0787 (Prerna Super Market)
+	75,101.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Claim
+	
+Claim CLM-0023 on the depot (shortage, 2026-08-13 to 2026-09-12)
+	494.88	
+Vikas Kadam
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0820 to Ambika Provision Store
+	12,569.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0738 (Deshmukh Kirana)
+	5,951.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Bill cancelled
+	
+cancels invoice INV/9002
+	2,327.48	
+Sunil Tarsun
+
+
+10 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0197 (Balaji Wholesale Stores)
+	34,086.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0490 (Chavan Kirana Stores)
+	4,927.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0815 to Nutan Kirana Stores
+	4,367.44	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0816 to Sahyadri Super Bazar
+	84,384.89	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0528 (More Provision Store)
+	1,578.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0477 (Karve Provision)
+	2,116.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0814 (Shree Ganesh Kirana)
+	12,180.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0823 to Gurukrupa Provision
+	16,994.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Cheque 560022 from Rameshwar General Store
+	29,456.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Deposit
+	
+Cheque 700761 banked
+	5,969.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0506 (Ganesh General Store)
+	4,960.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0817 to Shree Ganesh Kirana
+	5,511.35	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0575 (Gurukrupa Provision)
+	27,572.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0696 (Mangal Traders)
+	7,894.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Credit note
+	
+Credit note CN/0047
+	277.46	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0333 (Shree Ganesh Kirana)
+	1,809.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0818 to Birla Road Kirana Mart
+	7,804.25	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0690 (Rameshwar General Store)
+	15,071.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Part payment against a bill, paper receipt R-0001
+	1,74,322.00	
+Ganesh More
+
+
+10 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0620 (Rameshwar General Store)
+	16,244.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0822 to Mahalaxmi General Stores
+	12,907.91	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/9002 to Mahalaxmi General Stores
+	2,327.48	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0234 (Metro Kirana Bazar)
+	8,038.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Credit note
+	
+Credit note CN/0048
+	496.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0465 (Balaji Wholesale Stores)
+	28,757.00	
+Meena Joshi
+
+
+10 Sep 2026
+	
+Invoice
+	
+Invoice INV/0821 to Jai Bhavani Stores
+	11,007.30	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Written off
+	
+Bad debt written off against OPEN/0008
+	1,199.50	
+Sunil Tarsun
+
+
+9 Sep 2026
+	
+Deposit
+	
+Cheque 700746 banked
+	9,231.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+On-account payment from Bhosale Traders
+	1,250.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0804 to Iyer Provision Store
+	4,323.41	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0578 (Meghana General Store)
+	5,888.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0810 to City Light Provision
+	6,257.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0804 (Iyer Provision Store)
+	4,323.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0799 (Ekvira Kirana)
+	3,758.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Part payment against a bill, paper receipt R-0002
+	61,693.00	
+Ganesh More
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0805 to New Bombay Stores
+	29,863.42	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0783 (Balaji Wholesale Stores)
+	88,128.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0808 to Reddy Traders
+	5,429.33	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0800 (Shree Ganesh Kirana)
+	5,279.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0609 (Mishra Provision Store)
+	1,104.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0814 to Shree Ganesh Kirana
+	12,423.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0813 to Pawar General Store
+	2,709.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0594 (Ambika Provision Store)
+	1,563.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Written off
+	
+Bad debt written off against OPEN/0009
+	847.50	
+Sunil Tarsun
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0811 to Metro Kirana Bazar
+	4,888.72	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Deposit
+	
+Cheque 700774 banked
+	12,213.74	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0809 to Chavan Kirana Stores
+	5,039.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0756 (Shivshakti Traders)
+	1,471.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0250 (Trimurti General Store)
+	952.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0806 to Ganesh General Store
+	26,194.67	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0812 to Ansari Kirana Stores
+	1,868.14	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Invoice
+	
+Invoice INV/0807 to Gavhane Kirana
+	10,914.00	
+Meena Joshi
+
+
+9 Sep 2026
+	
+Credit note
+	
+Credit note CN/0046
+	399.49	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0582 (Mishra Provision Store)
+	1,421.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0802 to Khan General Store
+	5,045.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0800 to Shree Ganesh Kirana
+	5,499.82	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0795 to Gavhane Kirana
+	3,712.96	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0461 (Karve Provision)
+	3,791.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0794 to Sai Baba Kirana
+	28,647.45	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Part payment against a bill, paper receipt R-0003
+	60,707.00	
+Ganesh More
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0803 to Ganpati General Stores
+	13,961.45	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0564 (More Provision Store)
+	2,521.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0803 (Ganpati General Stores)
+	13,821.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0725 (Shivshakti Traders)
+	2,036.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0798 to Dnyandeep Stores
+	30,135.44	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0544 (Sahyadri Super Bazar)
+	29,477.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0802 (Khan General Store)
+	5,045.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0796 to Laxmi Narayan Stores
+	31,769.76	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0338 (New Bombay Stores)
+	10,084.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0793 to Vaibhav Kirana Mart
+	11,518.10	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0671 (Rameshwar General Store)
+	27,293.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0797 to Deshmukh Kirana
+	6,560.23	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0799 to Ekvira Kirana
+	3,758.47	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0579 (Chavan Kirana Stores)
+	7,642.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Credit note
+	
+Credit note CN/0045
+	480.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0774 (Balaji Wholesale Stores)
+	1,12,357.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0636 (Gavhane Kirana)
+	12,554.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Invoice
+	
+Invoice INV/0801 to Vitthal Traders
+	1,321.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Reversal of RCPT-ERR-0001 (Mahalaxmi General Stores)
+	2,000.00	
+Meena Joshi
+
+
+8 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0711 (Nutan Kirana Stores)
+	5,969.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0784 to Ganesh General Store
+	28,097.20	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Credit note
+	
+Credit note CN/0044
+	96.27	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700505 banked
+	4,561.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0790 to City Light Provision
+	11,025.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700757 banked
+	12,602.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0675 (Rukmini Provision)
+	29,224.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0744 (Shubhalabh Stores)
+	4,249.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700584 banked
+	12,561.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0783 to Balaji Wholesale Stores
+	91,501.42	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0428 (Chavan Kirana Stores)
+	4,205.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0787 to Prerna Super Market
+	78,729.16	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0786 to Ambika Provision Store
+	6,070.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0453 (Meghana General Store)
+	636.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700710 banked
+	12,911.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Cash from Mahalaxmi General Stores
+	2,000.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700644 banked
+	27,056.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0419 (Joshi Kirana Stores)
+	8,137.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0429 (Sai Krupa Super Bazar)
+	36,081.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700648 banked
+	10,239.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0483 (Kadam Stores)
+	464.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0789 to Sharma Kirana Stores
+	9,350.54	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700730 banked
+	4,129.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Claim settled
+	
+CLM-0009 settled (credit_note CAM/CN/2026/1008)
+	36,480.94	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700272 banked
+	26,326.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+On-account payment from Dnyandeep Stores
+	2,000.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0759 (Ekvira Kirana)
+	10,203.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0749 (New Bombay Stores)
+	12,463.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700502 banked
+	6,804.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Deposit
+	
+Cheque 700731 banked
+	4,417.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0670 (Gavhane Kirana)
+	9,231.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0791 to Nutan Kirana Stores
+	3,296.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0785 to Sai Baba Kirana
+	87,821.45	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0788 to Rukmini Provision
+	13,003.51	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0611 (New Bombay Stores)
+	20,035.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice TY/26-27/00412 to Sai Krupa Super Bazar
+	3,342.00	
+Meena Joshi
+
+
+7 Sep 2026
+	
+Invoice
+	
+Invoice INV/0792 to Gavhane Kirana
+	517.43	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0329 (Reddy Traders)
+	846.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0435 (City Light Provision)
+	10,295.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0269 (Prerna Super Market)
+	57,780.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0328 (Bhosale Traders)
+	15,973.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0291 (Mishra Provision Store)
+	3,502.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Invoice
+	
+Invoice INV/0776 to Gupta Kirana Stores
+	8,053.24	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0405 (New Bombay Stores)
+	25,141.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0686 (Pawar General Store)
+	4,225.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt against inter-state
+	7,534.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Invoice
+	
+Invoice INV/0775 to Mishra Provision Store
+	1,901.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0600 (Sai Baba Kirana)
+	12,911.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0358 (Sharma Kirana Stores)
+	4,561.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0521 (Metro Kirana Bazar)
+	7,137.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0518 (Gupta Kirana Stores)
+	10,239.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Invoice
+	
+Invoice INV/0774 to Balaji Wholesale Stores
+	1,14,798.09	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0295 (Bhosale Traders)
+	12,558.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Receipt for INV/0304 (Rukmini Provision)
+	22,773.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Balance payment for INV/0519 (Vaibhav Kirana Mart)
+	14,224.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Invoice
+	
+Invoice INV/0777 to Deshmukh Kirana
+	6,113.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+On-account payment for INV/0144 (Navjeevan Super Bazar)
+	26,326.00	
+Meena Joshi
+
+
+5 Sep 2026
+	
+Receipt
+	
+Part-payment for INV/0639 (Metro Kirana Bazar)
+	4,417.00	
+Meena Joshi
+
+200 rows				
+14 Aug — 12 Sep

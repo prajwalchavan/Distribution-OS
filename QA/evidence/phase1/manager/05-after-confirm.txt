@@ -1,0 +1,100 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+No order is waiting
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Below floor price
+Below floor price
+—
+Approve
+Reject
+Over credit limit
+Over credit limit
+—
+Approve
+Reject
+Bargain
+Bargain
+—
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Order SO-0867
+Close
+Shop
+Patil General Store
+Credit
+Credit is blocked for this shop
+State
+Confirmed
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 12 pc
+₹1,042.88
+1 cs · 24 pc
+Free goods
+₹768.10
+2 cs · 180 pc
+Off the line
+₹1,489.18
+2 cs · 120 pc
+Off the line
+₹2,067.14
+Subtotal
+₹4,685.64
+Discount
+₹83.12
+GST
+₹764.78
+Total
+₹5,367.00
+Held for this order
+16
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Cancel order
+2

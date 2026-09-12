@@ -1,0 +1,115 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+9
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+9 left to bill
+Billing desk
+Billing desk
+Bills issued
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Billing desk
+9 confirmed orders
+Order	Shop	Lines	Amount ₹	State	Wanted by
+
+SO-0867
+	
+Patil General Store
+	
+4
+	5,367.00	Confirmed	
+—
+
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+5
+	17,736.00	Confirmed	
+—
+
+
+SO-9001
+	
+Mahalaxmi General Stores
+	
+1
+	2,327.00	Packed	
+—
+
+
+SO-0870
+	
+Nutan Kirana Stores
+	
+3
+	7,361.00	Confirmed	
+—
+
+
+SO-9003
+	
+Vitthal Traders
+	
+1
+	35.00	Confirmed	
+—
+
+
+SO-0872
+	
+Sahyadri Super Bazar
+	
+8
+	90,319.00	Being picked	
+—
+
+
+SO-0873
+	
+Shree Ganesh Kirana
+	
+4
+	12,837.00	Confirmed	
+—
+
+
+SO-0874
+	
+Pawar General Store
+	
+5
+	7,690.00	Being picked	
+—
+
+
+SO-0877
+	
+Bhosale Traders
+	
+3
+	17,531.00	Confirmed	
+—
+
+9			1,61,203.00		
+Packed, not billed
+0 packs already gone out
+Nothing waiting to be billed
