@@ -986,7 +986,14 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(await ledgerFor(sheetId)).toHaveLength(0)
   })
 
-  it('confirms: stock moves godown to vehicle once, DC-0001 is issued and the orders dispatch', async () => {
+  it('DOS-039 confirms: only the counted van stock moves godown → vehicle, the packed lots stay where pack left them, DC-0001 is issued and the orders dispatch', async () => {
+    // Pack already sold the order's pieces out of the godown (PackingService: stock leaves exactly
+    // once); the load-out moves only the counted van stock. Read the balances, never hard-code them.
+    const godownBefore = {
+      early: (await balanceOf(lotEarly, godown)).on_hand,
+      late: (await balanceOf(lotLate, godown)).on_hand,
+      b: (await balanceOf(lotB, godown)).on_hand,
+    }
     challanId = uuidv7()
     const res = await call<{ item: LoadSheetBody; challan: ChallanBody; dispatched: string[] }>(
       app,
@@ -1021,13 +1028,23 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(challan.lines.every((l) => l.gstBps === 1200)).toBe(true)
     expect(challan.gstPaise).toBeGreaterThan(0)
 
-    // exactly one transfer_out and one transfer_in per lot
+    // exactly one transfer_out and one transfer_in, for the counted van stock only (lotB): the packed
+    // order's lots (lotEarly, lotLate) left as `sale` at pack and are not taken from the godown again
     const rows = await ledgerFor(sheetId)
-    expect(rows.filter((r) => r.reason === 'transfer_out')).toHaveLength(3)
-    expect(rows.filter((r) => r.reason === 'transfer_in')).toHaveLength(3)
+    expect(rows).toHaveLength(2)
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { reason: 'transfer_out', qty_delta: -12, lot_id: lotB, location_id: godown },
+        { reason: 'transfer_in', qty_delta: 12, lot_id: lotB, location_id: van },
+      ]),
+    )
     expect(rows.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
+    expect((await balanceOf(lotEarly, godown)).on_hand).toBe(godownBefore.early)
+    expect((await balanceOf(lotLate, godown)).on_hand).toBe(godownBefore.late)
+    expect((await balanceOf(lotB, godown)).on_hand).toBe(godownBefore.b - 12)
+    expect((await balanceOf(lotEarly, van)).on_hand).toBe(0)
+    expect((await balanceOf(lotLate, van)).on_hand).toBe(0)
     expect((await balanceOf(lotB, van)).on_hand).toBe(12)
-    expect((await balanceOf(lotLate, van)).on_hand).toBe(18)
     expect(await outboxTypes(sheetId)).toEqual(['LoadSheetApproved', 'LoadSheetConfirmed'])
     expect(await outboxTypes(challanId)).toEqual(['DeliveryChallanIssued'])
   })
@@ -1422,5 +1439,70 @@ describeDb('warehouse (DATABASE_URL)', () => {
       404,
     )
     expect((await call(app, owner, 'GET', `/warehouse/picklists/${picklistId}`)).status).toBe(200)
+  })
+
+  // KEEP THIS THE LAST TEST: if it failed mid-way it would leave 12 available pieces on an
+  // earlier-expiry variantB lot, and FEFO in any later test would reserve them.
+  it("DOS-039 sends out a sheet whose packed lot has nothing left in the godown instead of refusing 'insufficient stock'", async () => {
+    // The pilot's first real load-out: every piece of the lot was sold at pack, so taking the packed
+    // lot out of the godown again at confirm would drive on_hand below zero.
+    const inventory = app.get(InventoryService)
+    const soldOut = await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantB,
+        batchNo: `SOLDOUT-${run}`,
+        mrpPaise: 2000,
+        expiryDate: '2027-06-30',
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 12,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-soldout`,
+        },
+      ])
+      return lot.id
+    })
+
+    const id = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos039')
+    const packed = await packOrder(id, 'dos039', packer, 1)
+    expect(packed.res.status).toBe(200)
+    expect((await balanceOf(soldOut, godown)).on_hand).toBe(0)
+
+    const sheet2 = uuidv7()
+    const built = await call<{ item: LoadSheetBody }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `sheet-dos039-${run}`,
+        id: sheet2,
+        toLocationId: van,
+        orderIds: [id],
+      },
+    )
+    expect(built.status).toBe(200)
+    expect(built.body.item.expectedPackages).toBe(1)
+
+    const res = await call<{ item: LoadSheetBody; challan: ChallanBody; dispatched: string[] }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheet2}/confirm`,
+      { idempotencyKey: `confirm-dos039-${run}`, countedPackages: 1, challanId: uuidv7() },
+    )
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    expect(res.body.item.status).toBe('confirmed')
+    expect(res.body.dispatched).toEqual([id])
+    expect(await ledgerFor(sheet2)).toHaveLength(0)
+    expect((await balanceOf(soldOut, godown)).on_hand).toBe(0)
+    expect((await balanceOf(soldOut, van)).on_hand).toBe(0)
+    expect(res.body.challan.lines).toContainEqual(
+      expect.objectContaining({ lotId: soldOut, qtyPcs: 12 }),
+    )
+    expect(await orderState(id)).toBe('dispatched')
   })
 })

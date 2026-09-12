@@ -113,13 +113,18 @@ export interface ConfirmedLoad {
 
 /**
  * The load-out: what goes onto a vehicle, the blind package count at the gate, the godown → vehicle
- * stock movement, the Rule 55 delivery challan and the order's `packed → dispatched` step.
+ * movement of the counted van stock, the Rule 55 delivery challan and the order's `packed → dispatched`
+ * step.
  *
  * WAREHOUSE DISPATCHES, NOT DELIVERY (coordination §5 item 4). The goods physically leave here, with a
  * numbered challan; `delivery.trips.depart` moves the trip and treats an already-dispatched order as a
- * no-op. And godown → vehicle is `transfer_out` + `transfer_in` (§5 item 5), keyed
- * `load:<sheetId>:<lotId>:out|in`, so a retried confirm moves nothing twice; `van_load` / `van_unload`
- * belong to delivery's on-route movements.
+ * no-op.
+ *
+ * STOCK LEAVES THE GODOWN ONCE (QA DOS-039). The packed orders' pieces already left as `sale` at pack
+ * (`PackingService`), so the load-out puts them on the challan and never on the ledger a second time.
+ * Only the counted van stock (free pieces for van sales) moves godown → vehicle, as `transfer_out` +
+ * `transfer_in` (§5 item 5), keyed `load:<sheetId>:<lotId>:out|in`, so a retried confirm moves nothing
+ * twice; `van_load` / `van_unload` belong to delivery's on-route movements.
  */
 @Injectable()
 export class LoadSheetsService {
@@ -319,8 +324,9 @@ export class LoadSheetsService {
    * until the manager has approved the sheet from the manager app — fact 2b; an owner/manager
    * confirming directly IS the approval, the database fills it in), the e-way-bill gate, the crew's
    * blind package count, the van stock replaced by what was actually counted, the
-   * `transfer_out`/`transfer_in` pair per lot, the `DC` challan, and every packed order
-   * `packed → dispatched`.
+   * `transfer_out`/`transfer_in` pair per counted van-stock lot (the packed orders' pieces already left
+   * the godown as `sale` at pack, so they go on the challan and never onto the ledger a second time),
+   * the `DC` challan, and every packed order `packed → dispatched`.
    *
    * A count that differs from the expectation needs a written reason and records `pinVerifiedBy =
    * approvedBy`: the manager who approved the load owns its variance in the day-end register. Never
@@ -374,28 +380,36 @@ export class LoadSheetsService {
             message: 'nothing on this sheet has left the rack yet; pack the orders first',
           })
 
-        // Godown → vehicle, keyed per lot and per direction, so a retry is a no-op on the ledger's
+        // Godown → vehicle for the COUNTED VAN STOCK ONLY (QA DOS-039). `lots` merges in the packed
+        // orders' pieces for the challan, but those left the godown as `sale` at pack; posting them again
+        // would refuse a sold-out lot and double-deduct one with surplus. Summed per lot: the contract
+        // does not refuse a repeated lotId and the keys are per lot, so a second entry would be dropped.
+        // Keyed per lot and per direction, so a retry is a no-op on the ledger's
         // UNIQUE(tenant_id, idempotency_key) even if this transaction is replayed a dozen times.
+        const vanByLot = new Map<string, number>()
+        for (const van of input.countedVanStock) {
+          vanByLot.set(van.lotId, (vanByLot.get(van.lotId) ?? 0) + van.qtyPcs)
+        }
         await this.inventory.post(
           tx,
-          lots.flatMap((lot) => [
+          [...vanByLot].flatMap(([lotId, qtyPcs]) => [
             {
-              lotId: lot.lotId,
+              lotId,
               locationId: sheet.fromLocationId,
-              qtyDelta: -lot.qtyPcs,
+              qtyDelta: -qtyPcs,
               reason: 'transfer_out' as const,
               refType: 'load_sheet',
               refId: sheet.id,
-              idempotencyKey: `load:${sheet.id}:${lot.lotId}:out`,
+              idempotencyKey: `load:${sheet.id}:${lotId}:out`,
             },
             {
-              lotId: lot.lotId,
+              lotId,
               locationId: sheet.toLocationId,
-              qtyDelta: lot.qtyPcs,
+              qtyDelta: qtyPcs,
               reason: 'transfer_in' as const,
               refType: 'load_sheet',
               refId: sheet.id,
-              idempotencyKey: `load:${sheet.id}:${lot.lotId}:in`,
+              idempotencyKey: `load:${sheet.id}:${lotId}:in`,
             },
           ]),
         )

@@ -700,8 +700,9 @@ export const ApproveLoadSheetOutput = LoadSheetItemOutput
  * `approval_required` otherwise): the e-way bill gate (400 `ewb_required` above the tenant's threshold
  * with no number), the crew's blind package count (a variance needs a `varianceNote` and records
  * `pinVerifiedBy = approvedBy`), the van stock replaced by what was counted, a `transfer_out` +
- * `transfer_in` pair per lot keyed `load:<sheetId>:<lotId>:out|in`, the `DC` challan issued, and every
- * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
+ * `transfer_in` pair per counted van-stock lot keyed `load:<sheetId>:<lotId>:out|in` (the packed orders'
+ * pieces already left as `sale` at pack), the `DC` challan issued, and every packed order
+ * `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,
