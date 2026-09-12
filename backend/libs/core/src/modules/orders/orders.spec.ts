@@ -3,6 +3,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
+  bargainRequests,
   bootstrapTenant,
   createDb,
   createPool,
@@ -1340,5 +1341,281 @@ describeDb('orders (DATABASE_URL)', () => {
       expect(edited.orders.find((o) => o.id === rep2Draft)?.note).toBe('DOS-073 own edit')
       expect(edited.lines.filter((l) => l.order_id === rep2Draft)).toHaveLength(2)
     })
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-005: a bargain gate names the bargain request it waits on (`entity_type = 'bargain_request'`, one gate per
+  // request, the demo seed's shape), and deciding the gate decides that request in the same transaction. The queue
+  // then holds one record per bargain, and an owner's "no" reaches the shop and the rep instead of leaving the
+  // request approvable from the Rate requests tab. Retailer A is `indicate` and nothing here prices under the
+  // floor, so `bargain` is the only gate these orders raise.
+
+  type Gate = {
+    id: string
+    kind: string
+    orderId: string | null
+    entityType: string
+    entityId: string
+    status: string
+    payload: Record<string, unknown>
+  }
+  type Decided = { item: { status: string; decidedBy: string | null }; order: Detail | null }
+  const bargainRow = async (id: string) =>
+    (await db.select().from(bargainRequests).where(eq(bargainRequests.id, id)))[0]
+
+  it('DOS-005: a bargain gate names the bargain request it waits on, and rejecting the gate rejects that request', async () => {
+    const orderId = uuidv7()
+    const bargainId = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos005-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    expect(drafted.status).toBe(200)
+    expect(drafted.body.item.lines[0]).toMatchObject({ qtyPcs: 12, ratePaise: 1_000 })
+
+    // the sales app's path: the rep asks a rate for this draft; it has no bound here, so the desk decides
+    const asked = await call<{ item: { status: string } }>(app, rep, 'POST', '/pricing/bargains', {
+      idempotencyKey: `dos005-ask-${run}`,
+      id: bargainId,
+      retailerId: retailerA,
+      variantId: variantA,
+      askedRatePaise: 900,
+      qtyPcs: 12,
+      orderId,
+    })
+    expect(asked.status).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+
+    const submitted = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${orderId}/submit`, {
+      idempotencyKey: `dos005-submit-${run}`,
+    })
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['bargain'])
+
+    const queue = await call<{ items: Gate[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      orderId,
+    })
+    expect(queue.status).toBe(200)
+    expect(queue.body.items).toHaveLength(1)
+    const gate = queue.body.items[0]
+    expect(gate).toMatchObject({
+      kind: 'bargain',
+      orderId,
+      entityType: 'bargain_request',
+      entityId: bargainId,
+    })
+    expect(typeof gate?.payload.orderNo).toBe('string')
+
+    const decided = await call<Decided>(app, owner, 'POST', `/approvals/${gate?.id ?? ''}/decide`, {
+      idempotencyKey: `dos005-reject-${run}`,
+      decision: 'reject',
+      note: 'list rate holds',
+    })
+    expect(decided.status).toBe(200)
+    expect(decided.body.item.status).toBe('rejected')
+    expect(decided.body.order).toMatchObject({
+      state: 'cancelled',
+      cancelReason: 'approval_rejected',
+    })
+
+    // the owner's "no" reached the request itself, which the rep's device and the shop pull
+    const bargain = await bargainRow(bargainId)
+    expect(bargain).toMatchObject({
+      status: 'rejected',
+      approvedRatePaise: null,
+      decidedBy: ownerId,
+      note: 'list rate holds',
+    })
+    expect(bargain?.decidedAt).not.toBeNull()
+    // and its Rate requests copy is closed: it can no longer be granted from the other tab
+    const again = await call(app, owner, 'POST', `/pricing/bargains/${bargainId}/decide`, {
+      idempotencyKey: `dos005-reapprove-${run}`,
+      id: bargainId,
+      decision: 'approve',
+    })
+    expect(again.status).toBe(409)
+  })
+
+  it('DOS-005: approving an approval that names a bargain request approves the request at the asked rate and closes its other copy', async () => {
+    // The demo seed's standalone gate: it names the request and has no order behind it. The request's order id
+    // points at no order, so it gates nothing else in this spec.
+    const bargainId = uuidv7()
+    const approvalId = uuidv7()
+    await db.insert(bargainRequests).values({
+      id: bargainId,
+      tenantId,
+      retailerId: retailerB,
+      variantId: variantB,
+      orderId: uuidv7(),
+      requestedBy: repId,
+      listRatePaise: 2_500,
+      askedRatePaise: 2_300,
+      status: 'requested',
+    })
+    await db.insert(approvals).values({
+      id: approvalId,
+      tenantId,
+      kind: 'bargain',
+      orderId: null,
+      entityType: 'bargain_request',
+      entityId: bargainId,
+      requestedBy: repId,
+      status: 'pending',
+      payload: {},
+    })
+
+    const decided = await call<Decided>(app, owner, 'POST', `/approvals/${approvalId}/decide`, {
+      idempotencyKey: `dos005-approve-${run}`,
+      decision: 'approve',
+    })
+    expect(decided.status).toBe(200)
+    expect(decided.body.item).toMatchObject({ status: 'approved', decidedBy: ownerId })
+    expect(decided.body.order).toBeNull()
+
+    const bargain = await bargainRow(bargainId)
+    expect(bargain).toMatchObject({
+      status: 'approved',
+      approvedRatePaise: 2_300,
+      decidedBy: ownerId,
+    })
+    expect(bargain?.decidedAt).not.toBeNull()
+
+    // neither copy can be decided a second time, and the request has left the Rate requests list
+    const twice = await call(app, owner, 'POST', `/approvals/${approvalId}/decide`, {
+      idempotencyKey: `dos005-approve-again-${run}`,
+      decision: 'reject',
+      note: 'changed my mind',
+    })
+    expect(twice.status).toBe(409)
+    const other = await call(app, owner, 'POST', `/pricing/bargains/${bargainId}/decide`, {
+      idempotencyKey: `dos005-bargain-again-${run}`,
+      id: bargainId,
+      decision: 'reject',
+    })
+    expect(other.status).toBe(409)
+    const requested = await call<{ items: { id: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/pricing/bargains',
+      { status: 'requested', retailerId: retailerB, limit: 200 },
+    )
+    expect(requested.status).toBe(200)
+    expect(requested.body.items.map((b) => b.id)).not.toContain(bargainId)
+  })
+
+  it('DOS-005: two bargains on one order raise two gates, each approval approves its own request, and the order confirms only after both', async () => {
+    const orderId = uuidv7()
+    const bargainA = uuidv7()
+    const bargainB = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos005-two-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' },
+        { id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'piece' },
+      ],
+    })
+    expect(drafted.status).toBe(200)
+
+    try {
+      const asks = [
+        { id: bargainA, variantId: variantA, askedRatePaise: 900 }, // list ₹10.00
+        { id: bargainB, variantId: variantB, askedRatePaise: 2_300 }, // list ₹25.00
+      ]
+      for (const ask of asks) {
+        const asked = await call<{ item: { status: string } }>(
+          app,
+          rep,
+          'POST',
+          '/pricing/bargains',
+          {
+            idempotencyKey: `dos005-two-ask-${ask.id}`,
+            ...ask,
+            retailerId: retailerA,
+            qtyPcs: 1,
+            orderId,
+          },
+        )
+        expect(asked.status).toBe(200)
+        expect(asked.body.item.status).toBe('requested')
+      }
+
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        {
+          idempotencyKey: `dos005-two-submit-${run}`,
+        },
+      )
+      expect(submitted.status).toBe(200)
+      expect(submitted.body.item.state).toBe('submitted')
+      expect(submitted.body.item.approvalFlags).toEqual(['bargain'])
+
+      const queue = await call<{ items: Gate[] }>(app, owner, 'GET', '/approvals', {
+        status: 'pending',
+        orderId,
+      })
+      expect(queue.status).toBe(200)
+      expect(queue.body.items.map((g) => [g.kind, g.entityType])).toEqual([
+        ['bargain', 'bargain_request'],
+        ['bargain', 'bargain_request'],
+      ])
+      expect(queue.body.items.map((g) => g.entityId).sort()).toEqual([bargainA, bargainB].sort())
+      const gateFor = (bargainId: string) =>
+        queue.body.items.find((g) => g.entityId === bargainId)?.id ?? ''
+
+      const first = await call<Decided>(
+        app,
+        owner,
+        'POST',
+        `/approvals/${gateFor(bargainA)}/decide`,
+        {
+          idempotencyKey: `dos005-two-approve-a-${run}`,
+          decision: 'approve',
+        },
+      )
+      expect(first.status).toBe(200)
+      expect(first.body.order?.state).toBe('submitted')
+      expect(await bargainRow(bargainA)).toMatchObject({
+        status: 'approved',
+        approvedRatePaise: 900,
+        decidedBy: ownerId,
+      })
+      expect(await bargainRow(bargainB)).toMatchObject({ status: 'requested', decidedBy: null })
+
+      const last = await call<Decided>(
+        app,
+        owner,
+        'POST',
+        `/approvals/${gateFor(bargainB)}/decide`,
+        {
+          idempotencyKey: `dos005-two-approve-b-${run}`,
+          decision: 'approve',
+        },
+      )
+      expect(last.status).toBe(200)
+      expect(last.body.order?.state).toBe('confirmed')
+      expect(await bargainRow(bargainB)).toMatchObject({
+        status: 'approved',
+        approvedRatePaise: 2_300,
+        decidedBy: ownerId,
+      })
+    } finally {
+      // give back the piece a confirm held, so nothing after this spec inherits it
+      await call(app, owner, 'POST', `/orders/${orderId}/cancel`, {
+        idempotencyKey: `dos005-two-cleanup-${run}`,
+        reason: 'test cleanup',
+      })
+    }
   })
 })

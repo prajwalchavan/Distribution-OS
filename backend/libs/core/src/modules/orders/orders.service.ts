@@ -265,7 +265,7 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const flags = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds } = await approvalFlags(tx, order, lines)
     const [submitted] = await tx
       .update(salesOrders)
       .set({
@@ -287,18 +287,24 @@ export class OrdersService {
           : await this.confirmInTx(tx, next, deviceId)
       return { item: confirmed.item, flags }
     }
+    // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
+    // the gate decides the request and the queue holds one record per bargain (DOS-005).
     await tx.insert(approvals).values(
-      flags.map((kind) => ({
-        id: uuidv7(),
-        tenantId: ctx.tenantId,
-        kind,
-        orderId: next.id,
-        entityType: 'sales_order',
-        entityId: next.id,
-        requestedBy: ctx.actorId,
-        status: 'pending' as const,
-        payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
-      })),
+      flags.flatMap((kind) =>
+        (kind === 'bargain'
+          ? bargainIds.map((bargainId) => ({ entityType: 'bargain_request', entityId: bargainId }))
+          : [{ entityType: 'sales_order', entityId: next.id }]
+        ).map((entity) => ({
+          id: uuidv7(),
+          tenantId: ctx.tenantId,
+          kind,
+          orderId: next.id,
+          ...entity,
+          requestedBy: ctx.actorId,
+          status: 'pending' as const,
+          payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: kind },
+        })),
+      ),
     )
     return { item: await this.detail(tx, next), flags }
   }

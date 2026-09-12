@@ -97,19 +97,43 @@ export default function Today(): React.JSX.Element {
     value: group.points.reduce((sum, point) => sum + point.value, 0),
   }))
 
+  /*
+   * A bargain gate names the rate request it waits on and decides it with the same answer (DOS-005), so a pair
+   * on this list is one row: the gate, with the request's shop and asked rate. A request whose gate is not among
+   * these five approvals still shows once, as itself.
+   */
+  const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
+  const gated = new Set(
+    (approvals.data?.items ?? [])
+      .filter((row) => row.entityType === 'bargain_request')
+      .map((row) => row.entityId),
+  )
   const waiting = [
-    ...(approvals.data?.items ?? []).map((row) => ({
-      id: row.id,
-      kind: row.kind,
-      what: typeof row.payload.orderNo === 'string' ? row.payload.orderNo : row.entityType,
-      amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
-    })),
-    ...(bargains.data?.items ?? []).map((row) => ({
-      id: row.id,
-      kind: 'bargain',
-      what: names.retailer(row.retailerId),
-      amount: row.askedRatePaise,
-    })),
+    ...(approvals.data?.items ?? []).map((row) => {
+      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
+      const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      return bargain === undefined
+        ? {
+            id: row.id,
+            kind: row.kind,
+            what: orderNo ?? row.entityType,
+            amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+          }
+        : {
+            id: row.id,
+            kind: row.kind,
+            what: orderNo ?? names.retailer(bargain.retailerId),
+            amount: bargain.askedRatePaise,
+          }
+    }),
+    ...(bargains.data?.items ?? [])
+      .filter((row) => !gated.has(row.id))
+      .map((row) => ({
+        id: row.id,
+        kind: 'bargain',
+        what: names.retailer(row.retailerId),
+        amount: row.askedRatePaise,
+      })),
   ].slice(0, 6)
 
   return (

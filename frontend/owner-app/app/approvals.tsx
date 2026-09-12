@@ -6,6 +6,9 @@
  * They decide with the same two keys, so they are one queue with a segmented filter rather than two
  * screens — `j`/`k` move, `1` approves, `2` rejects (UX-00 §8.1), and every rejection carries its
  * reason because a decision without one is a decision nobody can act on (UX-02 R29).
+ *
+ * A bargain gate names the rate request it waits on, and deciding the gate decides that request (DOS-005), so
+ * the pair is ONE row: the gate, carrying the request's shop and rates, listed under Rate requests as well.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
@@ -60,36 +63,76 @@ export default function Approvals(): React.JSX.Element {
   const approvals = useQuery(['approvals', 'pending'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
   )
+  /*
+   * Every pending bargain gate, past the 100-row page: the requests list is oldest first and the approvals list
+   * newest first, so a request can be on its page while its gate is not. Knowing every gate keeps that request
+   * from showing alone, where deciding it would leave its order waiting on the gate.
+   */
+  const gates = useQuery(['approvals', 'pending', 'bargain'], () =>
+    api.api.orders.approvals.list({ status: 'pending', kind: 'bargain', limit: 200 }),
+  )
   const bargains = useQuery(['bargains', 'requested'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 100 }),
   )
 
+  const pending = [
+    ...new Map(
+      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
+    ).values(),
+  ]
+  const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
+  const gated = new Set(
+    pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
+  )
+
   const rows: readonly Decision[] = [
-    ...(approvals.data?.items ?? []).map<Decision>((row) => ({
-      id: row.id,
-      stream: 'approval',
-      kind: row.kind,
-      what: typeof row.payload.orderNo === 'string' ? row.payload.orderNo : row.entityType,
-      who: names.staff(row.requestedBy),
-      askedAt: row.createdAt,
-      amountPaise: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
-      listRatePaise: null,
-      askedRatePaise: null,
-      note: null,
-    })),
-    ...(bargains.data?.items ?? []).map<Decision>((row) => ({
-      id: row.id,
-      stream: 'bargain',
-      kind: 'bargain',
-      what: names.retailer(row.retailerId),
-      who: names.staff(row.requestedBy),
-      askedAt: row.createdAt,
-      amountPaise: row.askedRatePaise,
-      listRatePaise: row.listRatePaise,
-      askedRatePaise: row.askedRatePaise,
-      note: row.note,
-    })),
-  ].filter((row) => stream === 'all' || row.stream === stream)
+    ...pending.map<Decision>((row) => {
+      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
+      const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      return bargain === undefined
+        ? {
+            id: row.id,
+            stream: 'approval',
+            kind: row.kind,
+            what: orderNo ?? row.entityType,
+            who: names.staff(row.requestedBy),
+            askedAt: row.createdAt,
+            amountPaise: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+            listRatePaise: null,
+            askedRatePaise: null,
+            note: null,
+          }
+        : {
+            id: row.id,
+            stream: 'approval',
+            kind: row.kind,
+            what: orderNo ?? names.retailer(bargain.retailerId),
+            who: names.staff(row.requestedBy),
+            askedAt: row.createdAt,
+            amountPaise: bargain.askedRatePaise,
+            listRatePaise: bargain.listRatePaise,
+            askedRatePaise: bargain.askedRatePaise,
+            note: bargain.note,
+          }
+    }),
+    ...(bargains.data?.items ?? [])
+      .filter((row) => !gated.has(row.id))
+      .map<Decision>((row) => ({
+        id: row.id,
+        stream: 'bargain',
+        kind: 'bargain',
+        what: names.retailer(row.retailerId),
+        who: names.staff(row.requestedBy),
+        askedAt: row.createdAt,
+        amountPaise: row.askedRatePaise,
+        listRatePaise: row.listRatePaise,
+        askedRatePaise: row.askedRatePaise,
+        note: row.note,
+      })),
+  ].filter(
+    (row) =>
+      stream === 'all' || row.stream === stream || (stream === 'bargain' && row.kind === 'bargain'),
+  )
 
   const current = rows.find((row) => row.id === selected) ?? null
 
@@ -101,7 +144,7 @@ export default function Approvals(): React.JSX.Element {
         decision: input.decision,
         ...(input.note === undefined || input.note === '' ? {} : { note: input.note }),
       }),
-    { invalidates: [['approvals'], ['orders'], ['reporting']] },
+    { invalidates: [['approvals'], ['bargains'], ['orders'], ['reporting']] },
   )
 
   const decideBargain = useMutation(
@@ -199,7 +242,7 @@ export default function Approvals(): React.JSX.Element {
         </Txt>
 
         <Async
-          state={[approvals, bargains]}
+          state={[approvals, gates, bargains]}
           rows={8}
           empty={rows.length === 0}
           emptyMessage={t('o3.empty')}

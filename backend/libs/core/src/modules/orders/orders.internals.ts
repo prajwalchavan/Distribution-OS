@@ -1,19 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -29,16 +15,9 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import {
-  bargainRequests,
-  locations,
-  orderStateTransitions,
-  outboxEvents,
-  salesOrders,
-  type Db,
-} from '@dos/db'
+import { locations, orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import type { QuoteService } from '../pricing/index.js'
+import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
 import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
 import { ZERO_TOTALS } from './pricing-lines.js'
@@ -134,44 +113,31 @@ export function isUniqueViolation(err: unknown): boolean {
 /**
  * The gates that stand between `submitted` and `confirmed` (§6). Empty means the order confirms itself.
  *  - credit_limit: the shop's mode enforces and this order pushes it past its limit
- *  - bargain: a rate on this order is still waiting for a decision
+ *  - bargain: a rate on this order is still waiting for a decision; `bargainIds` lists the requests it waits on,
+ *    and submit raises one gate naming each, so deciding the gate decides that request (DOS-005)
  *  - below_floor: a line is charged under its tier price with nothing approved that explains it
  */
 export async function approvalFlags(
   tx: Db,
   order: OrderRow,
   lines: OrderLineRow[],
-): Promise<ApprovalKind[]> {
+): Promise<{ flags: ApprovalKind[]; bargainIds: string[] }> {
   const flags: ApprovalKind[] = []
   const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
   if (credit.breached) flags.push('credit_limit')
-  if (await hasPendingBargain(tx, order, lines)) flags.push('bargain')
+  const bargainIds = await pendingBargainsForOrder(tx, {
+    retailerId: order.retailerId,
+    orderId: order.id,
+    variantIds: [...new Set(lines.map((l) => l.variantId))],
+  })
+  if (bargainIds.length > 0) flags.push('bargain')
   const below = lines.some(
     (l) =>
       l.ratePaise < l.listRatePaise &&
       !l.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
   )
   if (below) flags.push('below_floor')
-  return flags
-}
-
-/** Pricing owns `bargain_requests`; this is a read-only peek until PricingModule exposes a lookup. */
-async function hasPendingBargain(tx: Db, order: OrderRow, lines: OrderLineRow[]): Promise<boolean> {
-  const variantIds = [...new Set(lines.map((l) => l.variantId))]
-  if (variantIds.length === 0) return false
-  const [row] = await tx
-    .select({ id: bargainRequests.id })
-    .from(bargainRequests)
-    .where(
-      and(
-        eq(bargainRequests.retailerId, order.retailerId),
-        eq(bargainRequests.status, 'requested'),
-        inArray(bargainRequests.variantId, variantIds),
-        or(isNull(bargainRequests.orderId), eq(bargainRequests.orderId, order.id)),
-      ),
-    )
-    .limit(1)
-  return row !== undefined
+  return { flags, bargainIds }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */
