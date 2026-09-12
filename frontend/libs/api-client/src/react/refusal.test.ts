@@ -9,6 +9,8 @@
  *  - an error already on a write when the surface opens belongs to an earlier opening and is not shown again;
  *  - the LATEST refusal wins, on a panel serving five writes as much as on a dialog serving one;
  *  - pressing any write on the surface hides it, and a success elsewhere never brings it back;
+ *  - a refusal that arrives while another write on the surface is still pending shows once that write settles
+ *    (DOS-135): nobody has seen it, so no press has answered it;
  *  - a new scope (another bill, another document on the same open panel) starts over.
  *
  * `refusalStart` / `nextRefusal` are that rule as pure functions; `useRefusal` applies them per render. The
@@ -113,6 +115,55 @@ describe('useRefusal — the rule a manager surface follows to show a refused wr
       undefined,
       again,
     ])
+  })
+
+  it('DOS-135: a refusal that arrives while a sibling write on the same surface is still pending is shown once that write settles', () => {
+    // The documents panel on a slow network: re-match is pressed and hangs, Start reviewing is pressed and
+    // refused at once because another manager holds the review lock, then re-match comes back.
+    const lock = refusal(
+      'CONFLICT',
+      'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)',
+    )
+    const rerun = refusal('CONFLICT', 'a reviewed document cannot be re-matched')
+
+    // Writes as [start review, re-match]. Nothing shows while re-match is pending; the lock refusal shows
+    // the moment it settles, and a later render keeps it.
+    const settled = frames([
+      [pending, pending],
+      [failed(lock), pending],
+      [failed(lock), success],
+      [failed(lock), success],
+    ])
+    expect(settled.shown).toEqual([undefined, undefined, lock, lock])
+
+    // Re-match settles with its own refusal: the latest refusal shows. A press then answers it, and the
+    // success that follows brings neither refusal back.
+    const refusedToo = frames([
+      [pending, pending],
+      [failed(lock), pending],
+      [failed(lock), failed(rerun)],
+      [failed(lock), pending],
+      [failed(lock), success],
+    ])
+    expect(refusedToo.shown).toEqual([undefined, undefined, rerun, undefined, undefined])
+
+    // "Latest" is the order they arrived in, not the order the surface lists its writes: [re-match, start review].
+    const listedFirst = frames([
+      [pending, pending],
+      [pending, failed(lock)],
+      [failed(rerun), failed(lock)],
+    ])
+    expect(listedFirst.shown).toEqual([undefined, undefined, rerun])
+
+    // Start reviewing pressed again before re-match settles: its old refusal is off the write, so nothing shows.
+    const pressedAgain = frames([
+      [pending, pending],
+      [failed(lock), pending],
+      [pending, pending],
+      [success, pending],
+      [success, success],
+    ])
+    expect(pressedAgain.shown).toEqual([undefined, undefined, undefined, undefined, undefined])
   })
 
   it('DOS-029: a new scope (another bill or document on the same open panel) hides the previous refusal', () => {

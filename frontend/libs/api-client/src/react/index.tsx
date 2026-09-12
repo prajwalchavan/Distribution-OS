@@ -444,6 +444,11 @@ export interface RefusalState {
   readonly seen: ReadonlySet<ApiError>
   /** The refusal the surface shows, or nothing. */
   readonly shown: ApiError | undefined
+  /**
+   * The latest refusal that arrived while another write on the surface was still pending (DOS-135). It was
+   * never on screen, so no press has answered it: it is shown once nothing is pending, if still on its write.
+   */
+  readonly waiting: ApiError | undefined
 }
 
 function errorsOf(writes: readonly WriteOutcome[]): ApiError[] {
@@ -457,7 +462,7 @@ function errorsOf(writes: readonly WriteOutcome[]): ApiError[] {
  * (the hook lives as long as the screen, the dialog does not), so it is seen and never shown.
  */
 export function refusalStart(writes: readonly WriteOutcome[], scope: string | null): RefusalState {
-  return { scope, seen: new Set(errorsOf(writes)), shown: undefined }
+  return { scope, seen: new Set(errorsOf(writes)), shown: undefined, waiting: undefined }
 }
 
 /**
@@ -468,8 +473,10 @@ export function refusalStart(writes: readonly WriteOutcome[], scope: string | nu
  * refusal about one bill under the next and keep a stale sentence up after a later success. The rule:
  *
  *  1. a new `scope` starts over, as if the surface had just opened;
- *  2. while any write is pending nothing is shown: the press is the answer to the last sentence;
- *  3. otherwise the LATEST refusal to arrive is shown, and it stays only while it is still on its write;
+ *  2. while any write is pending nothing is shown: the press is the answer to the sentence on screen;
+ *  3. otherwise the LATEST refusal to arrive is shown, and it stays only while it is still on its write.
+ *     A refusal that arrived while another write was still pending counts as arriving when that write
+ *     settles (DOS-135): it was never on screen, so no press answered it, and a success must not bury it;
  *  4. a render that changes nothing returns `prev` itself, which is what lets `useRefusal` set state
  *     during render without looping.
  */
@@ -481,18 +488,19 @@ export function nextRefusal(
   if (scope !== prev.scope) return refusalStart(writes, scope)
   const current = errorsOf(writes)
   const arrived = current.filter((error) => !prev.seen.has(error))
-  const shown = writes.some((write) => write.status === 'pending')
-    ? undefined
-    : arrived.length > 0
-      ? arrived[arrived.length - 1]
-      : prev.shown !== undefined && current.includes(prev.shown)
-        ? prev.shown
-        : undefined
-  if (arrived.length === 0 && shown === prev.shown) return prev
+  const latest = arrived[arrived.length - 1]
+  /** A refusal counts only while its write still carries it; pressing that write again clears it. */
+  const onItsWrite = (error: ApiError | undefined): ApiError | undefined =>
+    error !== undefined && current.includes(error) ? error : undefined
+  const busy = writes.some((write) => write.status === 'pending')
+  const waiting = busy ? (latest ?? onItsWrite(prev.waiting)) : undefined
+  const shown = busy ? undefined : (latest ?? onItsWrite(prev.waiting) ?? onItsWrite(prev.shown))
+  if (arrived.length === 0 && shown === prev.shown && waiting === prev.waiting) return prev
   return {
     scope,
     seen: arrived.length === 0 ? prev.seen : new Set([...prev.seen, ...arrived]),
     shown,
+    waiting,
   }
 }
 

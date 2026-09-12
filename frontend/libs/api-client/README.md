@@ -107,7 +107,8 @@ enabled})` · `useMutation(run, {invalidates, onSuccess, onError})` · `useRefus
 
 `useRefusal(writes, scope?)` decides which refused write a dialog or panel shows: the LATEST refusal among the
 writes it serves, hidden the moment any of them is pressed again or the surface moves to another row (`scope`),
-and never one that was already there when the surface opened. The rule is the pure pair `refusalStart` /
+and never one that was already there when the surface opened. A refusal that comes back while another of them
+is still pending shows once that one settles (DOS-135). The rule is the pure pair `refusalStart` /
 `nextRefusal`, specified in `src/react/refusal.test.ts` (DOS-029). It never calls `reset()`, so a retry keeps
 its idempotency key.
 
