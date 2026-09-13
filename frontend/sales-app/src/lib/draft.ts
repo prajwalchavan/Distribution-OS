@@ -7,6 +7,13 @@
  * are read back on mount — one key per shop, so a rep can start an order in one doorway and finish it
  * in the next without losing either.
  *
+ * ONE KEY PER REP AND SHOP, NOT PER SHOP (DOS-167). The key was `dos.sales.draft.<retailerId>`, so a
+ * colleague at the same distributor who opened that shop on the same phone was handed the previous
+ * rep's typed lines, and sign-out left every draft behind. It is `dos.sales.draft.<userId>.<retailerId>`
+ * now, read and written only while somebody is signed in, and each rep keeps an index of the shops they
+ * hold a draft for (`dos.sales.drafts.<userId>`), which is how a sign-out that leaves nothing unsent
+ * forgets every draft of that rep (`forgetDraftsOf`) and nothing of anyone else's.
+ *
  * TWO WAYS OUT, AND THE DIFFERENCE IS NOT COSMETIC (ADR 0007, `orders.sync.ts`):
  *
  * - **With signal** the order goes through `orders.create` + `orders.submit`. The server prices it,
@@ -18,6 +25,7 @@
  *   when the phone finds signal, and the rep submits it from My orders. The screen says exactly that
  *   and never calls a queued order "placed".
  */
+import { useSession } from '@dos/api-client/react'
 import { uuidv7 } from '@dos/domain'
 import { storage } from '@dos/ui/platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -34,6 +42,15 @@ export interface DraftOrder {
 }
 
 const KEY_PREFIX = 'dos.sales.draft.'
+const INDEX_PREFIX = 'dos.sales.drafts.'
+
+function draftKey(userId: string, retailerId: string): string {
+  return `${KEY_PREFIX}${userId}.${retailerId}`
+}
+
+function indexKey(userId: string): string {
+  return `${INDEX_PREFIX}${userId}`
+}
 
 function emptyDraft(retailerId: string): DraftOrder {
   return { id: uuidv7(), retailerId, lines: [], note: '', expectedDeliveryDate: null }
@@ -62,6 +79,32 @@ function parse(raw: string | null, retailerId: string): DraftOrder | null {
   }
 }
 
+/** The shops this rep holds a draft for. An unreadable index names none. */
+async function readIndex(userId: string): Promise<string[]> {
+  const raw = await storage.getItem(indexKey(userId))
+  if (raw === null) return []
+  try {
+    const held: unknown = JSON.parse(raw)
+    return Array.isArray(held)
+      ? held.filter((retailerId): retailerId is string => typeof retailerId === 'string')
+      : []
+  } catch {
+    return []
+  }
+}
+
+async function writeIndex(userId: string, retailerIds: readonly string[]): Promise<void> {
+  if (retailerIds.length === 0) await storage.removeItem(indexKey(userId))
+  else await storage.setItem(indexKey(userId), JSON.stringify(retailerIds))
+}
+
+/** The trailing save: this rep's draft for its shop, and that shop in this rep's index. */
+export async function saveDraft(userId: string, draft: DraftOrder): Promise<void> {
+  await storage.setItem(draftKey(userId, draft.retailerId), JSON.stringify(draft))
+  const held = await readIndex(userId)
+  if (!held.includes(draft.retailerId)) await writeIndex(userId, [...held, draft.retailerId])
+}
+
 export interface UseDraft {
   draft: DraftOrder
   /** False until the stored draft (if any) has been read back — the screen must not save over it. */
@@ -82,6 +125,7 @@ export interface UseDraft {
 }
 
 export function useOrderDraft(retailerId: string): UseDraft {
+  const userId = useSession().session?.user.id ?? null
   const [draft, setDraft] = useState<DraftOrder>(() => emptyDraft(retailerId))
   const [restored, setRestored] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -89,15 +133,17 @@ export function useOrderDraft(retailerId: string): UseDraft {
   useEffect(() => {
     let live = true
     setRestored(false)
-    void storage.getItem(`${KEY_PREFIX}${retailerId}`).then((raw) => {
-      if (!live) return
-      setDraft(parse(raw, retailerId) ?? emptyDraft(retailerId))
-      setRestored(true)
-    })
+    // Nobody signed in: nothing is read, and while `restored` stays false nothing is written either.
+    if (userId !== null)
+      void storage.getItem(draftKey(userId, retailerId)).then((raw) => {
+        if (!live) return
+        setDraft(parse(raw, retailerId) ?? emptyDraft(retailerId))
+        setRestored(true)
+      })
     return () => {
       live = false
     }
-  }, [retailerId])
+  }, [userId, retailerId])
 
   /*
    * A trailing 300 ms save. Not on every keystroke: a stepper held down fires a dozen times a second
@@ -105,15 +151,15 @@ export function useOrderDraft(retailerId: string): UseDraft {
    * difference between a stepper that steps and one that stutters.
    */
   useEffect(() => {
-    if (!restored) return
+    if (!restored || userId === null) return
     if (timer.current !== null) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
-      void storage.setItem(`${KEY_PREFIX}${retailerId}`, JSON.stringify(draft))
+      void saveDraft(userId, draft)
     }, 300)
     return () => {
       if (timer.current !== null) clearTimeout(timer.current)
     }
-  }, [draft, restored, retailerId])
+  }, [draft, restored, userId])
 
   const setQty = useCallback(
     (variantId: string, qtyPcs: number, enteredUnit: 'piece' | 'case', caseSize: number) => {
@@ -156,13 +202,29 @@ export function useOrderDraft(retailerId: string): UseDraft {
   const clear = useCallback(() => {
     const fresh = emptyDraft(retailerId)
     setDraft(fresh)
-    void storage.removeItem(`${KEY_PREFIX}${retailerId}`)
-  }, [retailerId])
+    if (userId !== null) void forgetDraft(userId, retailerId)
+  }, [retailerId, userId])
 
   return { draft, restored, setQty, setNote, setExpectedDeliveryDate, replaceLines, clear }
 }
 
-/** Drop a shop's stored draft without mounting the hook — used after a successful submit. */
-export async function forgetDraft(retailerId: string): Promise<void> {
-  await storage.removeItem(`${KEY_PREFIX}${retailerId}`)
+/** Drop one rep's stored draft for a shop without mounting the hook — used after a successful submit. */
+export async function forgetDraft(userId: string, retailerId: string): Promise<void> {
+  await storage.removeItem(draftKey(userId, retailerId))
+  const held = await readIndex(userId)
+  if (held.includes(retailerId))
+    await writeIndex(
+      userId,
+      held.filter((id) => id !== retailerId),
+    )
+}
+
+/**
+ * Every draft this rep holds on this phone, and the index of them (DOS-167). The sign-out that leaves
+ * nothing unsent calls it; a colleague's drafts are under their own keys and are never touched.
+ */
+export async function forgetDraftsOf(userId: string): Promise<void> {
+  for (const retailerId of await readIndex(userId))
+    await storage.removeItem(draftKey(userId, retailerId))
+  await storage.removeItem(indexKey(userId))
 }

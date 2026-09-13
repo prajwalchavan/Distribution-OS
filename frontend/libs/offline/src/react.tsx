@@ -47,17 +47,11 @@ export interface OfflineProviderProps {
   /**
    * Who is signed in (DOS-167): `sessionIdentity(session)` from `@dos/api-client`, `null` while nobody
    * is. The device database is that person's own file inside that distributorship, stamped with them
-   * and checked at open. Not passing it at all keeps the behaviour from before DOS-167, for the field
-   * layouts that still pass `tenantId` and a fixed `databaseName`.
+   * and checked at open. With `null` and no explicit `databaseName`, no engine runs at all.
    */
-  identity?: SyncIdentity | null
+  identity: SyncIdentity | null
   /** The app's file prefix — `'dos-sales'`, `'dos-delivery'`, `'dos-warehouse'`; never a name built by hand. */
   storePrefix?: string
-  /**
-   * @deprecated The distributor alone, from before DOS-167. Read only when `identity` is not passed;
-   * it goes once the three field layouts pass `identity` and `storePrefix`.
-   */
-  tenantId?: string
   /** An explicit file name, for the harness and tests. It wins over `storePrefix`. */
   databaseName?: string
   pullIntervalMs?: number
@@ -71,11 +65,10 @@ export interface OfflineProviderProps {
 function storeFileName(
   databaseName: string | undefined,
   storePrefix: string | undefined,
-  identity: SyncIdentity | null | undefined,
+  identity: SyncIdentity | null,
 ): string {
   if (databaseName !== undefined) return databaseName
-  if (storePrefix !== undefined && identity !== undefined && identity !== null)
-    return storeNameFor(storePrefix, identity)
+  if (storePrefix !== undefined && identity !== null) return storeNameFor(storePrefix, identity)
   return 'dos-offline.db'
 }
 
@@ -97,7 +90,6 @@ export function OfflineProvider({
   tables,
   identity,
   storePrefix,
-  tenantId,
   databaseName,
   pullIntervalMs,
   enabled = true,
@@ -105,10 +97,7 @@ export function OfflineProvider({
   children,
 }: OfflineProviderProps): React.JSX.Element {
   const [engine, setEngine] = useState<SyncEngine | null>(null)
-  const idKey =
-    identity === undefined || identity === null
-      ? identity
-      : `${identity.userId}:${identity.tenantId}`
+  const idKey = identity === null ? null : `${identity.userId}:${identity.tenantId}`
   let name: string | null = null
   let unnamed: unknown = null
   try {
@@ -135,8 +124,7 @@ export function OfflineProvider({
       storeFactory,
       databaseName: name,
       ...(tables === undefined ? {} : { tables }),
-      ...(identity === undefined || identity === null ? {} : { identity }),
-      ...(identity === undefined && tenantId !== undefined ? { tenantId } : {}),
+      ...(identity === null ? {} : { identity }),
       ...(pullIntervalMs === undefined ? {} : { pullIntervalMs }),
       ...(onLog === undefined ? {} : { onLog }),
     }
@@ -159,7 +147,7 @@ export function OfflineProvider({
      * never the role: a role change on one membership is the manifest's to handle); a new client for
      * the same device is the same engine.
      */
-  }, [enabled, deviceId, storeFactory, name, idKey, pullIntervalMs, tenantId])
+  }, [enabled, deviceId, storeFactory, name, idKey, pullIntervalMs])
 
   /*
    * THE FILE EVERY BUILD BEFORE DOS-167 KEPT (amendment i): `dos-sales.db`, `dos-delivery.db`,

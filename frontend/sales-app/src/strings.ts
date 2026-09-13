@@ -47,6 +47,20 @@ export const strings = {
   'app.wrongRoleBody':
     'You are signed in as {role}. Nothing here will load. Use the app your distributor gave you for that job, or sign in with a salesperson account.',
   'app.signOut': 'Sign out',
+  /*
+   * DOS-167: signing out, or switching distributor, while this phone still holds changes the office has
+   * not got. The founder's rule (2026-09-13): they stay on this phone for that person only and go the
+   * next time that person signs in here. Nothing is ever thrown away from this sheet.
+   */
+  'leave.title': '{n} changes have not reached the office',
+  'leave.bodySignOut':
+    'They stay on this phone for {name} only and go the next time {name} signs in here. Nobody else can see them.',
+  'leave.bodySwitch': 'They go when you come back to {tenantName} on this phone.',
+  'leave.attention': '{n} need attention',
+  'leave.sendNow': 'Send now',
+  'leave.signOutKeep': 'Sign out, keep them here',
+  'leave.switchAnyway': 'Switch anyway',
+  'leave.noSignal': 'No connection — they cannot go now.',
   'app.none': '—',
   'app.rows': '{count} rows',
   'app.asOf': 'as of {when}',

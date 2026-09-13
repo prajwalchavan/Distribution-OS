@@ -18,6 +18,20 @@ export const strings = {
   'app.signInFailed': 'Could not sign in',
   'app.signInHint': 'The godown sign-in. Ask your manager for a username.',
   'app.signOut': 'Sign out',
+  /*
+   * DOS-167: signing out, or switching distributor, while this phone still holds changes the office has
+   * not got. The founder's rule (2026-09-13): they stay on this phone for that person only and go the
+   * next time that person signs in here. Nothing is ever thrown away from this sheet.
+   */
+  'leave.title': '{n} changes have not reached the office',
+  'leave.bodySignOut':
+    'They stay on this phone for {name} only and go the next time {name} signs in here. Nobody else can see them.',
+  'leave.bodySwitch': 'They go when you come back to {tenantName} on this phone.',
+  'leave.attention': '{n} need attention',
+  'leave.sendNow': 'Send now',
+  'leave.signOutKeep': 'Sign out, keep them here',
+  'leave.switchAnyway': 'Switch anyway',
+  'leave.noSignal': 'No connection — they cannot go now.',
   'app.distributor': 'Distributor',
   'app.role': 'Role',
   'app.person': 'Signed in as',

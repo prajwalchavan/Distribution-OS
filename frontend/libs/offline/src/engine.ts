@@ -138,11 +138,6 @@ export interface SyncEngineOptions {
    * distributors with the same role gets the identical `schemaVersion` (docs/27 §5).
    */
   identity?: SyncIdentity
-  /**
-   * @deprecated The distributor alone, as the field layouts passed it before DOS-167. Read only when
-   * `identity` is absent; it goes once the three layouts pass `identity` to `<OfflineProvider>`.
-   */
-  tenantId?: string
   pullLimit?: number
   uploadBatchSize?: number
   /** The most op JSON one upload batch carries, in UTF-8 bytes (default 4 MiB, docs/27 §6). */
@@ -583,7 +578,7 @@ export class SyncEngine {
       tenantId: await readState(store, 'tenantId'),
     }
     // The stamp at open already wrote this `tenantId`; the comparison stays as the handshake's own check.
-    const tenantId = this.options.identity?.tenantId ?? this.options.tenantId ?? null
+    const tenantId = this.options.identity?.tenantId ?? null
     const wanted = this.options.tables
     const tables = wanted
       ? manifest.tables.filter((table) => wanted.includes(table.table))
