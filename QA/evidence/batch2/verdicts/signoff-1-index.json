@@ -1,0 +1,149 @@
+[
+ {
+  "id": "DOS-116",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) One list in the contract, as DOS-058: export UNSALEABLE_CREDIT_NOTE_REASONS and isSaleableCreditNoteReason() from backend/libs/contracts/src/billing.ts after CreditNoteReasonSchema (:107-116); the service imports it, no billing-local set; new contracts unit test billing.test.ts in the shape of delivery.test.ts:9-19.",
+   "(b) frontend/manager-app/app/billing/credit-notes.tsx:168 uses isSaleableCreditNoteReason(input.reason) (value import from @dos/contracts); request body unchanged, so the web re-walk (verify step 8) is the proof and Android/iOS are recorded NOT RE-WALKED with that reason.",
+   "(c) Keep the plan's derivation in draft(): saleable = line.saleable ?? isSaleableCreditNoteReason(input.reason), refuse saleable && !predicate with 400 { code: 'return_not_saleable', invoiceLineId, reason } before any insert; store the derived value at :347; raiseForDelivery :149 passes l.saleable through; draft() line type becomes saleable?: boolean | undefined.",
+   "(d) Everything else stands as planned: .optional() on the contract field with doc comment, no enum change, no migration, no trigger, no re-check at issue, no inverse rule, the three billing.spec.ts tests as written, verify steps 0-8."
+  ],
+  "founderDefaults": [
+   "Expired goods returned at the desk are booked as return_damaged and the note prints 'Goods returned (damaged)' (documents/templates/credit-note.ts:18); no return_expired credit-note reason (enum migration + PDF label + claims split) in batch 2, deferred as a separate item."
+  ],
+  "newFindings": [
+   "backend/libs/core/src/modules/claims/build.service.ts:481 \u2014 creditNoteCandidates filters on the note header reason === 'return_damaged', not the line's saleable (registers.service.ts:84 carries it), so damaged lines inside a mixed doorstep return (reason return_saleable, deliveries.service.ts:187-191) are never offered as brand damage-claim candidates. P2, claims.",
+   "backend/libs/core/src/modules/delivery/delivery.sync.ts:132 \u2014 an offline delivery op that omits returned_saleable defaults to true instead of isSaleableReturn(l.reason), so a queued damaged return without the flag becomes a durable sync rejection rather than a booking to the bin (the delivery app sends the flag today, deliver.tsx:269). P3, delivery."
+  ],
+  "laneAdvice": "Own lane (b2-h7-billing), not h1. It is size S with no dependency, and h1 has four items queued ahead (032+059, 007, 117, 132) that touch none of DOS-116's files (contracts/src/billing.ts credit-note section, credit-notes.service.ts, billing.spec.ts, manager credit-notes.tsx, new contracts billing.test.ts). The only overlap is billing.spec.ts with h5: DOS-115 edits the van-sale test at :904-951, six lines below DOS-116's insertion point after :903, and DOS-126 appends after :1203; different hunks, rebase textually, merge in either order. No lane touches the manager credit-notes screen (DOS-159 is P3, later). Build contracts before the frontend typecheck (link:, not a copy)."
+ },
+ {
+  "id": "DOS-133",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Spec step (e): approve the sheet (manager POST /approve) before the packer confirms it (409 approval_required otherwise, spec :919-953; confirm is STOCK_KEEPERS); after return_undelivered assert state packed, absent from awaiting_load, AND loadSheets.create([returned]) \u2192 409 \u2014 list/create parity pinned explicitly.",
+   "(b) Both correlated predicates carry an explicit tenant fence (so.tenant_id / ls.tenant_id = currentTenant().tenantId), as onALiveSheet does, so the planner reaches sales_orders_state_idx under app_rw; RLS stays the guarantee.",
+   "(c) orderInState(orderId: SQLWrapper, state: OrderState): SQL is built in orders/fulfilment.ts and exposed only on OrdersService; JSDoc names it the ONE sanctioned cross-module predicate; warehouse/index.ts, orders/index.ts, warehouse.internals.ts untouched; load-sheets.service.ts comment-only and only after DOS-043 merged in the lane.",
+   "(d) The live-sheet rule exists twice (onALiveSheet, private onLiveLoadSheet): each JSDoc names the other and the DOS-133 spec as the tie; the returned-bill finding changes both when fixed. Predicate uses order_ids @> jsonb_build_array(orderId); the spec oracle keeps jsonb_array_elements_text.",
+   "(e) h2 order: DOS-043 \u2192 DOS-133 \u2192 DOS-131+137. Drop DOS-131+DOS-137 from dependsOn; edit W7 load/index.tsx and strings.ts on the DOS-043 version; DOS-131+137 layers trip narrowing on the awaiting_load query and adds no trip filter to packs.list.",
+   "(f) Migration takes the lane's next free index from the lane's _journal.json; at merge, if h1's 0043/0044 landed first, delete the lane's generated SQL + snapshot + journal entry, rebase, re-run pnpm db:generate \u2014 never hand-renumber. No hand-written sibling (index-only; precedent 0041/0042).",
+   "(g) Every packs.list caller changes order (W1 index.tsx:59, W5 pack/index.tsx:35,40, W6 pack/[orderId].tsx:59, M20 fulfilment/pack.tsx:95, manager billing/index.tsx:107): verifier opens W1, W5 and M20 once and confirms newest first; no code change there."
+  ],
+  "founderDefaults": [],
+  "newFindings": [
+   "backend/libs/core/src/modules/warehouse/load-sheets.service.ts:754-767 \u2014 onALiveSheet counts a CONFIRMED sheet for an order later return_undelivered \u2192 packed, so loadSheets.create refuses it for ever (409); only exit is trips.depart's dispatchIfPacked (trips.service.ts:844-858) with no sheet/challan. Every fresh seed: SO-0845/SO-0850; dos_qa SO-0857/SO-0899/SO-0904. P1.",
+   "backend/libs/core/src/modules/orders/fulfilment.ts:105,178 \u2014 fulfilmentQueue orders/pages on desc(sales_orders.id); seeded orders carry hash ids (SO-0862 = a4e4ef5b\u2026) above every live UUIDv7, so W2/W3's confirmed queue lists seeded orders above today's (DOS-023/133 class, unfiled). P1.",
+   "backend/libs/core/src/modules/warehouse/load-sheets.service.ts:227,233 \u2014 loadSheets.list still id-ordered with an id cursor; W7 LOAD SHEETS (limit 30) shows seeded sheets above today's; DOS-025 fixed only the manager side client-only. P2.",
+   "backend/libs/core/src/modules/warehouse/load-sheets.service.ts:758-765 (and the new predicate) \u2014 no index serves load_sheets.order_ids containment; every create/awaiting_load scans all non-cancelled sheets of the tenant, which accumulate for ever (docs/20 rule 3); GIN jsonb_path_ops later. P3.",
+   "backend/libs/core/src/modules/warehouse/packing.service.ts:335 \u2014 packedAt: new Date() is the Node clock while the column defaults to Postgres now(); skewed instances make W5's from/to (packed_at) disagree with list order (created_at). P3."
+  ],
+  "laneAdvice": "h2-trips, directly after DOS-043 and BEFORE DOS-131+137 (DOS-131+137's own plan lists DOS-133 in dependsOn and says W7's data source is DOS-133's; DOS-131+137 also waits on h3/h5 work, DOS-133 waits on nothing cross-lane except migration numbering). Backend first (contract \u2192 fulfilment.ts/orders.service.ts \u2192 packing.service.ts \u2192 schema index \u2192 generated migration \u2192 spec), then W7 + strings on the DOS-043 version, then pnpm docs:readme. Migration index is the lane's next free one; regenerate at merge if h1's 0043/0044 land first. Files it shares with other lanes: frontend/warehouse-app/src/strings.ts (DOS-043, same lane, sequential), migrations/meta/_journal.json + snapshots (h1), READMEs (every contract-changing lane, regenerate after rebase); warehouse.internals.ts (h4) and load-sheets.service.ts (DOS-043) deliberately untouched. Verdict file: /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/verdicts/DOS-133.md"
+ },
+ {
+  "id": "DOS-132",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Tenant-qualify the trips lookup: TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL; tripSettledSql emits t.id = tripId AND t.tenant_id = tenantId (as rollup.ts:553 does); RLS is the second lock, never the only one.",
+   "(b) withCrew on receipts.list is applied only for MONEY_DESK; other roles get the unfiltered list (JSDoc says so), mirroring get -> null; the service wrapper (:722-729) decides, not the query function.",
+   "(c) Refusal message is mode-neutral ('taken on a trip that is not settled yet'); data.code stays trip_cash_not_settled, data.receiptIds = only the refused ids, sorted; cheques on an unsettled trip are refused too and the contract JSDoc names cash AND cheques.",
+   "(d) Place the two delivery specs and the receivables spec by anchor text (the '// check-in' comment, the settle it() title, the DOS-034 guard it() title), never by line: DOS-032+059 in the same lane inserts ~87 lines at delivery.spec.ts:1351.",
+   "(e) Owner O11: change only the Bank it disabled guard; the dialog that swallows a 409 (.then(done, done), receipts.tsx:305) is a new finding, not fixed here; no new react-native/react-dom import anywhere."
+  ],
+  "founderDefaults": [
+   "A cheque taken on a trip, like its cash, is banked (and bounced from Day-end) only after the trip settles; the receipt panel's own Mark bounced stays available. Reversible by limiting the deposit trip check to mode = 'cash'."
+  ],
+  "newFindings": [
+   "backend/libs/core/src/modules/receivables/receivables.service.ts:1744-1746 \u2014 reversing a collected trip cash receipt after its trip settled credits CASH_VAN, which settlement already emptied; should credit CASH once settled (P2).",
+   "backend/libs/core/src/modules/delivery/settlement.service.ts:348-360 (+ receivables.sync.ts:60-79, frontend/delivery-app/src/lib/queue.ts:226-270) \u2014 settlement counts collections rows only; an offline doorstep receipt uploaded through the receipts table has none, so its cash is never credited out of CASH_VAN and reads as cash over in CASH_SHORT, which can force owner approval (P1).",
+   "backend/libs/core/src/modules/delivery/settlement.service.ts:217-238 vs receivables.service.ts:855 \u2014 after a settlement with expenses or a shortage CASH holds handed-over minus float, yet receipts bank at full value; the per-receipt deposit takes CASH below the drawer by expenses + short and cannot represent the bank slip (P2, design).",
+   "backend/libs/core/src/modules/receivables/receivables.service.ts:832-870 \u2014 deposit reads without FOR UPDATE and its UPDATE has no status = 'collected' guard; two desks can bank the same receipt twice (P2, reproduce first).",
+   "frontend/owner-app/app/money/receipts.tsx:305-311 \u2014 the O11 dialogs close on any refusal (.then(done, done)), so a server 409 is never shown to the owner (P2).",
+   "backend/libs/database/src/seed-demo/receivables.ts:664-669 \u2014 RCPT-VAN receipts attach to a settled trip with no collections row and seeded trip_settlements post no journal entry; CASH_VAN never nets and the owner's cash-in-transit tile reads 0 (P3, demo data)."
+  ],
+  "laneAdvice": "Lane h1-money, after DOS-007 (and DOS-117, which touches receivables/index.ts), as intended. DOS-032+059's hunks in receivables.service.ts (:65, :597-632, :1540-1640, :1710-1810) and queries.ts (receiptFromRaw seriesCode/fy) do not overlap DOS-132's regions (:722-762, :826-915, queries :110-115) \u2014 only line numbers move. Build backend first (contracts, receivables, delivery.internals + module, specs), run both core module specs on the lane DB, then the four frontend files, then docs:readme once. delivery.spec.ts is also edited by h2 (DOS-043, 131+137, 133) and h3 (DOS-056, 146): insert by anchor text and re-run after each lane merge. Do not wait for DOS-164 (no plan yet): whichever lands second rebases the one-line disabled guard on the two Bank it panels. The E2E and steps 4-5 run after merge on dos_qa / a disposable copy; after the Q5 rebuild the precondition receipt must be created by one doorstep collection as ganesh.more."
+ },
+ {
+  "id": "DOS-117",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) receivables.ageing.rebuild queue: policy stately, retryLimit 3, retryDelay 300, retryBackoff true, expireInSeconds 3600 (stately allows one created + one active per key; a 900 s expiry re-fetches a large tenant while its first handler still pages); catch-up queue keeps the default expiry",
+   "(b) rebuildTenantAgeing locks only the page's retailer_outstanding_summary rows (SELECT retailer_id \u2026 ORDER BY retailer_id FOR UPDATE) inside the same withTenant transaction as rebuildAgeingPage; no other lock \u2014 every posting path locks exactly one summary row last, which is the deadlock-free proof",
+   "(c) Landing after DOS-007 on h1, DOS-117 may name the two ageing queues in worker/src/main.ts:80-82; receivables/worker.ts and the ./receivables export in libs/core/package.json are appended to, never recreated",
+   "(d) The three worker tests go through registerReportingJobs and the stored handlers with a fake boss that throws on a send to an uncreated queue; if vi.mock('@dos/core/reporting') does not intercept under the worker preset, add an optional tenants override parameter to scheduleAgeingRebuilds/finalizeRollups (default activeTenantIds) \u2014 never probe 2 000 dev tenants in a spec",
+   "(e) rollup.ts dues precedence exactly: isToday \u2192 live summary sums; else existing daily_tenant_stats row \u2192 keep; else the day's snapshot when rows > 0; else 0; refreshOwnerSummary(tx, tenantId, day, liveRow) at :267 untouched; rewrite the :180 comment and property 4 (:34-35)",
+   "(f) Record in docs/18 and QA/13 that docs/plans/receivables.md \u00a77's 00:30 receivables.ageing_snapshot job is realised as the 00:20 finalize's per-tenant receivables.ageing.rebuild fan-out plus a start-up receivables.ageing.catchup run as each tenant's system actor; docs/22 unchanged"
+  ],
+  "founderDefaults": [],
+  "newFindings": [
+   "backend/worker/src/jobs/reporting.ts:16-20, :83, :91 \u2014 reporting.rollup.tenant/schedule/finalize are 'standard' queues, so singletonKey is never enforced (pg-boss 12 indexes only short/singleton/stately/exclusive, plans.js:668-709); the header's 'never doubled up' is false \u2014 harmless by idempotency, wasteful at scale",
+   "backend/worker/src/jobs/reporting.ts:74-76 \u2014 the finalize loops rollupBehaviour over every tenant inside one job, O(all shops), against rollup.ts property 2 and the 900 s expiry",
+   "backend/worker/src/jobs/retention.ts + docs/20 partition addendum \u2014 ageing_snapshots (one row per shop per day after this fix) has no retention sweep and no partition plan",
+   "backend/libs/core/src/modules/reporting/rollup.ts:267 \u2014 the finalize's yesterday re-run calls refreshOwnerSummary with day = yesterday, so owner_summary.today_invoiced/collected show yesterday's figures until the next 15-minute tick",
+   "backend/libs/core/src/modules/receivables/receivables.service.ts:1441 \u2014 the owner's rebuildAgeing accepts any past asOf and re-dates every summary row backwards; the new catch-up heals it only at the next worker start"
+  ],
+  "laneAdvice": "Build on h1-money, sequenced DOS-032+059 \u2192 DOS-007 \u2192 DOS-117 \u2192 DOS-132. DOS-007 owns backend/libs/core/src/modules/receivables/worker.ts and the './receivables' export in backend/libs/core/package.json, so DOS-117 must rebase onto it and append (never recreate); if DOS-117 were built first, DOS-007 would have to merge onto DOS-117's versions of both files instead. DOS-032+059 (already on h1, c2c472f) edits the platform import block and receipts region of receivables.service.ts plus 6 lines of reporting.spec.ts \u2014 DOS-117 touches the './outstanding.js' import block, the rebuildAgeing body (:1435-1466) and appends a test after reporting.spec.ts:1329, so the merge is textual and clean. DOS-132 edits receipts.deposit in the same service, a different region. No other lane (h2 trips, h3 doorstep, h4 stock, h5 orders, h6 admin, DOS-116) touches outstanding.ts, rollup.ts, worker/src/jobs/reporting.ts or worker/src/main.ts. DOS-016 (P2, later) edits the same rollup.ts dues block and must merge over amendment (e). The dos_qa BEFORE evidence changes if dos_qa is rebuilt for DOS-032+059 before verification; the specs remain the reproduction."
+ },
+ {
+  "id": "DOS-126",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Build only on h5 rebased on main after h4 (DOS-096 GST-in-quote, DOS-074+097 reservableLocationId at confirmInTx:353) merges; quoteInTx split, pricedLineFields/orderTotals extraction and the :353-358 reorder are made on the merged files; orders.spec block after DOS-115's, billing.spec test rebased on DOS-116 if it lands first.",
+   "(b) frontend/retailer-app/app/orders/[id].tsx:184-185 prints the order line's discount as ratePaise \u00d7 qtyPcs \u2212 (lineTotalPaise \u2212 taxPaise) (billing's invariant), so the shop never sees an approved bargain taken off twice; verifier checks retailer web :5178 on <SO-A>.",
+   "(c) priceOrderLineGroup guards lineDiscount (< 0 or > rate \u00d7 qty \u2192 ORPCError CONFLICT naming the order line), never clamps; an issued invoice is immutable so a corrupt line refuses.",
+   "(d) loadInputs calls the extracted approvedBargainsFor; exactly one approved-rate query remains in pricing; pricing.spec unedited.",
+   "(e) confirmInTx rewraps a reprice BAD_REQUEST as '<SO> holds an approved rate that cannot be priced today (<engine message>); fix the price list or reject the rate request', data { code: 'reprice_failed' }; same error shape."
+  ],
+  "founderDefaults": [
+   "At confirm the server applies the drafted prices plus any rate approved since the draft, and nothing else: an office edit to a price list or scheme between draft and approval does not re-price a held order, and a line changes only when its net goes down, so a credit decision taken on the drafted total is never exceeded. This is how docs/22 \u00a74 'Server re-prices at the same version' is read; record in \u00a78 beside the DOS-126 row; revisit only if DOS-082 re-prices catalog edits at submit.",
+   "A shop's own standalone approved rate (the retailer app asks with no order id) is charged on that shop's held order at confirm, as the engine already applies it at draft."
+  ],
+  "newFindings": [
+   "backend/libs/core/src/modules/pricing/bargains.service.ts:81-97 and :185-196 never write expires_at, so quote.service.ts:299-302 applies an API-filed standalone approved rate to every future order of that shop for that variant, forever (dos_qa: 13 approved standalone requests; every row with an expiry is the seed's). P2 business.",
+   "backend/libs/core/src/modules/orders/pricing-lines.ts:174 vs :192 against backend/libs/database/src/seed-demo/sales.ts:689-700, :865: two stored conventions for a bargained sales_order_line in one table; rate \u00d7 qty \u2212 discount is not the taxable and every reader must use line_total \u2212 tax. One convention plus a backfill is a tech-debt item. P3.",
+   "dos_qa holds a confirmed sales_order with no order_no whose line is rate 4000 / tax 0 / line_total 0 (sales_order_lines, direct insert, not an API path): the QA database has taken a non-API write; the Q5 rebuild clears it. P3 hygiene."
+  ],
+  "laneAdvice": "h5-orders, last in the lane after DOS-003 \u2192 DOS-004 \u2192 DOS-115, and only once h4 (DOS-096 and DOS-074+097) has merged to main and h5 is rebased: DOS-126 rewrites the same quote.service.ts and pricing-lines.ts that DOS-096 changes and reorders the confirmInTx lines that DOS-074+097 touches, so it must be built on the merged files, never cherry-picked. Its billing.spec.ts append reconciles with DOS-116's block (h1 or its own lane) whichever lands second \u2014 a trivial textual conflict. The confirm half and the billing half must reach main together: the confirm half alone turns every approved rate into an under-declared bill."
+ },
+ {
+  "id": "DOS-146",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Spike the '@dos/ui' runtime import under the delivery-app vitest first (one assertion on padEntryFromPaise); no app spec has evaluated the kit in Node before; if it fails, stop and hand the resolver error to the architect \u2014 never copy pad logic, never import @dos/ui/web, never alias a renderer.",
+   "(b) Screen guard test 5 matches comment-stripped source whitespace-tolerantly so pnpm format cannot break it, and asserts: openingCashShown(cashPaise, detail?.openingCashPaise) twice, openingCashEntered(next) in the RupeeInput onChange, no `cashPaise ?? detail?.openingCashPaise` left, `input.cashPaise === null` kept in the depart builder.",
+   "(c) dos_qa Sai TRIP-NEXT carries a DRAFT load sheet with trip_id set; after h2's DOS-043 lands depart answers 409 until it is confirmed. Verify steps 11-14 run on the h3 lane tree before the h2 merge; on a tree with DOS-043, confirm the sheet via W10 first or do the dialog-body check only; a 409 there is DOS-043 working, recorded as such.",
+   "(d) Spec constants (300000, 475600) are literals, never read from dos_qa; the verifier re-runs the step-2 query after any reseed (h1 rebuilds dos_qa from the seed, which plants TRIP-NEXT at 300_000 but no draft sheet).",
+   "(e) start.tsx:75 comment states the tri-state: null = untouched (plan shown, key left out, server keeps trips.opening_cash_paise); 0 = emptied (sent as openingCashPaise: 0); after any pad key (Clear included) null is unreachable, so Android back after Clear leaves 0. Module doc names DOS-146 and the DOS-060 reconcile rule.",
+   "(f) Add one dialog control to the verify list and both walks: Clear alone (no digits) must show 'float \u20b90.00' in the confirm body."
+  ],
+  "founderDefaults": [
+   "At trip start, an emptied 'Cash handed to you' means a \u20b90 float and is written as the trip's float at depart (the confirm dialog says 'float \u20b90.00'); an untouched field keeps the float planned at the office. (docs/22 \u00a78, 2026-09-13, QA DOS-146)"
+  ],
+  "newFindings": [
+   "frontend/retailer-app/app/pay.tsx:141-142 \u2014 value={amount ?? owed} / onChange={setAmount}: an emptied Pay amount snaps back to what is owed on every platform; fix with DOS-124/DOS-154 as one Pay slice, not with ?? 0 (Start would disable with the wrong reason, pay.tsx:104-109; retailer strings.ts:191 helper changes with it).",
+   "frontend/manager-app/app/inbound/documents.tsx:418 \u2014 value={totalPaise ?? header.totalPaise}: clearing the invoice total on the desk text field snaps back to the header value on blur; same class.",
+   "frontend/libs/ui/src/money.ts:162-164 + frontend/libs/ui/src/native/money.tsx:165-183 (both renderers) \u2014 a money pad opened on a PRE-FILLED whole amount appends the first digit (\u20b93,000 \u2192 '4' \u2192 \u20b930,004); DOS-060 design for a reopened entry, but on a pre-filled field it is the crores hazard the finding names; replace-on-first-digit (\u232b and . still edit) is a kit-wide founder call, P2 UX, own id, touches retailer Pay too."
+  ],
+  "laneAdvice": "Build in lane h3 after DOS-056 as intended: no file overlap (DOS-056 touches delivery-app package.json, pnpm-lock.yaml, libs/offline delivery.sync.ts, api-client errors.ts; DOS-146 touches only app/trip/start.tsx and two new files under delivery-app/src/lib), so the rebase is trivial \u2014 run the delivery-app vitest once after it because both add specs to the same package. The one sequencing constraint is against h2: the verifier's depart write on Sai TRIP-NEXT must happen on the h3 tree before the h2 merge (or after confirming the draft load sheet through W10), because DOS-043 will refuse that trip with 409 while its sheet is a draft. When h2's DOS-131+137 merges, its plan-a-trip float field must hold plain state, never `x ?? plan` as the field value."
+ },
+ {
+  "id": "DOS-131+DOS-137",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Disabled rows explain themselves in `secondary`, not `reason`: both ListRow renderers print `reason` only for state 'needsAttention' (web list.tsx:185, native list.tsx:175); busy-crew and not-on-trip rows use state 'disabled' with the sentence as `secondary`; the e2e asserts it is visible.",
+   "(b) Close the concurrent double plan: insertStop takes `pg_advisory_xact_lock(hashtextextended(tenantId||':'||invoiceId, 0))` per invoice (deduped, sorted) before `plannedOnOpenTrips`; the board never locks.",
+   "(c) W7's not-on-trip guard is bill-level where the board can tell: W7 also reads `trips.planning({limit:200})` when a trip is chosen; `packOnTrip(pack, trip, unplannedInvoiceIds)` is true only if the shop is a stop AND `pack.invoiceId` is not on the board's page; shop-level fallback beyond the page; lib test adds the second-bill-of-an-on-trip-shop case.",
+   "(d) Fix the false contract JSDoc at warehouse.ts:348 and :170 (\"delivery attaches the real trip\"): the app passes the trip at create; the server stores the label and never validates or attaches it. Doc only; READMEs regenerate.",
+   "(e) Spec #2 proves re-plan after cancel: after tripP is cancelled the packer's board lists p1 and p2 again and a fresh create with p1 answers 200 (pins the state predicate that rules out a partial unique index).",
+   "(f) Same slice: W10 header rewritten on top of DOS-043 amendment (c); docs/22 \u00a78 architect row, \u00a74 node between W5 and W6, \u00a711, render and republish."
+  ],
+  "founderDefaults": [
+   "From the warehouse app a load sheet is always built for one planned/loading trip and carries only that trip's bills; a trip-less sheet stays API-only (seed, smoke). Consistent with docs/22 2026-09-12 (the godown plans, adds stops, starts loading) and the W6 node 'load sheet for the trip'."
+  ],
+  "newFindings": [
+   "backend/libs/core/src/modules/delivery/trips.service.ts:209-219 \u2014 create's busy check covers input.driverId only; a helper already on another open trip that day is accepted as helper again.",
+   "backend/libs/core/src/modules/delivery/trips.service.ts:1034-1050 \u2014 assertMember selects tenancy's `memberships` table from the delivery module (module rule; should go through a tenancy export).",
+   "frontend/warehouse-app/app/load/index.tsx:149-151 \u2014 `reason: t('w7.challan')` on a default-state ListRow never renders (ui/src/web/list.tsx:185 and native/list.tsx:175 render reason only for needsAttention), so the challan number is invisible on W7's sheet rows."
+  ],
+  "laneAdvice": "Lane h2, after DOS-043 and before DOS-133: DOS-043 first because this plan builds W10 (trips.tsx, warehouse strings.ts), trips.service.ts, the delivery.ts header :44-46, the permissions.test.ts `warehouseMay` block, delivery.spec.ts and examples.ts on top of its merged version; DOS-133 last because its plan rebases W7 (load/index.tsx) onto this fix's trip choice and tripId and needs `retailerId`/`invoiceId` on pack rows (PackListItemSchema has both). Inside the slice: contracts (delivery.ts, permissions.ts, warehouse.ts JSDoc) \u2192 build libs \u2192 tenancy export \u2192 core (internals helper + lock, trips.service planning, billing liveInvoicesForOrders) \u2192 controller/examples \u2192 `pnpm docs:readme` \u2192 apps (W10, W7, M7 + nav/strings, both trip-plan libs) \u2192 `pnpm install` in frontend (warehouse-app gains vitest, commit the lockfile) \u2192 e2e on a lane copy \u2192 docs/22. Textual merges only with h5 DOS-115 (permissions.ts/.test.ts) and h3 DOS-056 (delivery.spec.ts, delivery module); re-run docs:readme after every contract-changing merge."
+ }
+]
