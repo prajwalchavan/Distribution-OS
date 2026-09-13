@@ -10,15 +10,32 @@ import { SyncModule, SyncRegistry, SyncRejection, tablePull } from './index.js'
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
+/**
+ * The note that makes the stand-in fail the way a row policy does (DOS-166): Drizzle wraps the driver
+ * error, so SQLSTATE 42501 arrives on `cause.code`, exactly as `platform/pg-errors.ts` reads it.
+ */
+const REFUSED_BY_POLICY = 'refused-by-policy'
+
 /** A stand-in for a real module: accepts `visits` rows, rejects any with an empty note as a business error. */
 @Injectable()
 class FakeVisitsSync implements OnModuleInit {
   constructor(private readonly registry: SyncRegistry) {}
   onModuleInit(): void {
-    this.registry.register('visits', async (_tx, op) => {
-      if (op.op !== 'DELETE' && !op.data?.note)
-        throw new SyncRejection('note_required', 'Visit note is required', 'विज़िट नोट ज़रूरी है')
-    })
+    this.registry.register(
+      'visits',
+      async (_tx, op) => {
+        if (op.op !== 'DELETE' && !op.data?.note)
+          throw new SyncRejection('note_required', 'Visit note is required', 'विज़िट नोट ज़रूरी है')
+        if (op.data?.note === REFUSED_BY_POLICY)
+          throw new Error('Failed query: insert into "visits" ...', {
+            cause: Object.assign(
+              new Error('new row violates row-level security policy for table "visits"'),
+              { code: '42501' },
+            ),
+          })
+      },
+      { standsFor: ['retailers.visits.record'] },
+    )
     // The pull side: the tenant's beats since the cursor, through the generic table reader. A rep is
     // deliberately denied one column here (`area`) so the specs can prove that a column a role does
     // not RECEIVE is also a column its manifest never PUBLISHES — the phone has nowhere to put it.
@@ -317,5 +334,49 @@ describeDb('sync upload (ADR 0007)', () => {
     // ...and it is a read like any other: anonymous is 401, never the 404 an unimplemented
     // contract procedure answers (that is exactly how this gap was found).
     expect((await call(app, null, 'GET', '/sync/manifest')).status).toBe(401)
+  })
+
+  it('DOS-166: answers a row policy refusal (42501) inside a handler as a not_permitted rejection, never a 500', async () => {
+    // A policy that refuses THIS actor refuses this device's op; retrying it can never succeed. As a 5xx it
+    // rolled the whole batch back, wrote no sync_ops row and wedged the queue behind it (the warehouse probe,
+    // QA/evidence/batch2/sync-role-probe 03). It must be a durable 2xx rejection like any business refusal.
+    const opId = `op-42501-${run}`
+    const batch = {
+      protocol: 1,
+      deviceId,
+      ops: [{ opId, op: 'PUT', table: 'visits', id: uuidv7(), data: { note: REFUSED_BY_POLICY } }],
+    }
+    type Upload = {
+      accepted: number
+      replayed: number
+      rejected: { opId: string; code: string; messageEn: string }[]
+    }
+    const res = await call<Upload>(app, rep, 'POST', '/sync/upload', batch)
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(0)
+    expect(res.body.rejected.map((r) => [r.opId, r.code])).toEqual([[opId, 'not_permitted']])
+
+    const ops = (
+      await db.execute(
+        sql`select outcome from sync_ops
+             where tenant_id = ${tenantId} and device_id = ${deviceId} and op_id = ${opId}`,
+      )
+    ).rows as { outcome: { ok: boolean; rejection?: { code: string } } }[]
+    expect(ops).toHaveLength(1)
+    expect(ops[0]?.outcome.ok).toBe(false)
+    expect(ops[0]?.outcome.rejection?.code).toBe('not_permitted')
+    const tray = (
+      await db.execute(
+        sql`select user_id, code from sync_errors
+             where tenant_id = ${tenantId} and device_id = ${deviceId} and op_id = ${opId}`,
+      )
+    ).rows
+    expect(tray).toEqual([{ user_id: repId, code: 'not_permitted' }])
+
+    // Durable: the retried batch replays the stored refusal instead of running the handler again.
+    const again = await call<Upload>(app, rep, 'POST', '/sync/upload', batch)
+    expect(again.status).toBe(200)
+    expect(again.body.replayed).toBe(1)
+    expect(again.body.rejected.map((r) => r.code)).toEqual(['not_permitted'])
   })
 })
