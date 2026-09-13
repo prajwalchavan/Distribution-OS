@@ -355,6 +355,10 @@ export const strings = {
   'm20.pickedOk': 'Pick recorded',
   'm20.packedOk': 'Packed',
   'm20.shortPick': 'Short picked',
+  'm20.piecesLabel': 'Pieces picked',
+  'm20.asksFor': 'Asks for {count} pc',
+  'm20.overAsk': 'Only {count} pc asked on this row',
+  'm20.wholePieces': 'Type whole pieces, like 6 or 18',
 
   // --- M7 Load-out and challans (the manager's PIN) -------------------------------------------------
   'm7.tab': 'Load-out',
