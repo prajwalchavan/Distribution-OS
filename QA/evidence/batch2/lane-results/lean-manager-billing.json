@@ -1,0 +1,114 @@
+{
+ "group": "lean-manager-billing",
+ "items": [
+  "DOS-022",
+  "DOS-026",
+  "DOS-024",
+  "DOS-134"
+ ],
+ "build": [
+  {
+   "id": "DOS-022",
+   "status": "fixed",
+   "commits": [
+    "7865d6c"
+   ],
+   "deviations": "Notes said 'give the desk an Issue bill action' without specifying the UI mechanic; implemented it as onSelect on the queue Register row, which looks up the order's pack via warehouse.packs.list({orderId}) and reuses the existing billPack dialog/mutation (same one the 'Packed, not billed' panel already uses) rather than inventing a new dialog. Also updated the m6.queueRows meta string ('{count} confirmed orders' -> '{count} packed, no bill yet') since it became inaccurate once the queue was narrowed to packed-only; this was necessary for the fix to read correctly, not an added feature.",
+   "followUps": "None beyond the platform walk below.",
+   "platformCheck": "Web desk + phone and Android per the group note \u2014 not walked in this session (environment rules say not to start dev servers/emulators); verified via backend spec (26/26 green), manager-app typecheck clean, and eslint clean on touched files. Needs a real-browser + Pixel 7 walk of Billing desk (SO-9001-style row) before sign-off."
+  },
+  {
+   "id": "DOS-026",
+   "status": "fixed",
+   "commits": [
+    "42f6bcb"
+   ],
+   "deviations": "None from the group notes. Built self-contained in manager-app as instructed (no helper shared with DOS-008/lean-owner-desk): extracted the poll decision into a pure nextChallanPoll(url, attempt, maxAttempts, delayMs) in src/lib/load-out.ts, wired load-out.tsx's 'Print the challan' button to poll on a bounded schedule (3s x 20 attempts, ~60s) with a 'being prepared' note and an error state on give-up or a rejected call, reusing the billing desk's existing state.error string.",
+   "followUps": "None.",
+   "platformCheck": "Web desk + phone and Android \u2014 not walked in this session (no dev servers started). Verified via unit test (6/6 green), manager-app typecheck clean, eslint clean. Needs a real walk of Fulfilment -> Load-out -> a sheet whose challan was never rendered, to see the queued note and the eventual auto-open."
+  },
+  {
+   "id": "DOS-024",
+   "status": "fixed",
+   "commits": [
+    "917a505"
+   ],
+   "deviations": "No app-render test harness exists in this repo for screen components (only pure src/lib/*.ts helpers are unit-tested; .tsx screens pull in react-native/expo-router and cannot be imported under Node/vitest) and this fix is a call-site parameter change with no extractable pure logic, so \u2014 per the QA brief's own allowed pattern \u2014 used a source-reading guard (same technique as review-desk.test.ts) that asserts fulfilment/index.tsx's warehouse.queue.list call carries state:'confirmed' and unpicklistedOnly:true, mirroring warehouse-app's own already-fixed pick queue exactly.",
+   "followUps": "None.",
+   "platformCheck": "Web desk + phone and Android \u2014 not walked in this session. Verified via the source-reading guard test, manager-app typecheck clean, eslint clean. Needs a real walk of Fulfilment -> Waves to confirm packed/billed orders (SO-0845/SO-0850-style) no longer appear and a 409 refusal still surfaces via the existing Refusal component."
+  },
+  {
+   "id": "DOS-134",
+   "status": "fixed",
+   "commits": [
+    "1ae9a0d"
+   ],
+   "deviations": "None from the group notes. Wired the existing QtyStepper.onOpenPieces (previously unused in this screen) to a small Sheet with one TextInput, parsed via the same parsePieces credit-notes.tsx already uses, capped at the row's own requestedQtyPcs via a new pure nextPiecesEntry helper, with an 'Asks for {count} pc' helper line and an over-ask error. Left frontend/libs/ui/src/{web,native}/money.tsx and the kit's 'Not ordered' word (qty.notOrdered) completely untouched, and did not touch credit-notes.tsx, per the group note. DOS-085 (sales-app stepper) had not merged into main by the time this group's SETUP merge ran, so no rebase/re-walk of M20 against it was needed.",
+   "followUps": "None.",
+   "platformCheck": "Web desk (1280x800) and phone (390x844) per the finding, plus Android \u2014 not walked in this session (no dev servers/emulator started per environment rules). Verified via unit test (3/3 green), manager-app typecheck clean, eslint clean. Needs a real walk of Pick & pack on a FEFO-split sheet (rows asking 6 and 18 pc) at both widths and on the Pixel 7, confirming Record pick now returns 200 with picked_qty_pcs = 6/18."
+  }
+ ],
+ "verdict": [
+  {
+   "id": "DOS-022",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-026",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "frontend/manager-app/app/fulfilment/load-out.tsx",
+     "detail": "challanToken (the guard against a late poll answer setting stale state) is only bumped in the unmount cleanup effect and at the start of a new openChallan() call; closing the sheet (onClose sets selected=null and challanNote=null) does not bump it. If the manager closes the load-sheet detail dialog while a poll is in flight and then reopens a different sheet within the ~60s window, the earlier poll's eventual answer can still fire documents.open(url) or setChallanNote('error') against the now-different sheet. Narrow window (bounded to 20 attempts / ~60s) and low impact (opens a PDF or shows a stray error note), so not a blocker/major, but it does not fully match the code's own comment that the token 'invalidates a poll in flight when the sheet is closed'."
+    }
+   ]
+  },
+  {
+   "id": "DOS-024",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-134",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "frontend/manager-app/app/fulfilment/pack.tsx",
+     "detail": "onOpenPieces always resets piecesText to '' rather than pre-filling the row's current counts[line.id], so reopening the pieces sheet to check or correct an already-entered pick (e.g. re-open after typing 6) shows a blank field instead of '6'. Cosmetic only \u2014 the underlying count is untouched \u2014 not covered by the finding's test plan, so not a blocker."
+    }
+   ]
+  }
+ ],
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "DOS-026 (42f6bcb): frontend/manager-app/app/fulfilment/load-out.tsx:214-235 auto-opens the challan from the poll timer; on web documents.open is window.open (frontend/libs/ui/src/platform/documents.web.ts:19-21), and only attempt 0 (and maybe attempt 1 at ~3 s) still carries transient user activation. The render takes ~40 s, so the open lands on attempt >= 2 and every desk browser blocks the popup silently: the manager sees 'Preparing the challan\u2026' for 40 s, the note clears, nothing opens \u2014 the finding's own symptom, delayed. Native is fine (download + share sheet, no gesture needed). Fix inside load-out.tsx plus one string: keep the ready URL in state (challanUrl); in the poll's open step call documents.open only when tries === 0, otherwise set challanUrl and a new m7.challanReady note; the button's onPress opens challanUrl synchronously (before any await) when set, else starts the poll; reset challanUrl with the note on close. nextChallanPoll and its three tests stay green either way."
+  ],
+  "conflicts": [
+   "None now: merge base = main HEAD 8c6d228, git merge-tree clean, no file changed on main since the base overlaps the twelve.",
+   "qa/b2-lean-sales-entry (DOS-085 stepper, the only other unmerged lean branch) touches no file of this group and leaves types.ts / onOpenPieces unchanged, so either merge order is clean; if it lands first, re-walk M20 on the merged tree ('\u2212' at zero cases now asks before wiping loose pieces).",
+   "Downstream groups that own the same files by plan \u2014 lean-manager-money (strings.ts), lean-orders-panels (billing/index.tsx, strings.ts), lean-manager-order-lifecycle (invoices.service.ts, billing.spec.ts, billing/index.tsx, strings.ts) \u2014 must start from main after this merges; the DOS-022 spec block sits mid-file so an appended spec will not collide."
+  ],
+  "unfiledDefects": [
+   "frontend/libs/ui/src/platform/types.ts (PlatformDocuments.open): no JSDoc says the web implementation must be called inside the tap; the rule lives only in documents.web.ts:11 and was missed by DOS-026 \u2014 one sentence on the signature.",
+   "frontend/manager-app/app/billing/index.tsx:181: parked-pack double count in 'left to bill' (queue and packs panel both hold a packed order whose pack was parked), pre-existing.",
+   "docs/23-app-screens-and-api-gaps.md:229: stale 'NO HTTP path' note for a parked pack, pre-existing."
+  ]
+ },
+ "final": "merged",
+ "mainHead": "663c6f3",
+ "pushed": true,
+ "run": "wf_5c958b90-522",
+ "setup": "Sonnet 5 builder/verifier/integrator, Fable merge review (founder-approved lean setup)"
+}
