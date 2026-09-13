@@ -295,9 +295,70 @@ describe('native sheet fits the screen', () => {
 
   it('scrolls its own body rather than overflowing', () => {
     expect(native).toContain('<ScrollView')
-    expect(native).toContain(
-      "import { Image, Modal, Pressable, ScrollView, View } from 'react-native'",
+    const imported = /import\s*\{([^}]*)\}\s*from\s*'react-native'/.exec(native)
+    expect(imported, "native/feedback.tsx has no 'react-native' import").not.toBeNull()
+    const names = (imported?.[1] ?? '')
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .sort()
+    expect(names).toEqual(
+      ['Image', 'KeyboardAvoidingView', 'Modal', 'Pressable', 'ScrollView', 'View'].sort(),
     )
+  })
+})
+
+/**
+ * DOS-152: the W5 Short sheet's Short button and the pad's last row sat below the sheet's own
+ * ScrollView, behind a Close pinned after it — measured on the Pixel 7: `Short` laid out at y 2293
+ * against a 2075 viewport, and a tap where it was drawn hit Close instead and discarded the entry.
+ * Close is now the LAST row of the scrollable content, not a footer sibling the ScrollView's own
+ * height calculation knows nothing about, so scrolling to the end of the content always reaches it
+ * and it never overlaps anything laid out above it.
+ */
+describe('DOS-152: sheet Close lives inside the scrollable content, never behind it', () => {
+  const source = readFileSync(join(here, 'native', 'feedback.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`function ${name}(`)
+    expect(start, `${name} is not declared in native/feedback.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nfunction ', start + 1)
+    const nextExport = source.indexOf('\nexport function ', start + 1)
+    const candidates = [next, nextExport].filter((n) => n !== -1)
+    const end = candidates.length > 0 ? Math.min(...candidates) : source.length
+    return source.slice(start, end)
+  }
+
+  it('renders Close before the ScrollView closes, not as a footer sibling after it', () => {
+    const body = bodyOf('SheetPanel')
+    const scrollClose = body.indexOf('</ScrollView>')
+    const closeButton = body.indexOf("theme.t('action.close')")
+    expect(scrollClose, 'SheetPanel has no </ScrollView>').toBeGreaterThan(-1)
+    expect(closeButton, 'SheetPanel has no Close button').toBeGreaterThan(-1)
+    expect(closeButton).toBeLessThan(scrollClose)
+  })
+})
+
+/**
+ * DOS-159: the Sheet's Modal never avoided the soft keyboard, so a bottom sheet stayed anchored
+ * under it — measured on the Pixel 7/Gboard: the credit-note Sheet's matching-bill suggestion was
+ * laid out at y 1622-1811 while the keyboard covered the lower half of the screen, and a tap there
+ * opened Gboard's Clipboard panel instead of picking the bill.
+ */
+describe('DOS-159: native sheet avoids the soft keyboard', () => {
+  const source = readFileSync(join(here, 'native', 'feedback.tsx'), 'utf8')
+
+  it('imports KeyboardAvoidingView from react-native', () => {
+    expect(source).toContain('KeyboardAvoidingView')
+  })
+
+  it('wraps the sheet panel in a KeyboardAvoidingView, padding on both platforms', () => {
+    const start = source.indexOf('function SheetPanel(')
+    expect(start, 'SheetPanel is not declared in native/feedback.tsx').toBeGreaterThan(-1)
+    const end = source.indexOf('\nfunction DialogPanel', start)
+    const body = source.slice(start, end === -1 ? undefined : end)
+    expect(body).toContain('<KeyboardAvoidingView')
+    expect(body).toContain('behavior="padding"')
   })
 })
 
@@ -368,5 +429,59 @@ describe('<NumberPad> money mode goes through the shared rupee-first pad helpers
         'formatMoney(value ?? 0)',
       )
     }
+  })
+})
+
+/**
+ * DOS-157: a Register's chip column (a `<StatusChip>` node, e.g. the Load-out waiting panel's
+ * "Waiting for your approval" / "Approved") is handed to `<ListRow secondary>`, which unconditionally
+ * wrapped it in `<Txt numberOfLines={1}>`. A View nested inside a native `Text` renders as a single
+ * inline "attachment" glyph, and `numberOfLines={1}` then has exactly one glyph to keep — measured on
+ * the Pixel 7: uiautomator read the row's content-desc as "13 Sep, ￼, 1375 rupees", the chip
+ * collapsed to a lone "…". A non-string `secondary` (a chip, or any other node) is now rendered
+ * directly, never nested inside that `Txt`.
+ */
+describe('DOS-157: native ListRow never puts a ReactNode secondary inside a numberOfLines Txt', () => {
+  const source = readFileSync(join(here, 'native', 'list.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`export function ${name}(`)
+    expect(start, `${name} is not exported from native/list.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('branches on whether secondary is a string before wrapping it in a numberOfLines Txt', () => {
+    const body = bodyOf('ListRow')
+    expect(body).toContain("typeof secondary === 'string'")
+  })
+})
+
+/**
+ * DOS-158: a dialog's confirm Button set `accessibilityState={{ disabled: off, busy: loading }}`
+ * with no `accessibilityLabel`, so a screen reader named the control from its own state rather than
+ * its own label. Once a write settled (`loading` back to `false`), Fabric on Android kept announcing
+ * "busy" instead of the button's real label — measured on the Pixel 7 after a refused write ('Make a
+ * picking sheet' stayed 'busy' with no spinner shown). `busy` is now present only while `loading` is
+ * true, and the label is explicit, so a screen reader always has the real name to fall back to.
+ */
+describe('DOS-158: native Button clears its accessibility "busy" state once loading settles', () => {
+  const source = readFileSync(join(here, 'native', 'controls.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`export function ${name}(`)
+    expect(start, `${name} is not exported from native/controls.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('carries an explicit accessibilityLabel', () => {
+    const body = bodyOf('Button')
+    expect(body).toContain('accessibilityLabel={successLabel ?? label}')
+  })
+
+  it('never sets accessibilityState.busy unconditionally: Fabric only clears "busy" once the key is absent', () => {
+    const body = bodyOf('Button')
+    expect(body).not.toContain('accessibilityState={{ disabled: off, busy: loading }}')
   })
 })

@@ -43,6 +43,11 @@ export const strings = {
   'app.revoke': 'Sign out device',
   'app.reload': 'Reload',
   'app.retry': 'Try again',
+  /*
+   * A refused write whose request never reached the service (DOS-029, DOS-108). The client's default promises
+   * to send it "when the signal is back", which only a queued field write does; nothing queues an owner write.
+   */
+  'app.writeNoConnection': 'No connection. Check the signal, then press again.',
   'app.export': 'Export CSV',
   'app.exportQueued': 'Export queued',
   'app.exportReady': 'Download export',
@@ -625,6 +630,19 @@ export const strings = {
   'o24.supportWindow': 'Support window',
   'o24.approveSupport': 'Approve access',
   'o24.revokeSupport': 'Revoke access',
+  'o24.refuseSupport': 'Refuse access',
+  'o24.approveFor': 'Approve for {count} h',
+  'o24.hoursCount': '{count} h',
+  'o24.hoursAsked': 'Hours asked',
+  'o24.reason': 'Why they are asking',
+  'o24.countedFromAsk': 'Counted from when they asked',
+  'o24.openUntil': 'Open until',
+  'o24.closes': 'Closes',
+  'o24.noneWaiting': 'Nobody from Distribution OS is waiting on you',
+  'o24.confirmApprove':
+    '{who} gets {scope} access to this distributorship until {until}. It closes on its own.',
+  'o24.confirmRefuse': "{who}'s request is refused. Nothing opens.",
+  'o24.confirmRevoke': 'The window closes now. {who} is stopped at the next request.',
   'o24.subscription': 'Subscription',
   'o24.saveSetting': 'Save setting',
 

@@ -284,3 +284,8 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
   - Phones are walked where a fix changes a phone screen.
   - Estimate for all remaining work: about $900–1,400 at API list prices.
 - **P2/P3 building started** with the groups that do not touch DOS-167's files: lean-sales-entry, lean-kit-overlays and lean-manager-billing, two at a time.
+
+**h10-console and h13-owner-support merged** (run `wf_0449696e-a32`): DOS-109 and DOS-107 as `ff1393e`, DOS-108 as `a19edf3`. Both merges were clean.
+- **h10:** prettier fixed in platform-admin.spec.ts, and the admin-service and admin-app READMEs regenerated.
+- **h13:** the frontend lockfile auto-merged; `pnpm install --frozen-lockfile` passes.
+- **Result:** all 25 batch-2 P1 findings are on main. Still owed: the platform walks, the owner Support access walk on the DOS-164 overlay host, and three "may follow" minors in the admin console (auditChange has no 'user.enabled' case, the unlock dialog keeps its old error, and a spec comment still counts fifteen).
