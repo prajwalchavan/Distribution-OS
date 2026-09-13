@@ -465,3 +465,32 @@ describe('DOS-157: native ListRow never puts a ReactNode secondary inside a numb
     expect(body).toContain("typeof secondary === 'string'")
   })
 })
+
+/**
+ * DOS-158: a dialog's confirm Button set `accessibilityState={{ disabled: off, busy: loading }}`
+ * with no `accessibilityLabel`, so a screen reader named the control from its own state rather than
+ * its own label. Once a write settled (`loading` back to `false`), Fabric on Android kept announcing
+ * "busy" instead of the button's real label — measured on the Pixel 7 after a refused write ('Make a
+ * picking sheet' stayed 'busy' with no spinner shown). `busy` is now present only while `loading` is
+ * true, and the label is explicit, so a screen reader always has the real name to fall back to.
+ */
+describe('DOS-158: native Button clears its accessibility "busy" state once loading settles', () => {
+  const source = readFileSync(join(here, 'native', 'controls.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`export function ${name}(`)
+    expect(start, `${name} is not exported from native/controls.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('carries an explicit accessibilityLabel', () => {
+    const body = bodyOf('Button')
+    expect(body).toContain('accessibilityLabel={successLabel ?? label}')
+  })
+
+  it('never sets accessibilityState.busy unconditionally: Fabric only clears "busy" once the key is absent', () => {
+    const body = bodyOf('Button')
+    expect(body).not.toContain('accessibilityState={{ disabled: off, busy: loading }}')
+  })
+})

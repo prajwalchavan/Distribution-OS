@@ -78,7 +78,18 @@ export function Button({
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityState={{ disabled: off, busy: loading }}
+        /*
+         * An EXPLICIT label, and "busy" only WHILE it is true (DOS-158).
+         *
+         * With no `accessibilityLabel`, a screen reader names the control from its rendered Text
+         * child plus its `accessibilityState`; once a write settled, Fabric on Android kept
+         * announcing "busy" instead of the label — measured on the Pixel 7 after a refused write:
+         * uiautomator's content-desc stayed "busy" with no spinner shown. Fabric only clears a state
+         * key once it is ABSENT from the object, not once it is `false`, so `busy` is present only
+         * while `loading` is true.
+         */
+        accessibilityLabel={successLabel ?? label}
+        accessibilityState={loading ? { disabled: off, busy: true } : { disabled: off }}
         disabled={off}
         onPress={onPress}
         style={({ pressed }) => [
