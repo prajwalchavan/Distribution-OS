@@ -175,3 +175,11 @@ P1. Approved in the same answer, the architect defaults of the batch-2 sign-offs
 - an emptied trip-start cash field means a ₹0 float (DOS-146)
 - a warehouse-app load sheet is always for one trip (DOS-131+137)
 All are recorded in docs/22 §8.
+
+Approved next (founder, 2026-09-13: "Approved"), the sign-off-2 defaults:
+- Order again repeats the shop's last placed order, never a draft (DOS-098)
+- the accountant views M3, M4 and M16 and changes nothing there, and still captures supplier bills (DOS-037)
+- only the owner and the manager add stock or record opening stock; arrivals come through a GRN (DOS-044)
+- the accountant is not a stock adder (DOS-044)
+- no large-reduction confirm until after DOS-164 (DOS-044)
+These are also recorded in docs/22 §8. Usage limit: the session limit stopped five agents at 10:43 IST; they were relaunched at 12:25 after the reset.
