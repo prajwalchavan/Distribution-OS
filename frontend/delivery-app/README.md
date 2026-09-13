@@ -197,7 +197,7 @@ Full request/response samples for each are in `backend-services/delivery-service
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
-| POST | `/delivery/trips/{id}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
+| POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/delivery/trips/{id}/next-stop` | The next open stop of a trip with the shop to visit | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/stops` | Add a stop to a trip (a late bill, or the shop a van sale goes to) | owner, manager, warehouse, delivery |
