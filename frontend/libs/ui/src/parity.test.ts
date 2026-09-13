@@ -440,3 +440,28 @@ describe('<NumberPad> money mode goes through the shared rupee-first pad helpers
     }
   })
 })
+
+/**
+ * DOS-157: a Register's chip column (a `<StatusChip>` node, e.g. the Load-out waiting panel's
+ * "Waiting for your approval" / "Approved") is handed to `<ListRow secondary>`, which unconditionally
+ * wrapped it in `<Txt numberOfLines={1}>`. A View nested inside a native `Text` renders as a single
+ * inline "attachment" glyph, and `numberOfLines={1}` then has exactly one glyph to keep — measured on
+ * the Pixel 7: uiautomator read the row's content-desc as "13 Sep, ￼, 1375 rupees", the chip
+ * collapsed to a lone "…". A non-string `secondary` (a chip, or any other node) is now rendered
+ * directly, never nested inside that `Txt`.
+ */
+describe('DOS-157: native ListRow never puts a ReactNode secondary inside a numberOfLines Txt', () => {
+  const source = readFileSync(join(here, 'native', 'list.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`export function ${name}(`)
+    expect(start, `${name} is not exported from native/list.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nexport ', start + 1)
+    return source.slice(start, next === -1 ? undefined : next)
+  }
+
+  it('branches on whether secondary is a string before wrapping it in a numberOfLines Txt', () => {
+    const body = bodyOf('ListRow')
+    expect(body).toContain("typeof secondary === 'string'")
+  })
+})

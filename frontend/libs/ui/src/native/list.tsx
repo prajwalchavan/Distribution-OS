@@ -167,10 +167,24 @@ export function ListRow({
         <Txt field="bodyStrong" desk="body" numberOfLines={2}>
           {primary}
         </Txt>
+        {/*
+         * A REGISTER'S CHIP COLUMN IS A NODE, NEVER TEXT (DOS-157).
+         *
+         * `secondary` is usually a plain string (UX-00 §6.6: "one line, never a figure"), but a
+         * Register's chip-priority column hands over a `<StatusChip>` — a `<View>`. React Native
+         * renders a nested View inside `<Text>` as one inline "attachment" glyph, and with
+         * `numberOfLines={1}` that glyph is the one thing kept — measured on the Pixel 7's Load-out
+         * waiting panel: uiautomator read "13 Sep, ￼, 1375 rupees", the chip itself collapsed to a
+         * lone "…". A non-string secondary is rendered as-is, never nested inside this Txt.
+         */}
         {secondary ? (
-          <Txt field="label" desk="meta" color={theme.colors.text.secondary} numberOfLines={1}>
-            {secondary}
-          </Txt>
+          typeof secondary === 'string' || typeof secondary === 'number' ? (
+            <Txt field="label" desk="meta" color={theme.colors.text.secondary} numberOfLines={1}>
+              {secondary}
+            </Txt>
+          ) : (
+            secondary
+          )
         ) : null}
         {state === 'needsAttention' && reason ? (
           <Txt field="label" desk="meta" color={theme.colors.status.brick.fg}>
