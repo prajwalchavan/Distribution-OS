@@ -1,0 +1,201 @@
+{
+ "id": "DOS-131+DOS-137",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-131+DOS-137",
+   "status": "fixed",
+   "commits": [
+    "f92c47c"
+   ],
+   "failBefore": "All new tests were run before the fix and failed for the finding's reasons.\n- contracts permissions.test.ts: \"AssertionError: expected undefined to deeply equal [ 'owner', 'manager', 'warehouse' ]\" (no board permission row). Also \"delivery.trips.planning must allow warehouse: expected false to be true\".\n- core delivery.spec.ts (whole file ran; the 25 existing tests passed, only the 3 new ones failed):\n  - #1: \"AssertionError: expected 404 to be 200\" at GET /delivery/trip-planning (no planning board).\n  - #2: \"AssertionError: expected 200 to be 409\". The packer re-planned a bill already riding on tripP, because its RLS hides the planned row.\n  - #3 (race): \"expected [ 200, 200 ] to deeply equal [ 200, 409 ]\" (no lock). This red depends on timing.\n- manager-app lib: \"Error: Cannot find module './trip-plan' imported from .../manager-app/src/lib/trip-plan.test.ts\".\n- warehouse-app lib: failed at the './trip-plan' import (module absent, \"no tests\").\nCaveat: I launched the core red run as `pnpm --filter @dos/core test -- <file> -t ...`. That form ignored both the file and the -t filter and ran all 36 core spec files: 35 passed, and delivery.spec.ts had 3 failures out of 28. Every later run used `exec vitest run <file>`.",
+   "passAfter": "All run after the fix.\n- backend/libs/contracts/src/permissions.test.ts: 45/45 (single file).\n- backend/libs/core/src/modules/delivery/delivery.spec.ts: 28/28, whole file against dos_test_b2_h2 (the 3 DOS-131 tests plus the 25 existing ones).\n- backend/libs/core/src/docs/examples.spec.ts: 31/31.\n- After rebuilding @dos/core dist:\n  - @dos/warehouse-service spec: 254/254.\n  - @dos/manager-service spec: 345/345 (describePermissionMatrix includes the new GET).\n- manager-app vitest: 4/4 across 2 files (trip-plan plus the existing DOS-025 load-out tests). warehouse-app vitest: 2/2. Both re-run after prettier.\n- turbo typecheck and lint for @dos/core and @dos/contracts: 7/7 tasks successful (only the boundaries plugin's existing deprecation warnings).\n- manager-app and warehouse-app: `tsc --noEmit` and `eslint .` clean.\n- pnpm format run in both workspaces.\n- git status clean after commit f92c47c.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-131: the planning board names the crew and who is on a trip that day, and lists only packed bills not yet on an open trip, for the godown and the desk, never the crew, the accountant, a rep or a shop"
+    },
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-131: the godown plans a trip and adds a late bill, and a bill already riding on an open trip, or carried twice in one plan, is refused 409 for the godown as for the desk"
+    },
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-131: two planners adding the same bill to two trips at the same instant take turns on the bill: one stop lands, the other is refused 409"
+    },
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-131: the trip planning board is the desk's and the godown's, never the crew's, the accountant's, a rep's or a shop's (delivery)"
+    },
+    {
+     "file": "frontend/manager-app/src/lib/trip-plan.test.ts",
+     "name": "DOS-131: chosen bills become one stop per shop in the order they were chosen, a plan without a vehicle, a driver or a bill, or with the driver as helper, names what is missing, and a confirmed plan keeps its trip and stop ids on a retry"
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/trip-plan.test.ts",
+     "name": "DOS-137: a load sheet built on W7 carries the trip it is built for, loads that trip's vehicle location, and refuses a packed order whose shop is not on that trip"
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/trip-plan.test.ts",
+     "name": "DOS-131: the godown's plan groups chosen bills into one stop per shop in tap order and refuses a plan with no driver or no bill"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "lets the crew work the door and the godown only plan the trip (delivery)",
+     "before": "warehouseMay listed 8 delivery paths (vehicles.list, trips.create, trips.list, trips.get, trips.startLoading, stops.list, stops.next, stops.add); every other delivery.* path must refuse warehouse",
+     "after": "warehouseMay also lists 'delivery.trips.planning' (9 paths); the refuse loop over all other delivery.* paths is unchanged",
+     "why": "The plan (permissions.test.ts entry) requires it. The new board row is STOCK_KEEPERS, which includes warehouse, so without the entry the refuse loop would demand that the godown be refused its own planning board. No assertion was weakened."
+    }
+   ],
+   "filesChanged": [
+    "backend/libs/contracts/src/delivery.ts",
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/contracts/src/warehouse.ts",
+    "backend/libs/core/src/docs/examples.ts",
+    "backend/libs/core/src/modules/billing/index.ts",
+    "backend/libs/core/src/modules/billing/invoices.service.ts",
+    "backend/libs/core/src/modules/delivery/delivery.controller.ts",
+    "backend/libs/core/src/modules/delivery/delivery.internals.ts",
+    "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "backend/libs/core/src/modules/delivery/trips.service.ts",
+    "backend/libs/core/src/modules/tenancy/index.ts",
+    "backend/libs/core/src/modules/tenancy/user-labels.ts",
+    "frontend/manager-app/app/fulfilment/trips.tsx",
+    "frontend/manager-app/src/lib/trip-plan.ts",
+    "frontend/manager-app/src/lib/trip-plan.test.ts",
+    "frontend/manager-app/src/nav.ts",
+    "frontend/manager-app/src/strings.ts",
+    "frontend/warehouse-app/app/load/index.tsx",
+    "frontend/warehouse-app/app/load/trips.tsx",
+    "frontend/warehouse-app/package.json",
+    "frontend/warehouse-app/src/lib/trip-plan.ts",
+    "frontend/warehouse-app/src/lib/trip-plan.test.ts",
+    "frontend/warehouse-app/src/strings.ts",
+    "frontend/pnpm-lock.yaml"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Disabled rows explain themselves in secondary, not reason (W7 sentence as replaced by the h2 ruling)",
+     "done": true,
+     "how": "W10 and M7: a crew member already on a trip that day is a ListRow with state 'disabled' and secondary 'On {trip}', in both the driver and the helper list (crewRow in trips.tsx of each app). W7: a packed row whose shop is not on the chosen trip is state 'disabled', and its secondary is `${t('w7.notOnTrip', { trip })} · ` PREPENDED to DOS-133's single template (order no · Cartons n · Packed …), so the sentence survives truncation. Enabled rows keep DOS-133's secondary unchanged. No `reason` is used for these rows. The e2e assertion is not written (QA/ is off-limits)."
+    },
+    {
+     "amendment": "(b) Close the concurrent double plan with an advisory lock in insertStop",
+     "done": true,
+     "how": "insertStop loops over the stop's invoice ids (deduped, then sorted) and runs `select pg_advisory_xact_lock(hashtextextended(tenantId::text || ':' || invoiceId::text, 0))` for each, before the loop that calls plannedOnOpenTrips. The planning board never locks. The insertStop JSDoc and an inline comment were updated. The plan's 'recorded, not fixed' risk no longer applies. A third DOS-131 spec proves it: two concurrent packer stops.add calls of one bill onto two planned trips give [200, 409], and exactly one outcome-null row sits on an open trip."
+    },
+    {
+     "amendment": "(c) W7's guard is bill-level where the board can tell (first sentence replaced by the h2 ruling)",
+     "done": true,
+     "how": "Once a trip is chosen, W7 reads `delivery.trips.planning({ limit: 200 })` (gated by useCan). `packOnTrip(pack: Pick<PackListItem,'retailerId'|'invoiceId'>, trip, unplannedInvoiceIds)` returns true only when the shop is a stop of the trip AND pack.invoiceId is not in the board's page. It runs over DOS-133's awaiting_load rows (`packed.data?.items`) and only disables rows; list membership and order stay DOS-133's, and packs.list gets no new parameter. Beyond the page, or for a pack with no bill, it falls back to the shop check. The lib test includes the second-packed-bill-of-an-on-trip-shop case (false)."
+    },
+    {
+     "amendment": "(d) Fix the false contract JSDoc at warehouse.ts:348 and :170",
+     "done": true,
+     "how": "LoadSheetSummarySchema.tripId (was 'Plain label; delivery attaches the real trip. Null until it does.') now says the tripId is stored as the caller named it at create (W7 always names one, DOS-137), and is never validated or attached later because warehouse is upstream of delivery. PicklistSummarySchema.tripId (the verdict's :170 in pre-DOS-133 numbering) now says the same: stored as the caller named it, never validated or attached. Doc only; READMEs are not regenerated here."
+    },
+    {
+     "amendment": "(e) Spec #2 proves re-plan after cancel",
+     "done": true,
+     "how": "In the second DOS-131 test, the manager cancels tripP.\n- The packer's GET /delivery/trip-planning lists p1 and p2 again, and otherDriver's onTripId is null.\n- A fresh packer create carrying p1 answers 200. The outcome-null row count for p1 is then 2: the cancelled trip's row, which blocks nothing, plus the new one.\n- That trip is then cancelled as cleanup."
+    },
+    {
+     "amendment": "(f) Header and docs in the same slice",
+     "done": true,
+     "how": "Builder's part done: the W10 header (frontend/warehouse-app/app/load/trips.tsx) is rewritten on top of DOS-043's. It says the godown plans the round from the planning board, adds late bills, starts loading and builds the sheet for the trip on W7, and that the crew departs. The docs/22 §8 architect row, the §4 node between W5 and W6, §11, the render and the republish belong to the main session per the lane instructions and are listed in followUps."
+    },
+    {
+     "amendment": "h2 order ruling: build W7 on the DOS-133 file ('Risks for the builder' line 1)",
+     "done": true,
+     "how": "W7 is built on commit 16f1f4e's index.tsx and strings.ts. It keeps DOS-133's `packed` query (['packs','awaitingLoad',packedLimit], status awaiting_load), the panel meta, 'Show older packs', the packedAt text and the per-pack row key/testID/onPress. It replaces only the vehicle panel (now a trip panel), the create body (loadSheetInput plus meta.id; the newId import is dropped) and the header, and adds the 'disabled' state. The W7 trips key is ['trips','loadable'], separate from W10's ['trips','open']."
+    }
+   ],
+   "deviations": "1. Not created: QA/tools/e2e/dos-131-plan-trip.mjs. The plan lists it, but the lane forbids any edit under QA/.\n2. Not regenerated: backend/*-service and app READMEs (the lane forbids `pnpm docs:readme`). `docs:readme:check` will fail until the main session regenerates them.\n3. A third spec `it` was added for amendment (b): a concurrent stops.add race. The verdict only asked for an optional two-psql probe.\n4. Both libs gained pure helpers beyond the plan's list:\n   - tripCreateBody and addStopBody (retry-identical bodies from one snapshot).\n   - toggleChosen, toggleWithinShop (an added stop is one shop) and mergeBills (keep earlier board pages after 'More').\n   - Contracts also export the types PlanningBill and PlanningCrew.\n5. Strings added beyond the plan's list:\n   - W10: w10.planConfirm ('Plan the trip') and w10.addBillBody.\n   - M7: m7t.trip, m7t.stops and m7t.addBillBody.\n   - W10 reuses w7.vehicle for its vehicle label. The close buttons use the kit's action.close (W10) and app.close (M7).\n6. W7 before a trip is chosen: packed rows stay selectable, and Build is disabled with 'Choose the trip this load is for'. Once the trip's detail loads, off-trip rows are disabled, and a chosen order not on the trip is left out of the build and the count (filtered at render, not deleted from state). `packOnTrip(pack, null)` still returns false, as the lib test pins.\n7. M7 asks for the planning board only when useCan allows it AND a plan or add panel is open. W10 asks whenever useCan allows, because its crew names the driver in each trip row.\n8. Confirm placement and refusals:\n   - M7's 'Plan the trip' and 'Add a bill' buttons sit at the foot of their inline panels (desk layout); W10 uses the Screen bottomBar.\n   - M7 keeps its dialog open on a refusal (<Refusal scope=snapshot id>, `.then(close, stayOpen)`).\n   - W10 closes the dialog and prints error.message under the form, keeping the form and its snapshot, as the plan's W10 pattern says.\n9. Changing the date on W10 or M7 clears the chosen driver and helper, since who is busy depends on the day.\n10. The planning busy query adds a literal tenant fence and orders trips by id; if a member is on two trips, the first is named.\n11. The red core run executed the whole core suite, as noted in failBefore.\n12. Backend `pnpm format` also rewrote backend/libs/core/src/modules/pricing/pricing.spec.ts, which is unformatted at HEAD and not this lane's. I restored that one file with `git checkout --` in this worktree so the commit carries only this fix.",
+   "followUps": "- Main session, after merging: run `pnpm docs:readme` for GET /delivery/trip-planning (x-roles owner, manager, warehouse) on the merged tree, then `docs:readme:check`.\n- docs/22 (amendment f): §8 architect row \"the godown and the desk plan trips from a planning board; a load sheet is built for a trip, from the bills on it\". §4 order-to-cash node between W5 and W6 (\"Trip planned: W10 godown / M7 desk, bills from the planning board\") and W6 reading \"Load sheet built for the trip\". §11 change log, `python3 docs/tools/render-source-of-truth.py`, republish.\n- docs/23: mark M7 (new Trips tab, trips.create / stops.add) and W10 (create, add a bill) built. QA/13 change-log entry.\n- A lane allowed under QA/ should write QA/tools/e2e/dos-131-plan-trip.mjs per the plan and verdict:\n  - The lost reply: page.route fetch-then-abort on POST /delivery/trips, confirm again, one trips row and no 'idempotencyKey was already used' 409.\n  - The W7 not-on-trip row and the second-bill row, with the sentence visible in secondary, and enabled rows still reading 'Packed …'.\n  - The accountant's M7 view.\n- Verifier walks not run here (the lane forbids dev servers and emulators):\n  - Web at 1280×800 and 390×844, Android Pixel_7_API_36, iOS via ios-login.mjs (dialog over no Sheet).\n  - `pnpm smoke --service warehouse`.\n  - Native `ListRow` rendering of `secondary` on disabled rows; only web list.tsx was read.\n- Advisory-lock edge, not verified: locks are sorted within one stop but not across a create's stops. A create carrying two bills on different stops, racing a stops.add of the same two bills, could deadlock (Postgres aborts one with 40P01, likely a 500; a retry then gets 409). I did not check whether nextDocumentNumber already serialises two creates.\n- Out of scope, seen in passing:\n  - backend/libs/database/src/schema/warehouse.ts:205 still says 'delivery attaches the trip afterwards' (a false comment; schema file not touched).\n  - backend/libs/core/src/modules/pricing/pricing.spec.ts is not prettier-formatted at HEAD, so `pnpm format:check` fails there.\n  - The verdict's new findings stand: create's busy check ignores a helper already on a trip (trips.service create); assertMember selects tenancy's memberships from delivery; the W7 sheet-row `reason: t('w7.challan')` on a default row never renders.\n- If h7 (DOS-166) merges first: this commit adds no migration, so it needs no renumbering.",
+   "platformCheck": "API: verified by DB-backed core specs (delivery.spec.ts 28/28) and the warehouse-service (254) and manager-service (345) specs, whose describePermissionMatrix covers GET /delivery/trip-planning for every role.\n\nWeb, Android and iOS: not exercised on a device, browser, emulator or simulator; the lane forbids starting them. Checks that did run:\n- warehouse-app and manager-app pass `tsc --noEmit` and eslint, including the rule that screens import only @dos/ui, @dos/api-client, types from @dos/contracts and src/lib.\n- Both apps' pure lib tests pass under vitest.\n- The new screens use only kit components (ListRow, Group, Segments, RupeeInput, Dialog, Register, Button, Txt), with inline Panels and page-level Dialogs and no Sheet (DOS-164).\n- Disabled rows carry their sentence in `secondary`, which the web ListRow renders for every state (web/list.tsx read); native/list.tsx was not read."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-131+DOS-137",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Disabled rows explain themselves in secondary, not reason (W7 sentence as replaced by the h2 ruling: prepend to DOS-133's secondary)",
+     "satisfied": true,
+     "detail": "M7 (manager-app/app/fulfilment/trips.tsx crewRow) and W10 (warehouse-app/app/load/trips.tsx crewRow): a busy member is state 'disabled' with secondary t('m7t.onTrip'/'w10.onTrip', {trip}), in both the driver and the helper list. W7 (load/index.tsx:284-289): off-trip rows are 'disabled' with secondary `${t('w7.notOnTrip',{trip})} · ${line}`. Enabled rows keep `line` (order no · packages · 'Packed {when}'). No `reason` is used on these rows. Both renderers print secondary in every state: web/list.tsx:180, and native/list.tsx:170 with numberOfLines=1. Both print `reason` only for needsAttention."
+    },
+    {
+     "amendment": "(b) Advisory lock per bill in insertStop before plannedOnOpenTrips; board never locks",
+     "satisfied": true,
+     "detail": "trips.service.ts insertStop loops over [...new Set(stop.invoiceIds)].sort() and runs `select pg_advisory_xact_lock(hashtextextended(tenant::text||':'||invoice::text,0))` before the guard loop that calls plannedOnOpenTrips. planning() takes no lock. PROBE (executed): I replaced only the lock call with a lock-free `select (hashtextextended(...))`. Spec #3 then failed 'expected [200,200] to deeply equal [200,409]' while #1 and #2 passed. After restoring the file, 28/28 pass. So the lock, not the RLS fix alone, closes the race."
+    },
+    {
+     "amendment": "(c) W7 guard is bill-level where the board can tell (first sentence replaced by the h2 ruling: packOnTrip only narrows DOS-133's awaiting_load rows, packs.list gets no trip parameter)",
+     "satisfied": true,
+     "detail": "W7 reads delivery.trips.planning({limit:200}), enabled only when signedIn && tripId !== null && can('delivery.trips.planning'). The signature is packOnTrip(pack: Pick<PackListItem,'retailerId'|'invoiceId'>, trip, unplannedInvoiceIds). It returns false with no trip, false when the shop is not a stop, and otherwise invoiceId===null || !unplanned.has(invoiceId). It runs over packed.data?.items; the packs.list call still passes only {status:'awaiting_load', limit}; rows are only disabled, never filtered or reordered. The warehouse lib test covers the second packed bill of an on-trip shop (false) and a pack with no bill (true)."
+    },
+    {
+     "amendment": "(d) Fix the false tripId JSDoc at warehouse.ts:348 and :170",
+     "satisfied": true,
+     "detail": "contracts/warehouse.ts PicklistSummarySchema.tripId and LoadSheetSummarySchema.tripId are rewritten: stored as the caller named it at create, never validated or attached later, warehouse upstream of delivery (W7 always names one, DOS-137). Doc only; no shape change."
+    },
+    {
+     "amendment": "(e) Spec #2 proves re-plan after cancel",
+     "satisfied": true,
+     "detail": "In delivery.spec.ts DOS-131 #2 the manager cancels tripP (200, state cancelled). The packer's GET /delivery/trip-planning then contains p1 and p2 again, and otherDriver's onTripId is null. A fresh packer create with p1 answers 200, outcomeNullRows(p1) is 2, and the new trip is then cancelled. Passed in the green run."
+    },
+    {
+     "amendment": "(f) Header and docs in the same slice (docs/22 part is the main session's per lane/ruling)",
+     "satisfied": true,
+     "detail": "The W10 header in warehouse-app/app/load/trips.tsx is rewritten on top of DOS-043's. It covers the godown planning from the board, add a bill, inline panels with page-level dialogs, and ids fixed per intent; the DOS-043 paragraph that the crew departs is kept, and no depart call exists in the file. W7's header gains the DOS-137 paragraph. The docs/22 §8/§4/§11, render and republish edits are listed in the builder's followUps, as the lane instructions and ruling require."
+    },
+    {
+     "amendment": "h2 order ruling: W7 built on the DOS-133 version of load/index.tsx and strings.ts (keep awaiting_load query, meta, 'Show older packs', packedAt text; PACKED ORDERS lists exactly DOS-133's rows in its order)",
+     "satisfied": true,
+     "detail": "The current index.tsx keeps from 16f1f4e: PACKED_FIRST/PACKED_CAP, packedLimit state, the useQuery(['packs','awaitingLoad',packedLimit]) awaiting_load call, Panel meta (packedCapped/atLeast), the 'w7-packed-more' button, the packedAt text, and key={pack.id}, testID w7-packed-${orderId} and onPress toggle. The strings w7.packedAt/packedMore/packedCapped are untouched. Only these were replaced: the vehicle panel (now a trip panel), the create body (loadSheetInput + meta.id, newId import dropped), the header, and the 'disabled' arm."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/delivery/trips.service.ts",
+     "detail": "Advisory locks are sorted within one stop, not across a create's stops. A trips.create whose stop 1 carries bill B and stop 2 bill A, racing a stops.add of [A,B], takes the locks in opposite order and can deadlock (Postgres 40P01). No 40P01 or deadlock handling exists in core/platform or database/src/client.ts, so it likely surfaces as a 500 (not executed). Two creates cannot hit this: both upsert the numbering series row (platform/numbering.ts onConflictDoUpdate) before insertStop, so they serialise. The code matches the amendment's letter (per stop, deduped, sorted). A follow-up could lock the whole create's bills up front."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/warehouse-app/app/load/index.tsx",
+     "detail": "While the W7 board query is still loading or has failed, `unplanned` is an empty set, so packOnTrip falls back to the shop-level check. The amendment only allows that fallback beyond the board's page. In that window a second, unplanned packed bill of an on-trip shop is selectable, and Build would include it. Once the board loads, `picked` re-filters at render, so the gap is timing-only."
+    },
+    {
+     "severity": "minor",
+     "file": "QA/tools/e2e/dos-131-plan-trip.mjs",
+     "detail": "The planned e2e script was not written because the lane forbids edits under QA/. So the UI-layer proofs the verdict asks for were not executed: the lost-reply replay on POST /delivery/trips, the W7 not-on-trip and second-bill sentences visible in secondary, enabled rows reading 'Packed …', and the accountant's M7 view. Only the pure lib tests pin retry-stable ids and packOnTrip."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/*-service/README.md",
+     "detail": "READMEs were not regenerated for GET /delivery/trip-planning (the lane forbids pnpm docs:readme), so `pnpm docs:readme:check` fails until the main session regenerates them on the merged tree."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/warehouse-app/app/load/trips.tsx",
+     "detail": "The web 1280x800 and 390x844, Android Pixel_7_API_36 and iOS walks, and `pnpm smoke --service warehouse`, were not run (the lane forbids dev servers, emulators and simulators). By code reading, native ListRow renders `secondary` for disabled rows (native/list.tsx:170-173). Every form is an inline Panel with page-level Dialogs; no Sheet is used."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/warehouse-app/app/load/index.tsx",
+     "detail": "W7 trip rows print the raw state enum in secondary (`${shortDate(row.tripDate)} · ${row.state}`) rather than a translated word. Cosmetic."
+    }
+   ],
+   "evidence": "SCOPE\n- `git log`: f92c47c sits on 16f1f4e (DOS-133) on top of fcb0d77.\n- `git show --stat f92c47c` lists 25 files: exactly the plan's list plus frontend/pnpm-lock.yaml.\n- Nothing else is in it: no README, no QA/, no docs/, no migration. backend/tools/smoke-endpoints.mts is untouched, as the plan expected.\n\nRED (commit's non-test changes reversed with `git diff f92c47c^ f92c47c -- . ':(exclude)**/*.spec.ts' ':(exclude)**/*.test.ts' ':(exclude)**/*.test.tsx' ':(exclude)**/pnpm-lock.yaml' ':(exclude)**/package.json' | git apply -R`, then `turbo run build --filter=@dos/contracts`)\n- contracts `vitest run src/permissions.test.ts`: 2 failed of 45.\n  - The DOS-131 test: \"expected undefined to deeply equal [ 'owner', 'manager', 'warehouse' ]\".\n  - The corrected warehouseMay test: \"delivery.trips.planning must allow warehouse: expected false to be true\".\n- core `vitest run src/modules/delivery/delivery.spec.ts` against dos_test_b2_h2: 3 failed, 25 passed.\n  - #1: \"expected 404 to be 200\" (no board).\n  - #2: \"expected 200 to be 409\". The packer re-planned p1 because its RLS hides the planned row.\n  - #3: \"expected [ 200, 200 ] to deeply equal [ 200, 409 ]\".\n- manager-app and warehouse-app `vitest run src/lib/trip-plan.test.ts`: \"Error: Cannot find module './trip-plan'\".\n\nRESTORE\n- `git checkout -- .` gave a clean tree with no untracked files.\n- `turbo build` of contracts and core restored dist from cache; a grep confirms 'trip-planning' in contracts/dist/delivery.js and the new helpers in core dist.\n\nLOCK PROBE (amendment b)\n- I replaced only `pg_advisory_xact_lock(` with a lock-free `(` in trips.service.ts.\n- The whole delivery.spec.ts then gave 27 passed and 1 failed: #3, \"expected [ 200, 200 ] to deeply equal [ 200, 409 ]\".\n- I restored the file with `git checkout`.\n\nGREEN\n- permissions.test.ts: 45/45.\n- delivery.spec.ts (whole file): 28/28.\n- core src/docs/examples.spec.ts: 31/31.\n- manager-app trip-plan.test.ts: 1/1. warehouse-app trip-plan.test.ts: 2/2.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core --force`: 7/7 successful.\n- manager-app and warehouse-app `tsc --noEmit` and `eslint .`: clean.\n- `prettier --check` on every touched source file in both workspaces: clean.\n- frontend `pnpm install --frozen-lockfile --lockfile-only --offline`: \"Already up to date\".\n- Service specs (describePermissionMatrix covers the new GET): warehouse-service 254/254, manager-service 345/345, delivery-service 260/260, owner-service 345/345.\n- Final `git status`: clean at f92c47c.\n\nDIFF HUNT\n- Tests: no assertion was weakened or removed. The one corrected test (warehouseMay) only adds 'delivery.trips.planning', as the plan requires; its refuse loop is unchanged.\n- Contract and permissions: one additive procedure (GET /delivery/trip-planning, not under /delivery/trips/) and one permission row, ROLE_GROUPS.STOCK_KEEPERS. The core copy is TRIP_BOARD, which adds system. No schema, RLS or migration change.\n- Module boundaries: crew names come through tenancy's `activeMembersWithRole` index export, bills through BillingService.liveInvoicesForOrders and OrdersService.fulfilmentQueue (no cap on limit+1; desc id, lt cursor). The boundaries lint is green.\n- Escalation: `plannedOnOpenTrips` escalates one select through asSystemRole, with a literal tenant fence, returning ids only. The spec shows the packer's trips.get still has stops[].deliveries = [], and the board's crew and bill keys are pinned. insertStop's only callers are create and addStop.\n- Idempotency: trip and stop ids are frozen in a snapshot when the dialog opens. W7 uses meta.id. api-client's intentHash keys the idempotency key on the input, and reset() clears the intent.\n- Money and state: money is integer paise; no state column is set by hand.\n- Imports: screens import only @dos/ui, @dos/ui/platform, @dos/api-client(/react), react, expo-router, src/lib and types from @dos/contracts.\n- Untouched: no offline or sync path, no leftover files."
+  }
+ ]
+}

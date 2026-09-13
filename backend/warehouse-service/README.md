@@ -101,12 +101,12 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
 | POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
-| POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
+| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
-| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -8713,7 +8713,7 @@ curl "http://localhost:3004/procurement/purchase-orders?supplierId=01a06d4d-b127
 
 Create a priced draft order · contract `orders.create`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -8880,7 +8880,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /orders",
   "error": "Forbidden"
 }
 ```
@@ -8929,7 +8929,7 @@ request.json
 
 Replace the lines of a draft and re-price it · contract `orders.setLines`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -9082,7 +9082,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /orders/{id}/lines",
   "error": "Forbidden"
 }
 ```
@@ -9141,7 +9141,7 @@ request.json
 
 Draft a repeat of the retailer's last order, re-priced today · contract `orders.repeatLast`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -9291,7 +9291,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /orders/repeat-last",
   "error": "Forbidden"
 }
 ```
@@ -9340,7 +9340,7 @@ request.json
 
 Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) · contract `orders.submit`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -9484,7 +9484,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /orders/{id}/submit",
   "error": "Forbidden"
 }
 ```
@@ -9755,7 +9755,7 @@ request.json
 
 Cancel an order and release its reservations · contract `orders.cancel`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -9901,7 +9901,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "warehouse-service does not serve the owner role",
+  "message": "the warehouse role may not call POST /orders/{id}/cancel",
   "error": "Forbidden"
 }
 ```
@@ -33804,12 +33804,12 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `procurement.discrepancies.resolve` | – | – | – | – | – | – | – |
 | `procurement.purchaseOrders.upsert` | – | – | – | – | – | – | – |
 | `procurement.purchaseOrders.list` | – | – | – | – | – | – | – |
-| `orders.create` | – | – | – | – | ✓ | – | – |
-| `orders.setLines` | – | – | – | – | ✓ | – | – |
-| `orders.repeatLast` | – | – | – | – | ✓ | – | – |
-| `orders.submit` | – | – | – | – | ✓ | – | – |
+| `orders.create` | – | – | – | – | – | – | – |
+| `orders.setLines` | – | – | – | – | – | – | – |
+| `orders.repeatLast` | – | – | – | – | – | – | – |
+| `orders.submit` | – | – | – | – | – | – | – |
 | `orders.confirm` | – | – | – | – | – | – | – |
-| `orders.cancel` | – | – | – | – | ✓ | – | – |
+| `orders.cancel` | – | – | – | – | – | – | – |
 | `orders.get` | – | – | – | – | ✓ | – | – |
 | `orders.list` | – | – | – | – | ✓ | – | – |
 | `orders.approvals.list` | – | – | – | – | – | – | – |

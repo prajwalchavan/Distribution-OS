@@ -183,3 +183,24 @@ Approved next (founder, 2026-09-13: "Approved"), the sign-off-2 defaults:
 - the accountant is not a stock adder (DOS-044)
 - no large-reduction confirm until after DOS-164 (DOS-044)
 These are also recorded in docs/22 §8. Usage limit: the session limit stopped five agents at 10:43 IST; they were relaunched at 12:25 after the reset.
+
+### Batch 2 — relaunch after /clear (2026-09-13 12:59 IST)
+
+The /clear at 12:55 IST stopped two runs mid-plan: `wf_3db93761-bb2` (wave 1a) and `wf_b57b3ffe-74c` (wave 1b). This is what each lane held:
+
+| lane | state found (git log main..HEAD, git status) |
+|---|---|
+| h1-money | DOS-007 committed `b18cc68` and verified: pass, all four amendments. DOS-117: three test files written but not yet run, no code. |
+| h3-doorstep | DOS-056 implementation uncommitted: 21 modified + 4 new files, +815/−126. Not verified. |
+| h7-syncdoor | DOS-166 tests written (`sync.coverage.spec`, `sync.spec`, `rls.test`, +302). Test (e) seen red. No implementation. |
+| h5-orders, h2-trips | Nothing beyond main. Both fast-forwarded to main `fcb0d77`; their DBs were recreated from `dos_test_batch2b_template`. |
+
+The lanes were relaunched as one priority-scheduled run, `wf_ae8abf06-4fc`. It runs at most three lanes at once, one per worktree, P0 chains first:
+1. h7 DOS-166
+2. h5 DOS-115
+3. h2 DOS-133 → DOS-131+137
+4. h3 DOS-056 → 146
+5. h1 DOS-117 → 132
+6. h5 DOS-098 → 126, only after DOS-115 verifies
+
+Each resumed implementer is told what the stopped one left behind. It must re-check that work against the plan and its amendments before it commits.

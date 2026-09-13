@@ -2043,6 +2043,64 @@ describeDb('row level security and ledger guarantees', () => {
   })
 
   /**
+   * DOS-166. Never-list #2 ("a salesperson never collects money") was an application rule only, and the
+   * offline upload proved an application path can skip the matrix: a salesperson's phone wrote RCPT-0708.
+   * So the DATABASE now says it too: `receipts_write_insert` admits the money collectors (the desk, the crew
+   * at the door) and the worker, and nobody else. Reads, updates and deletes are unchanged.
+   */
+  it('DOS-166: refuses a receipt INSERT from a salesperson and from the warehouse, and still takes one from the crew and the money desk', async () => {
+    const row = (role: string, receivedBy: string) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      receiptNo: `RCPT-${run}-166-${role}`,
+      fy: '2026-27',
+      retailerId: retailerA,
+      mode: 'cash' as const,
+      amountPaise: 100,
+      receivedAt: new Date(),
+      receivedBy,
+      idempotencyKey: `rcpt-166-${role}-${run}`,
+    })
+    const refusedByPolicy = (e: unknown): boolean => {
+      const err = e as { code?: string; cause?: { code?: string } }
+      return (err.cause?.code ?? err.code) === '42501'
+    }
+    for (const [role, actor] of [
+      ['salesperson', rep],
+      ['warehouse', storeKeeper],
+    ] as const) {
+      await expect(
+        withTenant(db, { tenantId: tenantA, actorId: actor, actorRole: role }, (tx) =>
+          tx.insert(receipts).values(row(role, actor)),
+        ),
+        `${role} inserting a receipt`,
+      ).rejects.toSatisfy(refusedByPolicy)
+    }
+    // The two who may: the insert itself must succeed, and the transaction is then rolled back so the
+    // fixture's books stay as they were.
+    class RolledBack extends Error {}
+    for (const [role, actor] of [
+      ['delivery', driver],
+      ['accountant', owner],
+    ] as const) {
+      await expect(
+        withTenant(db, { tenantId: tenantA, actorId: actor, actorRole: role }, async (tx) => {
+          await tx.insert(receipts).values(row(role, actor))
+          throw new RolledBack(role)
+        }),
+        `${role} inserting a receipt`,
+      ).rejects.toBeInstanceOf(RolledBack)
+    }
+    const kept = (
+      await db.execute(
+        sql`select count(*)::int as n from receipts
+             where tenant_id = ${tenantA} and idempotency_key like ${`rcpt-166-%-${run}`}`,
+      )
+    ).rows[0] as { n: number }
+    expect(kept.n).toBe(0)
+  })
+
+  /**
    * DOS-032 / DOS-059. A receipt number is the shop's legal proof of payment, so the DATABASE defends it —
    * not the counter: a restored backup, a reseeded or hand-healed counter, or two instances racing must never
    * put two payments under one number. The key is the counter's own (tenant, series, FY): every FY's register

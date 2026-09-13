@@ -601,15 +601,13 @@ describeDb('pricing (DATABASE_URL)', () => {
   })
 
   it('DOS-096: a quote for an item whose HSN has no GST rate is a 400 naming the HSN, never a silent 0%', async () => {
-    await db
-      .insert(priceListItems)
-      .values({
-        id: uuidv7(),
-        tenantId,
-        priceListId: defaultListId,
-        variantId: vUnrated,
-        ratePaise: 500,
-      })
+    await db.insert(priceListItems).values({
+      id: uuidv7(),
+      tenantId,
+      priceListId: defaultListId,
+      variantId: vUnrated,
+      ratePaise: 500,
+    })
     const refused = await call<{ message: string; data?: unknown }>(
       app,
       rep,

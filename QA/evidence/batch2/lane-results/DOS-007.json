@@ -1,0 +1,147 @@
+{
+ "id": "DOS-007",
+ "runs": [
+  "wf_3db93761-bb2"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-007",
+   "status": "fixed",
+   "commits": [
+    "b18cc68"
+   ],
+   "failBefore": "Method: I saved the non-test diff (15 tracked files, `git diff --binary`) to the scratchpad as dos007-impl.patch. I moved the untracked receivables/worker.ts aside, ran `git apply -R` and rebuilt @dos/core; the dist then held 0 occurrences of `queueStatement`. I ran the new tests, re-applied the patch, restored worker.ts and rebuilt.\n\nExcerpts from the reversed tree:\n- **worker/src/jobs/notifications.test.ts:**\n  - \"× DOS-007: registering the notifications jobs gives StatementRequested an outbox relay handler: AssertionError: expected [ 'DeliveryRecorded', …(7) ] to include 'StatementRequested'\". This is the finding's cause: no handler exists, so the relay never claims the row.\n  - \"× DOS-007: sendStatement turns a StatementRequested event…: TypeError: sendStatement is not a function\".\n- **worker/src/jobs/outbox-coverage.test.ts:**\n  - \"× DOS-007: every event type a module writes to the outbox has a registered worker handler or is declared audit-only: expected [] but received [ \"StatementRequested (written at libs/core/src/modules/receivables/posting.ts:224)\" ]\".\n  - The structural wiring test passed, as it should: it does not depend on the fix.\n- **receivables.spec.ts -t DOS-007:**\n  - \"× DOS-007: a statement run asking for a PDF is refused 501…: AssertionError: expected 200 to be 501\".\n  - \"× DOS-007: loadStatementSummary gives the same opening and closing…: TypeError: loadStatementSummary is not a function\".\n- **notifications.spec.ts -t DOS-007:** both tests fail with \"TypeError: queueStatement is not a function\".",
+   "passAfter": "All run on the fixed tree against dos_test_b2_h1, one file per command:\n- **worker/src/jobs/notifications.test.ts:** 2/2 passed.\n- **worker/src/jobs/outbox-coverage.test.ts:** 2/2 passed.\n- **libs/core receivables.spec.ts, whole file:** 39/39 passed.\n- **libs/core notifications.spec.ts, whole file:** 20/20 passed.\n- **Backend typecheck and lint:** `turbo run typecheck lint` for @dos/contracts, @dos/db, @dos/core and @dos/worker gave 12/12 tasks successful. The only warnings are the existing boundaries-plugin config deprecation notices.\n- **Owner app:** `pnpm --filter @dos/owner-app typecheck` exit 0, `lint` exit 0, prettier --check clean on the three owner-app files.\n- **Format:** `pnpm format` ran in backend and frontend and changed no other file.\n- **Commit:** after it, git status is clean.",
+   "testsAdded": [
+    {
+     "file": "backend/worker/src/jobs/notifications.test.ts",
+     "name": "DOS-007: registering the notifications jobs gives StatementRequested an outbox relay handler"
+    },
+    {
+     "file": "backend/worker/src/jobs/notifications.test.ts",
+     "name": "DOS-007: sendStatement turns a StatementRequested event into one statement message keyed on the outbox event id, a replay adds nothing and a pdf row is ignored"
+    },
+    {
+     "file": "backend/worker/src/jobs/outbox-coverage.test.ts",
+     "name": "DOS-007: every event type a module writes to the outbox has a registered worker handler or is declared audit-only"
+    },
+    {
+     "file": "backend/worker/src/jobs/outbox-coverage.test.ts",
+     "name": "DOS-007: the guard wires the same job registrars and direct outbox handlers as main.ts"
+    },
+    {
+     "file": "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+     "name": "DOS-007: loadStatementSummary gives the same opening and closing as ledger.get for the same window (including a clamped 500-day window), today's dues equal to the AR balance and the rollup's overdue"
+    },
+    {
+     "file": "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+     "name": "DOS-007: a statement run asking for a PDF is refused 501 and writes no StatementRequested row, while a WhatsApp run still queues one"
+    },
+    {
+     "file": "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+     "name": "DOS-007: a statement request queues ONE statement message to the shop with the period balances and a UPI link for today's dues, a replay adds nothing, a non-opted-in shop gets SMS and an opted-out shop is skipped"
+    },
+    {
+     "file": "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+     "name": "DOS-007: a statement with nothing owed today, no pay link asked for, or a distributor with no UPI id goes out on statement_no_upi and never with an empty variable"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/notifications.ts",
+    "backend/libs/core/package.json",
+    "backend/libs/core/src/modules/notifications/events.ts",
+    "backend/libs/core/src/modules/notifications/index.ts",
+    "backend/libs/core/src/modules/notifications/worker.ts",
+    "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+    "backend/libs/core/src/modules/receivables/documents.ts",
+    "backend/libs/core/src/modules/receivables/index.ts",
+    "backend/libs/core/src/modules/receivables/receivables.queries.ts",
+    "backend/libs/core/src/modules/receivables/receivables.service.ts",
+    "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+    "backend/libs/core/src/modules/receivables/worker.ts",
+    "backend/libs/database/src/seed-demo/notifications.ts",
+    "backend/worker/src/jobs/notifications.ts",
+    "backend/worker/src/jobs/notifications.test.ts",
+    "backend/worker/src/jobs/outbox-coverage.test.ts",
+    "backend/worker/src/main.ts",
+    "frontend/owner-app/app/money/index.tsx",
+    "frontend/owner-app/app/shops/index.tsx",
+    "frontend/owner-app/src/strings.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Two template keys, statement and statement_no_upi, chosen by the worker when there is no VPA or no dues; never an empty template variable",
+     "done": true,
+     "how": "`queueStatement` (notifications/events.ts), which the worker's StatementRequested consumer calls, builds the `upiLink` from the distributor's VPA and today's dues. If the link is empty (no VPA, dues ≤ 0, or includeUpiQr=false), it picks `statement_no_upi` and omits the upiLink variable; otherwise it picks `statement`. The choice sits in queueStatement because the VPA is readable only through notifications' senderIdentity, so the worker job file stays off tenant_settings.\n\nSupporting changes:\n- four seeded platform templates (both keys × whatsapp/sms, en-IN), none of them with a dangling 'Pay by UPI:';\n- both keys added to PLATFORM_TEMPLATE_KEYS;\n- owner-app 'word.statement' and 'word.statement_no_upi' strings;\n- a notifications spec test covering all three no-link cases that asserts no variable in the stored payload is empty."
+    },
+    {
+     "amendment": "(b) The consumer is keyed on the outbox event id (idempotent) and runs as the tenant's system actor; the pay link uses today's dues",
+     "done": true,
+     "how": "- **Key:** the idempotency key is `Statement:${outboxEvent.id}`, replacing the plan's jobId:retailerId.\n- **System actor:** `loadStatementSummary` runs inside `asTenantSystem(db, e.tenantId, …)`, and `queueStatement` also runs as the tenant's system actor.\n- **Pay link:** the amount is `duePaise = max(0, outstanding − unallocatedCredit)` from the rollup, never the window's closing.\n- **Tests:**\n  - the worker test proves a second `sendStatement` on the same event returns 'replayed' with one row;\n  - the same test proves a window that closed before the bill still links today's ₹1,234.50;\n  - the receivables spec proves `duePaise` equals the AR journal balance, including for a past window."
+    },
+    {
+     "amendment": "(c) 501 statement_pdf_not_rendered for channel: pdf is right and stays",
+     "done": true,
+     "how": "`ReceivablesService.sendStatements` throws `ORPCError('NOT_IMPLEMENTED', 'statement_pdf_not_rendered: …')` right after `requireRole` for channel 'pdf'. The receivables spec asserts 501, the message prefix and zero StatementRequested rows, and that a WhatsApp run still queues one. The worker consumer also ignores a 'pdf' row, which only a pre-fix row can carry."
+    },
+    {
+     "amendment": "(d) Add the guard spec: every event type any module emits has a registered worker handler or is declared audit-only, in backend/worker (test code only)",
+     "done": true,
+     "how": "New `backend/worker/src/jobs/outbox-coverage.test.ts` (test code only).\n- **Scan:** it parses libs/core/src, libs/database/src and worker/src with the TypeScript compiler API (already a worker devDependency). It resolves every `insert(outboxEvents).values({eventType})` through constants, `as const` maps, literal-union types and the call sites of `string` helpers. Anything it cannot resolve is reported as unresolved, never skipped.\n- **Handlers:** it runs every `register*Jobs` registrar that main.ts calls, with an idle pg-boss.\n- **Failure conditions:**\n  - an emitted type has no handler and is not in the in-test AUDIT_ONLY set;\n  - an AUDIT_ONLY entry is no longer emitted or has gained a handler.\n- **Wiring test:** a second test pins its registrar list and direct handlers to main.ts.\n- **Fail-before:** before the fix it reports exactly StatementRequested.\n- **Comment:** I annotated ImportCommitted and ExportReady in AUDIT_ONLY honestly, because their planned notifications consumer is not built."
+    }
+   ],
+   "deviations": "- **Earlier work kept:** a previous implementer left uncommitted work, and it turned out complete (worker job, main.ts, worker tests, guard spec, owner-app toasts). I reviewed every hunk against the plan and amendments (a)-(d) and kept all of it. My only edit was the AUDIT_ONLY comment on ImportCommitted and ExportReady.\n- **Idempotency key:** `Statement:<outboxEventId>` replaces the plan's `Statement:<jobId>:<retailerId>`, per amendment (b). The worker test name says \"keyed on the outbox event id\" instead of \"keyed Statement:<jobId>:<retailerId>\".\n- **Template choice:** amendment (a)'s two-key choice lives in `queueStatement` (notifications), not in the worker job file. The worker's consumer calls it, and the VPA is readable only through notifications' senderIdentity.\n- **Toast string:** 'o10.statementsSent' uses `{count}`, not the plan's guessed `{{count}}`. `@dos/ui`'s `interpolate` replaces `{name}`, the same syntax as o3.confirmApprove's `{what}`, which the plan said to match.\n- **Stricter payload check:** the worker also requires from/to to be YYYY-MM-DD with from ≤ to; otherwise the row is ignored.\n- **Clamp test:** the receivables summary test adds a shop with a bill older than 400 days. Only such a shop tells a clamped window from an unclamped one; shop.a has no bill that old. It checks four windows (90-day, 20-day, 500-day clamped, past) against GET /receivables/ledger.\n- **Extra tests:** the notifications spec has a second DOS-007 test (the statement_no_upi cases), and outbox-coverage.test.ts adds a wiring test (registrars equal main.ts's). Both support amendments (a) and (d).\n- **Test runner note:** `pnpm --filter @dos/worker test -- <file>` ignores the file argument and ran all three worker test files once (all passed). Every later run called `vitest run <file>` directly, one file per command.",
+   "followUps": "- **Next plan in this lane (DOS-117):**\n  - It must append to `backend/libs/core/src/modules/receivables/worker.ts` and keep the './receivables' export in libs/core/package.json.\n  - If it adds a new `register*Jobs` call in worker/src/main.ts, it must add that registrar to REGISTRARS in `backend/worker/src/jobs/outbox-coverage.test.ts`; otherwise the guard's wiring test fails.\n  - Any new outbox event type it emits needs a handler or an AUDIT_ONLY entry.\n- **Data:** any database that should send statements needs `pnpm db:seed` re-run for the four new platform templates (statement and statement_no_upi, whatsapp and sms). Without them every statement is skipped as template_not_found; this includes dos_qa, then verify-seed.sh.\n- **Real WhatsApp:** it needs Meta-approved `statement_en` and `statement_no_upi_en` templates.\n- **Docs (not edited, per lane rules):**\n  - docs/23-app-screens-and-api-gaps.md:196: \"statements (O10, renderer deferred)\" becomes \"statements sent as a WhatsApp/SMS summary; PDF pending DOS-057/099\";\n  - docs/plans/receivables.md:241: mark the `receivables.statement_render` job superseded;\n  - add a QA/13 change-log row.\n- **Founder question** (docs/22 §8 if answered): is a text summary acceptable as the statement until the PDF exists? (coordination q30 assumed a 90-day WhatsApp PDF.)\n- **Separate finding:** ImportCommitted and ExportReady have a planned notifications consumer (docs/plans/integrations.md §7) that was never built. The guard lists them as audit-only with that note.\n- **Not re-checked:** `pnpm docs:readme:check` was not run (lane rule). The plan expects no README change, because no procedure schema changed.\n- **Manual walk still to do:**\n  - web toasts shop-toast and money-toast;\n  - relay → message row on dos_qa with the worker restarted;\n  - `pnpm smoke --service owner`;\n  - Pixel 7 and iOS.\n- **Owned elsewhere:** manager M14 still swallows the statement result; that stays with DOS-029.",
+   "platformCheck": "- **api / db:** proven by DB-backed specs on dos_test_b2_h1:\n  - receivables (ledger equality, 501 refusal, outbox rows);\n  - notifications (the message rows, channel choice, opt-out skip, statement_no_upi);\n  - worker (handler registered; `sendStatement` end to end: payload → summary → message row, with replay and ignore cases);\n  - the guard spec.\n- **web / android / ios:** only typecheck (exit 0), lint (exit 0) and prettier on owner-app shops/index.tsx, money/index.tsx and strings.ts. One screen file serves all three platforms; `Toast` comes from `@dos/ui`, which exports it on web and native.\n- **NOT TESTED in a browser, on the Pixel 7 or on iOS:** the lane forbids dev servers, emulators and simulators. The plan's verify walk (shop-toast \"Statement queued for sending\", money-toast \"N statements queued\", the message row in Settings → Messages) is still to run after merge."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-007",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Two template keys, statement and statement_no_upi, chosen by the worker when there is no VPA or no dues; never an empty template variable",
+     "satisfied": true,
+     "detail": "The worker's StatementRequested consumer (backend/worker/src/jobs/notifications.ts sendStatement) calls queueStatement in backend/libs/core/src/modules/notifications/events.ts.\n- upiPayLink returns '' when there is no VPA or duePaise is 0 or less; includeUpiQr=false also gives ''. An empty link selects 'statement_no_upi' and drops the upiLink variable; otherwise 'statement' is used.\n- The choice sits in notifications because the VPA comes from notifications' own senderIdentity, read in the same system-actor transaction. It still runs inside the worker's consumer path, so the reason holds in code.\n- distributorName falls back to tenants.legal_name, so it is never empty either.\n- Four seed templates were added, and neither statement_no_upi template declares upiLink. Both keys are in PLATFORM_TEMPLATE_KEYS.\n- Tests: notifications.spec 'statement_no_upi' covers nothing owed, no link asked for, and a tenant with no VPA. expectNoEmptyVariable checks every variableNames entry. The worker test also shows a shop owing nothing gets statement_no_upi with no upiLink."
+    },
+    {
+     "amendment": "(b) The consumer is keyed on the outbox event id (idempotent), runs as the tenant's system actor, and the pay link uses today's dues",
+     "satisfied": true,
+     "detail": "- Key: the idempotency key is `Statement:${i.eventId}`, and sendStatement passes e.id.\n- System actor: loadStatementSummary and queueStatement both run inside asTenantSystem, which is tenantStorage.run(systemContext) plus withTenant. That is RLS as app_rw with actor_role system, not withSystem, so RLS is not bypassed.\n- Pay link: duePaise = max(0, outstandingPaise - unallocatedCreditPaise), taken from loadOutstanding, never the window's closing.\n- Tests:\n  - worker test: a second sendStatement on the same event returns 'replayed' and leaves one row;\n  - worker test: a window ending day(-20), before the bill, still links am=1234.50;\n  - receivables spec: duePaise equals arBalance for a past window and equals the rollup identity."
+    },
+    {
+     "amendment": "(c) 501 statement_pdf_not_rendered for channel: pdf is right and stays",
+     "satisfied": true,
+     "detail": "- ReceivablesService.sendStatements throws ORPCError('NOT_IMPLEMENTED', 'statement_pdf_not_rendered: ...') right after requireRole(BACK_OFFICE), before any write.\n- The receivables spec asserts status 501, the message prefix, and zero StatementRequested rows for that jobId. A WhatsApp run still returns {jobId, queued:1} and writes one row.\n- The worker consumer ignores a 'pdf' row, which only a pre-fix row can carry.\n- No app sends 'pdf'; the owner shops, owner money and manager shops screens all send 'whatsapp'. The docs example samples the default channel."
+    },
+    {
+     "amendment": "(d) Add the guard spec in backend/worker (test code only): every event type any module emits has a registered worker handler or is declared audit-only",
+     "satisfied": true,
+     "detail": "- New file backend/worker/src/jobs/outbox-coverage.test.ts. It is the only change for (d); no non-test code was changed for it.\n- It parses the TypeScript AST of every insert(outboxEvents).values({eventType}) under libs/core/src, libs/database/src and worker/src. It resolves constants, as-const maps, literal unions and string-helper call sites, and it reports unresolved sites and raw SQL inserts.\n- It runs every register*Jobs registrar with an idle pg-boss, then fails on any orphaned type, a stale AUDIT_ONLY entry, or an AUDIT_ONLY type that has gained a handler.\n- Its wiring test pins the registrar list to main.ts.\n- I ran it: on the reversed tree it failed with exactly ['StatementRequested (written at libs/core/src/modules/receivables/posting.ts:224)']; on the fixed tree it passes 2/2."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/worker/src/jobs/outbox-coverage.test.ts",
+     "detail": "The AUDIT_ONLY list is the implementer's own judgement and nobody has reviewed it.\n- ImportCommitted and ExportReady have a notifications consumer planned in docs/plans/integrations.md §7 that was never built. Declaring them audit-only turns the guard green on a gap already known. The code comment is honest about it.\n- I checked ClaimStatementRequested: it is emitted next to IntegrationsService.enqueueExport plus an inline render, so audit-only is correct for it.\n- The architect should look at the list once. Follow-up: a separate finding for the unbuilt import/export notifications."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/worker/src/jobs/outbox-coverage.test.ts",
+     "detail": "Scan blind spot: an insert written as `insert(schema.outboxEvents)` (property access) would be missed. Both the AST match (getText() === 'outboxEvents') and the per-file count regex look only for a bare `outboxEvents`, so such a site would be skipped silently, not reported as unresolved. git grep shows no such form in the backend today, so nothing is missed now."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/owner-app/app/shops/index.tsx",
+     "detail": "The toasts were not tested in a browser, on the Pixel 7 or on iOS; the lane forbids dev servers and emulators. Only typecheck (exit 0), lint (exit 0) and prettier were run on shops/index.tsx, money/index.tsx and strings.ts.\n- The plan's verify walk is still owed after merge: shop-toast 'Statement queued for sending', money-toast 'N statements queued', and the message row in Settings → Messages.\n- dos_qa needs `pnpm db:seed` re-run for the four new platform templates before that walk."
+    }
+   ],
+   "evidence": "**Scope:** HEAD is b18cc68 on qa/b2-h1-money, and its parent is c2c472f. `git show --stat` lists 20 files, all named in the plan or its amendments.\n- The commit has no README, QA/, docs/, permissions.ts, schema, migration or lockfile change.\n- PLATFORM_TEMPLATE_KEYS gains 'statement' (the plan) and 'statement_no_upi' (amendment a).\n- The two owner-app screens import only @dos/ui (Toast) and contain no react-native or react-dom import and no fetch.\n\n**Fail before.** I saved the non-test diff of b18cc68 (the given pathspec; excludes spec, test, package.json and the lockfile) to scratchpad/dos007-verify-nontest.patch and applied it with `git apply -R --binary`. That reversed 15 files and deleted receivables/worker.ts. I rebuilt @dos/core through turbo; dist then held 0 occurrences of queueStatement and loadStatementSummary. Each file was run with `vitest run <file>`:\n- **worker notifications.test.ts:** 2 failed. \"AssertionError: expected [ 'DeliveryRecorded', …(7) ] to include 'StatementRequested'\" (the finding's cause: no relay handler, so the row is never claimed), and \"TypeError: sendStatement is not a function\".\n- **worker outbox-coverage.test.ts:** the guard failed with [\"StatementRequested (written at libs/core/src/modules/receivables/posting.ts:224)\"]. The wiring test passed.\n- **core receivables.spec.ts -t DOS-007:** 2 failed, \"TypeError: loadStatementSummary is not a function\" and \"AssertionError: expected 200 to be 501\".\n- **core notifications.spec.ts -t DOS-007:** 2 failed, \"TypeError: queueStatement is not a function\" twice.\n\n**Restore.** `git checkout -- .` left the tree clean; I rebuilt core and dist has queueStatement and loadStatementSummary back.\n\n**Pass after** (fixed tree, dos_test_b2_h1, one file per command):\n- worker notifications.test.ts: 2/2 passed.\n- worker outbox-coverage.test.ts: 2/2 passed.\n- core receivables.spec.ts: 39/39 passed, both DOS-007 tests shown in the verbose output.\n- core notifications.spec.ts: 20/20 passed, both DOS-007 tests shown.\n- One slip: my first `pnpm --filter @dos/core test -- <file>` ignored the file argument and ran all 35 core spec files. All 533 tests passed; that is extra regression evidence, but it broke the one-file rule, so every later run used `vitest run <file>` directly.\n\n**Checks:**\n- `turbo run typecheck lint --force` on @dos/contracts, @dos/db, @dos/core and @dos/worker: 12/12 successful, 0 cached. An earlier non-forced run was a full cache replay, so I don't count it.\n- Owner app: `pnpm --filter @dos/owner-app typecheck` exit 0, `lint` exit 0.\n- `prettier --check` is clean on all 17 backend files and 3 frontend files.\n\n**Diff review:**\n- **Tests and permissions:** no assertion was weakened or deleted, and no test was corrected. No permission or schema change.\n- **Contract:** the only contract change is the constant list. The input and output schemas are unchanged, and the 501 is thrown by the service.\n- **Module boundaries:**\n  - notifications receives every figure as an argument and reads no receivables table;\n  - receivables/documents.ts uses only its own module's outstanding.ts and receivables.queries.ts;\n  - the worker imports the new @dos/core/receivables worker entry.\n- **Money and idempotency:** money stays integer paise, formatted by rupees(). The mutation keeps idempotent() and uuidv7 ids.\n- **Payload:** the keys sendStatements emits (jobId, retailerId, from, to, channel, includeUpiQr) match what sendStatement parses.\n- **Refactor:** retailerLedger's opening and closing moved into ledgerBalances, and MAX_LEDGER_WINDOW_DAYS moved into receivables.queries.ts. The only behavioural difference is query order; the full receivables spec stays green.\n- **Deviations** (all grounded in code):\n  - '{count}' is the right placeholder, because @dos/ui interpolate replaces `\\{(\\w+)\\}`;\n  - the key `Statement:<eventId>` follows amendment (b);\n  - the ISO date and from ≤ to checks in the worker are stricter than the plan, and harmless.\n- **Sibling paths:** manager M14 still swallows the statement result and stays with DOS-029, as the plan says. No sync or offline path sends statements.\n\n**End state:** git status is clean."
+  }
+ ]
+}

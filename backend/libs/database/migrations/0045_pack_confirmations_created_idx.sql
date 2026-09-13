@@ -1,1 +1,0 @@
-CREATE INDEX "pack_confirmations_created_idx" ON "pack_confirmations" USING btree ("tenant_id","created_at","id");

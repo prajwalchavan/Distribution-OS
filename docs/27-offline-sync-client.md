@@ -101,7 +101,9 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   endpoint never answers 4xx by design; a 4xx therefore means a broken token → refresh once, then surface a sign-in prompt, never
   drop the queue.
 - `protocol_unsupported` → stop uploading and show "Update the app". `unknown_table` → mark rejected with that code (app newer
-  than server); keep the row.
+  than server); keep the row. `role_not_allowed` (the signed-in role may not make the change that table stands for online, checked
+  against `PERMISSIONS` before any handler runs) and `not_permitted` (a database policy refused this actor) → mark rejected with
+  the server's sentence in the tray; keep the row, never retry it (DOS-166).
 - Queue survives restarts (it is a table). A pending count and the oldest queued time feed the status object.
 
 ## 7. Conflict rules

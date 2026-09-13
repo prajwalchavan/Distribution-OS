@@ -42,7 +42,10 @@ export class WarehouseModule implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.register('pick_lines', (tx, op) => applyPickLineSync(tx, op, this.picklists))
+    // The online door a device pick stands for; the uploader checks PERMISSIONS for it (DOS-166).
+    this.registry.register('pick_lines', (tx, op) => applyPickLineSync(tx, op, this.picklists), {
+      standsFor: ['warehouse.picklists.pick'],
+    })
     // THE PULL SIDE — the paperwork of the godown floor, and the two documents that leave with the van.
     // Bounded to a month for the devices (docs/20: bounded work per request): a picker never scrolls
     // back further, and the desk pulls the lot. `load_sheets` and `delivery_challans` are held by BOTH

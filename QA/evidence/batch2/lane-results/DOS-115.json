@@ -1,0 +1,158 @@
+{
+ "id": "DOS-115",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-115",
+   "status": "fixed",
+   "commits": [
+    "2ec9583 fix(DOS-115): warehouse and delivery logins can no longer place, re-line, repeat, submit or cancel an order"
+   ],
+   "failBefore": "Every run below was on the unfixed tree unless it names a stage.\n\n1. `permissions.test.ts` pin failed on `orders.create`. It expected `['owner','manager','salesperson','retailer']` and got all seven roles, because the matrix was `ANY_MEMBER`.\n\n2. warehouse-service spec, `POST /orders` as warehouse: got 400, expected 403. The gate let it through to input validation.\n\n3. delivery-service spec, `POST /orders/:id/submit` as delivery: got 500, expected 403. The gate let it through and the handler hit an FK error on the fake tenant.\n\n4. `orders.spec` test (a) failed.\n   - The warehouse got 200 on all six probes: create, re-line, repeat-last, submit, cancel the confirmed order, cancel a draft.\n   - The delivery role got 200 on create, re-line and repeat-last. It got 409 on submit and on both cancels, only because the warehouse had already submitted and cancelled those orders.\n\n5. Test (b) failed: the warehouse upload came back `{accepted: 2, rejected: []}`.\n\n6. Test (c) in the full run failed with 409 on the rep's cancel, because the probes in (a) had already cancelled that draft.\n\n7. Test (c) run alone passed its controls: both roles read the order and the rep cancelled its own draft.\n   - The pin then failed because `ORDER_PLACERS` did not exist yet. The first attempt showed ReferenceError only because I had not added the import yet.\n   - Stage 1 added the core tuple only. The pin then failed for the real reason: the matrix still listed accountant, warehouse and delivery.\n\n8. Stage 2 rebuilt contracts with only the matrix changed.\n   - All 12 HTTP probes answered 403 and nothing was written.\n   - The in-process `OrdersService.cancel` under a warehouse context still succeeded (\"expected null to be an instance of ORPCError\").\n   - The upload was still accepted 2.\n   - This shows the handler check and the sync check each need their own fix.",
+   "passAfter": "Test results, one file per command, against dos_test_b2_h5:\n- `@dos/contracts` `permissions.test.ts`: 45/45.\n- `orders.spec.ts`: 3/3 DOS-115 tests, then the whole file 31/31. The whole file ran again after `pnpm format` (31/31).\n- `billing.spec.ts`: 21/21.\n- `sync.spec.ts` 7/7 and `sync.coverage.spec.ts` 19/19.\n- `docs/readme.test.ts` 15/15 and `docs/examples.spec.ts` 31/31.\n\nAfter rebuilding `@dos/core`, the service specs (each includes `describePermissionMatrix`):\n- warehouse-service 254/254\n- delivery-service 260/260\n- manager-service 344/344 (covers the accountant change)\n\nStatic checks:\n- `turbo typecheck lint` for `@dos/contracts`, `@dos/core`, `@dos/warehouse-service` and `@dos/delivery-service`: 12/12 tasks after format.\n- The first lint run found one `no-unsafe-assignment` in the new spec. I fixed it and re-ran the DOS-115 tests (3/3) before formatting.\n- Frontend `@dos/manager-app`: lint and typecheck both exit 0.\n\nOrder of runs:\n- The billing, sync, docs and service specs ran before the formatting pass. Prettier changed only whitespace in files I touched, and none in those spec files' logic.\n- `git status` is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-115: the godown and the crew place, re-line, repeat, submit or cancel no order, and still read one"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-115: a warehouse or delivery login cannot create, re-line, repeat, submit or cancel an order — 403 at the gate, refused in the handler, nothing written"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-115: a warehouse or delivery device upload cannot draft or re-line an order — rejected forbidden, nothing written"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-115: the godown and the crew still read an order, a rep still cancels its own draft, and ORDER_PLACERS equals the matrix plus system"
+    },
+    {
+     "file": "backend/warehouse-service/src/service.spec.ts",
+     "name": "DOS-115: warehouse-service refuses order writes to the warehouse role at the gate"
+    },
+    {
+     "file": "backend/delivery-service/src/service.spec.ts",
+     "name": "DOS-115: delivery-service refuses order submit and cancel to the delivery role at the gate"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "backend/libs/core/src/modules/billing/billing.spec.ts",
+     "name": "bills a van sale from the vehicle location on the tenant’s normal series",
+     "before": "Both van_sale orders were created by `driver` (delivery role) through POST /orders (the two calls near :907 and :935). `manager` submitted them and `driver` issued POST /invoices/van-sale.",
+     "after": "Both orders are created by `manager` through POST /orders, with the body unchanged. `manager` still submits and `driver` still issues POST /invoices/van-sale. All assertions are unchanged (source van_sale, INV series, vehicle-location ledger rows, the 400 'insufficient sellable stock'). A two-line comment explains why.",
+     "why": "The plan requires it: POST /orders is now refused to the delivery role at the gate (403). `issueVanSale` is DOORSTEP and never checks who created the order, so this is setup only. The billing spec passes 21/21."
+    }
+   ],
+   "filesChanged": [
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/core/src/modules/orders/orders.internals.ts",
+    "backend/libs/core/src/modules/orders/orders.service.ts",
+    "backend/libs/core/src/modules/orders/orders.sync.ts",
+    "backend/libs/core/src/modules/orders/orders.spec.ts",
+    "backend/libs/core/src/modules/billing/billing.spec.ts",
+    "backend/warehouse-service/src/service.spec.ts",
+    "backend/delivery-service/src/service.spec.ts",
+    "frontend/manager-app/app/orders/index.tsx",
+    "docs/23-app-screens-and-api-gaps.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) ORDER_PLACERS leaves out the accountant: the contracts tuple is owner, manager, salesperson, retailer; the core copy adds system; the pin also refuses the accountant; the tuple stays separate from DRAFT_ORDER_TAKERS.",
+     "done": true,
+     "how": "permissions.ts has a new non-exported tuple `ORDER_PLACERS = ['owner','manager','salesperson','retailer'] as const satisfies readonly MembershipRole[]`, declared apart from DRAFT_ORDER_TAKERS. orders.create, setLines, repeatLast, submit and cancel point at it; orders.get and orders.list stay ANY_MEMBER. The core copy in orders.internals.ts is `['owner','manager','salesperson','retailer','system']`. The permissions.test pin asserts warehouse, delivery and accountant are refused on the five writes and allowed on get and list. The existing narrowing loop (DRAFT_ORDER_TAKERS must be a subset of ORDER_PLACERS) still passes, 45/45. The accountant is proven by the pin and by the manager-service permission matrix (344/344); orders.spec has no accountant HTTP probe, because the plan's intruders are warehouse and delivery."
+    },
+    {
+     "amendment": "(b) One helper `requirePlacer()` in orders.sync.ts is the first statement of both applyOrderSync and applyLineSync, before putOnly, throwing SyncRejection('forbidden', …) with a Hindi message; the header comment gains one sentence.",
+     "done": true,
+     "how": "`export function requirePlacer()` is defined in orders.sync.ts (not re-exported through index.ts). It throws `SyncRejection('forbidden', 'This login does not draft or change orders', 'इस लॉगिन से ऑर्डर नहीं बनाया या बदला जा सकता')` when `currentTenant().actorRole` is not in the core ORDER_PLACERS. It is the first line of both handlers, before putOnly and any lookup. The header comment gained one sentence saying the device doors follow the five procedures' rule. The spec proves 200, accepted 0, both ops rejected 'forbidden', four sync_errors rows and nothing written."
+    },
+    {
+     "amendment": "(c) Rewrite the stale comment in frontend/manager-app/app/orders/index.tsx:13-15, comment only, and correct the ANY_MEMBER comments in permissions.ts.",
+     "done": true,
+     "how": "The manager-app comment now says `orders.cancel` is ORDER_PLACERS (owner, manager, salesperson, retailer — never the accountant, DOS-115) and that the queue draws Confirm and Cancel under `can('orders.confirm')` on purpose; no code changed, and lint and typecheck pass. In permissions.ts I rewrote the DRAFT_ORDER_TAKERS doc (it now calls itself a narrowing of ORDER_PLACERS, declared apart on purpose), the orders block comment and the AI block comment, which now names ORDER_PLACERS. I also reworded the AI test comment in permissions.test.ts (no assertion changed)."
+    },
+    {
+     "amendment": "(d) The orders.spec pin asserts, in one loop over all five paths, that permissionFor(p) equals ORDER_PLACERS without 'system'.",
+     "done": true,
+     "how": "Test (c) asserts `expect(ORDER_PLACERS).toContain('system')`. It then loops once over orders.create, setLines, repeatLast, submit and cancel, asserting `permissionFor(path)` equals `ORDER_PLACERS.filter((role) => role !== 'system')`. ORDER_PLACERS is imported from ./orders.internals.js and permissionFor from @dos/contracts."
+    },
+    {
+     "amendment": "(e) Verification adds the accountant live: amol.vaidya on manager-service :3002 (cancel → 403, list → 200) and the manager app :5174 showing no Cancel.",
+     "done": false,
+     "how": "Not run: this lane may not start dev servers or apps. The equivalent gate behaviour is covered in process: the permissions pin refuses the accountant on the five writes, and the manager-service permission matrix (which serves the accountant) passes 344/344. The live steps are left for the verifier (see followUps)."
+    },
+    {
+     "amendment": "(f) Add the accountant sentence to the docs/22 clarification row; in docs/23 remove the order items from §4.3 and §5.3 and check §2 for an order-write line to mark the same way.",
+     "done": false,
+     "how": "The docs/23 half is done. In §4.3 the order items (`orders.create/setLines/submit/repeatLast`, a loader placing orders) were removed from the 'Can but no screen' bullet and noted 'closed by DOS-115 (2026-09-13)'. The recommendation now reads 'retailer/beat/visit writes'. In §5.3, `orders.create/submit` for non-van orders was removed and noted the same way. In §2 I found no matching line: the §2.1 M2 calls list `orders.cancel ✓` for the manager's own screen, which is still true, and the §2.3 accountant write list names none of the five, so §2 is unchanged. The docs/22 half is not done, because this lane may not edit docs/22; it is in followUps."
+    }
+   ],
+   "deviations": "No product-logic deviation. Small test and comment differences from the plan:\n\n1. Test (a) checks the exact gate message for each route, for example `the warehouse role may not call POST /orders/:id/cancel` and `…POST /orders/repeat-last`. The plan used the regex `/^the (warehouse|delivery) role may not call POST \\/orders/`. Exact messages are stricter. I changed it after core lint rejected `expect.stringMatching`, which returns `any` (@typescript-eslint/no-unsafe-assignment).\n\n2. The in-process refusal is asserted as `toBeInstanceOf(ORPCError)` plus `toMatchObject({ code: 'FORBIDDEN' })`.\n\n3. Additions to the planned tests:\n   - Test (b) also checks the four `sync_errors` rows with code forbidden.\n   - Test (c) also checks `GET /orders` answers 200 for both roles.\n\n4. `requirePlacer` is exported from orders.sync.ts only, not through index.ts. I read the amendment's \"exported-in-file\" literally.\n\n5. Comment-only additions:\n   - One on `ORDER_ROLES` in orders.service.ts, marking it the read tuple.\n   - The orders.spec phone comment now says suffixes 6 and 7 belong to the DOS-115 block.\n\n6. How I ran tests:\n   - I ran single spec files with `pnpm exec vitest run <file> [-t DOS-115]` inside the package. `pnpm --filter @dos/core test -- <file>` passes the file after `--`, and vitest then ignores it: the contracts run in that form ran all 6 contracts test files. I avoided a whole-suite core run.\n   - The fix was applied in layers (core tuple, then matrix, then handler and sync) so each layer's test failed before its fix.\n\n7. `pnpm format` also rewrote `backend/libs/core/src/modules/pricing/pricing.spec.ts`, a file this lane never touched. It was already on main: a prettier rewrap of the DOS-096 test's `db.insert(priceListItems)` chain near :604. I restored it with `git restore` and kept it out of the commit.\n\n8. Plan items left out by the lane rules: README regeneration, the docs/22 clarification, the QA/13 row and the live verify steps. All are in followUps.",
+   "followUps": "1. **READMEs.** Run `pnpm docs:readme` once on the merged tree. The five order-write rows lose warehouse, delivery and accountant, and `pnpm docs:readme:check` fails until then. Never hand-edit the 12 READMEs.\n\n2. **docs/22.** Add the §8 clarification row in the plan's wording, plus amendment (f)'s sentence: \"the accountant is also outside the five order writes, as the architect's default under the 2026-09-05 accountant-scope row; the founder may reverse it with one tuple change\". Also:\n   - widen the §7 sentence to \"create (including repeat last order), re-line, submit or cancel an order, online or by device upload\";\n   - add a §11 change-log row;\n   - run `python3 docs/tools/render-source-of-truth.py`;\n   - republish the source-of-truth artifact.\n\n3. **QA/13-change-log.md.** Add the DOS-115 row (commit 2ec9583) in a separate QA-docs commit.\n\n4. **Live verification.** Plan steps 1-9 plus amendment (e):\n   - exact 403 messages on :3004 and :3005;\n   - `/sync/upload` answering 200, accepted 0, 'forbidden', with `sync_errors` rows for qa-dos115-w and qa-dos115-d;\n   - reads still 200;\n   - van sale on :5177 and on the Pixel 7;\n   - warehouse Pack detail still loads;\n   - scoped smoke `--service warehouse|delivery --run-tag dos115` ending 0 BROKEN;\n   - OpenAPI x-roles on :3004 and :3002 no longer listing warehouse, delivery or accountant for the five routes;\n   - amol.vaidya on :3002 (cancel → 403 'the accountant role may not call POST /orders/:id/cancel', `GET /orders?limit=5` → 200) and the manager app :5174 showing no Cancel.\n\n5. **New finding from the architect.** The same unchecked upload path exists for every other registered sync table: receipts and allocations, the delivery tables, pick_lines, and docint documents and pages. Proposed design: a `standsFor` contract key on `SyncRegistry.register`, checked once in `SyncService.upload` before `vetoIfStale`.\n\n6. **Formatting drift on main.** `backend/libs/core/src/modules/pricing/pricing.spec.ts` (DOS-096 test near :604) is not prettier-clean. The next `pnpm format:check` in CI will flag it.\n\n7. **orders.spec.ts phones.** Suffixes 1-7 are now taken; later lanes adding users there must use 8 or higher.\n\n8. **Merge overlaps.** Later waves DOS-098 and DOS-126 edit orders.service.ts and append to orders.spec.ts; DOS-116 may touch billing.spec.ts near the changed van-sale fixture.",
+   "platformCheck": "API only (the plan's platforms list is ['api']).\n- The gate, the in-process handler and `/sync/upload` were exercised through Fastify inject in the core orders spec and the warehouse, delivery and manager service specs, against dos_test_b2_h5.\n- The only frontend change is a comment in manager-app; its lint and typecheck pass.\n- By lane rules I started no dev servers, web apps, Android emulator or iOS simulator. The live and device steps of the plan's verify section are not executed."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-115",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) ORDER_PLACERS excludes the accountant: contracts tuple is owner, manager, salesperson, retailer; the core copy adds system; the pin refuses the accountant on the five writes and allows get/list; the tuple stays separate from DRAFT_ORDER_TAKERS",
+     "satisfied": true,
+     "detail": "permissions.ts declares its own non-exported `ORDER_PLACERS = ['owner','manager','salesperson','retailer'] as const`, separate from DRAFT_ORDER_TAKERS. Exactly create, setLines, repeatLast, submit and cancel point at it; get and list stay ANY_MEMBER. The core copy in orders.internals.ts is the same four plus 'system'. The permissions.test DOS-115 test asserts isAllowed is false for warehouse, delivery and accountant on the five writes and true on get/list. The DRAFT_ORDER_TAKERS narrowing loop is unchanged and passes (45/45). manager-service describePermissionMatrix passes 344/344; it serves the accountant and expects a gate refusal for every role the matrix forbids."
+    },
+    {
+     "amendment": "(b) One exported-in-file helper requirePlacer() in orders.sync.ts, first statement of both applyOrderSync and applyLineSync before putOnly, throwing SyncRejection('forbidden', …) with the Hindi sentence; header comment gains one sentence",
+     "satisfied": true,
+     "detail": "`export function requirePlacer()` checks `currentTenant().actorRole` against the core ORDER_PLACERS. It throws `SyncRejection('forbidden','This login does not draft or change orders','इस लॉगिन से ऑर्डर नहीं बनाया या बदला जा सकता')`. It is the first line of both handlers, before putOnly; there is one helper, not inline copies. The header comment gained one sentence. Proven independently: with only orders.sync.ts reversed and everything else fixed, test (b) fails with accepted 2."
+    },
+    {
+     "amendment": "(c) Rewrite the stale comment in frontend/manager-app/app/orders/index.tsx:13-15 (comment only) and correct the permissions.ts DRAFT_ORDER_TAKERS doc and AI block comments",
+     "satisfied": true,
+     "detail": "The manager-app diff touches only the doc comment. It now says orders.cancel is ORDER_PLACERS (owner, manager, salesperson, retailer, never the accountant, DOS-115) and that Confirm and Cancel are drawn under can('orders.confirm') on purpose; the code at :86 `mayDecide = can('orders.confirm')` is unchanged. The DRAFT_ORDER_TAKERS doc now reads 'NARROWING of ORDER_PLACERS', and the AI block now reads 'all ORDER_PLACERS (DOS-115)'. manager-app lint and typecheck both exit 0."
+    },
+    {
+     "amendment": "(d) The orders.spec pin asserts, for all five paths in one loop, permissionFor(p) equals ORDER_PLACERS minus 'system'",
+     "satisfied": true,
+     "detail": "Test (c) asserts `expect(ORDER_PLACERS).toContain('system')`. It then loops over all five paths with `expect(permissionFor(path), path).toEqual(ORDER_PLACERS.filter(r => r !== 'system'))`. Proven: with the core tuple restored but the matrix reversed, (c) alone fails on 'orders.create: expected [owner, manager, accountant, salesperson, warehouse, delivery, retailer]'."
+    },
+    {
+     "amendment": "(e) Verify adds the accountant: amol.vaidya on manager-service :3002 (POST /orders/{B}/cancel → 403 'the accountant role may not call POST /orders/:id/cancel'; GET /orders?limit=5 → 200); manager app :5174 shows no Cancel",
+     "satisfied": true,
+     "detail": "Dev servers are forbidden in this lane, so I ran the same probe in process. It booted managerServiceDefinition from the rebuilt @dos/core dist with a token for the seeded amol.vaidya (9be27e0e…, accountant, pilot tenant) in dos_test_b2_h5, using Fastify inject. Results:\n- POST /orders/39c6f032…/cancel answered 403 with the exact message.\n- POST /orders, /lines, /repeat-last and /submit also answered 403 with their exact messages.\n- GET /orders?limit=5 answered 200 with 5 items.\n- OpenAPI x-roles for the five POST routes are [owner, manager, salesperson, retailer]; GET /orders still lists accountant, warehouse and delivery.\n- A DB snapshot of the target orders, lines, reservations, transitions and outbox rows was byte-identical before and after.\nThe manager app at :5174 was not opened; Cancel is proven absent only by code: it is gated on can('orders.confirm'), and orders.confirm is MANAGEMENT."
+    },
+    {
+     "amendment": "(f) docs/22 clarification row with the accountant sentence; docs/23 remove the order items from §4.3 and §5.3 and check §2 for an order-write line",
+     "satisfied": true,
+     "detail": "The docs/23 half is done.\n- §4.3 and §5.3 drop the order-write items and note 'closed by DOS-115 (2026-09-13)'.\n- I grepped §2 myself. The §2.3 accountant write list names none of the five writes. The only §2 hit is M2 'orders.cancel ✓' on the manager's own queue, which is still true, so leaving §2 unchanged is correct.\n- The docs/22 half cannot be in this commit: lane rules forbid docs/22 edits, and the verifier brief requires no docs/22 in the commit. It is correctly carried in followUps."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "docs/22-source-of-truth.md",
+     "detail": "Not done in this lane, by lane rule; the main session must do it after merge:\n- the docs/22 §8 clarification row (including the accountant sentence from amendment (f)), the §7 wording change, a §11 row, the re-render and the artifact republish;\n- ONE `pnpm docs:readme` on the merged tree (`pnpm docs:readme:check` fails until then);\n- the QA/13 row in its own commit;\n- the live app, device and smoke steps: van sale on :5177 and the Pixel 7, warehouse Pack on :5176, manager app :5174 as amol.vaidya, scoped `pnpm smoke --service warehouse|delivery --run-tag dos115`."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.registry.ts",
+     "detail": "The accountant's sync manifest still advertises sales_orders and sales_order_lines as `writable: true`, which is now inconsistent with the handlers:\n- DESK_DEVICE_ROLES (:232) adds the accountant to every pull table;\n- `writable = mayUpload(role) && handlers.has(table)` (:142), and sync.upload is STAFF;\n- the two handlers now answer 'forbidden' to that role.\nHarmless today: the manager app is online-first (docs/23 §2.4) and builds no order queue. The fix belongs in sync.registry.ts, which lane h7 (DOS-166) owns: the architect's `standsFor` design has manifest().writable read the same permission. Do not fix it in DOS-115."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/pricing/pricing.spec.ts",
+     "detail": "Pre-existing Prettier drift on the base tree, not touched by 2ec9583. I confirmed `prettier --check` warns on it. CI `pnpm format:check` will flag it until someone formats it."
+    }
+   ],
+   "evidence": "SCOPE. HEAD is 2ec9583 on qa/b2-h5-orders, one commit on fcb0d77, 11 files:\n- permissions.ts and permissions.test.ts\n- orders.internals.ts, orders.service.ts, orders.sync.ts, orders.spec.ts\n- billing.spec.ts\n- the warehouse-service and delivery-service specs\n- docs/23\n- the manager-app orders/index.tsx comment\n\nThere are no generated READMEs, no QA/ files and no docs/22. Only the five orders.* rows changed in the matrix; get/list stay ANY_MEMBER, and there is no schema, contract-shape or RLS change. `git status` is clean at the end.\n\nFAIL FIRST. I reversed every non-test change with the prescribed `git diff C^ C -- . ':(exclude)…' | git apply -R` (6 files), rebuilt @dos/contracts and @dos/core, and checked dist: 'orders.create': ANY_MEMBER, requireRole(ORDER_ROLES), no requirePlacer.\n- permissions.test DOS-115: FAIL, 'orders.create: expected [owner, manager, accountant, salesperson, warehouse, delivery, retailer] to deeply equal [owner, manager, salesperson, retailer]'.\n- orders.spec -t DOS-115: 3 FAIL.\n  - (a) warehouse got 200 on all 6 probes; delivery got 200 on create, lines and repeat-last, and 409 only because the warehouse had already submitted and cancelled.\n  - (b) 'warehouse: expected {accepted: 2, rejected: []}'.\n  - (c) 409 on the rep's cancel, a cascade from (a).\n- warehouse-service DOS-115: FAIL, 400 instead of 403 (validation reached past the gate).\n- delivery-service DOS-115: FAIL, 500 instead of 403 (idempotency_keys tenant FK).\n- (c) alone: controls passed; failed at `expect(ORDER_PLACERS).toContain('system')` because the tuple is undefined.\n\nLAYERED PROOF (mine):\n- Core tuple restored, matrix reversed: (c) alone fails on the matrix itself, 7 roles versus 4.\n- Matrix, tuple and sync fixed, service reversed: (a) passes all 12 HTTP 403s but fails 'expected null to be an instance of ORPCError' (the in-process cancel succeeded); (b) passes.\n- Everything fixed except orders.sync.ts: (b) fails with accepted 2; (a) passes. The sync handler calls insertDraft/writeLines directly, so requirePlacer is independently necessary.\n- Restored with `git checkout -- .`, tree clean, contracts and core rebuilt (dist shows ORDER_PLACERS, 5× requireRole(ORDER_PLACERS), requirePlacer).\n\nPASS AFTER. Whole files, one per command, against dos_test_b2_h5:\n- contracts permissions.test.ts 45/45\n- core orders.spec.ts 31/31\n- billing.spec.ts 21/21\n- sync.spec.ts 7/7 and sync.coverage.spec.ts 19/19\n- docs/readme.test.ts 15/15 and docs/examples.spec.ts 31/31\n- warehouse-service 254/254, delivery-service 260/260, manager-service 344/344; verbose output shows the matrix rows 'orders.cancel: owner, manager, salesperson, retailer'.\n\nStatic checks:\n- `turbo run typecheck lint --force` for @dos/contracts, @dos/core, @dos/warehouse-service and @dos/delivery-service: 12/12 successful, 0 cached. The first run was 12/12 from cache, so I forced a re-run.\n- frontend @dos/manager-app lint exit 0, typecheck exit 0.\n- `prettier --check` clean on all 10 touched source files.\n\nIN-PROCESS LIVE EQUIVALENT (no dev server). A scratchpad script booted manager, warehouse and delivery service definitions from the rebuilt core dist, with tokens for the seeded amol.vaidya, dinesh.patil and ganesh.more. 34/34 checks passed:\n- Exact 403 'the <role> role may not call POST /orders…' on every probe.\n- /sync/upload answered 200 with accepted 0 and code forbidden (Hindi and English messages) for the warehouse sales_order_lines PUT and the delivery sales_orders PUT.\n- GET /orders/{A} and GET /orders?limit=5 answered 200.\n- OpenAPI x-roles for the five POST routes on :3002, :3004 and :3005 are [owner, manager, salesperson, retailer]; GET /orders still lists all seven roles.\n- DB snapshot of orders A/B/C, their lines, reservations, transitions and outbox: md5 identical before and after. 0 transitions by the three intruders, no row for the uploaded order id, 2 forbidden sync_errors rows.\n\nDIFF HUNT:\n- billing.spec changed only the creating actor, driver to manager, at :909 and :937; the plan requires it, and every assertion is unchanged.\n- No other spec writes orders as warehouse, delivery or accountant (grep of all specs).\n- The five public methods are called only from orders.controller.ts; van sales, AI drafts and approvals use the internal helpers.\n- The warehouse and delivery apps call no order write; delivery-app van-sale.tsx mentions orders.* only in a comment.\n- No assertion weakened or removed, no module-boundary violation, no RLS bypass, no leftover files."
+  }
+ ]
+}

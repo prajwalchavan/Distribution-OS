@@ -1,5 +1,5 @@
 {
-  "id": "a6bd2aa8-ab9f-419a-914e-297fd24e5d1c",
+  "id": "a64316ab-2f7b-474e-a010-3c6e8ab768ba",
   "prevId": "71fb2489-2081-4833-b5db-b2607fc2c7da",
   "version": "7",
   "dialect": "postgresql",
@@ -14523,33 +14523,6 @@
           "method": "btree",
           "with": {}
         },
-        "pack_confirmations_created_idx": {
-          "name": "pack_confirmations_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "pack_confirmations_order_uniq": {
           "name": "pack_confirmations_order_uniq",
           "columns": [
@@ -18626,7 +18599,7 @@
           "to": [
             "app_rw"
           ],
-          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'"
+          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'accountant', 'delivery', 'system')"
         },
         "receipts_write_update": {
           "name": "receipts_write_update",

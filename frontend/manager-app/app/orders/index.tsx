@@ -10,9 +10,10 @@
  * check that reserves, and the order machine leaves `confirmed` only through `start_picking` or
  * `cancel`. A mistaken confirm is a cancel with a reason, which is why the dialog says so.
  *
- * The accountant reads this queue and decides nothing on it: `orders.confirm`, `orders.cancel`
- * (back office writes) and both `decide` procedures are owner + manager in the matrix, so the
- * buttons are ABSENT for that role rather than greyed.
+ * The accountant reads this queue and decides nothing on it: `orders.confirm` and both `decide`
+ * procedures are owner + manager in the matrix, and `orders.cancel` is ORDER_PLACERS (owner, manager,
+ * salesperson, retailer — never the accountant, DOS-115). The queue draws Confirm and Cancel under
+ * `can('orders.confirm')` deliberately, so the buttons are ABSENT for that role rather than greyed.
  */
 import type { Order } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
