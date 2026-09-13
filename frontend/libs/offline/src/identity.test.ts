@@ -1353,6 +1353,142 @@ describe('DOS-167 sign-out ends the engine', () => {
       },
     })
   })
+
+  /*
+   * Addendum (x). "Sign out, keep here" crashed the delivery app on Android (2 of 2) and Expo Go on iOS (2 of 2): SIGSEGV in
+   * expo-sqlite's `exsqlite3_reset`. expo-sqlite's close finalizes every prepared statement and marks the database
+   * closed only after `sqlite3_close` (SQLiteModule.kt `closeDatabase`), while a `runAsync` already on another
+   * dispatcher thread passes that check and resets a statement that is gone. What was in flight: the reads the emit of
+   * the dropped tables re-ran (`useOutbox`, `useNeedsAttention` query the moment they are told), and any read a screen
+   * had started before the tap.
+   */
+  it('DOS-167 end() never lets a store call start or run after close begins', async () => {
+    /** A store that answers on a later turn, as the native bridge does, and writes down what reached it against the close. */
+    function bridged(inner: SyncStore): {
+      store: SyncStore
+      late: string[]
+      order: string[]
+      hold: (fragment: string) => () => void
+    } {
+      const late: string[] = []
+      const order: string[] = []
+      const holds: { fragment: string; door: Promise<void> }[] = []
+      let closing = false
+      const call = async <T>(sql: string, run: () => Promise<T>): Promise<T> => {
+        if (closing) late.push(`started after close began: ${sql}`)
+        const held = holds.find((entry) => sql.includes(entry.fragment))
+        if (held !== undefined) holds.splice(holds.indexOf(held), 1)
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+          if (held !== undefined) await held.door
+          return await run()
+        } finally {
+          if (closing) late.push(`finished after close began: ${sql}`)
+          if (held !== undefined) order.push('the slow read landed')
+        }
+      }
+      return {
+        late,
+        order,
+        hold: (fragment) => {
+          let open = (): void => {}
+          const door = new Promise<void>((resolve) => {
+            open = resolve
+          })
+          holds.push({ fragment, door })
+          return () => {
+            open()
+          }
+        },
+        store: {
+          persistent: true,
+          kind: 'sqlite-native',
+          exec: (sql, params) => call(sql, () => inner.exec(sql, params)),
+          query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> =>
+            call(sql, () => inner.query<T>(sql, params)),
+          transaction: (fn) => call('BEGIN', () => inner.transaction(fn)),
+          close: async () => {
+            closing = true
+            order.push('close began')
+            await inner.close()
+          },
+          destroy: async () => {
+            order.push('destroy')
+            await inner.destroy?.()
+          },
+        },
+      }
+    }
+
+    async function signsOutWhileAScreenReads(keepQueue: boolean): Promise<unknown> {
+      const bridge = bridged(createMemoryStore())
+      const server = new FakeServer(TABLES)
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+      const engine = engineAs(RAHUL, bridge.store, server.transport())
+      await engine.start()
+      if (keepQueue) {
+        // An order the office refused and one taken in a dead spot: the queue and the tray both hold rows.
+        server.rejections.set('op-refused', {
+          code: 'credit_hold',
+          messageEn: 'Shop is on credit hold',
+        })
+        await engine.enqueue({
+          table: 'sales_orders',
+          id: 'o-refused',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+          opId: 'op-refused',
+        })
+        await engine.flush()
+        server.offline = true
+        await engine.enqueue({
+          table: 'sales_orders',
+          id: 'o-queued',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+        })
+        await engine.flush()
+      }
+      // The mounted screens: told a table changed, each asks again at once.
+      const rereads: Promise<unknown>[] = []
+      engine.onTables((tables) => {
+        if (tables.has('retailers')) rereads.push(engine.queryTable('retailers').catch(() => []))
+        if (tables.has(OUTBOX_CHANNEL)) rereads.push(engine.outbox().catch(() => []))
+        if (tables.has(OUTBOX_CHANNEL) || tables.has(ERRORS_CHANNEL))
+          rereads.push(engine.needsAttention().catch(() => []))
+      })
+      // The shops list is still reading when the rep taps Sign out.
+      const openTheSlowRead = bridge.hold('FROM "retailers"')
+      const slowRead = engine.queryTable('retailers').catch(() => [])
+      await sleep(0)
+      const ending = engine.end({ keepQueue })
+      setTimeout(openTheSlowRead, 20)
+      const ended = await ending
+      await slowRead
+      await Promise.all(rereads)
+      await sleep(20)
+      return { ended, late: bridge.late, order: bridge.order }
+    }
+
+    expect({
+      keep: await signsOutWhileAScreenReads(true),
+      oneTap: await signsOutWhileAScreenReads(false),
+    }).toEqual({
+      keep: {
+        ended: { kept: true, pending: 1, rejected: 1 },
+        late: [],
+        order: ['the slow read landed', 'close began'],
+      },
+      oneTap: {
+        ended: { kept: false, pending: 0, rejected: 0 },
+        late: [],
+        order: ['the slow read landed', 'close began', 'destroy'],
+      },
+    })
+  })
 })
 
 // 14 -------------------------------------------------------------------------------------------------------------
@@ -1536,6 +1672,74 @@ describe('DOS-167 the SQLite file itself', () => {
     await expect(
       (await openExpoSqlite(open.sqlite, name, 'sqlite-native')).destroy?.(),
     ).rejects.toThrow(/Unable to delete/)
+  })
+
+  /*
+   * Addendum (x), rule 3. Whatever the engine does, the adapter is the last door before the native binding: a call made
+   * once the close has begun is refused with a typed error instead of reaching a connection whose statements are being
+   * finalized, and the close runs once.
+   */
+  it('DOS-167 the SQLite adapter refuses a call after close began', async () => {
+    const calls: string[] = []
+    let finishClose = (): void => {}
+    const closed = new Promise<void>((resolve) => {
+      finishClose = resolve
+    })
+    const db: ExpoDatabaseLike = {
+      execAsync: async (sql) => {
+        calls.push(`execAsync ${sql}`)
+      },
+      runAsync: async (sql) => {
+        calls.push(`runAsync ${sql}`)
+      },
+      getAllAsync: async <T>(sql: string) => {
+        calls.push(`getAllAsync ${sql}`)
+        return [] as T[]
+      },
+      withTransactionAsync: async (fn) => {
+        calls.push('withTransactionAsync')
+        await fn()
+      },
+      closeAsync: () => {
+        calls.push('closeAsync')
+        return closed
+      },
+    }
+    const store = await openExpoSqlite(
+      { openDatabaseAsync: async () => db },
+      storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+      'sqlite-native',
+    )
+    calls.length = 0
+
+    const closing = store.close()
+    const reached = (call: Promise<unknown>): Promise<unknown> =>
+      call.then(
+        () => 'reached the binding',
+        (error: unknown) => ({
+          name: (error as Error).name,
+          code: (error as { code?: unknown }).code,
+        }),
+      )
+    const late = {
+      query: await reached(store.query(`SELECT * FROM ${OUTBOX_TABLE}`)),
+      exec: await reached(store.exec(`DELETE FROM ${OUTBOX_TABLE}`)),
+      run: await reached(
+        store.exec(`UPDATE ${OUTBOX_TABLE} SET status = ? WHERE op_id = ?`, ['queued', 'op-1']),
+      ),
+      transaction: await reached(store.transaction(async () => 'written')),
+    }
+    const again = store.close()
+    finishClose()
+    await closing
+    await again
+    await store.close()
+
+    const REFUSED = { name: 'StoreClosedError', code: 'closed' }
+    expect({ late, calls }).toEqual({
+      late: { query: REFUSED, exec: REFUSED, run: REFUSED, transaction: REFUSED },
+      calls: ['closeAsync'],
+    })
   })
 })
 

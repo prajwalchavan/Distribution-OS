@@ -37,6 +37,8 @@ import type {
   OutboxRow,
   SqlValue,
   StoreFactory,
+  StoreFallback,
+  StoreKind,
   SyncIdentity,
   SyncStatus,
   SyncStore,
@@ -250,8 +252,78 @@ export interface SyncEngineOptions {
 
 type Timer = ReturnType<typeof setTimeout>
 
+/**
+ * The store as the engine holds it (DOS-167 addendum (x)): every call through it is counted from the moment it starts
+ * until it settles, and the file is closed only once the last one has landed — once, however often `close()` is asked.
+ *
+ * "Sign out, keep here" crashed the delivery app on Android and Expo Go on iOS, 2 of 2 each: SIGSEGV in expo-sqlite's
+ * `exsqlite3_reset`. expo-sqlite's close finalizes every prepared statement and marks the database closed only after
+ * `sqlite3_close` (android SQLiteModule.kt `closeDatabase`), while a `runAsync` already on another dispatcher thread
+ * passes that check and resets a statement that is gone. The engine closed the file with reads still in flight.
+ */
+class HeldStore implements SyncStore {
+  readonly persistent: boolean
+  readonly kind: StoreKind
+  readonly fallback?: StoreFallback
+  private readonly inFlight = new Set<Promise<unknown>>()
+  private closeOnce: Promise<void> | null = null
+
+  constructor(private readonly inner: SyncStore) {
+    this.persistent = inner.persistent
+    this.kind = inner.kind
+    if (inner.fallback !== undefined) this.fallback = inner.fallback
+  }
+
+  exec(sql: string, params?: readonly SqlValue[]): Promise<void> {
+    return this.held(this.inner.exec(sql, params))
+  }
+
+  query<T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> {
+    return this.held(this.inner.query<T>(sql, params))
+  }
+
+  transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+    return this.held(this.inner.transaction(fn))
+  }
+
+  /** No call started through this store is still running. */
+  get idle(): boolean {
+    return this.inFlight.size === 0
+  }
+
+  /** The close has begun (a `stop()`, or `end()`). */
+  get closing(): boolean {
+    return this.closeOnce !== null
+  }
+
+  /** Until no call started through this store is still running. */
+  async drain(): Promise<void> {
+    while (this.inFlight.size > 0) await Promise.allSettled([...this.inFlight])
+  }
+
+  close(): Promise<void> {
+    this.closeOnce ??= this.drain().then(() => this.inner.close())
+    return this.closeOnce
+  }
+
+  /** Only after the close has resolved. */
+  async destroy(): Promise<void> {
+    await this.close()
+    await this.inner.destroy?.()
+  }
+
+  private held<T>(call: Promise<T>): Promise<T> {
+    this.inFlight.add(call)
+    const landed = (): void => {
+      this.inFlight.delete(call)
+    }
+    void call.then(landed, landed)
+    return call
+  }
+}
+
 export class SyncEngine {
-  private store: SyncStore | null = null
+  private store: HeldStore | null = null
   private readonly bus = new ChangeBus()
   private readonly statusListeners = new Set<(status: SyncStatus) => void>()
   private shapes = new Map<string, TableShape>()
@@ -369,12 +441,14 @@ export class SyncEngine {
        * engine: handed the store before the claim, they read another person's queue and refusals for as
        * long as the claim took.
        */
-      this.store = store
+      // Held from here on (addendum (x)): neither `stop()` nor `end()` closes the file under a call in flight.
+      const held = new HeldStore(store)
+      this.store = held
       unclaimed = null
-      await writeState(store, 'deviceId', this.options.deviceId)
-      this.schemaVersion = await readState(store, 'schemaVersion')
-      this.lastPulledAt = await readState(store, 'lastPulledAt')
-      await this.restoreManifest(store)
+      await writeState(held, 'deviceId', this.options.deviceId)
+      this.schemaVersion = await readState(held, 'schemaVersion')
+      this.lastPulledAt = await readState(held, 'lastPulledAt')
+      await this.restoreManifest(held)
       await this.refreshCounts()
       this.ready = true
       this.emitStatus()
@@ -410,8 +484,14 @@ export class SyncEngine {
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
     this.retryTimer = null
     this.pollTimer = null
-    await this.store?.close()
-    this.store = null
+    /*
+     * THROUGH THE SAME DRAIN AS `end()` (addendum (x)): from here every public read answers empty, the calls already in
+     * flight land, and only then does the file close, once. A distributor switch is this stop on the old file.
+     */
+    const store = this.store
+    if (store === null) return
+    await store.close()
+    if (this.store === store) this.store = null
   }
 
   /** `stop()` ran while `start()` was still opening or claiming its file; `end()` does not count. */
@@ -479,7 +559,8 @@ export class SyncEngine {
   }
 
   private async endOnce(options: { keepQueue: boolean }): Promise<EndResult> {
-    // Before the first `await`: a write that begins from here on is refused (`requireStore`).
+    // Before the first `await`: a write that begins from here on is refused (`requireStore`), and a read answers
+    // empty without touching the store (`readsOpen`, addendum (x)).
     this.ended = true
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
@@ -490,13 +571,23 @@ export class SyncEngine {
     const store = this.store
     try {
       if (store === null) return { kept: false, pending: 0, rejected: 0 }
+      if (store.closing) {
+        // A `stop()` began closing this file first: it is closed as it stands, and nothing more reaches it.
+        await store.close()
+        return { kept: true, pending: this.pending, rejected: this.rejected }
+      }
       await this.refreshCounts()
       const pending = this.pending
       const rejected = this.rejected
       const kept = options.keepQueue || pending + rejected > 0
+      /*
+       * THE ORDER OF THE LAST STEPS IS THE FIX FOR A NATIVE CRASH (addendum (x)): the wipe; its emit, which re-runs
+       * every mounted read — each answers empty now and starts no call; `close()`, which waits for any call still in
+       * flight before the file closes; and the delete only once the close has resolved.
+       */
       await this.dropReadSet(store, { keepQueue: kept })
       await store.close()
-      if (!kept) await store.destroy?.()
+      if (!kept) await store.destroy()
       return { kept, pending, rejected }
     } finally {
       // Even when a step threw: the caller signs out regardless, and this engine never writes again.
@@ -505,8 +596,9 @@ export class SyncEngine {
   }
 
   /**
-   * Until no open, no upload batch, no pull and no write in hand is in flight. Nothing new starts once
-   * `ended` is set, so one pass that finds the batch and the pull unchanged and no write left is the end.
+   * Until no open, no upload batch, no pull, no write in hand and no store call — a screen's read included
+   * (addendum (x)) — is in flight. Nothing new starts once `ended` is set, so one pass that finds all of them
+   * unchanged and idle is the end.
    */
   private async settled(): Promise<void> {
     await this.opening
@@ -517,7 +609,14 @@ export class SyncEngine {
       await flushing.catch(() => {})
       await syncing
       await Promise.all(writes)
-      if (flushing === this.flushChain && syncing === this.syncing && this.writes.size === 0) return
+      await this.store?.drain()
+      if (
+        flushing === this.flushChain &&
+        syncing === this.syncing &&
+        this.writes.size === 0 &&
+        (this.store?.idle ?? true)
+      )
+        return
     }
   }
 
@@ -526,9 +625,11 @@ export class SyncEngine {
    * open in `start()` has finished (DOS-167). The sign-out decision is taken on THIS, never on `status()`:
    * the snapshot reads 0 until the open has counted the outbox, and a sign-out tapped in that window took
    * the one-tap path and deleted the queue it had not seen yet. An open that failed has no file to count.
+   * Once `end()` or `stop()` has begun, the last count is the answer and the store is not read (addendum (x)).
    */
   async waiting(): Promise<{ pending: number; rejected: number }> {
     await this.opening
+    if (!this.readsOpen()) return { pending: this.pending, rejected: this.rejected }
     await this.refreshCounts()
     this.emitStatus()
     return { pending: this.pending, rejected: this.rejected }
@@ -1360,7 +1461,7 @@ export class SyncEngine {
 
   async countRows(table: string): Promise<number> {
     const store = this.store
-    if (store === null || !this.shapes.has(table)) return 0
+    if (store === null || !this.readsOpen() || !this.shapes.has(table)) return 0
     const [row] = await store.query<{ n: number }>(`SELECT COUNT(*) AS n FROM ${quoteIdent(table)}`)
     return Number(row?.n ?? 0)
   }
@@ -1368,7 +1469,7 @@ export class SyncEngine {
   async queryTable<T>(table: string, options: TableQuery = {}): Promise<T[]> {
     const store = this.store
     const shape = this.shapes.get(table)
-    if (store === null || !shape) return []
+    if (store === null || !shape || !this.readsOpen()) return []
     const where = options.where === undefined ? '' : ` WHERE ${options.where}`
     const order = options.orderBy === undefined ? '' : ` ORDER BY ${options.orderBy}`
     const limit = options.limit === undefined ? '' : ` LIMIT ${String(Math.trunc(options.limit))}`
@@ -1391,7 +1492,7 @@ export class SyncEngine {
 
   async outbox(): Promise<OutboxRow[]> {
     const store = this.store
-    if (store === null) return []
+    if (store === null || !this.readsOpen()) return []
     const rows = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${OUTBOX_TABLE} ORDER BY seq`,
     )
@@ -1401,7 +1502,7 @@ export class SyncEngine {
   /** The tray (docs/27 §11): the rejection, the op the device still holds, and the server's row. */
   async needsAttention(): Promise<NeedsAttentionItem[]> {
     const store = this.store
-    if (store === null) return []
+    if (store === null || !this.readsOpen()) return []
     const errors = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL ORDER BY created_at DESC`,
     )
@@ -1416,6 +1517,8 @@ export class SyncEngine {
         createdAt: String(raw.created_at ?? ''),
         discardedAt: raw.discarded_at === null ? null : String(raw.discarded_at),
       }
+      // A sign-out or a stop that began while this read ran ends it here: no call starts after it (addendum (x)).
+      if (!this.readsOpen()) return []
       const opRows = await store.query<Record<string, SqlValue>>(
         `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
         [error.opId],
@@ -1461,7 +1564,7 @@ export class SyncEngine {
   async flushGps(tripId: string): Promise<void> {
     const store = this.store
     const post = this.options.transport.postGpsPoints
-    if (store === null || post === undefined) return
+    if (store === null || post === undefined || !this.readsOpen()) return
     const rows = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${GPS_TABLE} WHERE trip_id = ? AND posted = 0 ORDER BY ts LIMIT 500`,
       [tripId],
@@ -1482,6 +1585,7 @@ export class SyncEngine {
         })),
       }),
     )
+    if (!this.readsOpen()) return
     for (const row of rows)
       await store.exec(`UPDATE ${GPS_TABLE} SET posted = 1 WHERE trip_id = ? AND ts = ?`, [
         tripId,
@@ -1497,6 +1601,16 @@ export class SyncEngine {
    * `end()` begins, and after it has finished, nothing more is saved on this phone and the person is told so
    * in a sentence — never shown a write that the sign-out would then delete.
    */
+  /**
+   * Whether a public read may still touch the store (DOS-167 addendum (x)): not once `end()` or `stop()` has begun.
+   * From then on a read answers empty and starts no call the close would have to wait for — the emit of the dropped
+   * tables re-runs every mounted read, and those reads were still in flight when expo-sqlite closed the file under
+   * them.
+   */
+  private readsOpen(): boolean {
+    return this.started && !this.ended
+  }
+
   private requireStore(): SyncStore {
     if (this.ended) throw new SyncEngineEndedError()
     if (this.store === null) throw new Error('the sync engine has not started yet')

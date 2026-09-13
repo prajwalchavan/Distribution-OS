@@ -44,10 +44,26 @@ function alreadyGone(error: unknown): boolean {
   return /not found|closed resource|already closed/i.test(message)
 }
 
+/**
+ * What the adapter answers for a call made once its close has begun (DOS-167 addendum (x)). expo-sqlite's close
+ * finalizes every prepared statement and marks the database closed only after `sqlite3_close`, so a call that reached
+ * the binding in that window reset a statement that was gone: the SIGSEGV in `exsqlite3_reset` of the Android and
+ * iOS proofs after "Sign out, keep here". Refused here, it never reaches the binding.
+ */
+export class StoreClosedError extends Error {
+  readonly code = 'closed'
+
+  constructor() {
+    super('offline: this device store is closed; nothing more is read from it or written to it')
+    this.name = 'StoreClosedError'
+  }
+}
+
 class ExpoSqliteStore implements SyncStore {
   readonly persistent = true
   private depth = 0
-  private closed = false
+  /** The one close (addendum (x)): once it has begun every call is refused, and a second close waits for the first. */
+  private closing: Promise<void> | null = null
 
   constructor(
     private readonly db: ExpoDatabaseLike,
@@ -57,6 +73,7 @@ class ExpoSqliteStore implements SyncStore {
   ) {}
 
   async exec(sql: string, params: readonly SqlValue[] = []): Promise<void> {
+    this.refuseOnceClosing()
     if (params.length === 0) {
       // `execAsync` is the only call that takes a multi-statement script.
       await this.db.execAsync(sql)
@@ -66,6 +83,7 @@ class ExpoSqliteStore implements SyncStore {
   }
 
   async query<T>(sql: string, params: readonly SqlValue[] = []): Promise<T[]> {
+    this.refuseOnceClosing()
     return this.db.getAllAsync<T>(sql, params)
   }
 
@@ -76,6 +94,7 @@ class ExpoSqliteStore implements SyncStore {
    */
   async transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
     if (this.depth > 0) return fn(this)
+    this.refuseOnceClosing()
     let result: T
     let captured: unknown = null
     let ok = false
@@ -98,9 +117,10 @@ class ExpoSqliteStore implements SyncStore {
     return result!
   }
 
-  async close(): Promise<void> {
-    await this.db.closeAsync()
-    this.closed = true
+  /** Once (addendum (x)): `closeAsync` is called a single time, and every close after the first waits for it. */
+  close(): Promise<void> {
+    this.closing ??= this.db.closeAsync()
+    return this.closing
   }
 
   /**
@@ -108,13 +128,10 @@ class ExpoSqliteStore implements SyncStore {
    * delete an open database, so it is closed first — once: `end()` has usually closed it already.
    */
   async destroy(): Promise<void> {
-    if (!this.closed) {
-      try {
-        await this.db.closeAsync()
-      } catch (error) {
-        if (!alreadyGone(error)) throw error
-      }
-      this.closed = true
+    try {
+      await this.close()
+    } catch (error) {
+      if (!alreadyGone(error)) throw error
     }
     if (this.sqlite.deleteDatabaseAsync === undefined) return
     try {
@@ -122,6 +139,11 @@ class ExpoSqliteStore implements SyncStore {
     } catch (error) {
       if (!alreadyGone(error)) throw error
     }
+  }
+
+  /** The last door before the native binding: nothing passes it once the close has begun. */
+  private refuseOnceClosing(): void {
+    if (this.closing !== null) throw new StoreClosedError()
   }
 }
 
