@@ -98,6 +98,12 @@ export default function OrderDetail(): React.JSX.Element {
 
   const canCancel = detail !== undefined && CANCELLABLE.has(detail.state)
   const isDraft = detail?.state === 'draft'
+  /*
+   * DOS-144: once an order has a bill, the bill's OWN amount due answers "how much" — not the
+   * order's original total, which still counted pieces a short pick never shipped. An order becomes
+   * at most one invoice at pack (docs/22's order-to-cash flow); `bills.data.items[0]` is it.
+   */
+  const bill = bills.data?.items[0]
 
   return (
     <Screen
@@ -124,11 +130,33 @@ export default function OrderDetail(): React.JSX.Element {
           <Row gap={4} justify="between" align="center" wrap>
             <Stack gap={1}>
               <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {t('r7.net')}
+                {bill === undefined
+                  ? t('r7.net')
+                  : bill.amountDuePaise > 0
+                    ? t('r4.due')
+                    : t('r4.paid')}
               </Txt>
-              <Money value={detail.totalPaise} size="moneyL" />
+              {/*
+                DOS-144: once there is a bill, ITS amount due is what the shop pays — the order's own
+                total still counted the 6 pieces a short pick never shipped ("You pay ₹6,753.00" next
+                to a bill that read ₹6,679.00 for the same order).
+              */}
+              <Money
+                value={bill === undefined ? detail.totalPaise : bill.amountDuePaise}
+                size="moneyL"
+              />
             </Stack>
             <Row gap={4} wrap>
+              {bill === undefined ? null : (
+                <Button
+                  label={t('r8.seeBill')}
+                  variant="secondary"
+                  onPress={() => {
+                    router.push(`/bills/${bill.id}`)
+                  }}
+                  testID="r8-see-bill"
+                />
+              )}
               {canCancel ? (
                 <Button
                   label={t('r8.cancel')}
@@ -180,20 +208,35 @@ export default function OrderDetail(): React.JSX.Element {
                 testID="r8-lines"
               >
                 <Group>
-                  {detail.lines.map((line) => (
-                    <ListRow
-                      key={line.id}
-                      primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
-                      secondary={`${billLineQty(line, t)} · ${formatMoney(line.ratePaise)}${
-                        offRate(line) > 0 ? ` · −${formatMoney(offRate(line))}` : ''
-                      }${
-                        line.taxPaise > 0
-                          ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
-                          : ''
-                      }`}
-                      trailingMoney={line.lineTotalPaise}
-                    />
-                  ))}
+                  {detail.lines.map((line) => {
+                    // DOS-144: once the order has a bill, a short-picked line said nothing about the
+                    // pieces that never shipped — "60 pc" stayed the ordered count, next to a bill
+                    // that had already billed 54. `billLineQty` prints what was ORDERED; this is
+                    // what actually reached the shop, the only figure the bill can agree with.
+                    const short = bill === undefined ? 0 : line.qtyPcs - line.deliveredQtyPcs
+                    const qtyText =
+                      short > 0
+                        ? t('r8.short', {
+                            delivered: String(line.deliveredQtyPcs),
+                            ordered: String(line.qtyPcs),
+                            short: String(short),
+                          })
+                        : billLineQty(line, t)
+                    return (
+                      <ListRow
+                        key={line.id}
+                        primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
+                        secondary={`${qtyText} · ${formatMoney(line.ratePaise)}${
+                          offRate(line) > 0 ? ` · −${formatMoney(offRate(line))}` : ''
+                        }${
+                          line.taxPaise > 0
+                            ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
+                            : ''
+                        }`}
+                        trailingMoney={line.lineTotalPaise}
+                      />
+                    )
+                  })}
                 </Group>
               </Panel>
 

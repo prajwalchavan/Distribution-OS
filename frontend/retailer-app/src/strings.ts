@@ -162,6 +162,8 @@ export const strings = {
   'r8.stopState': 'The van is {state}',
   'r8.stopSeq': 'Stop {seq} on that round',
   'r8.bill': 'Bill {no}',
+  'r8.seeBill': 'See the bill',
+  'r8.short': '{delivered} of {ordered} pc, {short} short and not billed',
   'r8.cancel': 'Cancel this order',
   'r8.keepIt': 'Keep it',
   'r8.cancelReason': 'Why are you cancelling',
