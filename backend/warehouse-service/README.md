@@ -164,6 +164,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
@@ -14842,13 +14843,14 @@ What was packed, and what still has no bill · contract `warehouse.packs.list`
 | `picklistId` | uuid | no |
 | `orderId` | uuid | no |
 | `invoiced` | boolean | string | no |
+| `status` | awaiting_load | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3004/warehouse/packs?from=2026-09-04&to=2026-09-04&picklistId=01a06dc3-1560-766a-8975-e547c8c480a4&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&invoiced=true&limit=50" \
+curl "http://localhost:3004/warehouse/packs?from=2026-09-04&to=2026-09-04&picklistId=01a06dc3-1560-766a-8975-e547c8c480a4&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&invoiced=true&status=awaiting_load&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -18333,6 +18335,108 @@ curl "http://localhost:3004/delivery/trips?state=planned&vehicleId=01a06d9c-98d8
       "startedAt": "2026-09-04T10:30:00.000Z",
       "endedAt": null,
       "createdAt": "2026-09-04T10:30:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trip-planning`
+
+Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) · contract `delivery.trips.planning`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `date` | date | no |
+| `beatId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/delivery/trip-planning?date=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "date": "2026-09-04",
+  "crew": [
+    {
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "name": "Sharma Kirana Store",
+      "onTripId": "01a06d13-8baf-7d7e-83a4-bcfc01d0fd27",
+      "onTripNo": "SO-0042"
+    }
+  ],
+  "bills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml"
     }
   ],
   "nextCursor": null
@@ -33867,6 +33971,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.consents.get` | – | – | – | – | – | – | – |
 | `delivery.trips.create` | – | – | – | – | ✓ | – | – |
 | `delivery.trips.list` | – | – | – | – | ✓ | – | – |
+| `delivery.trips.planning` | – | – | – | – | ✓ | – | – |
 | `delivery.trips.get` | – | – | – | – | ✓ | – | – |
 | `delivery.trips.startLoading` | – | – | – | – | ✓ | – | – |
 | `delivery.trips.depart` | – | – | – | – | – | – | – |
