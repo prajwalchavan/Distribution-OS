@@ -1,0 +1,193 @@
+{
+ "id": "DOS-056",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-056",
+   "status": "fixed",
+   "commits": [
+    "b4d0daa fix(DOS-056): offline doorstep delivery keeps its photo, no answer saves to the outbox, tray drops Zod JSON"
+   ],
+   "failBefore": "Method: the non-test diff was saved outside the repo (scratchpad/dos056/nontest.patch, 18 files). doorstep.ts and jpeg-budget.ts were moved aside, the patch was reversed with git apply -R, the tests were run one file at a time, then the patch was re-applied and both files restored (byte-identical, checked with cmp). No stash, no reset.\n- delivery.spec.ts (26 tests, 3 failed):\n  - 'DOS-056 an offline delivery ... pod_evidence holds only an object key' failed with AssertionError: expected [ { ... } ] to deeply equal []. The received rejection was code \"row_invalid\" with a messageEn that is the Zod JSON array ([{\"code\":\"custom\",\"path\":[\"pod\",0],\"message\":\"a photo or signature carries exactly one of objectKey / inline; ...\"}]).\n  - 'DOS-056 a malformed offline delivery is refused row_invalid ...' failed with expected '[\\n  {\\n    \"code\": \"custom\", ...' to be 'a photo or signature carries exactly one of objectKey / inline; an otp or geo carries neither'.\n  - 'DOS-056 an oversize offline op is refused row_too_large ...' failed with expected [ 'row_invalid', 'row_invalid', ... ] to deeply equal [ 'row_too_large', ... ].\n- api-client errors.test.ts: 'DOS-056 DOS-156 a native fetch failure (Expo FetchError ...)' failed with expected 'unknown' to be 'network' (message: fetch failed: java.net.ConnectException ...).\n- api-client client.test.ts: 'DOS-156 a manager write whose native fetch is refused, or cut off at the deadline ...' failed with expected 'unknown' to be 'network'.\n- offline engine.test.ts: 'DOS-056 sends photo-carrying ops in smaller FIFO batches ...' failed with expected [ [ 'o1','o2','o3','o4','o5' ] ] to deeply equal [ ['o1','o2'], ['o3'], ... ].\n- ui jpeg-budget.test.ts and delivery-app doorstep.test.ts failed with Cannot find module './jpeg-budget' and './doorstep'. The plan accepts a missing module as the before-state.",
+   "passAfter": "Each run was one file with vitest run <file> --reporter=verbose.\n- backend/libs/core delivery.spec.ts: 26/26 passed, including the three DOS-056 tests. Run against dos_test_b2_h3.\n- sync.spec.ts: 7/7 passed (regression check for the sync.service.ts change).\n- all-in-one.spec.ts: 4/4 passed (regression check for bootstrap.ts).\n- api-client: errors.test.ts 12/12 and client.test.ts 21/21 passed, including the DOS-156 test.\n- offline engine.test.ts: 29/29 passed.\n- ui jpeg-budget.test.ts: 3/3 passed.\n- delivery-app doorstep.test.ts: 4/4 passed.\n- A temporary spec checked the 8 MiB route limit, then was deleted and not committed. POST /sync/upload with a 9 MiB body got 413, although the service limit is 26 MiB. A 7.5 MiB body passed the transport and reached the guard (401).\n- turbo typecheck + lint for @dos/core: 5/5 tasks successful.\n- typecheck and lint for @dos/api-client, @dos/offline, @dos/ui and @dos/delivery-app: all exit 0.\n- pnpm format ran in backend/ and frontend/ and changed nothing else.\n- pnpm install --frozen-lockfile --lockfile-only in frontend: up to date.\n- git status is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-056 an offline delivery for a credit shop, queued with its photo inline after an offline arrival, is accepted from /sync/upload and pod_evidence holds only an object key"
+    },
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-056 a malformed offline delivery is refused row_invalid in the rule's own sentence, never as a Zod JSON array"
+    },
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-056 an oversize offline op is refused row_too_large as a 2xx sync_error, never a 413, and the rest of the batch still lands"
+    },
+    {
+     "file": "frontend/libs/api-client/src/errors.test.ts",
+     "name": "DOS-056 DOS-156 a native fetch failure (Expo FetchError 'fetch failed: …') is a network error, never unknown"
+    },
+    {
+     "file": "frontend/libs/api-client/src/client.test.ts",
+     "name": "DOS-156 a manager write whose native fetch is refused, or cut off at the deadline, rejects as `network` — never 'Something could not be completed'"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/doorstep.test.ts",
+     "name": "DOS-056 saves the delivery on the phone when the office call fails with Expo's native FetchError while the online flag is still true"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/doorstep.test.ts",
+     "name": "DOS-056 saves the delivery on the phone when the browser fetch throws TypeError or the request hits the deadline"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/doorstep.test.ts",
+     "name": "DOS-056 never queues a write the office refused (business/validation/conflict/server ApiError is rethrown, save not called)"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/doorstep.test.ts",
+     "name": "DOS-056 with no signal goes straight to the phone and never calls the office"
+    },
+    {
+     "file": "frontend/libs/offline/src/engine.test.ts",
+     "name": "DOS-056 sends photo-carrying ops in smaller FIFO batches under the byte budget, and an op larger than the budget still goes on its own"
+    },
+    {
+     "file": "frontend/libs/ui/src/platform/jpeg-budget.test.ts",
+     "name": "DOS-056 re-encodes a proof photo down the ladder until it is at most 300 KB, and stops at the first rung that fits"
+    },
+    {
+     "file": "frontend/libs/ui/src/platform/jpeg-budget.test.ts",
+     "name": "DOS-056 a photo already under budget is encoded once, at the first rung"
+    },
+    {
+     "file": "frontend/libs/ui/src/platform/jpeg-budget.test.ts",
+     "name": "DOS-056 answers the smallest encoding when no rung fits, and null when nothing could be encoded"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/core/src/modules/delivery/delivery.sync.ts",
+    "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "backend/libs/core/src/modules/sync/sync.service.ts",
+    "backend/libs/core/src/service/bootstrap.ts",
+    "backend/libs/core/src/testing/app.ts",
+    "docs/27-offline-sync-client.md",
+    "frontend/delivery-app/app/attention.tsx",
+    "frontend/delivery-app/app/stop/[id]/deliver.tsx",
+    "frontend/delivery-app/package.json",
+    "frontend/delivery-app/src/lib/doorstep.ts",
+    "frontend/delivery-app/src/lib/doorstep.test.ts",
+    "frontend/delivery-app/src/lib/proof.ts",
+    "frontend/delivery-app/src/strings.ts",
+    "frontend/libs/api-client/src/errors.ts",
+    "frontend/libs/api-client/src/errors.test.ts",
+    "frontend/libs/api-client/src/client.test.ts",
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/engine.test.ts",
+    "frontend/libs/ui/package.json",
+    "frontend/libs/ui/src/platform/camera.native.ts",
+    "frontend/libs/ui/src/platform/camera.web.ts",
+    "frontend/libs/ui/src/platform/types.ts",
+    "frontend/libs/ui/src/platform/jpeg-budget.ts",
+    "frontend/libs/ui/src/platform/jpeg-budget.test.ts",
+    "frontend/pnpm-lock.yaml",
+    "frontend/pnpm-workspace.yaml"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) The inline photo rides in the queued op, but the server stores it through the files platform inside the sync handler and writes only the object key; no base64 in any row.",
+     "done": true,
+     "how": "`podFromDevice` in delivery.sync.ts now maps `p.inline` to `{mimeType, contentBase64}`. `applyDeliverySync` then calls `recordInTx` → `writePod` → `storeInline`, which writes object storage plus a `file_objects` row inside the op's transaction, and `pod_evidence.object_key` gets that key with `payload` null. The first DOS-056 spec checks this. The GET detail has a photo whose objectKey matches tenant/.../pod/ and contains the delivery id. `pod_evidence` has exactly one photo row whose object_key equals that key, with null payload and no TINY_PNG anywhere in the row. `file_objects.status` is 'uploaded', and both sync_ops outcomes are {ok:true}."
+    },
+    {
+     "amendment": "(b) The device compresses the proof to at most 300 KB of JPEG before queueing (camera platform module). The sync route body limit becomes 8 MiB. An oversize op becomes a sync_error row_too_large, never a 413.",
+     "done": true,
+     "how": "- Camera: a new platform-neutral `jpeg-budget.ts` holds the quality-then-size ladder (`fitJpeg`). `camera.web.ts` walks it on a canvas and `camera.native.ts` walks it through expo-image-manipulator, loaded lazily in try/catch so builds without the native module still work. `PlatformCamera.photograph` gains `maxBytes`, and `captureProof` asks for `PROOF_MAX_BYTES` = 300 000. expo-image-manipulator 57.0.16 was added to the frontend catalog, the delivery-app deps and the ui optional peer/dev deps; the lockfile is committed.\n- Route limit: `registerSyncUploadBodyLimit` (an onRoute hook in bootstrap.ts, also used by the spec harness) sets bodyLimit 8 MiB on POST /sync/upload only.\n- Per-op check: `refuseOversizeOp` in sync.service.ts throws `SyncRejection('row_too_large')` for an op over 1 MiB, as the first line inside the op savepoint. It lands 2xx with sync_errors and sync_ops rows; covered by the third DOS-056 spec.\n- 413 avoidance on the device: a batch of 50 ops at about 400 KB each would pass 8 MiB and get a 413. So the offline uploader now also bounds each batch to 4 MiB of op JSON, FIFO, and an op bigger than the budget goes alone (engine test)."
+    },
+    {
+     "amendment": "(c) The api-client classifier change (Expo FetchError 'fetch failed: …' is a network error) also closes DOS-156; add a test whose name contains DOS-156 that fails before and passes after.",
+     "done": true,
+     "how": "`toApiError` gains `isNativeFetchFailure` (err instanceof Error && message startsWith 'fetch failed'), placed after the abort check and before the TypeError check. It maps the error to kind 'network' with the default no-connection sentence. Two tests cover it, both red before and green after:\n- errors.test.ts 'DOS-056 DOS-156 a native fetch failure ...': a unit test for the refused and aborted messages.\n- client.test.ts 'DOS-156 a manager write whose native fetch is refused, or cut off at the deadline ...': drives the real client on the manager's `warehouse.picklists.create` call. One fetch rejects with Expo's refused-connection FetchError; the other is aborted by the 40 ms deadline with 'fetch failed: The operation was aborted.'. Both must reject as ApiError kind 'network' with the network sentence, never the unknown sentence the manager app showed."
+    },
+    {
+     "amendment": "(d) Rewrite docs/27 section 15 to this design in the same commit.",
+     "done": true,
+     "how": "The §15 parenthetical about signed-URL upload before enqueue and ops held as 'photo not uploaded yet' is gone. §15 now describes the approved design:\n- With a signal: files signed URLs.\n- No answer from the office: one deliveries op with the proof inline, covering a TypeError, the 20 s deadline or Expo's FetchError. A refusal is never queued, and an objectKey is reused when the PUT already landed.\n- Size: ≤ 300 KB JPEG from the camera, batches ≤ 4 MiB, route 8 MiB, an op over 1 MiB is row_too_large and never a 413.\n- Server: bytes stored through the files platform, pod_evidence holds the key only.\n- A lost reply: vetoed stale.\n- Marked as the one bounded exception to docs/20 rule 15.\n§6's uploader line now states the 4 MiB batch bound. Same commit."
+    },
+    {
+     "amendment": "(e) A lost-reply second op vetoed stale is acceptable.",
+     "done": true,
+     "how": "No code change, as ruled. Recorded as expected behaviour in the docs/27 §15 'A lost reply' bullet."
+    }
+   ],
+   "deviations": "1. Where the size check sits in sync.service.ts. The previous implementer put the row_too_large check as an `else if` right after the `unknown_table` branch. The DOS-166 design (QA/evidence/batch2/verdicts/DOS-166-design.md, step 3) adds lane h7's `role_not_allowed` `else if` in exactly that spot, so it would have been a certain merge conflict. I moved the check into a small module-level `refuseOversizeOp(op)` next to the constants. It is called as the first line inside the op's savepoint, and the SyncRejection it throws goes through the existing catch. Behaviour is the same (2xx, sync_errors and sync_ops rows), the diff is 22 added lines, and the catch block h7 edits is untouched.\n\n2. The offline uploader now bounds batches in bytes (4 MiB), and docs/27 §6 says so. The plan does not name this, but amendment (b)'s \"never a 413\" cannot hold without it: 50 photo-carrying ops are about 20 MB, far past the 8 MiB route limit.\n\n3. A new dependency, expo-image-manipulator, is how the native camera meets amendment (b)'s ≤ 300 KB. expo-image-picker cannot re-encode to a byte budget.\n\n4. Test names:\n   - Test 1 keeps the plan's wording and adds the batch-2 lane's ending ('... and pod_evidence holds only an object key'), because amendment (a) extends what it asserts.\n   - The errors.test.ts test is the plan's name with DOS-156 added.\n   - The added tests beyond the plan all carry DOS-056 or DOS-156 and cover amendments (b) and (c): the row_too_large spec, the engine byte-budget test, the jpeg-budget tests and the client DOS-156 test.\n\n5. The plan's delivery-app package.json items (`test` script and vitest devDependency) were already on the branch, so that file only gains expo-image-manipulator.\n\n6. The previous implementer's temporary 8 MiB route-limit spec was not in the tree. I rewrote it, ran it (9 MiB gets 413, 7.5 MiB passes), deleted it, and did not commit it.",
+   "followUps": "- docs/22: record the founder-approved exception (inline proof photos through /sync/upload on the no-signal path only; ≤ 300 KB JPEG; 8 MiB route; row_too_large) in §8 and the change log. I did not edit docs/22.\n- docs/23 §5.x (D4): may want a line that a call with no answer is saved on the phone.\n- No committed test pins the 8 MiB route limit. It was proven only by the temporary spec. A permanent bootstrap spec would guard it.\n- Native builds: the delivery app gained a native module (expo-image-manipulator). A dev client needs a rebuild (expo run:android / run:ios); Expo Go already ships it.\n- Verify for DOS-156 (per the architect) on the Android manager app with the API cut. Expected: 'No connection. Check the signal, then press again.' in the Make a picking sheet dialog.\n- DOS-068: with this classifier change, native reads should now say no connection instead of 'unknown'. It needs its own verification.\n- Still out of scope, from the plan notes:\n  - 'Send it again' on an op the phone still holds replays the stored refusal (protocol decision).\n  - sync_errors.resolved_at is never set.\n  - The stop screen still offers 'Deliver this bill' for a delivery saved on the phone.\n  - collect.tsx and van-sale.tsx have the same online-first shape with no fallback.\n  - platformFiles.upload has no deadline.\n- Lane h7 merge note: my only sync.service.ts changes are a constant plus a helper after PULL_OVERLAP_MS, and one line inside the savepoint callback before vetoIfStale.",
+   "platformCheck": "Everything below ran as automated tests only; no dev server, emulator or simulator was used.\n- api: DB-backed core specs on dos_test_b2_h3 (delivery, sync, all-in-one) plus the temporary route-limit spec.\n- web: covered by unit tests of the shared logic (doorstep recordOrSave with the browser TypeError and TimeoutError, the api-client classifier, offline engine batching, the jpeg-budget ladder used by camera.web.ts), plus typecheck and lint of the delivery app. The browser walk in the plan's verify was NOT TESTED here.\n- android: the Expo FetchError path is covered by the api-client unit test and client test and by the doorstep test. The Pixel 7 walks for the offline branch, the fallback branch and the DOS-156 manager dialog were NOT TESTED (no emulator allowed in this lane). camera.native.ts's expo-image-manipulator path passed typecheck and lint only; it was never run on a device.\n- ios: same code path as Android (expo/fetch). NOT TESTED; this Mac cannot tap a simulator headlessly."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-056",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) The server stores the inline photo through the files platform inside the sync handler and writes only the object key; no base64 in any row.",
+     "satisfied": true,
+     "detail": "delivery.sync.ts `podFromDevice` now maps `p.inline` to {mimeType, contentBase64}. `applyDeliverySync` calls `recordInTx` → `writePod` → `storeInline` (delivery.internals.ts:431), which puts the bytes in object storage and inserts a file_objects row (status 'uploaded') inside the op's withTenant transaction. `pod_evidence.object_key` gets the key and `payload` is null. sync_ops stores only `outcome` and sync_errors only codes and messages (sync.service.ts:176-191), so the op payload lands in no other row. Spec test 1 asserts: exactly one photo pod row whose object_key matches tenant/.../pod/<deliveryId>, payload null, TINY_PNG absent from the row JSON, file_objects status ['uploaded'], both sync_ops outcomes {ok:true}. It passes after the fix; before, it was rejected row_invalid."
+    },
+    {
+     "amendment": "(b) The device compresses the proof to ≤ 300 KB JPEG before queueing (camera platform module); the sync route body limit becomes 8 MiB; an oversize op becomes a sync_error row_too_large, never a 413.",
+     "satisfied": true,
+     "detail": "Camera: `PlatformCamera.photograph` gains an optional `maxBytes`. `jpeg-budget.ts` holds the `fitJpeg` ladder. camera.web.ts walks it on a canvas (without maxBytes it encodes once at the unchanged QUALITY 0.75). camera.native.ts walks it through expo-image-manipulator, required lazily in try/catch. proof.ts `captureProof` passes `PROOF_MAX_BYTES` = 300_000. expo-image-manipulator 57.0.16 goes through the catalog and the lockfile.\n\nRoute: `registerSyncUploadBodyLimit` is an onRoute hook, called in `createServiceApp` and in the spec harness. My temporary probe, run once and deleted, got:\n- POST /sync/upload with 9 MiB: 413\n- POST /sync/upload with 7.9 MiB: 401, so the body passed the transport\n- PUT /storage with 9 MiB: 403, so the global 26 MiB limit is unchanged elsewhere\n\nall-in-one.ts strips the prefix before each service's own Fastify router, so the hook's url match holds there too.\n\nServer check: `refuseOversizeOp` throws SyncRejection('row_too_large') for an op over 1 MiB, as the first line inside the op savepoint, after the replay lookup. Spec test 3 passes after the fix: 4 × row_too_large in the response and in sync_errors, the expense in the same batch lands, status 200. Before the fix it got row_invalid.\n\nDevice batches: the engine bounds each batch to 4 MiB of op JSON, FIFO, and sends an op larger than the budget alone (engine test). This keeps 50 photo ops (~20 MB) from producing a 413. The deviation is code-justified.\n\nThe lane constraint holds: sync.service.ts has +22 lines (a constant, a helper and one call), and sync.registry.ts and the *.module.ts files are untouched."
+    },
+    {
+     "amendment": "(c) The api-client classifier change (Expo FetchError 'fetch failed: …' → network) also closes DOS-156; add a test whose name contains DOS-156 that fails before and passes after.",
+     "satisfied": true,
+     "detail": "errors.ts `isNativeFetchFailure` (Error whose message starts with 'fetch failed') returns kind 'network' with the default no-connection sentence. It sits after the ORPCError and abort checks and before the TypeError check.\n\nTwo tests carry DOS-156:\n- errors.test.ts 'DOS-056 DOS-156 a native fetch failure…': before, 'expected unknown to be network'; after, 12/12.\n- client.test.ts 'DOS-156 a manager write whose native fetch is refused, or cut off at the deadline…': drives the real client on warehouse.picklists.create. Before, 'expected unknown to be network'; after, 21/21.\n\nThe manager app shows 'app.writeNoConnection' whenever `refusal.kind === 'network'` (manager-app/src/lib/ui.tsx:223), so the classifier change is what fixes DOS-156. The Android manager-app walk was not run (no emulator in this lane)."
+    },
+    {
+     "amendment": "(d) Rewrite docs/27 section 15 to this design in the same commit.",
+     "satisfied": true,
+     "detail": "Same commit b4d0daa.\n\n§15 now covers:\n- the signal path through files signed URLs\n- the no-answer path (TypeError, the 20 s deadline, Expo FetchError) queuing one deliveries op with the proof inline, a refusal never queued, and an already-landed objectKey reused\n- the sizes: ≤ 300 KB JPEG, batches ≤ 4 MiB, route 8 MiB, an op over 1 MiB is row_too_large and never a 413\n- the server storing the bytes through the files platform, with the key only in pod_evidence\n- a lost reply vetoed stale\n- this path as the bounded exception to docs/20 rule 15\n\n§6's uploader line states the 4 MiB bound. The old 'photo not uploaded yet' text no longer appears anywhere in docs, frontend or backend."
+    },
+    {
+     "amendment": "(e) A lost-reply second op vetoed stale is acceptable.",
+     "satisfied": true,
+     "detail": "No code change, as ruled. In deliver.tsx, `save` passes `existing: row`, so the queued op carries `baseUpdatedAt`. `vetoIfStale` runs before the handler (sync.service.ts:149), so a second op after a committed online record is refused stale. docs/27 §15 records this as expected."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/service/bootstrap.ts",
+     "detail": "No committed test pins the 8 MiB limit on POST /sync/upload. I proved it only with a temporary probe, run once and deleted (9 MiB → 413, 7.9 MiB → 401, storage PUT 9 MiB → 403). If the onRoute hook stopped matching (a route path or prefix change), the limit would fall back to the global 26 MiB and no test would notice."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/engine.ts",
+     "detail": "'Never a 413' holds only for ops under 8 MiB. `claim()` sends an op larger than the 4 MiB budget on its own, so a single op over 8 MiB would still get 413, which the uploader retries without end. The delivery app cannot produce one: proofTooBig caps inline base64 at 690 000 chars, and the server's 1 MiB check covers everything below the route limit. This is a design limit of the amendment's 8 MiB route, not an implementation gap."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/contracts/src/delivery.ts",
+     "detail": "The PROOF OF DELIVERY comment (lines 100-106) and docs/20 rule 15 still say inline bytes travel only when files.uploadUrl answers inline, and that nothing else binary passes through the service. docs/27 §15 now records the exception; the contract comment and docs/22 §8 were not updated (out of this lane's allowed edits). Follow-up."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/delivery-app/app/expenses.tsx",
+     "detail": "Side effect: the expense screen also calls `captureProof`, so fuel and toll proof photos are now squeezed to 300 KB as well. Harmless, since UX-00 §8.2 already budgets about 200 KB, but it goes beyond the doorstep proof the amendment names."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/delivery-app/app/stop/[id]/deliver.tsx",
+     "detail": "The plan's browser, Pixel 7 and iOS walks were NOT TESTED, by me or the implementer: this lane allows no dev servers or emulators. They cover the web offline and dead-spot fallback, the Android offline and fallback branches, the tray's not-held text, and DOS-156 on the Android manager app. camera.native.ts's expo-image-manipulator path is proven only by typecheck and lint, and the device app needs a native rebuild for the new module."
+    }
+   ],
+   "evidence": "1. SCOPE. `git log --oneline -6`: b4d0daa is on top of 117717c.\n- `git show --stat` lists 26 files, all delivery / sync / bootstrap / harness, docs/27, the delivery app, and the api-client, offline and ui camera files plus the catalog and lockfile.\n- No generated READMEs, nothing under QA/, no docs/22, no sync.registry.ts, no *.module.ts.\n- No contract, permission or schema change. sync.service.ts has +22 lines.\n- The file overlaps found in lanes.md belong to queued L-lanes, not running worktrees.\n\n2. FAIL BEFORE. I reversed the non-test diff with the prescribed `git diff b4d0daa^ b4d0daa -- . ':(exclude)…' | git apply -R`: 17 files, with doorstep.ts and jpeg-budget.ts deleted.\n- The reversal also removed the expo-image-manipulator catalog line from frontend/pnpm-workspace.yaml, which made `pnpm exec` attempt an install. That install failed at catalog resolution, so nothing was installed. I restored only that dependency-declaration file with `git checkout`.\n- Rebuilt @dos/core with turbo, then ran one file per command:\n  - delivery.spec.ts: 3 failed, 23 passed. The three failures are the DOS-056 tests:\n    - test 1: `rejected` held a row_invalid whose messageEn was the Zod JSON array ('a photo or signature carries exactly one of objectKey / inline…' at path pod.0), i.e. the photo was dropped;\n    - test 2: expected the rule's sentence, received the '[{\"code\":\"custom\"…' JSON;\n    - test 3: got ['row_invalid'×4] where ['row_too_large'×4] was expected.\n  - api-client errors.test.ts: 1 failed, 11 passed ('fetch failed: java.net.ConnectException…: expected unknown to be network').\n  - api-client client.test.ts: 1 failed, 20 passed (DOS-156: 'expected unknown to be network').\n  - offline engine.test.ts: 1 failed, 28 passed (a single batch [o1..o5] instead of [[o1,o2],[o3],[o4],[o5]]).\n  - ui jpeg-budget.test.ts and delivery-app doorstep.test.ts: Cannot find module (the plan's accepted before-state).\n- Restored with `git checkout -- .`. `git status --porcelain --untracked-files=all` showed 0 lines, HEAD b4d0daa. Rebuilt @dos/core.\n\n3. PASS AFTER (one whole file per command, against dos_test_b2_h3):\n- delivery.spec.ts 26/26\n- sync.spec.ts 7/7\n- errors.test.ts 12/12\n- client.test.ts 21/21\n- engine.test.ts 29/29\n- jpeg-budget.test.ts 3/3\n- doorstep.test.ts 4/4\n- @dos/delivery-service spec 258/258 (a real createServiceApp boot with the new hook)\n- turbo typecheck + lint for @dos/core: 5/5 successful (only the existing boundaries-plugin deprecation warnings)\n- turbo typecheck + lint for @dos/api-client, @dos/offline, @dos/ui, @dos/delivery-app: 8/8 successful\n- prettier --check on all 21 touched source and test files: clean in both workspaces\n- Temporary probe spec (written, run once, deleted): POST /sync/upload 9 MiB → 413; 7.9 MiB → 401; PUT /storage 9 MiB → 403.\n\n4. DIFF REVIEW.\n- No assertion weakened or deleted. The one edited existing line is a comment in the DOS-058 spec; testsCorrected is empty and correct.\n- recordOrSave rethrows every non-network error. useMutation.mutateAsync rethrows after onError (api-client react/index.tsx:396-400), so a network failure reaches the fallback and a refusal is never queued.\n- storeProof returns `{inline}` with no objectKey on the local driver, so `save` resends bytes and never a dangling key. It reuses the objectKey only after the PUT has landed.\n- attention.tsx hides 'Send it again' when `entry.op === null`; the type is `OutboxRow | null`.\n- The screen still imports only @dos/ui and data goes through @dos/api-client and @dos/offline. doorstep.ts imports only toApiError.\n- Web and native share recordOrSave and the classifier, and both cameras implement maxBytes. Warehouse capture calls photograph() without maxBytes, so it is unchanged.\n- storeInline runs inside the tenant transaction (RLS intact).\n- Money and quantities untouched. No state set by hand. Idempotency comes from the sync opId.\n- No leftover temporary files; git status is clean at the end."
+  }
+ ]
+}
