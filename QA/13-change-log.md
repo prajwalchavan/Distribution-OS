@@ -263,7 +263,7 @@ Each test failed before the fix and passed after, every amendment was satisfied,
 - **READMEs:** 12 regenerated. The stock.adjust summary changed and 24 rows lose the accountant.
 - **Process note:** the integrator ran one read-only `select 1` against the template database, which the lane rules forbid. It disclosed this itself; nothing was written.
 
-**h12-kit then h8-billing** are integrating now; both reviews say MERGE with no conflicts.
+**h12-kit and h8-billing merged** (run `wf_f2eaa16e-1a9`), both clean with no merge-time fix: DOS-164 as `146eed2`, DOS-116 as `73b120c`. No generated README changed. One contract note: `/docs/openapi.json` for owner, manager and delivery no longer carries `default: true` on `lines[].saleable`. Batch 2 now has 18 approved findings on main (3 P0, 15 P1).
 
 **h11-syncpull verified** (run `wf_51c8b336-66e`): DOS-080 `38032df`.
 - **The fix:** a pull page now fills its limit across tables, the cursor never passes a table's unread rows or tombstones, and a snapshot takes about ceil(rows / limit) + 1 calls.
