@@ -257,3 +257,10 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
 - DOS-116 `1ea7cfe`: damaged desk returns go to the damaged bin, and saleable:true is refused.
 
 Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. Fable merge reviews are running (`wf_5363c388-c3f`). Lean-mode grouping of every open P2 and P3 has started (`wf_c2b9844d-877`).
+
+**h9-desk merged** as `d521f84` at 17:25 (run `wf_30bb86fa-c2d`): DOS-044, DOS-037, DOS-031.
+- **No textual conflict.** The review had predicted a semantic one, and it appeared on the merged tree. The DOS-037 test "pins every non-GET procedure the accountant may call" still listed the five order writes that DOS-115 (founder-approved) had removed, so it failed with 68 received vs 73 expected. The five rows were dropped from that literal list, and nothing else changed (`cbc2cbc`).
+- **READMEs:** 12 regenerated. The stock.adjust summary changed and 24 rows lose the accountant.
+- **Process note:** the integrator ran one read-only `select 1` against the template database, which the lane rules forbid. It disclosed this itself; nothing was written.
+
+**h12-kit then h8-billing** are integrating now; both reviews say MERGE with no conflicts.
