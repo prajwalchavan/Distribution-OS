@@ -15,10 +15,12 @@ import {
  * orders carry rates and are back-office only (RLS + guard). GRN shapes carry pieces only: warehouse staff
  * count without ever seeing a rate.
  *
- * WHICH SERVICES MOUNT `procurement`: owner, manager, warehouse. The desk (`supplierInvoices.*`,
- * `grns.open/post`, `purchaseOrders.*`, `supplierInvoices.dispute/cancel`) is BACK_OFFICE; resolving a
+ * WHICH SERVICES MOUNT `procurement`: owner, manager, warehouse. The supplier-invoice and purchase-order
+ * reads (`supplierInvoices.list/get`, `purchaseOrders.list`) are BACK_OFFICE; every desk write
+ * (`supplierInvoices.create/matchLine/dispute/cancel`, `grns.open/post`, `purchaseOrders.upsert`) is the
+ * owner's and the manager's, and the accountant reads (docs/23 §2 M4, QA DOS-037). Resolving a
  * gate-count discrepancy (`discrepancies.resolve`) sits in the owner's approvals queue (docs/23 O3 "GRN
- * exceptions") and is therefore the owner's and the manager's, never the accountant's (docs/22
+ * exceptions") and is therefore the owner's and the manager's too, never the accountant's (docs/22
  * 2026-09-05). The gate (`grns.count`) is the stock keepers.
  */
 

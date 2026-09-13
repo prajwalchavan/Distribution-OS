@@ -1,4 +1,11 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import {
+  AdjustStockInput,
+  PostCycleCountInput,
+  TransferStockInput,
+  UpsertLocationInput,
+  UpsertLotInput,
+} from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
@@ -21,7 +28,9 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { CycleCountsService } from './cycle-counts.service.js'
 import { InventoryModule, InventoryService } from './index.js'
+import { StockService } from './stock.service.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -338,7 +347,7 @@ describeDb('inventory (DATABASE_URL)', () => {
   })
 
   it('runs a cycle count: open freezes the expectation, count is blind, post writes the differences once', async () => {
-    // docs/23 §8.18 — STOCK_KEEPERS open and count, BACK_OFFICE posts; the accountant reads.
+    // docs/23 §8.18 — STOCK_KEEPERS open and count, the owner or a manager posts; the accountant reads.
     const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
     const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
     const before = (
@@ -612,6 +621,174 @@ describeDb('inventory (DATABASE_URL)', () => {
     expect(added.status).toBe(200)
     expect(added.body.balance.onHand).toBe(13)
     expect(await onHand()).toBe(13)
+  })
+
+  it('DOS-037 refuses the accountant a stock adjustment, a transfer, a lot, a location and a cycle-count post, at the gate and in the service, and the ledger does not move', async () => {
+    // docs/23 §2 M16 (QA DOS-037): the accountant reads stock and writes none of it. The godown keeps its
+    // stock writes and the owner or a manager posts a count. Its own lot, like DOS-044's.
+    const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const desk: Actor = { tenantId, actorId: ownerId, role: 'manager' }
+    const accountantCtx: TenantContext = { tenantId, actorId: ownerId, actorRole: 'accountant' }
+    const lotId = uuidv7()
+    const ledgerRows = async (): Promise<number> => {
+      const rows = (
+        await db.execute(
+          sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenantId}`,
+        )
+      ).rows as { n: number }[]
+      return Number(rows[0]?.n)
+    }
+    const lotMade = await call(app, owner, 'POST', '/inventory/lots', {
+      idempotencyKey: `lot-dos037-${run}`,
+      id: lotId,
+      variantId,
+      batchNo: `DOS037-${run}`,
+      mrpPaise: 1000,
+    })
+    expect(lotMade.status).toBe(200)
+    const stocked = await call(app, owner, 'POST', '/inventory/adjustments', {
+      idempotencyKey: `dos037-open-${run}`,
+      lotId,
+      locationId: godown,
+      qtyDelta: 10,
+      reason: 'opening',
+    })
+    expect(stocked.status).toBe(200)
+    // a count the godown opened and counted one short, waiting for the desk to post it
+    const countId = uuidv7()
+    const opened = await call(app, store, 'POST', '/inventory/cycle-counts', {
+      idempotencyKey: `dos037-cc-open-${run}`,
+      id: countId,
+      locationId: godown,
+      lotIds: [lotId],
+    })
+    expect(opened.status).toBe(200)
+    const counted = await call(app, store, 'POST', `/inventory/cycle-counts/${countId}/count`, {
+      idempotencyKey: `dos037-cc-count-${run}`,
+      id: countId,
+      lines: [{ lotId, countedPcs: 9 }],
+    })
+    expect(counted.status).toBe(200)
+
+    const before = await ledgerRows()
+    const adjustment = {
+      lotId,
+      locationId: godown,
+      qtyDelta: -1,
+      reason: 'damage',
+      note: 'DOS-037 probe',
+    }
+    const transfer = {
+      lotId,
+      fromLocationId: godown,
+      toLocationId: transit,
+      qtyPcs: 1,
+      note: 'DOS-037 probe',
+    }
+    const lot = { id: uuidv7(), variantId, batchNo: `DOS037-B-${run}`, mrpPaise: 1000 }
+    const location = { id: uuidv7(), kind: 'warehouse', name: `DOS-037 godown ${run}` }
+    const refused: [string, Record<string, unknown>][] = [
+      ['/inventory/adjustments', { idempotencyKey: `dos037-adjust-${run}`, ...adjustment }],
+      ['/inventory/transfers', { idempotencyKey: `dos037-transfer-${run}`, ...transfer }],
+      ['/inventory/lots', { idempotencyKey: `dos037-lot-${run}`, ...lot }],
+      ['/inventory/locations', { idempotencyKey: `dos037-location-${run}`, ...location }],
+      [
+        `/inventory/cycle-counts/${countId}/post`,
+        { idempotencyKey: `dos037-cc-post-${run}`, id: countId },
+      ],
+    ]
+    for (const [path, body] of refused) {
+      const res = await call<{ message: string }>(app, accountant, 'POST', path, body)
+      expect(res.status, `POST ${path}`).toBe(403)
+      expect(res.body.message, `POST ${path}`).toContain('the accountant role may not call')
+    }
+    expect(await ledgerRows()).toBe(before)
+
+    // The handlers refuse her on their own: over HTTP the gate answers first, so call them directly.
+    const stock = app.get(StockService)
+    const counts = app.get(CycleCountsService)
+    const inService: [string, () => Promise<unknown>][] = [
+      [
+        'stock.adjust',
+        () =>
+          stock.adjust(
+            AdjustStockInput.parse({ idempotencyKey: `dos037-svc-adjust-${run}`, ...adjustment }),
+          ),
+      ],
+      [
+        'stock.transfer',
+        () =>
+          stock.transfer(
+            TransferStockInput.parse({ idempotencyKey: `dos037-svc-transfer-${run}`, ...transfer }),
+          ),
+      ],
+      [
+        'lots.upsert',
+        () =>
+          stock.upsertLot(
+            UpsertLotInput.parse({ idempotencyKey: `dos037-svc-lot-${run}`, ...lot }),
+          ),
+      ],
+      [
+        'locations.upsert',
+        () =>
+          stock.upsertLocation(
+            UpsertLocationInput.parse({
+              idempotencyKey: `dos037-svc-location-${run}`,
+              ...location,
+            }),
+          ),
+      ],
+      [
+        'cycleCounts.post',
+        () =>
+          counts.post(
+            PostCycleCountInput.parse({ idempotencyKey: `dos037-svc-cc-post-${run}`, id: countId }),
+          ),
+      ],
+    ]
+    for (const [name, invoke] of inService) {
+      await expect(tenantStorage.run(accountantCtx, invoke), name).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      })
+    }
+    expect(await ledgerRows()).toBe(before)
+
+    // She still reads the stock, the ledger and the count.
+    for (const path of [
+      '/inventory/balances',
+      '/inventory/ledger',
+      `/inventory/cycle-counts/${countId}`,
+    ]) {
+      expect((await call(app, accountant, 'GET', path, {})).status, `GET ${path}`).toBe(200)
+    }
+    // Controls: a manager posts the count; the godown still takes a damaged piece off and moves one.
+    const posted = await call<{ entries: Entry[] }>(
+      app,
+      desk,
+      'POST',
+      `/inventory/cycle-counts/${countId}/post`,
+      { idempotencyKey: `dos037-desk-post-${run}`, id: countId },
+    )
+    expect(posted.status).toBe(200)
+    expect(posted.body.entries).toEqual([
+      expect.objectContaining({ reason: 'cycle_count', qtyDelta: -1 }),
+    ])
+    const damaged = await call<{ balance: Balance }>(app, store, 'POST', '/inventory/adjustments', {
+      idempotencyKey: `dos037-store-damage-${run}`,
+      ...adjustment,
+      note: 'DOS-037 control',
+    })
+    expect(damaged.status).toBe(200)
+    expect(damaged.body.balance.onHand).toBe(8)
+    const moved = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `dos037-store-transfer-${run}`,
+      ...transfer,
+      note: 'DOS-037 control',
+    })
+    expect(moved.status).toBe(200)
+    expect(await ledgerRows()).toBe(before + 4)
   })
 
   it('keeps the ledger append-only even for the owner', async () => {

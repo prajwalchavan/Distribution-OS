@@ -37,7 +37,6 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
@@ -83,8 +82,12 @@ type LedgerOut = z.infer<typeof LedgerListOutput>
 type LotIn = z.infer<typeof UpsertLotInput>
 type LotOut = z.infer<typeof UpsertLotOutput>
 
-/** Who may see per-lot balances and the ledger: everyone who physically keeps stock (a van counts). Reps and retailers get `availability` and `sellable` only. */
-export const STOCK_KEEPERS: readonly ActorRole[] = [
+/**
+ * Who may see per-lot balances and the ledger (permissions.ts STOCK_VIEWERS): everyone who physically keeps
+ * stock (a van counts) and the accountant, who reads it. Reps and retailers get `availability` and
+ * `sellable` only.
+ */
+export const STOCK_VIEWERS: readonly ActorRole[] = [
   'owner',
   'manager',
   'warehouse',
@@ -94,11 +97,12 @@ export const STOCK_KEEPERS: readonly ActorRole[] = [
 ]
 
 /**
- * Who may move stock and maintain locations/lots: the desk plus the godown. None of this touches a rate.
- * Adding stock by an adjustment is narrower (owner or manager only), checked in `adjust()` through
+ * Who may move stock and maintain locations/lots: ROLE_GROUPS.STOCK_KEEPERS plus system. The accountant
+ * reads stock and writes none of it (docs/23 §2 M16, QA DOS-037). None of this touches a rate. Adding
+ * stock by an adjustment is narrower (owner or manager only), checked in `adjust()` through
  * `mayPostAdjustment` (DOS-044).
  */
-const STOCK_WRITERS: readonly ActorRole[] = [...BACK_OFFICE, 'warehouse']
+const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
 
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
@@ -242,7 +246,7 @@ export class StockService {
   }
 
   async balances(input: BalancesIn): Promise<BalancesOut> {
-    requireRole(STOCK_KEEPERS)
+    requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const after = splitCursor(input.cursor)
@@ -374,7 +378,7 @@ export class StockService {
 
   /** Newest first; `cursor` is the id of the last row seen (UUIDv7 orders by time). */
   async ledger(input: LedgerIn): Promise<LedgerOut> {
-    requireRole(STOCK_KEEPERS)
+    requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const filters: (SQL | undefined)[] = [

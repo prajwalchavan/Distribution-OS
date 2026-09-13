@@ -41,7 +41,7 @@ import {
   type TenantContext,
 } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
-import { DESK, lockDocument, notFound, transition } from './docint.internals.js'
+import { DESK_WRITERS, lockDocument, notFound, transition } from './docint.internals.js'
 import { reviewedOf, toSession, type CheckRow, type SessionRow } from './docint.mappers.js'
 import { docintConfig } from './pipeline/config.js'
 import { applyReviewPatch } from './pipeline/paths.js'
@@ -82,7 +82,7 @@ export class ReviewService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
 
   async start(input: StartIn): Promise<StartOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -152,7 +152,7 @@ export class ReviewService {
   }
 
   async heartbeat(input: HeartbeatIn): Promise<HeartbeatOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -169,7 +169,7 @@ export class ReviewService {
   }
 
   async save(input: SaveIn): Promise<SaveOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -212,7 +212,7 @@ export class ReviewService {
   }
 
   async release(input: ReleaseIn): Promise<ReleaseOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -257,7 +257,7 @@ export class ReviewService {
   }
 
   async submit(input: SubmitIn): Promise<SubmitOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
