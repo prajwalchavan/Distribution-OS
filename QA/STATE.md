@@ -12,6 +12,20 @@ Next action: (0) AT 15:32 IST (founder: no chat narration, final short status on
 (a) wf_ae8abf06-4fc FINISHED: all 10 plans verified, DOS-098 7d67f9c and DOS-126 c58a256 last. The h5 slice 3 Fable review (wf_c61e23fd-3f9) says MERGE with no blockers: QA/evidence/batch2/merge-reviews/h5-orders-slice3.md. Expected conflicts: the drizzle import in orders.service.ts with h2, and the order of the DOS-098 / DOS-115 / DOS-126 blocks in orders.spec.ts. Run wf_64118f05-f5b integrated it: MERGED 43824b0 and pushed at 16:25 (script scratchpad/qa-batch2-integrate-h5-slice3.js, the (b) script with this one slice).
 (b) wf_3f9f63f5-98a FINISHED 16:08: all five slices are MERGED and pushed (main 3d7cb36). Its script is the pattern for later integrations (script /Users/prajwalchavan/.claude/projects/-Users-prajwalchavan-Desktop-Distribution-OS-QA-evidence-batch2-verdicts/682f4d7a-4374-4d97-b41b-5f986fb5fa07/workflows/scripts/qa-batch2-integrate-set-b-wf_3f9f63f5-98a.js): per slice, integrator (merge main into the lane, resolve per the Fable review, merge-time fixes, green on the merged tree, READMEs) → adversarial verifier → one repair → merge + push. Order: h7 → DOS-115 (2ec9583 integrated in the idle h7 worktree with the mandatory orders.spec role_not_allowed adjustment, then main fast-forwards) → h2 (index migration regenerated as 0047) → h1 slice 2 → h3 (TRIP-0003 regex + trip3 rename, lane DB recreated). It stops at the first slice that fails. Reviews: QA/evidence/batch2/merge-reviews/<slice>.md. Per-plan reports: QA/evidence/batch2/lane-results/<id>.json.
 (c) wf_ac1e794b-9d1: new lane h9-desk (worktree b2-h9-desk from e5f29ae, DB dos_test_b2_h9) runs DOS-044 → 037 → 031. Its script is the wave2 runner with a new meta, copied to this session's scratchpad.
+RUNS AFTER APPROVAL:
+- wf_3a18d87a-bab: Fable design for DOS-167. The main session writes verdicts/DOS-167-design.md from it.
+  - If the design raises a founder question (for example unsent changes at sign-out), ask it.
+  - Otherwise build DOS-167 in a new lane from main with the wave2 runner (source 'design', Opus). Then Fable merge review, integration, and the Android + iOS proof.
+- wf_5c958b90-522: lean groups wave 1 (lean-sales-entry, lean-kit-overlays, lean-manager-billing; limit 2).
+  - Sonnet builder, verifier and repair, then Fable review (every group here has a P2), then integration serialized in the script.
+  - Worktrees b2-lean-*; DBs dos_test_b2_ls, lk, lm.
+- wf_be3af90f-efa: docs/22 decisions and owed rows, in worktree b2-docs22 on branch qa/b2-docs22.
+  - The main session merges that branch into main when no merge is running.
+  - Then republish the source-of-truth artifact (URL returned by the run; docs/18 lists two claude.ai artifact URLs).
+- wf_0449696e-a32: h10 → h13 integration (the last P1s).
+NEXT LEAN GROUPS:
+- Once DOS-167's files are known, run groups whose waits are met and whose files do not overlap it.
+- lean-delivery-door and lean-libs-offline-boot wait for DOS-167 (react.tsx, engine.ts, delivery _layout.tsx).
 MAIN SESSION NEXT:
 - The dos_qa rebuild (step 4) finished at 16:11.
 - P0 regression probe wf_878c1f40-c4d is DONE: DOS-166 + DOS-115 gave 16 PASS, 0 FAIL, 3 NOT TESTED. The 3 are the delivery, sales and warehouse app offline-sync walks, which go to the A.12 regression. The main session wrote SUMMARY.md from the prober's result (subagents may not write report files).
