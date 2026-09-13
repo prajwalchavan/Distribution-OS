@@ -39,7 +39,7 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { absoluteUrl } from '../src/config'
-import { instantWithClock, longDate, shortDate } from '../src/lib/dates'
+import { instantWithClock, longInstant, shortDate } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
 import { Async, Panel, duesFamily, orderFamily } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
@@ -349,7 +349,8 @@ export default function Home(): React.JSX.Element {
                             : t('r8.orderNo', { no: order.orderNo })
                         }
                         secondary={t('r8.placedOn', {
-                          date: longDate((order.submittedAt ?? order.createdAt).slice(0, 10)),
+                          // DOS-143: an INSTANT reads its IST business date, never a UTC slice.
+                          date: longInstant(order.submittedAt ?? order.createdAt),
                         })}
                         trailingMoney={order.totalPaise}
                         trailing={

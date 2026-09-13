@@ -1,0 +1,23 @@
+== Day-end candidates (first 50 trips by id desc, closing, unsettled)
+with page as (
+      select tr.* from trips tr join tenants t on t.id = tr.tenant_id
+       where t.slug = 'tarsun' order by tr.id desc limit 50)
+    select p.id, coalesce(p.trip_no, ''), p.state from page p
+      left join trip_settlements s on s.tenant_id = p.tenant_id and s.trip_id = p.id
+     where p.state = 'closing' and s.id is null
+     order by p.id desc
+ id | coalesce | state 
+----+----------+-------
+(0 rows)
+
+
+== Tarsun trips by state
+select tr.state, count(*) from trips tr join tenants t on t.id = tr.tenant_id where t.slug = 'tarsun' group by 1 order by 1
+         state         | count 
+-----------------------+-------
+ planned               |     1
+ active                |     1
+ settled               |    61
+ settled_with_variance |    20
+(4 rows)
+

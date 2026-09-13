@@ -335,4 +335,22 @@ describe('document renderer', () => {
     expect(wrapText('one two three four', 'regular', 10, 60).length).toBeGreaterThan(1)
     expect(parseJpeg(Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toBeNull()
   })
+
+  it('DOS-151: maps cp1252 punctuation to its WinAnsi byte and its real AFM width instead of printing ?', () => {
+    // 'Tarsun Enterprise — Wholesale & Distribution': the em dash exists in WinAnsi (0x97), yet the plain
+    // Latin-1 fallback (anything above code point 255 prints '?') answered '?' for it.
+    expect(escapePdfText('A — B')).toBe(`A ${String.fromCharCode(0x97)} B`)
+    // en dash, curly quotes, bullet and ellipsis: the rest of the set the suggested fix names.
+    expect(escapePdfText('–')).toBe(String.fromCharCode(0x96))
+    expect(escapePdfText('‘’“”')).toBe(
+      [0x91, 0x92, 0x93, 0x94].map((b) => String.fromCharCode(b)).join(''),
+    )
+    expect(escapePdfText('•')).toBe(String.fromCharCode(0x95))
+    expect(escapePdfText('…')).toBe(String.fromCharCode(0x85))
+    // an em dash is a full em wide in Helvetica, not the 556 the untabled fallback used to charge it
+    expect(textWidth('—', 'regular', 10)).toBe(10)
+    expect(textWidth('—', 'bold', 10)).toBe(10)
+    // still outside Latin-1: an unmapped character (e.g. an emoji) keeps answering '?'
+    expect(escapePdfText('\u{1F600}')).toBe('?')
+  })
 })

@@ -300,3 +300,105 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **NOT TESTED (goes to the A.12 regression):** every walk the builders listed — W5 Short sheet (Android), credit-note Sheet with Gboard (Android) and a Sheet with a text field (iOS), Load-out chip plus two chip registers (Android), print cancel (iOS and Android), refused-write button label (Android), sales order entry phone footer and pieces pad (web phone, Android, iOS), the QtyStepper confirm on delivery D4 / van sale and manager M20, Print the challan (web, Android, iOS).
 - **New suspects:** S-102..S-109 in `QA/findings/12` (money: S-106, the parked-pack double count in 'left to bill').
 - **Wave 2 started:** lean-retailer-shop (DOS-101, 123, 124, 154, 105, 143, 144) and lean-backend-platform (DOS-127, 160, 028, 112, 151); worktrees from main `663c6f3`, DBs `dos_test_b2_lr` and `dos_test_b2_lb`.
+
+### Batch 2 — DOS-167 answer (founder, 2026-09-13 20:21 IST: "DOS-167 — A")
+
+- **Rule:** when someone signs out with changes not yet sent, the changes stay on that phone for that person only. They go first the next time that person signs in there. The sign-out sheet names the count, offers "Send now" when there is signal, and offers "Sign out, keep them here". Nothing is thrown away at sign-out, and nobody else who signs in can see or send them.
+- **docs/22:** §7 diagram note, §8 row and §11 change log, committed as `0f5a9b5`; the source-of-truth artifact is republished.
+- **Run `wf_74bd442f-12c` started:**
+  - Build: a libs slice, then an apps slice. Each gets an Opus build, an adversarial verify and one repair round.
+  - Review: two Fable merge reviews, one for leaks and one for loss and platform.
+  - Merge: Opus integration with one repair round, then merge and push.
+  - Proof: web (persistent store), Android sales, Android delivery and warehouse, and iOS, then a Fable judge per platform.
+
+### Batch 2 — DOS-167 first pass: libs verified, apps slice sent to an architect ruling (22:17 IST)
+
+**Run `wf_74bd442f-12c`** — 6 agents, about 1 h 52 min. Lane result: `QA/evidence/batch2/lane-results/DOS-167.json`.
+- **Libs slice `afc8b6e`: VERIFIED.** 13 new tests (11 in offline identity.test.ts, 2 in api-client identity.test.ts), each red before and green after. The DISTRIBUTOR test in engine.test.ts moved to `identity` as amendment (k) allows. Two deviations were proven by mutation:
+  - end() also waits for the open and for a pull in flight; otherwise a pull page commits its cursor into the kept file after the drop.
+  - The stamp writes `role` only when none is stored, so the manifest still catches a role change. A new test covers it.
+- **Apps slice `9c304b7` + review fix `3386a4e`: NOT VERIFIED.** The re-verifier's executed probe found a loss race:
+  - A one-tap sign-out calls end({ keepQueue: false }), which waits for a pull still in flight.
+  - An order the same rep queues in that window resolves with an opId.
+  - wipe() then deletes the queue and the file. Nothing is uploaded.
+  - This path is new with DOS-167, breaks answer A, and the design does not cover it, so it goes to the architect.
+- **Minors:**
+  - 'Sign out, keep them here' is 24 characters, over the kit's 20-character button rule.
+  - The title reads '1 changes'.
+  - When only refusals remain, the body still says the changes go by themselves.
+  - No test covers the Chrome wiring in the three layouts.
+  - A pre-existing unhandled switchDistributor rejection.
+- **Next:** the same run is resumed with a ruling stage — Fable ruling → Opus build → adversarial verify (one repair) — then the two Fable merge reviews, integration, merge, the web/Android/iOS proof and the Fable judge.
+- **Wave 2 (seen in git log):** lean-retailer-shop merged `b17e23f`; lean-backend-platform is integrating.
+
+### Batch 2 — lean wave 2 merged; one review blocker missed (22:22 IST)
+
+**Run `wf_a339006c-4dc`** — 14 agents, about 2 h 10 min. 12 findings merged (7 P2, 5 P3); every item failed its test before the fix and passed after. Reports: `lane-results/lean-retailer-shop.json`, `lean-backend-platform.json`; reviews: `merge-reviews/lean-retailer-shop.md`, `lean-backend-platform.md`.
+
+**lean-retailer-shop `b17e23f`:** DOS-101 `effbef8`, DOS-123 `7ecae27`, DOS-124 `37bd879`, DOS-154 `bcaf0fb`, DOS-105 `89ea1ed`, DOS-143 `d37b31b`, DOS-144 `526bfe4`.
+- Review: MERGE AFTER FIXES. All three blockers were applied in `6949209`:
+  - a short line is measured against picked pieces, not delivered ones (delivered is 0 until the door);
+  - Pay treats an emptied amount as ₹0, with its own "Enter an amount" reason;
+  - the seeded dues-reminder date is written out in words.
+
+**lean-backend-platform `d1c7da0`:** DOS-127 `861da8d`, DOS-160 `d78574d`, DOS-028 `0df8bad`, DOS-112 `f8fff34` + `16d05b6`, DOS-151 `98a0256`.
+- Review: MERGE AFTER FIXES, with one blocker: DOS-112's settle redirect makes every real Day-end settle from the manager app answer 400, because the compact client link puts the settlement id in the path.
+- **The blocker was NOT applied.**
+  - The integrator took the pre-review commit `16d05b6` as the fix, but that commit is the redirect the review says breaks the settle.
+  - The integration verifier compared merge hunks and never read the review.
+- The regression is shown by code reading only so far (suspect S-113). A repair lane first proves the 400, then applies the review's preferred fix.
+
+**Pushed:** origin/main = `d1c7da0`.
+
+**NOT TESTED** — every walk the builders listed:
+- retailer R7 pieces;
+- the bill's proof-of-delivery photo;
+- Pay from a bill, and Pay's amount field;
+- the returns, cancelled-order and offers wording;
+- My orders' IST date;
+- a short-picked order's page;
+- owner Settings > Audit;
+- Day-end settle.
+
+**Owed:**
+- a dos_qa reseed for the DOS-123 / DOS-105 demo data, at the A.12 rebuild;
+- a live `pnpm smoke --run-tag` pass for DOS-112.
+
+**New suspects:** S-110..S-115.
+
+**Process fix:** later lean waves use `qa-batch2-lean-wave3.js`. Its integration verifier checks each review blocker on HEAD.
+
+### Batch 2 — DOS-112 settle repair merged: S-113 confirmed and fixed (23:16 IST)
+
+**Run `wf_4cfc5e81-4e4`** — 7 agents, about 49 min. Lane result: `lane-results/dos112-settle.json`. Review: `merge-reviews/dos112-settle.md` (MERGE).
+
+**Proven before the fix.**
+- The real `createApiClient`, given Day-end's input, sent `POST /delivery/trips/<settlementId>/settle` with the trip in the body.
+- A temporary server probe sent that same request; the guard answered 400 ("the id in the URL … does not match the tripId in the body").
+- The regression was real: every manager Day-end settle on main `d1c7da0` was refused.
+
+**Fix `dd5ffeb`.**
+- The contract path is now `/delivery/trips/{tripId}/settle`, and the settle redirect is removed.
+- Smoke pathParams use `{ tripId }`.
+- The published example now puts the trip in the path.
+- 10 READMEs were regenerated (`2137755`), and the delivery plan doc was corrected (`dfeacab`).
+- Test results:
+  - api-client client.test.ts: 22/22
+  - delivery.spec.ts: 34/34
+  - manager-service permission matrix: 346/346
+  - delivery-service: 262/262
+  - examples.spec: 32/32
+- The adversarial verifier re-proved red and green.
+
+**Merged** `468a926` and pushed.
+
+**Live probe on dos_qa.**
+- NOT TESTED: a successful settle. dos_qa holds no trip in `closing` (Tarsun: 61 settled, 20 settled with variance, 1 active, 1 planned), and no data was made up.
+- PASS: the path check. The same client call on a settled trip put the trip id in the path and got 409 "already settled", not 400.
+- The script `QA/tools/e2e/dos-112-settle-probe.mjs` is kept for the re-run.
+- The prober rebuilt the main libs at `468a926` and migrated dos_qa; services answer 200.
+
+**Still owed:**
+- A manager Day-end settle walk on web and Android.
+- `pnpm smoke --run-tag`.
+- A pre-existing minor stays open: the path/body check runs before the bearer check, so an anonymous mismatched call gets 400 instead of 401.

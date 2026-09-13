@@ -1,0 +1,48 @@
+== now (IST) and database
+          now_ist           | current_database 
+----------------------------+------------------
+ 2026-09-13 23:10:46.478983 | dos_qa
+(1 row)
+
+== A. Tarsun trips by state, with settlement rows
+         state         | trips | with_settlement 
+-----------------------+-------+-----------------
+ planned               |     1 |               0
+ active                |     1 |               0
+ settled               |    61 |              61
+ settled_with_variance |    20 |              20
+(4 rows)
+
+== B. Tarsun trips the Day-end screen would offer to settle (first 50 by id desc, closing, unsettled)
+ id | trip_no | trip_date | state | opening_cash_paise 
+----+---------+-----------+-------+--------------------
+(0 rows)
+
+== C. Any Tarsun trip in closing at all (any page), unsettled
+ id | trip_no | trip_date | state 
+----+---------+-----------+-------
+(0 rows)
+
+== D. Tarsun trips not yet settled (the ones that could become closing)
+                  id                  |   trip_no   | trip_date  |  state  | planned_stops | opening_cash_paise |        started_at         | ended_at 
+--------------------------------------+-------------+------------+---------+---------------+--------------------+---------------------------+----------
+ dda35990-f442-7931-8da4-5808f09a33b6 | TRIP-ACTIVE | 2026-09-12 | active  |            10 |             500000 | 2026-09-12 09:00:00+05:30 | 
+ 72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT   | 2026-09-14 | planned |             5 |             300000 |                           | 
+(2 rows)
+
+== E. All tenants: closing trips
+       slug       | closing 
+------------------+---------
+ kalyan-agencies  |       0
+ sai-distributors |       0
+ tarsun           |       0
+(3 rows)
+
+== F. Newest Tarsun settlement rows (last 3)
+                  id                  |     trip_no     |   settled_at_ist    | has_variance 
+--------------------------------------+-----------------+---------------------+--------------
+ 7690fd89-89ab-7c9d-9d45-d4ad318deec9 | TRIP-20260911-2 | 2026-09-11 18:30:00 | f
+ 0e0e3437-7e95-791a-a733-0c8b2c07abc9 | TRIP-20260910-1 | 2026-09-10 18:30:00 | f
+ f0e87c15-5c9f-746e-8492-c73117ecc2fc | TRIP-20260909-1 | 2026-09-09 18:30:00 | f
+(3 rows)
+

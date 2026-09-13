@@ -6,7 +6,13 @@ import { ORPCModule, onError } from '@orpc/nest'
 import type { FastifyCorsOptions } from '@fastify/cors'
 import type pg from 'pg'
 import { HealthModule } from '../modules/health/index.js'
-import { DbModule, loadEnv, PG_POOL, type Env } from '../platform/index.js'
+import {
+  DbModule,
+  idempotentReplayInterceptor,
+  loadEnv,
+  PG_POOL,
+  type Env,
+} from '../platform/index.js'
 import { ALLOWED_CONTENT_TYPES } from '../platform/object-storage.js'
 import { servicePort, type ServiceDefinition } from './define.js'
 import { ServiceModule } from './service.module.js'
@@ -15,7 +21,12 @@ import { ServiceModule } from './service.module.js'
 export function serviceRootModule(def: ServiceDefinition) {
   @Module({
     imports: [
-      ORPCModule.forRoot({ interceptors: [onError((error) => console.error(error))] }),
+      ORPCModule.forRoot({
+        // Order matters: the replay interceptor must sit inside `onError` (closer to the handler) so a
+        // substituted reply never reaches `onError` as a logged failure (DOS-160) — `intercept()` runs
+        // interceptors in array order, each wrapping the next, so the last entry is innermost.
+        interceptors: [onError((error) => console.error(error)), idempotentReplayInterceptor],
+      }),
       DbModule,
       ServiceModule.forService(def),
       HealthModule,

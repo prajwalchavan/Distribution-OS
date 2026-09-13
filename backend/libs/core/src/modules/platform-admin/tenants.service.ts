@@ -330,14 +330,17 @@ export class PlatformTenantsService {
       // The level and the login BEFORE the key: a stored reply is handed back without running anything,
       // so a support account replaying a super's suspension with the identical body must stop here.
       await requireActiveAdminLevel(tx, actorId, path)
+      // Existence BEFORE the idempotency gate (DOS-112): `idempotency_keys.tenant_id` is an FK to `tenants`,
+      // so opening the gate for an id nobody has ever created fails at the driver with a raw constraint
+      // violation — a 500 — before this handler gets a chance to say "no distributor" itself.
+      const [before] = await tx
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, id))
+        .limit(1)
+        .for('update')
+      if (!before) throw notFound(id)
       return platformIdempotent(tx, id, idempotencyKey, request, async () => {
-        const [before] = await tx
-          .select()
-          .from(tenants)
-          .where(eq(tenants.id, id))
-          .limit(1)
-          .for('update')
-        if (!before) throw notFound(id)
         if (before.status === 'closed') {
           throw new ORPCError('CONFLICT', {
             message: `${before.legalName} is closed; a closed distributorship is not reopened from the console`,

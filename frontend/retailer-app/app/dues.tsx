@@ -251,8 +251,11 @@ export default function Dues(): React.JSX.Element {
                   label={t('r5.start')}
                   variant="primary"
                   onPress={() => {
+                    // DOS-124: carry the bill this sheet was raised for, so Pay opens ticked to it
+                    // instead of forgetting it and prefilling the shop's whole dues.
+                    const bill = qrBillId
                     setQrBillId(null)
-                    router.push('/pay')
+                    router.push(bill === null ? '/pay' : `/pay?bill=${bill}`)
                   }}
                   fullWidth
                   testID="r3-qr-pay"

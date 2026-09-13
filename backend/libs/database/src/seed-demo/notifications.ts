@@ -44,6 +44,34 @@ function rupees(paise: number): string {
   return `₹${whole.toLocaleString('en-IN')}.${String(paise % 100).padStart(2, '0')}`
 }
 
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+/**
+ * `2026-08-06` -> `6 Aug 2026`, the way `retailer-app/src/lib/dates.ts`'s `longDate` prints a date.
+ *
+ * DOS-105 (merge-review blocker): the dues-reminder body is seeded, not swept, so an ISO date here
+ * survives every `pnpm db:seed` re-run — the shop-facing sentence must never carry `2026-08-06`.
+ * `@dos/db` must not import `@dos/core` or the frontend, so this is a small local copy, not a shared
+ * import.
+ */
+function longDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${String(Number(d))} ${SHORT_MONTHS[Number(m) - 1] ?? ''} ${y ?? ''}`
+}
+
 const TOKEN = /\{\{\s*([a-zA-Z][a-zA-Z0-9_]*)\s*\}\}/g
 function tokens(body: string): string[] {
   const out: string[] = []
@@ -555,7 +583,7 @@ export async function seedNotifications(
         templateKey: 'dues_reminder',
         variables: {
           overdueRupees: rupees(overdue),
-          oldestDueDate: outstanding?.oldestDueDate ?? isoDate(daysAgo(20)),
+          oldestDueDate: longDate(outstanding?.oldestDueDate ?? isoDate(daysAgo(20))),
         },
         refType: 'retailer',
         refId: retailer.id,

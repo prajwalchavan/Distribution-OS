@@ -2963,4 +2963,124 @@ describeDb('delivery (DATABASE_URL)', () => {
     ).rows as { kind: string }[]
     expect(expenses.map((e) => e.kind)).toEqual(['toll'])
   }, 60_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-112: the Day-end settle exactly as the apps put it on the wire
+
+  /**
+   * A trip with no stops, on a vehicle of its own, walked planned → loading → active → closing for the other
+   * driver, `daysAhead` days out so the busy check (one open trip per driver per date) never meets another
+   * test's trip. Nothing is collected, spent or loaded, so the cockpit expects the opening float and an empty
+   * van: handing the float over settles green with no `counted` list, which is what the Day-end screen sends.
+   */
+  const closingTrip = async (label: string, daysAhead: number, plate: string): Promise<string> => {
+    const vehicle = uuidv7()
+    expect(
+      (
+        await call(app, owner, 'POST', '/delivery/vehicles', {
+          idempotencyKey: `${label}-vehicle-${run}`,
+          id: vehicle,
+          regNo: `MH-05-${plate}-${run.slice(-4)}`,
+          name: `Tempo ${plate}`,
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, otherDriver, 'POST', '/delivery/consents', {
+          idempotencyKey: `${label}-consent-${run}`,
+          id: uuidv7(),
+          granted: true,
+          noticeVersion: 'gps-2026-09',
+        })
+      ).status,
+    ).toBe(200)
+    const trip = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `${label}-trip-${run}`,
+      id: trip,
+      tripDate: new Date(Date.parse(today) + daysAhead * 86_400_000).toISOString().slice(0, 10),
+      vehicleId: vehicle,
+      driverId: otherDriverId,
+      // a trip with no stops is a van-sales run; this one never sells, so the van stays empty
+      vanSalesEnabled: true,
+      openingCashPaise: 50_000,
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    for (const step of ['start-loading', 'depart', 'return']) {
+      const moved = await call(app, otherDriver, 'POST', `/delivery/trips/${trip}/${step}`, {
+        idempotencyKey: `${label}-${step}-${run}`,
+      })
+      expect(moved.status, `${step} → ${JSON.stringify(moved.body)}`).toBe(200)
+    }
+    expect(await tripStateOf(trip)).toBe('closing')
+    return trip
+  }
+
+  it('DOS-112 Day-end settle as the apps send it is accepted', async () => {
+    const trip = await closingTrip('dos112-settle', 40, 'SA')
+
+    // The route stays under the guard's path/body check: a hand-built body naming another trip than the
+    // path is refused before any handler runs, and the trip is untouched.
+    const otherTrip = uuidv7()
+    const mismatch = await call<{ message: string }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/trips/${trip}/settle`,
+      {
+        idempotencyKey: `dos112-settle-mismatch-${run}`,
+        id: uuidv7(),
+        tripId: otherTrip,
+        handedOverCashPaise: 50_000,
+      },
+    )
+    expect(mismatch.status).toBe(400)
+    expect(mismatch.body.message).toContain(otherTrip)
+    expect(await tripStateOf(trip)).toBe('closing')
+
+    // The request @dos/api-client's OpenAPILink builds from manager-app/app/money/day-end.tsx's input
+    // (frontend/libs/api-client/src/client.test.ts pins it): the trip fills the path, the new settlement's
+    // own id stays in the body, and `tripId` has left the body for the path.
+    const settlementId = uuidv7()
+    const wire = {
+      id: settlementId,
+      idempotencyKey: `dos112-settle-${run}`,
+      handedOverCashPaise: 50_000,
+      acceptVariance: false,
+      note: 'counted with the crew',
+    }
+    const res = await call<{
+      item: SettlementBody & { tripId: string }
+      tripState: string
+      stockAdjustments: unknown[]
+    }>(app, manager, 'POST', `/delivery/trips/${trip}/settle`, wire)
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    expect(res.body.tripState).toBe('settled')
+    expect(res.body.item.id).toBe(settlementId)
+    expect(res.body.item.tripId).toBe(trip)
+    expect(res.body.item.hasVariance).toBe(false)
+    expect(res.body.stockAdjustments).toEqual([])
+    expect(await tripStateOf(trip)).toBe('settled')
+
+    // The same tap retried replays the stored reply; the trip still has exactly one settlement row.
+    const replay = await call<{ item: SettlementBody }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/trips/${trip}/settle`,
+      wire,
+    )
+    expect(replay.status).toBe(200)
+    expect(replay.body.item.id).toBe(settlementId)
+    const rows = (
+      await db.execute(
+        sql`select id, trip_id, handed_over_cash_paise, settled_by from trip_settlements
+             where tenant_id = ${tenantId} and trip_id = ${trip}`,
+      )
+    ).rows as { id: string; trip_id: string; handed_over_cash_paise: number; settled_by: string }[]
+    expect(
+      rows.map((r) => [r.id, r.trip_id, Number(r.handed_over_cash_paise), r.settled_by]),
+    ).toEqual([[settlementId, trip, 50_000, managerId]])
+  })
 })

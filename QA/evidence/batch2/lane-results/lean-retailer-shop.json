@@ -1,0 +1,156 @@
+{
+ "group": "lean-retailer-shop",
+ "items": [
+  "DOS-101",
+  "DOS-123",
+  "DOS-124",
+  "DOS-154",
+  "DOS-105",
+  "DOS-143",
+  "DOS-144"
+ ],
+ "build": [
+  {
+   "id": "DOS-101",
+   "status": "fixed",
+   "commits": [
+    "effbef8"
+   ],
+   "deviations": "retailer-app has no vitest script/devDependency (confirmed: adding a node:fs-based guard test there fails typecheck with 'Cannot find name node:fs' since its tsconfig carries no @types/node). Per the group note ('retailer-app has no vitest script... proofs are the libs/ui and backend specs plus walks') the guard lives in frontend/libs/ui/src/, reading order.tsx's source the same way document-urls.test.ts and parity.test.ts already pin cross-app rules. Implementation follows lean-sales-entry's DOS-085 PiecesSheet pattern exactly (parsePieces/stepPiece from @dos/ui, committed through R7's own setQty, whose enteredFor() already labels a non-multiple 'piece'). No kit stepper change; inner packs and blocking/capping stay out of scope per the finding's own note.",
+   "followUps": "None.",
+   "platformCheck": "Web desk (1280x800) and phone width walk of R7 (Place order): tap 'Pieces' on an item with less than one case in stock (e.g. Godavari UHT Milk, 'Only 9 pc left'), type 9, confirm the row updates and the placed order line reads enteredUnit=piece in the DB. Android walk (Pixel_7_API_36) of the same flow. iOS: no dedicated walk planned beyond the existing Expo Go baseline (not part of the group's 'Pay slice')."
+  },
+  {
+   "id": "DOS-123",
+   "status": "fixed",
+   "commits": [
+    "7ecae27"
+   ],
+   "deviations": "None from the suggested fix. Chose to null the seed's objectKey (the finding's first alternative) rather than store a placeholder JPEG, since delivery.mappers.ts already answers readUrl:null for a null objectKey and the bill screen already filters those out -- the smaller, more honest change.",
+   "followUps": "Group note: re-run pnpm db:seed on dos_qa after this group is merged, so the demo POD keys there stop 404ing too (dos_qa is off-limits to this worktree).",
+   "platformCheck": "Web desk and phone width walk of My bills -> a delivered bill with a real POD photo (e.g. INV/0830), confirm the image now loads (naturalWidth>0) instead of a broken image; a seeded demo bill should read 'no photo' rather than broken. Android walk of the same screen. iOS: Expo Go baseline only."
+  },
+  {
+   "id": "DOS-124",
+   "status": "fixed",
+   "commits": [
+    "37bd879"
+   ],
+   "deviations": "Did not implement the suggested-fix's optional alternative ('the sheet mints the intent itself'), per its own note that this is optional and not needed. pay.tsx validates the carried bill id against the loaded dues.bills before ticking it (rather than trusting the param blind), and only seeds chosen once per param value so a later manual untick is never re-forced.",
+   "followUps": "None.",
+   "platformCheck": "Web desk and phone width walk: Money due -> 'Pay this bill' on one bill -> 'Start the payment' -> confirm /pay opens with that bill ticked and only its amount shown; same starting from the bill detail's own Pay button. Android walk of both paths. iOS walk required (group note: 'iOS for the Pay slice' -- this item is part of that slice) via Expo Go on the delivery/retailer login helper."
+  },
+  {
+   "id": "DOS-154",
+   "status": "fixed",
+   "commits": [
+    "bcaf0fb"
+   ],
+   "deviations": "Per the binding DOS-146 verdict: fixed as one value (value={payable}, the same figure the bottom bar and Start already use), never with a second '?? 0'. Added a new helper string (r5.chosenHelper, 'Total of the bills you ticked') per the finding's own suggested copy. The native disabled look reuses the exact convention native/controls.tsx's TextInput already applies for `disabled` (dashed border + secondary text/tone) rather than inventing a new one.",
+   "followUps": "The DOS-146 verdict names a related but separate P2 UX item -- a money pad opened on a pre-filled whole amount appends the first digit instead of replacing it -- explicitly left for its own id, not touched here.",
+   "platformCheck": "Web desk, phone width, AND Android walk (this defect was originally caught on Android): Money due -> Pay everything, tick one bill, confirm the amount field now reads that bill's own total (not the full dues) with a visibly dashed/disabled frame, matching the bottom bar. iOS walk required (group note: 'iOS for the Pay slice')."
+  },
+  {
+   "id": "DOS-105",
+   "status": "fixed",
+   "commits": [
+    "89ea1ed"
+   ],
+   "deviations": "The finding gave one concrete example ('Credited \u20b9134' for an issued note); mapped credit-note states to their own words rather than the shared word() lookup: issued/applied -> 'Credited', draft -> 'Not yet issued', cancelled -> 'Cancelled' (new useCreditNoteWord() hook in retailer-app/src/lib/words.ts, additive -- useWord() is untouched for every other enum). Hid the whole bottomBar on a cancelled order (nothing is payable and CANCELLABLE/isDraft are both already false there) rather than relabelling it. Added a new r9.repAsked string ('Your salesperson asked {rate}') compared via Bargain.requestedBy === session.user.id.",
+   "followUps": "Group note: re-run pnpm db:seed on dos_qa after this group is merged (paired with DOS-123's reseed note).",
+   "platformCheck": "Web desk and phone width, AND Android walk across: Returns (credit note badges read 'Credited'), My orders -> a cancelled order (no 'You pay' footer), Offers (a salesperson-raised bargain reads 'Your salesperson asked'), My orders -> Cancel dialog ('Keep it' vs 'Cancel this order'). The WhatsApp reminder wording is backend-only and is proven by the notifications spec; no app walk needed for it. iOS: Expo Go baseline only."
+  },
+  {
+   "id": "DOS-143",
+   "status": "fixed",
+   "commits": [
+    "d37b31b"
+   ],
+   "deviations": "This is a real vitest unit test inside retailer-app/src/lib (a pure module with no node:* imports, only @dos/domain, which the app already resolves in production code) run via `pnpm --filter @dos/retailer-app exec vitest run <file>` -- verified this resolves and typechecks cleanly even though retailer-app carries no 'test' script/vitest devDependency (pnpm's hoisted linker for the frontend workspace makes vitest resolvable regardless). Left the admin/owner/sales/warehouse instances of the same .slice(0,10)-on-instant bug untouched, exactly as the group note instructs ('those files belong to other groups').",
+   "followUps": "The same slice-on-instant pattern exists in admin/distributors, owner/reports/incentives, sales/me and three warehouse screens (noted by the finding itself as an optional sweep) -- left for those screens' own groups.",
+   "platformCheck": "Web desk and phone width walk: place (or find a seeded) order timestamped between midnight and 5:30am IST and confirm My orders and Home both read today's IST date, matching the order detail and the bill. Android walk of the same. iOS: shared code path via Expo Go, no dedicated walk beyond baseline."
+  },
+  {
+   "id": "DOS-144",
+   "status": "fixed",
+   "commits": [
+    "526bfe4"
+   ],
+   "deviations": "Used deliveredQtyPcs (not pickedQtyPcs) as the 'actual' quantity compared against qtyPcs ordered, since that is the figure that finally reached the shop and matches the bill; only a genuinely short line (deliveredQtyPcs < qtyPcs) gets the new wording, a fully-delivered line keeps the existing billLineQty text. Took bills.data.items[0] as THE bill for an order (an order becomes at most one invoice at pack per docs/22's flow) rather than summing multiple invoices, which was not part of the tested scenario.",
+   "followUps": "None.",
+   "platformCheck": "Web desk and phone width walk: SO-0903 (60 pc ordered, 6 short at pick, billed as INV/9010) -> confirm the line reads '54 of 60 pc, 6 short and not billed' and the bottom bar shows INV/9010's own amount due with a 'See the bill' button linking to it. Android walk of the same order. iOS: Expo Go baseline only."
+  }
+ ],
+ "verdict": [
+  {
+   "id": "DOS-101",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-123",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-124",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-154",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-105",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-143",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-144",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  }
+ ],
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "DOS-144: frontend/retailer-app/app/orders/[id].tsx:198 computes short = qtyPcs - deliveredQtyPcs whenever a bill exists, but the bill is issued at pack and delivered_qty_pcs (default 0) is written only at the door (backend/libs/core/src/modules/orders/fulfilment.ts:319); every line of every packed or dispatched order reads '0 of N pc, N short and not billed'. Use qtyPcs - pickedQtyPcs (paid pieces, clamped 0..qtyPcs), reword to '{picked} of {ordered} pc, {short} short and not billed', update dos-144-order-short-pick.guard.test.ts:23, walk a packed and a dispatched order as well as SO-0903.",
+   "DOS-154: pay.tsx:167 keeps onChange={setAmount}; the kit emits null on an emptied field, so payable snaps back to the full dues on web/desk blur and the phone pad's Clear re-shows the full dues, and a typed 0 disables Start with 'Nothing is pending' (r3.noBills) - the two DOS-146 clauses the group note makes binding. Fix as DOS-146: null = untouched, onChange={(next) => setAmount(next ?? 0)}, a third disabledReason 'Enter an amount' when owed > 0 && payable <= 0 (new r5 string), extend dos-154-pay-amount.guard.test.ts; walk web empty+blur and Android pad Clear.",
+   "DOS-105: the ISO date the finding photographed is seeded, not swept - backend/libs/database/src/seed-demo/notifications.ts:558 passes outstanding?.oldestDueDate ?? isoDate(...) raw into the dues_reminder variables (file is in ownsFiles), so the promised reseed cannot fix step 4. Format it '6 Aug 2026' in the seed with a local helper (@dos/db must not import @dos/core) and assert in seed-demo.test.ts that no dues_reminder body matches /\\d{4}-\\d{2}-\\d{2}/."
+  ],
+  "conflicts": [
+   "None: git merge-tree main qa/b2-lean-retailer-shop is clean; no branch file changed on main since 663c6f3; in-flight qa/b2-lean-backend-platform and qa/b2-dos167 touch none of the 25 files.",
+   "lean-kit-polish (DOS-150) also owns frontend/libs/ui/src/native/money.tsx: start it from main after this merges."
+  ],
+  "unfiledDefects": [
+   "backend/libs/database/src/seed-demo/sales.ts:1935 - seeded delivered pieces exclude free goods while core recordDelivered (fulfilment.ts:350) and seed-demo/delivery.ts:514 include them; the seeders disagree on what delivered_qty_pcs counts (P4).",
+   "frontend/libs/ui/src/document-urls.test.ts:160 - the identifier rule is file-level, so one 'x = absoluteUrl(' in a file passes every other source={x} / documents.open(x) in it (pre-existing, P4)."
+  ]
+ },
+ "final": "merged",
+ "mainHead": "b17e23f",
+ "pushed": true,
+ "run": "wf_a339006c-4dc",
+ "setup": "Sonnet 5 builder/verifier/integrator, Fable merge review (founder-approved lean setup)"
+}

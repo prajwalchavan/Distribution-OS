@@ -1,0 +1,84 @@
+{
+  "name": "DOS-112: Day-end settle names its trip in the path, succeeds, and dos_qa holds the settlement row",
+  "mode": "path-only",
+  "at": "2026-09-13T17:44:04.714Z",
+  "results": [
+    {
+      "label": "the request path names the trip",
+      "ok": true
+    },
+    {
+      "label": "the request path does not carry the new settlement id",
+      "ok": true
+    },
+    {
+      "label": "the server resolved the trip from the path: 409 naming that trip as already settled (not a 404 for an unknown trip)",
+      "ok": true
+    },
+    {
+      "label": "nothing was written: same single settlement row, trip untouched, no key kept, no approval filed",
+      "ok": true
+    }
+  ],
+  "outcome": {
+    "trip": {
+      "id": "20cb44cd-8721-777e-a1a4-dea97ff11719",
+      "tripNo": "TRIP-20260911-2",
+      "state": "settled",
+      "updatedAt": "2026-09-13 16:11:11.988284+05:30",
+      "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+    },
+    "input": {
+      "id": "01a09bde-7cbe-73c9-8774-71f8bd292334",
+      "idempotencyKey": "01a09bde-7cbe-73ca-9fc4-8dd8de9a7a2f",
+      "tripId": "20cb44cd-8721-777e-a1a4-dea97ff11719",
+      "handedOverCashPaise": 460434,
+      "acceptVariance": false
+    },
+    "reply": {
+      "ok": false,
+      "error": {
+        "name": "Error",
+        "code": "CONFLICT",
+        "status": 409,
+        "message": "trip TRIP-20260911-2 is already settled (7690fd89-89ab-7c9d-9d45-d4ad318deec9)"
+      }
+    }
+  },
+  "wire": [
+    {
+      "at": "2026-09-13T17:44:04.339Z",
+      "method": "POST",
+      "url": "http://127.0.0.1:3000/auth/login",
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": "{\"username\":\"vikas.kadam\",\"password\":\"Dos@1234\",\"deviceId\":\"01a09bde-7be5-7621-8b29-d0f601bb1454\",\"deviceName\":\"QA dos-112-settle-probe\",\"platform\":\"web\"}",
+      "status": 200,
+      "reply": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOWE1Yi0zYzU4LTcxYzEtYTM0ZC1iOTNjNTY5YjAwOTkiLCJyb2xlIjoibWFuYWdlciIsInNpZCI6IjAxYTA5YmRlLTdjM2EtNzA0My05Y2E4LWNlMmY2MzIxZjgyOSIsImRpZCI6IjAxYTA5YmRlLTdiZTUtNzYyMS04YjI5LWQwZjYwMWJiMTQ1NCIsInN1YiI6ImExY2JkNDI0LWQ1NjgtN2NjYi1iNWNjLWIwNDllOGFjMjA2MyIsImlzcyI6ImRvcy1hdXRoIiwiYXVkIjoiZG9zIiwiaWF0IjoxNzg5MzIxNDQ0LCJleHAiOjE3ODkzMjIzNDQsImp0aSI6IjAxYTA5YmRlLTdjNDUtNzVjNC04YmJmLTgzNWQ4ZWEzYjVmNyJ9.vkWINadPx-VbHvQD0Vok-UW4Jp8adFKyDMXEZ67N9qScC5X6USe63mstXIVHJtPh1RU7vVvumX1r9m6EKcGXBg\",\"tokenType\":\"Bearer\",\"accessExpiresIn\":900,\"refreshToken\":\"LHPf1vgTgBhIfVbVCzSBL6_k55BeaSGnmwi_tHCJ0PY\",\"refreshExpiresAt\":\"2026-10-13T17:44:04.359Z\",\"user\":{\"id\":\"a1cbd424-d568-7ccb-b5cc-b049e8ac2063\",\"username\":\"vikas.kadam\",\"name\":\"Vikas Kadam\",\"locale\":\"mr-IN\",\"mustChangePassword\":false},\"tenant\":{\"id\":\"01a09a5b-3c58-71c1-a34d-b93c569b0099\",\"slug\":\"tarsun\",\"legalName\":\"M/s. Tarsun Enterprise\",\"displayName\":\"Tarsun Enterprise\",\"logoUrl\":\"/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789407844&signature=e73cf36231d43b8ba1925316e10915dbf568015a3949df98a1326e5af15649ba\"},\"role\":\"manager\",\"memberships\":[{\"tenantId\":\"01a09a5b-3c58-71c1-a34d-b93c569b0099\",\"tenantSlug\":\"tarsun\",\"tenantName\":\"M/s. Tarsun Enterprise\",\"displayName\":\"Tarsun Enterprise\",\"logoUrl\":\"/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789407844&signature=e73cf36231d43b8ba1925316e10915dbf568015a3949df98a1326e5af15649ba\",\"role\":\"manager\",\"status\":\"active\"}]}"
+    },
+    {
+      "at": "2026-09-13T17:44:04.428Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3002/delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settlement",
+      "headers": {
+        "authorization": "Bearer <redacted, 602 chars>"
+      },
+      "body": null,
+      "status": 200,
+      "reply": "{\"tripId\":\"20cb44cd-8721-777e-a1a4-dea97ff11719\",\"tripState\":\"settled\",\"openingCashPaise\":500000,\"cashCollectedPaise\":0,\"upiCollectedPaise\":0,\"chequeCollectedPaise\":0,\"expensesPaise\":39566,\"expectedCashPaise\":460434,\"tolerancePaise\":10000,\"expectedVanStock\":[],\"stopsPlanned\":2,\"stopsDelivered\":2,\"stopsPartial\":0,\"stopsFailed\":0,\"collectionsCount\":0,\"settlement\":{\"id\":\"7690fd89-89ab-7c9d-9d45-d4ad318deec9\",\"tripId\":\"20cb44cd-8721-777e-a1a4-dea97ff11719\",\"expectedCashPaise\":460434,\"handedOverCashPaise\":460434,\"cashVariancePaise\":0,\"upiCollectedPaise\":0,\"chequeCollectedPaise\":0,\"expensesPaise\":39566,\"stockVariance\":[],\"hasVariance\":false,\"settledBy\":\"3188dd91-43ff-768a-97cc-b63c11bb00a0\",\"settledAt\":\"2026-09-11T13:00:00.000Z\",\"approvedBy\":null,\"approvedAt\":null,\"note\":null}}"
+    },
+    {
+      "at": "2026-09-13T17:44:04.543Z",
+      "method": "POST",
+      "url": "http://127.0.0.1:3002/delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settle",
+      "headers": {
+        "authorization": "Bearer <redacted, 602 chars>",
+        "content-type": "application/json"
+      },
+      "body": "{\"id\":\"01a09bde-7cbe-73c9-8774-71f8bd292334\",\"idempotencyKey\":\"01a09bde-7cbe-73ca-9fc4-8dd8de9a7a2f\",\"handedOverCashPaise\":460434,\"acceptVariance\":false}",
+      "status": 409,
+      "reply": "{\"defined\":false,\"code\":\"CONFLICT\",\"status\":409,\"message\":\"trip TRIP-20260911-2 is already settled (7690fd89-89ab-7c9d-9d45-d4ad318deec9)\"}"
+    }
+  ]
+}

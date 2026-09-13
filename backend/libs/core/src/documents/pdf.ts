@@ -8,7 +8,9 @@ import { deflateSync } from 'node:zlib'
  * A4, A5 and 80 mm thermal; anything fancier (a PNG logo, Devanagari) is a later, deliberate step.
  *
  * Text is WinAnsi (Latin-1): English only for now (founder, 2026-09-04). A character outside it prints
- * as `?` rather than corrupting the stream; the rupee sign is written `Rs` for that reason.
+ * as `?` rather than corrupting the stream; the rupee sign is written `Rs` for that reason. The cp1252
+ * punctuation WinAnsi can still hold (em/en dash, curly quotes, bullet, ellipsis — `WINANSI_PUNCTUATION`
+ * in pdf.ts) is mapped to its real byte and width rather than falling into that `?` (DOS-151).
  */
 
 export const POINTS_PER_MM = 72 / 25.4
@@ -93,12 +95,35 @@ const HELVETICA_BOLD_WIDTHS = [
   278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
 ]
 
+/**
+ * cp1252 punctuation WinAnsiEncoding can hold in its 0x80-0x9F range — the typographic marks a pasted
+ * branding string (or any rich-text source) uses in place of the ASCII ones. Mapped to its WinAnsi byte,
+ * with the Adobe AFM width of the glyph it names, so 'Tarsun Enterprise — Wholesale' keeps its dash and
+ * is measured at the width that dash actually prints, instead of the `?` (and the untabled 556) the
+ * plain Latin-1 fallback answered for every code point above 255 (DOS-151). Anything else outside
+ * Latin-1 still falls through to `?` / 556 below.
+ */
+const WINANSI_PUNCTUATION: Readonly<
+  Record<number, { byte: number; regular: number; bold: number }>
+> = {
+  0x2013: { byte: 0x96, regular: 556, bold: 556 }, // – en dash
+  0x2014: { byte: 0x97, regular: 1000, bold: 1000 }, // — em dash
+  0x2018: { byte: 0x91, regular: 222, bold: 278 }, // ' left single quote
+  0x2019: { byte: 0x92, regular: 222, bold: 278 }, // ' right single quote
+  0x201c: { byte: 0x93, regular: 333, bold: 500 }, // " left double quote
+  0x201d: { byte: 0x94, regular: 333, bold: 500 }, // " right double quote
+  0x2022: { byte: 0x95, regular: 350, bold: 350 }, // • bullet
+  0x2026: { byte: 0x85, regular: 1000, bold: 1000 }, // … ellipsis
+}
+
 export function textWidth(text: string, font: FontFace, size: number): number {
   const table = font === 'bold' ? HELVETICA_BOLD_WIDTHS : HELVETICA_WIDTHS
   let total = 0
   for (const ch of text) {
     const code = ch.charCodeAt(0)
-    total += code >= 32 && code <= 126 ? (table[code - 32] ?? 556) : 556
+    const punctuation = WINANSI_PUNCTUATION[code]
+    if (punctuation) total += font === 'bold' ? punctuation.bold : punctuation.regular
+    else total += code >= 32 && code <= 126 ? (table[code - 32] ?? 556) : 556
   }
   return (total * size) / 1000
 }
@@ -346,7 +371,9 @@ export function escapePdfText(text: string): string {
   let out = ''
   for (const ch of text) {
     const code = ch.charCodeAt(0)
+    const punctuation = WINANSI_PUNCTUATION[code]
     if (ch === '\\' || ch === '(' || ch === ')') out += `\\${ch}`
+    else if (punctuation) out += String.fromCharCode(punctuation.byte)
     else if (code < 32 || code > 255 || ch.length > 1) out += code === 0x20b9 ? 'Rs' : '?'
     else out += ch
   }

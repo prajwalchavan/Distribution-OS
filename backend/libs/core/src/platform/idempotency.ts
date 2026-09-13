@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
@@ -70,6 +71,12 @@ async function runIdempotent<T>(
         message: 'idempotencyKey was already used with a different request',
       })
     }
+    // The stored reply is authoritative: the client may already have received it once, so it must come back
+    // byte-for-byte, never re-validated against whatever the output schema has grown into since (DOS-160). Mark
+    // the box for this call, if the request set one up, so `idempotentReplayInterceptor` can hand back this exact
+    // value should oRPC's own `validateOutput` refuse it further up the stack.
+    const box = replayBox.getStore()
+    if (box) box.response = existing.response
     return existing.response as T
   }
   const result = await fn()
@@ -78,4 +85,40 @@ async function runIdempotent<T>(
     .set({ response: result })
     .where(sql`${idempotencyKeys.tenantId} = ${tenantId} AND ${idempotencyKeys.key} = ${key}`)
   return result
+}
+
+interface ReplayBox {
+  response: unknown
+}
+
+/** One box per inbound call (`idempotentReplayInterceptor` opens it); `runIdempotent` only ever writes into it. */
+const replayBox = new AsyncLocalStorage<ReplayBox>()
+
+function isOutputValidationFailure(error: unknown): boolean {
+  return (
+    error instanceof ORPCError &&
+    error.code === 'INTERNAL_SERVER_ERROR' &&
+    error.message === 'Output validation failed'
+  )
+}
+
+/**
+ * Registered once, service-wide, in `ORPCModule.forRoot({ interceptors: [...] })` (DOS-160). oRPC re-validates
+ * every reply — cached or fresh — against the CURRENT output schema, so a stored reply from before an additive
+ * contract change (a new required field) fails that check and answers 500 for as long as the key is retained
+ * (24 h), even though the client already holds, or would hold, that exact body. This wraps the call in a box
+ * `runIdempotent` fills in only on a cache hit; when oRPC's own validation then refuses that stored value, the
+ * box already holds it, so the client gets back the reply it asked to replay instead of a 500. A fresh write,
+ * or a stored reply that still happens to satisfy the current schema, passes through untouched.
+ */
+export async function idempotentReplayInterceptor<T>(options: {
+  next: () => Promise<T>
+}): Promise<T> {
+  const box: ReplayBox = { response: undefined }
+  try {
+    return await replayBox.run(box, options.next)
+  } catch (error) {
+    if (box.response !== undefined && isOutputValidationFailure(error)) return box.response as T
+    throw error
+  }
 }

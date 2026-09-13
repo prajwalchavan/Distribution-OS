@@ -1,0 +1,78 @@
+DOS-112: Day-end settle names its trip in the path, succeeds, and dos_qa holds the settlement row
+[mode] path-only · api http://127.0.0.1:3002 · auth http://127.0.0.1:3000 · user vikas.kadam · db dos_qa
+[trip] TRIP-20260911-2 20cb44cd-8721-777e-a1a4-dea97ff11719 (settled, settlement 7690fd89-89ab-7c9d-9d45-d4ad318deec9) — SUPPLEMENTARY, non-mutating
+[preview] state settled, settlement 7690fd89-89ab-7c9d-9d45-d4ad318deec9
+== trip
+select id, trip_no, trip_date, state, opening_cash_paise, updated_at from trips where id = '20cb44cd-8721-777e-a1a4-dea97ff11719'
+                  id                  |     trip_no     | trip_date  |  state  | opening_cash_paise |            updated_at            
+--------------------------------------+-----------------+------------+---------+--------------------+----------------------------------
+ 20cb44cd-8721-777e-a1a4-dea97ff11719 | TRIP-20260911-2 | 2026-09-11 | settled |             500000 | 2026-09-13 16:11:11.988284+05:30
+(1 row)
+
+
+== settlement rows for the trip
+select id, trip_id, expected_cash_paise, handed_over_cash_paise, cash_variance_paise, has_variance, settled_by, settled_at, approved_by, note
+         from trip_settlements where trip_id = '20cb44cd-8721-777e-a1a4-dea97ff11719' order by settled_at
+                  id                  |               trip_id                | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance |              settled_by              |        settled_at         | approved_by | note 
+--------------------------------------+--------------------------------------+---------------------+------------------------+---------------------+--------------+--------------------------------------+---------------------------+-------------+------
+ 7690fd89-89ab-7c9d-9d45-d4ad318deec9 | 20cb44cd-8721-777e-a1a4-dea97ff11719 |              460434 |                 460434 |                   0 | f            | 3188dd91-43ff-768a-97cc-b63c11bb00a0 | 2026-09-11 18:30:00+05:30 |             | 
+(1 row)
+
+
+== trip_settlement approvals for the trip
+select id, status, created_at from approvals where kind = 'trip_settlement' and entity_id = '20cb44cd-8721-777e-a1a4-dea97ff11719' order by created_at
+ id | status | created_at 
+----+--------+------------
+(0 rows)
+
+
+[request] POST http://127.0.0.1:3002/delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settle
+[body] {"id":"01a09bde-7cbe-73c9-8774-71f8bd292334","idempotencyKey":"01a09bde-7cbe-73ca-9fc4-8dd8de9a7a2f","handedOverCashPaise":460434,"acceptVariance":false}
+[status] 409
+[reply] {"defined":false,"code":"CONFLICT","status":409,"message":"trip TRIP-20260911-2 is already settled (7690fd89-89ab-7c9d-9d45-d4ad318deec9)"}
+== trip
+select id, trip_no, trip_date, state, opening_cash_paise, updated_at from trips where id = '20cb44cd-8721-777e-a1a4-dea97ff11719'
+                  id                  |     trip_no     | trip_date  |  state  | opening_cash_paise |            updated_at            
+--------------------------------------+-----------------+------------+---------+--------------------+----------------------------------
+ 20cb44cd-8721-777e-a1a4-dea97ff11719 | TRIP-20260911-2 | 2026-09-11 | settled |             500000 | 2026-09-13 16:11:11.988284+05:30
+(1 row)
+
+
+== settlement rows for the trip
+select id, trip_id, expected_cash_paise, handed_over_cash_paise, cash_variance_paise, has_variance, settled_by, settled_at, approved_by, note
+         from trip_settlements where trip_id = '20cb44cd-8721-777e-a1a4-dea97ff11719' order by settled_at
+                  id                  |               trip_id                | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance |              settled_by              |        settled_at         | approved_by | note 
+--------------------------------------+--------------------------------------+---------------------+------------------------+---------------------+--------------+--------------------------------------+---------------------------+-------------+------
+ 7690fd89-89ab-7c9d-9d45-d4ad318deec9 | 20cb44cd-8721-777e-a1a4-dea97ff11719 |              460434 |                 460434 |                   0 | f            | 3188dd91-43ff-768a-97cc-b63c11bb00a0 | 2026-09-11 18:30:00+05:30 |             | 
+(1 row)
+
+
+== trip_settlement approvals for the trip
+select id, status, created_at from approvals where kind = 'trip_settlement' and entity_id = '20cb44cd-8721-777e-a1a4-dea97ff11719' order by created_at
+ id | status | created_at 
+----+--------+------------
+(0 rows)
+
+
+== no row under the probe id
+select count(*) from trip_settlements where id = '01a09bde-7cbe-73c9-8774-71f8bd292334'
+ count 
+-------
+     0
+(1 row)
+
+
+== no idempotency key kept
+select count(*) from idempotency_keys where tenant_id = '01a09a5b-3c58-71c1-a34d-b93c569b0099' and key = '01a09bde-7cbe-73ca-9fc4-8dd8de9a7a2f'
+ count 
+-------
+     0
+(1 row)
+
+
+PASS  the request path names the trip  (/delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settle)
+PASS  the request path does not carry the new settlement id
+PASS  the server resolved the trip from the path: 409 naming that trip as already settled (not a 404 for an unknown trip)  (status 409 trip TRIP-20260911-2 is already settled (7690fd89-89ab-7c9d-9d45-d4ad318deec9))
+PASS  nothing was written: same single settlement row, trip untouched, no key kept, no approval filed  (settlements 7690fd89-89ab-7c9d-9d45-d4ad318deec9 · state settled · updated_at same · key rows 0 · approvals 0→0)
+GREEN  4 assertions held
+exit=0

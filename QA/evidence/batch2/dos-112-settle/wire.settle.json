@@ -1,0 +1,8 @@
+{
+  "name": "DOS-112: Day-end settle names its trip in the path, succeeds, and dos_qa holds the settlement row",
+  "mode": "settle",
+  "at": "2026-09-13T17:44:01.457Z",
+  "results": [],
+  "outcome": null,
+  "wire": []
+}

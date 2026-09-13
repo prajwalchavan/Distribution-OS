@@ -2101,7 +2101,7 @@ async function planFor(
         [fx.tenantId, chain.tripId],
       )
       return {
-        pathParams: { id: chain.tripId },
+        pathParams: { tripId: chain.tripId },
         body: {
           idempotencyKey: 'sealed below',
           id: stableUuid(`${RUN_NONCE}:${target.name}:settlement`),

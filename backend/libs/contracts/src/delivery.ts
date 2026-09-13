@@ -1427,7 +1427,9 @@ export const deliveryContract = {
     settle: oc
       .route({
         method: 'POST',
-        path: '/delivery/trips/{id}/settle',
+        // `{tripId}`, never `{id}`: the input's own `id` is the NEW settlement row's, and a client link
+        // fills each path segment from the input field of that name (QA DOS-112).
+        path: '/delivery/trips/{tripId}/settle',
         summary:
           'Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner',
       })

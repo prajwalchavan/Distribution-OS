@@ -6,7 +6,14 @@ import type { ModuleMetadata } from '@nestjs/common'
 import { SignJWT } from 'jose'
 import { uuidv7 } from '@dos/domain'
 import { APP_INTERCEPTOR } from '@nestjs/core'
-import { AUTH_ALG, AUTH_AUDIENCE, AUTH_ISSUER, DbModule, loadAuthKeys } from '../platform/index.js'
+import {
+  AUTH_ALG,
+  AUTH_AUDIENCE,
+  AUTH_ISSUER,
+  DbModule,
+  idempotentReplayInterceptor,
+  loadAuthKeys,
+} from '../platform/index.js'
 import {
   registerStorageBodyParsers,
   registerSyncUploadBodyLimit,
@@ -23,7 +30,14 @@ export async function bootTestApp(
   imports: NonNullable<ModuleMetadata['imports']>,
 ): Promise<NestFastifyApplication> {
   const moduleRef = await Test.createTestingModule({
-    imports: [ORPCModule.forRoot({}), DbModule, ...imports],
+    // `idempotentReplayInterceptor` matches `serviceRootModule` (DOS-160): a spec exercises the same
+    // idempotent-replay path a real service does. `onError`'s console noise stays out of test output on
+    // purpose — plenty of specs assert deliberate error responses.
+    imports: [
+      ORPCModule.forRoot({ interceptors: [idempotentReplayInterceptor] }),
+      DbModule,
+      ...imports,
+    ],
     // The local object-storage route every service serves, so an upload round-trip is testable.
     controllers: [StorageController],
     // The cross-cutting pieces `ServiceModule` mounts on a real service, so a spec exercises the same

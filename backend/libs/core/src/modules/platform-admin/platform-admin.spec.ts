@@ -531,6 +531,74 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     expect(actions).toContain('tenant.reactivated')
   })
 
+  // ---------------------------------------------------------------- DOS-112: path vs body id
+
+  it("DOS-112: a body id that disagrees with the path is a 400, never the body's own 500/404 as if the URL said nothing", async () => {
+    // suspend: a real tenant in the path, an unrelated fresh id in the body — must never reach the
+    // handler (today it does, and dies on the FK the fresh id has no row for).
+    const mismatchSuspend = await consoleCall<{ message: string }>(
+      'POST',
+      `/admin/tenants/${tenantId}/suspend`,
+      { idempotencyKey: `dos112-suspend-mismatch-${run}`, id: uuidv7(), reason: 'Probe.' },
+    )
+    expect(mismatchSuspend.status).toBe(400)
+    expect(mismatchSuspend.body.message).toContain(tenantId)
+
+    // the tenant the mismatch named in the path was never touched
+    const [row] = (await db.execute(sql`select status from tenants where id = ${tenantId}`))
+      .rows as { status: string }[]
+    expect(row?.status).toBe('active')
+
+    // path = body = a fresh id nobody has ever created: a clean 404, not the FK violation the
+    // idempotency insert used to hit before the handler's own existence check ran.
+    const freshId = uuidv7()
+    const bothFresh = await consoleCall<{ message: string }>(
+      'POST',
+      `/admin/tenants/${freshId}/suspend`,
+      { idempotencyKey: `dos112-suspend-fresh-${run}`, id: freshId, reason: 'Probe.' },
+    )
+    expect(bothFresh.status).toBe(404)
+
+    // users.disable: the same shape of mismatch, on a different service and a different id field
+    const mismatchDisable = await consoleCall<{ message: string }>(
+      'POST',
+      `/admin/users/${managerId}/disable`,
+      { idempotencyKey: `dos112-disable-mismatch-${run}`, id: uuidv7(), reason: 'Probe.' },
+    )
+    expect(mismatchDisable.status).toBe(400)
+    expect(mismatchDisable.body.message).toContain(managerId)
+    const [user] = (await db.execute(sql`select status from users where id = ${managerId}`))
+      .rows as { status: string }[]
+    expect(user?.status).toBe('active')
+
+    // tenancy.support.approve (owner-service side of the same contract): a real grant in the path, a
+    // fresh id in the body.
+    const grantId = uuidv7()
+    const asked = await consoleCall<{ item: Grant }>('POST', '/admin/support-grants', {
+      idempotencyKey: `dos112-ask-${run}`,
+      id: grantId,
+      tenantId,
+      reason: 'DOS-112 probe grant.',
+      scope: 'read_only',
+      hours: 1,
+    })
+    expect(asked.status).toBe(200)
+    const mismatchApprove = await call<{ message: string }>(
+      app,
+      owner,
+      'POST',
+      `/tenancy/support-grants/${grantId}/approve`,
+      { idempotencyKey: `dos112-approve-mismatch-${run}`, id: uuidv7(), note: 'Probe.' },
+    )
+    expect(mismatchApprove.status).toBe(400)
+    expect(mismatchApprove.body.message).toContain(grantId)
+    // still un-decided: the mismatch never reached the handler that sets `approved_at`
+    const [grant] = (
+      await db.execute(sql`select approved_at from support_grants where id = ${grantId}`)
+    ).rows as { approved_at: string | null }[]
+    expect(grant?.approved_at).toBeNull()
+  })
+
   // ---------------------------------------------------------------- support access
 
   it('asks, waits for the owner, reads only what the owner opened, and writes every read into the trail', async () => {

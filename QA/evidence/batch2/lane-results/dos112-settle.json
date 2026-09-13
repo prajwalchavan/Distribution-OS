@@ -1,0 +1,203 @@
+{
+ "build": {
+  "status": "fixed",
+  "commits": [
+   "dd5ffeb fix(DOS-112): Day-end settle names its trip in the path; the settle redirect is gone",
+   "2137755 docs(dos112-settle): regenerate READMEs"
+  ],
+  "redEvidence": "Reproduced before any product edit (worktree at 84afe34, d1c7da0 is an ancestor).\n\n(a) WIRE. frontend/libs/api-client/src/client.test.ts builds the real createApiClient with a stubbed fetch and calls delivery.trips.settle with day-end.tsx's input. It FAILED:\n\"AssertionError: trip 01924f9a-0000-7000-8000-0000000000d1, new settlement id 01a09bb9-6e45-7353-a328-483191d4c112\"\n- Expected url \"/delivery/trips/01924f9a-0000-7000-8000-0000000000d1/settle\"; received \"/delivery/trips/01a09bb9-6e45-7353-a328-483191d4c112/settle\", which is the new settlement id.\n- The body had no \"id\" and carried \"tripId\": \"01924f9a-...d1\".\n\n(b) SERVER PROBE. A temporary test named \"DOS-112 today's settle wire request is refused\" sent the request the link builds today, then was deleted before commit. Output saved in the scratchpad file dos112-probe.txt:\n\"POST /delivery/trips/01a09bbb-6583-739f-bc8a-a037dfa4c986/settle \u2192 400 {\"message\":\"the id in the URL (\\\"01a09bbb-6583-739f-bc8a-a037dfa4c986\\\") does not match the tripId in the body (\\\"01a09bbb-6523-76b5-b14b-1248a4052997\\\")\",\"error\":\"Bad Request\",\"statusCode\":400}\"\n- The test also asserted that exact message and that the trip stayed `closing`.\n\n(c) COMMITTED SERVER TEST on today's code. The request is POST /delivery/trips/<tripId>/settle with body {id: <settlementId>, idempotencyKey, handedOverCashPaise, acceptVariance, note} and no tripId, exactly what the link sends after the fix. It FAILED:\n\"{\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",\"data\":{\"issues\":[{\"path\":[\"tripId\"],\"message\":\"Invalid input: expected string, received undefined\"}]}}: expected 400 to be 200\"\n- Cause: the route still named its segment {id}, so the trip id in the path was read as `id`, overwritten by the body's id, and tripId never arrived.\n- An earlier run failed in the test setup instead: \"a trip with no stops only makes sense with van sales enabled\". I fixed the setup and re-ran to get the failure above.",
+  "greenEvidence": "After the fix, with @dos/contracts, @dos/domain, @dos/db and @dos/core rebuilt (built contract dist has path '/delivery/trips/{tripId}/settle'; PATH_FIELD_REDIRECTS no longer appears in core src, core dist or tools):\n\nTests:\n- frontend api-client src/client.test.ts: 22/22 passed, including the new DOS-112 test.\n- delivery.spec.ts -t DOS-112: 1 passed. Whole delivery.spec.ts: 34/34 passed.\n- DOS-112 guard tests, one file at a time: platform-admin.spec.ts 24/24, tenancy/support.spec.ts 7/7.\n- @dos/manager-service test (permission matrix): 346/346. @dos/delivery-service test: 262/262.\n- src/docs/examples.spec.ts: 32/32.\n\nChecks:\n- typecheck with no diagnostics: @dos/contracts, @dos/core, @dos/api-client, @dos/manager-app.\n- lint exit 0: @dos/contracts, @dos/core (only the boundaries plugin's existing deprecation warnings), @dos/api-client.\n- pnpm docs:readme rewrote 10 READMEs (settle path is now {tripId}; the curl example URL now carries the trip id). pnpm docs:readme:check is clean.\n- prettier --check clean on every touched file (client.test.ts was formatted with --write first).\n- backend/tools/smoke-endpoints.mts is in no lint or typecheck project. An esbuild transform of it is clean; smoke was not run because no services may be started.\n- git status clean after both commits.",
+  "testsAdded": [
+   {
+    "file": "frontend/libs/api-client/src/client.test.ts",
+    "name": "DOS-112 Day-end settle: the client link puts the trip in the path and the settlement id in the body"
+   },
+   {
+    "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "name": "DOS-112 Day-end settle as the apps send it is accepted"
+   }
+  ],
+  "filesChanged": [
+   "backend/libs/contracts/src/delivery.ts",
+   "backend/libs/core/src/modules/tenancy/tenant.guard.ts",
+   "backend/tools/smoke-endpoints.mts",
+   "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+   "frontend/libs/api-client/src/client.test.ts",
+   "backend/delivery-service/README.md",
+   "backend/manager-service/README.md",
+   "backend/owner-service/README.md",
+   "backend/retailer-service/README.md",
+   "backend/warehouse-service/README.md",
+   "frontend/delivery-app/README.md",
+   "frontend/manager-app/README.md",
+   "frontend/owner-app/README.md",
+   "frontend/retailer-app/README.md",
+   "frontend/warehouse-app/README.md"
+  ],
+  "callers": [
+   "frontend/manager-app/app/money/day-end.tsx:158 api.api.delivery.trips.settle({id: meta.id, idempotencyKey, tripId, handedOverCashPaise, acceptVariance, note?}). Source unchanged; with the renamed route the link now puts the trip in the path and keeps id in the body (proven by the new client test with the same input); manager-app typecheck clean.",
+   "backend/tools/smoke-endpoints.mts:2104 planFor 'delivery.trips.settle': pathParams changed from { id } to { tripId: chain.tripId }; the body still carries id (settlement) and tripId.",
+   "backend/tools/smoke-endpoints.mts:2734 sweep: hand-built `/delivery/trips/${id}/settle` with tripId: id. The path value is already the trip, so no change.",
+   "backend/libs/core/src/docs/examples.ts:3909 published example {id: createdId('delivery.trips.settle','id'), tripId: ctx.activeTripId, ...}. Source unchanged; buildExamples splits by the route's param names, so tripId now goes to the path and id stays in the body (regenerated READMEs, examples.spec 32/32).",
+   "backend/libs/core/src/modules/delivery/delivery.controller.ts:107 handler passes input to settlement.settle, which reads input.tripId. Unchanged.",
+   "backend/libs/core/src/modules/delivery/delivery.spec.ts existing hand-built settle calls (~1714, 1727, 1993, 2018, 2032, 2243) send path trip = body tripId. Unchanged, green.",
+   "backend/libs/contracts/src/permissions.ts:733 'delivery.trips.settle': MONEY_DESK is keyed by procedure name, not path. Unchanged; the manager-service and delivery-service permission matrices are green.",
+   "No other caller: grep of the owner, sales, warehouse, delivery, retailer and admin apps and @dos/offline finds only settlementPreview reads and unrelated private settle() methods (api-client session.ts, offline engine.ts)."
+  ],
+  "deviations": "- **Why the committed server test fails today.** It sends the after-fix wire request, so today it fails with oRPC's input-validation 400 (tripId missing), not the redirect 400. That failure is still caused by the route naming its segment {id}. The redirect's own 400 was shown by the temporary probe, run and then deleted as instructed.\n- **Extra assertions in the committed test.** It also checks that a body naming a different trip than the path still gets the guard's 400 (passes before and after), and that replaying the same request returns the same settlement with exactly one trip_settlements row, settled_by = the manager.\n- **Test setup.** The trip is created with vanSalesEnabled: true, because trips.create refuses a trip with no stops otherwise. The test also creates its own vehicle and the driver's location consent, so it does not rely on earlier tests' state.\n- **No edit needed.** examples.ts and permissions.ts needed no source change (reasons in callers).\n- **Guard message.** With the redirect gone, the 400 text again names the same field on both sides, as f8fff34 had it.\n- **Database.** For the DB specs I exported DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_settle (same as backend/.env) because vitest ran via pnpm exec, not turbo. No drop or recreate was needed.",
+  "followUps": "- **Walks.** Walk the manager Day-end settle on the web desk and Android with services running, and run `pnpm smoke` so the renamed pathParams are exercised. Neither was possible here because dev servers and emulators were off-limits.\n- **Stale plan doc.** docs/plans/delivery.md:36 still documents POST /delivery/trips/{id}/settle with `tripId: id`. I left it because it was outside the listed files.\n- **Other lane.** Tell lean-delivery-collect, which owns contracts/src/delivery.ts, that the settle route is now /delivery/trips/{tripId}/settle.\n- **Review minor, still open.** assertPathMatchesBody runs before the bearer check, so an anonymous mismatched call gets 400 instead of 401. Out of scope here.\n- **Not re-checked.** I did not re-check whether any other route has an {id} segment while the apps send a new-row `id` that means a different record. The guard comment says this was grep-verified.\n- **Old evidence.** Files under QA/evidence still show the old path; they are historical and were not edited."
+ },
+ "verdict": {
+  "verdict": "pass",
+  "redConfirmed": true,
+  "greenConfirmed": true,
+  "problems": [
+   {
+    "severity": "minor",
+    "file": "docs/plans/delivery.md",
+    "detail": "Line 36 still documents `delivery.trips.settle` as POST `/delivery/trips/{id}/settle` with `id` (settlement id) and `tripId`. It is a stale plan doc, not generated and not used at runtime, but anyone following it would build the refused shape."
+   },
+   {
+    "severity": "minor",
+    "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "detail": "On the pre-fix code, the committed test 'DOS-112 Day-end settle as the apps send it is accepted' fails with oRPC's input-validation 400 (tripId missing), not with the guard's path/body 400 that the review describes. It still catches a revert: a `{id}` route makes the body id overwrite the path trip. But the guard's own refusal of the real app request was only shown by throwaway probes: the builder's (deleted) and mine (removed)."
+   },
+   {
+    "severity": "minor",
+    "file": "backend/libs/core/src/modules/tenancy/tenant.guard.ts",
+    "detail": "Review minor, not new here and out of scope: assertPathMatchesBody still runs before the bearer check, so an anonymous call whose path and body disagree gets 400 instead of 401."
+   },
+   {
+    "severity": "minor",
+    "file": "frontend/manager-app/app/money/day-end.tsx",
+    "detail": "Not executed (dev servers and emulators were off-limits): the review's required walk of the manager Day-end settle on the web desk and Android, and `pnpm smoke` with the renamed pathParams { tripId }. What stands in for them: the api-client test and an in-process probe that drove the real OpenAPILink against the real Nest app and guard."
+   }
+  ],
+  "evidence": "SCOPE. main..HEAD has two commits.\n- dd5ffeb changes contracts/src/delivery.ts (only the path `/delivery/trips/{id}/settle` \u2192 `{tripId}`, plus a comment; input and output schemas untouched), tenant.guard.ts (PATH_FIELD_REDIRECTS and the `route` argument removed; the plain same-name check stays), smoke-endpoints.mts (pathParams { id } \u2192 { tripId }), plus the two tests.\n- 2137755 regenerates 10 READMEs.\n- No change to the service, controller, permissions.ts or examples.ts.\n- PERMISSIONS is keyed by procedure name. The guard builds its route map from the contract path through toNestPattern, and the README builder (readme.ts:207) and smoke (:2476) fill path parameters by name. So none of them needed an edit.\n\nRED. I reverse-applied the non-test, non-README diff of dd5ffeb and rebuilt @dos/contracts and @dos/core (dist had `trips/{id}/settle'` and PATH_FIELD_REDIRECTS).\n- api-client client.test.ts -t DOS-112 FAILED: received url `/delivery/trips/01a09bc5-e30b-76d7-bd59-933882d7dcb1/settle` (the new settlement id); the body had `tripId` and no `id`.\n- delivery.spec.ts -t DOS-112 FAILED with `{\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",...path [\"tripId\"]}: expected 400 to be 200`.\n- My own temporary probe in delivery.spec.ts used the real `@orpc/openapi-client/fetch` OpenAPILink (1.15.0, same version as the frontend) over `contract`, with fetch routed into `app.inject`, and sent day-end.tsx's exact input. It put `POST /delivery/trips/<settlementId>/settle` on the wire with body {idempotencyKey, tripId, ...} and got `400 {\"message\":\"the id in the URL (\\\"01a09bc6-a8a9-...\\\") does not match the tripId in the body (\\\"01a09bc6-a88a-...\\\")\"}`. That is exactly the review's blocker.\n- Restored with git checkout -- ., rebuilt, git status clean.\n\nGREEN, after the rebuild (dist has only `trips/{tripId}/settle'`; PATH_FIELD_REDIRECTS appears nowhere in src, dist or tools).\n- api-client client.test.ts 22/22.\n- delivery.spec.ts whole 35/35: the builder's 34 plus my probe, re-inserted. The probe asserted 200, wire url `/delivery/trips/<trip>/settle`, item.id = the settlement id, item.tripId = the trip, trip settled. A retry through the link returned the same settlement with exactly one trip_settlements row. A fresh intent on the settled trip was refused. Probe removed afterwards.\n- platform-admin.spec.ts 24/24, tenancy/support.spec.ts 7/7, docs/examples.spec.ts 32/32, contracts permissions.test.ts 50/50.\n- @dos/manager-service 346/346, @dos/delivery-service 262/262.\n- Typecheck exit 0 for @dos/contracts, @dos/core, @dos/api-client, @dos/manager-app.\n- docs:readme:check exit 0.\n- eslint exit 0 on the touched files (core shows only the existing boundaries warning); prettier --check clean on all touched files.\n\nTEST HONESTY.\n- The wire test builds the package's real createApiClient (client.test.ts:82) with only fetch stubbed. No hand-built URL, no copied link config. It calls desk.api.delivery.trips.settle with day-end.tsx's input shape.\n- The server test sends exactly what that link sends (path = trip; body = id, idempotencyKey, handedOverCashPaise, acceptVariance, note; no tripId). My real-link probe produced the same request and got 200.\n- It also asserts that a body naming another trip gets 400 and the trip is untouched, so a genuine path/body mismatch is still refused.\n\nHUNT.\n- Callers of trips.settle: only manager-app day-end.tsx:158 (source unchanged, typecheck clean), smoke planFor (now { tripId }) and the smoke sweep (path = body tripId), examples.ts (split by name), and the spec's hand-built calls (path = body tripId). Nothing in @dos/offline, the other apps or docs/23; stale text only in docs/plans/delivery.md:36.\n- A script over all 372 contract procedures found 0 routes whose path parameter is missing from the input, and 0 routes with `{id}` plus a same-resource `<x>Id` field (the settle hazard). Against the old settle path the same script flagged exactly delivery.trips.settle, so the check is not vacuous.\n- No other redirect or special-case table left in core src.\n- Idempotency path unchanged.\n\ngit status is clean at the end."
+ },
+ "review": {
+  "decision": "MERGE",
+  "blockers": [],
+  "minors": [
+   "docs/plans/delivery.md:36 still documents POST /delivery/trips/{id}/settle with `tripId: id`; change to /delivery/trips/{tripId}/settle and note that `id` (the settlement id) travels in the body. Hand-written plan doc, not generated; can ride the merge commit or the next docs pass.",
+   "backend/libs/core/src/modules/tenancy/tenant.guard.ts:150 assertPathMatchesBody runs before the bearer check, so an anonymous mismatched call gets 400 instead of 401. Pre-existing lean-backend-platform minor; leave as tracked.",
+   "QA/findings/12-batch2-new-findings.md:214 S-113 moves from PROBE RUNNING to CONFIRMED (the 400 reproduced by builder and verifier) and FIXED by this merge; QA/STATE.md:31 still owes the live `pnpm smoke --run-tag` for DOS-112.",
+   "The regenerated README request.json keeps `tripId` in the body next to `id` (the renderer prints the full input; the guard accepts it when it equals the path). Consistent with every other {id} route; no change asked."
+  ],
+  "conflicts": [
+   "With main now: none. git merge-tree main qa/b2-dos112-settle is clean; main gained only QA/STATE.md (4376f29) since the base 84afe34.",
+   "lean-delivery-collect (order 14, owns contracts/src/delivery.ts, delivery.spec.ts, seed-demo/delivery.ts) is NOT started (no branch, no worktree), so it branches from main after this merge: no conflict. Tell its builder the settle route is now /delivery/trips/{tripId}/settle and that delivery.spec.ts ends with the DOS-112 block (its DOS-071 case appends after it; keep both if a tail conflict ever appears).",
+   "No other open lane (b2-dos167, b2-docs22) touches the guard, smoke-endpoints.mts or the settle route."
+  ],
+  "readmes": [
+   "10 READMEs regenerated in 2137755 (delivery/manager/owner/retailer/warehouse services + the five app READMEs); pnpm docs:readme:check clean. Only the settle table row, heading, 403 message and curl URL changed: the URL now carries the trip id (01a06d0b\u2026 = request tripId) and request id (01a06d17\u2026) equals item.id in the response, so the example's URL semantics are right for the first time.",
+   "After merging: rebuild @dos/contracts and @dos/core in the main checkout and restart the services (QA/STATE.md:54 rule) and the manager Metro, because the frontend links the contracts dist via link:."
+  ],
+  "unfiledDefects": []
+ },
+ "integration": {
+  "status": "ready",
+  "headCommit": "dfeacab",
+  "conflicts": [],
+  "fixes": [
+   "No review blockers: dos112-settle.md says MERGE with Blockers: None, so no fix commits were needed.",
+   "Merge 12c3ff3 brought main into the branch. Main had moved on by one commit (4376f29, which only touches QA/STATE.md) and nothing conflicted.",
+   "dfeacab (optional, review minor 1): docs/plans/delivery.md now gives the settle route as POST /delivery/trips/{tripId}/settle and says the new settlement id travels in the body. It is a hand-written plan doc, not a generated one.",
+   "pnpm install in backend/ and frontend/ changed nothing, so there was no lockfile to commit. The four libs rebuilt from the turbo cache; I checked that the contracts dist has trips/{tripId}/settle and the core dist no longer has PATH_FIELD_REDIRECTS. db:migrate on dos_test_b2_settle ran clean.",
+   "pnpm docs:readme changed nothing, so there were no README commits."
+  ],
+  "testsRun": [
+   "backend @dos/core vitest run src/modules/delivery/delivery.spec.ts: 34/34 passed",
+   "backend @dos/core vitest run src/modules/delivery/delivery.spec.ts -t DOS-112 (verbose): 'DOS-112 Day-end settle as the apps send it is accepted' ran and passed (1 passed, 33 skipped)",
+   "frontend @dos/api-client vitest run src/client.test.ts: 22/22 passed, including 'DOS-112 Day-end settle: the client link puts the trip in the path and the settlement id in the body'",
+   "backend @dos/core vitest run src/modules/platform-admin/platform-admin.spec.ts: 24/24 passed, including 'DOS-112: a body id that disagrees with the path is a 400, never the body's own 500/404 as if the URL said nothing'",
+   "backend @dos/core vitest run src/modules/tenancy/support.spec.ts: 7/7 passed, including the DOS-112 path/body case 'cannot be answered by the owner of another distributor, and 404s an unknown id'",
+   "backend pnpm --filter @dos/manager-service test: 346/346 passed",
+   "backend pnpm --filter @dos/delivery-service test: 262/262 passed",
+   "frontend pnpm --filter @dos/api-client typecheck: exit 0",
+   "frontend pnpm --filter @dos/manager-app typecheck: exit 0",
+   "backend pnpm docs:readme && pnpm docs:readme:check: clean, no files changed",
+   "prettier --check on the lane's touched files (contracts delivery.ts, tenant.guard.ts, delivery.spec.ts, smoke-endpoints.mts, api-client client.test.ts): all formatted",
+   "git status --short: clean at dfeacab"
+  ],
+  "notes": "The branch is ready to merge, at dfeacab. The worktree is /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos112-settle, branch qa/b2-dos112-settle. Nothing was merged into main, and nothing outside this worktree or under QA/ was edited.\n\nNot done here, because the review lists them as walks after the merge: the manager app's Day-end settle on the web desk and on Android, and `pnpm smoke --run-tag` on dos_qa (0 BROKEN). After merging, rebuild @dos/contracts and @dos/core in the main checkout, restart the services and restart the manager app's Metro, since the frontend reads contracts from dist.\n\nReview minors 2 and 3 are left as they are. Minor 2 (the anonymous path/body mismatch gets 400, not 401) was already tracked before this lane. Minor 3 is a QA/ bookkeeping change, and this integrator may not edit QA/.\n\nTell the lean-delivery-collect builder that the settle route is now /delivery/trips/{tripId}/settle, and that the DOS-112 block sits at the end of delivery.spec.ts."
+ },
+ "integrationVerdict": {
+  "verdict": "pass",
+  "problems": [
+   {
+    "severity": "minor",
+    "detail": "Still owed after the merge; the review lists these as walks and they were not run here: (1) the manager app's Day-end settle (money/day-end.tsx) on the web desk and on Android against running services; (2) `pnpm smoke --run-tag` on dos_qa, 0 BROKEN, to exercise the renamed smoke pathParams { tripId } (smoke-endpoints.mts:2104) and the sweep at :2734. After merging, rebuild @dos/contracts and @dos/core in the main checkout and restart the services and the manager Metro."
+   },
+   {
+    "severity": "minor",
+    "detail": "Review minor 2 is still open, as the review allows: tenant.guard.ts:150 runs assertPathMatchesBody(req) before bearerToken(), so an anonymous call whose path and body disagree gets 400 instead of 401. It was tracked before this lane. Review minor 3 is QA bookkeeping and is also still owed: the S-113 row at QA/findings/12-batch2-new-findings.md:214 still says PROBE RUNNING."
+   }
+  ],
+  "evidence": "1. HEAD and tree. `git rev-parse` gives dfeacabf9c43 on qa/b2-dos112-settle, and `git status --short` is empty both before and after all checks. The log is dd5ffeb (fix) and 2137755 (READMEs) on base 84afe34, then merge 12c3ff3 (main 4376f29), then dfeacab (docs/plans/delivery.md). The merge base with main is 4376f29, main's current tip. `git diff main HEAD --stat` lists 16 files: the fix's 5, the 10 READMEs and the plan doc.\n\n2. Merge commit. 12c3ff3 is the only merge. `git show --cc` shows no conflict hunks. I recomputed the merge with `git merge-tree --write-tree 2137755 4376f29`, which gives 7976b4f2\u2026, identical to `12c3ff3^{tree}`. So nothing was dropped from either side and nothing was hand-edited. Main's side brought only QA/STATE.md; the branch side kept all 15 lane files.\n\n3. Review blockers. QA/evidence/batch2/merge-reviews/dos112-settle.md says \"Decision: MERGE\" and \"Blockers: None\", so there was nothing to resolve on HEAD. It reviewed dd5ffeb and 2137755. Since then HEAD adds only the merge (QA/STATE.md) and dfeacab, which fixes review minor 1: docs/plans/delivery.md:36 now reads POST `/delivery/trips/{tripId}/settle`, with the settlement `id` in the body.\n\n4. Original blocker (lean-backend-platform.md Blockers 1), re-proven on HEAD:\n- The contract at backend/libs/contracts/src/delivery.ts:1432 is `path: '/delivery/trips/{tripId}/settle'`. SettleTripInput (delivery.ts:855) still carries both `id` (the settlement) and `tripId`.\n- `git grep PATH_FIELD_REDIRECTS HEAD` finds it only in QA/ history files, never in source. The guard (tenant.guard.ts:150) calls `assertPathMatchesBody(req)` with no route argument, and the function body at :330-342 is the plain same-name check. The rebuilt core dist (turbo, 4/4 full cache hit) matches: `assertPathMatchesBody(req)` and no redirect. `git grep 'trips/({id}|:id)/settle'` finds only historical QA evidence.\n- The handler still reads `input.tripId` (settlement.service.ts:118). day-end.tsx:158-165 sends `id: meta.id, tripId: input.tripId`. smoke-endpoints.mts:2104 uses `pathParams: { tripId: chain.tripId }`.\n- The generated README curl is `POST \u2026/delivery/trips/01a06d0b\u2026/settle`, with request `tripId` = 01a06d0b\u2026 and request `id` 01a06d17\u2026 equal to the response `item.id`.\n- The frontend's @dos/contracts link (frontend/libs/api-client/node_modules/@dos/contracts) resolves to this worktree's backend/libs/contracts, and its dist contains `trips/{tripId}/settle`.\n\nTests executed by me on HEAD, each alone:\n- @dos/core delivery.spec.ts: 34/34 passed, including \"DOS-112 Day-end settle as the apps send it is accepted\". It asserts 200, settlement id, trip settled, replay idempotent with one row, and a mismatched body tripId still gets 400.\n- @dos/api-client client.test.ts: 22/22 passed, including \"DOS-112 Day-end settle: the client link puts the trip in the path and the settlement id in the body\". It asserts URL `/delivery/trips/<TRIP>/settle`, a body without tripId, and a URL that does not contain meta.id.\n- @dos/manager-service test: 346/346. @dos/delivery-service test: 262/262.\n- `pnpm docs:readme:check`: exit 0.\n- platform-admin.spec.ts: 24/24, including the DOS-112 path/body 400 case. support.spec.ts: 7/7.\n- Typechecks for @dos/core, @dos/api-client and @dos/manager-app all exit 0. ESLint on tenant.guard.ts, delivery.spec.ts and client.test.ts: exit 0.\n- Prettier --check on the 5 touched source files is clean, and `git diff --check main HEAD` is clean.\n- DB dos_test_b2_settle has 48 migrations applied, matching the 48 journal entries.\n\nWorktree: /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos112-settle. No commits or edits were made."
+ },
+ "merge": {
+  "status": "merged",
+  "mainHead": "468a926",
+  "pushed": true,
+  "notes": "All preconditions verified: branch main, status showed only QA/ untracked change, qa/b2-dos112-settle == dfeacab, merge-tree reported no conflict. Merged --no-ff with the specified message, pushed to origin/main successfully on first attempt."
+ },
+ "live": {
+  "verdict": "not-tested",
+  "environment": "QA stack on main 468a926 (DOS-112 settle repair merge). Guard passed: nothing listening on :5175/:5176/:5177, `adb devices` empty, no booted simulator, and no DOS-167 merge in the last 30 commits. Backend libs rebuilt with turbo (4/4 built). `pnpm db:migrate` run with DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa (\"migrations applied\"). /health answered 200 on :3000 through :3007, so nothing was restarted. Every psql call and the probe used dos_qa; the founder's database `dos` was never touched, and the script refuses any database other than dos_qa. Signed in as the Tarsun manager vikas.kadam / Dos@1234. The client used the frontend's @orpc/client and @orpc/openapi-client 1.15.0 with backend/libs/contracts/dist, set up like client.ts (url = manager-service :3002, Bearer header function, fetch with a 20 s deadline). Node 24. Writes: two auth sign-in session rows for vikas.kadam in dos_qa. No product code changed, no commit, no merge. New untracked files: /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/dos-112-settle-probe.mjs and the evidence folder /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-112-settle/.",
+  "steps": [
+   {
+    "step": "Guard: Metro ports, emulator, simulator, DOS-167 merge in git log",
+    "expected": "None present, so the probe may run",
+    "observed": "No listener on 5175/5176/5177. adb lists no device. simctl shows nothing booted. The last 30 commits have DOS-167 STATE/docs commits but no DOS-167 merge.",
+    "result": "PASS",
+    "evidence": "Guard command output in this session (HEAD 468a926e0f5e9b0d6d42d09ff1971e3b1cc0518d)"
+   },
+   {
+    "step": "1. Build backend libs, migrate dos_qa, check /health on :3000-:3007",
+    "expected": "Build green, migrations applied, eight 200s",
+    "observed": "turbo: 4 successful. Migrate printed 'migrations applied' on dos_qa. :3000 through :3007 all answered 200.",
+    "result": "PASS",
+    "evidence": "Command output in this session"
+   },
+   {
+    "step": "2. Read-only SQL on dos_qa: find a Tarsun trip the manager's Day-end screen would settle today. The screen lists trips.list({limit:50}), ordered by id desc and filtered to state 'closing'. Settle needs 'closing' and no trip_settlements row.",
+    "expected": "At least one Tarsun trip in 'closing' with no settlement",
+    "observed": "None. Tarsun trips by state: planned 1 (TRIP-NEXT, 2026-09-14), active 1 (TRIP-ACTIVE, 2026-09-12, not returned), settled 61, settled_with_variance 20. 'closing' is 0 in all three tenants. The candidate query (first 50 Tarsun trips by id desc, closing, unsettled) returned 0 rows. Per the brief, no data was created.",
+    "result": "NOT TESTED",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-112-settle/precondition.sql and precondition.out.txt. Key query: with page as (select tr.* from trips tr join tenants t on t.id=tr.tenant_id where t.slug='tarsun' order by tr.id desc limit 50) select p.id,p.trip_no,p.state from page p left join trip_settlements s on s.tenant_id=p.tenant_id and s.trip_id=p.id where p.state='closing' and s.id is null -> (0 rows)"
+   },
+   {
+    "step": "3. Write QA/tools/e2e/dos-112-settle-probe.mjs and run its default settle mode. It signs in, calls settlementPreview, then calls settle with the day-end.tsx input {id, idempotencyKey, tripId, handedOverCashPaise = preview expected cash, acceptVariance}, recording URL, body, status and reply.",
+    "expected": "Script written; it settles the Day-end trip",
+    "observed": "Script written. The default run stopped at its precondition (exit 2) before signing in, because no Tarsun trip is in 'closing' with no settlement. No request was sent.",
+    "result": "NOT TESTED",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-112-settle/probe.settle.out.txt, sql-before.settle.txt, wire.settle.json"
+   },
+   {
+    "step": "4a. Main check: the settle path names the trip, the reply is success, and dos_qa holds the settlement row",
+    "expected": "POST /delivery/trips/{tripId}/settle, 200, new trip_settlements row for that trip, trip leaves closing",
+    "observed": "Could not run: no closing trip. The success reply and the settlement row are unproven.",
+    "result": "NOT TESTED",
+    "evidence": "probe.settle.out.txt (exit=2)"
+   },
+   {
+    "step": "4b. Extra non-mutating check of the path (not the main check): the same client call as the screen on the already-settled trip TRIP-20260911-2 (20cb44cd-8721-777e-a1a4-dea97ff11719), handedOverCashPaise 460434, acceptVariance false",
+    "expected": "The URL carries the trip id, not the new settlement id. The server finds the trip from the path and refuses with 409 'already settled' before writing anything.",
+    "observed": "Request: POST http://127.0.0.1:3002/delivery/trips/20cb44cd-8721-777e-a1a4-dea97ff11719/settle. Body: {\"id\":\"01a09bde-7cbe-73c9-8774-71f8bd292334\",\"idempotencyKey\":\"01a09bde-7cbe-73ca-9fc4-8dd8de9a7a2f\",\"handedOverCashPaise\":460434,\"acceptVariance\":false}. The compact codec moved tripId into the path. Reply: 409 CONFLICT, 'trip TRIP-20260911-2 is already settled (7690fd89-89ab-7c9d-9d45-d4ad318deec9)'. So the server resolved the trip from the path, where it would have answered 404 for an unknown trip. SQL before and after are identical: one settlement row, trip updated_at unchanged, no row under the probe id, no idempotency key kept, approvals 0 to 0. 4 of 4 assertions held.",
+    "result": "PASS",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-112-settle/probe.path-only.out.txt, wire.path-only.json, sql-before.path-only.txt, sql-after.path-only.txt"
+   },
+   {
+    "step": "Note for the re-run (not verified live)",
+    "expected": "The re-run gets a success reply",
+    "observed": "day-end.tsx never sends `counted`, and the server counts every lot missing from `counted` as zero. So if the closing trip's van still holds stock, the manager will get 409 settlement_needs_owner and an approvals row, not a success. For a clean success, pick a closing trip whose vehicle location has no on-hand stock. Then run: cd QA/tools && DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa node e2e/dos-112-settle-probe.mjs (TRIP_ID=<id> to pin one).",
+    "result": "NOT TESTED",
+    "evidence": "backend/libs/contracts/src/delivery.ts SettleTripInput doc comment; backend/libs/core/src/modules/delivery/settlement.service.ts settle() refusal branch"
+   }
+  ],
+  "defects": []
+ },
+ "final": "merged",
+ "run": "wf_4cfc5e81-4e4"
+}

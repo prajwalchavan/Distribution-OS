@@ -135,9 +135,13 @@ export default function Deals(): React.JSX.Element {
                   key={ask.id}
                   primary={names.nameOf(ask.variantId) ?? t('r8.itemUnknown')}
                   secondary={`${
-                    ask.approvedRatePaise === null
-                      ? t('r9.asked', { rate: formatMoney(ask.askedRatePaise) })
-                      : t('r9.gotRate', { rate: formatMoney(ask.approvedRatePaise) })
+                    ask.approvedRatePaise !== null
+                      ? t('r9.gotRate', { rate: formatMoney(ask.approvedRatePaise) })
+                      : // DOS-105: "You asked" is wrong when the SALESPERSON raised the bargain on
+                        // the shop's behalf — `requestedBy` names who actually asked.
+                        ask.requestedBy === session?.user.id
+                        ? t('r9.asked', { rate: formatMoney(ask.askedRatePaise) })
+                        : t('r9.repAsked', { rate: formatMoney(ask.askedRatePaise) })
                   } · ${
                     ask.expiresAt === null
                       ? instantWithClock(ask.createdAt)
