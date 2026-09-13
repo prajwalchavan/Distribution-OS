@@ -5,6 +5,7 @@ import {
   LocaleSchema,
   MembershipRoleSchema,
   PasswordSchema,
+  PlatformAdminLevelSchema,
   PlatformRoleSchema,
   UsernameSchema,
 } from './common.js'
@@ -205,6 +206,12 @@ export const PlatformTokenPairOutput = z.object({
   refreshExpiresAt: z.iso.datetime(),
   user: AuthUserSchema,
   role: PlatformRoleSchema,
+  /**
+   * The console LEVEL of this account (DOS-106), read from `platform_admins` at sign-in and at every
+   * refresh. The console hides what the level cannot use; the access token does NOT carry it, because
+   * admin-service re-reads the level on every call and a demotion must bite on the next request.
+   */
+  level: PlatformAdminLevelSchema,
 })
 export type PlatformTokenPair = z.infer<typeof PlatformTokenPairOutput>
 
@@ -212,6 +219,8 @@ export type PlatformTokenPair = z.infer<typeof PlatformTokenPairOutput>
 export const PlatformMeOutput = z.object({
   user: AuthUserSchema,
   role: PlatformRoleSchema,
+  /** The console level as the database holds it now (DOS-106). */
+  level: PlatformAdminLevelSchema,
   session: AuthSessionSchema,
 })
 export type PlatformMe = z.infer<typeof PlatformMeOutput>

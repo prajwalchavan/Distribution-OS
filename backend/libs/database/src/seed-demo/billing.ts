@@ -294,6 +294,7 @@ export async function seedBilling(
       id: receiptId,
       tenantId,
       receiptNo: `RCPT-9${String(receiptRows.length + 1).padStart(3, '0')}`,
+      fy: FY,
       retailerId: i.retailerId,
       mode: i.mode,
       amountPaise: i.amountPaise,
@@ -1248,11 +1249,13 @@ export async function seedBilling(
   // 9. The counters end past everything this seed booked, exactly as `seedSales` does for INV/CN/SO,
   // and then past everything the DATABASE holds — the app and `pnpm smoke` issue real bills between
   // reseeds, and a counter that stops at the seed's own last number hands the next caller a number
-  // the table already has, which is a 409 nobody can get past without a fresh database.
+  // the table already has, which is a 409 nobody can get past without a fresh database. RCPT too
+  // (DOS-032 / DOS-059): the settled bills above booked RCPT-9001 … on the sales history's register.
   await bumpSeries(db, tenantId, 'INV', 9007)
   await bumpSeries(db, tenantId, 'CN', 9003)
   await reconcileSeries(db, tenantId, 'INV')
   await reconcileSeries(db, tenantId, 'CN')
+  await reconcileSeries(db, tenantId, 'RCPT')
   await db
     .insert(numberingSeries)
     .values({
@@ -1421,8 +1424,12 @@ export async function seedPendingVanSaleOrder(
  * different shape simply contributes nothing.
  */
 async function reconcileSeries(db: Db, tenantId: string, seriesCode: string): Promise<void> {
-  const table = seriesCode === 'CN' ? 'credit_notes' : 'invoices'
-  const column = seriesCode === 'CN' ? 'credit_note_no' : 'invoice_no'
+  const { table, column } =
+    seriesCode === 'CN'
+      ? { table: 'credit_notes', column: 'credit_note_no' }
+      : seriesCode === 'RCPT'
+        ? { table: 'receipts', column: 'receipt_no' }
+        : { table: 'invoices', column: 'invoice_no' }
   await db.execute(sql`
     UPDATE numbering_series ns
        SET next_no = GREATEST(ns.next_no, coalesce((

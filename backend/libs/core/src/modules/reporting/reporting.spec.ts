@@ -28,7 +28,7 @@ type Lapsed = z.infer<typeof LapsedRetailersOutput>
 type StockValue = z.infer<typeof StockValueOutput>
 type FillRate = z.infer<typeof FillRateOutput>
 type Collections = z.infer<typeof CollectionsRegisterOutput>
-import { businessDate, uuidv7 } from '@dos/domain'
+import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import {
   beatAssignments,
   beats,
@@ -634,10 +634,12 @@ describeDb('reporting (DATABASE_URL)', () => {
         lineTotalPaise: 56_000,
       })),
     )
+    const receiptFy = financialYear(new Date(`${to}T06:00:00.000Z`))
     await db.insert(receipts).values([
       {
         id: uuidv7(),
         tenantId,
+        fy: receiptFy,
         retailerId: shopA1,
         mode: 'cash',
         amountPaise: 10_000,
@@ -648,6 +650,7 @@ describeDb('reporting (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: receiptFy,
         retailerId: shopA1,
         mode: 'upi',
         amountPaise: 5_000,
@@ -659,6 +662,7 @@ describeDb('reporting (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: receiptFy,
         retailerId: shopA1,
         mode: 'cheque',
         amountPaise: 90_000,

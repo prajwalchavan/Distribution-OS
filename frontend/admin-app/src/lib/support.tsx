@@ -35,7 +35,7 @@ import { uuidv7 } from '@dos/domain'
 import type { AdminSupportGrant, SupportScope } from '@dos/contracts'
 import { useEffect, useState } from 'react'
 
-import { Field, Note, Panel, askLapsed, grantFamily } from './ui'
+import { Field, Note, Panel, askLapsed, grantFamily, useCan } from './ui'
 import { instantWithClock, untilInstant } from './dates'
 import { useWord } from './words'
 
@@ -81,6 +81,7 @@ export function AskForAccess({
   const [scope, setScope] = useState<SupportScope>('read_only')
   const [hours, setHours] = useState(4)
   const [id, setId] = useState(() => uuidv7())
+  const can = useCan()
 
   const ask = useMutation(
     (_input: string, meta) =>
@@ -171,18 +172,21 @@ export function AskForAccess({
         {ask.error === undefined ? null : (
           <ErrorState message={ask.error.message} detail={ask.error.kind} />
         )}
-        <Button
-          label={t('p6.send')}
-          variant="primary"
-          fullWidth
-          testID="ask-submit"
-          loading={ask.status === 'pending'}
-          disabled={tooShort || ask.status === 'pending'}
-          {...(tooShort ? { disabledReason: t('p6.reasonShort') } : {})}
-          onPress={() => {
-            ask.mutate(id)
-          }}
-        />
+        {/* Defence for a sheet opened by state: only a level that may ask is offered the send (DOS-106). */}
+        {can('admin.support.request') ? (
+          <Button
+            label={t('p6.send')}
+            variant="primary"
+            fullWidth
+            testID="ask-submit"
+            loading={ask.status === 'pending'}
+            disabled={tooShort || ask.status === 'pending'}
+            {...(tooShort ? { disabledReason: t('p6.reasonShort') } : {})}
+            onPress={() => {
+              ask.mutate(id)
+            }}
+          />
+        ) : null}
       </Stack>
     </Sheet>
   )
@@ -216,6 +220,7 @@ export function InsidePanel({
   const word = useWord()
   const colors = useColors()
   const api = usePlatformApi()
+  const can = useCan()
   const [handBack, setHandBack] = useState(false)
 
   const live = grants.find((grant) => grant.active) ?? null
@@ -429,29 +434,34 @@ export function InsidePanel({
                 </Stack>
               )}
             </Panel>
-            <Button
-              label={t('p4.insideHandBack')}
-              variant="destructive"
-              testID="hand-back"
-              onPress={() => {
-                setHandBack(true)
-              }}
-            />
-            <Dialog
-              open={handBack}
-              onClose={() => {
-                setHandBack(false)
-              }}
-              title={t('p6.handBackTitle')}
-              body={t('p6.handBackBody')}
-              confirmLabel={t('p6.handBack')}
-              destructive
-              busy={revoke.status === 'pending'}
-              onConfirm={() => {
-                revoke.mutate(live.id)
-              }}
-              testID="hand-back-dialog"
-            />
+            {/* Handing a window back: super and support (DOS-106). */}
+            {can('admin.support.revoke') ? (
+              <>
+                <Button
+                  label={t('p4.insideHandBack')}
+                  variant="destructive"
+                  testID="hand-back"
+                  onPress={() => {
+                    setHandBack(true)
+                  }}
+                />
+                <Dialog
+                  open={handBack}
+                  onClose={() => {
+                    setHandBack(false)
+                  }}
+                  title={t('p6.handBackTitle')}
+                  body={t('p6.handBackBody')}
+                  confirmLabel={t('p6.handBack')}
+                  destructive
+                  busy={revoke.status === 'pending'}
+                  onConfirm={() => {
+                    revoke.mutate(live.id)
+                  }}
+                  testID="hand-back-dialog"
+                />
+              </>
+            ) : null}
           </>
         ) : waiting !== null ? (
           <>
@@ -490,12 +500,15 @@ export function InsidePanel({
                     ),
                   })}
             </Note>
-            <Button
-              label={t('p4.insideAsk')}
-              variant="secondary"
-              testID="ask-access"
-              onPress={onAsk}
-            />
+            {/* Asking a distributor's owner for a window: super and support (DOS-106). */}
+            {can('admin.support.request') ? (
+              <Button
+                label={t('p4.insideAsk')}
+                variant="secondary"
+                testID="ask-access"
+                onPress={onAsk}
+              />
+            ) : null}
           </>
         )}
       </Stack>

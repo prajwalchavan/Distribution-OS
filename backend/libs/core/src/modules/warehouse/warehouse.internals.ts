@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
 import { paise, percentOf, uuidv7 } from '@dos/domain'
 import {
   auditLog,
@@ -16,6 +16,7 @@ import {
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { reservableLocationId } from '../inventory/index.js'
 
 /**
  * The plumbing every warehouse procedure shares: who may call what, the two numbering series, the
@@ -221,26 +222,9 @@ export interface VehicleLocation {
   regNo: string | null
 }
 
-/** Where a load leaves from when the caller names no location of its own. */
+/** Where a load leaves from when the caller names no location of its own: inventory's one godown rule (DOS-074). */
 export async function activeWarehouseLocation(tx: Db): Promise<string> {
-  const { tenantId } = currentTenant()
-  const [row] = await tx
-    .select({ id: locations.id })
-    .from(locations)
-    .where(
-      and(
-        eq(locations.tenantId, tenantId),
-        eq(locations.kind, 'warehouse'),
-        eq(locations.active, true),
-      ),
-    )
-    .orderBy(asc(locations.id))
-    .limit(1)
-  if (!row)
-    throw new ORPCError('BAD_REQUEST', {
-      message: 'this distributor has no active warehouse location (bootstrap it first)',
-    })
-  return row.id
+  return reservableLocationId(tx)
 }
 
 /**

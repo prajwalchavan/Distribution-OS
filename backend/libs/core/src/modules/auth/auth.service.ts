@@ -4,6 +4,7 @@ import { and, asc, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-or
 import type {
   AuthMe,
   AuthOk,
+  PlatformAdminLevel,
   PlatformLoginIn,
   PlatformMe,
   PlatformTokenPair,
@@ -196,7 +197,7 @@ export class AuthService {
         : active[0]
       // Module 13: Distribution OS's own staff hold no membership anywhere, so without this they
       // would be told "you are not a member of any distributor", which is true and unhelpful.
-      if (!chosen && (await isPlatformAdmin(tx, user.id))) {
+      if (!chosen && (await platformAdminLevel(tx, user.id)) !== null) {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
         return fail(noAccess(USE_CONSOLE_SIGN_IN))
       }
@@ -424,7 +425,8 @@ export class AuthService {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
         return fail(noAccess())
       }
-      if (!(await isPlatformAdmin(tx, user.id))) {
+      const level = await platformAdminLevel(tx, user.id)
+      if (level === null) {
         await logEvent(tx, { userId: user.id, username, kind: 'login_failed', client })
         return fail(noAccess(NOT_A_CONSOLE_USER))
       }
@@ -461,7 +463,7 @@ export class AuthService {
         now,
       })
       await logEvent(tx, { userId: user.id, username, kind: 'login_ok', client })
-      return ok(await issuePlatformPair(keys, user, session, now))
+      return ok(await issuePlatformPair(keys, user, session, level, now))
     })
     return unwrap(outcome)
   }
@@ -480,7 +482,8 @@ export class AuthService {
       if (!valid.ok) return valid
       const { session, user, presentedHash } = valid.value
       if (session.tenantId !== null) return fail(noAccess(NOT_A_CONSOLE_USER))
-      if (!(await isPlatformAdmin(tx, user.id))) {
+      const level = await platformAdminLevel(tx, user.id)
+      if (level === null) {
         await revokeSession(tx, session.id, 'platform_admin_disabled', now)
         return fail(noAccess(NOT_A_CONSOLE_USER))
       }
@@ -498,7 +501,7 @@ export class AuthService {
         })
         .where(eq(authSessions.id, session.id))
       await logEvent(tx, { userId: user.id, kind: 'refresh', client })
-      return ok(await issuePlatformPair(keys, user, { row: rotated, refresh }, now))
+      return ok(await issuePlatformPair(keys, user, { row: rotated, refresh }, level, now))
     })
     return unwrap(outcome)
   }
@@ -513,8 +516,14 @@ export class AuthService {
       const user = await findUserById(tx, auth.userId)
       if (!user) throw signInRequired()
       if (user.status !== 'active') throw noAccess()
-      if (!(await isPlatformAdmin(tx, user.id))) throw noAccess(NOT_A_CONSOLE_USER)
-      return { user: toAuthUser(user), role: 'platform_admin', session: toAuthSession(session) }
+      const level = await platformAdminLevel(tx, user.id)
+      if (level === null) throw noAccess(NOT_A_CONSOLE_USER)
+      return {
+        user: toAuthUser(user),
+        role: 'platform_admin',
+        level,
+        session: toAuthSession(session),
+      }
     })
   }
 
@@ -537,7 +546,7 @@ export class AuthService {
       const now = new Date()
       const session = await liveSession(tx, auth, now)
       if (session.tenantId !== null) throw noAccess(NOT_A_CONSOLE_USER)
-      if (!(await isPlatformAdmin(tx, auth.userId))) throw noAccess(NOT_A_CONSOLE_USER)
+      if ((await platformAdminLevel(tx, auth.userId)) === null) throw noAccess(NOT_A_CONSOLE_USER)
       const [row] = await tx
         .select({ grant: supportGrants, tenant: tenants })
         .from(supportGrants)
@@ -1042,14 +1051,19 @@ async function createSession(tx: Db, s: NewSession): Promise<CreatedSession> {
   return { row, refresh }
 }
 
-/** Is this global identity one of Distribution OS's own, and still working here? (module 13) */
-async function isPlatformAdmin(tx: Db, userId: string): Promise<boolean> {
+/**
+ * Is this global identity one of Distribution OS's own, still working here — and at which console
+ * LEVEL (module 13, DOS-106)? Null when it is not an active console account. The level goes on the
+ * sign-in and refresh replies and on `platformMe`, never into the access token: admin-service re-reads
+ * it on every console call.
+ */
+async function platformAdminLevel(tx: Db, userId: string): Promise<PlatformAdminLevel | null> {
   const [row] = await tx
-    .select({ id: platformAdmins.id })
+    .select({ level: platformAdmins.role })
     .from(platformAdmins)
     .where(and(eq(platformAdmins.userId, userId), isNull(platformAdmins.disabledAt)))
     .limit(1)
-  return row !== undefined
+  return row?.level ?? null
 }
 
 interface NewPlatformSession {
@@ -1093,11 +1107,16 @@ async function createPlatformSession(tx: Db, s: NewPlatformSession): Promise<Cre
   return { row, refresh }
 }
 
-/** The console's token pair: `role: 'platform_admin'`, and NO `tid` — the whole point of the shape. */
+/**
+ * The console's token pair: `role: 'platform_admin'`, and NO `tid` — the whole point of the shape. The
+ * console LEVEL rides on the reply beside the role (DOS-106) and deliberately NOT in the token's claims:
+ * admin-service re-reads it on every call, so the token never carries a privilege that could go stale.
+ */
 async function issuePlatformPair(
   keys: AuthKeys,
   user: UserRow,
   session: CreatedSession,
+  level: PlatformAdminLevel,
   now: Date,
 ): Promise<PlatformTokenPair> {
   const { accessTtlSeconds } = authTtl()
@@ -1121,6 +1140,7 @@ async function issuePlatformPair(
     refreshExpiresAt: session.row.refreshExpiresAt.toISOString(),
     user: toAuthUser(user),
     role: 'platform_admin',
+    level,
   }
 }
 

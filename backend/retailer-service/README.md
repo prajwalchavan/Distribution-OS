@@ -87,7 +87,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
-| GET | `/inventory/sellable` | Available-to-promise stock (the only stock surface for reps and retailers) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
@@ -5987,7 +5988,10 @@ request.json
           "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
         }
       ],
-      "lineNetPaise": 2680000
+      "lineNetPaise": 2680000,
+      "gstBps": 500,
+      "taxPaise": 12000,
+      "lineTotalPaise": 2680000
     }
   ],
   "orderRules": [
@@ -6007,7 +6011,10 @@ request.json
     "grossPaise": 2680000,
     "discountPaise": 12000,
     "bargainPaise": 4000,
-    "netPaise": 2680000
+    "netPaise": 2680000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000
   }
 }
 ```
@@ -6825,7 +6832,7 @@ request.json
 
 ### GET `/inventory/sellable`
 
-Available-to-promise stock (the only stock surface for reps and retailers) · contract `inventory.stock.sellable`
+Available-to-promise stock per lot per location · contract `inventory.stock.sellable`
 
 **Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
 
@@ -6862,6 +6869,91 @@ curl "http://localhost:3006/inventory/sellable?variantId=01a06df0-2faf-79a2-8456
       "variantName": "Campa Cola 750 ml",
       "productName": "Campa Cola 750 ml",
       "brandName": "Campa Cola 750 ml"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/inventory/availability`
+
+Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) · contract `inventory.stock.availability`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `variantId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/inventory/availability?variantId=01a06df0-2faf-79a2-8456-92042e49f147&limit=500" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "available": 1
     }
   ],
   "nextCursor": null
@@ -24843,6 +24935,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `inventory.locations.list` | – | – | – | – | – | – | – |
 | `inventory.locations.upsert` | – | – | – | – | – | – | – |
 | `inventory.stock.sellable` | – | – | – | – | – | – | ✓ |
+| `inventory.stock.availability` | – | – | – | – | – | – | ✓ |
 | `inventory.stock.balances` | – | – | – | – | – | – | – |
 | `inventory.stock.adjust` | – | – | – | – | – | – | – |
 | `inventory.stock.transfer` | – | – | – | – | – | – | – |

@@ -41,6 +41,7 @@ import {
   searchState,
   showingCount,
   textColumn,
+  useCan,
 } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
@@ -50,6 +51,7 @@ export default function People(): React.JSX.Element {
   const word = useWord()
   const colors = useColors()
   const api = usePlatformApi()
+  const can = useCan()
 
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<'all' | 'platform' | 'disabled'>('all')
@@ -236,7 +238,8 @@ export default function People(): React.JSX.Element {
                 </Stack>
               )}
             </Field>
-            {current.status === 'disabled' ? null : (
+            {/* Locking a login is a super administrator's (DOS-106). */}
+            {current.status === 'disabled' || !can('admin.users.disable') ? null : (
               <Button
                 label={t('p7.disable')}
                 variant="destructive"

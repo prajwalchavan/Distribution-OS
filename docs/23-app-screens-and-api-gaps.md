@@ -318,7 +318,8 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
   Field gap: `OrdersListInput.state` is a single value; "pending undelivered" needs `states[]` (confirmed..dispatched).
 - **S3 Order entry (reorder last / suggested / grid, case + pcs stepper, live ATP hint)** — priced on the device; the turn-around
   confirmation screen (single column, ≥ 20 sp). Primary action: Submit.
-  Calls: `orders.repeatLast` ✓, `orders.create` ✓, `orders.setLines` ✓, `tenantCatalog.list` ✓, `inventory.stock.sellable` ✓,
+  Calls: `orders.repeatLast` ✓, `orders.create` ✓, `orders.setLines` ✓, `tenantCatalog.list` ✓,
+  `inventory.stock.availability` ✓ (the stock hint: one total per item at the godown orders reserve from, DOS-074),
   `pricing.quote` ✓ (online), `pricing.priceLists.list` ✓, `pricing.schemes.list` ✓, `pricing.overrides.list` ✓ (engine inputs
   for offline pricing). MISSING: `pricing.bounds.list` (the rep's own auto-approve bound; only `bounds.set` exists);
   `tenantCatalog.repAuthorisations` (docs/02: a manufacturer-employed rep sees only that brand; table exists, no procedure).
@@ -334,7 +335,8 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
   Calls: `incentives.progress.mine`, `incentives.statements.list/get`, `reporting.dashboard.rep`, `reporting.dailyStats.rep`
   self ✓, `reporting.registers.repProductivity` (all planned).
 - **S10 Lapsed shops (shops I am losing)** — `reporting.retailers.lapsed` (planned, pre-scoped to own beats).
-- **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓, `inventory.stock.sellable` ✓,
+- **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓,
+  `inventory.stock.availability` ✓ (the stock chip and the "In stock" view: godown total per item, DOS-074),
   `pricing.schemes.list` on=today ✓.
 - **S12 Pending bills of a shop (read-only chip)** — `billing.invoices.list/get` ✓ by matrix, wiring ✗ on sales-service.
 - **S13 Inbox** — `notifications.messages.list/markRead`, `notifications.inbound.list/markHandled`,
@@ -533,7 +535,8 @@ The detail view for a WhatsApp message: no registration form, no permissions, on
 - **R5 Pay online** — `receivables.payments.initiate` ✓ (retailer only; payee name = distributor ✓). Gateway callback = later.
 - **R6 Statement of account** — `receivables.ledger.get` ✓ (built from documents for the retailer role).
 - **R7 Reorder / order editor (ATP-aware quantities, running-low, price shown)** — Calls: `orders.repeatLast` ✓, `orders.create` ✓,
-  `orders.setLines` ✓, `orders.cancel` ✓, `tenantCatalog.list` ✓, `catalog.search` ✓, `inventory.stock.sellable` ✓,
+  `orders.setLines` ✓, `orders.cancel` ✓, `tenantCatalog.list` ✓, `catalog.search` ✓,
+  `inventory.stock.availability` ✓ (the stock line: godown total per item, "Out of stock" only after a complete read, DOS-097),
   `pricing.quote` ✓. MISMATCH: `orders.submit` is STAFF — the shop can draft but NEVER submit its own order; docs/22 §4 R1 → S5
   ("Reorder → submitted") is unreachable. `OrdersService.submit` has `requireRole(STAFF)` too. The single most important
   retailer gap. "Running low" needs `reporting.retailers.behaviour.usualBasket`, deliberately not on retailer-service — use

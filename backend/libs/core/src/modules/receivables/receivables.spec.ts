@@ -1659,6 +1659,263 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(await invoiceState(billJ)).toBe('partially_paid')
   })
 
+  // -------------------------------------------------------------------------------------------------------------
+  // the receipt number (DOS-032 / DOS-059)
+
+  /** A shop of its own for one numbering story, so no other test's balances move. */
+  async function numberingShop(tag: string): Promise<string> {
+    const id = uuidv7()
+    await db.insert(retailers).values({
+      id,
+      tenantId,
+      code: `N${tag}-${run}`,
+      name: `Numbering shop ${tag} ${run}`,
+      phone: `+9195${run}${tag}`,
+      stateCode: '27',
+    })
+    return id
+  }
+
+  /** This tenant's RCPT counter for one financial year: its prefix and the number it issues next. */
+  async function rcptCounter(year = fy): Promise<{ prefix: string; nextNo: number } | null> {
+    const [row] = (
+      await db.execute(sql`
+        select prefix, next_no from numbering_series
+         where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${year}`)
+    ).rows as { prefix: string; next_no: number }[]
+    return row ? { prefix: row.prefix, nextNo: Number(row.next_no) } : null
+  }
+
+  /**
+   * Steps the counter back onto a number it already issued — a restored backup, a reseed, a hand-healed
+   * row. The owner connection carries no actor role, the one the 0013 guard lets rewind a counter.
+   */
+  async function rewindRcpt(): Promise<void> {
+    await db.execute(sql`
+      update numbering_series set next_no = next_no - 1
+       where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${fy}`)
+  }
+
+  async function restoreRcpt(nextNo: number): Promise<void> {
+    await db.execute(sql`
+      update numbering_series set next_no = greatest(next_no, ${nextNo})
+       where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${fy}`)
+  }
+
+  /** The highest number of the counter's own shape (its prefix, then only digits) on this tenant's register. */
+  async function highestRcpt(prefix: string): Promise<number> {
+    const [row] = (
+      await db.execute(sql`
+        select coalesce(max(substring(receipt_no from ${prefix.length + 1}::int)::bigint), 0) as n
+          from receipts
+         where tenant_id = ${tenantId}
+           and left(receipt_no, ${prefix.length}::int) = ${prefix}
+           and substring(receipt_no from ${prefix.length + 1}::int) ~ '^[0-9]{1,18}$'`)
+    ).rows as { n: string }[]
+    return Number(row?.n ?? 0)
+  }
+
+  async function receiptsNumbered(receiptNo: string): Promise<number> {
+    const [row] = (
+      await db.execute(sql`
+        select count(*)::int as n from receipts
+         where tenant_id = ${tenantId} and receipt_no = ${receiptNo}`)
+    ).rows as { n: number }[]
+    return row?.n ?? 0
+  }
+
+  async function healAudit(receiptId: string): Promise<Record<string, unknown>[]> {
+    return (
+      await db.execute(sql`
+        select actor_id, actor_role, entity_type, entity_id, before, after, device_id
+          from audit_log
+         where tenant_id = ${tenantId} and action = 'numbering.heal'
+           and after->>'receiptId' = ${receiptId}`)
+    ).rows
+  }
+
+  it('DOS-032: a desk receipt drawn onto a number the RCPT counter already issued heals the counter: it takes the next free number, the taken number stays single, and the audit trail names the repair', async () => {
+    const shopId = await numberingShop('d')
+    const firstId = uuidv7()
+    const first = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos032-first-${run}`,
+      id: firstId,
+      retailerId: shopId,
+      mode: 'cash',
+      amountPaise: 100,
+    })
+    expect(first.status).toBe(200)
+    const taken = first.body.item.receiptNo ?? ''
+    const counter = await rcptCounter()
+    const prefix = counter?.prefix ?? ''
+    expect(taken.startsWith(prefix) && prefix.length > 0).toBe(true)
+    await rewindRcpt()
+    try {
+      const highest = await highestRcpt(prefix)
+      const healed = `${prefix}${String(highest + 1).padStart(4, '0')}`
+      const secondId = uuidv7()
+      const second = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `dos032-second-${run}`,
+        id: secondId,
+        retailerId: shopId,
+        mode: 'cash',
+        amountPaise: 100,
+      })
+      // a number the server assigns never becomes the desk's problem: recorded, under a number nobody holds
+      expect(second.status).toBe(200)
+      expect(second.body.item.receiptNo).not.toBe(taken)
+      expect(second.body.item.receiptNo).toBe(healed)
+      expect(await receiptsNumbered(taken)).toBe(1)
+      expect(await receiptsNumbered(healed)).toBe(1)
+      // the money is on the books exactly once more
+      expect(await arBalance(shopId)).toBe(-200)
+      const entries = await db.execute(sql`
+        select count(*)::int as n from journal_entries
+         where tenant_id = ${tenantId} and ref_type = 'receipt' and ref_id = ${secondId}`)
+      expect((entries.rows[0] as { n: number }).n).toBe(1)
+      // the counter stands past the register again, so the next receipt is an ordinary one
+      expect((await rcptCounter())?.nextNo).toBe(highest + 2)
+      // and the repair is on the trail: who drew the taken number, and what the counter became
+      const audit = await healAudit(secondId)
+      expect(audit).toHaveLength(1)
+      expect(audit[0]).toMatchObject({
+        actor_id: accountantId,
+        actor_role: 'accountant',
+        entity_type: 'numbering_series',
+        entity_id: `RCPT/${fy}`,
+        before: { collidedNo: taken },
+        after: { receiptNo: healed, receiptId: secondId },
+      })
+      // both receipts are filed under the FY key the counter drew them from
+      const filed = (
+        await db.execute(sql`select fy from receipts where id in (${firstId}, ${secondId})`)
+      ).rows as { fy: string }[]
+      expect(filed.map((r) => r.fy)).toEqual([fy, fy])
+    } finally {
+      await restoreRcpt(counter?.nextNo ?? 1)
+    }
+  })
+
+  it('DOS-059: an offline receipt drawn onto a number already on the register is accepted under the next free number: 2xx, no sync error, never a second row under that number', async () => {
+    const shopId = await numberingShop('s')
+    const deviceId = `dos059-phone-${run}`
+    const first = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos059-first-${run}`,
+      id: uuidv7(),
+      retailerId: shopId,
+      mode: 'cash',
+      amountPaise: 100,
+    })
+    expect(first.status).toBe(200)
+    const taken = first.body.item.receiptNo ?? ''
+    const counter = await rcptCounter()
+    const prefix = counter?.prefix ?? ''
+    await rewindRcpt()
+    try {
+      const highest = await highestRcpt(prefix)
+      const healed = `${prefix}${String(highest + 1).padStart(4, '0')}`
+      const opId = `dos059-op-${run}`
+      const receiptId = uuidv7()
+      const res = await call<{ accepted: number; rejected: { opId: string; code: string }[] }>(
+        app,
+        crew,
+        'POST',
+        '/sync/upload',
+        {
+          protocol: 1,
+          deviceId,
+          ops: [
+            {
+              opId,
+              op: 'PUT',
+              table: 'receipts',
+              id: receiptId,
+              data: {
+                retailer_id: shopId,
+                mode: 'cash',
+                amount_paise: 200,
+                device_id: deviceId,
+                client_receipt_no: `P-${run}`,
+              },
+            },
+          ],
+        },
+      )
+      expect(res.status).toBe(200)
+      expect(res.body.rejected).toEqual([])
+      expect(res.body.accepted).toBe(1)
+      const [row] = (await db.execute(sql`select receipt_no from receipts where id = ${receiptId}`))
+        .rows as { receipt_no: string }[]
+      expect(row?.receipt_no).not.toBe(taken)
+      expect(row?.receipt_no).toBe(healed)
+      expect(await receiptsNumbered(taken)).toBe(1)
+      const errors = await db.execute(sql`
+        select count(*)::int as n from sync_errors where tenant_id = ${tenantId} and op_id = ${opId}`)
+      expect((errors.rows[0] as { n: number }).n).toBe(0)
+      expect((await rcptCounter())?.nextNo).toBe(highest + 2)
+      const audit = await healAudit(receiptId)
+      expect(audit).toHaveLength(1)
+      expect(audit[0]).toMatchObject({
+        actor_id: crewId,
+        actor_role: 'delivery',
+        entity_id: `RCPT/${fy}`,
+        device_id: deviceId,
+        before: { collidedNo: taken },
+        after: { receiptNo: healed, receiptId },
+      })
+      const [filed] = (await db.execute(sql`select fy from receipts where id = ${receiptId}`))
+        .rows as { fy: string }[]
+      expect(filed?.fy).toBe(fy)
+    } finally {
+      await restoreRcpt(counter?.nextNo ?? 1)
+    }
+  })
+
+  it("DOS-032 DOS-059: on a server whose clock is not IST, a receipt taken between 00:00 and 05:30 IST on 1 April draws from the new financial year's RCPT counter and is filed under that same year", async () => {
+    const shopId = await numberingShop('fy')
+    const zone = process.env.TZ
+    // A cloud host's default clock. IST is UTC+05:30, so 00:00–05:30 IST on 1 April is still 31 March here.
+    process.env.TZ = 'UTC'
+    try {
+      const years = ['2025-26', '2026-27']
+      const cases = [
+        { at: '2026-03-31T18:29:00.000Z', fy: '2025-26' }, // 23:59 IST on 31 March
+        { at: '2026-03-31T18:30:00.000Z', fy: '2026-27' }, // 00:00 IST on 1 April
+        { at: '2026-03-31T23:59:00.000Z', fy: '2026-27' }, // 05:29 IST on 1 April
+      ]
+      const filed: { id: string; fy: string }[] = []
+      for (const [i, c] of cases.entries()) {
+        const before: number[] = []
+        for (const y of years) before.push((await rcptCounter(y))?.nextNo ?? 0)
+        const id = uuidv7()
+        const res = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+          idempotencyKey: `dos059-fy-${String(i)}-${run}`,
+          id,
+          retailerId: shopId,
+          mode: 'cash',
+          amountPaise: 100,
+          receivedAt: c.at,
+        })
+        expect(res.status).toBe(200)
+        const after: number[] = []
+        for (const y of years) after.push((await rcptCounter(y))?.nextNo ?? 0)
+        const drewFrom = years.filter((_, k) => after[k] !== before[k])
+        expect({ at: c.at, drewFrom }).toEqual({ at: c.at, drewFrom: [c.fy] })
+        filed.push({ id, fy: c.fy })
+      }
+      // the key a receipt is filed under is the key its counter drew it from
+      for (const f of filed) {
+        const [row] = (await db.execute(sql`select fy from receipts where id = ${f.id}`)).rows as {
+          fy: string
+        }[]
+        expect({ id: f.id, fy: row?.fy }).toEqual(f)
+      }
+    } finally {
+      if (zone === undefined) delete process.env.TZ
+      else process.env.TZ = zone
+    }
+  })
+
   it('isolates tenants', async () => {
     const list = await call<{ items: unknown[] }>(app, stranger, 'GET', '/receipts', { limit: 50 })
     expect(list.status).toBe(200)

@@ -36,7 +36,7 @@ import { tenantSizes } from './counts.js'
 import {
   addDays,
   platformActorId,
-  requireActiveAdmin,
+  requireActiveAdminLevel,
   statusToWire,
   toSubscription,
   trialEndToColumn,
@@ -74,6 +74,7 @@ export class PlatformTenantsService {
   async list(input: ListIn): Promise<TenantsList> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.tenants.list')
       const q = input.q?.trim()
       const where = and(
         input.status ? eq(tenants.status, input.status) : undefined,
@@ -114,6 +115,7 @@ export class PlatformTenantsService {
   async get(input: { id: string }): Promise<TenantGet> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.tenants.get')
       const [row] = await tx
         .select({ tenant: tenants, subscription: subscriptions })
         .from(tenants)
@@ -157,6 +159,10 @@ export class PlatformTenantsService {
   async create(input: TenantCreateIn): Promise<TenantCreateOut> {
     const db = requireDb(this.db)
     const actorId = platformActorId()
+    // The level and the login FIRST, in a short console transaction of their own: a support or billing
+    // account never costs an argon2 hash. The check inside the onboarding transaction below is the one
+    // that decides; this one only refuses early.
+    await withPlatform(db, (tx) => requireActiveAdminLevel(tx, actorId, 'admin.tenants.create'))
     const weak = validatePassword(input.owner.temporaryPassword)
     if (weak) throw new ORPCError('BAD_REQUEST', { message: weak })
     const passwordHash = await hashPassword(input.owner.temporaryPassword)
@@ -164,7 +170,9 @@ export class PlatformTenantsService {
     const now = new Date()
     const today = businessDate(now).date
     return withSystem(db, async (tx) => {
-      await requireActiveAdminUnderSystem(tx, actorId)
+      // The authoritative check, inside the onboarding transaction and before the tenant insert and the
+      // idempotency key: the level and the login as they stand at this moment.
+      await requireActiveAdminLevel(tx, actorId, 'admin.tenants.create')
       await tx
         .insert(tenants)
         .values({
@@ -277,20 +285,29 @@ export class PlatformTenantsService {
    * moment this returns, and "who did this and why" must never be a guess.
    */
   async suspend(input: TenantSuspendIn): Promise<TenantItem> {
-    return this.setStatus(input.id, input.idempotencyKey, input, 'suspended', {
-      action: 'tenant.suspended',
-      reason: input.reason,
-    })
+    return this.setStatus(
+      'admin.tenants.suspend',
+      input.id,
+      input.idempotencyKey,
+      input,
+      'suspended',
+      { action: 'tenant.suspended', reason: input.reason },
+    )
   }
 
   async reactivate(input: TenantReactivateIn): Promise<TenantItem> {
-    return this.setStatus(input.id, input.idempotencyKey, input, 'active', {
-      action: 'tenant.reactivated',
-      reason: input.note ?? null,
-    })
+    return this.setStatus(
+      'admin.tenants.reactivate',
+      input.id,
+      input.idempotencyKey,
+      input,
+      'active',
+      { action: 'tenant.reactivated', reason: input.note ?? null },
+    )
   }
 
   private async setStatus(
+    path: 'admin.tenants.suspend' | 'admin.tenants.reactivate',
     id: string,
     idempotencyKey: string,
     request: unknown,
@@ -298,9 +315,12 @@ export class PlatformTenantsService {
     audit: { action: string; reason: string | null },
   ): Promise<TenantItem> {
     const db = requireDb(this.db)
-    return withPlatform(db, (tx) =>
-      platformIdempotent(tx, id, idempotencyKey, request, async () => {
-        await requireActiveAdmin(tx)
+    const actorId = platformActorId()
+    return withPlatform(db, async (tx) => {
+      // The level and the login BEFORE the key: a stored reply is handed back without running anything,
+      // so a support account replaying a super's suspension with the identical body must stop here.
+      await requireActiveAdminLevel(tx, actorId, path)
+      return platformIdempotent(tx, id, idempotencyKey, request, async () => {
         const [before] = await tx
           .select()
           .from(tenants)
@@ -325,8 +345,8 @@ export class PlatformTenantsService {
           payload: { from: before.status, to: status, reason: audit.reason },
         })
         return { item: toTenant(saved) }
-      }),
-    )
+      })
+    })
   }
 }
 
@@ -356,22 +376,9 @@ async function subscriptionOf(tx: Db, tenantId: string): Promise<SubscriptionRow
 }
 
 /**
- * `requireActiveAdmin` reads `platform_admins` through the console's own RLS path; under `withSystem`
- * the actor role is `system`, so the same check is spelled out here rather than borrowing a helper
- * that would silently read the wrong `current_setting`.
+ * `writePlatformAudit` files the row under the console context's actor; under `withSystem` the actor
+ * role is `system` (which `platform_audit`'s INSERT policy also names), so the actor is spelled out here.
  */
-async function requireActiveAdminUnderSystem(tx: Db, actorId: string): Promise<void> {
-  const [row] = await tx
-    .execute<{ ok: boolean }>(
-      sql`select true as ok from platform_admins where user_id = ${actorId} and disabled_at is null limit 1`,
-    )
-    .then((r) => r.rows)
-  if (!row) {
-    throw new ORPCError('FORBIDDEN', { message: 'This console account is no longer active' })
-  }
-}
-
-/** Same reason as above: `platform_audit`'s INSERT policy names `platform_admin` or `system`. */
 async function insertPlatformAuditUnderSystem(
   tx: Db,
   actorId: string,

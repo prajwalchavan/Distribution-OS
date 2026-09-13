@@ -1,10 +1,11 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { QuoteInput, QuoteOutput } from '@dos/contracts'
 import {
   bargainRequests,
+  hsnRates,
   priceListItems,
   priceLists,
   productVariants,
@@ -19,8 +20,11 @@ import {
   type TenantContext,
 } from '@dos/db'
 import {
+  paise,
+  percentOf,
   priceOrder,
   PricingError,
+  roundToRupee,
   type PriceBargainInput,
   type PriceOverrideInput,
   type SchemeRule,
@@ -41,6 +45,8 @@ export interface QuoteVariant {
   brandId: string | null
   category: string | null
   caseSize: number
+  /** Global catalogue HSN; its dated `hsn_rates` row gives the line's GST. */
+  hsnCode: string
 }
 
 export interface PricingInputs {
@@ -56,9 +62,11 @@ export function todayIst(now: Date = new Date()): string {
 }
 
 /**
- * Runs the pure engine (`priceOrder` in @dos/domain) with the tenant's rules. The order module and both apps
- * call `quote`; it never writes. Reads of `retailers` / catalog tables are lookups the engine needs and should
- * move behind RetailersService / TenantCatalogService once those expose id-keyed lookups.
+ * Runs the pure engine (`priceOrder` in @dos/domain) with the tenant's rules, then adds GST per line at the HSN
+ * rate dated to the pricing date and rounds the payable to the rupee (DOS-096): the order module writes its
+ * lines' tax and its header from exactly this, so what a shop is quoted is what its order carries. The order
+ * module and the apps call `quote`; it never writes. Reads of `retailers` / catalog tables are lookups the
+ * engine needs and should move behind RetailersService / TenantCatalogService once those expose id-keyed lookups.
  */
 @Injectable()
 export class QuoteService {
@@ -102,14 +110,28 @@ export class QuoteService {
         if (e instanceof PricingError) throw new ORPCError('BAD_REQUEST', { message: e.message })
         throw e
       }
-      return {
-        retailerId: retailer.id,
-        pricingDate: result.pricingDate,
-        lines: result.lines.map((l) => ({
+      // GST per line at the item's HSN rate dated to the pricing date (DOS-096). After the engine, so an unknown
+      // variant still reads as unknown and an unpriced one as unpriced before a missing rate is reported.
+      const gst = await loadGstBps(
+        tx,
+        [...new Set([...variants.values()].map((v) => v.hsnCode))],
+        result.pricingDate,
+      )
+      let taxPaise = 0
+      const lines = result.lines.map((l) => {
+        const variant = variants.get(l.variantId)
+        const gstBps = variant === undefined ? undefined : gst.get(variant.hsnCode)
+        if (variant === undefined || gstBps === undefined)
+          throw new ORPCError('INTERNAL_SERVER_ERROR', {
+            message: `quote lost the GST rate for ${l.variantId}`,
+          })
+        const lineTax = percentOf(paise(l.lineNetPaise), gstBps)
+        taxPaise += lineTax
+        return {
           lineId: l.lineId,
           variantId: l.variantId,
           qtyPcs: l.qtyPcs,
-          caseSize: variants.get(l.variantId)?.caseSize ?? 1,
+          caseSize: variant.caseSize,
           listRatePaise: l.listRatePaise,
           ratePaise: l.ratePaise,
           grossPaise: l.grossPaise,
@@ -119,11 +141,21 @@ export class QuoteService {
           freeItems: l.freeItems,
           appliedRules: l.appliedRules,
           lineNetPaise: l.lineNetPaise,
-        })),
+          gstBps,
+          taxPaise: lineTax,
+          lineTotalPaise: l.lineNetPaise + lineTax,
+        }
+      })
+      // s.170: one rounding to the rupee, with the same `roundToRupee` billing issues the invoice with.
+      const { rounded, roundOff } = roundToRupee(paise(result.totals.netPaise + taxPaise))
+      return {
+        retailerId: retailer.id,
+        pricingDate: result.pricingDate,
+        lines,
         orderRules: result.orderRules,
         cashDiscountBps: result.cashDiscountBps,
         cashDiscountPaise: result.cashDiscountPaise,
-        totals: result.totals,
+        totals: { ...result.totals, taxPaise, roundOffPaise: roundOff, totalPaise: rounded },
       }
     })
   }
@@ -171,6 +203,7 @@ export class QuoteService {
         brandId: products.brandId,
         category: products.category,
         caseSize: sql<number>`coalesce(${tenantProducts.caseSizeOverride}, ${productVariants.defaultCaseSize})`,
+        hsnCode: productVariants.hsnCode,
       })
       .from(productVariants)
       .innerJoin(products, eq(products.id, productVariants.productId))
@@ -338,4 +371,42 @@ export function toSchemeRule(row: typeof schemes.$inferSelect): SchemeRule {
     gstOnFreeGoods: row.gstOnFreeGoods,
     pricingDateMode: row.pricingDateMode,
   }
+}
+
+/**
+ * Dated GST rate per HSN, so a re-print uses the rate that applied on the order's pricing date.
+ *
+ * Moved here verbatim from `orders/pricing-lines.ts` (DOS-096): the quote carries GST and the order takes it
+ * from the quote, so this is the one lookup both use. `hsn_rates` is global and readable by every role.
+ */
+async function loadGstBps(
+  tx: Db,
+  hsnCodes: readonly string[],
+  on: string,
+): Promise<Map<string, number>> {
+  if (hsnCodes.length === 0) return new Map()
+  const rows = await tx
+    .select({
+      hsnCode: hsnRates.hsnCode,
+      gstBps: hsnRates.gstBps,
+      effectiveFrom: hsnRates.effectiveFrom,
+    })
+    .from(hsnRates)
+    .where(
+      and(
+        inArray(hsnRates.hsnCode, [...hsnCodes]),
+        lte(hsnRates.effectiveFrom, on),
+        or(isNull(hsnRates.effectiveTo), gte(hsnRates.effectiveTo, on)),
+      ),
+    )
+    .orderBy(desc(hsnRates.effectiveFrom))
+  const map = new Map<string, number>()
+  for (const row of rows) if (!map.has(row.hsnCode)) map.set(row.hsnCode, row.gstBps)
+  const missing = hsnCodes.filter((code) => !map.has(code))
+  if (missing.length > 0)
+    throw new ORPCError('BAD_REQUEST', {
+      message: `No GST rate for HSN ${missing.join(', ')} on ${on}; add an hsn_rates row`,
+      data: { hsnCodes: missing, on },
+    })
+  return map
 }

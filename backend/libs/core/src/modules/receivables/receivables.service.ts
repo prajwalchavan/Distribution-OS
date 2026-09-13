@@ -65,14 +65,18 @@ import {
   type Db,
 } from '@dos/db'
 import {
+  advanceDocumentSeries,
   BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
   nextDocumentNumber,
+  numberingYear,
   OWNER,
+  readDocumentSeries,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import {
   allocatedAgainst,
@@ -597,32 +601,36 @@ export class ReceivablesService {
     const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date()
     const paidOn = businessDate(receivedAt).date
     const tripId = input.tripId ?? null
-    const receiptNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
+    const drawnNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
 
     const plan = await this.planAllocations(tx, input, paidOn)
     const cashDiscountPaise = plan.reduce((s, l) => s + l.discountPaise, 0)
 
-    await tx.insert(receipts).values({
-      id: input.id,
-      tenantId,
-      receiptNo,
-      retailerId: input.retailerId,
-      mode: input.mode,
-      amountPaise: input.amountPaise,
+    const receiptNo = await this.insertNumberedReceipt(
+      tx,
+      {
+        id: input.id,
+        tenantId,
+        retailerId: input.retailerId,
+        mode: input.mode,
+        amountPaise: input.amountPaise,
+        receivedAt,
+        receivedBy: input.receivedBy ?? actorId,
+        tripId,
+        reference: input.reference ?? null,
+        upiVpa: input.upiVpa ?? null,
+        chequeDate: input.chequeDate ?? null,
+        bankName: input.bankName ?? null,
+        cashDiscountPaise,
+        proofObjectKey: input.proofObjectKey ?? null,
+        note: input.note ?? null,
+        deviceId: input.deviceId ?? null,
+        clientReceiptNo: input.clientReceiptNo ?? null,
+        idempotencyKey: input.idempotencyKey,
+      },
+      drawnNo,
       receivedAt,
-      receivedBy: input.receivedBy ?? actorId,
-      tripId,
-      reference: input.reference ?? null,
-      upiVpa: input.upiVpa ?? null,
-      chequeDate: input.chequeDate ?? null,
-      bankName: input.bankName ?? null,
-      cashDiscountPaise,
-      proofObjectKey: input.proofObjectKey ?? null,
-      note: input.note ?? null,
-      deviceId: input.deviceId ?? null,
-      clientReceiptNo: input.clientReceiptNo ?? null,
-      idempotencyKey: input.idempotencyKey,
-    })
+    )
 
     const written: Allocation[] = []
     for (const line of plan) {
@@ -1540,6 +1548,98 @@ export class ReceivablesService {
     return byDevice ?? null
   }
 
+  /**
+   * Writes a receipt under the RCPT number just drawn, filed under the FY key that counter used
+   * (`numberingYear`), and returns the number it was finally written under.
+   *
+   * DOS-032 / DOS-059: the register refuses a repeated number (`receipts_no_idx`), and a number the SERVER
+   * assigned that is already on the register heals instead of failing — a lagging counter (a restored
+   * backup, a reseed, a row healed by hand) must never stop the desk, the doorstep, a van sale or an offline
+   * queue from recording money someone is holding. Still inside the transaction that drew the number, with
+   * `nextDocumentNumber`'s row lock held, the counter moves past the highest number of its own shape on
+   * this FY's register, a fresh number is drawn, the insert is retried ONCE, and an `audit_log` row names
+   * the number that collided and what the counter became. A 409 is kept for a number a client supplies
+   * itself; there is none today (the crew's paper-book number is `client_receipt_no`, never `receipt_no`).
+   *
+   * The collision is read from `ON CONFLICT … DO NOTHING` on the index's own columns, not by catching
+   * 23505: a caught unique violation aborts the Postgres transaction, and a savepoint around every receipt
+   * would add a subtransaction to the busiest money path. A primary-key, idempotency-key or paper-book
+   * collision still raises exactly as before.
+   */
+  private async insertNumberedReceipt(
+    tx: Db,
+    values: Omit<typeof receipts.$inferInsert, 'receiptNo' | 'seriesCode' | 'fy'>,
+    drawnNo: string,
+    at: Date,
+  ): Promise<string> {
+    const fy = numberingYear(at)
+    if (await this.insertReceiptIfNumberFree(tx, values, drawnNo, fy)) return drawnNo
+
+    const series = await readDocumentSeries(tx, 'RCPT', at)
+    if (!series) {
+      throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'numbering series RCPT unavailable' })
+    }
+    const highest = await this.highestReceiptNumber(tx, series.prefix, fy)
+    const advancedTo = await advanceDocumentSeries(tx, 'RCPT', highest + 1, at)
+    const receiptNo = await nextDocumentNumber(tx, 'RCPT', at)
+    if (!(await this.insertReceiptIfNumberFree(tx, values, receiptNo, fy))) {
+      throw new ORPCError('CONFLICT', {
+        message: `receipt number ${receiptNo} is already on the ${fy} register even after the RCPT counter moved past it; nothing was recorded`,
+      })
+    }
+    await writeAudit(tx, {
+      action: 'numbering.heal',
+      entityType: 'numbering_series',
+      entityId: `RCPT/${fy}`,
+      before: { nextNo: series.nextNo, collidedNo: drawnNo },
+      after: {
+        nextNo: advancedTo + 1,
+        highestOnRegister: highest,
+        receiptNo,
+        receiptId: values.id,
+      },
+      deviceId: values.deviceId ?? null,
+    })
+    return receiptNo
+  }
+
+  /** Inserts the receipt unless its number is already on that FY's register; true when the row was written. */
+  private async insertReceiptIfNumberFree(
+    tx: Db,
+    values: Omit<typeof receipts.$inferInsert, 'receiptNo' | 'seriesCode' | 'fy'>,
+    receiptNo: string,
+    fy: string,
+  ): Promise<boolean> {
+    const written = await tx
+      .insert(receipts)
+      .values({ ...values, receiptNo, seriesCode: 'RCPT', fy })
+      .onConflictDoNothing({
+        target: [receipts.tenantId, receipts.seriesCode, receipts.fy, receipts.receiptNo],
+        where: sql`receipt_no IS NOT NULL`,
+      })
+      .returning({ id: receipts.id })
+    return written.length > 0
+  }
+
+  /** The highest number of the counter's own shape — its prefix, then only digits — on one FY's register. */
+  private async highestReceiptNumber(tx: Db, prefix: string, fy: string): Promise<number> {
+    const { tenantId } = currentTenant()
+    const suffix = sql`substring(${receipts.receiptNo} from ${prefix.length + 1}::int)`
+    const [row] = await tx
+      .select({ highest: sql<string | null>`max(${suffix}::bigint)` })
+      .from(receipts)
+      .where(
+        and(
+          eq(receipts.tenantId, tenantId),
+          eq(receipts.seriesCode, 'RCPT'),
+          eq(receipts.fy, fy),
+          sql`left(${receipts.receiptNo}, ${prefix.length}::int) = ${prefix}`,
+          sql`${suffix} ~ '^[0-9]{1,18}$'`,
+        ),
+      )
+    return Number(row?.highest ?? 0)
+  }
+
   private async receiptReply(
     tx: Db,
     row: ReceiptRow,
@@ -1710,24 +1810,28 @@ export class ReceivablesService {
       .from(allocations)
       .where(and(eq(allocations.tenantId, tenantId), eq(allocations.receiptId, original.id)))
       .orderBy(asc(allocations.id))
-    const receiptNo = await nextDocumentNumber(tx, 'RCPT', input.at)
-    await tx.insert(receipts).values({
-      id: input.reversalId,
-      tenantId,
-      receiptNo,
-      retailerId: original.retailerId,
-      mode: original.mode,
-      amountPaise: -original.amountPaise,
-      receivedAt: input.at,
-      receivedBy: actorId,
-      tripId: original.tripId,
-      reference: original.reference,
-      cashDiscountPaise: -original.cashDiscountPaise,
-      status: 'cancelled',
-      note: input.reason,
-      reversesReceiptId: original.id,
-      idempotencyKey: `${input.idempotencyKey}:reversal`,
-    })
+    const drawnNo = await nextDocumentNumber(tx, 'RCPT', input.at)
+    await this.insertNumberedReceipt(
+      tx,
+      {
+        id: input.reversalId,
+        tenantId,
+        retailerId: original.retailerId,
+        mode: original.mode,
+        amountPaise: -original.amountPaise,
+        receivedAt: input.at,
+        receivedBy: actorId,
+        tripId: original.tripId,
+        reference: original.reference,
+        cashDiscountPaise: -original.cashDiscountPaise,
+        status: 'cancelled',
+        note: input.reason,
+        reversesReceiptId: original.id,
+        idempotencyKey: `${input.idempotencyKey}:reversal`,
+      },
+      drawnNo,
+      input.at,
+    )
     for (const row of mirrored) {
       await tx.insert(allocations).values({
         id: uuidv7(),

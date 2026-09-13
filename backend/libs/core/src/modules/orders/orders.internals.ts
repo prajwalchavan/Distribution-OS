@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -15,8 +15,9 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { locations, orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
+import { orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
 import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
@@ -150,26 +151,9 @@ export async function availablePcs(tx: Db, variantId: string, locationId: string
   return Number(row?.available ?? 0)
 }
 
-/** Where an order ships from when it names no location of its own. */
+/** Where an order ships from when it names no location of its own: inventory's one godown rule (DOS-074). */
 export async function warehouseLocation(tx: Db): Promise<string> {
-  const { tenantId } = currentTenant()
-  const [location] = await tx
-    .select({ id: locations.id })
-    .from(locations)
-    .where(
-      and(
-        eq(locations.tenantId, tenantId),
-        eq(locations.kind, 'warehouse'),
-        eq(locations.active, true),
-      ),
-    )
-    .orderBy(asc(locations.id))
-    .limit(1)
-  if (!location)
-    throw new ORPCError('BAD_REQUEST', {
-      message: 'this tenant has no active warehouse location (bootstrap it first)',
-    })
-  return location.id
+  return reservableLocationId(tx)
 }
 
 /**

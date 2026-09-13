@@ -1,9 +1,9 @@
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Quote } from '@dos/contracts'
-import { percentOf, paise, roundToRupee } from '@dos/domain'
+import { paise, roundToRupee } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { hsnRates, productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
+import { productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import type { QuoteService } from '../pricing/index.js'
 
@@ -12,9 +12,10 @@ import type { QuoteService } from '../pricing/index.js'
  *
  * The engine is never re-implemented here: quantities are converted to pieces with the tenant's SELL-SIDE pack
  * size (docs/17 B: `tenant_products.case_size_override` else `product_variants.default_case_size`), the pieces go
- * through `pricing.quote` (which runs `priceOrder()` from @dos/domain), and only GST is added on top, per line,
- * at the HSN rate dated to the pricing date. Order-level rules are already spread across the lines by the
- * engine's `allocate()`, so the header is a plain sum of its lines and no paisa is lost.
+ * through `pricing.quote` (which runs `priceOrder()` from @dos/domain), and GST arrives with the quote, per line,
+ * at the HSN rate dated to the pricing date (DOS-096) — so a line stores exactly the tax the shop was quoted.
+ * Order-level rules are already spread across the lines by the engine's `allocate()`, so the header is a plain
+ * sum of its lines and no paisa is lost.
  */
 
 export type EnteredUnit = 'piece' | 'inner' | 'case'
@@ -52,11 +53,10 @@ export const ZERO_TOTALS: OrderTotals = {
 export interface VariantPack {
   /** Pieces per case the tenant sells in. */
   caseSize: number
-  hsnCode: string
 }
 
 /**
- * Sell-side pack size and HSN per variant. Buy-side packs (`supplier_pack_configs`) are procurement's and are
+ * Sell-side pack size per variant. Buy-side packs (`supplier_pack_configs`) are procurement's and are
  * deliberately not consulted here — a case on a bill is the case the distributor sells, not the one it bought.
  */
 export async function loadVariantPacks(
@@ -68,7 +68,6 @@ export async function loadVariantPacks(
   const rows = await tx
     .select({
       variantId: productVariants.id,
-      hsnCode: productVariants.hsnCode,
       caseSize: sql<number>`coalesce(${tenantProducts.caseSizeOverride}, ${productVariants.defaultCaseSize})`,
     })
     .from(productVariants)
@@ -78,7 +77,7 @@ export async function loadVariantPacks(
     )
     .where(inArray(productVariants.id, [...variantIds]))
   const map = new Map<string, VariantPack>(
-    rows.map((r) => [r.variantId, { caseSize: Number(r.caseSize), hsnCode: r.hsnCode }]),
+    rows.map((r) => [r.variantId, { caseSize: Number(r.caseSize) }]),
   )
   const missing = variantIds.filter((id) => !map.has(id))
   if (missing.length > 0)
@@ -93,39 +92,6 @@ export async function loadVariantPacks(
  */
 export function packSizeFor(unit: EnteredUnit, caseSize: number): number {
   return unit === 'piece' ? 1 : caseSize
-}
-
-/** Dated GST rate per HSN, so a re-print uses the rate that applied on the order's pricing date. */
-export async function loadGstBps(
-  tx: Db,
-  hsnCodes: readonly string[],
-  on: string,
-): Promise<Map<string, number>> {
-  if (hsnCodes.length === 0) return new Map()
-  const rows = await tx
-    .select({
-      hsnCode: hsnRates.hsnCode,
-      gstBps: hsnRates.gstBps,
-      effectiveFrom: hsnRates.effectiveFrom,
-    })
-    .from(hsnRates)
-    .where(
-      and(
-        inArray(hsnRates.hsnCode, [...hsnCodes]),
-        lte(hsnRates.effectiveFrom, on),
-        or(isNull(hsnRates.effectiveTo), gte(hsnRates.effectiveTo, on)),
-      ),
-    )
-    .orderBy(desc(hsnRates.effectiveFrom))
-  const map = new Map<string, number>()
-  for (const row of rows) if (!map.has(row.hsnCode)) map.set(row.hsnCode, row.gstBps)
-  const missing = hsnCodes.filter((code) => !map.has(code))
-  if (missing.length > 0)
-    throw new ORPCError('BAD_REQUEST', {
-      message: `No GST rate for HSN ${missing.join(', ')} on ${on}; add an hsn_rates row`,
-      data: { hsnCodes: missing, on },
-    })
-  return map
 }
 
 export interface PriceLinesArgs {
@@ -151,9 +117,10 @@ export async function priceOrderLines(
     const pack = packs.get(line.variantId)
     if (!pack) throw new ORPCError('BAD_REQUEST', { message: `Unknown variant ${line.variantId}` })
     const packSize = packSizeFor(line.enteredUnit, pack.caseSize)
-    return { ...line, packSize, hsnCode: pack.hsnCode, qtyPcs: line.enteredQty * packSize }
+    return { ...line, packSize, qtyPcs: line.enteredQty * packSize }
   })
 
+  // A missing GST rate for any item's HSN is a 400 naming the codes, raised inside the quote (never a silent 0%).
   const quote = await quotes.quote({
     retailerId: args.retailerId,
     orderId: args.orderId,
@@ -161,7 +128,6 @@ export async function priceOrderLines(
     lines: entered.map((l) => ({ lineId: l.id, variantId: l.variantId, qtyPcs: l.qtyPcs })),
   })
   const quoted = new Map(quote.lines.map((l) => [l.lineId, l]))
-  const gst = await loadGstBps(tx, [...new Set(entered.map((l) => l.hsnCode))], quote.pricingDate)
 
   let subtotal = 0
   let discount = 0
@@ -169,11 +135,10 @@ export async function priceOrderLines(
   const lines = entered.map((line, index) => {
     const q = quoted.get(line.id)
     if (!q) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `quote lost line ${line.id}` })
-    const gstBps = gst.get(line.hsnCode) ?? 0
+    const gstBps = q.gstBps
     // A bargain is a discount from the retailer's point of view, so both land in `discount_paise`.
     const lineDiscount = q.discountPaise + q.bargainPaise
-    const taxable = q.lineNetPaise
-    const taxPaise = percentOf(paise(taxable), gstBps)
+    const taxPaise = q.taxPaise
     subtotal += q.grossPaise
     discount += lineDiscount
     tax += taxPaise
@@ -194,14 +159,15 @@ export async function priceOrderLines(
       discountPaise: lineDiscount,
       gstBps,
       taxPaise,
-      lineTotalPaise: taxable + taxPaise,
+      lineTotalPaise: q.lineTotalPaise,
       appliedRules: toStoredRules(q.appliedRules),
       // A negotiated or overridden rate must survive re-pricing at delivery (§4.4).
       priceLocked: q.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
     } satisfies typeof salesOrderLines.$inferInsert
   })
 
-  // s.170: the bill total is rounded to the rupee and the residue is posted to Round Off.
+  // s.170: the bill total is rounded to the rupee and the residue is posted to Round Off. The engine's net is
+  // the sum of its lines, so this equals the quote's own `totals.totalPaise` / `roundOffPaise`.
   const { rounded, roundOff } = roundToRupee(paise(subtotal - discount + tax))
   return {
     lines,
