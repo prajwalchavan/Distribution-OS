@@ -303,15 +303,7 @@ describe('native sheet fits the screen', () => {
       .filter(Boolean)
       .sort()
     expect(names).toEqual(
-      [
-        'Image',
-        'KeyboardAvoidingView',
-        'Modal',
-        'Platform',
-        'Pressable',
-        'ScrollView',
-        'View',
-      ].sort(),
+      ['Image', 'KeyboardAvoidingView', 'Modal', 'Pressable', 'ScrollView', 'View'].sort(),
     )
   })
 })
@@ -356,18 +348,17 @@ describe('DOS-152: sheet Close lives inside the scrollable content, never behind
 describe('DOS-159: native sheet avoids the soft keyboard', () => {
   const source = readFileSync(join(here, 'native', 'feedback.tsx'), 'utf8')
 
-  it('imports KeyboardAvoidingView and Platform from react-native', () => {
+  it('imports KeyboardAvoidingView from react-native', () => {
     expect(source).toContain('KeyboardAvoidingView')
-    expect(source).toContain('Platform')
   })
 
-  it('wraps the sheet panel in a KeyboardAvoidingView, height on Android and padding on iOS', () => {
+  it('wraps the sheet panel in a KeyboardAvoidingView, padding on both platforms', () => {
     const start = source.indexOf('function SheetPanel(')
     expect(start, 'SheetPanel is not declared in native/feedback.tsx').toBeGreaterThan(-1)
     const end = source.indexOf('\nfunction DialogPanel', start)
     const body = source.slice(start, end === -1 ? undefined : end)
     expect(body).toContain('<KeyboardAvoidingView')
-    expect(body).toContain("Platform.OS === 'ios' ? 'padding' : 'height'")
+    expect(body).toContain('behavior="padding"')
   })
 })
 

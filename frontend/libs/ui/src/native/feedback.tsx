@@ -3,15 +3,7 @@
  * TenantLogo, EmptyState, ErrorState, Skeleton.
  */
 import { useEffect, useState } from 'react'
-import {
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from 'react-native'
+import { Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
@@ -195,17 +187,18 @@ function SheetPanel({
       onPress={onClose}
       accessibilityElementsHidden={covered}
       importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
-      style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop, justifyContent: 'flex-end' }}
+      style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop }}
     >
       {/*
        * A SHEET NEVER REACHES THE NOTCH, AND NEVER RUNS OFF THE BOTTOM.
        *
-       * It is `justifyContent: 'flex-end'`, so a sheet taller than the screen simply grew upward
-       * until its own title sat under the status bar — measured on the iPhone 16 Pro, where the
-       * phone shell's "More" sheet (eleven destinations plus a search box and a Close button)
-       * printed its heading "More" straight through the 8:15 clock, and anything past the bottom
-       * of the screen was unreachable because the body does not scroll. `maxHeight` keeps the top
-       * clear of the inset and the body scrolls inside whatever is left.
+       * The KeyboardAvoidingView between the backdrop and the panel is `justifyContent: 'flex-end'`,
+       * so a sheet taller than the screen simply grew upward until its own title sat under the status
+       * bar — measured on the iPhone 16 Pro, where the phone shell's "More" sheet (eleven destinations
+       * plus a search box and a Close button) printed its heading "More" straight through the 8:15
+       * clock, and anything past the bottom of the screen was unreachable because the body does not
+       * scroll. `maxHeight` keeps the top clear of the inset and the body scrolls inside whatever is
+       * left.
        */}
       {/*
        * AND NEVER STAYS UNDER THE KEYBOARD (DOS-159).
@@ -214,15 +207,19 @@ function SheetPanel({
        * keyboard, and with nothing avoiding it the sheet stayed anchored to the true bottom of the
        * screen — measured on the Pixel 7/Gboard: the matching-bill suggestion was laid out at y
        * 1622-1811 while Gboard covered the lower half, and a tap there hit the keyboard's own
-       * Clipboard panel instead of picking the bill. `KeyboardAvoidingView` resizes the space this
-       * panel has to grow into as the keyboard opens and closes, so the sheet — anchored by the
-       * backdrop's `justifyContent: 'flex-end'` — rises above it. iOS reports its own keyboard
-       * height and wants the resulting inset added as padding; Android already resizes the window
-       * for a fixed-position keyboard, so the panel only needs its available height shortened.
+       * Clipboard panel instead of picking the bill. `behavior="padding"` on both platforms pads the
+       * KeyboardAvoidingView's own bottom by the keyboard height as it opens and closes — Android's
+       * edge-to-edge dialog window never resizes for this surface, so it needs the same padding iOS
+       * does, never `"height"`, which shrinks the view to a fixed pixel count that can reach zero
+       * under a keyboard taller than a short sheet. Its `flex: 1` gives it the screen's own definite
+       * height so the panel's `86%` resolves against the screen (not against the KAV's own shrunk
+       * content size) in both the measure and the final layout pass, and `pointerEvents="box-none"`
+       * keeps a tap on the exposed backdrop closing the sheet.
        */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ width: '100%' }}
+        behavior="padding"
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        pointerEvents="box-none"
       >
         <Pressable
           onPress={() => undefined}
