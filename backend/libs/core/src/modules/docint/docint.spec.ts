@@ -868,6 +868,32 @@ describeDb('docint (DATABASE_URL)', () => {
     expect(await outboxTypes(docId)).toContain('docint.document.reviewed')
   })
 
+  it('DOS-031: review.start refuses a reviewed document with 409 before it takes a lock', async () => {
+    const reviewed = await call<{ item: DocBody }>(
+      app,
+      managerA,
+      'GET',
+      `/docint/documents/${docId}`,
+    )
+    expect(reviewed.body.item.status).toBe('reviewed')
+
+    const refusedSessionId = uuidv7()
+    const refused = await call<{ message: string }>(
+      app,
+      managerA,
+      'POST',
+      `/docint/documents/${docId}/review`,
+      {
+        idempotencyKey: `review-reviewed-${run}`,
+        id: docId,
+        sessionId: refusedSessionId,
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toContain('can be reviewed')
+    expect(await count('review_sessions', sql`id = ${refusedSessionId}`)).toBe(0)
+  })
+
   it('approves into a supplier invoice DRAFT and posts nothing to stock, cost or the journal', async () => {
     const before = {
       ledger: await count('stock_ledger', sql`tenant_id = ${tenantId}`),

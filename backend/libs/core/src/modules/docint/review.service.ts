@@ -19,7 +19,7 @@ import type {
   ThreeWayMatch,
 } from '@dos/contracts'
 import { ReviewedInvoiceSchema } from '@dos/contracts'
-import { reviewSessionMachine, uuidv7, type ReviewSessionState } from '@dos/domain'
+import { documentMachine, reviewSessionMachine, uuidv7, type ReviewSessionState } from '@dos/domain'
 import {
   correctionsLog,
   documents,
@@ -88,7 +88,8 @@ export class ReviewService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         let doc = await lockDocument(tx, input.id)
-        if (doc.status !== 'extracted' && doc.status !== 'needs_review')
+        // The machine's `start_review` rows (extracted, needs_review) are the rule; the device reads the same table (DOS-031).
+        if (!documentMachine.can(doc.status, 'start_review'))
           throw new ORPCError('CONFLICT', {
             message: `document ${doc.id} is ${doc.status}; only an extracted or needs_review document can be reviewed`,
           })
