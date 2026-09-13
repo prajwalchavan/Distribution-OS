@@ -3856,6 +3856,7 @@ const OVERRIDES: Record<
     to: DROP,
     mine: DROP,
   }),
+  'delivery.trips.planning': () => ({ date: DROP, beatId: DROP, cursor: DROP }),
   'delivery.trips.get': (ctx) => ({ id: ctx.activeTripId ?? ctx.plannedTripId }),
   'delivery.trips.startLoading': (ctx) => ({
     id: ctx.plannedTripId ?? ctx.activeTripId,
@@ -5050,7 +5051,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
       ? "Moves tomorrow's planned trip to loading; the godown then builds its load sheet. Pressing it on a trip already loading or out answers 409."
       : 'No planned trip in the demo data: plan one with POST /delivery/trips first.',
   'delivery.trips.depart': () =>
-    'planned → loading → active: press start-loading first. Needs the driver to have answered the location notice (POST /delivery/consents).',
+    'planned → loading → active: press start-loading first. Needs the driver to have answered the location notice (POST /delivery/consents). Refused 409 load_sheet_not_confirmed while a load sheet of the trip is still a draft; the godown (warehouse role) may not call it.',
   'delivery.trips.return': () =>
     "Takes TODAY'S ACTIVE demo trip off the road: every open stop fails and its bill goes back to packed. Re-seed to restore it.",
   'delivery.trips.settle': () =>

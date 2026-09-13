@@ -87,6 +87,64 @@ describe('warehouse-service', () => {
       expect(allowed.json<{ code?: string }>().code).toBe('UNAUTHORIZED')
     }
   })
+
+  it('DOS-043: a warehouse token is refused at the gate on POST /delivery/trips/{id}/depart and still reaches start-loading', async () => {
+    const headers = {
+      ...(await bearer({ tenantId, actorId, role: 'warehouse' })),
+      'content-type': 'application/json',
+    }
+    const trip = '00000000-0000-7000-8000-0000000000aa'
+    const depart = await app.inject({
+      method: 'POST',
+      url: `/delivery/trips/${trip}/depart`,
+      headers,
+      payload: { idempotencyKey: 'dos-043-depart' },
+    })
+    expect(depart.statusCode).toBe(403)
+    expect(depart.json<{ message: string }>().message).toBe(
+      'the warehouse role may not call POST /delivery/trips/:id/depart',
+    )
+    // The godown still puts a trip into loading: the gate lets it through to the handler.
+    const loading = await app.inject({
+      method: 'POST',
+      url: `/delivery/trips/${trip}/start-loading`,
+      headers,
+      payload: { idempotencyKey: 'dos-043-start-loading' },
+    })
+    const refusedAtGate =
+      loading.statusCode === 403 &&
+      (loading.json<{ message?: string }>().message ?? '').includes('may not call')
+    expect(refusedAtGate).toBe(false)
+  })
+
+  it('DOS-115: warehouse-service refuses order writes to the warehouse role at the gate', async () => {
+    const auth = await bearer({ tenantId, actorId, role: 'warehouse' })
+    const headers = { ...auth, 'content-type': 'application/json' }
+    const order = '00000000-0000-7000-8000-0000000000bb'
+    const create = await app.inject({
+      method: 'POST',
+      url: '/orders',
+      headers,
+      payload: { idempotencyKey: 'dos-115-create' },
+    })
+    expect(create.statusCode).toBe(403)
+    expect(create.json<{ message: string }>().message).toBe(
+      'the warehouse role may not call POST /orders',
+    )
+    const cancel = await app.inject({
+      method: 'POST',
+      url: `/orders/${order}/cancel`,
+      headers,
+      payload: { idempotencyKey: 'dos-115-cancel', reason: 'DOS-115 probe' },
+    })
+    expect(cancel.statusCode).toBe(403)
+    expect(cancel.json<{ message: string }>().message).toBe(
+      'the warehouse role may not call POST /orders/:id/cancel',
+    )
+    // The godown still reads orders (the Pack screen opens one): the gate lets GET /orders through.
+    const list = await app.inject({ method: 'GET', url: '/orders', headers: auth })
+    expect(list.json<{ message?: string }>().message ?? '').not.toContain('may not call')
+  })
 })
 
 describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))

@@ -28,7 +28,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { SyncModule } from '../sync/index.js'
-import { ReceivablesModule, ReceivablesService } from './index.js'
+import { loadStatementSummary, ReceivablesModule, ReceivablesService } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -1659,6 +1659,384 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(await invoiceState(billJ)).toBe('partially_paid')
   })
 
+  /*
+   * Receivables cannot read `trips`: delivery hands it the "this trip is settled" predicate at start-up (DOS-132).
+   * This app mounts receivables without delivery, so nothing has registered one, and a receipt taken on a trip
+   * must read as still with the crew — never as money the office holds.
+   */
+  it('DOS-132 (fail closed): with no delivery module to say a trip is settled, a receipt carrying a tripId is never listed in hand, reads withCrew, and is refused for banking', async () => {
+    const shopK = uuidv7()
+    await db.insert(retailers).values({
+      id: shopK,
+      tenantId,
+      code: `S11-${run}`,
+      name: `Shop 11 ${run}`,
+      phone: `+9192${run}11`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    const tripId = uuidv7()
+    type Taken = { id: string; receiptNo: string }
+    const take = async (
+      actor: Actor,
+      mode: 'cash' | 'cheque',
+      amountPaise: number,
+      extra: Record<string, unknown> = {},
+    ): Promise<Taken> => {
+      const id = uuidv7()
+      const res = await call<ReceiptReply>(app, actor, 'POST', '/receipts', {
+        idempotencyKey: `rcpt-132-${id}`,
+        id,
+        retailerId: shopK,
+        mode,
+        amountPaise,
+        ...extra,
+      })
+      expect(res.status).toBe(200)
+      return { id, receiptNo: res.body.item.receiptNo ?? id }
+    }
+    // the crew at the door on a trip, a cash payment and a cheque; the office's own cash beside them
+    const crewCash = await take(crew, 'cash', 4_000, { tripId })
+    const crewCheque = await take(crew, 'cheque', 6_000, {
+      tripId,
+      reference: '132001',
+      bankName: 'Bank of Maharashtra',
+    })
+    const officeCash = await take(accountant, 'cash', 2_500)
+
+    type ReceiptList = { items: Receipt[]; totals: { countedPaise: number } }
+    const list = (actor: Actor, extra: Record<string, unknown> = {}) =>
+      call<ReceiptList>(app, actor, 'GET', '/receipts', {
+        retailerId: shopK,
+        status: 'collected',
+        limit: 200,
+        ...extra,
+      })
+    const idsOf = (res: { body: ReceiptList }): string[] => res.body.items.map((r) => r.id).sort()
+
+    const everything = await list(accountant)
+    expect(everything.status).toBe(200)
+    expect(idsOf(everything)).toEqual([crewCash.id, crewCheque.id, officeCash.id].sort())
+    expect(everything.body.totals.countedPaise).toBe(12_500)
+    const inHand = await list(accountant, { withCrew: false })
+    expect(inHand.status).toBe(200)
+    expect(idsOf(inHand)).toEqual([officeCash.id])
+    expect(inHand.body.totals.countedPaise).toBe(2_500)
+    const onTheRoad = await list(accountant, { withCrew: true })
+    expect(onTheRoad.status).toBe(200)
+    expect(idsOf(onTheRoad)).toEqual([crewCash.id, crewCheque.id].sort())
+    expect(onTheRoad.body.totals.countedPaise).toBe(10_000)
+    // the filter is the money desk's: for the crew it is not applied, so no row goes missing behind RLS
+    const crewAll = await list(crew)
+    const crewFiltered = await list(crew, { withCrew: false })
+    expect(crewFiltered.status).toBe(200)
+    expect(idsOf(crewFiltered)).toEqual(idsOf(crewAll))
+    expect(idsOf(crewFiltered)).toContain(crewCash.id)
+    expect(crewFiltered.body.totals.countedPaise).toBe(crewAll.body.totals.countedPaise)
+
+    const gate = async (actor: Actor, id: string): Promise<boolean | null | undefined> => {
+      const res = await call<{ item: Receipt; withCrew?: boolean | null }>(
+        app,
+        actor,
+        'GET',
+        `/receipts/${id}`,
+      )
+      expect(res.status).toBe(200)
+      return res.body.withCrew
+    }
+    expect(await gate(accountant, crewCash.id)).toBe(true)
+    expect(await gate(accountant, crewCheque.id)).toBe(true)
+    expect(await gate(accountant, officeCash.id)).toBe(false)
+    expect(await gate(crew, crewCash.id)).toBeNull()
+
+    // one batch holding the office cash and both trip receipts is refused whole, naming only the trip receipts
+    const batch = uuidv7()
+    const refused = await call<{
+      message: string
+      data?: { code?: string; receiptIds?: string[] }
+    }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-132-${run}`,
+      id: batch,
+      receiptIds: [officeCash.id, crewCash.id, crewCheque.id],
+      depositedAt: new Date().toISOString(),
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('trip_cash_not_settled')
+    const byNumber = [crewCash, crewCheque].sort((a, b) =>
+      a.receiptNo < b.receiptNo ? -1 : a.receiptNo > b.receiptNo ? 1 : 0,
+    )
+    expect(refused.body.data?.receiptIds).toEqual(byNumber.map((r) => r.id))
+    expect(refused.body.message).toBe(
+      `receipts ${byNumber.map((r) => r.receiptNo).join(', ')} were taken on a trip that is not settled yet; bank them after the trip's cash is handed over at Day-end`,
+    )
+    for (const id of [officeCash.id, crewCash.id, crewCheque.id]) {
+      const res = await call<{ item: Receipt }>(app, accountant, 'GET', `/receipts/${id}`)
+      expect(res.body.item.status).toBe('collected')
+    }
+    const posted = await db.execute(sql`
+      select count(*)::int as n from journal_entries
+       where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`)
+    expect((posted.rows[0] as { n: number }).n).toBe(0)
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // the receipt number (DOS-032 / DOS-059)
+
+  /** A shop of its own for one numbering story, so no other test's balances move. */
+  async function numberingShop(tag: string): Promise<string> {
+    const id = uuidv7()
+    await db.insert(retailers).values({
+      id,
+      tenantId,
+      code: `N${tag}-${run}`,
+      name: `Numbering shop ${tag} ${run}`,
+      phone: `+9195${run}${tag}`,
+      stateCode: '27',
+    })
+    return id
+  }
+
+  /** This tenant's RCPT counter for one financial year: its prefix and the number it issues next. */
+  async function rcptCounter(year = fy): Promise<{ prefix: string; nextNo: number } | null> {
+    const [row] = (
+      await db.execute(sql`
+        select prefix, next_no from numbering_series
+         where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${year}`)
+    ).rows as { prefix: string; next_no: number }[]
+    return row ? { prefix: row.prefix, nextNo: Number(row.next_no) } : null
+  }
+
+  /**
+   * Steps the counter back onto a number it already issued — a restored backup, a reseed, a hand-healed
+   * row. The owner connection carries no actor role, the one the 0013 guard lets rewind a counter.
+   */
+  async function rewindRcpt(): Promise<void> {
+    await db.execute(sql`
+      update numbering_series set next_no = next_no - 1
+       where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${fy}`)
+  }
+
+  async function restoreRcpt(nextNo: number): Promise<void> {
+    await db.execute(sql`
+      update numbering_series set next_no = greatest(next_no, ${nextNo})
+       where tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${fy}`)
+  }
+
+  /** The highest number of the counter's own shape (its prefix, then only digits) on this tenant's register. */
+  async function highestRcpt(prefix: string): Promise<number> {
+    const [row] = (
+      await db.execute(sql`
+        select coalesce(max(substring(receipt_no from ${prefix.length + 1}::int)::bigint), 0) as n
+          from receipts
+         where tenant_id = ${tenantId}
+           and left(receipt_no, ${prefix.length}::int) = ${prefix}
+           and substring(receipt_no from ${prefix.length + 1}::int) ~ '^[0-9]{1,18}$'`)
+    ).rows as { n: string }[]
+    return Number(row?.n ?? 0)
+  }
+
+  async function receiptsNumbered(receiptNo: string): Promise<number> {
+    const [row] = (
+      await db.execute(sql`
+        select count(*)::int as n from receipts
+         where tenant_id = ${tenantId} and receipt_no = ${receiptNo}`)
+    ).rows as { n: number }[]
+    return row?.n ?? 0
+  }
+
+  async function healAudit(receiptId: string): Promise<Record<string, unknown>[]> {
+    return (
+      await db.execute(sql`
+        select actor_id, actor_role, entity_type, entity_id, before, after, device_id
+          from audit_log
+         where tenant_id = ${tenantId} and action = 'numbering.heal'
+           and after->>'receiptId' = ${receiptId}`)
+    ).rows
+  }
+
+  it('DOS-032: a desk receipt drawn onto a number the RCPT counter already issued heals the counter: it takes the next free number, the taken number stays single, and the audit trail names the repair', async () => {
+    const shopId = await numberingShop('d')
+    const firstId = uuidv7()
+    const first = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos032-first-${run}`,
+      id: firstId,
+      retailerId: shopId,
+      mode: 'cash',
+      amountPaise: 100,
+    })
+    expect(first.status).toBe(200)
+    const taken = first.body.item.receiptNo ?? ''
+    const counter = await rcptCounter()
+    const prefix = counter?.prefix ?? ''
+    expect(taken.startsWith(prefix) && prefix.length > 0).toBe(true)
+    await rewindRcpt()
+    try {
+      const highest = await highestRcpt(prefix)
+      const healed = `${prefix}${String(highest + 1).padStart(4, '0')}`
+      const secondId = uuidv7()
+      const second = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `dos032-second-${run}`,
+        id: secondId,
+        retailerId: shopId,
+        mode: 'cash',
+        amountPaise: 100,
+      })
+      // a number the server assigns never becomes the desk's problem: recorded, under a number nobody holds
+      expect(second.status).toBe(200)
+      expect(second.body.item.receiptNo).not.toBe(taken)
+      expect(second.body.item.receiptNo).toBe(healed)
+      expect(await receiptsNumbered(taken)).toBe(1)
+      expect(await receiptsNumbered(healed)).toBe(1)
+      // the money is on the books exactly once more
+      expect(await arBalance(shopId)).toBe(-200)
+      const entries = await db.execute(sql`
+        select count(*)::int as n from journal_entries
+         where tenant_id = ${tenantId} and ref_type = 'receipt' and ref_id = ${secondId}`)
+      expect((entries.rows[0] as { n: number }).n).toBe(1)
+      // the counter stands past the register again, so the next receipt is an ordinary one
+      expect((await rcptCounter())?.nextNo).toBe(highest + 2)
+      // and the repair is on the trail: who drew the taken number, and what the counter became
+      const audit = await healAudit(secondId)
+      expect(audit).toHaveLength(1)
+      expect(audit[0]).toMatchObject({
+        actor_id: accountantId,
+        actor_role: 'accountant',
+        entity_type: 'numbering_series',
+        entity_id: `RCPT/${fy}`,
+        before: { collidedNo: taken },
+        after: { receiptNo: healed, receiptId: secondId },
+      })
+      // both receipts are filed under the FY key the counter drew them from
+      const filed = (
+        await db.execute(sql`select fy from receipts where id in (${firstId}, ${secondId})`)
+      ).rows as { fy: string }[]
+      expect(filed.map((r) => r.fy)).toEqual([fy, fy])
+    } finally {
+      await restoreRcpt(counter?.nextNo ?? 1)
+    }
+  })
+
+  it('DOS-059: an offline receipt drawn onto a number already on the register is accepted under the next free number: 2xx, no sync error, never a second row under that number', async () => {
+    const shopId = await numberingShop('s')
+    const deviceId = `dos059-phone-${run}`
+    const first = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos059-first-${run}`,
+      id: uuidv7(),
+      retailerId: shopId,
+      mode: 'cash',
+      amountPaise: 100,
+    })
+    expect(first.status).toBe(200)
+    const taken = first.body.item.receiptNo ?? ''
+    const counter = await rcptCounter()
+    const prefix = counter?.prefix ?? ''
+    await rewindRcpt()
+    try {
+      const highest = await highestRcpt(prefix)
+      const healed = `${prefix}${String(highest + 1).padStart(4, '0')}`
+      const opId = `dos059-op-${run}`
+      const receiptId = uuidv7()
+      const res = await call<{ accepted: number; rejected: { opId: string; code: string }[] }>(
+        app,
+        crew,
+        'POST',
+        '/sync/upload',
+        {
+          protocol: 1,
+          deviceId,
+          ops: [
+            {
+              opId,
+              op: 'PUT',
+              table: 'receipts',
+              id: receiptId,
+              data: {
+                retailer_id: shopId,
+                mode: 'cash',
+                amount_paise: 200,
+                device_id: deviceId,
+                client_receipt_no: `P-${run}`,
+              },
+            },
+          ],
+        },
+      )
+      expect(res.status).toBe(200)
+      expect(res.body.rejected).toEqual([])
+      expect(res.body.accepted).toBe(1)
+      const [row] = (await db.execute(sql`select receipt_no from receipts where id = ${receiptId}`))
+        .rows as { receipt_no: string }[]
+      expect(row?.receipt_no).not.toBe(taken)
+      expect(row?.receipt_no).toBe(healed)
+      expect(await receiptsNumbered(taken)).toBe(1)
+      const errors = await db.execute(sql`
+        select count(*)::int as n from sync_errors where tenant_id = ${tenantId} and op_id = ${opId}`)
+      expect((errors.rows[0] as { n: number }).n).toBe(0)
+      expect((await rcptCounter())?.nextNo).toBe(highest + 2)
+      const audit = await healAudit(receiptId)
+      expect(audit).toHaveLength(1)
+      expect(audit[0]).toMatchObject({
+        actor_id: crewId,
+        actor_role: 'delivery',
+        entity_id: `RCPT/${fy}`,
+        device_id: deviceId,
+        before: { collidedNo: taken },
+        after: { receiptNo: healed, receiptId },
+      })
+      const [filed] = (await db.execute(sql`select fy from receipts where id = ${receiptId}`))
+        .rows as { fy: string }[]
+      expect(filed?.fy).toBe(fy)
+    } finally {
+      await restoreRcpt(counter?.nextNo ?? 1)
+    }
+  })
+
+  it("DOS-032 DOS-059: on a server whose clock is not IST, a receipt taken between 00:00 and 05:30 IST on 1 April draws from the new financial year's RCPT counter and is filed under that same year", async () => {
+    const shopId = await numberingShop('fy')
+    const zone = process.env.TZ
+    // A cloud host's default clock. IST is UTC+05:30, so 00:00–05:30 IST on 1 April is still 31 March here.
+    process.env.TZ = 'UTC'
+    try {
+      const years = ['2025-26', '2026-27']
+      const cases = [
+        { at: '2026-03-31T18:29:00.000Z', fy: '2025-26' }, // 23:59 IST on 31 March
+        { at: '2026-03-31T18:30:00.000Z', fy: '2026-27' }, // 00:00 IST on 1 April
+        { at: '2026-03-31T23:59:00.000Z', fy: '2026-27' }, // 05:29 IST on 1 April
+      ]
+      const filed: { id: string; fy: string }[] = []
+      for (const [i, c] of cases.entries()) {
+        const before: number[] = []
+        for (const y of years) before.push((await rcptCounter(y))?.nextNo ?? 0)
+        const id = uuidv7()
+        const res = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+          idempotencyKey: `dos059-fy-${String(i)}-${run}`,
+          id,
+          retailerId: shopId,
+          mode: 'cash',
+          amountPaise: 100,
+          receivedAt: c.at,
+        })
+        expect(res.status).toBe(200)
+        const after: number[] = []
+        for (const y of years) after.push((await rcptCounter(y))?.nextNo ?? 0)
+        const drewFrom = years.filter((_, k) => after[k] !== before[k])
+        expect({ at: c.at, drewFrom }).toEqual({ at: c.at, drewFrom: [c.fy] })
+        filed.push({ id, fy: c.fy })
+      }
+      // the key a receipt is filed under is the key its counter drew it from
+      for (const f of filed) {
+        const [row] = (await db.execute(sql`select fy from receipts where id = ${f.id}`)).rows as {
+          fy: string
+        }[]
+        expect({ id: f.id, fy: row?.fy }).toEqual(f)
+      }
+    } finally {
+      if (zone === undefined) delete process.env.TZ
+      else process.env.TZ = zone
+    }
+  })
+
   it('isolates tenants', async () => {
     const list = await call<{ items: unknown[] }>(app, stranger, 'GET', '/receipts', { limit: 50 })
     expect(list.status).toBe(200)
@@ -1685,5 +2063,127 @@ describeDb('receivables (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(401)
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-007: the statement a shop is sent (the worker's StatementRequested consumer reads these figures)
+
+  it("DOS-007: loadStatementSummary gives the same opening and closing as ledger.get for the same window (including a clamped 500-day window), today's dues equal to the AR balance and the rollup's overdue", async () => {
+    // A shop with one bill 455 days old and one 30 days old: only a window past 400 days tells a clamped
+    // opening from an unclamped one.
+    const oldShop = uuidv7()
+    await db.insert(retailers).values({
+      id: oldShop,
+      tenantId,
+      code: `S0-${run}`,
+      name: `Old shop ${run}`,
+      phone: `+9192${run}0`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    await seedInvoice({ id: uuidv7(), retailerId: oldShop, totalPaise: 7_000, dueOffsetDays: -440 })
+    await seedInvoice({ id: uuidv7(), retailerId: oldShop, totalPaise: 3_000, dueOffsetDays: -15 })
+
+    const desk = ctxFor('accountant', accountantId)
+    const summaryOf = (retailerId: string, from: string, to: string) =>
+      as(desk, (tx) => loadStatementSummary(tx, { retailerId, from, to }))
+    const windows: readonly (readonly [string, string, string])[] = [
+      [shop.a, day(-90), day(0)], // what the shop panel sends
+      [shop.a, day(-20), day(0)], // opens on a balance
+      [oldShop, day(-500), day(0)], // past the 400-day cap: ledger.get clamps it
+      [oldShop, day(-500), day(-100)], // a past window
+    ]
+    for (const [retailerId, from, to] of windows) {
+      const ledger = await call<LedgerReply>(
+        app,
+        accountant,
+        'GET',
+        `/receivables/ledger/${retailerId}`,
+        { from, to, limit: 1 },
+      )
+      expect(ledger.status).toBe(200)
+      const summary = await summaryOf(retailerId, from, to)
+      expect({ opening: summary?.openingPaise, closing: summary?.closingPaise }).toEqual({
+        opening: ledger.body.openingPaise,
+        closing: ledger.body.closingPaise,
+      })
+    }
+    expect((await summaryOf(shop.a, day(-20), day(0)))?.openingPaise).toBeGreaterThan(0)
+    // The clamp: the statement prints the window it actually covers.
+    expect(await summaryOf(oldShop, day(-500), day(0))).toMatchObject({
+      from: day(-400),
+      to: day(0),
+      openingPaise: 7_000,
+      closingPaise: 10_000,
+    })
+    // A past window closes on its own balance; the dues are still today's.
+    expect(await summaryOf(oldShop, day(-500), day(-100))).toMatchObject({
+      closingPaise: 7_000,
+      duePaise: 10_000,
+    })
+    expect((await summaryOf(oldShop, day(-500), day(-100)))?.duePaise).toBe(
+      await arBalance(oldShop),
+    )
+
+    const rollup = await call<Outstanding>(
+      app,
+      accountant,
+      'GET',
+      `/receivables/outstanding/${shop.a}`,
+    )
+    expect(rollup.status).toBe(200)
+    const current = await summaryOf(shop.a, day(-90), day(0))
+    expect(current?.duePaise).toBe(await arBalance(shop.a))
+    expect(current).toMatchObject({
+      overduePaise: rollup.body.overduePaise,
+      openBills: rollup.body.openBills,
+      duePaise: Math.max(0, rollup.body.outstandingPaise - rollup.body.unallocatedCreditPaise),
+    })
+    // Another distributor's shop, or no shop at all: nothing to send.
+    expect(await summaryOf(otherRetailer, day(-90), day(0))).toBeNull()
+  })
+
+  it('DOS-007: a statement run asking for a PDF is refused 501 and writes no StatementRequested row, while a WhatsApp run still queues one', async () => {
+    const requested = async (jobId: string): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(sql`
+              select count(*)::int as n from outbox_events
+               where tenant_id = ${tenantId} and event_type = 'StatementRequested'
+                 and payload->>'jobId' = ${jobId}`)
+          ).rows[0] as { n: number }
+        ).n,
+      )
+    const run1 = {
+      retailerIds: [shop.b],
+      from: day(-90),
+      to: day(0),
+      includeUpiQr: true,
+      overdueOnly: false,
+    }
+    const pdfJob = uuidv7()
+    const pdf = await call<{ message: string }>(app, owner, 'POST', '/receivables/statements', {
+      ...run1,
+      idempotencyKey: `stmt-pdf-${run}`,
+      id: pdfJob,
+      channel: 'pdf',
+    })
+    expect(pdf.status).toBe(501)
+    expect(pdf.body.message).toMatch(/^statement_pdf_not_rendered/)
+    expect(await requested(pdfJob)).toBe(0)
+
+    const whatsappJob = uuidv7()
+    const whatsapp = await call<{ jobId: string; queued: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receivables/statements',
+      { ...run1, idempotencyKey: `stmt-wa-${run}`, id: whatsappJob, channel: 'whatsapp' },
+    )
+    expect(whatsapp.status).toBe(200)
+    expect(whatsapp.body).toEqual({ jobId: whatsappJob, queued: 1 })
+    expect(await requested(whatsappJob)).toBe(1)
   })
 })

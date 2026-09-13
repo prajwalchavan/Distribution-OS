@@ -318,7 +318,8 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
   Field gap: `OrdersListInput.state` is a single value; "pending undelivered" needs `states[]` (confirmed..dispatched).
 - **S3 Order entry (reorder last / suggested / grid, case + pcs stepper, live ATP hint)** — priced on the device; the turn-around
   confirmation screen (single column, ≥ 20 sp). Primary action: Submit.
-  Calls: `orders.repeatLast` ✓, `orders.create` ✓, `orders.setLines` ✓, `tenantCatalog.list` ✓, `inventory.stock.sellable` ✓,
+  Calls: `orders.repeatLast` ✓, `orders.create` ✓, `orders.setLines` ✓, `tenantCatalog.list` ✓,
+  `inventory.stock.availability` ✓ (the stock hint: one total per item at the godown orders reserve from, DOS-074),
   `pricing.quote` ✓ (online), `pricing.priceLists.list` ✓, `pricing.schemes.list` ✓, `pricing.overrides.list` ✓ (engine inputs
   for offline pricing). MISSING: `pricing.bounds.list` (the rep's own auto-approve bound; only `bounds.set` exists);
   `tenantCatalog.repAuthorisations` (docs/02: a manufacturer-employed rep sees only that brand; table exists, no procedure).
@@ -334,7 +335,8 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
   Calls: `incentives.progress.mine`, `incentives.statements.list/get`, `reporting.dashboard.rep`, `reporting.dailyStats.rep`
   self ✓, `reporting.registers.repProductivity` (all planned).
 - **S10 Lapsed shops (shops I am losing)** — `reporting.retailers.lapsed` (planned, pre-scoped to own beats).
-- **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓, `inventory.stock.sellable` ✓,
+- **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓,
+  `inventory.stock.availability` ✓ (the stock chip and the "In stock" view: godown total per item, DOS-074),
   `pricing.schemes.list` on=today ✓.
 - **S12 Pending bills of a shop (read-only chip)** — `billing.invoices.list/get` ✓ by matrix, wiring ✗ on sales-service.
 - **S13 Inbox** — `notifications.messages.list/markRead`, `notifications.inbound.list/markHandled`,
@@ -396,6 +398,7 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `billing.invoices.get` ✓, `billing.invoices.pdf` ✓, `billing.invoices.setEwayBill` ✓ (`billing` is mounted on warehouse-service
   in the in-flight slice). PDF renderer deferred.
 - **W7 Load sheet: build, crew blind count, manager confirm, challan print** — Calls: `warehouse.loadSheets.create/get/list` ✓,
+  `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
@@ -421,8 +424,9 @@ None beyond counts on W1 (a `<Sparkline>` of packs per day from `reporting.regis
   "waiting for manager", or (b) an `auth.stepUp` procedure (manager username + PIN on the warehouse device → short-lived
   manager token scoped to `loadSheets.confirm`) is added and warehouse-service accepts it. Decision needed; (a) needs no backend.
 - Can but no screen (wider than the app): `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
-  `orders.create/setLines/submit/repeatLast` (a loader can place and submit orders), `catalog.propose`, `tenantCatalog.suppliers`.
-  Recommendation: keep `catalog.propose`; move the retailer/beat/visit/order writes to tuples without `warehouse`.
+  `catalog.propose`, `tenantCatalog.suppliers`. The order writes (`orders.create/setLines/submit/repeatLast`, a loader placing and
+  submitting orders): closed by DOS-115 (2026-09-13).
+  Recommendation: keep `catalog.propose`; move the retailer/beat/visit writes to tuples without `warehouse`.
 
 ### 4.4 Offline
 
@@ -486,7 +490,8 @@ None required. D8 shows totals only; D11 may show own on-time rate (`deliveryPer
   as planned; the app must never build the van sale from `orders.create` + `orders.submit` alone.
 - Can but no screen (wider than the app): `receivables.outstanding.list` (MONEY_COLLECTORS — the crew can read the whole ageing
   register; the app needs one shop at a time), `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
-  `orders.create/submit` for non-van orders, `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`.
+  `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`. The order writes (`orders.create/submit` for
+  non-van orders): closed by DOS-115 (2026-09-13).
   Recommendation: drop `delivery` from `outstanding.list`; move retailer/beat/visit writes off STAFF.
 - `retailers.get` returns the staff shape (code, tier, credit limit, credit days, mode) to the crew; the ROLE_GROUPS comment says
   credit terms are back-office. The crew needs `creditMode` and dues, not the limit. Field-level narrowing to consider.
@@ -533,7 +538,8 @@ The detail view for a WhatsApp message: no registration form, no permissions, on
 - **R5 Pay online** — `receivables.payments.initiate` ✓ (retailer only; payee name = distributor ✓). Gateway callback = later.
 - **R6 Statement of account** — `receivables.ledger.get` ✓ (built from documents for the retailer role).
 - **R7 Reorder / order editor (ATP-aware quantities, running-low, price shown)** — Calls: `orders.repeatLast` ✓, `orders.create` ✓,
-  `orders.setLines` ✓, `orders.cancel` ✓, `tenantCatalog.list` ✓, `catalog.search` ✓, `inventory.stock.sellable` ✓,
+  `orders.setLines` ✓, `orders.cancel` ✓, `tenantCatalog.list` ✓, `catalog.search` ✓,
+  `inventory.stock.availability` ✓ (the stock line: godown total per item, "Out of stock" only after a complete read, DOS-097),
   `pricing.quote` ✓. MISMATCH: `orders.submit` is STAFF — the shop can draft but NEVER submit its own order; docs/22 §4 R1 → S5
   ("Reorder → submitted") is unreachable. `OrdersService.submit` has `requireRole(STAFF)` too. The single most important
   retailer gap. "Running low" needs `reporting.retailers.behaviour.usualBasket`, deliberately not on retailer-service — use

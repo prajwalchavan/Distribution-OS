@@ -525,6 +525,7 @@ describeDb('row level security and ledger guarantees', () => {
         id: receiptA,
         tenantId: tenantA,
         receiptNo: `RCPT-${run}-1`,
+        fy: '2026-27',
         retailerId: retailerA,
         mode: 'cash',
         amountPaise: 50_000,
@@ -536,6 +537,7 @@ describeDb('row level security and ledger guarantees', () => {
         id: receiptB,
         tenantId: tenantA,
         receiptNo: `RCPT-${run}-2`,
+        fy: '2026-27',
         retailerId: retailerB,
         mode: 'upi',
         amountPaise: 90_000,
@@ -2016,6 +2018,7 @@ describeDb('row level security and ledger guarantees', () => {
         id: doorstep,
         tenantId: tenantA,
         receiptNo: `RCPT-${run}-D`,
+        fy: '2026-27',
         retailerId: retailerA,
         mode: 'cash',
         amountPaise: 25_000,
@@ -2037,6 +2040,98 @@ describeDb('row level security and ledger guarantees', () => {
       (tx) => tx.select().from(receipts),
     )
     expect(fromTenantB).toHaveLength(0)
+  })
+
+  /**
+   * DOS-166. Never-list #2 ("a salesperson never collects money") was an application rule only, and the
+   * offline upload proved an application path can skip the matrix: a salesperson's phone wrote RCPT-0708.
+   * So the DATABASE now says it too: `receipts_write_insert` admits the money collectors (the desk, the crew
+   * at the door) and the worker, and nobody else. Reads, updates and deletes are unchanged.
+   */
+  it('DOS-166: refuses a receipt INSERT from a salesperson and from the warehouse, and still takes one from the crew and the money desk', async () => {
+    const row = (role: string, receivedBy: string) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      receiptNo: `RCPT-${run}-166-${role}`,
+      fy: '2026-27',
+      retailerId: retailerA,
+      mode: 'cash' as const,
+      amountPaise: 100,
+      receivedAt: new Date(),
+      receivedBy,
+      idempotencyKey: `rcpt-166-${role}-${run}`,
+    })
+    const refusedByPolicy = (e: unknown): boolean => {
+      const err = e as { code?: string; cause?: { code?: string } }
+      return (err.cause?.code ?? err.code) === '42501'
+    }
+    for (const [role, actor] of [
+      ['salesperson', rep],
+      ['warehouse', storeKeeper],
+    ] as const) {
+      await expect(
+        withTenant(db, { tenantId: tenantA, actorId: actor, actorRole: role }, (tx) =>
+          tx.insert(receipts).values(row(role, actor)),
+        ),
+        `${role} inserting a receipt`,
+      ).rejects.toSatisfy(refusedByPolicy)
+    }
+    // The two who may: the insert itself must succeed, and the transaction is then rolled back so the
+    // fixture's books stay as they were.
+    class RolledBack extends Error {}
+    for (const [role, actor] of [
+      ['delivery', driver],
+      ['accountant', owner],
+    ] as const) {
+      await expect(
+        withTenant(db, { tenantId: tenantA, actorId: actor, actorRole: role }, async (tx) => {
+          await tx.insert(receipts).values(row(role, actor))
+          throw new RolledBack(role)
+        }),
+        `${role} inserting a receipt`,
+      ).rejects.toBeInstanceOf(RolledBack)
+    }
+    const kept = (
+      await db.execute(
+        sql`select count(*)::int as n from receipts
+             where tenant_id = ${tenantA} and idempotency_key like ${`rcpt-166-%-${run}`}`,
+      )
+    ).rows[0] as { n: number }
+    expect(kept.n).toBe(0)
+  })
+
+  /**
+   * DOS-032 / DOS-059. A receipt number is the shop's legal proof of payment, so the DATABASE defends it —
+   * not the counter: a restored backup, a reseeded or hand-healed counter, or two instances racing must never
+   * put two payments under one number. The key is the counter's own (tenant, series, FY): every FY's register
+   * starts again at 1, so the same number is legal once per financial year.
+   */
+  it('DOS-032 DOS-059: refuses a second receipt under the same number in one series and financial year, and accepts that number again in the next year', async () => {
+    const receiptNo = `RCPT-${run}-X`
+    const row = (fy: string, tag: string) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      receiptNo,
+      seriesCode: 'RCPT',
+      fy,
+      retailerId: retailerA,
+      mode: 'cash' as const,
+      amountPaise: 1_000,
+      receivedAt: new Date(),
+      receivedBy: owner,
+      idempotencyKey: `rcpt-no-${tag}-${run}`,
+    })
+    await db.insert(receipts).values(row('2026-27', 'first'))
+    // A new id and a new idempotency key: only the number's own index may refuse this row, so a primary-key
+    // or idempotency collision can never pass for the guarantee.
+    await rejectsWith(db.insert(receipts).values(row('2026-27', 'second')), /receipts_no_idx/)
+    await db.insert(receipts).values(row('2027-28', 'next-year'))
+    const held = (
+      await db.execute(
+        sql`select fy from receipts where tenant_id = ${tenantA} and receipt_no = ${receiptNo} order by fy`,
+      )
+    ).rows as { fy: string }[]
+    expect(held.map((r) => r.fy)).toEqual(['2026-27', '2027-28'])
   })
 
   it('keeps write-offs to the back office', async () => {

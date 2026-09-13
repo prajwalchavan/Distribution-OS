@@ -8,7 +8,7 @@ import type {
   DecideApprovalInput,
   DecideApprovalOutput,
 } from '@dos/contracts'
-import { approvals, withTenant, type Db } from '@dos/db'
+import { approvals, salesOrders, withTenant, type Db } from '@dos/db'
 import {
   BACK_OFFICE,
   MANAGEMENT,
@@ -19,7 +19,8 @@ import {
   requireRole,
 } from '../../platform/index.js'
 import { BargainsService } from '../pricing/index.js'
-import { toApproval, type ApprovalRow } from './orders.mappers.js'
+import { retailerRefs } from '../retailers/index.js'
+import { toApproval, toApprovalQueueItem, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
 type ListIn = z.infer<typeof ApprovalsListInput>
@@ -54,13 +55,37 @@ export class ApprovalsService {
         input.kind ? eq(approvals.kind, input.kind) : undefined,
         input.cursor ? lt(approvals.id, input.cursor) : undefined,
       ]
+      // The approval's own order (this module's table) carries its number, total and shop, so the queue names what
+      // is being decided whatever the payload holds; the shop's name comes from the retailers module's batch
+      // lookup, one query for the page (DOS-004).
       const rows = await tx
-        .select()
+        .select({
+          approval: approvals,
+          orderNo: salesOrders.orderNo,
+          orderTotalPaise: salesOrders.totalPaise,
+          retailerId: salesOrders.retailerId,
+        })
         .from(approvals)
+        .leftJoin(
+          salesOrders,
+          and(eq(salesOrders.tenantId, approvals.tenantId), eq(salesOrders.id, approvals.orderId)),
+        )
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
         .orderBy(desc(approvals.id))
         .limit(input.limit + 1)
-      const items = rows.slice(0, input.limit).map(toApproval)
+      const page = rows.slice(0, input.limit)
+      const shops = await retailerRefs(
+        tx,
+        page.flatMap((r) => (r.retailerId === null ? [] : [r.retailerId])),
+      )
+      const items = page.map((r) =>
+        toApprovalQueueItem(r.approval, {
+          orderNo: r.orderNo,
+          orderTotalPaise: r.orderTotalPaise,
+          retailerId: r.retailerId,
+          retailerName: r.retailerId === null ? null : (shops.get(r.retailerId)?.name ?? null),
+        }),
+      )
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })

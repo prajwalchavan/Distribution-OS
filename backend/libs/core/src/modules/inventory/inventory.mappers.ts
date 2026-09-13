@@ -3,6 +3,7 @@ import type {
   LedgerEntry,
   Location,
   SellableStockRow,
+  StockAvailabilityRow,
   StockLot,
 } from '@dos/contracts'
 import type { locations } from '@dos/db'
@@ -84,4 +85,14 @@ export function toSellable(r: SellableRaw): SellableStockRow {
     productName: r.product_name,
     brandName: r.brand_name,
   }
+}
+
+/** Raw row of the per-item godown total (`stock.availability`): the int8 sum arrives as a string. */
+export interface AvailabilityRaw {
+  variant_id: string
+  available: string | number
+}
+
+export function toAvailability(r: AvailabilityRaw): StockAvailabilityRow {
+  return { variantId: r.variant_id, available: Number(r.available) }
 }

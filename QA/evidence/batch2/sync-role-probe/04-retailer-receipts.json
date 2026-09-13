@@ -1,0 +1,52 @@
+{
+  "probe": "04",
+  "role": "retailer",
+  "username": "ramesh.gupta",
+  "tenant": "tarsun (01a0947d-7a79-75d2-bfff-97e499a58d49)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T04:51:03.527Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "retailer"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3006/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-retailer-04",
+      "ops": [
+        {
+          "opId": "01a0991a-c4e8-7f98-ad3d-c9132dec9a7e",
+          "op": "PUT",
+          "table": "receipts",
+          "id": "01a0991a-c4e7-7b8d-b750-a755ce01d3ee",
+          "clientTime": "2026-09-13T04:51:03.527Z",
+          "data": {
+            "retailer_id": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+            "mode": "cash",
+            "amount_paise": 100,
+            "received_at": "2026-09-13T04:51:03.527Z",
+            "received_by": null,
+            "device_id": "qa-b2-syncprobe-retailer-04",
+            "status": "collected",
+            "note": "QA batch2 sync-role-probe 04 retailer"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 403,
+    "body": {
+      "message": "the retailer role may not call POST /sync/upload",
+      "error": "Forbidden",
+      "statusCode": 403
+    }
+  }
+}

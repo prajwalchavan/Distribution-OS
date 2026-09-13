@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { contract } from '@dos/contracts'
+import { allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
@@ -62,6 +62,20 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
   const ownerId = uuidv7()
   const managerId = uuidv7()
   const retailerRowId = uuidv7()
+
+  // DOS-106 — the console LEVEL. Its cases act on their own console accounts, distributorship,
+  // subscription and victim, under `l${run}.` usernames and `+918${run}N` phones: the `p${run}.`
+  // identity case below keeps its exact two ids, and a run before the fix mutates only these rows.
+  const billingId = uuidv7()
+  const sup2Id = uuidv7()
+  const sup3Id = uuidv7()
+  const sup4Id = uuidv7()
+  const sup5Id = uuidv7()
+  const demotedId = uuidv7()
+  const victimId = uuidv7()
+  const lvlTenantId = uuidv7()
+  const lvlSubscriptionId = uuidv7()
+  const demotedGrantId = uuidv7()
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -151,6 +165,77 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
       phone: `+919${run}7`,
       stateCode: '27',
     })
+
+    // DOS-106 fixtures, on the owner connection like the rows above (the 0034 guard binds a named
+    // `platform_admin` actor, not the migrating connection).
+    await db.insert(users).values([
+      {
+        id: billingId,
+        phone: `+918${run}1`,
+        name: 'Console billing',
+        username: `l${run}.bill`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      {
+        id: sup2Id,
+        phone: `+918${run}2`,
+        name: 'Console super two',
+        username: `l${run}.sup2`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      {
+        id: sup3Id,
+        phone: `+918${run}3`,
+        name: 'Console super three',
+        username: `l${run}.sup3`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      { id: victimId, phone: `+918${run}4`, name: 'Level victim', username: `l${run}.victim` },
+      { id: sup4Id, phone: `+918${run}5`, name: 'Console super four', username: `l${run}.sup4` },
+      { id: sup5Id, phone: `+918${run}6`, name: 'Console super five', username: `l${run}.sup5` },
+      { id: demotedId, phone: `+918${run}7`, name: 'Console demoted', username: `l${run}.demo` },
+    ])
+    await db.insert(platformAdmins).values([
+      { id: uuidv7(), userId: billingId, role: 'billing' },
+      { id: uuidv7(), userId: sup2Id, role: 'super' },
+      { id: uuidv7(), userId: sup3Id, role: 'super' },
+      { id: uuidv7(), userId: sup4Id, role: 'super' },
+      { id: uuidv7(), userId: sup5Id, role: 'super' },
+      { id: uuidv7(), userId: demotedId, role: 'super' },
+    ])
+    await db.insert(tenants).values({
+      id: lvlTenantId,
+      slug: `lvl-${run}`,
+      legalName: 'Console level fixture',
+      stateCode: '27',
+    })
+    await db.insert(subscriptions).values({
+      id: lvlSubscriptionId,
+      tenantId: lvlTenantId,
+      plan: 'starter',
+      status: 'active',
+      periodStart: '2026-09-01',
+      periodEnd: '2026-10-01',
+      pricePaiseMonth: 199_900,
+      updatedBy: adminUserId,
+    })
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: lvlTenantId, userId: victimId, role: 'owner' })
+    await db.insert(supportGrants).values({
+      id: demotedGrantId,
+      tenantId: lvlTenantId,
+      adminUserId: demotedId,
+      requestedAt: new Date(),
+      requestedHours: 4,
+      reason: 'Asked while this account was still a super administrator.',
+      expiresAt: new Date(Date.now() + 4 * HOUR_MS),
+      scope: 'read',
+    })
+
     app = await bootTestApp([AuthModule, TenancyModule, PlatformAdminModule, RetailersModule])
     // A REAL console session, not a synthetic token: `auth.supportPass` reads the session row back
     // (a pass must not outlive the session that asked for it), so the spec signs in the way the
@@ -718,6 +803,548 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     const res = await app.inject({ method: 'GET', url: '/admin/metrics', headers })
     expect(res.statusCode).toBe(403)
     expect(res.json<{ message: string }>().message).toContain('no longer active')
+  })
+
+  // ---------------------------------------------------------------- DOS-106: the console level
+
+  type Reply = {
+    status: number
+    body: { code?: string; message?: string } & Record<string, unknown>
+  }
+  type Probe = { method: 'GET' | 'POST'; url: string; payload?: Record<string, unknown> }
+
+  /** A console token for one account, minted once and kept: "the token still in hand". */
+  const consoleHeaders = async (userId: string): Promise<Record<string, string>> => ({
+    ...(await platformBearer(userId)),
+    'content-type': 'application/json',
+  })
+
+  const asConsole = async (
+    headers: Record<string, string>,
+    method: 'GET' | 'POST',
+    url: string,
+    payload?: Record<string, unknown>,
+  ): Promise<Reply> => {
+    const res =
+      method === 'GET'
+        ? await app.inject({ method, url, headers, query: toQuery(payload) })
+        : await app.inject({ method, url, headers, payload: JSON.stringify(payload ?? {}) })
+    return { status: res.statusCode, body: res.json<Reply['body']>() }
+  }
+
+  const expectLevelRefusal = (res: Reply, level: string, path: string): void => {
+    expect(res.status, `${level} → ${path}: ${JSON.stringify(res.body)}`).toBe(403)
+    expect(res.body.code, path).toBe('FORBIDDEN')
+    expect(res.body.message, path).toBe(
+      `a ${level} console account may not call ${path}; ask a super administrator`,
+    )
+  }
+
+  const platformSignIn = async (
+    username: string,
+  ): Promise<{ status: number; deviceId: string; body: Record<string, unknown> }> => {
+    const deviceId = uuidv7()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/platform/login',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ username, password: PASSWORD, deviceId }),
+    })
+    return { status: res.statusCode, deviceId, body: res.json<Record<string, unknown>>() }
+  }
+
+  /** Everything a refused call could have touched, read straight from the tables. */
+  const levelSnapshot = async (actorId: string): Promise<Record<string, string | null>> => {
+    const [row] = (
+      await db.execute<Record<string, string | null>>(sql`
+        select
+          (select status::text from tenants where id = ${lvlTenantId}) as tenant_status,
+          (select plan::text from tenants where id = ${lvlTenantId}) as tenant_plan,
+          (select price_paise_month::text from subscriptions where tenant_id = ${lvlTenantId}) as price,
+          (select updated_at::text from subscriptions where tenant_id = ${lvlTenantId}) as subscription_updated_at,
+          (select status::text from users where id = ${victimId}) as victim_status,
+          (select count(*)::text from tenants where slug like ${`lvlx-%-${run}`}) as onboarded,
+          (select count(*)::text from support_grants where tenant_id = ${lvlTenantId}) as grants,
+          (select count(*)::text from support_grants
+            where id = ${demotedGrantId} and revoked_at is not null) as demoted_grant_closed,
+          (select count(*)::text from platform_audit where admin_user_id = ${actorId}) as audit_rows
+      `)
+    ).rows
+    return row ?? {}
+  }
+
+  const onboardingBody = (tag: string, digit: string): Record<string, unknown> => ({
+    idempotencyKey: `lvl-onboard-${tag}-${run}`,
+    id: uuidv7(),
+    slug: `lvlx-${tag}-${run}`,
+    legalName: `Level probe ${tag}`,
+    stateCode: '27',
+    plan: 'starter',
+    owner: {
+      userId: uuidv7(),
+      membershipId: uuidv7(),
+      username: `l${run}.o${tag}`,
+      name: 'Level probe owner',
+      phone: `+917${run}${digit}`,
+      temporaryPassword: PASSWORD,
+    },
+    subscription: { id: uuidv7(), trialDays: 30, amountPaise: 199_900, seats: 10 },
+  })
+
+  const subscriptionBody = (tag: string, amountPaise: number): Record<string, unknown> => ({
+    idempotencyKey: `lvl-sub-${tag}-${run}`,
+    id: lvlSubscriptionId,
+    tenantId: lvlTenantId,
+    plan: 'pro',
+    status: 'active',
+    amountPaise,
+    billingInterval: 'monthly',
+    currentPeriodStart: '2026-09-01',
+    currentPeriodEnd: '2026-10-01',
+  })
+
+  /**
+   * One VALID request per console procedure, aimed at this run's throwaway rows. Valid matters: input
+   * validation runs before the handler, so a malformed body would answer 400 and prove nothing about
+   * the handler's own check. Keyed by contract path, and compared with the contract below, so a new
+   * `admin.*` procedure cannot slip past the sweep.
+   */
+  const probes = (tag: string, digit: string): Record<string, Probe> => ({
+    'admin.tenants.create': {
+      method: 'POST',
+      url: '/admin/tenants',
+      payload: onboardingBody(tag, digit),
+    },
+    'admin.tenants.list': { method: 'GET', url: '/admin/tenants' },
+    'admin.tenants.get': { method: 'GET', url: `/admin/tenants/${lvlTenantId}` },
+    'admin.tenants.suspend': {
+      method: 'POST',
+      url: `/admin/tenants/${lvlTenantId}/suspend`,
+      payload: { idempotencyKey: `lvl-suspend-${tag}-${run}`, id: lvlTenantId, reason: 'Probe.' },
+    },
+    'admin.tenants.reactivate': {
+      method: 'POST',
+      url: `/admin/tenants/${lvlTenantId}/reactivate`,
+      payload: { idempotencyKey: `lvl-reactivate-${tag}-${run}`, id: lvlTenantId, note: 'Probe.' },
+    },
+    'admin.subscriptions.upsert': {
+      method: 'POST',
+      url: '/admin/subscriptions',
+      payload: subscriptionBody(tag, 1),
+    },
+    'admin.subscriptions.list': { method: 'GET', url: '/admin/subscriptions' },
+    'admin.subscriptions.get': { method: 'GET', url: `/admin/subscriptions/${lvlSubscriptionId}` },
+    'admin.support.request': {
+      method: 'POST',
+      url: '/admin/support-grants',
+      payload: {
+        idempotencyKey: `lvl-ask-${tag}-${run}`,
+        id: uuidv7(),
+        tenantId: lvlTenantId,
+        reason: 'Probe: may this account still ask?',
+        scope: 'read_only',
+        hours: 4,
+      },
+    },
+    'admin.support.list': { method: 'GET', url: '/admin/support-grants' },
+    'admin.support.revoke': {
+      method: 'POST',
+      url: `/admin/support-grants/${demotedGrantId}/revoke`,
+      payload: { idempotencyKey: `lvl-revoke-${tag}-${run}`, id: demotedGrantId },
+    },
+    'admin.users.list': { method: 'GET', url: '/admin/users', payload: { q: `l${run}.` } },
+    'admin.users.disable': {
+      method: 'POST',
+      url: `/admin/users/${victimId}/disable`,
+      payload: { idempotencyKey: `lvl-disable-${tag}-${run}`, id: victimId, reason: 'Probe.' },
+    },
+    'admin.metrics.overview': { method: 'GET', url: '/admin/metrics', payload: { days: 7 } },
+    'admin.audit.list': { method: 'GET', url: '/admin/audit', payload: { tenantId: lvlTenantId } },
+  })
+
+  it('DOS-106: a support-level console account is refused onboarding, a plan change, suspension, reactivation and locking a login, and nothing changes', async () => {
+    const support = await consoleHeaders(otherAdminUserId)
+    const before = await levelSnapshot(otherAdminUserId)
+
+    expectLevelRefusal(
+      await asConsole(support, 'POST', '/admin/tenants', onboardingBody('sup', '1')),
+      'support',
+      'admin.tenants.create',
+    )
+    expectLevelRefusal(
+      await asConsole(support, 'POST', '/admin/subscriptions', subscriptionBody('sup', 1)),
+      'support',
+      'admin.subscriptions.upsert',
+    )
+    expectLevelRefusal(
+      await asConsole(support, 'POST', `/admin/tenants/${lvlTenantId}/suspend`, {
+        idempotencyKey: `lvl-sup-suspend-${run}`,
+        id: lvlTenantId,
+        reason: 'Support tries to switch a distributor off.',
+      }),
+      'support',
+      'admin.tenants.suspend',
+    )
+    expectLevelRefusal(
+      await asConsole(support, 'POST', `/admin/tenants/${lvlTenantId}/reactivate`, {
+        idempotencyKey: `lvl-sup-reactivate-${run}`,
+        id: lvlTenantId,
+        note: 'Support tries to switch a distributor on.',
+      }),
+      'support',
+      'admin.tenants.reactivate',
+    )
+    expectLevelRefusal(
+      await asConsole(support, 'POST', `/admin/users/${victimId}/disable`, {
+        idempotencyKey: `lvl-sup-disable-${run}`,
+        id: victimId,
+        reason: 'Support tries to lock a login.',
+      }),
+      'support',
+      'admin.users.disable',
+    )
+
+    // Not one row moved: no new distributorship, the same price and plan, the same login, and
+    // nothing in the console's trail under the support account.
+    expect(await levelSnapshot(otherAdminUserId)).toEqual(before)
+    expect(before.tenant_status).toBe('active')
+    expect(before.victim_status).toBe('active')
+    expect(before.onboarded).toBe('0')
+  })
+
+  it("DOS-106: a lower console level replaying a super's idempotencyKey with the identical body is refused, not handed the stored reply", async () => {
+    const suspendBody = {
+      idempotencyKey: `lvl-replay-suspend-${run}`,
+      id: lvlTenantId,
+      reason: 'Replay probe: a super suspends.',
+    }
+    const bySuper = await consoleCall<{ item: { status: string } }>(
+      'POST',
+      `/admin/tenants/${lvlTenantId}/suspend`,
+      suspendBody,
+    )
+    expect(bySuper.status).toBe(200)
+    expect(bySuper.body.item.status).toBe('suspended')
+    const back = await consoleCall<{ item: { status: string } }>(
+      'POST',
+      `/admin/tenants/${lvlTenantId}/reactivate`,
+      { idempotencyKey: `lvl-replay-back-${run}`, id: lvlTenantId },
+    )
+    expect(back.status).toBe(200)
+    expect(back.body.item.status).toBe('active')
+    const planBody = subscriptionBody('replay', 249_900)
+    const planBySuper = await consoleCall<{ item: { amountPaise: number } }>(
+      'POST',
+      '/admin/subscriptions',
+      planBody,
+    )
+    expect(planBySuper.status).toBe(200)
+
+    // The byte-identical request under the super's key: the key row exists and the hash matches, so
+    // anything that ran the key lookup first would hand back the super's stored 200.
+    const support = await consoleHeaders(otherAdminUserId)
+    const billing = await consoleHeaders(billingId)
+    expectLevelRefusal(
+      await asConsole(support, 'POST', `/admin/tenants/${lvlTenantId}/suspend`, suspendBody),
+      'support',
+      'admin.tenants.suspend',
+    )
+    expectLevelRefusal(
+      await asConsole(billing, 'POST', `/admin/tenants/${lvlTenantId}/suspend`, suspendBody),
+      'billing',
+      'admin.tenants.suspend',
+    )
+    expectLevelRefusal(
+      await asConsole(support, 'POST', '/admin/subscriptions', planBody),
+      'support',
+      'admin.subscriptions.upsert',
+    )
+    const [tenantRow] = await db.select().from(tenants).where(eq(tenants.id, lvlTenantId))
+    expect(tenantRow?.status).toBe('active')
+  })
+
+  it('DOS-106: a support-level console account still reads every console register and can ask for and withdraw support access', async () => {
+    const support = await consoleHeaders(otherAdminUserId)
+    for (const [path, url, query] of [
+      ['admin.tenants.list', '/admin/tenants', { q: `lvl-${run}` }],
+      ['admin.tenants.get', `/admin/tenants/${lvlTenantId}`, undefined],
+      ['admin.subscriptions.list', '/admin/subscriptions', { tenantId: lvlTenantId }],
+      ['admin.subscriptions.get', `/admin/subscriptions/${lvlSubscriptionId}`, undefined],
+      ['admin.support.list', '/admin/support-grants', { tenantId: lvlTenantId }],
+      ['admin.users.list', '/admin/users', { q: `l${run}.` }],
+      ['admin.metrics.overview', '/admin/metrics', { days: 7 }],
+      ['admin.audit.list', '/admin/audit', { tenantId: lvlTenantId }],
+    ] as const) {
+      const res = await asConsole(support, 'GET', url, query)
+      expect(res.status, `${path}: ${JSON.stringify(res.body)}`).toBe(200)
+    }
+
+    const grantId = uuidv7()
+    const asked = await asConsole(support, 'POST', '/admin/support-grants', {
+      idempotencyKey: `lvl-sup-ask-${run}`,
+      id: grantId,
+      tenantId: lvlTenantId,
+      reason: 'Ticket: the support desk still asks for a window.',
+      scope: 'read_only',
+      hours: 4,
+    })
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+    expect((asked.body.item as Grant).status).toBe('requested')
+    const withdrawn = await asConsole(support, 'POST', `/admin/support-grants/${grantId}/revoke`, {
+      idempotencyKey: `lvl-sup-withdraw-${run}`,
+      id: grantId,
+      reason: 'Solved on the phone.',
+    })
+    expect(withdrawn.status, JSON.stringify(withdrawn.body)).toBe(200)
+    expect((withdrawn.body.item as Grant).status).toBe('rejected')
+  })
+
+  it('DOS-106: a billing-level console account may change a subscription and is refused suspension, locking a login and asking for support access', async () => {
+    const billing = await consoleHeaders(billingId)
+    const before = await levelSnapshot(billingId)
+
+    const changed = await asConsole(billing, 'POST', '/admin/subscriptions', {
+      ...subscriptionBody('bill', 299_900),
+      plan: 'growth',
+    })
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200)
+    expect((changed.body.item as { amountPaise: number }).amountPaise).toBe(299_900)
+    const [subRow] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.tenantId, lvlTenantId))
+    expect(subRow?.updatedBy).toBe(billingId)
+
+    expectLevelRefusal(
+      await asConsole(billing, 'POST', `/admin/tenants/${lvlTenantId}/suspend`, {
+        idempotencyKey: `lvl-bill-suspend-${run}`,
+        id: lvlTenantId,
+        reason: 'Billing tries to switch a distributor off.',
+      }),
+      'billing',
+      'admin.tenants.suspend',
+    )
+    expectLevelRefusal(
+      await asConsole(billing, 'POST', `/admin/users/${victimId}/disable`, {
+        idempotencyKey: `lvl-bill-disable-${run}`,
+        id: victimId,
+        reason: 'Billing tries to lock a login.',
+      }),
+      'billing',
+      'admin.users.disable',
+    )
+    expectLevelRefusal(
+      await asConsole(billing, 'POST', '/admin/support-grants', {
+        idempotencyKey: `lvl-bill-ask-${run}`,
+        id: uuidv7(),
+        tenantId: lvlTenantId,
+        reason: 'Billing tries to ask for a support window.',
+        scope: 'read_only',
+        hours: 4,
+      }),
+      'billing',
+      'admin.support.request',
+    )
+
+    // The plan change landed and is filed under billing; nothing else moved.
+    const after = await levelSnapshot(billingId)
+    expect(after).toEqual({
+      ...before,
+      tenant_plan: 'growth',
+      price: '299900',
+      subscription_updated_at: after.subscription_updated_at,
+      audit_rows: String(Number(before.audit_rows) + 1),
+    })
+  })
+
+  it('DOS-106: the platform sign-in reply and platformMe name the console level', async () => {
+    for (const [username, level] of [
+      [`p${run}.admin`, 'super'],
+      [`p${run}.other`, 'support'],
+      [`l${run}.bill`, 'billing'],
+    ] as const) {
+      const signIn = await platformSignIn(username)
+      expect(signIn.status, `${username}: ${JSON.stringify(signIn.body)}`).toBe(200)
+      expect(signIn.body.role, username).toBe('platform_admin')
+      expect(signIn.body.level, username).toBe(level)
+
+      // The TOKEN stays role-only: the level is re-read from the database on every console call.
+      const accessToken = String(signIn.body.accessToken)
+      const claims = JSON.parse(
+        Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString('utf8'),
+      ) as Record<string, unknown>
+      expect(claims.role, username).toBe('platform_admin')
+      expect(claims, username).not.toHaveProperty('level')
+
+      const me = await app.inject({
+        method: 'GET',
+        url: '/auth/platform/me',
+        headers: { authorization: `Bearer ${accessToken}` },
+      })
+      expect(me.statusCode, me.body).toBe(200)
+      expect(me.json<{ role: string; level: string }>().level, username).toBe(level)
+
+      const refreshed = await app.inject({
+        method: 'POST',
+        url: '/auth/platform/refresh',
+        headers: { 'content-type': 'application/json' },
+        payload: JSON.stringify({
+          refreshToken: signIn.body.refreshToken,
+          deviceId: signIn.deviceId,
+        }),
+      })
+      expect(refreshed.statusCode, refreshed.body).toBe(200)
+      expect(refreshed.json<{ level: string }>().level, username).toBe(level)
+    }
+  })
+
+  it('DOS-106: a support-level console account cannot lock a super administrator out, and the super still signs in', async () => {
+    const live = await platformSignIn(`l${run}.sup2`)
+    expect(live.status).toBe(200)
+    const locksOfSup2 = async (): Promise<string | undefined> =>
+      (
+        await db.execute<{ n: string }>(
+          sql`select count(*)::text as n from platform_audit
+              where action = 'user.disabled' and payload->>'userId' = ${sup2Id}`,
+        )
+      ).rows[0]?.n
+    const locksBefore = await locksOfSup2()
+
+    const support = await consoleHeaders(otherAdminUserId)
+    expectLevelRefusal(
+      await asConsole(support, 'POST', `/admin/users/${sup2Id}/disable`, {
+        idempotencyKey: `lvl-sup-locks-super-${run}`,
+        id: sup2Id,
+        reason: 'Support tries to lock the super administrator out.',
+      }),
+      'support',
+      'admin.users.disable',
+    )
+
+    const [sup2] = await db.select().from(users).where(eq(users.id, sup2Id))
+    expect(sup2?.status).toBe('active')
+    expect(await locksOfSup2()).toBe(locksBefore)
+    // The super's open session was not revoked: it still refreshes...
+    const refreshed = await app.inject({
+      method: 'POST',
+      url: '/auth/platform/refresh',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ refreshToken: live.body.refreshToken, deviceId: live.deviceId }),
+    })
+    expect(refreshed.statusCode, refreshed.body).toBe(200)
+    // ...and a fresh sign-in still works.
+    const again = await platformSignIn(`l${run}.sup2`)
+    expect(again.status, JSON.stringify(again.body)).toBe(200)
+    expect(again.body.level).toBe('super')
+  })
+
+  it('DOS-106: a super whose login was just locked by another super cannot lock that super back with the token still in hand, so an active super always remains', async () => {
+    // Both tokens are minted BEFORE the lock: fifteen minutes of validity each.
+    const two = await consoleHeaders(sup2Id)
+    const three = await consoleHeaders(sup3Id)
+
+    const locked = await asConsole(two, 'POST', `/admin/users/${sup3Id}/disable`, {
+      idempotencyKey: `lvl-two-locks-three-${run}`,
+      id: sup3Id,
+      reason: 'Super two locks super three.',
+    })
+    expect(locked.status, JSON.stringify(locked.body)).toBe(200)
+
+    const lockBack = await asConsole(three, 'POST', `/admin/users/${sup2Id}/disable`, {
+      idempotencyKey: `lvl-three-locks-two-${run}`,
+      id: sup2Id,
+      reason: 'Super three, already locked, locks super two back.',
+    })
+    expect(lockBack.status, JSON.stringify(lockBack.body)).toBe(403)
+    expect(lockBack.body.message).toBe('This console account is no longer active')
+
+    const [sup2] = await db.select().from(users).where(eq(users.id, sup2Id))
+    expect(sup2?.status).toBe('active')
+    const signIn = await platformSignIn(`l${run}.sup2`)
+    expect(signIn.status, JSON.stringify(signIn.body)).toBe(200)
+
+    // Two supers pressing "Lock this login" on each other at the same instant: the disable locks both
+    // identities in id order and re-reads the actor under that lock, so the second one waits, finds
+    // its own login locked and is refused — one of the two is always still active.
+    const four = await consoleHeaders(sup4Id)
+    const five = await consoleHeaders(sup5Id)
+    const [a, b] = await Promise.all([
+      asConsole(four, 'POST', `/admin/users/${sup5Id}/disable`, {
+        idempotencyKey: `lvl-four-locks-five-${run}`,
+        id: sup5Id,
+        reason: 'Super four locks super five.',
+      }),
+      asConsole(five, 'POST', `/admin/users/${sup4Id}/disable`, {
+        idempotencyKey: `lvl-five-locks-four-${run}`,
+        id: sup4Id,
+        reason: 'Super five locks super four.',
+      }),
+    ])
+    expect(
+      [a.status, b.status].sort(),
+      `${JSON.stringify(a.body)} / ${JSON.stringify(b.body)}`,
+    ).toEqual([200, 403])
+    const refused = a.status === 403 ? a : b
+    expect(refused.body.message).toBe('This console account is no longer active')
+    const pair = await db
+      .select({ id: users.id, status: users.status })
+      .from(users)
+      .where(sql`${users.id} in (${sup4Id}, ${sup5Id})`)
+    expect(pair.filter((row) => row.status === 'active')).toHaveLength(1)
+  })
+
+  it('DOS-106: a demotion or a locked login bites on the very next request with the same token — every admin.* read and mutation re-reads the level and the login', async () => {
+    const demoted = await consoleHeaders(demotedId)
+    const asSuper = await asConsole(demoted, 'GET', `/admin/tenants/${lvlTenantId}`)
+    expect(asSuper.status, JSON.stringify(asSuper.body)).toBe(200)
+
+    // Demoted to support in the database. The token in hand still says `platform_admin`, as it will
+    // for up to fifteen minutes; the level is what the NEXT request reads.
+    await db
+      .update(platformAdmins)
+      .set({ role: 'support' })
+      .where(eq(platformAdmins.userId, demotedId))
+    expectLevelRefusal(
+      await asConsole(demoted, 'POST', `/admin/tenants/${lvlTenantId}/suspend`, {
+        idempotencyKey: `lvl-demoted-suspend-${run}`,
+        id: lvlTenantId,
+        reason: 'A demoted super tries to suspend.',
+      }),
+      'support',
+      'admin.tenants.suspend',
+    )
+    const stillReads = await asConsole(demoted, 'GET', `/admin/tenants/${lvlTenantId}`)
+    expect(stillReads.status, JSON.stringify(stillReads.body)).toBe(200)
+
+    // The login is locked (`users.status`), the console row untouched, the same token in hand:
+    // every one of the fifteen console procedures refuses, the reads as well as the writes.
+    await db.update(users).set({ status: 'disabled' }).where(eq(users.id, demotedId))
+    const table = probes('locked', '2')
+    expect(Object.keys(table).sort()).toEqual(
+      allProcedures()
+        .map((row) => row.path)
+        .filter((path) => path.startsWith('admin.'))
+        .sort(),
+    )
+    const before = await levelSnapshot(demotedId)
+    for (const [path, probe] of Object.entries(table)) {
+      const res = await asConsole(demoted, probe.method, probe.url, probe.payload)
+      expect(res.status, `${path}: ${JSON.stringify(res.body)}`).toBe(403)
+      expect(res.body.message, path).toBe('This console account is no longer active')
+    }
+    expect(await levelSnapshot(demotedId)).toEqual(before)
+
+    // And a console row that was closed (`disabled_at`) on a login that is still active: a read too.
+    await db.update(users).set({ status: 'active' }).where(eq(users.id, demotedId))
+    await db
+      .update(platformAdmins)
+      .set({ disabledAt: new Date() })
+      .where(eq(platformAdmins.userId, demotedId))
+    const closed = await asConsole(demoted, 'GET', '/admin/subscriptions', {
+      tenantId: lvlTenantId,
+    })
+    expect(closed.status, JSON.stringify(closed.body)).toBe(403)
+    expect(closed.body.message).toBe('This console account is no longer active')
   })
 })
 

@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -52,6 +52,7 @@ import {
   emitOrderEvent,
   isUniqueViolation,
   listOrders,
+  ORDER_PLACERS,
   recordTransition,
   transition,
   warehouseLocation,
@@ -62,6 +63,7 @@ import {
   fulfilmentLines,
   fulfilmentOrders,
   fulfilmentQueue,
+  orderInState,
   orderLineOwners,
   recordDelivered,
   recordPick,
@@ -98,6 +100,7 @@ type GetOut = z.infer<typeof OrderGetOutput>
 type ListIn = z.infer<typeof OrdersListInput>
 type ListOut = z.infer<typeof OrdersListOutput>
 
+/** Who reads an order (`get`, `list`): every member. The five writes are ORDER_PLACERS (DOS-115). */
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
 
@@ -139,7 +142,7 @@ export class OrdersService {
   // drafting
 
   async create(input: CreateIn): Promise<CreateOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -152,7 +155,7 @@ export class OrdersService {
   }
 
   async setLines(input: SetLinesIn): Promise<SetLinesOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -171,7 +174,7 @@ export class OrdersService {
 
   /** A repeat order is the retailer's last non-cancelled order, re-priced today (docs/06 "Reorder last order"). */
   async repeatLast(input: RepeatIn): Promise<RepeatOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -232,7 +235,7 @@ export class OrdersService {
    * under the system role (`asSystem`) while `actor_id` keeps recording the shopkeeper.
    */
   async submit(input: SubmitIn): Promise<SubmitOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -391,7 +394,7 @@ export class OrdersService {
   }
 
   async cancel(input: CancelIn): Promise<CancelOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -508,6 +511,15 @@ export class OrdersService {
   /** The same queue row by id, for orders a warehouse screen still names after they left the godown. */
   fulfilmentOrders(tx: Db, orderIds: readonly string[]): Promise<FulfilmentOrder[]> {
     return fulfilmentOrders(tx, orderIds)
+  }
+
+  /**
+   * "The order this row points at is in `state`", as a correlated predicate for the caller's OWN query —
+   * the one sanctioned cross-module predicate (DOS-133, see `orderInState` in fulfilment.ts). The caller
+   * passes only its own column; the SQL that names `sales_orders` stays in the orders module.
+   */
+  orderInState(orderId: SQLWrapper, state: OrderState): SQL {
+    return orderInState(orderId, state)
   }
 
   /** Which order each line belongs to — the holds screen has a line id and needs the order. */

@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AccountsListInput,
@@ -65,14 +65,18 @@ import {
   type Db,
 } from '@dos/db'
 import {
+  advanceDocumentSeries,
   BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
   nextDocumentNumber,
+  numberingYear,
   OWNER,
+  readDocumentSeries,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import {
   allocatedAgainst,
@@ -91,13 +95,14 @@ import {
 } from './allocation.js'
 import { checkCredit, type CreditVerdict } from './credit.js'
 import {
+  AGEING_BATCH,
   loadOpenBills,
   loadOutstanding,
   openPaiseOf,
+  rebuildAgeingPage,
   refreshOutstandingFor,
   retailerIdPage,
   toOpenBill,
-  writeAgeingSnapshot,
 } from './outstanding.js'
 import {
   accountIdsByCode,
@@ -122,6 +127,7 @@ import {
 import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
 import {
+  MAX_LEDGER_WINDOW_DAYS,
   listAccounts,
   listCashDiscounts,
   listJournal,
@@ -180,10 +186,6 @@ const MONEY_DESK: readonly ActorRole[] = BACK_OFFICE
 /** The shop's own online-payment path, and nothing else in this module. */
 const SHOPKEEPER: readonly ActorRole[] = ['retailer']
 
-/** How many shops one `ageing.rebuild` statement handles before taking the next page (scale rule 3). */
-const AGEING_BATCH = 500
-/** A statement of account never looks further back than this in one request (scale rule 3). */
-const MAX_LEDGER_WINDOW_DAYS = 400
 /** How long the UPI intent a shop is shown stays quotable. */
 const PAYMENT_INTENT_MINUTES = 30
 
@@ -267,6 +269,13 @@ export interface RecordReceiptInput {
 
 export type RecordReceiptResult = CreateReceiptOut
 
+/**
+ * "This trip's money has reached the office", as SQL over a trip id and the tenant (DOS-132). Delivery owns
+ * `trips`, so it supplies the predicate at start-up through `ReceivablesService.registerTripSettled` and no SQL in
+ * receivables names the table. The predicate is tenant-qualified: RLS is the second lock, never the only one.
+ */
+export type TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL
+
 /** Where the money lands. Cash taken on a trip sits in CASH_VAN until the trip settlement hands it over. */
 function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
   switch (mode) {
@@ -305,7 +314,20 @@ export interface ReceiptForExport {
 
 @Injectable()
 export class ReceivablesService {
+  /** Fail closed: until delivery says how to tell, no trip is settled, so no trip receipt is money in hand. */
+  private tripSettled: TripSettledPredicate = () => sql`false`
+
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+
+  /**
+   * Delivery owns trips and supplies the "trip settled" predicate at start-up (DeliveryModule.onModuleInit,
+   * DOS-132). With nothing registered — a process that mounts receivables without delivery — no receipt taken on
+   * a trip is ever treated as in hand: `receipts.list` leaves it out of `withCrew=false`, `receipts.get` reads
+   * `withCrew: true` to the money desk and `receipts.deposit` refuses it.
+   */
+  registerTripSettled(predicate: TripSettledPredicate): void {
+    this.tripSettled = predicate
+  }
 
   // =============================================================================================================
   // the surface other modules import (docs/plans/00-coordination.md §3.1)
@@ -597,32 +619,36 @@ export class ReceivablesService {
     const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date()
     const paidOn = businessDate(receivedAt).date
     const tripId = input.tripId ?? null
-    const receiptNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
+    const drawnNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
 
     const plan = await this.planAllocations(tx, input, paidOn)
     const cashDiscountPaise = plan.reduce((s, l) => s + l.discountPaise, 0)
 
-    await tx.insert(receipts).values({
-      id: input.id,
-      tenantId,
-      receiptNo,
-      retailerId: input.retailerId,
-      mode: input.mode,
-      amountPaise: input.amountPaise,
+    const receiptNo = await this.insertNumberedReceipt(
+      tx,
+      {
+        id: input.id,
+        tenantId,
+        retailerId: input.retailerId,
+        mode: input.mode,
+        amountPaise: input.amountPaise,
+        receivedAt,
+        receivedBy: input.receivedBy ?? actorId,
+        tripId,
+        reference: input.reference ?? null,
+        upiVpa: input.upiVpa ?? null,
+        chequeDate: input.chequeDate ?? null,
+        bankName: input.bankName ?? null,
+        cashDiscountPaise,
+        proofObjectKey: input.proofObjectKey ?? null,
+        note: input.note ?? null,
+        deviceId: input.deviceId ?? null,
+        clientReceiptNo: input.clientReceiptNo ?? null,
+        idempotencyKey: input.idempotencyKey,
+      },
+      drawnNo,
       receivedAt,
-      receivedBy: input.receivedBy ?? actorId,
-      tripId,
-      reference: input.reference ?? null,
-      upiVpa: input.upiVpa ?? null,
-      chequeDate: input.chequeDate ?? null,
-      bankName: input.bankName ?? null,
-      cashDiscountPaise,
-      proofObjectKey: input.proofObjectKey ?? null,
-      note: input.note ?? null,
-      deviceId: input.deviceId ?? null,
-      clientReceiptNo: input.clientReceiptNo ?? null,
-      idempotencyKey: input.idempotencyKey,
-    })
+    )
 
     const written: Allocation[] = []
     for (const line of plan) {
@@ -725,7 +751,10 @@ export class ReceivablesService {
     requireRole(MONEY_READERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
-    return withTenant(db, ctx, (tx) => listReceipts(tx, input))
+    // `withCrew` is the money desk's filter (DOS-132). For any other role it is not applied: a role whose RLS
+    // hides the trip (a shop, a crew member not on it) would otherwise silently lose rows.
+    const tripSettled = MONEY_DESK.includes(ctx.actorRole) ? this.tripSettled : null
+    return withTenant(db, ctx, (tx) => listReceipts(tx, input, tripSettled))
   }
 
   async getReceipt(
@@ -751,12 +780,27 @@ export class ReceivablesService {
       const reversalAllocated = reversal
         ? ((await allocatedAgainst(tx, 'receiptId', [reversal.id])).get(reversal.id) ?? 0)
         : 0
+      // The money desk's banking gate (DOS-132): true while the receipt was taken on a trip that has not settled.
+      // Null outside the desk: it is not that caller's gate, and a shop cannot read trips at all.
+      let withCrew: boolean | null = null
+      if (MONEY_DESK.includes(ctx.actorRole)) {
+        const tripId = found.row.tripId
+        if (tripId === null) {
+          withCrew = false
+        } else {
+          const settled = await tx.execute(
+            sql`select (${this.tripSettled(sql`${tripId}`, ctx.tenantId)}) as settled`,
+          )
+          withCrew = (settled.rows[0] as { settled: boolean } | undefined)?.settled !== true
+        }
+      }
       return {
         item: toReceipt(found.row, found.allocatedPaise),
         allocations: rows.map(toAllocation),
         reversal: reversal ? toReceipt(reversal, reversalAllocated) : null,
         // The receipt is the third white-label document (docs/22 §4 D6): the distributor's own block.
         seller: await sellerBranding(tx),
+        withCrew,
       }
     })
   }
@@ -848,6 +892,32 @@ export class ReceivablesService {
             })
           }
         }
+        // Money a crew still carries is not the office's to bank (DOS-132, docs/22 §6): a receipt taken on a trip,
+        // cash or a cheque, waits for that trip's settlement. One lookup over the batch's distinct trips; the whole
+        // batch is refused, so nothing is updated, posted or emitted.
+        const tripIds = [
+          ...new Set(rows.flatMap((row) => (row.tripId === null ? [] : [row.tripId]))),
+        ]
+        if (tripIds.length > 0) {
+          const open = await tx.execute(sql`
+            select v.id from (values ${sql.join(
+              tripIds.map((id) => sql`(${id}::text)`),
+              sql`, `,
+            )}) as v(id)
+             where not (${this.tripSettled(sql`v.id`, ctx.tenantId)})`)
+          const unsettled = new Set((open.rows as { id: string }[]).map((row) => row.id))
+          const refused = rows
+            .filter((row) => row.tripId !== null && unsettled.has(row.tripId))
+            .map((row) => ({ id: row.id, no: row.receiptNo ?? row.id }))
+            .sort((a, b) => (a.no < b.no ? -1 : a.no > b.no ? 1 : 0))
+          if (refused.length > 0) {
+            const many = refused.length > 1
+            throw new ORPCError('CONFLICT', {
+              message: `${many ? 'receipts' : 'receipt'} ${refused.map((r) => r.no).join(', ')} ${many ? 'were' : 'was'} taken on a trip that is not settled yet; bank ${many ? 'them' : 'it'} after the trip's cash is handed over at Day-end`,
+              data: { code: 'trip_cash_not_settled', receiptIds: refused.map((r) => r.id) },
+            })
+          }
+        }
         const depositedAt = new Date(input.depositedAt)
         const bankId = (await accountIdsByCode(tx, [input.depositAccountCode])).get(
           input.depositAccountCode,
@@ -855,7 +925,9 @@ export class ReceivablesService {
         const totalPaise = rows.reduce((s, r) => s + r.amountPaise, 0)
         const bySource = new Map<string, number>()
         for (const row of rows) {
-          const code = receiptAccountCode(row.mode as ReceiptMode, row.tripId)
+          // Every trip receipt that reaches this line belongs to a settled trip, whose settlement already posted
+          // Dr CASH / Cr CASH_VAN for its cash: the money leaves CASH, never CASH_VAN a second time (DOS-132).
+          const code = receiptAccountCode(row.mode as ReceiptMode, null)
           bySource.set(code, (bySource.get(code) ?? 0) + row.amountPaise)
         }
         await tx
@@ -1275,11 +1347,19 @@ export class ReceivablesService {
   // =============================================================================================================
 
   /**
-   * Long work never runs on the request path (scale rule 3): one `outbox_events` row per statement is
-   * written inside the transaction and the worker renders and sends them.
+   * Long work never runs on the request path (scale rule 3): one `StatementRequested` outbox row per shop
+   * is written inside the transaction. The worker's consumer (`backend/worker/src/jobs/notifications.ts`)
+   * reads the window's balances and today's dues (`loadStatementSummary`) and queues ONE WhatsApp / SMS
+   * statement per shop through notifications. The PDF statement is not built, so a `pdf` run is refused
+   * here rather than accepted and never sent (DOS-007).
    */
   async sendStatements(input: StatementsIn): Promise<StatementsOut> {
     requireRole(BACK_OFFICE)
+    if (input.channel === 'pdf')
+      throw new ORPCError('NOT_IMPLEMENTED', {
+        message:
+          'statement_pdf_not_rendered: a statement is sent as a WhatsApp/SMS summary; the PDF is not built yet',
+      })
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -1431,7 +1511,11 @@ export class ReceivablesService {
     )
   }
 
-  /** The same code path the nightly worker job runs, exposed so the owner can force a refresh. */
+  /**
+   * The page body the nightly worker path runs (`rebuildAgeingPage`; the worker's per-tenant path is
+   * `rebuildTenantAgeing` in ageing-rebuild.ts, one `receivables.ageing.rebuild` job per tenant), exposed
+   * so the owner can force a refresh.
+   */
   async rebuildAgeing(input: RebuildIn): Promise<RebuildOut> {
     requireRole(OWNER)
     const db = requireDb(this.db)
@@ -1450,13 +1534,10 @@ export class ReceivablesService {
               : []
             : await retailerIdPage(tx, cursor, AGEING_BATCH)
           if (ids.length === 0) break
-          const rows = await refreshOutstandingFor(tx, ids, asOf)
-          await writeAgeingSnapshot(tx, asOf, [...rows.values()])
-          for (const row of rows.values()) {
-            count += 1
-            outstandingPaise += row.outstandingPaise ?? 0
-            overduePaise += row.overduePaise ?? 0
-          }
+          const page = await rebuildAgeingPage(tx, asOf, ids)
+          count += page.retailers
+          outstandingPaise += page.outstandingPaise
+          overduePaise += page.overduePaise
           cursor = ids[ids.length - 1] ?? null
           if (input.retailerId || ids.length < AGEING_BATCH) break
         }
@@ -1538,6 +1619,98 @@ export class ReceivablesService {
       )
       .limit(1)
     return byDevice ?? null
+  }
+
+  /**
+   * Writes a receipt under the RCPT number just drawn, filed under the FY key that counter used
+   * (`numberingYear`), and returns the number it was finally written under.
+   *
+   * DOS-032 / DOS-059: the register refuses a repeated number (`receipts_no_idx`), and a number the SERVER
+   * assigned that is already on the register heals instead of failing — a lagging counter (a restored
+   * backup, a reseed, a row healed by hand) must never stop the desk, the doorstep, a van sale or an offline
+   * queue from recording money someone is holding. Still inside the transaction that drew the number, with
+   * `nextDocumentNumber`'s row lock held, the counter moves past the highest number of its own shape on
+   * this FY's register, a fresh number is drawn, the insert is retried ONCE, and an `audit_log` row names
+   * the number that collided and what the counter became. A 409 is kept for a number a client supplies
+   * itself; there is none today (the crew's paper-book number is `client_receipt_no`, never `receipt_no`).
+   *
+   * The collision is read from `ON CONFLICT … DO NOTHING` on the index's own columns, not by catching
+   * 23505: a caught unique violation aborts the Postgres transaction, and a savepoint around every receipt
+   * would add a subtransaction to the busiest money path. A primary-key, idempotency-key or paper-book
+   * collision still raises exactly as before.
+   */
+  private async insertNumberedReceipt(
+    tx: Db,
+    values: Omit<typeof receipts.$inferInsert, 'receiptNo' | 'seriesCode' | 'fy'>,
+    drawnNo: string,
+    at: Date,
+  ): Promise<string> {
+    const fy = numberingYear(at)
+    if (await this.insertReceiptIfNumberFree(tx, values, drawnNo, fy)) return drawnNo
+
+    const series = await readDocumentSeries(tx, 'RCPT', at)
+    if (!series) {
+      throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'numbering series RCPT unavailable' })
+    }
+    const highest = await this.highestReceiptNumber(tx, series.prefix, fy)
+    const advancedTo = await advanceDocumentSeries(tx, 'RCPT', highest + 1, at)
+    const receiptNo = await nextDocumentNumber(tx, 'RCPT', at)
+    if (!(await this.insertReceiptIfNumberFree(tx, values, receiptNo, fy))) {
+      throw new ORPCError('CONFLICT', {
+        message: `receipt number ${receiptNo} is already on the ${fy} register even after the RCPT counter moved past it; nothing was recorded`,
+      })
+    }
+    await writeAudit(tx, {
+      action: 'numbering.heal',
+      entityType: 'numbering_series',
+      entityId: `RCPT/${fy}`,
+      before: { nextNo: series.nextNo, collidedNo: drawnNo },
+      after: {
+        nextNo: advancedTo + 1,
+        highestOnRegister: highest,
+        receiptNo,
+        receiptId: values.id,
+      },
+      deviceId: values.deviceId ?? null,
+    })
+    return receiptNo
+  }
+
+  /** Inserts the receipt unless its number is already on that FY's register; true when the row was written. */
+  private async insertReceiptIfNumberFree(
+    tx: Db,
+    values: Omit<typeof receipts.$inferInsert, 'receiptNo' | 'seriesCode' | 'fy'>,
+    receiptNo: string,
+    fy: string,
+  ): Promise<boolean> {
+    const written = await tx
+      .insert(receipts)
+      .values({ ...values, receiptNo, seriesCode: 'RCPT', fy })
+      .onConflictDoNothing({
+        target: [receipts.tenantId, receipts.seriesCode, receipts.fy, receipts.receiptNo],
+        where: sql`receipt_no IS NOT NULL`,
+      })
+      .returning({ id: receipts.id })
+    return written.length > 0
+  }
+
+  /** The highest number of the counter's own shape — its prefix, then only digits — on one FY's register. */
+  private async highestReceiptNumber(tx: Db, prefix: string, fy: string): Promise<number> {
+    const { tenantId } = currentTenant()
+    const suffix = sql`substring(${receipts.receiptNo} from ${prefix.length + 1}::int)`
+    const [row] = await tx
+      .select({ highest: sql<string | null>`max(${suffix}::bigint)` })
+      .from(receipts)
+      .where(
+        and(
+          eq(receipts.tenantId, tenantId),
+          eq(receipts.seriesCode, 'RCPT'),
+          eq(receipts.fy, fy),
+          sql`left(${receipts.receiptNo}, ${prefix.length}::int) = ${prefix}`,
+          sql`${suffix} ~ '^[0-9]{1,18}$'`,
+        ),
+      )
+    return Number(row?.highest ?? 0)
   }
 
   private async receiptReply(
@@ -1710,24 +1883,28 @@ export class ReceivablesService {
       .from(allocations)
       .where(and(eq(allocations.tenantId, tenantId), eq(allocations.receiptId, original.id)))
       .orderBy(asc(allocations.id))
-    const receiptNo = await nextDocumentNumber(tx, 'RCPT', input.at)
-    await tx.insert(receipts).values({
-      id: input.reversalId,
-      tenantId,
-      receiptNo,
-      retailerId: original.retailerId,
-      mode: original.mode,
-      amountPaise: -original.amountPaise,
-      receivedAt: input.at,
-      receivedBy: actorId,
-      tripId: original.tripId,
-      reference: original.reference,
-      cashDiscountPaise: -original.cashDiscountPaise,
-      status: 'cancelled',
-      note: input.reason,
-      reversesReceiptId: original.id,
-      idempotencyKey: `${input.idempotencyKey}:reversal`,
-    })
+    const drawnNo = await nextDocumentNumber(tx, 'RCPT', input.at)
+    await this.insertNumberedReceipt(
+      tx,
+      {
+        id: input.reversalId,
+        tenantId,
+        retailerId: original.retailerId,
+        mode: original.mode,
+        amountPaise: -original.amountPaise,
+        receivedAt: input.at,
+        receivedBy: actorId,
+        tripId: original.tripId,
+        reference: original.reference,
+        cashDiscountPaise: -original.cashDiscountPaise,
+        status: 'cancelled',
+        note: input.reason,
+        reversesReceiptId: original.id,
+        idempotencyKey: `${input.idempotencyKey}:reversal`,
+      },
+      drawnNo,
+      input.at,
+    )
     for (const row of mirrored) {
       await tx.insert(allocations).values({
         id: uuidv7(),

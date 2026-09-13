@@ -904,7 +904,9 @@ describeDb('billing (DATABASE_URL)', () => {
 
   it('bills a van sale from the vehicle location on the tenant’s normal series', async () => {
     const orderId = uuidv7()
-    const created = await call<{ item: { id: string } }>(app, driver, 'POST', '/orders', {
+    // The desk drafts both van orders (DOS-115: the crew places no order through `orders.*`; its own van
+    // sale is `delivery.vanSales.create`); the crew still issues the bill from the van.
+    const created = await call<{ item: { id: string } }>(app, manager, 'POST', '/orders', {
       idempotencyKey: `van-order-${run}`,
       id: orderId,
       retailerId: shopMh,
@@ -932,7 +934,7 @@ describeDb('billing (DATABASE_URL)', () => {
 
     // the van holds 60 pieces; asking for more is a 400, never a negative balance
     const bigOrder = uuidv7()
-    await call(app, driver, 'POST', '/orders', {
+    await call(app, manager, 'POST', '/orders', {
       idempotencyKey: `van-big-${run}`,
       id: bigOrder,
       retailerId: shopMh,

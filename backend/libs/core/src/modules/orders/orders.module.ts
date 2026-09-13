@@ -32,8 +32,13 @@ export class OrdersModule implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.register('sales_orders', (tx, op) => applyOrderSync(tx, op, this.orders))
-    this.registry.register('sales_order_lines', (tx, op) => applyLineSync(tx, op, this.orders))
+    // The online doors these two tables stand for; the uploader checks PERMISSIONS for them (DOS-166).
+    this.registry.register('sales_orders', (tx, op) => applyOrderSync(tx, op, this.orders), {
+      standsFor: ['orders.create'],
+    })
+    this.registry.register('sales_order_lines', (tx, op) => applyLineSync(tx, op, this.orders), {
+      standsFor: ['orders.setLines'],
+    })
     // The device read set (docs/23 §8.11): a rep pulls its own orders (90 days), the desk everything.
     const ninetyDays = sql`created_at > now() - interval '90 days'`
     this.registry.registerPull(

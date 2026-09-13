@@ -1214,6 +1214,42 @@ export class BillingService {
     return new Map(rows.map((r) => [r.id, r]))
   }
 
+  /**
+   * The LIVE bill (not a draft, not cancelled) of each order, keyed by order id — delivery's trip
+   * planning board asks which packed orders carry a bill that can ride on a trip (QA DOS-131). The same
+   * rule as `invoiceRefs`: the number, the sale total and the state, never a cost. An order has at most
+   * one live bill (`invoices_order_active_idx`); the caller bounds the ids by its own page (≤ 200
+   * orders), read on `invoices_order_idx (tenant_id, order_id)`.
+   */
+  async liveInvoicesForOrders(
+    tx: Db,
+    orderIds: readonly string[],
+  ): Promise<Map<string, InvoiceRef & { orderId: string }>> {
+    const ids = [...new Set(orderIds)]
+    if (ids.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({
+        id: invoices.id,
+        invoiceNo: invoices.invoiceNo,
+        totalPaise: invoices.totalPaise,
+        state: invoices.state,
+        orderId: invoices.orderId,
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.tenantId, tenantId),
+          inArray(invoices.orderId, ids),
+          sql`${invoices.state} not in ('draft', 'cancelled')`,
+        ),
+      )
+    const live = new Map<string, InvoiceRef & { orderId: string }>()
+    for (const row of rows)
+      if (row.orderId !== null) live.set(row.orderId, { ...row, orderId: row.orderId })
+    return live
+  }
+
   /** The bill and its lines for the doorstep (`InvoiceForDelivery`); a bill the caller may not see is NOT_FOUND. */
   async invoiceForDelivery(tx: Db, invoiceId: string): Promise<InvoiceForDelivery> {
     const row = await this.findInvoice(tx, invoiceId)

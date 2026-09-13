@@ -92,7 +92,8 @@ Full request/response samples for each are in `backend-services/sales-service/RE
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
-| GET | `/inventory/sellable` | Available-to-promise stock (the only stock surface for reps and retailers) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
@@ -103,12 +104,12 @@ Full request/response samples for each are in `backend-services/sales-service/RE
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
-| POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
+| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
-| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |

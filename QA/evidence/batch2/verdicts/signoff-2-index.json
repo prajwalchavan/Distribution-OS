@@ -1,0 +1,88 @@
+[
+ {
+  "id": "DOS-031",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Pin the server to the same table: review.service.ts:91 becomes `if (!documentMachine.can(doc.status, 'start_review'))` (message literal and early position kept, before the stale-session update at l.96); add one docint.spec.ts case after l.846 (document reviewed) proving a fresh POST /docint/documents/{id}/review answers 409 with a message containing 'can be reviewed'.",
+   "(b) The screen guard survives `pnpm format`: comment-stripped source, whitespace-tolerant regexes; assert testID=\"docint-start\" occurs exactly once, the import of mayStartReview from '../../src/lib/review-desk' is present, and exactly one <Button lies between the last mayStartReview(doc.status) and that testID.",
+   "(c) Absent, not disabled: the Start button renders null outside the gate and is never rendered with `disabled` (UX-00 \u00a76.1 requires a reason on every disabled control; the status chip says the state).",
+   "(d) Nothing else in the panel moves: in-session trio (l.493-524), Match again (l.526-536), Book it (l.537-548), Reject (l.549-556), commit() (l.275-295) and the sessionId-keyed header inputs (l.413, l.420) stay byte-for-byte; R1-R4 are their own ids.",
+   "(e) Build @dos/domain (and contracts) in backend/ before the app spec runs; review-desk.ts imports documentMachine at runtime through the link to backend/libs/domain/dist, so a module-not-found is an environment failure, not a red test, and is logged as such."
+  ],
+  "founderDefaults": [],
+  "newFindings": [
+   "frontend/manager-app/app/inbound/documents.tsx:277-280,293-294 (R1): after a successful submit, done() keeps sessionId, so Save / submit / Give it up and the editable Bill no. and Amount (l.413, l.420) stay on a Reviewed document and every write answers 409 'review session \u2026 is submitted' (review.service.ts:347-350); clear session and header edits on submit success as l.518-520 does.",
+   "frontend/manager-app/app/inbound/documents.tsx:486 + libs/api-client/src/react/index.tsx:379-386 (R2, code reading, not walked): Start again on the same document after Give it up re-sends the spent key; the server replays the first start's stored 200 (platform/idempotency.ts:61-74) and the panel holds an abandoned session; startReview.reset() when the session ends.",
+   "frontend/manager-app/app/inbound/documents.tsx:549-556 (R3): Reject the document is offered on a Failed document; documents.service.ts:509 fires 'reject' and failed is terminal (document.ts:76), so it always answers 409; gate with documentMachine.can(status, 'reject').",
+   "frontend/manager-app/app/inbound/documents.tsx:537-548 (R4): Book it as a supplier bill is enabled on Extracted and Needs review documents with lines while the server refuses anything not reviewed (documents.service.ts:550-553); DOS-030 covers only the brand-DMS 501 at l.545-549.",
+   "frontend/manager-app/app/inbound/documents.tsx:62-72 (P3): DOC_FAMILY keys capturing, queued, in_review are not document_status values (contracts/src/docint.ts:159-169), so uploaded, verifying and extracted chips fall to neutral; `satisfies Partial<Record<DocumentStatus, StatusFamily>>` would have caught it."
+  ],
+  "laneAdvice": "Own lane b2-h7-desk, branched from main at or after 04c193e, first in a sequential chain DOS-031 \u2192 DOS-037 \u2192 DOS-030 (all three edit documents.tsx:473-556, so one lane avoids textual conflicts). dependsOn [] stands. Shares no file with h1-h6: `git diff --name-only main` on every batch-2 worktree has 0 hits on modules/docint, manager-app/src/lib and manager-app/app/inbound; amendment (a) touches backend/libs/core/src/modules/docint/review.service.ts and docint.spec.ts, which no lane edits. DOS-164 (Sheet/Dialog call sites in the same file) is a textual neighbour only and blocks walking verification B on iOS."
+ },
+ {
+  "id": "DOS-098",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) The seed never carries a line the shop cannot see: on a new `repeat` nonce reset `query` to '' and `lines` to []; seed only lines whose variant is on the unfiltered catalog page (`['catalog','']`); when any line was left out show `r7-repeat-partial` with one new string `r7.repeatPartial`. Reason: `loadVariantPacks` (pricing-lines.ts:62-86) has no `listed` filter and R7 renders only `byVariant` lines (order.tsx:338-342) while `place()` sends all of `priced` (:149, :292).",
+   "(b) No stepper before the basket exists: while `repeat !== null && seededFor !== repeat` and the read has not failed, R7 renders its Skeleton (gate on the lastPlaced query's isLoading, NOT through `<Async>`'s ErrorState, ui.tsx:144-163); a failed seed still opens the price list with `r7-failure` = `r7.repeatFailed`.",
+   "(c) Register `lastPlaced` BEFORE `get` in orders.controller.ts; the core spec asserts in one test that `GET /orders/last-placed?retailerId=` answers 200 AND `GET /orders/<real id>` still answers orders.get, and that the tenant's `sales_orders` and `sales_order_lines` counts are unchanged after three lastPlaced calls.",
+   "(d) Walker step 5 asserts per variant that the placed order's `qty_pcs` equals the seeded pieces AND `entered_unit` is `case` or `piece` (never `inner`), and `pack_size_at_entry` equals the current case size for a `case` line.",
+   "(e) docs/22 \u00a78 row + \u00a711 line and docs/23 \u00a76.1 R7 / \u00a710 #8 land in the SAME slice as the code (this verdict is the gate), the row marked FOUNDER DEFAULT for decision 3; render-source-of-truth.py run and the artifact republished."
+  ],
+  "founderDefaults": [
+   "Decision 3(a): Order again repeats the shop's most recently PLACED order by any author and any placed source (rep, shop, phone, WhatsApp, van sale), never a draft \u2014 docs/22 \u00a74 R1 \u2192 S5 and docs/06 'Reorder last order' both mean the shop's last order, and Home's 'Your last orders' already lists rep orders. Recorded in docs/22 \u00a78 as FOUNDER DEFAULT."
+  ],
+  "newFindings": [
+   "orders.repeatLast (server) inflates every `inner` line: orders.service.ts:209-214 forwards enteredUnit into packSizeFor, which counts inner as a case (pricing-lines.ts:94-95); 382/382 seeded inner lines, e.g. 36 pc \u2192 180 pc.",
+   "orders.repeatLast ignores the DOS-073 reach rule: a salesperson copies a colleague's order lines (orders.service.ts:180-190 has no salesperson_id scope while get/list do).",
+   "Sales app 'Repeat last order' sorts `_local_rev DESC` before `created_at` (frontend/sales-app/src/lib/local.ts:447, :471-477) so a re-synced older order wins, and keeps an `inner` count as the entered quantity under `piece` (app/orders/new.tsx:131-141).",
+   "R7 places basket lines it does not show for a hand-built basket too (frontend/retailer-app/app/order.tsx:149 vs :338-342); amendment (a) closes only the seed path.",
+   "orders.repeatLast still writes `note: 'Repeat of <uuid>'` for API callers (docs/23 \u00a710 #10; orders.service.ts:206)."
+  ],
+  "laneAdvice": "h5-orders, immediately after DOS-115 and after h4 (DOS-074+097, DOS-096) has merged to main because order.tsx is shared; DOS-126 overlaps only at the orders.spec.ts tail, so whichever lands second appends its describe last. Shared files: orders.service.ts, contracts/orders.ts, permissions.ts(+test), orders.spec.ts, examples.ts, smoke-endpoints.mts, retailer-app order.tsx and index.tsx. No migration; 0045 stays free."
+ },
+ {
+  "id": "DOS-037",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Tripwire test in backend/libs/contracts/src/permissions.test.ts: 'DOS-037 pins every non-GET procedure the accountant may call' \u2014 allProcedures().filter(method !== 'GET' && isAllowed(permission, 'accountant')).map(path).sort() toEqual a literal sorted list derived from the rebased matrix, grouped by source in comments; none of the 24 may appear. Closes the real root cause (a hand-applied narrowing that missed 24 rows).",
+   "(b) Seed attribution: seed-demo/stock.ts:265 (grn ledger actorId), :308 (approvedBy), :321 (postedBy) and seed-demo/docint.ts:653 (reviewerId) become people.manager.id, so the dos_qa rebuild shows no accountant-posted GRN / approved bill / review; matching lines of QA/tools/seed/REALISTIC-SEED-SPEC.md edited (doc only).",
+   "(c) No role check is added to InventoryService.post (inventory.service.ts:174) or the withSystem paths; verifier proves delivery.spec.ts:1522 (accountant settles) and the billing credit-note specs stay green.",
+   "(d) In stock.service.ts rename the exported read list at :79-86 from STOCK_KEEPERS to STOCK_VIEWERS (uses :199, :322; inventory.spec.ts:341 comment) and write STOCK_WRITERS as ['owner','manager','warehouse','system'] with the comment 'ROLE_GROUPS.STOCK_KEEPERS plus system' \u2014 the same name today means two different populations in permissions.ts:52 / cycle-counts.service.ts:57 vs stock.service.ts:79, a trap for the DOS-044 builder.",
+   "(e) Everything else as planned: Option A on all 24; DESK_WRITERS = MANAGEMENT in docint.internals.ts; MANAGEMENT in cycle-counts, supplier-invoice and grn services; four existing assertions flipped as tightening; docint.spec.ts:870/:919 actor \u2192 managerA; header comments docint.ts:29-34/:55, procurement.ts:17-22; READMEs regenerated; docs/22 \u00a78+\u00a711 row and republish; docs/23 \u00a72.3/\u00a78.18/\u00a78.20."
+  ],
+  "founderDefaults": [
+   "Option A stands on the 2026-09-13 approval of DOS-037 as written (accountant reads M3/M4/M16, writes none of the 24, keeps docint capture). If Tarsun's CA must in practice book supplier bills (Option B), that is a new docs/22 \u00a78 row before building, not something this lane assumes."
+  ],
+  "newFindings": [
+   "P3 product: permissions.ts:574/584/585 (billing.invoices.issueForPack/setEwayBill/requestIrn), :629 (warehouse.challans.recordEwb), :631 (warehouse.reservations.release, pinned at permissions.test.ts:500-503), :577 (importBrandDms), :831 (notifications.messages.resend) still let the accountant write on screens docs/23:205 calls read-only for her; founder's call whether issuing a bill is bookkeeping.",
+   "P3 cosmetic: backend/libs/core/src/platform/authz.ts:38 requireRole answers 'This action needs one of: owner, manager, system', naming the internal `system` pseudo-role to a client whenever the guard passes and the service refuses."
+  ],
+  "laneAdvice": "h4-stock, second in its chain: after DOS-074+097 (real textual overlap on the permissions.ts inventory block :474-490 and stock.service.ts) and before DOS-096; rebase on main for DOS-115 (orders rows + permissions.test.ts), DOS-043 (permissions.ts:662, permissions.test.ts:589-610) and DOS-106 before merging, re-running the whole permissions.test.ts; merge before DOS-044 is planned (same stock.service.ts adjust/upsertLot; DOS-044 must use MANAGEMENT, never BACK_OFFICE, for desk-only rules). Shared files: permissions.ts and permissions.test.ts (h2, h5), stock.service.ts (h4, later DOS-044), docs/22 \u00a78/\u00a711 (every lane, append-only), seed-demo/stock.ts (h1 only if its seed change reaches it). No migration; 0045 stays free."
+ },
+ {
+  "id": "DOS-044",
+  "verdict": "APPROVE WITH AMENDMENTS",
+  "amendments": [
+   "(a) Copy must not promise a desk step with no screen: inventory.cycleCounts.post (permissions.ts:488) is called by no manager-app or owner-app screen. Server sentence: 'Only the owner or a manager can add stock or post opening stock. If the rack holds more than the books show, record a count and tell the desk; goods arriving come in on a GRN.' w8.addIsDesk: 'More on the rack than the books show? Record it under Counts and tell the desk \u2014 only the owner or a manager can add stock. Goods arriving come in on a GRN.' The e2e asserts the W8 line verbatim.",
+   "(b) Smoke: planFor(op, ctx, chain, target) at smoke-endpoints.mts:1257 carries the role on target.role (ServiceTarget :96), not ctx.role; pin qtyDelta: mayPostAdjustment(target.role, 'adjustment', 1) ? 1 : -1.",
+   "(c) mayPostAdjustment JSDoc states it guards the HTTP door only (internal modules post via InventoryService.post, never StockService.adjust) and that 'system' is deliberately not an adder; permissions.test.ts asserts mayPostAdjustment('system','opening',1) === false and ('system','damage',-1) === true.",
+   "(d) W8: REASONS becomes a useMemo on session?.role inside the component; reason state stays AdjustmentReason default 'adjustment'; keyboard='decimal' stays; w8.qtyNeeded untouched (Move sheet :382).",
+   "(e) inventory.spec DOS-044 also asserts idempotency_keys holds 0 rows for the refused +100000 key after the probe and its replay, pinning the refusal-before-idempotent() ordering.",
+   "(f) Lane/order: h4-stock directly after DOS-074+097 and before DOS-096; drop DOS-043 and DOS-106 from dependsOn (106 merged; 043 textual-only overlap); DOS-037 follows DOS-044 in h4 (same matrix row; permissions.test.ts:1048 coupling handled there).",
+   "(g) NOTES (examples.ts:4842) keeps its ctx-only signature; the reworded note names both signs in one sentence."
+  ],
+  "founderDefaults": [
+   "Q1 (a): refuse every positive and every 'opening' adjustment from roles outside owner and manager; extra stock is recorded as a count and added by the desk, arrivals come in on a GRN. No cap, no approval queue.",
+   "Q2: owner and manager only; the accountant is not an adder (docs/22 \u00a78 2026-09-05 accountant = money desk + reads). Until DOS-037, M16's dialog still opens for the accountant and +N shows the sentence via <Refusal>; -N still posts. Reversible by adding 'accountant' to STOCK_ADDERS.",
+   "Q3: no confirmation dialog for large godown reductions in this fix (the CHECK bounds them; Dialog-in-Sheet is broken on iOS until DOS-164); a later P2."
+  ],
+  "newFindings": [
+   "P1 stock-from-nothing through Move: transfer() (backend/libs/core/src/modules/inventory/stock.service.ts:271-318, BACK_OFFICE_OR_WAREHOUSE) posts transfer_out with no floor but the balance row's negative_allowed, and every damaged bin is negative_allowed=true (backend/libs/database/src/tenant-bootstrap.ts:196-201; dos_qa 47/36/7 rows all t) \u2014 a warehouse Move of N from the bin to the godown creates N sellable pieces and restocks damaged goods (cf. DOS-116).",
+   "P1 same class: inventory.locations.upsert (backend/libs/contracts/src/permissions.ts:477, BACK_OFFICE_OR_WAREHOUSE) accepts negativeAllowed from a warehouse token (contracts inventory.ts:48-55; stock.service.ts:131-164) \u2014 a loader can create a negative-allowed location and transfer out of it.",
+   "P2 no desk screen posts a cycle count: inventory.cycleCounts.post is unreachable from any app (frontend/manager-app/app/stock/ has only index.tsx; frontend/owner-app/app/stock/ has no counts route) while W8c (frontend/warehouse-app/app/stock/counts/index.tsx:4-7) tells the loader the desk posts it and docs/23 :876 names M16 and O15.",
+   "P3 test coupling: backend/libs/contracts/src/permissions.test.ts:1048 asserts the reporting fill-rate rows equal permissionFor('inventory.stock.adjust'), an accidental tie DOS-037 will break; compare to a literal role list."
+  ],
+  "laneAdvice": "h4-stock, second in order: DOS-074+097 \u2192 DOS-044 \u2192 DOS-096, with DOS-037 appended after DOS-044 (same inventory.stock.adjust row and the permissions.test.ts:1048 tie). Shares contracts inventory.ts, stock.service.ts and the inventory rows of permissions.ts with DOS-074+097 (rebase on it, then pnpm docs:readme); textual-only overlaps elsewhere: permissions.ts (h2 DOS-043 depart row, DOS-131+137; h5 DOS-115 ORDER_PLACERS), permissions.test.ts and smoke-endpoints.mts (h5 DOS-115; h1 DOS-116), examples.ts (h2 DOS-131+137), warehouse-app strings.ts W7/W10 blocks (h2 DOS-043, DOS-131+137, DOS-133) \u2014 this fix edits only the W8 block. Migration: none (0045 stays free). Verify on a copy dos_test_b2_044 of dos_test_batch2_template, never dos_qa."
+ }
+]

@@ -302,6 +302,41 @@
       "when": 1788648239041,
       "tag": "0042_platform_idempotency_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789273070199,
+      "tag": "0043_receipts_number_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789273155181,
+      "tag": "0044_receipts_number_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1789285591648,
+      "tag": "0045_receipts_insert_roles_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1789285591649,
+      "tag": "0046_receipts_insert_roles_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1789293246405,
+      "tag": "0047_pack_confirmations_created_idx",
+      "breakpoints": true
     }
   ]
 }

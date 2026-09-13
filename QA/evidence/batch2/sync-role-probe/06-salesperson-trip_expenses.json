@@ -1,0 +1,61 @@
+{
+  "probe": "06",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a0947d-7a79-75d2-bfff-97e499a58d49)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T04:52:51.872Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-salesperson-06",
+      "ops": [
+        {
+          "opId": "01a0991c-6c21-7c59-8a01-1eb99176baa2",
+          "op": "PUT",
+          "table": "trip_expenses",
+          "id": "01a0991c-6c20-7ff1-abb7-db1d2586b778",
+          "clientTime": "2026-09-13T04:52:51.872Z",
+          "data": {
+            "trip_id": "dda35990-f442-7931-8da4-5808f09a33b6",
+            "kind": "parking",
+            "amount_paise": 100,
+            "incurred_at": "2026-09-13T04:52:51.872Z",
+            "device_id": "qa-b2-syncprobe-salesperson-06",
+            "note": "QA batch2 sync-role-probe 06 salesperson"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "accepted": 0,
+      "replayed": 0,
+      "rejected": [
+        {
+          "opId": "01a0991c-6c21-7c59-8a01-1eb99176baa2",
+          "table": "trip_expenses",
+          "rowId": "01a0991c-6c20-7ff1-abb7-db1d2586b778",
+          "code": "not_found",
+          "messageHi": "trip dda35990-f442-7931-8da4-5808f09a33b6 not found",
+          "messageEn": "trip dda35990-f442-7931-8da4-5808f09a33b6 not found"
+        }
+      ],
+      "warnings": [],
+      "upgradeRequired": false
+    }
+  }
+}

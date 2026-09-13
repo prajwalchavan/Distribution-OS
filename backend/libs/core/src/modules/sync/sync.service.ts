@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { createHash } from 'node:crypto'
 import {
   SYNC_PROTOCOL_VERSION,
+  SYNC_REJECTION_CODES,
   type MembershipRole,
   type SyncErrorsListInput,
   type SyncErrorsListOutput,
@@ -22,6 +23,8 @@ import {
   ANY_MEMBER,
   currentTenant,
   DB,
+  isPrivilegeViolation,
+  pgMessage,
   requireDb,
   requireRole,
   STAFF,
@@ -138,6 +141,19 @@ export class SyncService {
               `${op.table} के लिए सिंक समर्थित नहीं`,
             ),
           }
+        } else if (!this.registry.mayUploadTable(op.table, ctx.actorRole)) {
+          // DOS-166: the upload is the online door by another route, so the matrix answers here too,
+          // once per op and before the savepoint — no read, no document number drawn. The refusal is
+          // durable like any other and replays as itself.
+          outcome = {
+            ok: false,
+            rejection: reject(
+              op,
+              SYNC_REJECTION_CODES.roleNotAllowed,
+              `A ${ctx.actorRole} may not send ${op.table} from a device`,
+              'यह काम आपकी भूमिका के लिए नहीं है',
+            ),
+          }
         } else {
           try {
             // Savepoint so a rejected op leaves no partial writes but the sync_ops/sync_errors rows still commit.
@@ -166,6 +182,12 @@ export class SyncService {
                   error.message,
                 ),
               }
+            } else if (isPrivilegeViolation(error)) {
+              // A row policy or guard trigger refused THIS actor (42501): that refuses this device's
+              // op, and no retry can change it. As a 5xx it rolled the whole batch back, wrote no
+              // sync_ops row and wedged the queue behind it (DOS-166).
+              const message = pgMessage(error)
+              outcome = { ok: false, rejection: reject(op, 'not_permitted', message, message) }
             } else {
               throw error // transient: let the request fail 5xx so the device retries the whole batch
             }
