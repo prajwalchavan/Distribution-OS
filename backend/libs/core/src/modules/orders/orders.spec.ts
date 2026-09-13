@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import type { Quote } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
@@ -37,7 +38,9 @@ const describeDb = url ? describe : describe.skip
 
 type Line = {
   id: string
+  lineNo: number
   variantId: string
+  variantName: string
   enteredQty: number
   enteredUnit: string
   packSizeAtEntry: number
@@ -102,6 +105,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const lineOne = uuidv7()
   const repeatOrder = uuidv7()
   const strictOrder = uuidv7()
+  const strictOrderDos004 = uuidv7() // DOS-004: a second over-limit order for Shop B, left pending
+  const tripApprovalDos004 = uuidv7() // DOS-004: an approval with no order behind it
   const shopOrder = uuidv7()
   const syncOrder = uuidv7()
   let godown = ''
@@ -423,6 +428,115 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { n: number }[]
     expect(held[0]?.n).toBe(0)
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-004: the approvals queue names the shop, the order number and the order total, read from the
+  // approval's own order when the list is asked, never from its payload (the demo seed and older rows shape
+  // the payload differently). An approval with no order behind it lists with all four fields null.
+
+  type QueueItem = {
+    id: string
+    kind: string
+    orderId: string | null
+    payload: Record<string, unknown>
+    orderNo: string | null
+    orderTotalPaise: number | null
+    retailerId: string | null
+    retailerName: string | null
+  }
+
+  it('DOS-004: the approvals queue names the shop, the order number and the total of an order approval', async () => {
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos004-${run}`,
+      id: strictOrderDos004,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    expect(drafted.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos004}/submit`,
+      { idempotencyKey: `submit-dos004-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+    expect(submitted.body.item.orderNo).toMatch(/^SO-/)
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.orderId === strictOrderDos004)
+    expect(item).toMatchObject({
+      kind: 'credit_limit',
+      orderNo: submitted.body.item.orderNo,
+      orderTotalPaise: submitted.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval whose payload carries no order number still names the order and shop from its order', async () => {
+    const order = await call<{ item: Detail }>(app, owner, 'GET', `/orders/${strictOrderDos004}`)
+    expect(order.status).toBe(200)
+    expect(order.body.item.orderNo).toMatch(/^SO-/)
+    // the demo seed's shape: a retailer entity asking for a limit, with no orderNo or totalPaise in the payload
+    const seedShaped = uuidv7()
+    await db.insert(approvals).values({
+      id: seedShaped,
+      tenantId,
+      kind: 'credit_limit',
+      orderId: strictOrderDos004,
+      entityType: 'retailer',
+      entityId: retailerB,
+      requestedBy: repId,
+      status: 'pending',
+      payload: { currentLimitPaise: 1000, requestedLimitPaise: 3000, reason: 'DOS-004 seed shape' },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      kind: 'credit_limit',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === seedShaped)
+    expect(item?.payload.orderNo).toBeUndefined()
+    expect(item).toMatchObject({
+      orderNo: order.body.item.orderNo,
+      orderTotalPaise: order.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval that is not on an order lists with null shop and order fields', async () => {
+    await db.insert(approvals).values({
+      id: tripApprovalDos004,
+      tenantId,
+      kind: 'trip_settlement',
+      orderId: null,
+      entityType: 'trip',
+      entityId: uuidv7(),
+      requestedBy: ownerId,
+      status: 'pending',
+      payload: { cashVariancePaise: -500 },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      kind: 'trip_settlement',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === tripApprovalDos004)
+    expect(item).toBeDefined()
+    expect(item?.orderNo).toBeNull()
+    expect(item?.orderTotalPaise).toBeNull()
+    expect(item?.retailerId).toBeNull()
+    expect(item?.retailerName).toBeNull()
   })
 
   it('lets the rep cancel a draft', async () => {
@@ -1014,6 +1128,56 @@ describeDb('orders (DATABASE_URL)', () => {
       },
     ])
     expect(await asOwner((tx) => orders.fulfilmentLines(tx, []))).toEqual([])
+  })
+
+  it('DOS-096: what the shop is quoted is what its placed order carries — GST per line, rounding and total', async () => {
+    const la = uuidv7()
+    const lb = uuidv7()
+    // The retailer app prices its basket through pricing.quote before "Place order" (R7).
+    const quote = await call<Quote>(app, shop, 'POST', '/pricing/quote', {
+      retailerId: retailerA,
+      lines: [
+        { lineId: la, variantId: variantA, qtyPcs: 24 },
+        { lineId: lb, variantId: variantB, qtyPcs: 7 },
+      ],
+    })
+    expect(quote.status).toBe(200)
+    // 24 × ₹10 + 7 × ₹25 = ₹415.00; 12% GST ₹28.80 + ₹21.00 = ₹49.80; ₹464.80 rounds to ₹465 with +20 paise
+    expect(quote.body.totals).toMatchObject({
+      grossPaise: 41_500,
+      netPaise: 41_500,
+      taxPaise: 4_980,
+      roundOffPaise: 20,
+      totalPaise: 46_500,
+    })
+
+    const placed = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `create-dos096-${run}`,
+      id: uuidv7(),
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [
+        { id: la, variantId: variantA, enteredQty: 2, enteredUnit: 'case' },
+        { id: lb, variantId: variantB, enteredQty: 7, enteredUnit: 'piece' },
+      ],
+    })
+    expect(placed.status).toBe(200)
+    const order = placed.body.item
+    expect(order).toMatchObject({
+      subtotalPaise: quote.body.totals.grossPaise,
+      taxPaise: quote.body.totals.taxPaise,
+      roundOffPaise: quote.body.totals.roundOffPaise,
+      totalPaise: quote.body.totals.totalPaise,
+    })
+    const byId = new Map(order.lines.map((line) => [line.id, line]))
+    for (const quoted of quote.body.lines)
+      expect(byId.get(quoted.lineId)).toMatchObject({
+        gstBps: quoted.gstBps,
+        taxPaise: quoted.taxPaise,
+        lineTotalPaise: quoted.lineTotalPaise,
+      })
+    expect(byId.get(la)).toMatchObject({ gstBps: 1_200, taxPaise: 2_880, lineTotalPaise: 26_880 })
+    expect(byId.get(lb)).toMatchObject({ gstBps: 1_200, taxPaise: 2_100, lineTotalPaise: 19_600 })
   })
 
   const countRows = async (orderId: string) => {
@@ -1616,6 +1780,102 @@ describeDb('orders (DATABASE_URL)', () => {
         idempotencyKey: `dos005-two-cleanup-${run}`,
         reason: 'test cleanup',
       })
+    }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-003: an order line names its item the way the bill line does — the tenant's alias first, the global
+  // variant name otherwise — read when the order is fetched, so an item delisted after ordering keeps its name.
+  // Its own variants and listings, and last in the file, so no other test sees a listing switched off.
+
+  it('DOS-003: order lines carry variantName — tenant alias first, global name otherwise, and an item delisted after ordering is still named (create reply, owner GET, retailer GET)', async () => {
+    const manufacturerId = uuidv7()
+    const productId = uuidv7()
+    const aliased = uuidv7()
+    const plain = uuidv7()
+    const plainListing = uuidv7()
+    const orderId = uuidv7()
+    await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker dos003 ${run}` })
+    await db
+      .insert(products)
+      .values({ id: productId, manufacturerId, name: 'Snacks', category: 'snacks' })
+    await db.insert(productVariants).values([
+      {
+        id: aliased,
+        productId,
+        name: 'Kurkure Masala Munch 90 g',
+        netQty: 90,
+        netUnit: 'g',
+        defaultCaseSize: 60,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+      {
+        id: plain,
+        productId,
+        name: 'Lays Classic 52 g',
+        netQty: 52,
+        netUnit: 'g',
+        defaultCaseSize: 48,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+    ])
+    await db.insert(tenantProducts).values([
+      { id: uuidv7(), tenantId, variantId: aliased, localAlias: 'Kurkure 90' },
+      { id: plainListing, tenantId, variantId: plain },
+    ])
+    // `priceListId` is local to beforeAll; bootstrapTenant creates no price list, so the spec's is the only one
+    const [priceList] = await db
+      .select()
+      .from(priceLists)
+      .where(sql`${priceLists.tenantId} = ${tenantId}`)
+    expect(priceList).toBeDefined()
+    await db.insert(priceListItems).values([
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: aliased,
+        ratePaise: 1800,
+      },
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: plain,
+        ratePaise: 1800,
+      },
+    ])
+    const expected = [
+      [1, aliased, 'Kurkure 90'],
+      [2, plain, 'Lays Classic 52 g'],
+    ]
+    const named = (lines: Line[]) => lines.map((l) => [l.lineNo, l.variantId, l.variantName])
+
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos003-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: aliased, enteredQty: 1, enteredUnit: 'piece' },
+        { id: uuidv7(), variantId: plain, enteredQty: 1, enteredUnit: 'piece' },
+      ],
+    })
+    expect(created.status).toBe(200)
+    expect(named(created.body.item.lines)).toEqual(expected)
+
+    // the Lays listing is switched off after the order was taken (the owner pool bypasses RLS)
+    await db
+      .update(tenantProducts)
+      .set({ listed: false })
+      .where(eq(tenantProducts.id, plainListing))
+
+    for (const actor of [owner, shop]) {
+      const got = await call<{ item: Detail }>(app, actor, 'GET', `/orders/${orderId}`)
+      expect(got.status).toBe(200)
+      expect(named(got.body.item.lines)).toEqual(expected)
     }
   })
 })

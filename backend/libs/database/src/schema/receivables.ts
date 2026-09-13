@@ -162,6 +162,14 @@ export const receipts = pgTable(
     id: id(),
     tenantId: tenantRef(),
     receiptNo: text('receipt_no'),
+    /** The numbering series the number was drawn from; beside `fy` the way invoices and credit notes carry theirs. */
+    seriesCode: text('series_code').notNull().default('RCPT'),
+    /**
+     * The `numbering_series` FY this number was drawn under (IST, `numberingYear()`): with the tenant and the
+     * series it is the key a receipt number is unique in (`receipts_no_idx`, DOS-032 / DOS-059), because
+     * every financial year's register starts again at 1.
+     */
+    fy: text('fy').notNull(),
     retailerId: text('retailer_id')
       .notNull()
       .references(() => retailers.id),
@@ -207,6 +215,10 @@ export const receipts = pgTable(
     /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
     index('receipts_updated_idx').on(t.tenantId, t.updatedAt),
     uniqueIndex('receipts_idempotency_idx').on(t.tenantId, t.idempotencyKey),
+    /** One receipt per number in a series and FY, keyed exactly as the counter (DOS-032 / DOS-059); like `invoices_no_idx`. */
+    uniqueIndex('receipts_no_idx')
+      .on(t.tenantId, t.seriesCode, t.fy, t.receiptNo)
+      .where(sql`receipt_no IS NOT NULL`),
     index('receipts_retailer_idx').on(t.tenantId, t.retailerId, t.receivedAt),
     index('receipts_trip_idx').on(t.tenantId, t.tripId),
     uniqueIndex('receipts_device_client_no_idx')

@@ -424,10 +424,10 @@ export async function seedReceivables(
 
   function addReceipt(
     key: string,
-    row: Omit<typeof receipts.$inferInsert, 'id' | 'tenantId' | 'idempotencyKey'>,
+    row: Omit<typeof receipts.$inferInsert, 'id' | 'tenantId' | 'idempotencyKey' | 'fy'>,
   ): string {
     const id = demoId('receipt', key)
-    receiptRows.push({ ...row, id, tenantId, idempotencyKey: `receipt:${key}` })
+    receiptRows.push({ ...row, id, tenantId, fy: FY, idempotencyKey: `receipt:${key}` })
     return id
   }
 

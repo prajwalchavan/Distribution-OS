@@ -514,7 +514,11 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/tenants',
-        summary: 'Onboard a distributor: tenant, chart of accounts, owner login and a trial',
+        // The README and OpenAPI render `x-roles: platform_admin` for every console route; the level
+        // that narrows it (`ADMIN_LEVELS`, DOS-106) is named at the end of each summary, and
+        // permissions.test.ts fails when a summary and that table disagree.
+        summary:
+          'Onboard a distributor: tenant, chart of accounts, owner login and a trial · console level: super',
       })
       .input(TenantCreateInput)
       .output(TenantCreateOutput),
@@ -522,7 +526,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/tenants',
-        summary: 'Distributors on the platform, with subscription state and size',
+        summary:
+          'Distributors on the platform, with subscription state and size · console levels: super, support, billing',
       })
       .input(TenantsListInput)
       .output(TenantsListOutput),
@@ -530,7 +535,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/tenants/{id}',
-        summary: 'One distributor: subscription, size, storage and its support grants',
+        summary:
+          'One distributor: subscription, size, storage and its support grants · console levels: super, support, billing',
       })
       .input(TenantGetInput)
       .output(TenantGetOutput),
@@ -538,7 +544,8 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/tenants/{id}/suspend',
-        summary: 'Refuse every sign-in to this distributor; nothing is deleted (audited)',
+        summary:
+          'Refuse every sign-in to this distributor; nothing is deleted (audited) · console level: super',
       })
       .input(TenantSuspendInput)
       .output(TenantItemOutput),
@@ -546,7 +553,7 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/tenants/{id}/reactivate',
-        summary: 'Let a suspended distributor back in (audited)',
+        summary: 'Let a suspended distributor back in (audited) · console level: super',
       })
       .input(TenantReactivateInput)
       .output(TenantItemOutput),
@@ -556,7 +563,8 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/subscriptions',
-        summary: "Set a distributor's plan, price and period (audited)",
+        summary:
+          "Set a distributor's plan, price and period (audited) · console levels: super, billing",
       })
       .input(SubscriptionUpsertInput)
       .output(SubscriptionItemOutput),
@@ -564,7 +572,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/subscriptions',
-        summary: 'Subscriptions, filtered by state, plan or what is about to end',
+        summary:
+          'Subscriptions, filtered by state, plan or what is about to end · console levels: super, support, billing',
       })
       .input(SubscriptionsListInput)
       .output(SubscriptionsListOutput),
@@ -572,7 +581,7 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/subscriptions/{id}',
-        summary: 'One subscription',
+        summary: 'One subscription · console levels: super, support, billing',
       })
       .input(SubscriptionGetInput)
       .output(SubscriptionItemOutput),
@@ -582,7 +591,8 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/support-grants',
-        summary: "Ask a distributor's owner for a time-boxed window; grants nothing by itself",
+        summary:
+          "Ask a distributor's owner for a time-boxed window; grants nothing by itself · console levels: super, support",
       })
       .input(SupportRequestInput)
       .output(AdminSupportItemOutput),
@@ -590,7 +600,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/support-grants',
-        summary: 'Support requests and windows across every distributor',
+        summary:
+          'Support requests and windows across every distributor · console levels: super, support, billing',
       })
       .input(AdminSupportListInput)
       .output(AdminSupportListOutput),
@@ -598,7 +609,8 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/support-grants/{id}/revoke',
-        summary: 'Withdraw our own request, or hand back a window before it lapses',
+        summary:
+          'Withdraw our own request, or hand back a window before it lapses · console levels: super, support',
       })
       .input(AdminSupportRevokeInput)
       .output(AdminSupportItemOutput),
@@ -608,7 +620,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/users',
-        summary: 'Global sign-in identities with every distributor they are a member of',
+        summary:
+          'Global sign-in identities with every distributor they are a member of · console levels: super, support, billing',
       })
       .input(AdminUsersListInput)
       .output(AdminUsersListOutput),
@@ -616,7 +629,8 @@ export const adminContract = {
       .route({
         method: 'POST',
         path: '/admin/users/{id}/disable',
-        summary: 'Lock one identity out of every distributor and revoke its sessions (audited)',
+        summary:
+          'Lock one identity out of every distributor and revoke its sessions (audited) · console level: super',
       })
       .input(AdminUserDisableInput)
       .output(AdminUserItemOutput),
@@ -626,7 +640,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/metrics',
-        summary: 'Platform counts: tenants, active users, orders and invoices per day, storage',
+        summary:
+          'Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing',
       })
       .input(AdminMetricsInput)
       .output(AdminMetricsOutput),
@@ -636,7 +651,8 @@ export const adminContract = {
       .route({
         method: 'GET',
         path: '/admin/audit',
-        summary: 'Every platform action: onboarding, suspension, plans, support, user locks',
+        summary:
+          'Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing',
       })
       .input(AdminAuditListInput)
       .output(AdminAuditListOutput),

@@ -5,8 +5,10 @@ import {
   brands,
   createDb,
   createPool,
+  hsnRates,
   manufacturers,
   memberships,
+  priceListItems,
   productVariants,
   products,
   retailerIdentities,
@@ -36,6 +38,10 @@ describeDb('pricing (DATABASE_URL)', () => {
   const productId = uuidv7()
   const v1 = uuidv7() // ₹10 default, ₹9 tier A, case 12
   const v2 = uuidv7() // ₹20 default only, case 24
+  const vUnrated = uuidv7() // its HSN has no GST rate on any date (DOS-096)
+  // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's prefixes).
+  const hsn = `7${Date.now().toString().slice(-6)}` // 18% from 2020-04-01
+  const hsnNoRate = `6${Date.now().toString().slice(-6)}` // never given an hsn_rates row
   const shopA = uuidv7() // tier A, has the final override
   const shopC = uuidv7() // tier C, gets the scheme; linked to the retailer-role user
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
@@ -75,7 +81,7 @@ describeDb('pricing (DATABASE_URL)', () => {
         netQty: 12,
         netUnit: 'g',
         defaultCaseSize: 12,
-        hsnCode: '19041090',
+        hsnCode: hsn,
       },
       {
         id: v2,
@@ -84,9 +90,22 @@ describeDb('pricing (DATABASE_URL)', () => {
         netQty: 60,
         netUnit: 'g',
         defaultCaseSize: 24,
-        hsnCode: '19041090',
+        hsnCode: hsn,
+      },
+      {
+        id: vUnrated,
+        productId,
+        name: 'Pudina 12g',
+        netQty: 12,
+        netUnit: 'g',
+        defaultCaseSize: 12,
+        hsnCode: hsnNoRate,
       },
     ])
+    // The quote carries GST (DOS-096), so every item it prices needs a dated rate for its HSN.
+    await db
+      .insert(hsnRates)
+      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' })
     await db.insert(retailers).values([
       {
         id: shopA,
@@ -546,6 +565,76 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(bad.status).toBe(400)
   })
 
+  it("DOS-096: a shop's quote carries GST at the dated HSN rate and the rupee-rounded amount it will pay", async () => {
+    // shopC's auto-approved ₹9.50 bargain on v1 and the 12 + 1 scheme both apply here, so the figures are held
+    // to the order's own arithmetic rather than pinned to one basket.
+    const q = await quoteFor(shop, shopC, [{ lineId: 'l1', variantId: v1, qtyPcs: 24 }])
+    expect(q.status).toBe(200)
+    const l1 = q.body.lines[0]
+    const net = l1?.lineNetPaise ?? 0
+    expect(net).toBeGreaterThan(0)
+    expect(l1?.gstBps).toBe(1800)
+    expect(l1?.taxPaise).toBe(Math.round((net * 1800) / 10_000))
+    expect(l1?.lineTotalPaise).toBe(net + (l1?.taxPaise ?? 0))
+    const { totals } = q.body
+    expect(totals.taxPaise).toBe(q.body.lines.reduce((n, l) => n + l.taxPaise, 0))
+    expect(totals.totalPaise % 100).toBe(0)
+    expect(totals.totalPaise).toBe(totals.netPaise + totals.taxPaise + totals.roundOffPaise)
+    expect(Math.abs(totals.roundOffPaise)).toBeLessThanOrEqual(50)
+
+    // Dated: a rate that starts later answers only for a quote priced on or after its date.
+    await db
+      .insert(hsnRates)
+      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 2800, effectiveFrom: '2031-01-01' })
+    const later = await call<Quote>(app, rep, 'POST', '/pricing/quote', {
+      retailerId: shopA,
+      pricingDate: '2031-03-15',
+      lines: [{ lineId: 'l2', variantId: v2, qtyPcs: 10 }],
+    })
+    expect(later.status).toBe(200)
+    expect(later.body.lines[0]?.gstBps).toBe(2800)
+    expect(later.body.lines[0]?.taxPaise).toBe(5_600) // 28% of ₹200.00
+    expect(
+      (await quoteFor(rep, shopA, [{ lineId: 'l2', variantId: v2, qtyPcs: 10 }])).body.lines[0]
+        ?.gstBps,
+    ).toBe(1800)
+  })
+
+  it('DOS-096: a quote for an item whose HSN has no GST rate is a 400 naming the HSN, never a silent 0%', async () => {
+    await db
+      .insert(priceListItems)
+      .values({
+        id: uuidv7(),
+        tenantId,
+        priceListId: defaultListId,
+        variantId: vUnrated,
+        ratePaise: 500,
+      })
+    const refused = await call<{ message: string; data?: unknown }>(
+      app,
+      rep,
+      'POST',
+      '/pricing/quote',
+      {
+        retailerId: shopC,
+        pricingDate: today,
+        lines: [
+          { lineId: 'l1', variantId: v1, qtyPcs: 1 },
+          { lineId: 'l2', variantId: vUnrated, qtyPcs: 1 },
+        ],
+      },
+    )
+    expect(refused.status).toBe(400)
+    expect(refused.body.message).toContain(hsnNoRate)
+    // The codes travel as data too, so the shop's screen can say which rate is missing (DOS-096 amendment b).
+    expect(refused.body.data).toEqual({ hsnCodes: [hsnNoRate], on: today })
+
+    // Item-specific, not a broken fixture: the same shop's rated item still prices.
+    const rated = await quoteFor(rep, shopC, [{ lineId: 'l1', variantId: v1, qtyPcs: 1 }])
+    expect(rated.status).toBe(200)
+    expect(rated.body.lines[0]?.gstBps).toBe(1800)
+  })
+
   it('DOS-075: an order-value scheme saved through the contract with a paise threshold (₹500 = 50_000) applies on quote above it and not below it', async () => {
     // Priced on a 2031 date inside this scheme's own window, so the 2026 "12 + 1" (v1 only) is out of force;
     // shopA's final override is v1 only and shopA has no approved bargain, so v2 prices at the default ₹20.
@@ -615,7 +704,7 @@ describeDb('pricing (DATABASE_URL)', () => {
       netQty: 60,
       netUnit: 'g',
       defaultCaseSize: 48,
-      hsnCode: '19041090',
+      hsnCode: hsn,
     })
     const priced = await call<{ item: PriceList }>(
       app,

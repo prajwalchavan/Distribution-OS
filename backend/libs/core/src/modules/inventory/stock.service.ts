@@ -12,6 +12,8 @@ import type {
   LocationsListOutput,
   SellableStockInput,
   SellableStockOutput,
+  StockAvailabilityInput,
+  StockAvailabilityOutput,
   StockBalanceRow,
   StockBalancesInput,
   StockBalancesOutput,
@@ -50,13 +52,16 @@ import {
   type LotRow,
 } from './inventory.service.js'
 import {
+  toAvailability,
   toBalance,
   toEntry,
   toLocation,
   toLot,
   toSellable,
+  type AvailabilityRaw,
   type SellableRaw,
 } from './inventory.mappers.js'
+import { findReservableLocationId } from './reservable-location.js'
 
 type LocationsIn = z.infer<typeof LocationsListInput>
 type LocationsOut = z.infer<typeof LocationsListOutput>
@@ -64,6 +69,8 @@ type LocationIn = z.infer<typeof UpsertLocationInput>
 type LocationOut = z.infer<typeof UpsertLocationOutput>
 type SellableIn = z.infer<typeof SellableStockInput>
 type SellableOut = z.infer<typeof SellableStockOutput>
+type AvailabilityIn = z.infer<typeof StockAvailabilityInput>
+type AvailabilityOut = z.infer<typeof StockAvailabilityOutput>
 type BalancesIn = z.infer<typeof StockBalancesInput>
 type BalancesOut = z.infer<typeof StockBalancesOutput>
 type AdjustIn = z.infer<typeof AdjustStockInput>
@@ -75,7 +82,7 @@ type LedgerOut = z.infer<typeof LedgerListOutput>
 type LotIn = z.infer<typeof UpsertLotInput>
 type LotOut = z.infer<typeof UpsertLotOutput>
 
-/** Who may see per-lot balances and the ledger: everyone who physically keeps stock (a van counts). Reps and retailers get `sellable` only. */
+/** Who may see per-lot balances and the ledger: everyone who physically keeps stock (a van counts). Reps and retailers get `availability` and `sellable` only. */
 export const STOCK_KEEPERS: readonly ActorRole[] = [
   'owner',
   'manager',
@@ -192,6 +199,40 @@ export class StockService {
         items,
         nextCursor: rows.length > input.limit && last ? `${last.lotId}:${last.locationId}` : null,
       }
+    })
+  }
+
+  /**
+   * The order screens' stock hint (DOS-074 rep, DOS-097 shop): one available-to-promise total per item at the
+   * godown orders reserve from (`reservableLocationId`), paged by item. Summing `sellable` would count a van,
+   * the damaged bin, stock in transit and a second warehouse — pieces no order can reserve.
+   *
+   * Only items with something left to promise at the godown have a row, so a caller that has read every page
+   * may take a missing item as zero. No expiry filter, because `reserve()` has none. Open to every member,
+   * like `sellable` (TenantGuard + PERMISSIONS gate it), and a strict subset of what `sellable` shows.
+   */
+  async availability(input: AvailabilityIn): Promise<AvailabilityOut> {
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      // No active warehouse: nothing can be reserved, so nothing can be promised (its orders cannot confirm).
+      const godown = await findReservableLocationId(tx)
+      if (godown === null) return { items: [], nextCursor: null }
+      const rows = (
+        await tx.execute(sql`
+          select s.variant_id, sum(s.available)::bigint as available
+          from sellable_stock s
+          where s.tenant_id = ${ctx.tenantId}
+            and s.location_id = ${godown}
+            ${input.variantId ? sql`and s.variant_id = ${input.variantId}` : sql``}
+            ${input.cursor ? sql`and s.variant_id > ${input.cursor}` : sql``}
+          group by s.variant_id
+          order by s.variant_id
+          limit ${input.limit + 1}`)
+      ).rows as unknown as AvailabilityRaw[]
+      const items = rows.slice(0, input.limit).map(toAvailability)
+      const last = items[items.length - 1]
+      return { items, nextCursor: rows.length > input.limit && last ? last.variantId : null }
     })
   }
 

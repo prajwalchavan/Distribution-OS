@@ -1,0 +1,54 @@
+{
+  "probe": "02",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a0947d-7a79-75d2-bfff-97e499a58d49)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T04:50:24.758Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-salesperson-02",
+      "ops": [
+        {
+          "opId": "01a0991a-2d76-76f1-b76d-81c393cdac5b",
+          "op": "PUT",
+          "table": "receipts",
+          "id": "01a0991a-2d76-76c5-b612-dc8f51e30adf",
+          "clientTime": "2026-09-13T04:50:24.758Z",
+          "data": {
+            "retailer_id": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+            "mode": "cash",
+            "amount_paise": 100,
+            "received_at": "2026-09-13T04:50:24.758Z",
+            "received_by": null,
+            "device_id": "qa-b2-syncprobe-salesperson-02",
+            "status": "collected",
+            "note": "QA batch2 sync-role-probe 02 salesperson"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "accepted": 1,
+      "replayed": 0,
+      "rejected": [],
+      "warnings": [],
+      "upgradeRequired": false
+    }
+  }
+}

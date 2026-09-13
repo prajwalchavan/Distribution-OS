@@ -9,6 +9,9 @@
  *
  * A bargain gate names the rate request it waits on, and deciding the gate decides that request (DOS-005), so
  * the pair is ONE row: the gate, carrying the request's shop and rates, listed under Rate requests as well.
+ *
+ * An approval on an order is named by that order's shop, number and total, which the list reads from the order
+ * itself (DOS-004), and an over-limit gate shows the shop's live credit position, so nobody decides blind.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
@@ -23,10 +26,13 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  formatINR,
+  paise,
   useColors,
   useStrings,
   type RegisterColumn,
 } from '@dos/ui'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
@@ -39,19 +45,29 @@ interface Decision {
   id: string
   stream: 'approval' | 'bargain'
   kind: string
+  /** The shop; the kind's own word for an approval with no order and no rate request behind it. */
   what: string
   who: string
   askedAt: string
   amountPaise: number | null
   listRatePaise: number | null
   askedRatePaise: number | null
-  note: string | null
+  orderId: string | null
+  orderNo: string | null
+  orderTotalPaise: number | null
+  retailerId: string | null
+  /** What the person who asked wrote: an approval's reason or note, a rate request's note. */
+  reason: string | null
 }
+
+/** A payload value, when it is text. */
+const textOf = (value: unknown): string | null => (typeof value === 'string' ? value : null)
 
 export default function Approvals(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
   const api = useApi()
+  const router = useRouter()
   const names = useNames()
   const word = useWord()
 
@@ -87,32 +103,39 @@ export default function Approvals(): React.JSX.Element {
 
   const rows: readonly Decision[] = [
     ...pending.map<Decision>((row) => {
-      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
       return bargain === undefined
         ? {
             id: row.id,
             stream: 'approval',
             kind: row.kind,
-            what: orderNo ?? row.entityType,
+            what: row.retailerName ?? word(row.kind),
             who: names.staff(row.requestedBy),
             askedAt: row.createdAt,
-            amountPaise: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+            amountPaise: row.orderTotalPaise,
             listRatePaise: null,
             askedRatePaise: null,
-            note: null,
+            orderId: row.orderId,
+            orderNo: row.orderNo,
+            orderTotalPaise: row.orderTotalPaise,
+            retailerId: row.retailerId,
+            reason: textOf(row.payload.reason) ?? textOf(row.payload.note),
           }
         : {
             id: row.id,
             stream: 'approval',
             kind: row.kind,
-            what: orderNo ?? names.retailer(bargain.retailerId),
+            what: row.retailerName ?? names.retailer(bargain.retailerId),
             who: names.staff(row.requestedBy),
             askedAt: row.createdAt,
             amountPaise: bargain.askedRatePaise,
             listRatePaise: bargain.listRatePaise,
             askedRatePaise: bargain.askedRatePaise,
-            note: bargain.note,
+            orderId: row.orderId,
+            orderNo: row.orderNo,
+            orderTotalPaise: row.orderTotalPaise,
+            retailerId: row.retailerId ?? bargain.retailerId,
+            reason: bargain.note,
           }
     }),
     ...(bargains.data?.items ?? [])
@@ -127,7 +150,11 @@ export default function Approvals(): React.JSX.Element {
         amountPaise: row.askedRatePaise,
         listRatePaise: row.listRatePaise,
         askedRatePaise: row.askedRatePaise,
-        note: row.note,
+        orderId: null,
+        orderNo: null,
+        orderTotalPaise: null,
+        retailerId: null,
+        reason: row.note,
       })),
   ].filter(
     (row) =>
@@ -135,6 +162,49 @@ export default function Approvals(): React.JSX.Element {
   )
 
   const current = rows.find((row) => row.id === selected) ?? null
+  /** The shop and its order number: the panel's title and the name both dialogs decide. */
+  const heading =
+    current === null
+      ? undefined
+      : [current.what, current.orderNo].filter((p): p is string => p !== null).join(' · ')
+
+  /*
+   * An over-limit gate shows the shop's live credit position, asked with the order's own total so the headroom is
+   * the headroom AFTER this order. The sentence is built from `reasons`, the breaches the server found, so a
+   * credit stop still shows the figures and an overdue-only breach never reads as "₹0.00 over the limit".
+   */
+  const checksCredit =
+    current?.kind === 'credit_limit' &&
+    current.retailerId !== null &&
+    current.orderTotalPaise !== null
+  const credit = useQuery(
+    ['credit', current?.retailerId ?? 'none', current?.orderTotalPaise ?? 0],
+    () =>
+      api.api.receivables.creditCheck({
+        retailerId: current?.retailerId ?? '',
+        orderTotalPaise: current?.orderTotalPaise ?? 0,
+      }),
+    { enabled: checksCredit },
+  )
+  const creditLine = (): string => {
+    const c = credit.data
+    if (c === undefined) return t('o3.creditUnknown')
+    const parts = [
+      t('o3.creditLine', {
+        owed: formatINR(paise(c.outstandingPaise)),
+        limit: formatINR(paise(c.creditLimitPaise)),
+      }),
+    ]
+    if (c.creditMode === 'stop') parts.push(t('o3.creditStop'))
+    if (c.reasons.includes('limit_exceeded'))
+      parts.push(t('o3.creditOver', { over: formatINR(paise(-c.headroomPaise)) }))
+    if (c.reasons.includes('overdue_days_exceeded'))
+      parts.push(t('o3.creditOverdue', { days: c.overdueDays, terms: c.creditDays }))
+    if (c.reasons.includes('bill_count_exceeded'))
+      parts.push(t('o3.creditBills', { count: c.openBills, limit: c.creditLimitBills }))
+    if (c.reasons.length === 0) parts.push(t('o3.creditClear'))
+    return parts.join(' · ')
+  }
 
   const decideApproval = useMutation(
     (input: { id: string; decision: 'approve' | 'reject'; note?: string }, meta) =>
@@ -206,6 +276,7 @@ export default function Approvals(): React.JSX.Element {
   const columns: readonly RegisterColumn<Decision>[] = [
     textColumn('kind', t('o3.kind'), (row) => word(row.kind), { priority: 'chip' }),
     textColumn('what', t('o3.what'), (row) => row.what, { priority: 'identity' }),
+    textColumn('order', t('o3.order'), (row) => row.orderNo),
     textColumn('who', t('o7.person'), (row) => row.who),
     {
       key: 'amount',
@@ -267,7 +338,7 @@ export default function Approvals(): React.JSX.Element {
         onClose={() => {
           setSelected(null)
         }}
-        title={current?.what}
+        title={heading}
         testID="approval-panel"
       >
         {current === null ? null : (
@@ -277,6 +348,30 @@ export default function Approvals(): React.JSX.Element {
             </Field>
             <Field label={t('o7.person')}>{current.who}</Field>
             <Field label={t('o3.asked')}>{instantWithClock(current.askedAt)}</Field>
+            {current.orderNo === null ? null : (
+              <Field label={t('o3.order')}>
+                <Stack gap={2}>
+                  <Txt field="body" desk="body">
+                    {current.orderNo}
+                  </Txt>
+                  <Money value={current.orderTotalPaise} size="moneyM" />
+                  {/*
+                   * The order's lines are read on the order itself, never re-derived here. The panel closes first:
+                   * on a phone the sheet is a modal that would otherwise stay over the order it opened.
+                   */}
+                  <Button
+                    label={t('o3.openOrder')}
+                    variant="secondary"
+                    onPress={() => {
+                      const href = `/orders?q=${encodeURIComponent(current.orderNo ?? '')}`
+                      setSelected(null)
+                      router.push(href)
+                    }}
+                    testID="approval-open-order"
+                  />
+                </Stack>
+              </Field>
+            )}
             {current.listRatePaise === null ? null : (
               <Field label={t('o3.listRate')}>
                 <Money value={current.listRatePaise} size="moneyM" />
@@ -287,7 +382,10 @@ export default function Approvals(): React.JSX.Element {
                 <Money value={current.askedRatePaise} size="moneyM" tone="critical" />
               </Field>
             )}
-            {current.note === null ? null : <Field label={t('o3.note')}>{current.note}</Field>}
+            {current.reason === null ? null : (
+              <Field label={t('o3.reason')}>{current.reason}</Field>
+            )}
+            {checksCredit ? <Field label={t('o3.credit')}>{creditLine()}</Field> : null}
             <TextInput
               label={t('o3.note')}
               value={note}
@@ -326,8 +424,8 @@ export default function Approvals(): React.JSX.Element {
         }}
         title={
           confirm === 'approve'
-            ? t('o3.confirmApprove', { what: current?.what ?? '' })
-            : t('o3.confirmReject', { what: current?.what ?? '' })
+            ? t('o3.confirmApprove', { what: heading ?? '' })
+            : t('o3.confirmReject', { what: heading ?? '' })
         }
         body={
           <Panel>

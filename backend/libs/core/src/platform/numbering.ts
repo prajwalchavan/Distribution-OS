@@ -1,6 +1,7 @@
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
-import { financialYear, NUMBERING_SERIES, numberingSeries, type Db } from '@dos/db'
+import { financialYear } from '@dos/domain'
+import { NUMBERING_SERIES, numberingSeries, type Db } from '@dos/db'
 import { currentTenant } from './tenant-context.js'
 
 /**
@@ -11,6 +12,17 @@ import { currentTenant } from './tenant-context.js'
  * while letting a configured one through (widened by the billing slice, coordination §3.9).
  */
 export type SeriesCode = (typeof NUMBERING_SERIES)[number]['seriesCode'] | (string & {})
+
+/**
+ * The financial year a document number is drawn under — the `fy` key of `numbering_series`. IST, always
+ * (docs/22: business dates and FY are IST), whatever the server's own clock says: between 00:00 and 05:30
+ * IST on 1 April a UTC host still reads 31 March, and the number must still open the NEW year's register.
+ * A module that stores `fy` beside a number takes it from here, so the row is filed under exactly the key
+ * its counter used (DOS-032 / DOS-059) — the same year invoices and credit notes stamp.
+ */
+export function numberingYear(now: Date = new Date()): string {
+  return financialYear(now)
+}
 
 /**
  * ADR 0001: human document numbers come from `numbering_series(tenant, series, fy)` at commit time. One
@@ -30,7 +42,7 @@ export async function nextDocumentNumber(
   now: Date = new Date(),
 ): Promise<string> {
   const { tenantId } = currentTenant()
-  const fy = financialYear(now)
+  const fy = numberingYear(now)
   const prefix =
     NUMBERING_SERIES.find((s) => s.seriesCode === seriesCode)?.prefix ?? `${seriesCode}-`
   const [row] = await tx
@@ -49,4 +61,57 @@ export async function nextDocumentNumber(
       message: `numbering series ${seriesCode} unavailable`,
     })
   return `${row.prefix}${String(row.nextNo - 1).padStart(4, '0')}`
+}
+
+/** The current tenant's row for one series and FY — its prefix and the number it issues next — or null before first use. */
+export async function readDocumentSeries(
+  tx: Db,
+  seriesCode: SeriesCode,
+  now: Date = new Date(),
+): Promise<{ prefix: string; nextNo: number } | null> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ prefix: numberingSeries.prefix, nextNo: numberingSeries.nextNo })
+    .from(numberingSeries)
+    .where(
+      and(
+        eq(numberingSeries.tenantId, tenantId),
+        eq(numberingSeries.seriesCode, seriesCode),
+        eq(numberingSeries.fy, numberingYear(now)),
+      ),
+    )
+    .limit(1)
+  return row ?? null
+}
+
+/**
+ * Moves a series FORWARD so the next number it issues is at least `nextNo` — never backwards (the 0013
+ * guard refuses that under an app actor anyway). It is the repair a module makes when its own register
+ * already holds the number the counter just handed out (a restored backup, a reseed, a counter healed by
+ * hand): called in the transaction that drew that number, while `nextDocumentNumber`'s row lock is still
+ * held, so no other caller can issue in between. Returns the counter's new `next_no`.
+ */
+export async function advanceDocumentSeries(
+  tx: Db,
+  seriesCode: SeriesCode,
+  nextNo: number,
+  now: Date = new Date(),
+): Promise<number> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .update(numberingSeries)
+    .set({ nextNo: sql`GREATEST(${numberingSeries.nextNo}, ${nextNo})`, updatedAt: new Date() })
+    .where(
+      and(
+        eq(numberingSeries.tenantId, tenantId),
+        eq(numberingSeries.seriesCode, seriesCode),
+        eq(numberingSeries.fy, numberingYear(now)),
+      ),
+    )
+    .returning({ nextNo: numberingSeries.nextNo })
+  if (!row)
+    throw new ORPCError('INTERNAL_SERVER_ERROR', {
+      message: `numbering series ${seriesCode} unavailable`,
+    })
+  return row.nextNo
 }

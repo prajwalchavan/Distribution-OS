@@ -152,3 +152,34 @@ architect design it already has, whether it needs one, its files and its test. O
 `fable-brief.md`. Findings that already have an architect design (the nine held plans, and DOS-115, 131, 126, 117, 132, 133, 116, 146 in
 `QA/evidence/batch1/held-review-brief.md`) go to Opus implementation in worktree lanes, test-first with an adversarial verifier. The rest
 wait for the architect (Fable) to answer `fable-brief.md`, DOS-164 first. Then the five A.12 regressions.
+
+Process change (founder, 2026-09-13, option "A"): Fable runs as helper agents from the Opus session. Every batch-2 plan gets a Fable
+sign-off before it is built (`QA/evidence/batch2/verdicts/<id>.md`: approve / approve with lettered binding amendments / reject). Every
+lane gets a Fable review of its combined diff before it merges into main. Planners, builders, verifiers and walkers stay on Opus. The nine
+held plans already carry Fable's 2026-09-13 07:40 verdicts, so they went straight to build (run `wf_beb0d5ef-504`).
+
+Lean mode for P2/P3 (founder, 2026-09-13: "yes for lean mode"). P0 and P1 keep the full process: plan, adversarial review, Fable
+sign-off, build, verify. P2 and P3 are grouped by app, with one Opus builder and one Opus verifier per group of five to eight and no
+separate planning step. Copy-only or layout-only P3 fixes may run on Sonnet. Fable designs the ones that need a decision. One full A.12
+regression runs at the end of batch 2, and phones are walked only where a fix changes a phone screen. If overall weekly usage passes
+about 70% by Wednesday, work stops after P0/P1 and its regression, and P2/P3 resume after the Saturday 11:30 IST reset.
+
+Added to batch 2 (founder, 2026-09-13: "approved"): **DOS-166** (P0, security). A salesperson recorded a money receipt through
+`/sync/upload`, which the HTTP matrix refuses (QA/findings/12-batch2-new-findings.md). Fable writes the design
+(QA/evidence/batch2/verdicts/DOS-166-design.md), which serves as the signed-off plan; Opus builds and verifies it ahead of the remaining
+P1. Approved in the same answer, the architect defaults of the batch-2 sign-offs:
+- the accountant cannot change orders (DOS-115)
+- confirm applies only rates approved since the draft (DOS-126)
+- trip cheques wait for settlement (DOS-132)
+- expired desk returns are booked as damaged (DOS-116)
+- an emptied trip-start cash field means a ₹0 float (DOS-146)
+- a warehouse-app load sheet is always for one trip (DOS-131+137)
+All are recorded in docs/22 §8.
+
+Approved next (founder, 2026-09-13: "Approved"), the sign-off-2 defaults:
+- Order again repeats the shop's last placed order, never a draft (DOS-098)
+- the accountant views M3, M4 and M16 and changes nothing there, and still captures supplier bills (DOS-037)
+- only the owner and the manager add stock or record opening stock; arrivals come through a GRN (DOS-044)
+- the accountant is not a stock adder (DOS-044)
+- no large-reduction confirm until after DOS-164 (DOS-044)
+These are also recorded in docs/22 §8. Usage limit: the session limit stopped five agents at 10:43 IST; they were relaunched at 12:25 after the reset.

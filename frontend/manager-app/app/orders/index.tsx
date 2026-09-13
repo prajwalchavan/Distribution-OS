@@ -17,6 +17,7 @@
 import type { Order } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
+  billLineQty,
   Button,
   Chips,
   Dialog,
@@ -301,22 +302,26 @@ export default function OrderQueue(): React.JSX.Element {
   const gated = new Set(
     pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
   )
+  /* The shop, the order number and its total are read from the approval's own order (DOS-004), not its payload. */
   const waiting = [
     ...pending.map((row) => {
-      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
       return bargain === undefined
         ? {
             id: row.id,
             kind: 'approval' as const,
-            what: orderNo ?? word(row.kind),
+            what:
+              [row.retailerName, row.orderNo].filter((p): p is string => p !== null).join(' · ') ||
+              word(row.kind),
             why: word(row.kind),
-            amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+            amount: row.orderTotalPaise,
           }
         : {
             id: row.id,
             kind: 'approval' as const,
-            what: orderNo ?? names.retailer(bargain.retailerId),
+            what: [row.retailerName ?? names.retailer(bargain.retailerId), row.orderNo]
+              .filter((p): p is string => p !== null)
+              .join(' · '),
             why: t('m2.askedRate'),
             amount: bargain.askedRatePaise,
           }
@@ -581,8 +586,11 @@ export default function OrderQueue(): React.JSX.Element {
                 <Stack gap={2}>
                   {order.lines.map((line) => (
                     <Stack key={line.id} gap={1} border="bottom" borderTone="faint" padY={2}>
-                      <Txt field="body" desk="cell" numberOfLines={1}>
-                        {`${String(line.enteredQty)} ${word(line.enteredUnit)} · ${String(line.qtyPcs)} ${word('pcs')}`}
+                      <Txt field="body" desk="cell" numberOfLines={2}>
+                        {line.variantName}
+                      </Txt>
+                      <Txt field="label" desk="meta" color={colors.text.secondary}>
+                        {billLineQty(line, t)}
                       </Txt>
                       {/*
                         A rule without a `rewardKind` (an override, a bargain) has no reward WORD,

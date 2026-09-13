@@ -46,6 +46,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { today } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
+import { useGodownStock } from '../src/lib/stock'
 import { Async, Panel } from '../src/lib/ui'
 
 /** One line as the screen holds it while it is being typed. Pieces are the state; cases are typing. */
@@ -94,24 +95,8 @@ export default function PlaceOrder(): React.JSX.Element {
       }),
     { enabled: signedIn, staleTime: 300_000 },
   )
-  const stock = useQuery(['sellable'], () => api.api.inventory.stock.sellable({ limit: 500 }), {
-    enabled: signedIn,
-    staleTime: 60_000,
-  })
-
-  /**
-   * Available-to-promise per item, summed across the distributor's locations.
-   *
-   * `stock.sellable` answers ONE ROW PER LOT PER LOCATION — the same item appears many times — so a
-   * screen that read the first row would tell a shop "1 pc left" of something the godown has cartons
-   * of. It is a hint, never a promise: the order is reserved when the distributor confirms it.
-   */
-  const available = useMemo(() => {
-    const totals = new Map<string, number>()
-    for (const row of stock.data?.items ?? [])
-      totals.set(row.variantId, (totals.get(row.variantId) ?? 0) + row.available)
-    return totals
-  }, [stock.data])
+  // Pieces left to promise per item at the godown; null = not known (src/lib/stock.ts, DOS-097).
+  const stock = useGodownStock()
 
   const items = catalog.data?.items ?? []
   const byVariant = useMemo(() => {
@@ -342,9 +327,25 @@ export default function PlaceOrder(): React.JSX.Element {
   const rest = items.filter((item) => !chosenIds.has(item.variantId))
 
   const totals = quote.data?.totals
-  const unpricedNames = chosen
-    .filter((row) => settled.some((line) => line.id === row.line.id) && !quoted.has(row.line.id))
-    .map((row) => row.item.name)
+  /*
+   * AN ITEM WITHOUT A GST RATE IS SAID, NOT HIDDEN (DOS-096).
+   *
+   * `pricing.quote` carries GST, and an item whose HSN has no rate on the day is a 400 that names the codes —
+   * for the whole request, as an unpriced item already is. On the one-piece list quote that left every row
+   * without a rate under "Prices could not be loaded just now", which no retry fixes. So the sentence naming
+   * the missing rate stands where the list was, and an order quote refused for the same reason does not
+   * call every item in it unpriced.
+   */
+  const listGstMissing = unratedHsnCodes(listQuote.error)
+  const orderGstMissing = unratedHsnCodes(quote.error)
+  const unpricedNames =
+    orderGstMissing !== null
+      ? []
+      : chosen
+          .filter(
+            (row) => settled.some((line) => line.id === row.line.id) && !quoted.has(row.line.id),
+          )
+          .map((row) => row.item.name)
 
   const askItem = askVariant === null ? undefined : byVariant.get(askVariant)
   const askLine = priced.find((line) => line.variantId === askVariant)
@@ -361,7 +362,7 @@ export default function PlaceOrder(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {quote.isFetching ? t('r7.pricing') : t('r7.net')}
             </Txt>
-            <Money value={totals?.netPaise ?? null} size="moneyL" />
+            <Money value={totals?.totalPaise ?? null} size="moneyL" />
           </Stack>
           <Button
             label={t('r7.place')}
@@ -388,7 +389,7 @@ export default function PlaceOrder(): React.JSX.Element {
                   {failure}
                 </Txt>
               )}
-              {listQuote.error === undefined ? null : (
+              {listQuote.error === undefined || listGstMissing !== null ? null : (
                 <Txt
                   field="body"
                   desk="body"
@@ -396,6 +397,16 @@ export default function PlaceOrder(): React.JSX.Element {
                   testID="r7-rates-failed"
                 >
                   {t('r7.ratesFailed')}
+                </Txt>
+              )}
+              {orderGstMissing === null || listGstMissing !== null ? null : (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.status.ochre.fg}
+                  testID="r7-order-no-gst-rate"
+                >
+                  {t('r7.noGstRate', { name: distributor, codes: orderGstMissing.join(', ') })}
                 </Txt>
               )}
               {unpricedNames.length === 0 ? null : (
@@ -429,7 +440,7 @@ export default function PlaceOrder(): React.JSX.Element {
                         key={line.id}
                         item={item}
                         pieces={line.qtyPcs}
-                        availablePieces={available.get(item.variantId) ?? null}
+                        availablePieces={stock.availableOf(item.variantId)}
                         quoted={quoted.get(line.id)}
                         standing={listRates.get(item.variantId)}
                         onChange={(pieces) => {
@@ -454,7 +465,14 @@ export default function PlaceOrder(): React.JSX.Element {
                       label={t('r7.discount')}
                       value={-(totals.discountPaise + totals.bargainPaise)}
                     />
-                    <TotalRow label={t('r7.net')} value={totals.netPaise} strong />
+                    {/* The order's own GST and rounding, from the quote — the figures the placed order stores
+                        (DOS-096). The bill re-reads GST on its own date, so a rate change in between moves it. */}
+                    <TotalRow label={t('r7.beforeGst')} value={totals.netPaise} />
+                    <TotalRow label={t('r7.gst')} value={totals.taxPaise} />
+                    {totals.roundOffPaise === 0 ? null : (
+                      <TotalRow label={t('r7.roundOff')} value={totals.roundOffPaise} />
+                    )}
+                    <TotalRow label={t('r7.net')} value={totals.totalPaise} strong />
                     {(quote.data?.cashDiscountPaise ?? 0) > 0 ? (
                       <Txt
                         field="label"
@@ -513,23 +531,34 @@ export default function PlaceOrder(): React.JSX.Element {
                             : 'results'
                     }
                   />
-                  <Group>
-                    {rest.map((item) => (
-                      <OrderRow
-                        key={item.variantId}
-                        item={item}
-                        pieces={0}
-                        availablePieces={available.get(item.variantId) ?? null}
-                        quoted={undefined}
-                        standing={listRates.get(item.variantId)}
-                        onChange={(pieces) => {
-                          setQty(item.variantId, pieces)
-                        }}
-                        onAsk={undefined}
-                      />
-                    ))}
-                  </Group>
-                  {rest.length === 0 && chosen.length === 0 ? (
+                  {listGstMissing !== null ? (
+                    <Txt
+                      field="body"
+                      desk="body"
+                      color={colors.status.ochre.fg}
+                      testID="r7-no-gst-rate"
+                    >
+                      {t('r7.noGstRate', { name: distributor, codes: listGstMissing.join(', ') })}
+                    </Txt>
+                  ) : (
+                    <Group>
+                      {rest.map((item) => (
+                        <OrderRow
+                          key={item.variantId}
+                          item={item}
+                          pieces={0}
+                          availablePieces={stock.availableOf(item.variantId)}
+                          quoted={undefined}
+                          standing={listRates.get(item.variantId)}
+                          onChange={(pieces) => {
+                            setQty(item.variantId, pieces)
+                          }}
+                          onAsk={undefined}
+                        />
+                      ))}
+                    </Group>
+                  )}
+                  {listGstMissing === null && rest.length === 0 && chosen.length === 0 ? (
                     <Txt
                       field="body"
                       desk="body"
@@ -610,6 +639,22 @@ export default function PlaceOrder(): React.JSX.Element {
       />
     </Screen>
   )
+}
+
+/**
+ * The HSN codes a refused quote names when their GST rate is missing (DOS-096), else null. The service sends
+ * them as `data.hsnCodes` on its 400; any other refusal keeps the screen's own sentence for it.
+ */
+function unratedHsnCodes(
+  error: { status: number; data: unknown } | undefined,
+): readonly string[] | null {
+  if (error === undefined || error.status !== 400) return null
+  const { data } = error
+  if (typeof data !== 'object' || data === null) return null
+  const codes = (data as { hsnCodes?: unknown }).hsnCodes
+  if (!Array.isArray(codes) || codes.length === 0) return null
+  const named = codes.filter((code): code is string => typeof code === 'string')
+  return named.length === codes.length ? named : null
 }
 
 function TotalRow({
@@ -737,7 +782,7 @@ function OrderRow({
             dash — which on a phone sits at the top right of the row and reads like a control next to
             the stepper's own "−". The row already says "Not ordered".
           */}
-          {pieces > 0 ? <Money value={quoted?.lineNetPaise ?? null} size="moneyM" /> : null}
+          {pieces > 0 ? <Money value={quoted?.lineTotalPaise ?? null} size="moneyM" /> : null}
           {scheme === undefined ? null : <StatusChip label={scheme} family="clay" figure />}
         </Stack>
       </Row>

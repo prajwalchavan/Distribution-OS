@@ -74,7 +74,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/visits` | Visits by retailer / rep / period | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
-| GET | `/inventory/sellable` | Available-to-promise stock (the only stock surface for reps and retailers) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
@@ -5253,7 +5254,7 @@ request.json
 
 ### GET `/inventory/sellable`
 
-Available-to-promise stock (the only stock surface for reps and retailers) · contract `inventory.stock.sellable`
+Available-to-promise stock per lot per location · contract `inventory.stock.sellable`
 
 **Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
 
@@ -5290,6 +5291,91 @@ curl "http://localhost:3004/inventory/sellable?variantId=01a06df0-2faf-79a2-8456
       "variantName": "Campa Cola 750 ml",
       "productName": "Campa Cola 750 ml",
       "brandName": "Campa Cola 750 ml"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "warehouse-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/inventory/availability`
+
+Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) · contract `inventory.stock.availability`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `variantId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/inventory/availability?variantId=01a06df0-2faf-79a2-8456-92042e49f147&limit=500" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "available": 1
     }
   ],
   "nextCursor": null
@@ -8714,6 +8800,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -8915,6 +9002,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9123,6 +9211,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9315,6 +9404,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9517,6 +9607,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9730,6 +9821,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9919,6 +10011,7 @@ curl "http://localhost:3004/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -10203,7 +10296,11 @@ curl "http://localhost:3004/approvals?status=pending&orderId=01a06d67-52a6-70c4-
       "decidedBy": null,
       "decidedAt": null,
       "decisionNote": "Confirmed on phone with the shopkeeper",
-      "createdAt": "2026-09-04T10:30:00.000Z"
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "orderNo": "SO-0042",
+      "orderTotalPaise": 2680000,
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text"
     }
   ],
   "nextCursor": null
@@ -10350,6 +10447,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -21911,6 +22009,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -32680,6 +32779,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -33678,6 +33778,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `inventory.locations.list` | – | – | – | – | ✓ | – | – |
 | `inventory.locations.upsert` | – | – | – | – | ✓ | – | – |
 | `inventory.stock.sellable` | – | – | – | – | ✓ | – | – |
+| `inventory.stock.availability` | – | – | – | – | ✓ | – | – |
 | `inventory.stock.balances` | – | – | – | – | ✓ | – | – |
 | `inventory.stock.adjust` | – | – | – | – | ✓ | – | – |
 | `inventory.stock.transfer` | – | – | – | – | ✓ | – | – |

@@ -11,26 +11,34 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createPlatformClient } from './platform-client.js'
+import { PlatformSessionStore } from './session.js'
 import { memoryTokenStorage } from './storage.js'
 
 const DEVICE = '01924f9a-0000-7000-8000-000000000009'
 const GRANT = '01a077fc-0754-7428-b0fb-8e66432d8892'
 
-function platformPair(accessToken: string, refreshToken: string): unknown {
+const USER = {
+  id: 'fc49cfb2-2ff4-78cb-a9a4-2d71a738b199',
+  name: 'Rohit Nair',
+  username: 'dos.admin',
+  mustChangePassword: false,
+  locale: 'en-IN',
+}
+
+function platformPair(
+  accessToken: string,
+  refreshToken: string,
+  level: 'super' | 'support' | 'billing' = 'super',
+): unknown {
   return {
     accessToken,
     tokenType: 'Bearer',
     accessExpiresIn: 900,
     refreshToken,
     refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
-    user: {
-      id: 'fc49cfb2-2ff4-78cb-a9a4-2d71a738b199',
-      name: 'Rohit Nair',
-      username: 'dos.admin',
-      mustChangePassword: false,
-      locale: 'en-IN',
-    },
+    user: USER,
     role: 'platform_admin',
+    level,
   }
 }
 
@@ -202,5 +210,45 @@ describe('support window', () => {
     expect(read?.authorization).toBe('Bearer access-1')
     // The pass is minted on auth-service, which is the only process holding the signing key.
     expect(calls.some((call) => call.path === '/auth/platform/support-pass')).toBe(true)
+  })
+})
+
+describe('console level (DOS-106)', () => {
+  it('DOS-106: keeps the console level from the sign-in and refresh replies, and restores a session saved before the level existed with no level', async () => {
+    let expired = true
+    stubFetch((call) => {
+      if (call.path === '/auth/platform/login') {
+        return json(platformPair('access-1', 'refresh-1', 'support'))
+      }
+      if (call.path === '/auth/platform/refresh') {
+        expired = false
+        return json(platformPair('access-2', 'refresh-2', 'billing'))
+      }
+      if (call.path === '/admin/tenants') {
+        if (expired) return json({ message: 'Sign in to continue' }, 401)
+        return json({ items: [], nextCursor: null })
+      }
+      return json({}, 404)
+    })
+    const c = console_()
+    const session = await c.signIn({ username: 'dos.support', password: 'Dos@1234' })
+    expect(session.level).toBe('support')
+    expect(c.session.getSnapshot().session?.level).toBe('support')
+
+    // A refresh settles the level as the server reads it NOW, so a changed level reaches the console
+    // at its next refresh rather than at its next sign-in.
+    await c.api.admin.tenants.list({ limit: 50 })
+    expect(c.session.accessToken).toBe('access-2')
+    expect(c.session.getSnapshot().session?.level).toBe('billing')
+
+    // A snapshot written by a build from before the level existed restores with NO level (null, not
+    // undefined), so every level-gated control stays hidden until the boot refresh fills it in.
+    const storage = memoryTokenStorage(DEVICE)
+    storage.setRefreshToken('refresh-from-an-older-build')
+    storage.setItem('dos.auth.session', JSON.stringify({ user: USER, role: 'platform_admin' }))
+    const restored = new PlatformSessionStore(storage).getSnapshot()
+    expect(restored.hydrating).toBe(true)
+    expect(restored.session?.user.username).toBe('dos.admin')
+    expect(restored.session?.level).toBeNull()
   })
 })
