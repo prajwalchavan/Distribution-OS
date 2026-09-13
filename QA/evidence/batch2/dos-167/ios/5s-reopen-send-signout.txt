@@ -1,0 +1,21 @@
+## step5s restart sales-service on dos_qa 02:24:04
+sales-service :3003 /health 200 at 02:24:06
+## reopen the sales app after the second crash 02:24:06
+02:24:14 SIGNED-IN screen (the crashed sign-out left amit signed in): Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Godrej Hill|Today's beat|Shops: 10|Visited: 0|Ordered: 0|✓ Godrej Hill = 1|Kolsewadi|Birla College Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit|Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit|New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, —, To visit|City Light Provision, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit|Metro Kirana Bazar, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit|Vertical scroll bar, 2 pages = 0%|Horizontal scroll bar, 1 page = 0%|Beat|Orders|Shops|Me|gearshape.fill|
+02:24:16 not-acked=0 strip: Updated just now
+1|01a09c85-de3c-718a-a3c3-eb59744ec130|acked
+2|01a09c85-de5c-7367-8b5f-d52a5913a8b9|acked
+3|01a09c8b-5486-730e-b4c7-bfedf3eda34f|acked
+4|01a09c8b-54a7-774a-95dc-63b42c0d7ce2|acked
+## amit signs out with nothing queued (expect one tap, no sheet, file deleted) 02:24:16
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+sign-in form after ~1s (no sheet)
+$ find "$C" -path '*SQLite*' -name 'dos-*'   02:24:22
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery.db-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse.db-shm
+(end of find)

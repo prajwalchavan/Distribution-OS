@@ -1,0 +1,50 @@
+## 4-amit sign-in as amit.pawar on the same Expo Go sandbox (no keychain reset, no reinstall) 02:12:52
+$ ios-drive.mjs setclass XCUIElementTypeTextField 0 amit.pawar
+set XCUIElementTypeTextField 0 = amit.pawar
+$ ios-drive.mjs setclass XCUIElementTypeSecureTextField 0 Dos@1234
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+$ ios-drive.mjs tap "Sign in" 1   (index 1: element 0 is the screen heading, the button is the next one)
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 02:12:57 (1789332177.478741)
+early page source dumped at +5.187s -> 4-amit-early-src.xml
+--- A-marker grep over the early page source (expect 0 for every marker)
+Sai Distributors: 0
+Manpada Road: 0
+Om Sai Provision: 0
+Sai Krupa: 0
+Dombivli: 0
+Chavan Kirana: 0
+Iyer Provision: 0
+SO-0875: 0
+Khadakpada: 0
+--- early visible labels (first 30)
+label="Expo Go"
+label="More"
+label="Tarsun Enterprise logo"
+label="Tarsun Enterprise"
+label="salesperson"
+label="Updated just now"
+label="Godrej Hill"
+label="Today's beat"
+label="Shops: 10"
+label="Visited: 0"
+label="Ordered: 0"
+label="✓ Godrej Hill"
+label="Kolsewadi"
+label="Birla College Road"
+label="Vertical scroll bar, 2 pages"
+label="Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, 394334 rupees, To visit"
+label="Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To visit"
+label="New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, 131361 rupees, To visit"
+label="City Light Provision, Godrej Hill, Kalyan West · your last order 11 Sep, 29824 rupees, To visit"
+label="Metro Kirana Bazar, Godrej Hill, Kalyan West · your last order 11 Sep, 39300 rupees, To visit"
+label="Friends Corner Stores, Godrej Hill, Kalyan West · your last order 31 Jul, 25537 rupees, To visit"
+label="Sharma Kirana Stores, Godrej Hill, Kalyan West · your last order 7 Sep, 32464 rupees, To visit"
+label="Rukmini Provision, Godrej Hill, Kalyan West · your last order 11 Sep, 121841 rupees, To visit"
+label="Gavhane Kirana, Godrej Hill, Kalyan West · your last order 12 Sep, 38056 rupees, To visit"
+label="Shubhalabh Stores, Godrej Hill, Kalyan West · your last order 4 Sep, 33348 rupees, To visit"
+label="Horizontal scroll bar, 1 page"
+label="Beat"
+label="Orders"
+label="Shops"
+label="Me"

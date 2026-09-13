@@ -1,0 +1,35 @@
+## step4b amit checks 02:13:03
+iOS Save Password sheet -> Not Now
+tapped "Not Now" Button at 201,812 (1 of 1)
+strip 'Updated just now' at 02:13:06
+beat labels: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Godrej Hill|Today's beat|Shops: 10|Visited: 0|Ordered: 0|✓ Godrej Hill = 1|Kolsewadi|Birla College Road|
+$ ios-drive.mjs has "Godrej Hill"  (amit's own beat)
+YES
+exit 0
+tapped "Shops" Other at 252,806 (1 of 1)
+$ ios-drive.mjs has "Shops: 29"
+YES
+exit 0
+chip: Shops: 29 
+tapped "Orders" Other at 151,806 (1 of 1)
+orders labels: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|My orders|Waiting: 0|Drafts: 2|Orders|Needs you|Travelling = radio button|All = radio button|Drafts = radio button|SO-0872, 12 Sep, 90319 rupees, Being picked|SO-0869, 12 Sep, 7076 rupees, Packed|SO-0876, 12 Sep, 18027 rupees, Packed|SO-0870, 12 Sep, 7361 rupees, Confirmed|SO-0866, 11 Sep, 26581 rupees, On the van|Vertical scroll bar, 2 pages = 0%|
+$ ios-drive.mjs tap "All"
+tapped "All" Other at 164,400 (1 of 1)
+$ ios-drive.mjs has "SO-0875"   (must exit 1)
+NO
+exit 1
+--- A-marker grep over beat + shops + orders-all labels (expect 0)
+Sai Distributors: 0
+Manpada Road: 0
+Om Sai Provision: 0
+Sai Krupa: 0
+Dombivli: 0
+Chavan Kirana: 0
+Iyer Provision: 0
+SO-0875: 0
+Khadakpada: 0
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:13:26
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+(end of find)

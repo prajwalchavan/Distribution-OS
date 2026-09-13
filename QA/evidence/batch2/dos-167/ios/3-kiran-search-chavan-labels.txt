@@ -1,0 +1,51 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 231x27]	Sai Distributors, Dombivli
+StaticText	[22,93 20x23]	SD
+StaticText	[56,108 231x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x27]	Shops
+StaticText	[24,222 94x27]	Shops: 24
+Other	[16,277 124x70]	Shops
+Other	[139,277 124x70]	Losing
+Other	[262,277 125x70]	Catalog
+SearchField	[17,364 368x68]	 = Chavan
+StaticText	[16,440 370x23]	Nothing matches "Chavan" = Nothing matches "Chavan"
+Button	[16,470 370x70]	Add as new item
+StaticText	[122,579 158x23]	Nothing matches that
+Other	[369,261 30x510]	Vertical scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[301,771 101x70]	Me
+Key	[0,590 41x46]	Q
+Key	[40,590 41x46]	W
+Key	[80,590 41x46]	E
+Key	[120,590 41x46]	R
+Key	[160,590 42x46]	T
+Key	[201,590 41x46]	Y
+Key	[241,590 41x46]	U
+Key	[281,590 41x46]	I
+Key	[321,590 41x46]	O
+Key	[361,590 41x46]	P
+Key	[19,644 41x46]	A
+Key	[60,644 41x46]	S
+Key	[100,644 41x46]	D
+Key	[140,644 41x46]	F
+Key	[181,644 41x46]	G
+Key	[221,644 41x46]	H
+Key	[261,644 41x46]	J
+Key	[301,644 41x46]	K
+Key	[341,644 42x46]	L
+Button	[0,698 52x46]	shift = 1
+Key	[60,698 41x46]	Z
+Key	[100,698 41x46]	X
+Key	[140,698 41x46]	C
+Key	[181,698 41x46]	V
+Key	[221,698 41x46]	B
+Key	[261,698 41x46]	N
+Key	[301,698 41x46]	M
+Key	[350,698 52x46]	delete
+Key	[0,752 101x46]	numbers
+Key	[100,752 202x46]	space
+Button	[301,752 101x46]	return
+Button	[8,805 69x70]	Emoji
+Button	[325,805 69x70]	Dictate

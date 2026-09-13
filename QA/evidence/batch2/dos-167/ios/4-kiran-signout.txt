@@ -1,0 +1,13 @@
+## step4a kiran signs out through the product 02:12:07
+$ ios-drive.mjs tap "Beat"  (closes the search keyboard first)
+tapped "Beat" Other at 51,806 (1 of 1)
+$ ios-drive.mjs tap "More"
+tapped "More" Button at 352,105 (1 of 1)
+menu: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|Settings|My account|Change your password|Sign out|Close|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (the Sign out row; the menu is one aggregated accessibility element)
+tapped 150 723
+sign-in form visible after ~1s
+after: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:12:17
+(end of find)
+NOTE 02:12:52: kiran's sign-out above is complete; the shell line that followed stopped on a zsh '=====' expansion before amit's sign-in, which starts now from the same sign-in form.

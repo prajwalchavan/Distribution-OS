@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AppiumAUT>
+  <XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Expo Go" label="Expo Go" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="" processId="33010" bundleId="host.exp.Exponent">
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="148" index="0" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="3" traits=""/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="More" label="More" enabled="true" visible="false" accessible="true" x="317" y="70" width="69" height="69" index="4" traits="Button"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="88" width="32" height="33" index="5" traits="">
+                          <XCUIElementTypeImage type="XCUIElementTypeImage" name="Tarsun Enterprise logo" label="Tarsun Enterprise logo" enabled="true" visible="false" accessible="false" x="16" y="88" width="32" height="33" index="0" traits="Image"/>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Tarsun Enterprise" name="Tarsun Enterprise" label="Tarsun Enterprise" enabled="true" visible="false" accessible="false" x="56" y="82" width="161" height="27" index="6" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Tarsun Enterprise" name="Tarsun Enterprise" label="Tarsun Enterprise" enabled="true" visible="false" accessible="true" x="56" y="82" width="161" height="27" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="salesperson" name="salesperson" label="salesperson" enabled="true" visible="false" accessible="false" x="56" y="108" width="161" height="19" index="7" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="salesperson" name="salesperson" label="salesperson" enabled="true" visible="false" accessible="true" x="56" y="108" width="161" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="connection" label="Offline since 2:13 am · 2 waiting to send" enabled="true" visible="false" accessible="true" x="16" y="147" width="370" height="70" index="8" traits="Button">
+                          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="32" y="177" width="8" height="9" index="0" traits=""/>
+                        </XCUIElementTypeButton>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="216" width="402" height="69" index="9" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="216" width="402" height="555" index="10" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Prerna Super Market" name="Prerna Super Market" label="Prerna Super Market" enabled="true" visible="false" accessible="false" x="16" y="228" width="370" height="19" index="11" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Prerna Super Market" name="Prerna Super Market" label="Prerna Super Market" enabled="true" visible="false" accessible="true" x="16" y="228" width="370" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Order" name="Order" label="Order" enabled="true" visible="false" accessible="false" x="16" y="246" width="370" height="27" index="12" traits="Header, StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Order" name="Order" label="Order" enabled="true" visible="false" accessible="true" x="16" y="246" width="370" height="27" index="0" traits="Header, StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="284" width="402" height="378" index="13" traits="">
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="false" accessible="false" x="0" y="284" width="402" height="378" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="-2" width="402" height="2025" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="-2" width="402" height="2025" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="14" width="91" height="29" index="0" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Items: 1" name="Items: 1" label="Items: 1" enabled="true" visible="false" accessible="false" x="24" y="15" width="75" height="27" index="1" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Items: 1" name="Items: 1" label="Items: 1" enabled="true" visible="false" accessible="true" x="24" y="15" width="75" height="27" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="114" y="14" width="87" height="25" index="2" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="No signal" name="No signal" label="No signal" enabled="true" visible="false" accessible="false" x="122" y="15" width="71" height="23" index="3" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="No signal" name="No signal" label="No signal" enabled="true" visible="false" accessible="true" x="122" y="15" width="71" height="23" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="62" width="370" height="84" index="4" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Saved on this phone" name="Saved on this phone" label="Saved on this phone" enabled="true" visible="false" accessible="false" x="16" y="70" width="184" height="27" index="5" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Saved on this phone" name="Saved on this phone" label="Saved on this phone" enabled="true" visible="false" accessible="true" x="16" y="70" width="184" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." name="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." label="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." enabled="true" visible="false" accessible="false" x="16" y="100" width="370" height="37" index="6" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." name="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." label="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands." enabled="true" visible="false" accessible="true" x="16" y="100" width="370" height="37" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="Open the order" label="Open the order" enabled="true" visible="false" accessible="true" x="16" y="157" width="370" height="70" index="7" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="Back to the beat" label="Back to the beat" enabled="true" visible="false" accessible="true" x="16" y="238" width="370" height="70" index="8" traits="Button"/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="327" width="370" height="124" index="9" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="This order" name="This order" label="This order" enabled="true" visible="false" accessible="false" x="16" y="335" width="93" height="27" index="10" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="This order" name="This order" label="This order" enabled="true" visible="false" accessible="true" x="16" y="335" width="93" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="Clear" label="Clear" enabled="true" visible="false" accessible="true" x="16" y="373" width="370" height="70" index="11" traits="Button"/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="462" width="370" height="96" index="12" traits="">
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" name="line-f086f3e3-3697-7439-98d9-f20c231c110a" enabled="true" visible="false" accessible="false" x="17" y="463" width="368" height="94" index="0" traits=""/>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Campa Cola 1 L" label="Campa Cola 1 L" enabled="true" visible="false" accessible="true" x="29" y="475" width="344" height="70" index="1" traits="Button"/>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="593" width="370" height="66" index="13" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Add items" name="Add items" label="Add items" enabled="true" visible="false" accessible="false" x="16" y="601" width="93" height="27" index="14" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Add items" name="Add items" label="Add items" enabled="true" visible="false" accessible="true" x="16" y="601" width="93" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="On this phone: 171 items" name="On this phone: 171 items" label="On this phone: 171 items" enabled="true" visible="false" accessible="false" x="16" y="631" width="370" height="19" index="15" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="On this phone: 171 items" name="On this phone: 171 items" label="On this phone: 171 items" enabled="true" visible="false" accessible="true" x="16" y="631" width="370" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="670" width="370" height="70" index="16" traits="">
+                                  <XCUIElementTypeSearchField type="XCUIElementTypeSearchField" value="Search by item or brand" name="item-search" enabled="true" visible="false" accessible="true" x="17" y="671" width="368" height="68" index="0" placeholderValue="Search by item or brand" traits="SearchField"/>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="759" width="370" height="1027" index="17" traits="">
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="760" width="368" height="86" index="0" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 2 L" name="Campa Cola 2 L" label="Campa Cola 2 L" enabled="true" visible="false" accessible="false" x="29" y="768" width="215" height="23" index="1" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 2 L" name="Campa Cola 2 L" label="Campa Cola 2 L" enabled="true" visible="false" accessible="true" x="29" y="768" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="768" width="118" height="70" index="2" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="794" width="215" height="19" index="3" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="794" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="845" width="368" height="86" index="4" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 200 ml" name="Campa Cola 200 ml" label="Campa Cola 200 ml" enabled="true" visible="false" accessible="false" x="29" y="853" width="215" height="23" index="5" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 200 ml" name="Campa Cola 200 ml" label="Campa Cola 200 ml" enabled="true" visible="false" accessible="true" x="29" y="853" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="853" width="118" height="70" index="6" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="false" x="29" y="879" width="215" height="19" index="7" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="true" x="29" y="879" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="931" width="368" height="86" index="8" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 500 ml" name="Campa Cola 500 ml" label="Campa Cola 500 ml" enabled="true" visible="false" accessible="false" x="29" y="939" width="215" height="23" index="9" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 500 ml" name="Campa Cola 500 ml" label="Campa Cola 500 ml" enabled="true" visible="false" accessible="true" x="29" y="939" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="939" width="118" height="70" index="10" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="965" width="215" height="19" index="11" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="965" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1016" width="368" height="86" index="12" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 750 ml" name="Campa Cola 750 ml" label="Campa Cola 750 ml" enabled="true" visible="false" accessible="false" x="29" y="1024" width="215" height="23" index="13" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Cola 750 ml" name="Campa Cola 750 ml" label="Campa Cola 750 ml" enabled="true" visible="false" accessible="true" x="29" y="1024" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1024" width="118" height="70" index="14" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1050" width="215" height="19" index="15" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1050" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1101" width="368" height="87" index="16" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 1 L" name="Campa Lemon 1 L" label="Campa Lemon 1 L" enabled="true" visible="false" accessible="false" x="29" y="1109" width="215" height="23" index="17" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 1 L" name="Campa Lemon 1 L" label="Campa Lemon 1 L" enabled="true" visible="false" accessible="true" x="29" y="1109" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1109" width="118" height="70" index="18" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1135" width="215" height="19" index="19" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1135" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1186" width="368" height="87" index="20" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 2 L" name="Campa Lemon 2 L" label="Campa Lemon 2 L" enabled="true" visible="false" accessible="false" x="29" y="1194" width="215" height="23" index="21" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 2 L" name="Campa Lemon 2 L" label="Campa Lemon 2 L" enabled="true" visible="false" accessible="true" x="29" y="1194" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1194" width="118" height="70" index="22" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1220" width="215" height="19" index="23" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1220" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1272" width="368" height="86" index="24" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 200 ml" name="Campa Lemon 200 ml" label="Campa Lemon 200 ml" enabled="true" visible="false" accessible="false" x="29" y="1280" width="215" height="23" index="25" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 200 ml" name="Campa Lemon 200 ml" label="Campa Lemon 200 ml" enabled="true" visible="false" accessible="true" x="29" y="1280" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1280" width="118" height="70" index="26" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="false" x="29" y="1306" width="215" height="19" index="27" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="true" x="29" y="1306" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1357" width="368" height="87" index="28" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 500 ml" name="Campa Lemon 500 ml" label="Campa Lemon 500 ml" enabled="true" visible="false" accessible="false" x="29" y="1365" width="215" height="23" index="29" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 500 ml" name="Campa Lemon 500 ml" label="Campa Lemon 500 ml" enabled="true" visible="false" accessible="true" x="29" y="1365" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1365" width="118" height="70" index="30" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1391" width="215" height="19" index="31" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1391" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1443" width="368" height="86" index="32" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 750 ml" name="Campa Lemon 750 ml" label="Campa Lemon 750 ml" enabled="true" visible="false" accessible="false" x="29" y="1451" width="215" height="23" index="33" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Lemon 750 ml" name="Campa Lemon 750 ml" label="Campa Lemon 750 ml" enabled="true" visible="false" accessible="true" x="29" y="1451" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1451" width="118" height="70" index="34" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1477" width="215" height="19" index="35" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1477" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1528" width="368" height="86" index="36" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 1 L" name="Campa Orange 1 L" label="Campa Orange 1 L" enabled="true" visible="false" accessible="false" x="29" y="1536" width="215" height="23" index="37" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 1 L" name="Campa Orange 1 L" label="Campa Orange 1 L" enabled="true" visible="false" accessible="true" x="29" y="1536" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1536" width="118" height="70" index="38" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1562" width="215" height="19" index="39" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1562" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1613" width="368" height="87" index="40" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 2 L" name="Campa Orange 2 L" label="Campa Orange 2 L" enabled="true" visible="false" accessible="false" x="29" y="1621" width="215" height="23" index="41" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 2 L" name="Campa Orange 2 L" label="Campa Orange 2 L" enabled="true" visible="false" accessible="true" x="29" y="1621" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1621" width="118" height="70" index="42" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="false" x="29" y="1647" width="215" height="19" index="43" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 24 pc case" name="Campa · 24 pc case" label="Campa · 24 pc case" enabled="true" visible="false" accessible="true" x="29" y="1647" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="17" y="1699" width="368" height="86" index="44" traits=""/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 200 ml" name="Campa Orange 200 ml" label="Campa Orange 200 ml" enabled="true" visible="false" accessible="false" x="29" y="1707" width="215" height="23" index="45" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa Orange 200 ml" name="Campa Orange 200 ml" label="Campa Orange 200 ml" enabled="true" visible="false" accessible="true" x="29" y="1707" width="215" height="23" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Add a case" label="Add a case" enabled="true" visible="false" accessible="true" x="255" y="1707" width="118" height="70" index="46" traits="Button"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="false" x="29" y="1733" width="215" height="19" index="47" traits="StaticText">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Campa · 48 pc case" name="Campa · 48 pc case" label="Campa · 48 pc case" enabled="true" visible="false" accessible="true" x="29" y="1733" width="215" height="19" index="0" traits="StaticText"/>
+                                  </XCUIElementTypeStaticText>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="1821" width="370" height="43" index="18" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Note" name="Note" label="Note" enabled="true" visible="false" accessible="false" x="16" y="1829" width="44" height="27" index="19" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Note" name="Note" label="Note" enabled="true" visible="false" accessible="true" x="16" y="1829" width="44" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Note for the office" name="Note for the office" label="Note for the office" enabled="true" visible="false" accessible="false" x="16" y="1875" width="370" height="19" index="20" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Note for the office" name="Note for the office" label="Note for the office" enabled="true" visible="false" accessible="true" x="16" y="1875" width="370" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="1897" width="370" height="70" index="21" traits="">
+                                  <XCUIElementTypeTextField type="XCUIElementTypeTextField" label="" enabled="true" visible="false" accessible="true" x="17" y="1898" width="368" height="68" index="0" placeholderValue="" traits=""/>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Delivery instructions, a promise you made — it travels with the order" name="Delivery instructions, a promise you made — it travels with the order" label="Delivery instructions, a promise you made — it travels with the order" enabled="true" visible="false" accessible="false" x="16" y="1970" width="370" height="37" index="22" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Delivery instructions, a promise you made — it travels with the order" name="Delivery instructions, a promise you made — it travels with the order" label="Delivery instructions, a promise you made — it travels with the order" enabled="true" visible="false" accessible="true" x="16" y="1970" width="370" height="37" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="17%" name="Vertical scroll bar, 6 pages" label="Vertical scroll bar, 6 pages" enabled="true" visible="false" accessible="false" x="369" y="284" width="30" height="378" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="351" width="3" height="91" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="628" width="402" height="31" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="655" width="393" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="17%" name="Vertical scroll bar, 6 pages" label="Vertical scroll bar, 6 pages" enabled="true" visible="false" accessible="false" x="369" y="284" width="30" height="378" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="351" width="3" height="91" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="628" width="402" height="31" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="655" width="393" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="661" width="402" height="110" index="14" traits=""/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="place-order" label="Saved on this phone" enabled="false" visible="false" accessible="true" x="182" y="681" width="188" height="70" index="15" traits="NotEnabled, Button"/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Items 1 · ₹673.68 before GST" name="Items 1 · ₹673.68 before GST" label="Items 1 · ₹673.68 before GST" enabled="true" visible="false" accessible="false" x="32" y="707" width="139" height="19" index="16" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Items 1 · ₹673.68 before GST" name="Items 1 · ₹673.68 before GST" label="Items 1 · ₹673.68 before GST" enabled="true" visible="false" accessible="true" x="32" y="707" width="139" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="770" width="402" height="104" index="17" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Beat" label="Beat" enabled="true" visible="false" accessible="true" x="0" y="771" width="101" height="70" index="18" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Orders" label="Orders" enabled="true" visible="false" accessible="true" x="100" y="771" width="101" height="70" index="19" traits="Selected"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Shops" label="Shops" enabled="true" visible="false" accessible="true" x="201" y="771" width="101" height="70" index="20" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Me" label="Me" enabled="true" visible="false" accessible="true" x="301" y="771" width="101" height="70" index="21" traits=""/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                  </XCUIElementTypeOther>
+                </XCUIElementTypeOther>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" name="leave-sheet" label="2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="true" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" name="2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page" label="2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="0" y="417" width="402" height="457" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="185" y="433" width="32" height="4" index="0" traits=""/>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="874" width="402" height="233" index="1" traits=""/>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="3" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeImage type="XCUIElementTypeImage" name="gearshape.fill" label="gearshape.fill" enabled="true" visible="true" accessible="true" x="344" y="706" width="26" height="27" index="0" traits="Image"/>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+  </XCUIElementTypeApplication>
+</AppiumAUT>

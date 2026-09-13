@@ -1,0 +1,96 @@
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 976 ms - 49240
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 94 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 978 ms - 49240
+[42100c08][HTTP] --> POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions {"actions":[{"type":"pointer","id":"f1","parameters":{"pointerType":"touch"},"actions":[{"type":"pointerMove","duration":0,"x":281,"y":716},{"type":"pointerDown","button":0},{"type":"pause","duration":80},{"type":"pointerUp","button":0}]}]}
+[HTTP] <-- POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions 200 381 ms - 14
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 113 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1084 ms - 51372
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 115 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1054 ms - 51372
+[42100c08][HTTP] --> POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions {"actions":[{"type":"pointer","id":"f1","parameters":{"pointerType":"touch"},"actions":[{"type":"pointerMove","duration":0,"x":352,"y":105},{"type":"pointerDown","button":0},{"type":"pause","duration":80},{"type":"pointerUp","button":0}]}]}
+[HTTP] <-- POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions 200 743 ms - 14
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 128 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1226 ms - 58568
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 106 ms - 48
+[42100c08][HTTP] --> POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions {"actions":[{"type":"pointer","id":"f1","parameters":{"pointerType":"touch"},"actions":[{"type":"pointerMove","duration":0,"x":150,"y":723},{"type":"pointerDown","button":0},{"type":"pause","duration":80},{"type":"pointerUp","button":0}]}]}
+[HTTP] <-- POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions 200 736 ms - 14
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 118 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1147 ms - 54526
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 100 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1140 ms - 54526
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 99 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1162 ms - 54526
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 100 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1151 ms - 54526
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 99 ms - 48
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/source 200 1149 ms - 54526
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 200 139 ms - 48
+[42100c08][HTTP] --> POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions {"actions":[{"type":"pointer","id":"f1","parameters":{"pointerType":"touch"},"actions":[{"type":"pointerMove","duration":0,"x":201,"y":637},{"type":"pointerDown","button":0},{"type":"pause","duration":80},{"type":"pointerUp","button":0}]}]}
+[HTTP] <-- POST /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/actions 200 447 ms - 14
+[42100c08][HTTP] --> GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 
+[42100c08][XCUITestDriver@cd35] Got response with status 400: {"value":{"error":"invalid element state","message":"The application under test with bundle id 'host.exp.Exponent' is not running, possibly crashed","traceback":"(\n\t0   CoreFoundation                      0x00000001804b70ec __exceptionPreprocess + 172\n\t1   libobjc.A.dylib                     0x000000018008ede8 objc_exception_throw +
+[HTTP] <-- GET /session/42100c08-4449-40bd-bcf8-bbefd3fa01b2/window/rect 400 39 ms - 1630
+[HTTP] --> POST /session {"capabilities":{"alwaysMatch":{"platformName":"iOS","appium:automationName":"XCUITest","appium:udid":"DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74","appium:bundleId":"host.exp.Exponent","appium:noReset":true,"appium:autoAcceptAlerts":false,"appium:wdaLaunchTimeout":600000,"appium:wdaConnectionTimeout":600000,"appium:showXcodeLog":false,"appium:newCommandTimeout":1800}}}
+[Appium] Attempting to find matching driver for automationName 'XCUITest' and platformName 'iOS'
+[Appium] The 'xcuitest' driver was installed and matched caps.
+[Appium] Will require it at /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/node_modules/appium-xcuitest-driver
+[AppiumDriver@da8c] Appium v3.7.0 creating new XCUITestDriver (v12.10.0) session
+[AppiumDriver@da8c] Checking BaseDriver versions for Appium and XCUITestDriver
+[AppiumDriver@da8c] Appium's BaseDriver version is 10.8.0
+[AppiumDriver@da8c] XCUITestDriver's BaseDriver version is 10.8.0
+[XCUITestDriver@c9c9] 'platformVersion' capability ('undefined') is not a valid version number. Consider fixing it or be ready to experience an inconsistent driver behavior.
+[31e94ee7][XCUITestDriver@c9c9] Session created with session id: 31e94ee7-44a1-46ca-a4bb-1befc75f12ac
+[31e94ee7][XCUITest] RemoteXPC devices listing unavailable: Tunnel registry port not found. Please run the tunnel creation script first See https://appium.github.io/appium-xcuitest-driver/latest/guides/remotexpc-tunnels-real-devices/ Falling back to appium-ios-device.
+[31e94ee7][XCUITestDriver@c9c9] Constructing iOS simulator for Xcode version 16.2 with udid 'DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74'
+[31e94ee7][XCUITestDriver@c9c9] No platformVersion specified. Using device version: '18.0'
+[31e94ee7][XCUITestDriver@c9c9] Determining device to run tests on: udid: 'DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74', real device: false
+[31e94ee7][BaseDriver] Subscribing c9c98cd9-1618-40da-8779-280365de9c27 to topic 'xcuitest:sessionUdidClaimed'
+[31e94ee7][BaseDriver] Subscribing c9c98cd9-1618-40da-8779-280365de9c27 to topic 'xcuitest:sessionUdidContended'
+[31e94ee7][BaseDriver] Subscribing c9c98cd9-1618-40da-8779-280365de9c27 to topic 'xcuitest:sessionUdidReleased'
+[31e94ee7][XCUITestDriver@cd35] Session '31e94ee7-44a1-46ca-a4bb-1befc75f12ac' is starting on udid 'DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74', which is already in use by another session identified by 42100c08-4449-40bd-bcf8-bbefd3fa01b2. Running multiple parallel sessions on the same device is highly discouraged. Consider enabling the Appium server's '--session-override' flag and make sure to properly
+[31e94ee7][BaseDriver] Unsubscribing cd357396-f125-4a06-bd52-e12ad0cab892 from topic 'xcuitest:sessionUdidClaimed'
+[31e94ee7][XCUITestDriver@cd35] Releasing connections for DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 device on any port number
+[31e94ee7][XCUITestDriver@cd35] Found cached connections to release: ["DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74:8100","DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74:9100"]
+[31e94ee7][BaseDriver] Unsubscribing c9c98cd9-1618-40da-8779-280365de9c27 from topic 'xcuitest:sessionUdidContended'
+[31e94ee7][BaseDriver] Unsubscribing c9c98cd9-1618-40da-8779-280365de9c27 from topic 'xcuitest:sessionUdidReleased'
+[31e94ee7][XCUITestDriver@c9c9] Using WDA path: '/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent'
+[31e94ee7][XCUITestDriver@c9c9] Using WDA agent: '/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj'
+[31e94ee7][XCUITestDriver@c9c9] Setting up simulator
+[31e94ee7][XCUITestDriver@c9c9] Both Simulator with UDID 'DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74' and the UI client are currently running
+[31e94ee7][XCUITestDriver@c9c9] Requesting connection for device DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 on local port 8100
+[31e94ee7][XCUITestDriver@c9c9] Successfully requested the connection for DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74:8100
+[31e94ee7][XCUITestDriver@c9c9] Will reuse previously cached WDA instance at 'http://127.0.0.1:8100/' with 'com.facebook.WebDriverAgentRunner'. Set the wdaLocalPort capability to a value different from 8100 if this is an undesired behavior.
+[31e94ee7][XCUITestDriver@c9c9] Selected 'existing-url' WebDriverAgent startup strategy
+[31e94ee7][XCUITestDriver@c9c9] Using provided WebdriverAgent at 'http://127.0.0.1:8100/'
+[31e94ee7][XCUITestDriver@c9c9] Determined the downstream protocol as 'W3C'
+[31e94ee7][XCUITestDriver@c9c9] WDA session startup took 3394ms
+[31e94ee7][XCUITestDriver@c9c9] WebDriverAgent version: '16.12.1'
+[31e94ee7][XCUITestDriver@c9c9] Requesting connection for device DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 on local port 9100, device port 9100
+[31e94ee7][XCUITestDriver@c9c9] Successfully requested the connection for DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74:9100
+[31e94ee7][BaseDriver] Unsubscribing c9c98cd9-1618-40da-8779-280365de9c27 from topic 'xcuitest:sessionUdidClaimed'
+[31e94ee7][BaseDriver] Subscribing c9c98cd9-1618-40da-8779-280365de9c27 to topic 'xcuitest:sessionUdidClaimed'
+[31e94ee7][AppiumDriver@da8c] New XCUITestDriver session created successfully, session 31e94ee7-44a1-46ca-a4bb-1befc75f12ac added to master session list
+[HTTP] <-- POST /session 200 6169 ms - 568
+[31e94ee7][HTTP] --> GET /session/31e94ee7-44a1-46ca-a4bb-1befc75f12ac/source 
+[HTTP] <-- GET /session/31e94ee7-44a1-46ca-a4bb-1befc75f12ac/source 200 438 ms - 24427
+[31e94ee7][HTTP] --> GET /session/31e94ee7-44a1-46ca-a4bb-1befc75f12ac/window/rect 

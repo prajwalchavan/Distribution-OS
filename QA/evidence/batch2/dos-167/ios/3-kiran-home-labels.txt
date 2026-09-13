@@ -1,0 +1,28 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 231x27]	Sai Distributors, Dombivli
+StaticText	[22,93 20x23]	SD
+StaticText	[56,108 231x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	Manpada Road
+StaticText	[16,205 370x27]	Today's beat
+StaticText	[24,240 81x27]	Shops: 8
+StaticText	[129,240 87x27]	Visited: 0
+StaticText	[239,240 100x27]	Ordered: 0
+Button	[16,295 157x70]	✓ Manpada Road = 1
+Button	[191,295 113x70]	Tilak Nagar
+Button	[322,295 105x70]	Ayre Road
+Other	[353,295 30x70]	Vertical scroll bar, 2 pages = 0%
+SearchField	[17,381 368x68]	 = Search this beat
+Button	[16,473 370x72]	Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees, To visit
+Button	[16,544 370x71]	Om Sai Provision Store, Dombivli East · your last order 3 Sep, 94393 rupees, To visit
+Button	[16,614 370x71]	Mahalaxmi General Stores, Dombivli East · your last order 10 Sep, 38730 rupees, To visit
+Button	[16,684 370x71]	Sai Krupa Super Bazar, Dombivli East · your last order 7 Sep, 274724 rupees, To visit
+Button	[16,755 370x71]	Jai Bhavani Stores, Dombivli East · your last order 9 Sep, 137023 rupees, To visit
+Other	[369,279 30x492]	Vertical scroll bar, 2 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

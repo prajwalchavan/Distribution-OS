@@ -1,0 +1,28 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	Station Road
+StaticText	[16,205 370x27]	Today's beat
+StaticText	[24,240 94x27]	Shops: 10
+StaticText	[141,240 88x27]	Visited: 0
+StaticText	[252,240 100x27]	Ordered: 0
+Button	[16,295 141x70]	✓ Station Road = 1
+Button	[176,295 178x70]	Kalyan West Market
+Button	[372,295 122x70]	Khadakpada
+Other	[353,295 30x70]	Vertical scroll bar, 2 pages = 0%
+SearchField	[17,381 368x68]	 = Search this beat
+Button	[16,473 370x72]	Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit
+Button	[16,544 370x71]	Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, 69862 rupees 50 paise, To visit
+Button	[16,614 370x71]	Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, 36259 rupees, To visit
+Button	[16,684 370x71]	Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709 rupees, To visit
+Button	[16,755 370x71]	Jai Bhavani Stores, Station Road, Kalyan West · your last order 10 Sep, 11511 rupees, To visit
+Other	[369,279 30x492]	Vertical scroll bar, 2 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

@@ -1,0 +1,29 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 139x19]	Offline since 2:13 am
+StaticText	[16,187 370x19]	Prerna Super Market
+StaticText	[16,205 370x27]	Order
+StaticText	[16,296 93x27]	Add items
+StaticText	[16,326 370x19]	On this phone: 171 items
+SearchField	[17,365 368x68]	 = Search by item or brand
+StaticText	[29,462 215x23]	Campa Cola 2 L
+Button	[255,462 118x70]	Add a case
+StaticText	[29,488 215x19]	Campa · 24 pc case
+StaticText	[29,548 215x23]	Campa Cola 200 ml
+Button	[255,548 118x70]	Add a case
+StaticText	[29,574 215x19]	Campa · 48 pc case
+StaticText	[29,633 215x23]	Campa Cola 500 ml
+Button	[255,633 118x70]	Add a case
+StaticText	[29,659 215x19]	Campa · 24 pc case
+Other	[369,243 30x419]	Vertical scroll bar, 5 pages = 21%
+Other	[0,628 402x31]	Horizontal scroll bar, 1 page = 0%
+Button	[192,681 178x70]	Save on this phone
+StaticText	[32,707 149x19]	Items 1 · ₹673.68 before GST
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

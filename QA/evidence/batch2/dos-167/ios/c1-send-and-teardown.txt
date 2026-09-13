@@ -1,0 +1,62 @@
+## C1e restart sales-service on dos_qa 02:37:19
+sales-service :3003 /health 200 at 02:37:23
+02:37:24 not-acked=2 strip: Offline since 2:34 am · 2 waiting to send
+02:37:28 not-acked=2 strip: Offline since 2:34 am · 2 waiting to send
+02:37:31 not-acked=2 strip: Offline since 2:34 am · 2 waiting to send
+02:37:35 not-acked=2 strip: Offline since 2:34 am · 2 waiting to send
+02:37:38 not-acked=0 strip: Updated just now
+1|01a09c97-2fd2-731c-a7cb-5b993f1cb30b|acked
+2|01a09c97-2fea-7078-b25c-e1b8d499cc48|acked
+## C1 SQL after (dos_qa, read-only) 02:37:39
+                  id                  | state |   source    |  username  |        shop         |            created_at            
+--------------------------------------+-------+-------------+------------+---------------------+----------------------------------
+ 01a09c96-f431-747f-aec8-4927d17047d4 | draft | salesperson | amit.pawar | Prerna Super Market | 2026-09-14 02:37:35.709278+05:30
+(1 row)
+
+                op_id                 |   outcome    
+--------------------------------------+--------------
+ 01a09c97-2fd2-731c-a7cb-5b993f1cb30b | {"ok": true}
+ 01a09c97-2fea-7078-b25c-e1b8d499cc48 | {"ok": true}
+(2 rows)
+
+ amit_orders_total 
+-------------------
+               387
+(1 row)
+
+## C1f amit signs out with nothing queued 02:37:39
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+sign-in form after ~1s (no sheet)
+$ find "$C" -path '*SQLite*' -name 'dos-*'   02:37:45  (final device files)
+(end of find)
+$ ios-drive.mjs end
+ended
+## stop the sales Metro :5175 02:37:45
+kill 39888
+kill 39907
+kill 39909
+## xcrun simctl shutdown all 02:37:48
+booted devices: 0
+## Metro listeners
+5173: 0
+5174: 0
+5175: 0
+5176: 0
+5177: 0
+5178: 0
+5179: 0
+## services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+## worker: 16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm 
+## appium: "ready":true
+## git status --short
+?? QA/evidence/batch2/dos-167/ios/
+8758f70 QA batch 2: DOS-167 addendum (x) for the Android keep-path crash (S-128); S-126, S-127; approval request for DOS-168..173

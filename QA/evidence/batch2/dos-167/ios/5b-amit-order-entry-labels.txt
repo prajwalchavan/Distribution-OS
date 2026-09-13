@@ -1,0 +1,26 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 139x19]	Offline since 2:13 am
+StaticText	[16,187 370x19]	Prerna Super Market
+StaticText	[16,205 370x27]	Order
+StaticText	[24,260 75x27]	Items: 0
+StaticText	[122,260 71x23]	No signal
+Button	[16,307 370x70]	Repeat last order (6)
+StaticText	[16,404 93x27]	This order
+StaticText	[110,474 182x23]	Nothing on this order yet
+StaticText	[16,549 93x27]	Add items
+StaticText	[16,579 370x19]	On this phone: 171 items
+SearchField	[17,618 368x68]	 = Search by item or brand
+Other	[369,243 30x397]	Vertical scroll bar, 5 pages = 0%
+Other	[0,606 402x31]	Horizontal scroll bar, 1 page = 0%
+Button	[192,659 178x70]	(disabled) Save on this phone
+StaticText	[32,696 149x19]	Items 0 · ₹0.00 before GST
+StaticText	[192,732 178x19]	Add at least one item
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

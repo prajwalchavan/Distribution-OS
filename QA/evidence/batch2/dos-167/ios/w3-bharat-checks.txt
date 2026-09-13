@@ -1,0 +1,24 @@
+## W3 after bharat sign-in 02:31:02
+Save Password sheet -> Not Now
+tapped "Not Now" Button at 201,812 (1 of 1)
+strip 'Updated just now' at 02:31:07
+tapped "Pick" Other at 151,803 (1 of 1)
+home: Expo Go|More|Sai Distributors, Dombivli|SD|warehouse|Updated just now|Sai Distributors, Dombivli|Inbound|✓ Queues = 1|Capture|Stock|Counts|Vertical scroll bar, 2 pages = 0%|BILLS TO COUNT|WAVES OPEN|0|1|PACKED, NO BILL|SHEETS WAITING|0|1|GATE COUNTS WAITING|0 lines|Nothing at the gate|WAVES ON THE FLOOR|1 being picked · 0 waiting to start|Vertical scroll bar, 3 pages = 0%|Horizontal scroll bar, 1 page = 0%|
+pick: Expo Go|More|Sai Distributors, Dombivli|SD|warehouse|Updated just now|Sai Distributors, Dombivli|Pick|✓ Every beat = 1|Kopar Road|Ayre Road|Vertical scroll bar, 2 pages = 0%|ORDERS WAITING|Select all|Clear|0 selected · 0 pc|Thakurli Station Kirana, SO-0454 · Kopar Road · 243 pc, confirmed|Rajhans General Store, SO-0453 · Ayre Road · 537 pc, confirmed|Swami Samarth Stores, SO-9003 · Tilak Nagar · 2 pc, confirmed|Vertical scroll bar, 6 pages = 0%|Horizontal scroll bar, 1 page = 0%|Inbound|Pick|Pack|Load|gearshape.fill|
+--- A-marker grep over home + pick labels (expect 0)
+PICK-0078: 0
+Tarsun: 0
+Khadakpada: 0
+Station Road: 0
+SO-0877: 0
+SO-0873: 0
+Bhosale Traders: 0
+Kalyan West Market: 0
+$ ios-drive.mjs has "Khadakpada"  (must exit 1)
+NO
+exit 1
+$ find "$C" -path '*SQLite*' -name 'dos-warehouse*'   02:31:17
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+(end of find)

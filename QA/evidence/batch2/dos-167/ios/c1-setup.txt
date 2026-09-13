@@ -1,0 +1,37 @@
+## C1 (ruling 1 platform case 1: cold-start sign-out with a queued order) — reboot the simulator headlessly 02:33:00
+
+    iPhone 16 Pro (DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74) (Booted) 
+## C1a amit.pawar signs in (first sign-in of this simulator session: ios-login.mjs copy, keychain reset) 02:33:40
+SIGNED_IN sales amit.pawar | Expo Go | More | Tarsun Enterprise logo | Tarsun Enterprise | salesperson | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 1 | ✓ Godre
+strip 'Updated just now' at 02:34:30
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+## C1b stop sales-service (office unreachable) 02:34:30
+kill wrapper 36519
+kill 36534 36533
+:3003 health: 000
+02:34:34 strip: Updated just now
+02:34:40 strip: Updated just now
+02:34:45 strip: Updated just now
+02:34:51 strip: Updated just now
+02:34:56 strip: Updated just now
+02:35:02 strip: Updated just now
+02:35:08 strip: Updated just now
+02:35:13 strip: Updated just now
+02:35:19 strip: Updated just now
+02:35:25 strip: Offline since 2:34 am
+## C1c queue one order for Prerna Super Market 02:35:25
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+Button	[255,429 118x70]	Add a case
+Button	[255,515 118x70]	Add a case
+tapped "Add a case" Button at 314,464 (1 of 3)
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+after save: Offline since 2:34 am · 2 waiting to send|(disabled) Saved on this phone|
+--- outbox (read-only)
+1|01a09c97-2fd2-731c-a7cb-5b993f1cb30b|sales_orders|01a09c96-f431-747f-aec8-4927d17047d4|queued|3
+2|01a09c97-2fea-7078-b25c-e1b8d499cc48|sales_order_lines|01a09c97-1b3c-75b1-af31-628533d19241|queued|3

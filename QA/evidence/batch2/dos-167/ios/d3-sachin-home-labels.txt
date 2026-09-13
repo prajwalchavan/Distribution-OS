@@ -1,0 +1,27 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 231x27]	Sai Distributors, Dombivli
+StaticText	[22,93 20x23]	SD
+StaticText	[56,108 231x19]	delivery
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	TRIP-ACTIVE · 12 Sep 2026
+StaticText	[16,205 370x27]	Today's trip
+StaticText	[24,240 89x23]	On the road
+StaticText	[137,240 172x27]	3 of 10 stops done
+StaticText	[24,276 129x23]	MH-05-BQ-4471
+StaticText	[28,340 161x19]	STILL TO COLLECT
+StaticText	[214,340 160x19]	COLLECTED TODAY
+StaticText	[28,358 112x27]	85307 rupees
+StaticText	[214,358 56x27]	0 rupees
+StaticText	[28,409 161x19]	FLOAT AT START
+StaticText	[214,409 160x19]	STOPS
+StaticText	[28,427 100x27]	5000 rupees
+StaticText	[214,427 53x27]	3 / 10
+StaticText	[16,498 88x27]	Next stop
+Button	[17,545 368x92]	Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop
+StaticText	[36,593 204x19]	Shop 19, Nandivali, Dombivli East, Dombivli, 421201
+Other	[369,311 30x348]	Vertical scroll bar, 6 pages = 0%
+Other	[0,625 402x31]	Horizontal scroll bar, 1 page = 0%
+Button	[16,671 370x77]	Next stop
+Button	[16,759 370x70]	Check in the vehicle
+Image	[344,706 26x27]	gearshape.fill

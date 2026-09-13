@@ -1,0 +1,34 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 139x19]	Offline since 2:13 am
+StaticText	[16,187 370x19]	Godrej Hill · R-0031
+StaticText	[16,205 370x27]	Prerna Super Market
+StaticText	[24,240 156x27]	Owes ₹3,94,334
+StaticText	[204,240 149x27]	Limit ₹6,00,000
+StaticText	[24,276 183x27]	Overdue ₹2,85,331
+Other	[16,331 124x70]	Shop
+Other	[139,331 124x70]	Orders 25
+Other	[262,331 125x70]	Bills 9
+StaticText	[16,425 191x27]	How old the dues are
+StaticText	[16,455 370x19]	as of 14 Sep
+StaticText	[16,493 186x27]	Money owed, by age
+StaticText	[377,493 9x27]	₹
+StaticText	[16,531 56x19]	0–7
+StaticText	[265,527 121x27]	1,09,003.00
+StaticText	[16,563 56x19]	8–15
+StaticText	[265,559 121x27]	57,627.00
+StaticText	[16,595 56x19]	16–30
+StaticText	[265,591 121x27]	1,17,974.00
+Other	[369,315 30x287]	Vertical scroll bar, 7 pages = 0%
+Other	[0,568 402x31]	Horizontal scroll bar, 1 page = 0%
+StaticText	[32,621 145x19]	Your last order 11 Sep
+StaticText	[32,643 145x27]	73245 rupees
+Button	[32,681 338x70]	Take order
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

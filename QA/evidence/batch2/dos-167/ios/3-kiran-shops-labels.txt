@@ -1,0 +1,24 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 231x27]	Sai Distributors, Dombivli
+StaticText	[22,93 20x23]	SD
+StaticText	[56,108 231x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x27]	Shops
+StaticText	[24,222 94x27]	Shops: 24
+Other	[16,277 124x70]	Shops
+Other	[139,277 124x70]	Losing
+Other	[262,277 125x70]	Catalog
+SearchField	[17,364 368x68]	 = Search by name, code or phone
+Button	[16,456 370x70]	Aditya Provision, SD-0023 · Ayre Road · Dombivli East, 26033 rupees, C
+Button	[16,525 370x70]	Ambika Provision Store, SD-0009 · Tilak Nagar · Dombivli East, 109238 rupees, B
+Button	[16,594 370x70]	Anand General Store, SD-0014 · Tilak Nagar · Dombivli East, 4727 rupees, D
+Button	[16,663 370x70]	Ayre Road Super Market, SD-0021 · Ayre Road · Dombivli East, 39791 rupees, B
+Button	[16,732 370x70]	Balaji Wholesale Stores, SD-0010 · Tilak Nagar · Dombivli East, 670184 rupees, A
+Other	[369,261 30x510]	Vertical scroll bar, 4 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

@@ -1,0 +1,982 @@
+2026-09-14 02:18:11.326 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Received attributes request for element: App element pid: 33010. Attributes: (
+2026-09-14 02:18:11.326 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: about to CFRunLoopPerform
+2026-09-14 02:18:11.326 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting with 30.00s responsiveness timeout
+2026-09-14 02:18:11.326 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: inside CFRunLoopPerform
+2026-09-14 02:18:11.326 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: MT responded in time (won the race to the busy flag)
+2026-09-14 02:18:11.326 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting 60.00s for work to complete
+2026-09-14 02:18:11.326 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeFrame, XC_kAXXCAttributeWindowDisplayId, XC_kAXXCAttributeWindowContextId for App element pid: 33010
+2026-09-14 02:18:11.326 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Got attributes, transferring to dictionary for return.
+2026-09-14 02:18:11.326 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Replying with attribute values: {
+2026-09-14 02:18:11.327 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Received attributes request for element: App element pid: 33010. Attributes: (
+2026-09-14 02:18:11.327 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: about to CFRunLoopPerform
+2026-09-14 02:18:11.327 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting with 30.00s responsiveness timeout
+2026-09-14 02:18:11.327 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: inside CFRunLoopPerform
+2026-09-14 02:18:11.327 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: MT responded in time (won the race to the busy flag)
+2026-09-14 02:18:11.327 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting 60.00s for work to complete
+2026-09-14 02:18:11.327 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeElementType, XC_kAXXCAttributeElementBaseType, XC_kAXXCAttributeTraits, XC_kAXXCAttributeAutomationType for App element pid: 33010
+2026-09-14 02:18:11.327 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Got attributes, transferring to dictionary for return.
+2026-09-14 02:18:11.327 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] Replying with attribute values: {
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] Received attributes request for element: App element pid: 33010. Attributes: (
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: about to CFRunLoopPerform
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting with 30.00s responsiveness timeout
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: inside CFRunLoopPerform
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: MT responded in time (won the race to the busy flag)
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting 60.00s for work to complete
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeFrame, XC_kAXXCAttributeWindowDisplayId, XC_kAXXCAttributeWindowContextId for App element pid: 33010
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Got attributes, transferring to dictionary for return.
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Replying with attribute values: {
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Received attributes request for element: App element pid: 33010. Attributes: (
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: about to CFRunLoopPerform
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting with 30.00s responsiveness timeout
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: inside CFRunLoopPerform
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: MT responded in time (won the race to the busy flag)
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting 60.00s for work to complete
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeElementType, XC_kAXXCAttributeElementBaseType, XC_kAXXCAttributeTraits, XC_kAXXCAttributeAutomationType for App element pid: 33010
+2026-09-14 02:18:11.363 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Got attributes, transferring to dictionary for return.
+2026-09-14 02:18:11.363 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] Replying with attribute values: {
+2026-09-14 02:18:11.365 Df Expo Go[33010:24ed6b] [com.apple.dt.xctest:Default] Received attributes request for element: App element pid: 33010. Attributes: (
+2026-09-14 02:18:11.365 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: about to CFRunLoopPerform
+2026-09-14 02:18:11.365 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting with 30.00s responsiveness timeout
+2026-09-14 02:18:11.365 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: inside CFRunLoopPerform
+2026-09-14 02:18:11.365 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[MT]: MT responded in time (won the race to the busy flag)
+2026-09-14 02:18:11.365 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] XCTPerformOnMainRunLoop[not MT]: waiting 60.00s for work to complete
+2026-09-14 02:18:11.365 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Fetching AX attributes XC_kAXXCAttributeWindowDisplayId for App element pid: 33010
+2026-09-14 02:18:11.365 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Got attributes, transferring to dictionary for return.
+2026-09-14 02:18:11.365 Df Expo Go[33010:24ed69] [com.apple.dt.xctest:Default] Replying with attribute values: {
+2026-09-14 02:18:11.373 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 1; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.373 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Sending UIEvent type: 0; subtype: 0; to windows: 1
+2026-09-14 02:18:11.373 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Sending UIEvent type: 0; subtype: 0; to window: <UIWindow: 0x10be21a50>; contextId: 0x755CC5D2
+2026-09-14 02:18:11.374 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001cb5f40>
+2026-09-14 02:18:11.374 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-09-14 02:18:11.374 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-09-14 02:18:11.374 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.374 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.374 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:33010] from originator [app<host.exp.Exponent((null))>:33010] with description <RBSAssertionDescriptor| "Shared Background Assertion 43 for host.exp.Exponent" ID:32138-33010-843 target:33010 attributes:[
+2026-09-14 02:18:11.375 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Assertion 32138-33010-843 (target:[app<host.exp.Exponent((null))>:33010]) will be created as inactive as start-time-defining assertions exist
+2026-09-14 02:18:11.375 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.375 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001cb1240>: taskID = 102, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0).
+2026-09-14 02:18:11.375 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 102
+2026-09-14 02:18:11.375 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001cb7680>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending task with identifier 102 and description: <_UIBackgroundTaskInfo: 0x600001cb1240>: taskID = 102, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600001cb3180>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001cb75c0>: taskID = 103, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0).
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x6000062c4690> (used by background task with identifier 102: <_UIBackgroundTaskInfo: 0x600001cb1240>: taskID = 102, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0))
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 103
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001cb5e00>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending task with identifier 103 and description: <_UIBackgroundTaskInfo: 0x600001cb75c0>: taskID = 103, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600001cb4800>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001cb7640>: taskID = 104, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0).
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x6000062c4690> (used by background task with identifier 103: <_UIBackgroundTaskInfo: 0x600001cb75c0>: taskID = 103, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0))
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 104
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001cef080>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Ending task with identifier 104 and description: <_UIBackgroundTaskInfo: 0x600001cb7640>: taskID = 104, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600001cb6c40>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x6000062c4690>
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001ced080>: taskID = 105, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0).
+2026-09-14 02:18:11.376 Df Expo Go[33010:24ed6b] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x6000062c4690> (used by background task with identifier 104: <_UIBackgroundTaskInfo: 0x600001cb7640>: taskID = 104, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0))
+2026-09-14 02:18:11.377 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 105
+2026-09-14 02:18:11.377 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Ending task with identifier 105 and description: <_UIBackgroundTaskInfo: 0x600001ced080>: taskID = 105, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600001cee980>
+2026-09-14 02:18:11.377 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x6000062c4690> (used by background task with identifier 105: <_UIBackgroundTaskInfo: 0x600001ced080>: taskID = 105, taskName = GDTCCTUploader-upload, creationTime = 154156 (elapsed = 0))
+2026-09-14 02:18:11.377 Df Expo Go[33010:24ed69] [com.apple.UIKit:BackgroundTask] Will invalidate assertion: <BKSProcessAssertion: 0x6000062c4690> for task identifier: 105
+2026-09-14 02:18:11.377 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Invalidating assertion 32138-33010-843 (target:[app<host.exp.Exponent((null))>:33010]) from originator [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.387 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.403 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.420 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.437 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.453 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 1
+2026-09-14 02:18:11.453 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.470 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 0; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.470 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Evaluating dispatch of UIEvent: 0x600003b173a0; type: 0; subtype: 0; backing type: 11; shouldSend: 1; ignoreInteractionEvents: 0, systemGestureStateChange: 0
+2026-09-14 02:18:11.470 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Sending UIEvent type: 0; subtype: 0; to windows: 1
+2026-09-14 02:18:11.470 Df Expo Go[33010:24b126] [com.apple.UIKit:EventDispatch] Sending UIEvent type: 0; subtype: 0; to window: <UIWindow: 0x10be21a50>; contextId: 0x755CC5D2
+2026-09-14 02:18:11.470 A  Expo Go[33010:24b126] (UIKitCore) send gesture actions
+2026-09-14 02:18:11.470 A  Expo Go[33010:24b126] (UIKitCore) send gesture actions
+2026-09-14 02:18:11.725 Df Expo Go[33010:24ed6a] [com.apple.dt.xctest:Default] Received request to notify when the main run loop is idle
+2026-09-14 02:18:11.725 Df Expo Go[33010:24ed6a] [com.apple.dt.xctest:Default] Idle notifier finished setting up run loop observer
+2026-09-14 02:18:11.725 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Idle notifier run loop observer fired
+2026-09-14 02:18:11.725 Df Expo Go[33010:24b126] [com.apple.dt.xctest:Default] Sending main run loop idle reply
+2026-09-14 02:18:11.725 Df Expo Go[33010:24ed6a] [com.apple.dt.xctest:Default] Received request to notify when animations are idle
+2026-09-14 02:18:11.725 Df Expo Go[33010:24ed6a] [com.apple.dt.xctest:Default] Sending animations idle reply with error: (null)
+2026-09-14 02:18:11.726 Df SpringBoard[32135:24ee48] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:33010] Workspace connection invalidated.
+2026-09-14 02:18:11.726 Df SpringBoard[32135:24ee48] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:33010] Now flagged as pending exit for reason: workspace client connection invalidated
+2026-09-14 02:18:11.728 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] using MRU target <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:33010>
+2026-09-14 02:18:11.732 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] informing scene controller 'com.apple.springboard' of focusTarget: <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:33010>
+2026-09-14 02:18:11.732 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] [app<host.exp.Exponent((null))>:33010] termination reported by launchd (2, 11, 11)
+2026-09-14 02:18:11.732 Df runningboardd[32138:24ecad] [com.apple.runningboard:process] Removing process: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.733 Df runningboardd[32138:24ecad] [com.apple.runningboard:job] Removing launch job for: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.735 Df runningboardd[32138:24ecad] [com.apple.runningboard:job] Removed job for [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.735 Df runningboardd[32138:24ecad] [com.apple.runningboard:process] Removing assertions for terminated process: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.735 Df runningboardd[32138:24ecad] [com.apple.runningboard:assertion] Removed last relative-start-date-defining assertion for process app<host.exp.Exponent((null))>
+2026-09-14 02:18:11.736 Df runningboardd[32138:24ee58] [com.apple.runningboard:process] Notifying connection [osservice<com.apple.SpringBoard>:32135] that process [app<host.exp.Exponent((null))>:33010] exited with context <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>
+2026-09-14 02:18:11.736 Df runningboardd[32138:24ee5b] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: none (role: None) (endowments: (null))
+    <RBSInheritance| environment:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default name:com.apple.frontboard.visibility origID:32138-32135-454 payload 3638529331308144200>,
+2026-09-14 02:18:11.736 Df runningboardd[32138:24ee5b] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: none (role: None) (endowments: (null))
+2026-09-14 02:18:11.737 Df runningboardd[32138:24ee39] [com.apple.runningboard:process] XPC connection invalidated: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.738 Df runningboardd[32138:24ee39] [com.apple.runningboard:process] XPC connection invalidated: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee48] [com.apple.runningboard:process] Calling process death completion block for handle [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee48] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:33010] Process exited: <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>.
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee48] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:33010] Setting process task state to: Not Running
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee48] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:33010] Setting process visibility to: Unknown
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:33010] Invalidating workspace.
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:ProcessWorkspace] Removing source registration for processHandle: [app<host.exp.Exponent((null))>:33010]
+2026-09-14 02:18:11.740 E  runningboardd[32138:24ee38] [com.apple.runningboard:general] RBSStateCapture remove item called for untracked item <RBConnectionClient| 33010 name:app<host.exp.Exponent((null))> entitlements:<RBEntitlements| [
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:ProcessScene] [0x60000378af40:(FBSceneManager):sceneID:host.exp.Exponent-default] Invalidated for connection: 0x600000e2b240.
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:Process] Removing: <FBApplicationProcess: 0x1055601e0; app<host.exp.Exponent>:33010(vB609B)>
+2026-09-14 02:18:11.740 Df SpringBoard[32135:24ee48] [com.apple.runningboard:monitor] Received state update for 33010 (app<host.exp.Exponent((null))>, none-NotVisible
+2026-09-14 02:18:11.754 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] keyboard arbiter suggested <nothing> and we replied <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:33010>
+2026-09-14 02:18:11.754 E  SpringBoard[32135:24ee48] [com.apple.UIKit:KeyboardArbiter] Advisor: No handle found for currently focused PID: 33010; sceneIdentity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:11.755 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Workspace] Process exited: <FBApplicationProcess: 0x1055601e0; app<host.exp.Exponent>:33010(vB609B)> -> <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>
+2026-09-14 02:18:11.758 Df SpringBoard[32135:24ee37] [com.apple.UserNotifications:RemoteNotifications] [host.exp.Exponent] host.exp.Exponent application state changed to <RBSProcessState| task:none debug:none>
+2026-09-14 02:18:11.759 Df SpringBoard[32135:24ee37] [com.apple.UserNotifications:RemoteNotifications] [host.exp.Exponent] Ignore becoming background for application without push registration
+2026-09-14 02:18:11.764 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Application process state changed for host.exp.Exponent: (null)
+2026-09-14 02:18:11.806 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] _removeSceneFromRecents didRemoveExternalForegroundApplicationSceneHandle pid:33010 scene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default now:<empty>
+2026-09-14 02:18:11.806 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [com.apple.springboard] removing scene: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid: 33010 for reason: didRemoveExternalForegroundApplicationSceneHandle
+2026-09-14 02:18:11.834 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Removing parent scene.
+2026-09-14 02:18:11.837 Df SpringBoard[32135:2495ec] [com.apple.UIKit:SceneDeactivation] No longer tracking: <FBScene: 0x600003d620d0; FBSceneManager:sceneID:host.exp.Exponent-default>
+2026-09-14 02:18:11.840 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:SceneSnapshots] <SBSceneSnapshotRequestor: 0x600000c5ea00; debugName: LCD> [sceneID:host.exp.Exponent-default] Requesting 2 snapshot(s) because the scene actually moved to the background
+2026-09-14 02:18:11.840 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Common] Created: <FBSceneSnapshotAction: 0x600002c45480; sceneID:host.exp.Exponent-default>
+2026-09-14 02:18:11.841 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Acquiring assertion targeting 33010 from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "FBSceneSnapshotAction:sceneID:host.exp.Exponent-default" ID:32138-32135-844 target:33010 attributes:[
+2026-09-14 02:18:11.841 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Sending action(s) in update: <FBSceneSnapshotAction: 0x7d870016>
+2026-09-14 02:18:11.841 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] scene content state changed: notReady
+2026-09-14 02:18:11.844 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppProtection] <BSCompoundAssertion:0x6000017c7700> (SBApplicationAppProtectionAssistant: 0x6000017e7000 - host.exp.Exponent) invalidate acq:0x6000004a7ac0 count:1
+2026-09-14 02:18:11.845 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppProtection] Informing <APSystemAppOutlet: 0x600000d03a20> that <APApplication: host.exp.Exponent> will become background as far as we know
+2026-09-14 02:18:11.845 Df SpringBoard[32135:2495ec] [com.apple.appprotection:framework] All scenes dismissed for <APApplication: host.exp.Exponent>
+2026-09-14 02:18:11.893 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppSwitcher] <SBFullScreenSwitcherLiveContentOverlayCoordinator: 0x60000269fba0> Removing SwitcherScene overlay for: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>, animated: NO
+2026-09-14 02:18:11.895 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] client invalidated
+2026-09-14 02:18:11.895 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] Invalidating scene: sceneID:host.exp.Exponent-default
+2026-09-14 02:18:11.895 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Common] Invalidating: <FBSceneSnapshotAction: 0x600002c45480; sceneID:host.exp.Exponent-default>
+2026-09-14 02:18:11.895 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:Common] Got response for <FBSceneSnapshotAction: 0x600002c45480; sceneID:host.exp.Exponent-default>: <NSError: 0x600000e4bc00; domain: BSActionErrorDomain; code: 6 ("anulled")>
+2026-09-14 02:18:11.895 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default][1] Scene invalidated.
+2026-09-14 02:18:11.912 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] rules: (scene setting) REMOVED keyboardFocus environment from scene: sceneID:host.exp.Exponent-default
+2026-09-14 02:18:11.912 E  SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] Ignoring update for invalidated scene: (FBSceneManager):sceneID:host.exp.Exponent-default
+2026-09-14 02:18:11.915 E  SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Update failed: <NSError: 0x600000ded260; domain: FBSceneErrorDomain; code: 1 ("operation-failed"); "Scene update failed."> {
+2026-09-14 02:18:13.372 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:StatusBarish] Verify background audio activity for host.exp.Exponent, Recording: 0
+2026-09-14 02:18:15.842 Df SpringBoard[32135:24ee37] [com.apple.FrontBoard:Common] [FBSystemService][0x2aa2] Received request to open "host.exp.Exponent" from testmanagerd:32961.
+2026-09-14 02:18:15.843 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Workspace] Received trusted open application request for "host.exp.Exponent" from <FBProcess: 0x116b105c0; osservice<com.apple.testmanagerd>:32961(vB6012)>.
+2026-09-14 02:18:15.843 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Workspace] Target window scene for "host.exp.Exponent" --> active display Main
+2026-09-14 02:18:15.845 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Executing request: <SBMainWorkspaceTransitionRequest: 0x6000033345a0; eventLabel: OpenApplication(sceneID:host.exp.Exponent-default)ForRequester(testmanagerd.32961); display: Main; source: FBSystemService>
+2026-09-14 02:18:15.845 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Common] [FBWorkspaceEvent] Executing: <FBWorkspaceEvent: 0x600000369ac0; OpenApplication(sceneID:host.exp.Exponent-default)ForRequester(testmanagerd.32961)>
+    "sceneID:host.exp.Exponent-default" = 1;
+<SBMainWorkspaceTransitionRequest: 0x6000033345a0; eventLabel: OpenApplication(sceneID:host.exp.Exponent-default)ForRequester(testmanagerd.32961); display: Main; source: FBSystemService> {
+        SBLayoutRolePrimary = <SBDeviceApplicationSceneEntity: 0x60000172b300; ID: sceneID:host.exp.Exponent-default; layoutRole: primary>;
+2026-09-14 02:18:15.846 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Generating initialization context on main thread for: host.exp.Exponent
+2026-09-14 02:18:15.847 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] Asked to bootstrap a new process with identity: app<host.exp.Exponent((null))>
+2026-09-14 02:18:15.847 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] Creating process (sync=true) with identity: app<host.exp.Exponent((null))>
+2026-09-14 02:18:15.847 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:ProcessWorkspace] Created <FBWorkspace: 0x600003350c80; <FBApplicationProcess: 0x1053b30c0; app<host.exp.Exponent>:<invalid>>>
+2026-09-14 02:18:15.847 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] Bootstrapping app<host.exp.Exponent> with intent foreground-interactive
+2026-09-14 02:18:15.848 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Acquiring assertion targeting app<host.exp.Exponent((null))> from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "FBApplicationProcess" ID:32138-32135-847 target:app<host.exp.Exponent((null))> attributes:[
+2026-09-14 02:18:15.848 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Assertion 32138-32135-847 (target:app<host.exp.Exponent((null))>) will be created as active
+2026-09-14 02:18:15.848 Df runningboardd[32138:24ee5b] [com.apple.runningboard:process] Executing launch request for app<host.exp.Exponent((null))> (FBApplicationProcess)
+2026-09-14 02:18:15.848 Df runningboardd[32138:24ee5b] [com.apple.runningboard:job] Creating and launching job for: app<host.exp.Exponent((null))>
+2026-09-14 02:18:15.848 Df runningboardd[32138:24ee5b] [com.apple.runningboard:general] _mutateContextIfNeeded called for host.exp.Exponent
+2026-09-14 02:18:15.849 Df runningboardd[32138:24ee5b] [com.apple.runningboard:job] 'app<host.exp.Exponent((null))>' Skipping container path lookup because containerization was prevented (<RBSLaunchContext: 0x100c08000>)
+2026-09-14 02:18:15.849 Df runningboardd[32138:24ee39] [com.apple.runningboard:job_oversize] 'app<host.exp.Exponent((null))>' Constructed job description:
+	"CFBundleIdentifier" => <string: 0x600000c51170> { length = 17, contents = "host.exp.Exponent" }
+	"_ResourceCoalition" => <string: 0x600000c508d0> { length = 30, contents = "app<host.exp.Exponent((null))>" }
+				"EAI" => <string: 0x600000c51ec0> { length = 17, contents = "host.exp.Exponent" }
+	"Label" => <string: 0x600000c524c0> { length = 51, contents = "UIKitApplication:host.exp.Exponent[81ef][rb-legacy]" }
+2026-09-14 02:18:15.862 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppSwitcher] <SBFullScreenSwitcherLiveContentOverlayCoordinator: 0x60000269fba0> Adding SwitcherScene overlay for: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>, animated: NO
+    "host.exp.Exponent"
+    "sceneID:host.exp.Exponent-default"
+2026-09-14 02:18:15.864 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:TraitsArbiter] [DeviceSceneHandle] Did set interfaceOrientation[1] on scene with identifier[sceneID:host.exp.Exponent-default]
+2026-09-14 02:18:15.864 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:ContinuitySession] modifying scene setting userInterfaceStyle to Light displayIdentity: Main forSceneManagers: Main <SBDeviceApplicationSceneHandle: 0x1052d5790; sceneID: sceneID:host.exp.Exponent-default; scenePointer: 0x0; scene: 0x0; occluded: NO>
+2026-09-14 02:18:15.865 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] No capture application found for the host.exp.Exponent, launchCameraCapture: NO, isCaptureApplication: NO
+<SBSceneReadySwitcherModifierEvent: 0x6000004efaa0; type: SceneReady; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main> {
+        sceneID:host.exp.Exponent-default = <SBDisplayItemLayoutAttributes: 0x6000039052b0; contentOrientation: "portrait (1)"; lastInteractionTime: 4; sizingPolicy: maximized; size: unspecified; center: unspecified; occlusionState: unknown; userConfiguredSizeBeforeOverlapping: unspecified; unoccludedPeekingCenter: unspecified>;
+    continuousExposeIdentifier = host.exp.Exponent;
+        primary = <SBDisplayItem: 0x600000d47c30; type: App; bundleIdentifier: host.exp.Exponent; uniqueIdentifier: sceneID:host.exp.Exponent-default>;
+2026-09-14 02:18:15.867 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Process] Asked to bootstrap a new process with identity: app<host.exp.Exponent((null))>
+2026-09-14 02:18:15.867 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Process] Did not create a new process: A pending process for app<host.exp.Exponent((null))> already exists.
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:general] Full encoding handle [app<host.exp.Exponent((null))>:35572], with data f0c2e18100008af4, and pid 35572
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] Memory Limits: active 0 inactive 0
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] This process will be managed.
+2026-09-14 02:18:15.912 E  runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] Memorystatus failed with unexpected error: Operation not permitted (1)
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] is not freezer eligible, disabling freezing.
+2026-09-14 02:18:15.912 E  runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] Memorystatus failed with unexpected error: Invalid argument (22)
+2026-09-14 02:18:15.912 E  runningboardd[32138:24ee5b] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] Memorystatus failed with unexpected error: Operation not permitted (1)
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Now tracking process: [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:15.912 Df runningboardd[32138:24ee5b] [com.apple.runningboard:assertion] [app<host.exp.Exponent((null))>:35572]: applying persistent assertion '32138-32135-847 (target:app<host.exp.Exponent((null))>)'
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ee58] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: running-active (role: UserInteractiveFocal) (endowments: {(
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ee5b] [com.apple.runningboard:assertion] Using default underlying assertion for app: [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [app<host.exp.Exponent((null))>:35572] with description <RBSAssertionDescriptor| "RB Underlying Assertion" ID:32138-32138-848 target:35572 attributes:[
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Assertion 32138-32138-848 (target:[app<host.exp.Exponent((null))>:35572]) will be created as active
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] [app<host.exp.Exponent((null))>:35572] Resuming task.
+2026-09-14 02:18:15.913 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:35572] Bootstrap success!
+2026-09-14 02:18:15.913 Df SpringBoard[32135:24ee78] [com.apple.runningboard:process] Hit the server for a process handle 10c2e18100008af4 that resolved to: [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:15.913 Df SpringBoard[32135:24ee78] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:15.913 Df runningboardd[32138:24ecad] [com.apple.runningboard:general] [app<host.exp.Exponent((null))>:35572] reported to RB as running
+2026-09-14 02:18:15.914 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:35572] Setting process task state to: Running
+2026-09-14 02:18:15.914 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:35572] Setting process visibility to: Foreground
+2026-09-14 02:18:15.914 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Registering event dispatcher after bootstrap
+2026-09-14 02:18:15.914 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Initial launch assertion state: ForegroundFocal.
+2026-09-14 02:18:15.914 Df SpringBoard[32135:24ee77] [com.apple.runningboard:process] Starting death monitoring for handle [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:15.915 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:Process] Adding: <FBApplicationProcess: 0x1053b30c0; app<host.exp.Exponent>:35572(vB71B1)>
+2026-09-14 02:18:15.915 Df runningboardd[32138:24ee58] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: running-active (role: UserInteractiveFocal) (endowments: {(
+2026-09-14 02:18:15.917 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Returning cached initialization context for host.exp.Exponent
+2026-09-14 02:18:15.919 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Initialized with connection: 0x600000e3dfe0.
+2026-09-14 02:18:15.919 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Registered new scene: <FBUIApplicationWorkspaceScene: 0x60000379fd80; (FBSceneManager):sceneID:host.exp.Exponent-default> (fromRemnant = 0)
+2026-09-14 02:18:15.920 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default][1] Scene activated.
+2026-09-14 02:18:15.920 Df SpringBoard[32135:24ee37] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Workspace interruption policy did change: reconnect
+2026-09-14 02:18:15.920 Df runningboardd[32138:24ee58] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "com.apple.frontboard.after-life.interrupted" ID:32138-32135-849 target:35572 attributes:[
+2026-09-14 02:18:15.920 Df runningboardd[32138:24ee58] [com.apple.runningboard:ttl] Assertion 32138-32135-849 (target:[app<host.exp.Exponent((null))>:35572]) will be created as inactive as originator process has not exited
+2026-09-14 02:18:15.921 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppProtection] <BSCompoundAssertion:0x6000017c7700> (SBApplicationAppProtectionAssistant: 0x6000017e7000 - host.exp.Exponent) acquire for reason:NULL scene acq:0x60000036aac0 count:1
+2026-09-14 02:18:15.921 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:AppProtection] Informing <APSystemAppOutlet: 0x600000d03a20> that <APApplication: host.exp.Exponent> will become foreground visible
+2026-09-14 02:18:15.921 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] [app<host.exp.Exponent((null))>:35572] Set darwin role to: UserInteractiveFocal
+2026-09-14 02:18:15.921 E  runningboardd[32138:24ee38] [com.apple.runningboard:process] [app<host.exp.Exponent((null))>:35572] Error 22 setting Carplay mode to 0: Invalid argument
+2026-09-14 02:18:15.921 Df SpringBoard[32135:2495ec] [com.apple.appprotection:framework] scene will become FG visible for <APApplication: host.exp.Exponent>
+2026-09-14 02:18:15.921 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] [app<host.exp.Exponent((null))>:35572] visiblity is yes
+2026-09-14 02:18:15.921 Df runningboardd[32138:24ee39] [com.apple.runningboard:assertion] Successfully acquired underlying assertion for [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:15.921 Df SpringBoard[32135:2495ec] [com.apple.appprotection:framework] auth result for <APApplication: host.exp.Exponent>: true (null)
+2026-09-14 02:18:15.922 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] didAddExternalForegroundApplicationSceneHandle pid:35572 scene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default now:<recentPIDs: [35572]; recentSceneIdentityTokensByPID: {35572: [com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default]}>
+2026-09-14 02:18:15.922 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [com.apple.springboard] didAddExternalForegroundApplicationSceneHandle pid:35572 scene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default now:<recentPIDs: [35572]; recentSceneIdentityTokensByPID: {35572: [com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default]}>
+2026-09-14 02:18:15.922 Df SpringBoard[32135:2495ec] [com.apple.UIKit:SceneDeactivation] Now tracking: <FBScene: 0x600003d4f840; FBSceneManager:sceneID:host.exp.Exponent-default>
+2026-09-14 02:18:15.922 Df SpringBoard[32135:2495ec] [com.apple.UIKit:SceneDeactivation] [sceneID:host.exp.Exponent-default] Setting deactivation reasons to: 'systemAnimation' for reason: scene settings update - settings are eligible for deactivation reasons.
+2026-09-14 02:18:15.923 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] scene content state changed: preparing
+2026-09-14 02:18:15.923 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Scene lifecycle state did change: Foreground
+2026-09-14 02:18:15.923 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Scene assertion state did change: ForegroundFocal.
+2026-09-14 02:18:15.923 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Launch assertion supersedes update of workspace assertion to ForegroundFocal.
+2026-09-14 02:18:15.923 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Workspace assertion state did change: ForegroundFocal (acquireAssertion = NO).
+<SBTransitionSwitcherModifierEvent: 0x1053a7b90; type: MainTransition; transitionID: BE1DCF85-330F-433B-9332-8B93031D8EE9; phase: Prepare; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+	    <SBIconOverlayVisibilitySwitcherEventResponse: 0x600001805040; visible: YES; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>>;
+	    <SBIconViewVisibilitySwitcherEventResponse: 0x600002266620; visible: NO; animationSettings: 0x0; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>>;
+    keyboardFocusTarget: <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>;
+2026-09-14 02:18:15.930 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] rules: (keyboardFocus) outbound target changed from:(null) to <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:15.930 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] rules: (keyboardFocus) defer (<com.apple.frontboard.systemappservices/FBSceneManager:com.apple.springboard pid:32135>) -> <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+    keyboardFocusTarget: <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>;
+<SBTransitionSwitcherModifierEvent: 0x116b1f310; type: MainTransition; transitionID: BE1DCF85-330F-433B-9332-8B93031D8EE9; phase: Animate; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+2026-09-14 02:18:16.020 Df SpringBoard[32135:24ed57] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:16.038 Df SpringBoard[32135:24ee2f] [com.apple.UserNotifications:Settings] [host.exp.Exponent] Foreground app will not request ephemeral notifications isAppClip: NO wantsEphemeral notifications: NO
+2026-09-14 02:18:16.039 Df SpringBoard[32135:24ed57] [com.apple.UserNotifications:RemoteNotifications] [host.exp.Exponent] host.exp.Exponent application state changed to <RBSProcessState| task:running-active debug:none endowmentNamespace:[
+2026-09-14 02:18:16.039 Df SpringBoard[32135:24ed57] [com.apple.UserNotifications:RemoteNotifications] [host.exp.Exponent] Ignore becoming foreground for application without push registration
+2026-09-14 02:18:16.123 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Application process state changed for host.exp.Exponent: <SBApplicationProcessState: 0x6000004fc500; pid: 35572; taskState: Running; visibility: Foreground>
+2026-09-14 02:18:16.124 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Returning cached initialization context for host.exp.Exponent
+2026-09-14 02:18:16.125 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] rules: (scene setting) ADDED keyboardFocus environment to scene: sceneID:host.exp.Exponent-default
+2026-09-14 02:18:16.242 Df SpringBoard[32135:2495ec] [com.apple.UIKit:SceneDeactivation] [sceneID:host.exp.Exponent-default] Setting deactivation reasons to: '(none)' for reason: updateAllScenesForBand - Assertion removed.
+<SBTransitionSwitcherModifierEvent: 0x1054d56d0; type: MainTransition; transitionID: BE1DCF85-330F-433B-9332-8B93031D8EE9; phase: Complete; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+		    <SBIconOverlayVisibilitySwitcherEventResponse: 0x600001804340; visible: NO; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>>;
+		    <SBIconViewVisibilitySwitcherEventResponse: 0x60000224bd90; visible: YES; animationSettings: 0x0; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>>;
+		    <SBMatchMoveToIconViewSwitcherEventResponse: 0x6000026bde60; active: NO; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main>>;
+2026-09-14 02:18:16.939 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x600003d001e0] activating connection: mach=true listener=false peer=false name=com.apple.cfprefsd.daemon
+2026-09-14 02:18:16.942 Df Expo Go[35572:24f0de] [com.apple.UserNotifications:Connections] [host.exp.Exponent] Creating a user notification center
+2026-09-14 02:18:16.974 Df Expo Go[35572:24f0e7] (libMobileGestalt.dylib) No persisted cache on this platform.
+2026-09-14 02:18:16.977 Df Expo Go[35572:24f0e3] [com.apple.runningboard:connection] Initializing connection
+2026-09-14 02:18:16.977 Df Expo Go[35572:24f0e3] [com.apple.runningboard:process] Removing all cached process handles
+2026-09-14 02:18:16.977 Df Expo Go[35572:24f0e6] [com.apple.runningboard:connection] Sending handshake request attempt #1 to server
+2026-09-14 02:18:16.978 Df Expo Go[35572:24f0e6] [com.apple.runningboard:connection] Creating connection to com.apple.runningboard
+2026-09-14 02:18:16.978 Df Expo Go[35572:24f0e6] [com.apple.xpc:connection] [0x600003d002d0] activating connection: mach=true listener=false peer=false name=com.apple.runningboard
+2026-09-14 02:18:16.978 Df Expo Go[35572:24f0e3] [com.apple.xpc:connection] [0x10c904740] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-09-14 02:18:16.978 Df runningboardd[32138:24ee58] [com.apple.runningboard:connection] Setting client for [app<host.exp.Exponent((null))>:35572] as ready
+2026-09-14 02:18:16.978 A  Expo Go[35572:24f0e9] (RunningBoardServices) didChangeInheritances
+2026-09-14 02:18:16.979 Df SpringBoard[32135:24ee2f] [com.apple.SpringBoard:Common] Fetching initialization context for: host.exp.Exponent
+2026-09-14 02:18:16.979 Df SpringBoard[32135:24ee2f] [com.apple.SpringBoard:Common] Returning cached initialization context for host.exp.Exponent
+2026-09-14 02:18:16.979 Df SpringBoard[32135:24ee2f] [com.apple.SpringBoard:Common] Returning cached initialization context for host.exp.Exponent
+2026-09-14 02:18:16.979 Df Expo Go[35572:24f0e6] [com.apple.runningboard:connection] Handshake succeeded
+2026-09-14 02:18:16.979 Df Expo Go[35572:24f0e6] [com.apple.runningboard:connection] Identity resolved as app<host.exp.Exponent((null))>
+2026-09-14 02:18:16.979 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason added: 10; deactivation reasons: 0 -> 1024; animating application lifecycle event: 0
+2026-09-14 02:18:16.980 E  Expo Go[35572:0] [com.apple.os_debug_log:] assertion failed: 23G93 22A3351: libxpc.dylib + 75400 [8DA4A457-0C9C-3B7A-ADAC-415747159FA8]: 0x7d
+2026-09-14 02:18:16.980 Df Expo Go[35572:24f0de] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.open
+2026-09-14 02:18:16.981 Df Expo Go[35572:24f0de] [com.apple.BoardServices:Injection] activating monitor for service com.apple.frontboard.workspace-service
+2026-09-14 02:18:16.981 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:Common] FBSWorkspace registering source: com.apple.frontboard.systemappservices
+2026-09-14 02:18:16.983 Df Expo Go[35572:24f0e5] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-09-14 02:18:16.983 Df Expo Go[35572:24f0e5] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-09-14 02:18:16.984 Df Expo Go[35572:24f0e5] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:16.984 Df runningboardd[32138:24ee39] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [app<host.exp.Exponent((null))>:35572] with description <RBSAssertionDescriptor| "Shared Background Assertion 0 for host.exp.Exponent" ID:32138-35572-850 target:35572 attributes:[
+2026-09-14 02:18:16.984 Df runningboardd[32138:24ee39] [com.apple.runningboard:ttl] Assertion 32138-35572-850 (target:[app<host.exp.Exponent((null))>:35572]) will be created as inactive as start-time-defining assertions exist
+2026-09-14 02:18:16.984 Df Expo Go[35572:24f0e5] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:16.984 Df Expo Go[35572:24f0e5] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000170e400>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 154161 (elapsed = 0).
+2026-09-14 02:18:16.984 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UIApplicationSceneKeyboardSettings on FBSSceneSettings
+2026-09-14 02:18:16.984 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:Common] FBSWorkspace connected to endpoint : <BSServiceConnectionEndpoint: 0x600001721580; target: com.apple.frontboard.systemappservices; service: com.apple.frontboard.workspace-service>
+2026-09-14 02:18:16.985 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x600002c03880 com.apple.frontboard.systemappservices> attempting immediate handshake from activate
+2026-09-14 02:18:16.985 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:Common] <FBSWorkspaceScenesClient:0x600002c03880 com.apple.frontboard.systemappservices> sent handshake
+2026-09-14 02:18:16.985 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Connection established.
+2026-09-14 02:18:16.985 Df Expo Go[35572:24f0de] [com.apple.runningboard:general] Added observer for process assertions expiration warning: <_RBSExpirationWarningClient: 0x60000020b5a0>
+2026-09-14 02:18:16.985 Df SpringBoard[32135:24ee2f] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] created proxy of <BSXPCServiceConnectionProxy<FBSWorkspaceServiceServerInterface>: 0x600002a115e0>
+2026-09-14 02:18:16.985 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:35572] Connection to remote process established!
+2026-09-14 02:18:16.985 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Sending scene action [Logical Activate][0xc28b] to process 0x1053b30c0 (watchdog: 18.93s)
+2026-09-14 02:18:16.985 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Sending scene create.
+2026-09-14 02:18:16.985 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Application process state changed for host.exp.Exponent: <SBApplicationProcessState: 0x6000005012e0; pid: 35572; taskState: Running; visibility: Foreground>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessWorkspace] received incoming handshake : process=<FBApplicationProcess: 0x1053b30c0; app<host.exp.Exponent>:35572(vB71B1); taskState: Running; visibility: Foreground> remote=<BSAuditToken: 0x60000180dc40; AUID: 501; EUID: 501; EGID: 20; RUID: 501; RGID: 20; PID: 35572; ASID: 100032; PIDVersion: 750001> remnants=0
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000024f5e0-com.apple.SpringBoard.SceneWorkspace.DruidUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneOcclusionSettings> on FBSSceneSettings
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025d1c0-com.apple.SpringBoard.SceneWorkspace.FullKeyboardAccessUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025cd00-com.apple.SpringBoard.SceneWorkspace.PerfPowerHUD] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x600000260180-com.apple.SpringBoard.SceneWorkspace.InputUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025caa0-com.apple.SpringBoard.SceneWorkspace.AssistiveTouchUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x600000212660-com.apple.SpringBoard.SceneWorkspace.OverlayUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x600000264060-com.apple.SpringBoard.SceneWorkspace.VoiceControlUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025cea0-com.apple.SpringBoard.SceneWorkspace.EyedropperUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025d3a0-com.apple.SpringBoard.SceneWorkspace.InternalPerfPowerHUD] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025b3a0-com.apple.SpringBoard.SceneWorkspace.Moments] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025d160-com.apple.SpringBoard.SceneWorkspace.AccessibilityUIServerUI] client did connect with handshake: <FBSceneClientHandshake:0x600000501a80; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] SceneWorkspaceDelegate[0x60000025cc60-com.apple.SpringBoard.SceneWorkspace.LiveTranscriptionUI] client did connect with handshake: <FBSceneClientHandshake:0x6000003d06a0; [app<host.exp.Exponent((null))>:35572] remnants=0>
+2026-09-14 02:18:16.986 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneInterfaceProtectionSceneSettings> on FBSSceneSettings
+2026-09-14 02:18:16.987 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UIHomeAffordanceHostSceneSettings> on FBSSceneSettings
+2026-09-14 02:18:16.987 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISystemShellSceneHostingEnvironmentSettings on FBSSceneSettings
+2026-09-14 02:18:16.987 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneRenderingEnvironmentSettings on FBSSceneSettings
+2026-09-14 02:18:16.988 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneTransitioningHostSettings> on FBSSceneSettings
+2026-09-14 02:18:16.989 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingContentSizePreferenceClientSettings> on FBSSceneClientSettings
+2026-09-14 02:18:16.989 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension _UISceneHostingTraitCollectionPropagationSettings on FBSSceneSettings
+2026-09-14 02:18:16.990 Df Expo Go[35572:24f0de] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 1, category name = (null)
+2026-09-14 02:18:16.990 Df Expo Go[35572:24f0de] [com.apple.Accessibility:AXSupportCommon] Read CategoryName: per-app = 0, category name = (null)
+2026-09-14 02:18:16.990 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationSettings> on FBSSceneSettings
+2026-09-14 02:18:16.991 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingSheetPresentationClientSettings> on FBSSceneClientSettings
+2026-09-14 02:18:16.991 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UISceneHostingEventDeferringHostProviding> on FBSSceneSettings
+2026-09-14 02:18:16.991 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneSettings
+2026-09-14 02:18:16.991 Df Expo Go[35572:24f0e5] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <UIKit__UITypedKeyValueSceneSettings> on FBSSceneClientSettings
+2026-09-14 02:18:16.992 Df Expo Go[35572:24f0ea] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneSettingsCore on FBSSceneSettings
+2026-09-14 02:18:16.993 Df Expo Go[35572:24f0ea] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneClientSettingsCore on FBSSceneClientSettings
+2026-09-14 02:18:16.994 Df Expo Go[35572:24f0ea] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneSettings setting counterpart class: UIApplicationSceneSettings
+2026-09-14 02:18:16.994 Df Expo Go[35572:24f0ea] [com.apple.FrontBoard:SceneExtension] UIMutableApplicationSceneClientSettings setting counterpart class: UIApplicationSceneClientSettings
+2026-09-14 02:18:16.995 Df Expo Go[35572:24f0ea] [com.apple.FrontBoard:SceneExtension] Realizing settings extension FBSSceneTransitionContextCore on FBSSceneTransitionContext
+2026-09-14 02:18:17.031 A  Expo Go[35572:24f0ea] (CoreFoundation) Updating Key-Value Observers Of Preferences
+2026-09-14 02:18:17.052 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Registering for test daemon availability notify post.
+2026-09-14 02:18:17.052 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-14 02:18:17.053 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Test daemon availability confirmed via notify_get_state.
+2026-09-14 02:18:17.053 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] notify_get_state check indicated test daemon not ready.
+2026-09-14 02:18:17.053 Df Expo Go[35572:24f0de] [com.apple.UIKit:UpdateScheduler] Selected display: name=LCD (PurpleMain), id=1
+2026-09-14 02:18:17.054 Df Expo Go[35572:24f0e6] [com.apple.xpc:connection] [0x10ca05440] activating connection: mach=true listener=false peer=false name=com.apple.dt.xctestd.target
+2026-09-14 02:18:17.054 Df Expo Go[35572:24f0f9] [com.apple.dt.xctest:Default] Received request for endpoint.
+2026-09-14 02:18:17.054 Df Expo Go[35572:24f0f9] [com.apple.dt.xctest:Default] Attempting to load /Library/Developer/CoreSimulator/Volumes/iOS_22A3351/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 18.0.simruntime/Contents/Resources/RuntimeRoot/Developer/Library/PrivateFrameworks/XCTAutomationSupport.framework.
+2026-09-14 02:18:17.056 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason added: 5; deactivation reasons: 1024 -> 1056; animating application lifecycle event: 1
+2026-09-14 02:18:17.057 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.057 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Should send trait collection or coordinate space update, interface style 1 -> 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.057 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.058 Df Expo Go[35572:24f0de] [com.apple.UIKit:HomeAffordanceObservation] Initializing home affordance notifier: <_UIHomeAffordanceSceneNotifier: 0x60000261c300>; with scene: <UIWindowScene: 0x10c907b30>
+2026-09-14 02:18:17.058 Df Expo Go[35572:24f0de] [com.apple.BacklightServices:scenes] 0x600000c30a20 setDelegate:<0x600000c30690 _UIBacklightEnvironment> hasDelegate:YES for environment:sceneID:host.exp.Exponent-default
+2026-09-14 02:18:17.058 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.058 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventDeferring] [0x600002917db0] Initialized with scene: <UIWindowScene: 0x10c907b30>; behavior: <_UIEventDeferringBehavior_iOS: 0x60000023fea0>; systemShellManagesKeyboardFocus: 1
+2026-09-14 02:18:17.058 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x10ca047f0] activating connection: mach=false listener=false peer=false name=(anonymous)
+2026-09-14 02:18:17.059 Df Expo Go[35572:24f0de] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x600002115540; process scope; status: target> was:none
+2026-09-14 02:18:17.095 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to LastOneWins
+2026-09-14 02:18:17.104 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Scene target of keyboard event deferring environment did change: 1; scene: UIWindowScene: 0x10c907b30; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.104 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventDeferring] [0x600002917db0] Scene target of event deferring environments did update: scene: 0x10c907b30; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-09-14 02:18:17.104 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x10c907b30; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.104 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Setting default evaluation strategy for UIUserInterfaceIdiomPhone to SystemShellManaged
+2026-09-14 02:18:17.109 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Key window needs update: 0; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x10c907b30; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x0; reason: UIWindowScene: 0x10c907b30: Window scene became target of keyboard environment
+2026-09-14 02:18:17.110 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.110 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.111 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.111 Df Expo Go[35572:24f0f9] [com.apple.dt.automationmode:Default] XAM shared observer connecting to com.apple.dt.automationmode.reader
+2026-09-14 02:18:17.111 Df Expo Go[35572:24f0f9] [com.apple.xpc:connection] [0x10c61bcc0] activating connection: mach=true listener=false peer=false name=com.apple.dt.automationmode.reader
+2026-09-14 02:18:17.115 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.116 Df Expo Go[35572:24f0de] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:host.exp.Exponent-default  persistentID: 879AFBF4-BB93-4C98-8A12-E029080D449E
+2026-09-14 02:18:17.116 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Ignoring already applied deactivation reason: 5; deactivation reasons: 1056
+2026-09-14 02:18:17.117 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason added: 11; deactivation reasons: 1056 -> 3104; animating application lifecycle event: 1
+2026-09-14 02:18:17.118 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x10ca07060] activating connection: mach=true listener=false peer=false name=com.apple.UIKit.KeyboardManagement.hosted
+2026-09-14 02:18:17.119 Df Expo Go[35572:24f0de] [com.apple.UIKit:ViewServices] Launching as view service: NO
+2026-09-14 02:18:17.119 Df Expo Go[35572:24f0de] _setUpFeatureFlags called with release level 2
+2026-09-14 02:18:17.120 Df SpringBoard[32135:24ee37] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:17.120 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] using MRU target <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:17.120 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] informing scene controller 'com.apple.springboard' of focusTarget: <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:17.120 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] keyboard arbiter suggested <nothing> and we replied <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:17.123 Df Expo Go[35572:24f0f9] [com.apple.xpc:connection] [0x10c61bcc0] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-14 02:18:17.123 Df Expo Go[35572:24f0f9] [com.apple.dt.xctest:Default] Sending anonymous endpoint.
+2026-09-14 02:18:17.123 Df Expo Go[35572:24f0f9] [com.apple.dt.xctest:Default] Setting up target listener.
+2026-09-14 02:18:17.123 Df Expo Go[35572:24f0f9] [com.apple.xpc:connection] [0x10ca07180] activating connection: mach=false listener=true peer=false name=(anonymous)
+2026-09-14 02:18:17.123 Df Expo Go[35572:24f0f9] [com.apple.xpc:connection] [0x10ca07180] Channel could not return listener port.
+2026-09-14 02:18:17.125 Df Expo Go[35572:24f0f9] [com.apple.dt.xctest:Default] Received client to target connection.
+2026-09-14 02:18:17.125 Df Expo Go[35572:24f0f9] [com.apple.dt.automationmode:Default] Returning 1 for enabled state
+2026-09-14 02:18:17.126 Df Expo Go[35572:24f0f9] [com.apple.xpc:connection] [0x10c61f2f0] activating connection: mach=false listener=false peer=true name=com.apple.xpc.anonymous.0x10ca07180.peer[32985].0x10c61f2f0
+2026-09-14 02:18:17.126 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Received request to exchange capabilities, remote interface capabilities are: <XCTCapabilities: 0x600000009430>: {
+2026-09-14 02:18:17.128 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Received request to notify when the main run loop is idle
+2026-09-14 02:18:17.128 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Idle notifier finished setting up run loop observer
+2026-09-14 02:18:17.128 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Received request to notify when animations are idle
+2026-09-14 02:18:17.128 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Sending animations idle reply with error: (null)
+2026-09-14 02:18:17.149 Df Expo Go[35572:24f0ee] [com.apple.network:] networkd_settings_read_from_file initialized networkd settings by reading plist directly
+2026-09-14 02:18:17.149 Df Expo Go[35572:24f0ee] [com.apple.network:] networkd_settings_read_from_file initialized networkd settings by reading plist directly
+2026-09-14 02:18:17.151 Df Expo Go[35572:24f0ee] [com.apple.network:] -[NWConcrete_nw_resolver initWithEndpoint:parameters:path:log_str:] [R1] created for Hostname#c9430fdd:0 using: generic, attribution: developer
+2026-09-14 02:18:17.151 Df Expo Go[35572:24f0e6] [com.apple.network:] nw_resolver_set_update_handler_block_invoke [R1] started
+2026-09-14 02:18:17.151 Df Expo Go[35572:24f0ee] [com.apple.network:path] nw_path_evaluator_start [D8190A99-835F-40B8-A4E7-364590BA7CED Hostname#c9430fdd:0 generic, attribution: developer]
+2026-09-14 02:18:17.151 Df Expo Go[35572:24f0ee] [com.apple.network:] -[NWConcrete_nw_resolver initWithEndpoint:parameters:path:log_str:] [R2] created for Hostname#c9430fdd:0 using: generic, attribution: developer
+2026-09-14 02:18:17.152 Df Expo Go[35572:24f0ee] [com.apple.network:path] nw_path_evaluator_start [3857559B-C605-4D84-9112-AF1562448B9C Hostname#c9430fdd:0 generic, attribution: developer]
+2026-09-14 02:18:17.155 Df Expo Go[35572:24f0e6] [com.apple.network:] nw_resolver_set_update_handler_block_invoke [R2] started
+2026-09-14 02:18:17.167 Df Expo Go[35572:24f0f5] (AppTrackingTransparency) [ATTrackingManager] trackingAuthorizationStatus API call invoked.
+2026-09-14 02:18:17.219 A  Expo Go[35572:24f0ee] (libsystem_containermanager.dylib) container_system_group_path_for_identifier
+2026-09-14 02:18:17.242 Df Expo Go[35572:24f0de] Expo iOS Runtime Version 57.0.9
+2026-09-14 02:18:17.247 A  Expo Go[35572:24f0de] (Security) SecItemDelete_ios
+2026-09-14 02:18:17.248 Df Expo Go[35572:24f0de] [com.apple.securityd:secitemratelimit] Not internal release, disabling SIRL
+2026-09-14 02:18:17.248 Df Expo Go[35572:24f0de] [com.apple.securityd:thread-local-client-debug] SecSecurityClientGet new thread!
+2026-09-14 02:18:17.249 Df Expo Go[35572:24f0de] [com.apple.securityd:keychain] System Keychain Always Supported set via feature flag to disabled
+2026-09-14 02:18:17.249 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x600003d01a40] activating connection: mach=true listener=false peer=false name=com.apple.securityd
+2026-09-14 02:18:17.250 Df Expo Go[35572:24f0f9] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/Library/Application Support/Google/Measurement/google_experimentation_database.sql
+2026-09-14 02:18:17.256 Df Expo Go[35572:24f0ee] [com.apple.containermanager:xpc] Requesting container lookup; class = 13, identifier = (null), group_identifier = systemgroup.com.apple.configurationprofiles, create = 1, temp = 0, euid = 501, uid = 501
+2026-09-14 02:18:17.256 A  Expo Go[35572:24f0ee] (libsystem_containermanager.dylib) container_query_t
+2026-09-14 02:18:17.277 Df Expo Go[35572:24f0ee] [com.apple.containermanager:xpc] Query; euid = 501, uid = 501, class = 13, identifier = [(null)](0), flags = 900000003
+2026-09-14 02:18:17.303 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Key window API is scene-level: YES
+2026-09-14 02:18:17.303 Df Expo Go[35572:24f0de] [com.apple.UIKit:Orientation] <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E) Scene updated orientation preferences: none -> ( Pu Ll Lr Pd )
+2026-09-14 02:18:17.303 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:SceneClient] [(FBSceneManager):sceneID:host.exp.Exponent-default] Client settings update contains non-nil but zero-duration animation settings (rdar://125278944)
+2026-09-14 02:18:17.305 Df Expo Go[35572:24f0de] [com.apple.FrontBoard:SceneExtension] Realizing settings extension <_UIApplicationSceneDisplaySettings> on FBSSceneSettings
+2026-09-14 02:18:17.313 Df Expo Go[35572:24f0de] [com.apple.network:browser] -[NWConcrete_nw_browser initWithDescriptor:parameters:] [B1] create with <nw_browse_descriptor bonjour _expo._tcp.<NULL> (txt)>, parameters: generic, attribution: developer, reuse local address, context: Default Network Context (private), proc: AD2200AE-6563-35A8-8737-D39E441B3AAC, use awdl
+2026-09-14 02:18:17.316 Df Expo Go[35572:24f0eb] [com.apple.network:listener] [L1 tcp, definite, server, attribution: developer, context: Default Network Context (private), proc: AD2200AE-6563-35A8-8737-D39E441B3AAC, local address: ::.0] start
+2026-09-14 02:18:17.316 Df Expo Go[35572:24f0de] [com.apple.network:browser] nw_browser_start_dns_browser_locked [B1] start: dns browser
+2026-09-14 02:18:17.316 E  Expo Go[35572:24f0eb] [com.apple.network:] nw_listener_socket_inbox_create_socket setsockopt SO_NECP_LISTENUUID failed [2: No such file or directory]
+2026-09-14 02:18:17.316 Df Expo Go[35572:24f0eb] [com.apple.network:listener] nw_listener_reconcile_inboxes_on_queue [L1] Started inbox socket: 6, endpoint: ::.57056, interface: <NULL> with parameters tcp, local: ::.0, definite, attribution: developer, server
+2026-09-14 02:18:17.317 Df Expo Go[35572:24f0eb] [com.apple.network:listener] nw_listener_set_state_on_queue [L1] reporting state ready ((null))
+2026-09-14 02:18:17.321 Df Expo Go[35572:24f0de] [com.apple.network:browser] nw_browser_start_path_browser_locked [B1] path: start browser
+2026-09-14 02:18:17.322 Df Expo Go[35572:24f0de] [com.apple.network:browser] nw_browser_set_state_locked [B1] state changed: invalid -> ready
+2026-09-14 02:18:17.326 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] UIWindowScene: 0x10c907b30: Window became key in scene: UIWindow: 0x10ca0b5a0; contextId: 0x4FF4C4AB: reason: UIWindowScene: 0x10c907b30: Window requested to become key in scene: 0x10ca0b5a0
+2026-09-14 02:18:17.326 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Key window needs update: 1; currentKeyWindowScene: 0x0; evaluatedKeyWindowScene: 0x10c907b30; currentApplicationKeyWindow: 0x0; evaluatedApplicationKeyWindow: 0x10ca0b5a0; reason: UIWindowScene: 0x10c907b30: Window requested to become key in scene: 0x10ca0b5a0
+2026-09-14 02:18:17.326 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Window did become application key: UIWindow: 0x10ca0b5a0; contextId: 0x4FF4C4AB; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.326 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventDeferring] [0x600002917db0] Begin local event deferring requested for token: 0x60000211f660; environments: 1; reason: UIWindowScene: 0x10c907b30: Begin event deferring in keyboardFocus for window: 0x10ca0b5a0
+2026-09-14 02:18:17.326 Df Expo Go[35572:24f0de] [com.apple.BackBoard:EventDelivery] flushing changes: <contentsMask: 0x2; discreteDispatchingRules: <nil>; deferringRules: [[35572-1]; <keyboardFocus; builtin; com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default> -> <token: 0x4FF4C4AB; pid: 35572>; reason: UIWindowScene: 0x10c907b30: Begin event deferring in keyboardFocus for window: 0x10ca0b5a0]; keyCommandDispatchingRules: <nil>; keyCommandsRegistrations: <nil>; bufferingPredicates: <nil>; activeUIResponders: <nil>>
+2026-09-14 02:18:17.327 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] handling new keyboard arbiter request pid: 35572 sceneIdentity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.327 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] arbiter: arbiter requested pid 35572 / com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.327 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] using arbiter suggested pid 35572 + scene: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:17.327 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] informing scene controller 'com.apple.springboard' of focusTarget: <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:17.327 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:KeyboardFocus] [coordinator] keyboard arbiter suggested <pid: 35572; sceneIdentity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default> and we replied <com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default pid:35572>
+2026-09-14 02:18:17.327 Df Expo Go[35572:24f0eb] [com.apple.BackBoard:EventDelivery] policyStatus:<BKSHIDEventDeliveryPolicyObserver: 0x600002115540; token: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default; status: ancestor> was:target
+2026-09-14 02:18:17.327 Df Expo Go[35572:24f0eb] [com.apple.BackBoard:EventDelivery] observerPolicyDidChange: 0x600002115540 -> <_UIKeyWindowSceneObserver: 0x600000c30ba0>
+2026-09-14 02:18:17.328 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] Reloading input views for: <EXRootViewController: 0x10e817a00; > force: 0
+2026-09-14 02:18:17.331 Df Expo Go[35572:24f0de] [com.apple.UIKit:InputWindowController] Change from input view set: (null)
+2026-09-14 02:18:17.331 Df Expo Go[35572:24f0de] [com.apple.UIKit:InputWindowController] Change to input view set: (null)
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _reloadInputViewsForKeyWindowSceneResponder: 1 force: 0, fromBecomeFirstResponder: 1 (automaticKeyboard: 1, reloadIdentifier: 0CF121E7-802A-413D-9280-8FB9EC37240C)
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder: <EXRootViewController: 0x10e817a00; >, automaticKeyboard: 1, force: 0
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, found custom inputView: <(null): 0x0>, customInputViewController: <(null): 0x0>
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, found inputAccessoryView: <(null): 0x0>
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, responderRequiresKeyboard 0 (automaticKeyboardEnabled: 1, activeInstance: <(null): 0x0>, self.isOnScreen: 0, requiresKBWhenFirstResponder: 0)
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, useKeyboard 0 (allowsSystemInputView: 1, !inputView <(null): 0x0>, responderRequiresKeyboard 0)
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, configuring _responderWithoutAutomaticAppearanceEnabled: <(null): 0x0> (_automaticAppearEnabled: 1)
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, needsIVPlaceholder: 0, needsIAVPlaceholder: 0, needsInputSetWithPlaceholder: 0
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder returning: <<UIInputViewSet: 0x600003301cc0>; (empty)>
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:UIPeripheralHost] endPlacementForInputViewSet: <<UIInputViewSet: 0x600003301cc0>; (empty)> windowScene: <UIWindowScene: 0x10c907b30; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: 879AFBF4-BB93-4C98-8A12-E029080D449E; activationState: UISceneActivationStateForegroundInactive>
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardArbiterClientLog] -[_UIRemoteKeyboards prepareToMoveKeyboard:withIAV:isIAVRelevant:showing:notifyRemote:forScene:]  inputDestDidChange: 0; shouldNotify: 1
+2026-09-14 02:18:17.338 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardVisualMode] Show keyboard with visual mode windowed (0)
+2026-09-14 02:18:17.340 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason removed: 10; deactivation reasons: 3104 -> 2080; animating application lifecycle event: 1
+2026-09-14 02:18:17.341 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason added: 12; deactivation reasons: 2080 -> 6176; animating application lifecycle event: 1
+2026-09-14 02:18:17.341 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason removed: 11; deactivation reasons: 6176 -> 4128; animating application lifecycle event: 1
+2026-09-14 02:18:17.342 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:17.342 Df Expo Go[35572:24f0f3] [com.apple.UIIntelligenceSupport:xpc] establishing connection to agent
+2026-09-14 02:18:17.342 Df Expo Go[35572:24f0f3] [com.apple.xpc:session] [0x60000212dfe0] Session created.
+2026-09-14 02:18:17.342 Df Expo Go[35572:24f0f3] [com.apple.xpc:session] [0x60000212dfe0] Session created from connection [0x600003d044b0]
+2026-09-14 02:18:17.343 Df Expo Go[35572:24f0f3] [com.apple.xpc:connection] [0x600003d044b0] activating connection: mach=true listener=false peer=false name=com.apple.uiintelligencesupport.agent
+2026-09-14 02:18:17.343 Df Expo Go[35572:24f0f3] [com.apple.xpc:session] [0x60000212dfe0] Session activated
+2026-09-14 02:18:17.343 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:IdleTimer] Scene <FBScene: 0x600003d4f840; FBSceneManager:sceneID:host.exp.Exponent-default> is setting idleTimerDisabled to: NO
+2026-09-14 02:18:17.343 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:IdleTimer] SBIdleTimerGlobalCoordinator - updateIdleTimerForReason:"IdleTimerDisableChangedForMainDisplaySceneManager - client:host.exp.Exponent"]
+2026-09-14 02:18:17.374 A  Expo Go[35572:24f0de] (CoreFoundation) Updating Key-Value Observers Of Preferences
+2026-09-14 02:18:17.421 A  Expo Go[35572:24f0de] (CoreFoundation) Updating Key-Value Observers Of Preferences
+2026-09-14 02:18:17.448 Df Expo Go[35572:24f0eb] [com.apple.network:path] nw_path_evaluator_start [D564352D-6ED8-4FAB-8489-70F114485D1A <NULL> generic, attribution: developer]
+2026-09-14 02:18:17.448 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x60000175d2c0>
+2026-09-14 02:18:17.448 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.448 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000175db00>: taskID = 2, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0).
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 2
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x60000175d0c0>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 2 and description: <_UIBackgroundTaskInfo: 0x60000175db00>: taskID = 2, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x60000175dbc0>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x600002103520> (used by background task with identifier 2: <_UIBackgroundTaskInfo: 0x60000175db00>: taskID = 2, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0))
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000175d500>: taskID = 3, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0).
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 3
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 3 and description: <_UIBackgroundTaskInfo: 0x60000175d500>: taskID = 3, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x60000175d200>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x600002103520> (used by background task with identifier 3: <_UIBackgroundTaskInfo: 0x60000175d500>: taskID = 3, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0))
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x60000175da80>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.449 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000175cbc0>: taskID = 4, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0).
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 4
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 4 and description: <_UIBackgroundTaskInfo: 0x60000175cbc0>: taskID = 4, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x60000175d0c0>
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001709a00>
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x600002103520> (used by background task with identifier 4: <_UIBackgroundTaskInfo: 0x60000175cbc0>: taskID = 4, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0))
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x600002103520>
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f9] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001736dc0>: taskID = 5, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0).
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 5
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 5 and description: <_UIBackgroundTaskInfo: 0x600001736dc0>: taskID = 5, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600001709a00>
+2026-09-14 02:18:17.450 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x600002103520> (used by background task with identifier 5: <_UIBackgroundTaskInfo: 0x600001736dc0>: taskID = 5, taskName = GDTCCTUploader-upload, creationTime = 154162 (elapsed = 0))
+2026-09-14 02:18:17.661 Df Expo Go[35572:24f0de] [com.apple.UIKit:_UIVisualStyleRegistry] Warning: no visual style classes have been registered at all.
+2026-09-14 02:18:17.663 Df Expo Go[35572:24f0de] [PrototypeTools:domain] Not observing PTDefaults on customer install.
+2026-09-14 02:18:17.714 Df Expo Go[35572:24f0ef] [com.apple.xpc:connection] [0x10c717740] activating connection: mach=true listener=false peer=false name=com.apple.fontservicesd
+2026-09-14 02:18:17.753 Df Expo Go[35572:24f0ee] [com.apple.containermanager:unspecified] container_query_get_single_result: success
+2026-09-14 02:18:17.753 A  Expo Go[35572:24f0ee] (libsystem_containermanager.dylib) container_copy_object
+2026-09-14 02:18:17.753 Df Expo Go[35572:24f0ee] [com.apple.containermanager:unspecified] container_system_group_path_for_identifier: success
+2026-09-14 02:18:17.753 Df Expo Go[35572:24f0ee] [com.apple.ManagedConfiguration:MC] Got system group container path from MCM for systemgroup.com.apple.configurationprofiles: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Shared/SystemGroup/systemgroup.com.apple.configurationprofiles
+2026-09-14 02:18:17.984 Df Expo Go[35572:24f0f5] (AppTrackingTransparency) [ATTrackingManager] Performing TCC Access Preflight Request.
+2026-09-14 02:18:18.005 A  Expo Go[35572:24f0f5] (TCC) tcc_send_request_authorization() IPC
+2026-09-14 02:18:18.005 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d26a30] activating connection: mach=true listener=false peer=false name=com.apple.tccd
+2026-09-14 02:18:18.021 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 1
+2026-09-14 02:18:18.022 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Ending task with identifier 1 and description: <_UIBackgroundTaskInfo: 0x60000170e400>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 154161 (elapsed = 1), _expireHandler: (null)
+2026-09-14 02:18:18.022 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x600002103520> (used by background task with identifier 1: <_UIBackgroundTaskInfo: 0x60000170e400>: taskID = 1, taskName = Launch Background Task for Coalescing, creationTime = 154161 (elapsed = 1))
+2026-09-14 02:18:18.022 Df Expo Go[35572:24f0f3] [com.apple.UIKit:BackgroundTask] Will invalidate assertion: <BKSProcessAssertion: 0x600002103520> for task identifier: 1
+2026-09-14 02:18:18.022 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Now acquiring workspace assertion with state: ForegroundFocal.
+2026-09-14 02:18:18.024 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "FBWorkspace (ForegroundFocal)" ID:32138-32135-851 target:35572 attributes:[
+2026-09-14 02:18:18.026 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Assertion 32138-32135-851 (target:[app<host.exp.Exponent((null))>:35572]) will be created as active
+2026-09-14 02:18:18.026 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Invalidating assertion 32138-35572-850 (target:[app<host.exp.Exponent((null))>:35572]) from originator [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:18.026 Df runningboardd[32138:24ee58] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: running-active (role: UserInteractiveFocal) (endowments: {(
+2026-09-14 02:18:18.026 Df SpringBoard[32135:24ed57] [com.apple.FrontBoard:ProcessWorkspace] [app<host.exp.Exponent>:35572] Dropping launch assertion.
+2026-09-14 02:18:18.026 A  Expo Go[35572:24f0f3] (RunningBoardServices) didChangeInheritances
+2026-09-14 02:18:18.026 Df SpringBoard[32135:24ed57] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:18.026 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Invalidating assertion 32138-32135-847 (target:app<host.exp.Exponent((null))>) from originator [osservice<com.apple.SpringBoard>:32135]
+2026-09-14 02:18:18.048 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x600003d0cb40] activating connection: mach=true listener=false peer=false name=com.apple.IOSurface.Remote
+2026-09-14 02:18:18.054 Df SpringBoard[32135:24ee77] [com.apple.FrontBoard:ProcessScene] [0x60000379fd80:(FBSceneManager):sceneID:host.exp.Exponent-default] Scene action [Logical Activate][0xc28b] completed with success: 1
+2026-09-14 02:18:18.054 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] scene content state changed: ready
+2026-09-14 02:18:18.055 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572](UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default) from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "injecting inherited from "UIScene:com.apple.frontboard.systemappservices/FBSceneManager:com.apple.springboard" to 35572<UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default>" ID:32138-32135-852 target:35572<UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default> attributes:[
+2026-09-14 02:18:18.055 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Assertion 32138-32135-852 (target:[app<host.exp.Exponent((null))>:35572](UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default)) will be created as active
+2026-09-14 02:18:18.055 Df runningboardd[32138:24ee38] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: running-active (role: UserInteractiveFocal) (endowments: {(
+    <RBSProcessEndowmentInfo| namespace:com.apple.frontboard.visibility env:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default payload: 3638529331308144200>,
+    <RBSInheritance| environment:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default name:com.apple.frontboard.visibility origID:32138-32135-852 payload 3638529331308144200>
+2026-09-14 02:18:18.056 A  Expo Go[35572:24f0eb] (RunningBoardServices) didChangeInheritances
+2026-09-14 02:18:18.056 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Setting parent scene: (FBSceneManager):com.apple.springboard
+2026-09-14 02:18:18.056 Df SpringBoard[32135:24ee77] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:18.057 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] propagating 4 settings from (FBSceneManager):com.apple.springboard
+2026-09-14 02:18:18.058 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Removing parent scene.
+2026-09-14 02:18:18.058 Df runningboardd[32138:24ee58] [com.apple.runningboard:ttl] Invalidating assertion 32138-32135-852 (target:[app<host.exp.Exponent((null))>:35572](UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default)) from originator [osservice<com.apple.SpringBoard>:32135]
+2026-09-14 02:18:18.058 Df Expo Go[35572:24f0eb] [com.apple.CoreAnalytics:client] No XPC connection in Simulator
+2026-09-14 02:18:18.058 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] Setting parent scene: (FBSceneManager):com.apple.springboard
+2026-09-14 02:18:18.058 Df SpringBoard[32135:2495ec] [com.apple.FrontBoard:Scene] [(FBSceneManager):sceneID:host.exp.Exponent-default] propagating 4 settings from (FBSceneManager):com.apple.springboard
+2026-09-14 02:18:18.058 Df runningboardd[32138:24ee58] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572](UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default) from originator [osservice<com.apple.SpringBoard>:32135] with description <RBSAssertionDescriptor| "injecting inherited from "UIScene:com.apple.frontboard.systemappservices/FBSceneManager:com.apple.springboard" to 35572<UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default>" ID:32138-32135-853 target:35572<UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default> attributes:[
+2026-09-14 02:18:18.058 E  Expo Go[35572:24f0eb] [com.apple.app_launch_measurement:General] Failed to send CA Event for app launch measurements for ca_event_type: 0 event_name: com.apple.app_launch_measurement.FirstFramePresentationMetric
+2026-09-14 02:18:18.058 Df runningboardd[32138:24ee58] [com.apple.runningboard:ttl] Assertion 32138-32135-853 (target:[app<host.exp.Exponent((null))>:35572](UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default)) will be created as active
+    <RBSInheritance| environment:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default name:com.apple.frontboard.visibility origID:32138-32135-853 payload 3638529331308144200>
+2026-09-14 02:18:18.059 Df Expo Go[35572:24f0de] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:1 [E6306B14-124D-4F92-A992-B2544CF773B3] (reporting strategy default)>
+2026-09-14 02:18:18.059 Df Expo Go[35572:24f0de] [com.apple.network:activity] Create activity from XPC object <nw_activity 50:2 [5FACCA6D-6591-4F0C-93C8-B7B521D2146D] (reporting strategy default)>
+2026-09-14 02:18:18.059 A  Expo Go[35572:24f0eb] (RunningBoardServices) didChangeInheritances
+2026-09-14 02:18:18.059 Df Expo Go[35572:24f0de] [com.apple.network:activity] Set activity <nw_activity 50:1 [E6306B14-124D-4F92-A992-B2544CF773B3] (reporting strategy default)> as the global parent.
+<SBSceneReadySwitcherModifierEvent: 0x600000369640; type: SceneReady; appLayout: <SBAppLayout: 0x600002cbc200; primary: host.exp.Exponent:default; environment: main> {
+        sceneID:host.exp.Exponent-default = <SBDisplayItemLayoutAttributes: 0x6000039052b0; contentOrientation: "portrait (1)"; lastInteractionTime: 4; sizingPolicy: maximized; size: unspecified; center: unspecified; occlusionState: unknown; userConfiguredSizeBeforeOverlapping: unspecified; unoccludedPeekingCenter: unspecified>;
+    continuousExposeIdentifier = host.exp.Exponent;
+        primary = <SBDisplayItem: 0x600000d47c30; type: App; bundleIdentifier: host.exp.Exponent; uniqueIdentifier: sceneID:host.exp.Exponent-default>;
+2026-09-14 02:18:18.061 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventBus] Event Timing Profile for Touch: not found, path="/System/Library/EventTimingProfiles/Sim.Touch.plist"
+2026-09-14 02:18:18.061 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventBus] Event Timing Profile for Pencil: not found, path="/System/Library/EventTimingProfiles/Sim.Pencil.plist"
+2026-09-14 02:18:18.061 Df Expo Go[35572:24f0de] [com.apple.UIKit:UpdateScheduler] Target list changed: <CADisplay:LCD PurpleMain>
+2026-09-14 02:18:18.062 Df Expo Go[35572:24f0de] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:host.exp.Exponent-default  persistentID: 879AFBF4-BB93-4C98-8A12-E029080D449E
+2026-09-14 02:18:18.068 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Common] Front display did change: <SBApplication: 0x600003d0ed00; host.exp.Exponent>
+2026-09-14 02:18:18.078 Df Expo Go[35572:24f0f3] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/Library/Preferences/com.google.gmp.measurement.monitor.plist
+2026-09-14 02:18:18.078 Df Expo Go[35572:24f0ee] [com.apple.xpc:connection] [0x10c7890e0] activating connection: mach=true listener=false peer=false name=com.apple.lsd.advertisingidentifiers
+2026-09-14 02:18:18.107 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d26a30] invalidated after the last release of the connection object
+2026-09-14 02:18:18.118 Df Expo Go[35572:24f0de] [com.apple.storekit:Default] [SKPaymentQueue] Adding storefront listener
+2026-09-14 02:18:18.119 Df Expo Go[35572:24f0f3] [com.apple.storekit:Default] [cd756223] Initializing StorefrontListener
+2026-09-14 02:18:18.119 Df Expo Go[35572:24f0ea] [com.apple.storekit:Default] [70efe6b7] currentStorefront needs update
+2026-09-14 02:18:18.123 Df Expo Go[35572:24f0de] [com.apple.xpc:connection] [0x10ca10f00] activating connection: mach=true listener=false peer=false name=com.apple.storekitd
+2026-09-14 02:18:18.123 Df Expo Go[35572:24f0de] [com.apple.storekit:Default] [<SKPaymentQueue: 0x6000000288d0>] Adding purchase intent listener
+2026-09-14 02:18:18.128 Df Expo Go[35572:24f0ea] [com.apple.storekit:Default] [affdd529] Requesting purchase intents after 2026-09-13 20:33:18 +0000
+2026-09-14 02:18:18.130 Df Expo Go[35572:24f0de] [com.apple.UIKit:EventDeferring] [0x600002917db0] Scene target of event deferring environments did update: scene: 0x10c907b30; current systemShellManagesKeyboardFocus: 1; systemShellManagesKeyboardFocusForScene: 1; eligibleForRecordRemoval: 1;
+2026-09-14 02:18:18.130 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyWindow] Scene became target of keyboard event deferring environment: UIWindowScene: 0x10c907b30; scene identity: com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default
+2026-09-14 02:18:18.131 Df runningboardd[32138:24ee38] [com.apple.runningboard:monitor] Calculated state for app<host.exp.Exponent((null))>: running-active (role: UserInteractiveFocal) (endowments: {(
+    <RBSProcessEndowmentInfo| namespace:com.apple.frontboard.visibility env:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default payload: 3638529331308144200>,
+    <RBSInheritance| environment:UIScene:com.apple.frontboard.systemappservices/FBSceneManager:sceneID%3Ahost.exp.Exponent-default name:com.apple.frontboard.visibility origID:32138-32135-852 payload 3638529331308144200>
+2026-09-14 02:18:18.131 A  Expo Go[35572:24f0ea] (RunningBoardServices) didChangeInheritances
+2026-09-14 02:18:18.131 Df SpringBoard[32135:24ed57] [com.apple.runningboard:monitor] Received state update for 35572 (app<host.exp.Exponent((null))>, running-active-Visible
+2026-09-14 02:18:18.131 Df Expo Go[35572:24f0de] [com.apple.BackBoard:Display] [FBSDisplaySource 1-1] silently connecting raw configuration: <FBSDisplayConfiguration: 0x600003d0cff0; Main; mode: "402x874@3x 60Hz p3 SDR">
+2026-09-14 02:18:18.157 Df Expo Go[35572:24f0de] [com.apple.UIKit:InterfaceStyle] Not push traits update to screen for new style 1, <UIWindowScene: 0x10c907b30> (879AFBF4-BB93-4C98-8A12-E029080D449E)
+2026-09-14 02:18:18.157 Df Expo Go[35572:24f0de] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:host.exp.Exponent-default  persistentID: 879AFBF4-BB93-4C98-8A12-E029080D449E
+2026-09-14 02:18:18.157 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason removed: 12; deactivation reasons: 4128 -> 32; animating application lifecycle event: 1
+2026-09-14 02:18:18.158 Df Expo Go[35572:24f0de] [com.apple.UIKit:Application] Deactivation reason removed: 5; deactivation reasons: 32 -> 0; animating application lifecycle event: 0
+2026-09-14 02:18:18.163 A  Expo Go[35572:24f0ea] (Security) SecItemCopyMatching_ios
+2026-09-14 02:18:18.163 Df Expo Go[35572:24f0ea] [com.apple.securityd:thread-local-client-debug] SecSecurityClientGet new thread!
+2026-09-14 02:18:18.176 Df Expo Go[35572:24f0ea] [com.apple.storekit:Default] [70efe6b7] currentStorefront updated to 143441
+2026-09-14 02:18:18.194 Df Expo Go[35572:24f0de] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:host.exp.Exponent-default  persistentID: 879AFBF4-BB93-4C98-8A12-E029080D449E
+2026-09-14 02:18:18.198 Df Expo Go[35572:24f0de] [com.apple.UIKit:AppLifecycle] sceneOfRecord: sceneID: sceneID:host.exp.Exponent-default  persistentID: 879AFBF4-BB93-4C98-8A12-E029080D449E
+2026-09-14 02:18:18.198 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] forceReloadInputViews
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] Reloading input views for: <EXRootViewController: 0x10e817a00; > force: 1
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _reloadInputViewsForKeyWindowSceneResponder: 1 force: 1, fromBecomeFirstResponder: 0 (automaticKeyboard: 1, reloadIdentifier: A71B7F36-412B-46F6-BD66-275CC191C9A0)
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder: <EXRootViewController: 0x10e817a00; >, automaticKeyboard: 1, force: 1
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, found custom inputView: <(null): 0x0>, customInputViewController: <(null): 0x0>
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, found inputAccessoryView: <(null): 0x0>
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, responderRequiresKeyboard 0 (automaticKeyboardEnabled: 1, activeInstance: <(null): 0x0>, self.isOnScreen: 0, requiresKBWhenFirstResponder: 0)
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, useKeyboard 0 (allowsSystemInputView: 1, !inputView <(null): 0x0>, responderRequiresKeyboard 0)
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, configuring _responderWithoutAutomaticAppearanceEnabled: <(null): 0x0> (_automaticAppearEnabled: 1)
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder, needsIVPlaceholder: 0, needsIAVPlaceholder: 0, needsInputSetWithPlaceholder: 0
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardSceneDelegate] _inputViewsForResponder returning: <<UIInputViewSet: 0x600003305900>; (empty)>
+2026-09-14 02:18:18.199 Df Expo Go[35572:24f0de] [com.apple.UIKit:UIPeripheralHost] endPlacementForInputViewSet: <<UIInputViewSet: 0x600003305900>; (empty)> windowScene: <UIWindowScene: 0x10c907b30; role: UIWindowSceneSessionRoleApplication; persistentIdentifier: 879AFBF4-BB93-4C98-8A12-E029080D449E; activationState: UISceneActivationStateForegroundActive>
+2026-09-14 02:18:18.200 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardArbiterClientLog] -[_UIRemoteKeyboards prepareToMoveKeyboard:withIAV:isIAVRelevant:showing:notifyRemote:forScene:]  inputDestDidChange: 0; shouldNotify: 0
+2026-09-14 02:18:18.200 Df Expo Go[35572:24f0de] [com.apple.UIKit:KeyboardVisualMode] Show keyboard with visual mode windowed (0)
+2026-09-14 02:18:18.209 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Idle notifier run loop observer fired
+2026-09-14 02:18:18.209 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Sending main run loop idle reply
+2026-09-14 02:18:18.213 Df Expo Go[35572:24f0f6] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/Library/Application Support/Google/Measurement/google-app-measurement.sql
+2026-09-14 02:18:18.232 Df Expo Go[35572:24f0f5] [com.apple.network:browser] nw_browser_start_query_record_for_endpoint_locked [B1] start query record for expo-go-permission-probe._expo._tcp.local. on lo0
+2026-09-14 02:18:18.233 Df Expo Go[35572:24f0f5] [com.apple.network:browser] nw_browser_start_query_record_for_endpoint_locked [B1] start query record for expo-go-permission-probe._expo._tcp.local. on ap1
+2026-09-14 02:18:18.233 Df Expo Go[35572:24f0f5] [com.apple.network:browser] nw_browser_start_query_record_for_endpoint_locked [B1] start query record for expo-go-permission-probe._expo._tcp.local. on en0
+2026-09-14 02:18:18.237 Df Expo Go[35572:24f0ee] [com.apple.network:listener] nw_listener_cancel_block_invoke [L1] cancel
+2026-09-14 02:18:18.237 Df Expo Go[35572:24f0ee] [com.apple.network:listener] nw_listener_resume_inbox [L1] Resumed for socket: 6, endpoint: ::.57056, interface: <NULL>
+2026-09-14 02:18:18.237 Df Expo Go[35572:24f0ee] [com.apple.network:listener] nw_listener_cancel_all_inboxes_on_queue_block_invoke [L1] cancelling all inboxes: socket: 6, endpoint: ::.57056, interface: <NULL>
+2026-09-14 02:18:18.238 Df Expo Go[35572:24f0ee] [com.apple.network:listener] nw_listener_set_state_on_queue [L1] reporting state cancelled ((null))
+2026-09-14 02:18:18.240 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1 B4322129-5615-4764-A0DA-C7748DD359EE Bonjour#aaca0fcd tcp, attribution: developer, reuse local address, context: Default Network Context (private), proc: AD2200AE-6563-35A8-8737-D39E441B3AAC, use awdl, prefer no proxy] start
+2026-09-14 02:18:18.240 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1 Bonjour#aaca0fcd initial parent-flow ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.240 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1 Bonjour#aaca0fcd waiting parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: B3415DBC-2544-4946-9EB2-26E39969FE2D
+2026-09-14 02:18:18.241 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1 Bonjour#aaca0fcd in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.001s
+2026-09-14 02:18:18.241 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C1] reporting state preparing
+2026-09-14 02:18:18.241 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1 Bonjour#aaca0fcd in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_child @0.001s
+2026-09-14 02:18:18.241 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1.1 Bonjour#aaca0fcd initial path ((null))] event: path:start @0.001s
+2026-09-14 02:18:18.241 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1.1 Bonjour#aaca0fcd waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.001s, uuid: B3415DBC-2544-4946-9EB2-26E39969FE2D
+2026-09-14 02:18:18.242 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C1.1 Bonjour#aaca0fcd in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:start_bonjour @0.002s
+2026-09-14 02:18:18.250 Df Expo Go[35572:24f0de] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> resuming, timeouts(60.0, 604800.0) qos(0x21) voucher(<OS_voucher: 0x60000210c2d0>) activity(00000000-0000-0000-0000-000000000000)
+2026-09-14 02:18:18.251 A  Expo Go[35572:24f0de] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-09-14 02:18:18.254 A  Expo Go[35572:24f0ea] (libsystem_containermanager.dylib) container_system_group_path_for_identifier
+2026-09-14 02:18:18.254 Df Expo Go[35572:24f0ea] [com.apple.containermanager:xpc] Requesting container lookup; class = 13, identifier = com.apple.nsurlsessiond, group_identifier = systemgroup.com.apple.nsurlstoragedresources, create = 1, temp = 0, euid = 501, uid = 501
+2026-09-14 02:18:18.254 A  Expo Go[35572:24f0ea] (libsystem_containermanager.dylib) container_query_t
+2026-09-14 02:18:18.254 Df Expo Go[35572:24f0ea] [com.apple.containermanager:xpc] Query; euid = 501, uid = 501, class = 13, identifier = [com.apple.nsurlsessiond](1), flags = 900000003
+2026-09-14 02:18:18.255 Df Expo Go[35572:24f0ea] [com.apple.containermanager:unspecified] container_query_get_single_result: success
+2026-09-14 02:18:18.255 A  Expo Go[35572:24f0ea] (libsystem_containermanager.dylib) container_copy_object
+2026-09-14 02:18:18.255 Df Expo Go[35572:24f0ea] [com.apple.containermanager:unspecified] container_system_group_path_for_identifier: success
+2026-09-14 02:18:18.256 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Connection 0: creating secure tcp or quic connection
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Connection 2: enabling TLS
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Connection 2: starting, TC(0x0)
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2 BB69276A-5E3B-4F32-BC9E-52FA98FA1A4A Hostname#8f67f8a0:443 quic-connection, url hash: 6b587b6e, definite, attribution: developer, context: com.apple.CFNetwork.NSURLSession.{EDA5394E-066A-45FC-B4DB-77F421643D68}{(null)}{Y}{3}{0x0} (sensitive), proc: AD2200AE-6563-35A8-8737-D39E441B3AAC] start
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2 Hostname#8f67f8a0:443 initial parent-flow ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2 Hostname#8f67f8a0:443 waiting parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 5190B803-E5B7-4ED7-8FEA-B09FB416F7BF
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2 Hostname#8f67f8a0:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.000s
+2026-09-14 02:18:18.259 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C2] reporting state preparing
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2 Hostname#8f67f8a0:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_child @0.000s
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1 Hostname#8f67f8a0:443 initial path ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1 Hostname#8f67f8a0:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 5190B803-E5B7-4ED7-8FEA-B09FB416F7BF
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1 Hostname#8f67f8a0:443 in_progress transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: transform:start @0.000s
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 initial path ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 572874AD-C05B-4F63-9118-320CDC00C285
+2026-09-14 02:18:18.260 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:start_dns @0.001s
+2026-09-14 02:18:18.261 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> setting up Connection 2
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#1ffce1df:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#70f557b6:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#00acbb1c:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#8a37c3bd:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#63ba54a4:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#cdfdfb8b:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#d44c4b90:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#7cdf42d6:443
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_dns @0.003s
+2026-09-14 02:18:18.262 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 initial path ((null))] event: path:start @0.003s
+2026-09-14 02:18:18.263 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.003s, uuid: 39764B91-E586-426D-A3A8-9503E79AB2A7
+2026-09-14 02:18:18.263 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.004s
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#cdfdfb8b:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#00acbb1c:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#70f557b6:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#7cdf42d6:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#d44c4b90:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#8a37c3bd:443
+2026-09-14 02:18:18.267 Df Expo Go[35572:24f0ea] [com.apple.network:connection] nw_endpoint_resolver_update [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#63ba54a4:443
+2026-09-14 02:18:18.268 Df Expo Go[35572:24f0ea] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_dns @0.008s
+2026-09-14 02:18:18.275 Df Expo Go[35572:24f0eb] [com.apple.network:connection] nw_socket_handle_socket_event [C2.1.1.1:3] Socket received CONNECTED event
+2026-09-14 02:18:18.276 Df Expo Go[35572:24f0eb] [com.apple.network:connection] nw_flow_connected [C2.1.1.1 IPv4#1ffce1df:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Transport protocol connected (socket)
+2026-09-14 02:18:18.276 Df Expo Go[35572:24f0eb] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_transport @0.016s
+2026-09-14 02:18:18.288 A  Expo Go[35572:24f0ea] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.288 A  Expo Go[35572:24f0ea] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.288 A  Expo Go[35572:24f0ea] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.288 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Connection 2: asked to evaluate TLS Trust
+2026-09-14 02:18:18.289 Df Expo Go[35572:24f0ea] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> auth completion disp=1 cred=0x0
+2026-09-14 02:18:18.289 Df Expo Go[35572:24f0f5] [com.apple.securityd:trust] (Trust 0x600003504fd0) No pending evals, starting
+2026-09-14 02:18:18.289 A  Expo Go[35572:24f0f5] (Security) SecTrustEvaluateIfNecessaryFastAsync
+2026-09-14 02:18:18.289 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d63840] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-09-14 02:18:18.289 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d4f750] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-09-14 02:18:18.291 Df Expo Go[35572:24f0de] [com.apple.network:activity] <nw_activity 50:1 [E6306B14-124D-4F92-A992-B2544CF773B3] (global parent) (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 2444ms
+2026-09-14 02:18:18.291 Df Expo Go[35572:24f0f5] [com.apple.securityd:trust] (Trust 0x600003504fd0) Completed async eval kickoff
+2026-09-14 02:18:18.292 Df Expo Go[35572:24f0de] [com.apple.network:activity] <nw_activity 50:2 [5FACCA6D-6591-4F0C-93C8-B7B521D2146D] (reporting strategy default) complete (reason success)> complete with reason 2 (success), duration 2445ms
+2026-09-14 02:18:18.292 Df Expo Go[35572:24f0de] [com.apple.network:activity] Unsetting the global parent activity <nw_activity 50:1 [E6306B14-124D-4F92-A992-B2544CF773B3] (global parent) (reporting strategy default) complete (reason success)>.
+2026-09-14 02:18:18.292 Df Expo Go[35572:24f0de] [com.apple.network:activity] Unset the global parent activity.
+2026-09-14 02:18:18.292 E  Expo Go[35572:24f0eb] [com.apple.app_launch_measurement:General] Failed to send CA Event for app launch measurements for ca_event_type: 1 event_name: com.apple.app_launch_measurement.ExtendedLaunchMetrics
+2026-09-14 02:18:18.293 Df Expo Go[35572:24f0f5] [com.apple.securityd:trust] (Trust 0x600003504fd0) trustd returned 4
+2026-09-14 02:18:18.293 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 2: TLS Trust result 0
+2026-09-14 02:18:18.297 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.297 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.297 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.297 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C2.1.1.1 IPv4#1ffce1df:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (CFNetworkConnection-466935331)
+2026-09-14 02:18:18.297 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.038s
+2026-09-14 02:18:18.297 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 ready resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.038s
+2026-09-14 02:18:18.297 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1 Hostname#8f67f8a0:443 ready transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1.1.1 IPv4#1ffce1df:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1.1 Hostname#8f67f8a0:443 ready resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2.1 Hostname#8f67f8a0:443 ready transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C2 IPv4#1ffce1df:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (endpoint_flow)
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2 IPv4#1ffce1df:443 ready parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_connect @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C2] reporting state ready
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2 IPv4#1ffce1df:443 ready parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.038s
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d4f750] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-14 02:18:18.298 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 2: connected successfully
+2026-09-14 02:18:18.299 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 2: TLS handshake complete
+2026-09-14 02:18:18.299 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 2: ready C(N) E(N)
+2026-09-14 02:18:18.299 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2] event: client:connection_reused @0.040s
+2026-09-14 02:18:18.300 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> now using Connection 2
+2026-09-14 02:18:18.300 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 2: received viability advisory(Y)
+2026-09-14 02:18:18.300 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> sent request, body S 126
+2026-09-14 02:18:18.334 E  Expo Go[35572:24f0de] [com.apple.UIKit:TraitCollection] Class CKBrowserSwitcherViewController overrides the -traitCollection getter, which is not supported. If you're trying to override traits, you must use the appropriate API.
+2026-09-14 02:18:18.351 Df Expo Go[35572:24f0f6] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/Library/Application Support/Google/Measurement
+2026-09-14 02:18:18.353 A  Expo Go[35572:24f0f6] (Security) SecItemCopyMatching_ios
+2026-09-14 02:18:18.353 Df Expo Go[35572:24f0f6] [com.apple.securityd:thread-local-client-debug] SecSecurityClientGet new thread!
+2026-09-14 02:18:18.369 A  Expo Go[35572:24f0f6] (Security) SecItemCopyMatching_ios
+2026-09-14 02:18:18.370 A  Expo Go[35572:24f0f6] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-09-14 02:18:18.370 A  Expo Go[35572:24f0f6] (CoreFoundation) Loading Preferences From User Session CFPrefsD
+2026-09-14 02:18:18.413 Df Expo Go[35572:24f0f6] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> received response, status 400 content K
+2026-09-14 02:18:18.414 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> done using Connection 2
+2026-09-14 02:18:18.414 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C2] event: client:connection_idle @0.154s
+2026-09-14 02:18:18.414 A  Expo Go[35572:24f0f5] (Security) SecTrustEvaluateIfNecessary
+2026-09-14 02:18:18.414 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d69860] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-09-14 02:18:18.416 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d69860] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-14 02:18:18.416 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> response ended
+2026-09-14 02:18:18.416 Df Expo Go[35572:24f0f6] [com.apple.CFNetwork:Default] Garbage collection for alternative services
+2026-09-14 02:18:18.417 Df Expo Go[35572:24f0ee] [com.apple.CFNetwork:Summary] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> summary for task success {transaction_duration_ms=163, response_status=400, connection=2, protocol="h2", domain_lookup_duration_ms=2, connect_duration_ms=34, secure_connection_duration_ms=17, private_relay=false, request_start_ms=47, request_duration_ms=0, response_start_ms=159, response_duration_ms=4, request_bytes=370, request_throughput_kbps=2798, response_bytes=512, response_throughput_kbps=112, cache_hit=false}
+2026-09-14 02:18:18.419 Df Expo Go[35572:24f0eb] [com.apple.CFNetwork:Default] Task <49599CD2-5454-4DC3-8CED-7A9F7F3ED867>.<1> finished successfully
+2026-09-14 02:18:18.420 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTTransformer, expirationHandler: <__NSMallocBlock__: 0x600000c18060>
+2026-09-14 02:18:18.420 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-09-14 02:18:18.421 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-09-14 02:18:18.424 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x60000210bed0>
+2026-09-14 02:18:18.425 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [app<host.exp.Exponent((null))>:35572] with description <RBSAssertionDescriptor| "Shared Background Assertion 1 for host.exp.Exponent" ID:32138-35572-854 target:35572 attributes:[
+2026-09-14 02:18:18.425 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Assertion 32138-35572-854 (target:[app<host.exp.Exponent((null))>:35572]) will be created as inactive as start-time-defining assertions exist
+2026-09-14 02:18:18.426 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x60000210bed0>
+2026-09-14 02:18:18.426 Df Expo Go[35572:24f0ed] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000172c480>: taskID = 6, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0).
+2026-09-14 02:18:18.427 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTStorage, expirationHandler: <__NSMallocBlock__: 0x600000c14450>
+2026-09-14 02:18:18.428 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x60000210bed0>
+2026-09-14 02:18:18.428 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x60000210bed0>
+2026-09-14 02:18:18.428 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000172c540>: taskID = 7, taskName = GDTStorage, creationTime = 154163 (elapsed = 0).
+2026-09-14 02:18:18.497 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 6
+2026-09-14 02:18:18.497 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Ending task with identifier 6 and description: <_UIBackgroundTaskInfo: 0x60000172c480>: taskID = 6, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600000c18060>
+2026-09-14 02:18:18.497 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x60000210bed0> (used by background task with identifier 6: <_UIBackgroundTaskInfo: 0x60000172c480>: taskID = 6, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0))
+2026-09-14 02:18:18.497 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 7
+2026-09-14 02:18:18.497 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Ending task with identifier 7 and description: <_UIBackgroundTaskInfo: 0x60000172c540>: taskID = 7, taskName = GDTStorage, creationTime = 154163 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600000c18210>
+2026-09-14 02:18:18.498 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x60000210bed0> (used by background task with identifier 7: <_UIBackgroundTaskInfo: 0x60000172c540>: taskID = 7, taskName = GDTStorage, creationTime = 154163 (elapsed = 0))
+2026-09-14 02:18:18.498 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Will invalidate assertion: <BKSProcessAssertion: 0x60000210bed0> for task identifier: 7
+2026-09-14 02:18:18.498 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTCCTUploader-upload, expirationHandler: <__NSMallocBlock__: 0x600001728b40>
+2026-09-14 02:18:18.498 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Creating new assertion because there is no existing background assertion.
+2026-09-14 02:18:18.498 Df runningboardd[32138:24ecad] [com.apple.runningboard:ttl] Invalidating assertion 32138-35572-854 (target:[app<host.exp.Exponent((null))>:35572]) from originator [app<host.exp.Exponent((null))>:35572]
+2026-09-14 02:18:18.498 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Creating new background assertion
+2026-09-14 02:18:18.499 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Created new background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.499 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [app<host.exp.Exponent((null))>:35572] with description <RBSAssertionDescriptor| "Shared Background Assertion 2 for host.exp.Exponent" ID:32138-35572-855 target:35572 attributes:[
+2026-09-14 02:18:18.500 Df runningboardd[32138:24ee5b] [com.apple.runningboard:ttl] Assertion 32138-35572-855 (target:[app<host.exp.Exponent((null))>:35572]) will be created as inactive as start-time-defining assertions exist
+2026-09-14 02:18:18.500 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.501 Df Expo Go[35572:24f0f6] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001724980>: taskID = 8, taskName = GDTCCTUploader-upload, creationTime = 154163 (elapsed = 0).
+2026-09-14 02:18:18.512 Df Expo Go[35572:24f0de] [com.apple.Accessibility:AXCommon] Loading PDFKit
+2026-09-14 02:18:18.577 Df Expo Go[35572:24f0de] [com.apple.CFNetwork:Default] Task <27927E55-9989-4927-BA63-EF71514C4566>.<1> resuming, timeouts(60.0, 604800.0) qos(0x21) voucher(<OS_voucher: 0x60000210c2d0>) activity(00000000-0000-0000-0000-000000000000)
+2026-09-14 02:18:18.578 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<host.exp.Exponent((null))>:35572] from originator [app<host.exp.Exponent((null))>:35572] with description <RBSAssertionDescriptor| "com.apple.CFNetwork.StorageDB" ID:32138-35572-856 target:35572 attributes:[
+2026-09-14 02:18:18.578 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Assertion 32138-35572-856 (target:[app<host.exp.Exponent((null))>:35572]) will be created as inactive as start-time-defining assertions exist
+2026-09-14 02:18:18.587 Df Expo Go[35572:24f0e6] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTTransformer, expirationHandler: <__NSMallocBlock__: 0x600000d39bf0>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0e6] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0e6] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0e6] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x600001808e40>: taskID = 9, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0).
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Will add backgroundTask with taskName: GDTStorage, expirationHandler: <__NSMallocBlock__: 0x600000d44c30>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Reusing background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Incrementing reference count for background assertion <BKSProcessAssertion: 0x60000210bb60>
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Created background task <_UIBackgroundTaskInfo: 0x60000180c1c0>: taskID = 10, taskName = GDTStorage, creationTime = 154163 (elapsed = 0).
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Initializing NSHTTPCookieStorage singleton
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Initializing CFHTTPCookieStorage singleton
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Creating default cookie storage with process/bundle identifier
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Initializing AlternativeServices Storage singleton
+2026-09-14 02:18:18.588 Df Expo Go[35572:24f0ed] [com.apple.FileURL:default] kExcludedFromBackupXattrName set on path: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/Library/HTTPStorages/host.exp.Exponent
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0e6] [com.apple.CFNetwork:Default] Garbage collection for alternative services
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Connection 0: creating secure tcp or quic connection
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Connection 3: enabling TLS
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Connection 3: starting, TC(0x0)
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3 Hostname#4f0f3f2b:443 initial parent-flow ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.598 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3 Hostname#4f0f3f2b:443 waiting parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 7B7F5E36-45F5-4864-A61E-E1690DB834B9
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3 Hostname#4f0f3f2b:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C3] reporting state preparing
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3 Hostname#4f0f3f2b:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_child @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 initial path ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 7B7F5E36-45F5-4864-A61E-E1690DB834B9
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 in_progress transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: transform:start @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 initial path ((null))] event: path:start @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: D2A0A5DE-80FC-40CB-A511-3184A37530EF
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:start_dns @0.000s
+2026-09-14 02:18:18.599 Df Expo Go[35572:24f0ed] [com.apple.CFNetwork:Default] Task <27927E55-9989-4927-BA63-EF71514C4566>.<1> setting up Connection 3
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#d44c4b90:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#70f557b6:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#63ba54a4:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#8a37c3bd:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#00acbb1c:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#1ffce1df:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#cdfdfb8b:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#7cdf42d6:443
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_dns @0.001s
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 initial path ((null))] event: path:start @0.001s
+2026-09-14 02:18:18.600 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.001s, uuid: 80377893-C759-4FEC-BEBE-752EA3DDD492
+2026-09-14 02:18:18.608 Df Expo Go[35572:24f0ed] [com.apple.network:] nw_protocol_instance_ignore_future_path_changes [C3.1.1.1:2] Ignoring future path changes for protocol
+2026-09-14 02:18:18.608 Df Expo Go[35572:24f0ed] [com.apple.network:quic] quic_conn_initialize_inner [C3.1.1.1:2] [-158ca0856d63d5bb] created QUIC connection (spin bit enabled)
+2026-09-14 02:18:18.609 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.011s
+2026-09-14 02:18:18.611 Df Expo Go[35572:24f0ed] [com.apple.network:quic] quic_crypto_new_flow [C3.1.1.1:2] [-158ca0856d63d5bb] TLS stream is: [C4]
+2026-09-14 02:18:18.611 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 initial socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:start @0.000s
+2026-09-14 02:18:18.611 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 waiting socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @0.000s, uuid: 80377893-C759-4FEC-BEBE-752EA3DDD492
+2026-09-14 02:18:18.611 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:start_connect @0.000s
+2026-09-14 02:18:18.611 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C4] reporting state preparing
+2026-09-14 02:18:18.612 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_flow_connected [C4 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Transport protocol connected (quic-connection)
+2026-09-14 02:18:18.612 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_transport @0.000s
+2026-09-14 02:18:18.614 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_socket_handle_socket_event [C3.1.1.1:2] Socket received CONNECTED event
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 9
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Ending task with identifier 9 and description: <_UIBackgroundTaskInfo: 0x600001808e40>: taskID = 9, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600000d39bf0>
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x60000210bb60> (used by background task with identifier 9: <_UIBackgroundTaskInfo: 0x600001808e40>: taskID = 9, taskName = GDTTransformer, creationTime = 154163 (elapsed = 0))
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Ending background task with UIBackgroundTaskIdentifier: 10
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Ending task with identifier 10 and description: <_UIBackgroundTaskInfo: 0x60000180c1c0>: taskID = 10, taskName = GDTStorage, creationTime = 154163 (elapsed = 0), _expireHandler: <__NSMallocBlock__: 0x600000d44c30>
+2026-09-14 02:18:18.618 Df Expo Go[35572:24f0f5] [com.apple.UIKit:BackgroundTask] Decrementing reference count for assertion <BKSProcessAssertion: 0x60000210bb60> (used by background task with identifier 10: <_UIBackgroundTaskInfo: 0x60000180c1c0>: taskID = 10, taskName = GDTStorage, creationTime = 154163 (elapsed = 0))
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#1ffce1df:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#70f557b6:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#cdfdfb8b:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#63ba54a4:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#8a37c3bd:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#00acbb1c:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] nw_endpoint_resolver_update [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#7cdf42d6:443
+2026-09-14 02:18:18.619 Df Expo Go[35572:24f0ed] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_dns @0.020s
+2026-09-14 02:18:18.632 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.632 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.632 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.632 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: asked to evaluate TLS Trust
+2026-09-14 02:18:18.632 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <27927E55-9989-4927-BA63-EF71514C4566>.<1> auth completion disp=1 cred=0x0
+2026-09-14 02:18:18.632 Df Expo Go[35572:24f0ee] [com.apple.securityd:trust] (Trust 0x600003510f20) No pending evals, starting
+2026-09-14 02:18:18.632 A  Expo Go[35572:24f0ee] (Security) SecTrustEvaluateIfNecessaryFastAsync
+2026-09-14 02:18:18.632 Df Expo Go[35572:24f0ee] [com.apple.xpc:connection] [0x600003d8a490] activating connection: mach=true listener=false peer=false name=com.apple.trustd
+2026-09-14 02:18:18.632 Df Expo Go[35572:24f0ee] [com.apple.securityd:trust] (Trust 0x600003510f20) Completed async eval kickoff
+2026-09-14 02:18:18.634 Df Expo Go[35572:24f0f5] [com.apple.securityd:trust] (Trust 0x600003510f20) trustd returned 4
+2026-09-14 02:18:18.634 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: TLS Trust result 0
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.634 A  Expo Go[35572:24f0f5] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.634 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C4 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (tls)
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_connect @0.023s
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C4] reporting state ready
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C4 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.023s
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.xpc:connection] [0x600003d8a490] invalidated because the current process cancelled the connection by calling xpc_connection_cancel()
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:quic] quic_pmtud_restart [C3.1.1.1:2] [-f58ca0856d63d5bb] PMTUD enabled, max PMTU: 1500, header size: 28, current PMTU 1228
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:quic] quic_crypto_tls_ready_inner [C3.1.1.1:2] [-f58ca0856d63d5bb] QUIC connection established in 25.744 ms, RTT 10.183 ms
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C3.1.1.1 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Transport protocol connected (quic-connection)
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_transport @0.037s
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C3.1.1.1 IPv4#d44c4b90:443 in_progress socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (CFNetworkConnection-466935331)
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.037s
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 ready resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.037s
+2026-09-14 02:18:18.635 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 ready transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:child_finish_connect @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 ready resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 ready transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_flow_connected [C3 IPv4#d44c4b90:443 in_progress parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (endpoint_flow)
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3 IPv4#d44c4b90:443 ready parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:finish_connect @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C3] reporting state ready
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3 IPv4#d44c4b90:443 ready parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: flow:changed_viability @0.037s
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:] nw_protocol_instance_report_ready [C3.1.1.1:2] Calling notify with interface en0
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1.1 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:migrated @0.038s, uuid: 80377893-C759-4FEC-BEBE-752EA3DDD492
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1.1 Hostname#4f0f3f2b:443 ready resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:migrated @0.038s, uuid: D2A0A5DE-80FC-40CB-A511-3184A37530EF
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3.1 Hostname#4f0f3f2b:443 ready transform (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:migrated @0.038s, uuid: 7B7F5E36-45F5-4864-A61E-E1690DB834B9
+2026-09-14 02:18:18.636 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3 IPv4#d44c4b90:443 ready parent-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:migrated @0.038s, uuid: 7B7F5E36-45F5-4864-A61E-E1690DB834B9
+2026-09-14 02:18:18.637 Df Expo Go[35572:24f0f5] [com.apple.network:quic] quic_stream_create_inbound [C3.1.1.1:2] [-f58ca0856d63d5bb] creating inbound stream 3
+2026-09-14 02:18:18.637 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: connected successfully
+2026-09-14 02:18:18.637 E  Expo Go[35572:24f0f5] [com.apple.network:connection] nw_connection_copy_connected_local_endpoint_block_invoke [C3] Connection has no local endpoint
+2026-09-14 02:18:18.637 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: TLS handshake complete
+2026-09-14 02:18:18.638 E  Expo Go[35572:24f0f5] [com.apple.network:connection] nw_connection_copy_connected_local_endpoint_block_invoke [C3] Connection has no local endpoint
+2026-09-14 02:18:18.638 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: ready C(N) E(N)
+2026-09-14 02:18:18.638 Df Expo Go[35572:24f0f5] [com.apple.network:connection] [C3] event: client:connection_reused @0.039s
+2026-09-14 02:18:18.639 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Task <27927E55-9989-4927-BA63-EF71514C4566>.<1> now using Connection 3
+2026-09-14 02:18:18.640 Df Expo Go[35572:24f0f5] [com.apple.CFNetwork:Default] Connection 3: received viability advisory(Y)
+2026-09-14 02:18:18.640 Df Expo Go[35572:24f0f5] [com.apple.cfnetwork:h3stream] 0x10c6ba458 ID=0 Task <27927E55-9989-4927-BA63-EF71514C4566>.<1> sent request, body S 350
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyAttributes
+2026-09-14 02:18:18.645 A  Expo Go[35572:24f0e6] (Security) SecKeyCopyPublicBytes
+2026-09-14 02:18:18.645 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_flow_connected [C4 IPv4#d44c4b90:443 ready socket-flow (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Output protocol connected (tls)
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1 Bonjour#aaca0fcd in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for Hostname#dae537db:57056@ap1
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1 Bonjour#aaca0fcd in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for Hostname#dae537db:57056@lo0
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1 Bonjour#aaca0fcd in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for Hostname#dae537db:57056@en0
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1 Bonjour#aaca0fcd in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_bonjour @0.992s
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1 Hostname#dae537db:57056@ap1 initial path ((null))] event: path:start @0.992s
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1 Hostname#dae537db:57056@ap1 waiting path (satisfied (Path is satisfied))] event: path:satisfied @0.992s, uuid: 83A0A43C-F94F-478C-A6B9-0054B2AB211D
+2026-09-14 02:18:19.232 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1 Hostname#dae537db:57056@ap1 in_progress resolver (satisfied (Path is satisfied))] event: resolver:start_dns @0.992s
+2026-09-14 02:18:19.233 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.1 Hostname#dae537db:57056@ap1 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#f5a42a4b%ap1.57056@ap1
+2026-09-14 02:18:19.233 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1 Hostname#dae537db:57056@ap1 in_progress resolver (satisfied (Path is satisfied))] event: resolver:receive_dns @0.993s
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1.1 IPv6#f5a42a4b%ap1.57056@ap1 initial path ((null))] event: path:start @0.993s
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1.1 IPv6#f5a42a4b%ap1.57056@ap1 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.994s, uuid: 4C992526-7242-44D3-B9A1-E5C42EC98CA1
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1.1 IPv6#f5a42a4b%ap1.57056@ap1 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.994s
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.1.1:1] Socket received CONNRESET event
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.1.1:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.234 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.1.1:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.234 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.1.1 IPv6#f5a42a4b%ap1.57056@ap1 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1.1 IPv6#f5a42a4b%ap1.57056@ap1 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @0.994s, error Connection refused
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.1 Hostname#dae537db:57056@ap1 failed resolver (satisfied (Path is satisfied))] event: resolver:children_failed @0.994s
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2 Hostname#dae537db:57056@lo0 initial path ((null))] event: path:start @0.994s
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2 Hostname#dae537db:57056@lo0 waiting path (satisfied (Path is satisfied))] event: path:satisfied @0.994s, uuid: 90FE2AC0-67B9-4434-A648-0EE58E906230
+2026-09-14 02:18:19.234 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] event: resolver:start_dns @0.994s
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for ::1.57056@lo0
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#2b185dd8%lo0.57056@lo0
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for 127.0.0.1:57056@lo0
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv4#731fb4e9:57056@en0
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#1249a809%utun0.57056@utun0
+2026-09-14 02:18:19.236 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#f5a42a4b%ap1.57056@ap1
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#99177f8d%en0.57056@en0
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#ef453804%utun1.57056@utun1
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#33caa12d%utun2.57056@utun2
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] Adding endpoint handler for IPv6#3123fc34%utun3.57056@utun3
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2 Hostname#dae537db:57056@lo0 in_progress resolver (satisfied (Path is satisfied))] event: resolver:receive_dns @0.997s
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.1 ::1.57056@lo0 initial path ((null))] event: path:start @0.997s
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.1 ::1.57056@lo0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.997s, uuid: FB7C7B0D-D79B-489F-B8DC-36D72F7BD807
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.1 ::1.57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.997s
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.1:1] Socket received CONNRESET event
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.1:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.237 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.1:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.237 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.2.1 ::1.57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.1 ::1.57056@lo0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @0.997s, error Connection refused
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.2 IPv6#2b185dd8%lo0.57056@lo0 initial path ((null))] event: path:start @0.997s
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.2 IPv6#2b185dd8%lo0.57056@lo0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.997s, uuid: BD4860E5-EA30-42F7-997D-9EC31252EAE2
+2026-09-14 02:18:19.237 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.2 IPv6#2b185dd8%lo0.57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.997s
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.2:1] Socket received CONNRESET event
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.2:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.238 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.2:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.238 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.2.2 IPv6#2b185dd8%lo0.57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.2 IPv6#2b185dd8%lo0.57056@lo0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @0.998s, error Connection refused
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.3 127.0.0.1:57056@lo0 initial path ((null))] event: path:start @0.998s
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.3 127.0.0.1:57056@lo0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.998s, uuid: F098F330-840B-48F2-BD5A-2F61C40EAAB6
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.3 127.0.0.1:57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.998s
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.3:1] Socket received CONNRESET event
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.3:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.238 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.3:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.238 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.2.3 127.0.0.1:57056@lo0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.3 127.0.0.1:57056@lo0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @0.998s, error Connection refused
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.4 IPv4#731fb4e9:57056@en0 initial path ((null))] event: path:start @0.998s
+2026-09-14 02:18:19.238 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.4 IPv4#731fb4e9:57056@en0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.998s, uuid: BB78635B-AACD-4240-9363-E799D38F8730
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.4 IPv4#731fb4e9:57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.999s
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.4:1] Socket received CONNRESET event
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.4:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.239 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.4:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.239 E  Expo Go[35572:24f0e6] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.2.4 IPv4#731fb4e9:57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.4 IPv4#731fb4e9:57056@en0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @0.999s, error Connection refused
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.5 IPv6#1249a809%utun0.57056@utun0 initial path ((null))] event: path:start @0.999s
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.5 IPv6#1249a809%utun0.57056@utun0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @0.999s, uuid: 1720308C-CEC1-4373-81E9-CD5BA9C28A28
+2026-09-14 02:18:19.239 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1.1.2.5 IPv6#1249a809%utun0.57056@utun0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @0.999s
+2026-09-14 02:18:19.242 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Received request to notify when the main run loop is idle
+2026-09-14 02:18:19.242 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Idle notifier finished setting up run loop observer
+2026-09-14 02:18:19.242 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Idle notifier run loop observer fired
+2026-09-14 02:18:19.242 Df Expo Go[35572:24f0de] [com.apple.dt.xctest:Default] Sending main run loop idle reply
+2026-09-14 02:18:19.243 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Received request to notify when animations are idle
+2026-09-14 02:18:19.243 Df Expo Go[35572:24f0e6] [com.apple.dt.xctest:Default] Sending animations idle reply with error: (null)
+2026-09-14 02:18:19.250 Df Expo Go[35572:24f0de] [com.apple.Accessibility:AXIPC] Setting client identifier com.apple.accessibility.AXSystemReplyServer-35572-0
+2026-09-14 02:18:19.257 Df Expo Go[35572:24f0de] (libMobileGestalt.dylib) Property isp[camera-front] found {length = 4, bytes = 0x01000000}
+2026-09-14 02:18:19.344 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3 Hostname#dae537db:57056@en0 initial path ((null))] event: path:start @1.104s
+2026-09-14 02:18:19.344 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3 Hostname#dae537db:57056@en0 waiting path (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: path:satisfied @1.104s, uuid: CE322216-4ECC-4C31-85EB-7CF528F29333
+2026-09-14 02:18:19.344 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3 Hostname#dae537db:57056@en0 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:start_dns @1.104s
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.2.6 IPv6#f5a42a4b%ap1.57056@ap1 initial path ((null))] event: path:start @1.105s
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.2.6 IPv6#f5a42a4b%ap1.57056@ap1 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @1.105s, uuid: 50171B7E-27DA-4054-BB72-4698166CA582
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.2.6 IPv6#f5a42a4b%ap1.57056@ap1 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @1.105s
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.3 Hostname#dae537db:57056@en0 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv4#731fb4e9:57056@en0
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_endpoint_resolver_update [C1.1.3 Hostname#dae537db:57056@en0 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] Adding endpoint handler for IPv6#99177f8d%en0.57056@en0
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3 Hostname#dae537db:57056@en0 in_progress resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:receive_dns @1.105s
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.6:1] Socket received CONNRESET event
+2026-09-14 02:18:19.345 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.6:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.345 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.2.6:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.1 IPv4#731fb4e9:57056@en0 initial path ((null))] event: path:start @1.106s
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.1 IPv4#731fb4e9:57056@en0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @1.106s, uuid: 7B557E30-3047-46C0-8A82-FC6467611BCE
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.1 IPv4#731fb4e9:57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @1.106s
+2026-09-14 02:18:19.346 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.2.6 IPv6#f5a42a4b%ap1.57056@ap1 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.2.6 IPv6#f5a42a4b%ap1.57056@ap1 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @1.106s, error Connection refused
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.1:1] Socket received CONNRESET event
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.1:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.346 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.1:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.346 E  Expo Go[35572:24f0de] [com.apple.Accessibility:AXRuntimeCommon] Unknown client: Expo Go
+2026-09-14 02:18:19.346 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.3.1 IPv4#731fb4e9:57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.1 IPv4#731fb4e9:57056@en0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @1.106s, error Connection refused
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.2 IPv6#99177f8d%en0.57056@en0 initial path ((null))] event: path:start @1.106s
+2026-09-14 02:18:19.346 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.2 IPv6#99177f8d%en0.57056@en0 waiting path (satisfied (Path is satisfied), interface: lo0)] event: path:satisfied @1.106s, uuid: 99312E26-C8DE-4E60-9C57-4A885D1A731A
+2026-09-14 02:18:19.347 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.2 IPv6#99177f8d%en0.57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:start_connect @1.107s
+2026-09-14 02:18:19.347 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.2:1] Socket received CONNRESET event
+2026-09-14 02:18:19.347 Df Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.2:1] Socket received DISCONNECTED event
+2026-09-14 02:18:19.347 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_socket_handle_socket_event [C1.1.3.2:1] Socket SO_ERROR [61: Connection refused]
+2026-09-14 02:18:19.347 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_endpoint_flow_failed_with_error [C1.1.3.2 IPv6#99177f8d%en0.57056@en0 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+2026-09-14 02:18:19.347 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3.2 IPv6#99177f8d%en0.57056@en0 failed socket-flow (satisfied (Path is satisfied), interface: lo0)] event: flow:failed_connect @1.107s, error Connection refused
+2026-09-14 02:18:19.347 Df Expo Go[35572:24f0ef] [com.apple.network:connection] [C1.1.3 Hostname#dae537db:57056@en0 failed resolver (satisfied (Path is satisfied), interface: en0[802.11], uses wifi)] event: resolver:children_failed @1.107s
+2026-09-14 02:18:19.440 Df Expo Go[35572:24f0e6] [com.apple.network:browser] nw_browser_cancel_query_record_for_endpoint_locked [B1] cancel query record for expo-go-permission-probe._expo._tcp.local. on ap1
+2026-09-14 02:18:19.440 Df Expo Go[35572:24f0e6] [com.apple.network:browser] nw_browser_cancel_query_record_for_endpoint_locked [B1] cancel query record for expo-go-permission-probe._expo._tcp.local. on lo0
+2026-09-14 02:18:19.440 Df Expo Go[35572:24f0e6] [com.apple.network:browser] nw_browser_cancel_query_record_for_endpoint_locked [B1] cancel query record for expo-go-permission-probe._expo._tcp.local. on en0
+2026-09-14 02:18:19.441 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1 B4322129-5615-4764-A0DA-C7748DD359EE Bonjour#aaca0fcd tcp, prefer no proxy, attribution: developer] cancel
+2026-09-14 02:18:19.441 Df Expo Go[35572:24f0e6] [com.apple.network:connection] [C1 Bonjour#aaca0fcd tcp, prefer no proxy, attribution: developer] cancelled
+2026-09-14 02:18:19.442 Df Expo Go[35572:24f0e6] [com.apple.network:connection] nw_connection_report_state_with_handler_on_nw_queue [C1] reporting state cancelled error Connection refused
+2026-09-14 02:18:19.442 E  Expo Go[35572:24f0ef] [com.apple.network:connection] nw_connection_set_state_changed_handler_block_invoke [C1] Cannot set state changed handler after cancel
+2026-09-14 02:18:19.442 E  Expo Go[35572:24f0ee] [com.apple.network:connection] [C1 Bonjour#aaca0fcd tcp, prefer no proxy, attribution: developer] is already cancelled, ignoring cancel
+2026-09-14 02:18:19.585 Df runningboardd[32138:24ee38] [com.apple.runningboard:ttl] Invalidating assertion 32138-35572-856 (target:[app<host.exp.Exponent((null))>:35572]) from originator [app<host.exp.Exponent((null))>:35572]

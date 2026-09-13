@@ -1,0 +1,49 @@
+## d3-sachin sign-in as sachin.dalvi on the same Expo Go sandbox (no keychain reset, no reinstall) 02:27:51
+$ ios-drive.mjs setclass XCUIElementTypeTextField 0 sachin.dalvi
+set XCUIElementTypeTextField 0 = sachin.dalvi
+$ ios-drive.mjs setclass XCUIElementTypeSecureTextField 0 Dos@1234
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+$ ios-drive.mjs tap "Sign in" 1   (index 1: element 0 is the screen heading, the button is the next one)
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 02:27:56 (1789333076.742571)
+early page source dumped at +5.585s -> d3-sachin-early-src.xml
+--- A-marker grep over the early page source (expect 0 for every marker)
+Prerna Super Market: 0
+Metro Kirana Bazar: 0
+Anand Bhavan Provision: 0
+Vaibhav Kirana Mart: 0
+MH-05-AB-1234: 0
+Tarsun: 0
+Kolsewadi: 0
+Godrej Hill: 0
+--- early visible labels (first 30)
+label="Expo Go"
+label="More"
+label="Sai Distributors, Dombivli"
+label="SD"
+label="delivery"
+label="Updated just now"
+label="TRIP-ACTIVE · 12 Sep 2026"
+label="Today's trip"
+label="On the road"
+label="3 of 10 stops done"
+label="MH-05-BQ-4471"
+label="STILL TO COLLECT"
+label="COLLECTED TODAY"
+label="85307 rupees"
+label="0 rupees"
+label="FLOAT AT START"
+label="STOPS"
+label="5000 rupees"
+label="3 / 10"
+label="Next stop"
+label="Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop"
+label="Shop 19, Nandivali, Dombivli East, Dombivli, 421201"
+label="Stops in order"
+label="1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered"
+label="2. Balaji Wholesale Stores, Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201, 107906 rupees, Delivered"
+label="3. Nandivali Super Bazar, Shop 16, Nandivali, Dombivli East, Dombivli, 421201, 44645 rupees, Delivered"
+label="4. Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop"
+label="5. Dombivli Fresh Mart, Shop 27, Kopar Road, Dombivli East, Dombivli, 421201, 32368 rupees, At the shop"
+label="6. Sanjivani General Store, Shop 9, Nandivali, Dombivli East, Dombivli, 421201, 3794 rupees, At the shop"
+label="7. Vaishnavi Provision, Shop 11, Tilak Nagar, Dombivli East, Dombivli, 421201, 4866 rupees, Not started"

@@ -1,0 +1,18 @@
+## D1 after ganesh sign-in 02:26:38
+no alert Error: /session/e950cc13-395d-4e9f-850d-c2e2974d50b2/alert/text: no such alert An attempt was made to operate on a modal
+strip 'Updated just now' at 02:26:43
+$ find "$C" -path '*SQLite*' -name 'dos-delivery*'   (C=/Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227)
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+(end of find; the legacy dos-delivery.db of the step0 baseline must be gone)
+--- positive controls on ganesh's own screen
+Prerna Super Market: 0
+Metro Kirana Bazar: 0
+Anand Bhavan Provision: 0
+Vaibhav Kirana Mart: 1
+MH-05-AB-1234: 1
+Tarsun: 2
+$ ios-drive.mjs has "MH-05-AB-1234"
+YES
+exit 0

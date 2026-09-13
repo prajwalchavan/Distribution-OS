@@ -1,0 +1,3 @@
+Application	[0,0 402x874]	Expo Go
+Other	[0,0 402x874]	More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page
+Image	[344,706 26x27]	gearshape.fill

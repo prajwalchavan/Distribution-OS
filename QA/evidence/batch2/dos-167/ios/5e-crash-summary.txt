@@ -1,0 +1,26 @@
+app: Expo Go 57.0.9 bundle host.exp.Exponent captureTime 2026-09-14 02:18:11.9181 +0530
+procLaunch 2026-09-14 02:06:04.8794 +0530 exception {'codes': '0x0000000000000001, 0x00000001000000bb', 'rawCodes': [1, 4294967483], 'type': 'EXC_BAD_ACCESS', 'signal': 'SIGSEGV', 'subtype': 'KERN_INVALID_ADDRESS at 0x00000001000000bb'} termination Segmentation fault: 11
+vmregion 0x1000000bb is not in any region.  Bytes before following region: 6504261
+      REGION TYPE                    START - END         [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
+      UNUSED SPACE AT START
+--->  
+      __TEXT                      100634000-10327c000    [ 44.3M] r-x/r-x SM=COW  /Users/USER/L
+--- crashed thread 21 None expo.module.sqlite.AsyncQueue
+   libsystem_pthread.dylib pthread_mutex_lock + 8
+   Expo Go exsqlite3_reset + 92
+   Expo Go specialized SQLiteModule.run(statement:database:bindParams:bindBlobParams:shouldPassAsArray:) + 612
+   Expo Go closure #2 in closure #14 in SQLiteModule.definition() + 136
+   Expo Go partial apply for closure #2 in closure #14 in SQLiteModule.definition() + 16
+   Expo Go thunk for @escaping @callee_guaranteed (@in_guaranteed B, @pack_guaranteed @indirect Pack{repeat C}) -> (@out A, @error @owned Error) + 496
+   Expo Go partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed B, @pack_guaranteed @indirect Pack{repeat C}) -> (@out A, @error @owned Error) + 36
+   Expo Go specialized closure #3 in AsyncFunctionDefinition.call(_:this:arguments:callback:) + 1720
+   Expo Go closure #1 in AsyncFunctionDefinition.dispatchOnQueueUntilViewRegisters(appContext:arguments:queue:retryCount:_:) + 368
+   Expo Go thunk for @escaping @callee_guaranteed () -> () + 28
+   libdispatch.dylib _dispatch_call_block_and_release + 24
+   libdispatch.dylib _dispatch_client_callout + 16
+   libdispatch.dylib _dispatch_continuation_pop + 804
+   libdispatch.dylib _dispatch_async_redirect_invoke + 864
+   libdispatch.dylib _dispatch_root_queue_drain + 364
+   libdispatch.dylib _dispatch_worker_thread2 + 232
+   libsystem_pthread.dylib _pthread_wqthread + 224
+   libsystem_pthread.dylib start_wqthread + 8

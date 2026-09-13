@@ -1,0 +1,43 @@
+Application	[0,0 402x874]	Expo Go
+StaticText	[16,74 370x18]	Distribution OS - Sales
+StaticText	[16,92 370x26]	Sign in
+StaticText	[16,146 370x19]	Username
+StaticText	[16,275 370x19]	Password
+Button	[16,404 370x70]	Sign in
+StaticText	[16,489 370x19]	Use the username your distributor gave you.
+Other	[369,158 30x660]	Vertical scroll bar, 1 page = 0%
+Other	[0,538 402x45]	Typing Predictions
+Button	[30,538 342x45]	Passwords
+Key	[0,590 41x46]	q
+Key	[40,590 41x46]	w
+Key	[80,590 41x46]	e
+Key	[120,590 41x46]	r
+Key	[160,590 42x46]	t
+Key	[201,590 41x46]	y
+Key	[241,590 41x46]	u
+Key	[281,590 41x46]	i
+Key	[321,590 41x46]	o
+Key	[361,590 41x46]	p
+Key	[19,644 41x46]	a
+Key	[60,644 41x46]	s
+Key	[100,644 41x46]	d
+Key	[140,644 41x46]	f
+Key	[181,644 41x46]	g
+Key	[221,644 41x46]	h
+Key	[261,644 41x46]	j
+Key	[301,644 41x46]	k
+Key	[341,644 42x46]	l
+Button	[0,698 52x46]	shift
+Key	[60,698 41x46]	z
+Key	[100,698 41x46]	x
+Key	[140,698 41x46]	c
+Key	[181,698 41x46]	v
+Key	[221,698 41x46]	b
+Key	[261,698 41x46]	n
+Key	[301,698 41x46]	m
+Key	[350,698 52x46]	delete
+Key	[0,752 101x46]	numbers
+Key	[100,752 202x46]	space
+Button	[301,752 101x46]	return
+Button	[8,805 69x70]	Emoji
+Button	[325,805 69x70]	Dictate

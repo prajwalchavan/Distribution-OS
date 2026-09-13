@@ -1,0 +1,22 @@
+## step5d amit taps Sign out with 1 order (2 ops) queued and the office unreachable 02:17:17
+$ ios-drive.mjs tap "More"
+tapped "More" Button at 352,105 (1 of 1)
+menu: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|Settings|My account|Change your password|Sign out|Close|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (Sign out row)
+tapped 150 723
+sheet labels: [0,0 402x874]	Expo Go|[0,0 402x874]	2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|[0,417 402x457]	2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|[344,706 26x27]	gearshape.fill|
+$ ios-drive.mjs has "Send now"   (expect exit 1: no Send now while the office cannot be reached)
+NO
+exit 1
+$ ios-drive.mjs has "not reached the office"
+YES
+exit 0
+$ ios-drive.mjs has "Sign out, keep here"
+YES
+exit 0
+--- sheet texts in the page source:
+label="Saved on this phone"
+label="It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands."
+label="On this phone: 171 items"
+label="Note for the office"
+label="2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page"

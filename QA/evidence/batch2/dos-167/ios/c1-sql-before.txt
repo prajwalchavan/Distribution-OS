@@ -1,0 +1,6 @@
+## C1 SQL before (dos_qa, read-only) 02:35:57
+ amit_orders_total 
+-------------------
+               386
+(1 row)
+

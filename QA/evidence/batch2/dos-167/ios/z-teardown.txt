@@ -1,0 +1,50 @@
+## W4 bharat signs out (teardown) 02:31:44
+tapped "More" Button at 348,108 (1 of 1)
+tapped 150 723
+sign-in form after ~1s
+$ find "$C" -path '*SQLite*' -name 'dos-*'   02:31:51  (final device files)
+(end of find)
+$ ios-drive.mjs end
+ended
+## stop the warehouse Metro :5176 02:31:51
+kill 38063
+kill 38076
+kill 38078
+## xcrun simctl shutdown all 02:31:54
+0
+## Metro listeners (5173-5179)
+5173: 0
+5174: 0
+5175: 0
+5176: 0
+5177: 0
+5178: 0
+5179: 0
+## services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+## worker
+16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+## appium
+"ready":true
+## other processes left as found (not started by this run)
+20690 node pw-server.mjs
+31366 node QA/tools/proxy8081.mjs 5175
+31432 node pw-server.mjs
+34535 node pw-server.mjs
+35653 node pw-server.mjs
+36561 node pw-server.mjs
+36925 node pw-server.mjs
+37263 node pw-server.mjs
+42270 node pw-server.mjs
+47434 node pw-server.mjs
+memory: System-wide memory free percentage: 55%
+## git status --short 02:31:58
+?? QA/evidence/batch2/dos-167/ios/
+8758f70 QA batch 2: DOS-167 addendum (x) for the Android keep-path crash (S-128); S-126, S-127; approval request for DOS-168..173

@@ -1,0 +1,10 @@
+## D2 ganesh signs out through the product 02:27:06 (no keychain reset)
+$ ios-drive.mjs tap "More"
+tapped "More" Button at 352,105 (1 of 1)
+menu: Expo Go|More, Today, Day summary, Expenses, Attention, Trip history, Me, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (the Sign out row in d2-ganesh-menu.png)
+tapped 150 723
+sign-in form visible after ~1s
+after: Expo Go|Distribution OS - Delivery|Sign in|Username|Password|Sign in|Use the username the office gave you. This app works with no signal once you have signed in once.|Vertical scroll bar, 1 page = 0%|
+$ find "$C" -path '*SQLite*' -name 'dos-delivery*'   02:27:51
+(end of find; empty = ganesh's file is gone)

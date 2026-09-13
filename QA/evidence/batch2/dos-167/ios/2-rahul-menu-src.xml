@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AppiumAUT>
+  <XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Expo Go" label="Expo Go" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="" processId="33010" bundleId="host.exp.Exponent">
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="148" index="0" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="3" traits=""/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="More" label="More" enabled="true" visible="false" accessible="true" x="317" y="70" width="69" height="69" index="4" traits="Button"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="88" width="32" height="33" index="5" traits="">
+                          <XCUIElementTypeImage type="XCUIElementTypeImage" name="Tarsun Enterprise logo" label="Tarsun Enterprise logo" enabled="true" visible="false" accessible="false" x="16" y="88" width="32" height="33" index="0" traits="Image"/>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Tarsun Enterprise" name="Tarsun Enterprise" label="Tarsun Enterprise" enabled="true" visible="false" accessible="false" x="56" y="82" width="161" height="27" index="6" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Tarsun Enterprise" name="Tarsun Enterprise" label="Tarsun Enterprise" enabled="true" visible="false" accessible="true" x="56" y="82" width="161" height="27" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="salesperson" name="salesperson" label="salesperson" enabled="true" visible="false" accessible="false" x="56" y="108" width="161" height="19" index="7" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="salesperson" name="salesperson" label="salesperson" enabled="true" visible="false" accessible="true" x="56" y="108" width="161" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" name="connection" enabled="true" visible="false" accessible="false" x="16" y="147" width="370" height="29" index="8" traits="StaticText"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="32" y="157" width="8" height="9" index="9" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Updated just now" name="Updated just now" label="Updated just now" enabled="true" visible="false" accessible="false" x="48" y="152" width="117" height="19" index="10" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Updated just now" name="Updated just now" label="Updated just now" enabled="true" visible="false" accessible="true" x="48" y="152" width="117" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="175" width="402" height="87" index="11" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="175" width="402" height="596" index="12" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shops" name="Shops" label="Shops" enabled="true" visible="false" accessible="false" x="16" y="187" width="370" height="27" index="13" traits="Header, StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shops" name="Shops" label="Shops" enabled="true" visible="false" accessible="true" x="16" y="187" width="370" height="27" index="0" traits="Header, StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="221" width="110" height="29" index="14" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shops: 30" name="Shops: 30" label="Shops: 30" enabled="true" visible="false" accessible="false" x="24" y="222" width="94" height="27" index="15" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shops: 30" name="Shops: 30" label="Shops: 30" enabled="true" visible="false" accessible="true" x="24" y="222" width="94" height="27" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="261" width="402" height="510" index="16" traits="">
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="false" accessible="false" x="0" y="261" width="402" height="510" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="261" width="402" height="2282" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="261" width="402" height="2282" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="Shops" label="Shops" enabled="true" visible="false" accessible="true" x="16" y="277" width="124" height="70" index="0" traits="Selected"/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="page-tabs" enabled="true" visible="false" accessible="false" x="16" y="277" width="370" height="71" index="1" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="Losing" label="Losing" enabled="true" visible="false" accessible="true" x="139" y="277" width="124" height="70" index="2" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="Catalog" label="Catalog" enabled="true" visible="false" accessible="true" x="262" y="277" width="125" height="70" index="3" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="363" width="370" height="70" index="4" traits="">
+                                  <XCUIElementTypeSearchField type="XCUIElementTypeSearchField" value="Search by name, code or phone" name="shops-search" enabled="true" visible="false" accessible="true" x="17" y="364" width="368" height="68" index="0" placeholderValue="Search by name, code or phone" traits="SearchField"/>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-0d68f238-eac0-710c-8a12-cd372921b3e0" label="Ambika Provision Store, R-0009 · Station Road · Station Road, Kalyan West, 23995 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="456" width="370" height="70" index="5" traits="Button"/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="shops-list" enabled="true" visible="false" accessible="false" x="16" y="456" width="370" height="2071" index="6" traits=""/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-20059d26-8301-7f2a-9f72-29cc39ce7753" label="Balaji Wholesale Stores, R-0010 · Station Road · Station Road, Kalyan West, 720804 rupees, A" enabled="true" visible="false" accessible="true" x="16" y="525" width="370" height="70" index="7" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-5a597c5e-1c9b-7dfa-a11e-1266091c487c" label="Bhosale Traders, R-0023 · Khadakpada · Khadakpada, Kalyan West, 74287 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="594" width="370" height="70" index="8" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-a029f31b-2c6c-707b-b580-889125d3ee07" label="Chavan Kirana Stores, R-0024 · Khadakpada · Khadakpada, Kalyan West, 21892 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="663" width="370" height="70" index="9" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-4d9bdf95-46d1-707f-ab62-cb1b205a4433" label="Deshmukh Kirana, R-0017 · Kalyan West Market · Bazarpeth, Kalyan West, 24365 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="732" width="370" height="70" index="10" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-646647a6-d990-7555-9cb2-ff5cca58ff9b" label="Ekvira Kirana, R-0014 · Kalyan West Market · Bazarpeth, Kalyan West, 39728 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="801" width="370" height="70" index="11" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-a34f291a-cbde-747d-9512-f9c9b2f842ee" label="Ganesh General Store, R-0007 · Station Road · Station Road, Kalyan West, 94373 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="870" width="370" height="70" index="12" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-c704a780-c33e-7a95-ba00-e28613f6883a" label="Ganpati General Stores, R-0015 · Kalyan West Market · Bazarpeth, Kalyan West, 78831 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="939" width="370" height="70" index="13" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-4ba7bda0-1083-731b-b352-50ecb7532489" label="Gupta Kirana Stores, R-0027 · Khadakpada · Khadakpada, Kalyan West, 90266 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="1008" width="370" height="70" index="14" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-21789c58-876b-7bc3-9071-34d79086c32f" label="Iyer Provision Store, R-0029 · Khadakpada · Khadakpada, Kalyan West, —, D" enabled="true" visible="false" accessible="true" x="16" y="1077" width="370" height="70" index="15" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-c4319d59-f618-77bb-8c9f-d877f61b67ef" label="Jai Bhavani Stores, R-0005 · Station Road · Station Road, Kalyan West, 11511 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1146" width="370" height="70" index="16" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-1b3e6156-389f-7163-a4c6-1e13569f4a1d" label="Joshi Kirana Stores, R-0020 · Kalyan West Market · Bazarpeth, Kalyan West, 121522 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="1215" width="370" height="70" index="17" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-e3270517-3ec0-749c-8e66-043c0b8a864a" label="Kadam Stores, R-0021 · Khadakpada · Khadakpada, Kalyan West, 30216 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1284" width="370" height="70" index="18" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-75659f5a-19d1-7d52-8b43-4c3d6777a33c" label="Krishna Kirana Stores, R-0008 · Station Road · Station Road, Kalyan West, —, D" enabled="true" visible="false" accessible="true" x="16" y="1353" width="370" height="70" index="19" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-5ea5255a-59c1-77ba-866c-6090446e2a38" label="Laxmi Narayan Stores, R-0013 · Kalyan West Market · Bazarpeth, Kalyan West, 137886 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="1422" width="370" height="70" index="20" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-34ce3241-c275-7cc5-bc44-cd7856930d50" label="Mahalaxmi General Stores, R-0003 · Station Road · Station Road, Kalyan West, 36259 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1491" width="370" height="70" index="21" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-a7e3c778-fcd8-7e6c-97fb-02d2c288c7e0" label="Mishra Provision Store, R-0026 · Khadakpada · Khadakpada, Kalyan West, 10385 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1560" width="370" height="70" index="22" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-8d500c3c-f843-74ae-bd2c-690d21169f0a" label="More Provision Store, R-0019 · Kalyan West Market · Bazarpeth, Kalyan West, 15794 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1629" width="370" height="70" index="23" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-7dbb5732-0997-76cf-a63a-2b3d077680dc" label="Navjeevan Super Bazar, R-0016 · Kalyan West Market · Bazarpeth, Kalyan West, 268111 rupees, A" enabled="true" visible="false" accessible="true" x="16" y="1698" width="370" height="70" index="24" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-d7f09885-489b-73cb-ab29-169334b5eca5" label="Om Sai Provision Store, R-0002 · Station Road · Station Road, Kalyan West, 69862 rupees 50 paise, B" enabled="true" visible="false" accessible="true" x="16" y="1767" width="370" height="70" index="25" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-1fdb8d1c-3941-7406-a1b5-f3f97e07b598" label="Patil General Store, R-0018 · Kalyan West Market · Bazarpeth, Kalyan West, 69604 rupees 50 paise, B" enabled="true" visible="false" accessible="true" x="16" y="1836" width="370" height="70" index="26" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-f498f03d-1b40-704f-8632-acd04953b564" label="Pawar General Store, R-0022 · Khadakpada · Khadakpada, Kalyan West, 8199 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1905" width="370" height="70" index="27" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-9811c946-9de5-734d-8d25-727ed3aa93d4" label="Reddy Traders, R-0030 · Khadakpada · Khadakpada, Kalyan West, 9474 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="1974" width="370" height="70" index="28" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-1037f5e7-7ce4-7045-a181-0668a7fa9188" label="Sai Baba Kirana, R-0011 · Kalyan West Market · Bazarpeth, Kalyan West, 143930 rupees, B" enabled="true" visible="false" accessible="true" x="16" y="2043" width="370" height="70" index="29" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-b5dbcdb8-401a-7a7d-9626-37ad239fd91a" label="Sai Krupa Super Bazar, R-0004 · Station Road · Station Road, Kalyan West, 206709 rupees, A" enabled="true" visible="false" accessible="true" x="16" y="2112" width="370" height="70" index="30" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-eb46d46f-d0f6-7580-b49f-a83bcf8330fa" label="Shivshakti Traders, R-0006 · Station Road · Station Road, Kalyan West, 22834 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="2181" width="370" height="70" index="31" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-34191c43-f0bc-70ab-a39d-fcbe8f94ae36" label="Shree Ganesh Kirana, R-0001 · Station Road · Station Road, Kalyan West, 35843 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="2250" width="370" height="70" index="32" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-5fcf11f0-7ae2-71bb-a2ce-59382628436d" label="Singh General Store, R-0028 · Khadakpada · Khadakpada, Kalyan West, 17372 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="2319" width="370" height="70" index="33" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-20b28b1a-3ec5-7ee0-968d-5f5de07f0903" label="Vitthal Traders, R-0012 · Kalyan West Market · Bazarpeth, Kalyan West, 26439 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="2388" width="370" height="70" index="34" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="shop-row-2ffe76e4-fd1b-786e-a1f3-83e682a3e4a9" label="Yadav General Store, R-0025 · Khadakpada · Khadakpada, Kalyan West, 28485 rupees, C" enabled="true" visible="false" accessible="true" x="16" y="2457" width="370" height="70" index="35" traits="Button"/>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 5 pages" label="Vertical scroll bar, 5 pages" enabled="true" visible="false" accessible="false" x="369" y="261" width="30" height="510" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="615" width="3" height="388" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="737" width="402" height="31" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="764" width="396" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 5 pages" label="Vertical scroll bar, 5 pages" enabled="true" visible="false" accessible="false" x="369" y="261" width="30" height="510" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="615" width="3" height="388" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="737" width="402" height="31" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="764" width="396" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="770" width="402" height="104" index="17" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Beat" label="Beat" enabled="true" visible="false" accessible="true" x="0" y="771" width="101" height="70" index="18" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Orders" label="Orders" enabled="true" visible="false" accessible="true" x="100" y="771" width="101" height="70" index="19" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Shops" label="Shops" enabled="true" visible="false" accessible="true" x="201" y="771" width="101" height="70" index="20" traits="Selected"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Me" label="Me" enabled="true" visible="false" accessible="true" x="301" y="771" width="101" height="70" index="21" traits=""/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                  </XCUIElementTypeOther>
+                </XCUIElementTypeOther>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" name="More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page" label="More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="true" x="0" y="0" width="402" height="874" index="0" traits=""/>
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="874" width="402" height="233" index="1" traits=""/>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="3" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeImage type="XCUIElementTypeImage" name="gearshape.fill" label="gearshape.fill" enabled="true" visible="true" accessible="true" x="344" y="706" width="26" height="27" index="0" traits="Image"/>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+  </XCUIElementTypeApplication>
+</AppiumAUT>

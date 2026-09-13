@@ -1,0 +1,6 @@
+early-1 +0.357s
+early-2 +1.03s
+early-3 +1.723s
+early-4 +2.398s
+early-5 +3.163s
+early-6 +3.842s

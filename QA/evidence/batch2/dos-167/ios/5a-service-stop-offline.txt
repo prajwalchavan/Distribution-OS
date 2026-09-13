@@ -1,0 +1,22 @@
+## step5a stop sales-service so the office is unreachable (Expo Go on the simulator cannot toggle airplane mode) 02:14:33
+no concurrent web prover found (ps: no s-098-shared-device / pw.mjs process); the last sales-service requests were this simulator's deviceId 01a09c7c-4a2a-77fc-b61f-5fafdcc83d31
+  PID  PPID COMMAND
+ 4606 16583 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/main.ts
+16485     1 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/sales-service dev
+16583 16485 node --watch --import @swc-node/register/esm-register src/main.ts
+$ kill 4606 16583 16485
+$ lsof -iTCP:3003 -sTCP:LISTEN
+(end lsof)
+$ curl -s -m 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/health
+000
+curl exit 7
+auth :3000 health: 200
+--- wait for the phone to notice (the strip)
+02:14:38 strip: Updated just now|Waiting: 0|
+02:14:44 strip: Updated just now|Waiting: 0|
+02:14:50 strip: Updated just now|Waiting: 0|
+02:14:57 strip: Updated just now|Waiting: 0|
+02:15:03 strip: Offline since 2:13 am|Waiting: 0|
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)

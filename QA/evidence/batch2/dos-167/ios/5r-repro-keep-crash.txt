@@ -1,0 +1,73 @@
+## step5r ONE reproduction of the keep crash (same path: office unreachable, one order queued, Sign out -> 'Sign out, keep here') 02:21:49
+ 4595 40215 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4596 40228 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4601 16615 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4602 16515 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4603 16567 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4604 16631 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4605 16550 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4607 16599 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+ 4608 16535 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+16515 16488 node --watch --import @swc-node/register/esm-register src/main.ts
+16535 16489 node --watch --import @swc-node/register/esm-register src/main.ts
+16550 16486 node --watch --import @swc-node/register/esm-register src/main.ts
+16567 16487 node --watch --import @swc-node/register/esm-register src/main.ts
+16599 16483 node --watch --import @swc-node/register/esm-register src/main.ts
+16615 16484 node --watch --import @swc-node/register/esm-register src/main.ts
+16631 16482 node --watch --import @swc-node/register/esm-register src/main.ts
+35707     1 node /Users/prajwalchavan/.local/state/fnm_multishells/35260_1789332490796/bin/pnpm --filter @dos/sales-service dev
+35720 35707 node --watch --import @swc-node/register/esm-register src/main.ts
+35721 35720 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/
+39801 39785 node --watch --import @swc-node/register/esm-register src/main.ts
+39815 39786 node --watch --import @swc-node/register/esm-register src/main.ts
+40215 40197 node --watch --import @swc-node/register/esm-register src/main.ts
+40228 40198 node --watch --import @swc-node/register/esm-register src/main.ts
+$ kill 35721 35720 35707
+:3003 health: 000
+02:21:53 strip: Updated just now
+02:21:58 strip: Updated just now
+02:22:04 strip: Updated just now
+02:22:10 strip: Updated just now
+02:22:15 strip: Updated just now
+02:22:21 strip: Updated just now
+02:22:26 strip: Offline since 2:21 am
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+visible Add a case:
+Button	[255,429 118x70]	Add a case
+Button	[255,515 118x70]	Add a case
+Button	[255,600 118x70]	Add a case
+tapped "Add a case" Button at 314,464 (1 of 3)
+after add: Save on this phone|Items 1 · ₹673.68 before GST|
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+after save: Offline since 2:21 am · 2 waiting to send|(disabled) Saved on this phone|
+--- outbox 02:22:56
+3|01a09c8b-5486-730e-b4c7-bfedf3eda34f|sales_orders|01a09c8b-13de-75d1-9850-38fa7512541f|queued|3
+4|01a09c8b-54a7-774a-95dc-63b42c0d7ce2|sales_order_lines|01a09c8b-3acc-762b-b795-618602c19ff8|queued|3
+## step5r part B 02:23:17
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+sheet: 2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page
+Expo Go pid before keep: 35572
+$ ios-drive.mjs tapxy 201 637   ('Sign out, keep here') at 2026-09-14 02:23:26
+tapped 201 637
+Expo Go launchctl entry 5 s after keep: ''
+--- simulator log since the keep tap
+2026-09-14 02:23:26.791 Df runningboardd[32138:250db3] [com.apple.runningboard:ttl] [app<host.exp.Exponent((null))>:35572] termination reported by launchd (2, 11, 11)
+2026-09-14 02:23:26.792 Df runningboardd[32138:250db8] [com.apple.runningboard:process] Notifying connection [osservice<com.apple.SpringBoard>:32135] that process [app<host.exp.Exponent((null))>:35572] exited with context <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>
+2026-09-14 02:23:26.794 Df SpringBoard[32135:2509aa] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:35572] Process exited: <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>.
+2026-09-14 02:23:26.801 Df SpringBoard[32135:2495ec] [com.apple.SpringBoard:Workspace] Process exited: <FBApplicationProcess: 0x1053b30c0; app<host.exp.Exponent>:35572(vB71B1)> -> <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:signal(2) code:SIGSEGV(11)>>
+--- new crash reports
+-rw-------@   1 prajwalchavan  _analyticsusers  64921 Sep 14 02:23 Expo Go-2026-09-14-022331.ips
+-rw-------@   1 prajwalchavan  _analyticsusers  63289 Sep 14 02:18 Expo Go-2026-09-14-021827.ips
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:23:34
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+3|01a09c8b-5486-730e-b4c7-bfedf3eda34f|queued
+4|01a09c8b-54a7-774a-95dc-63b42c0d7ce2|queued
+cursor|NULL
+role|NULL
+userId|efde1e76-9785-7827-aff2-6f56ecd33588

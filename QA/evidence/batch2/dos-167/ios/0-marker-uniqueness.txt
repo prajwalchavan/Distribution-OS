@@ -1,0 +1,67 @@
+## marker uniqueness check across tenants (dos_qa, read-only) 02:24:55
+          name           |     tenants      
+-------------------------+------------------
+ Anand Bhavan Provision  | tarsun
+ Bhosale Traders         | tarsun
+ Jain Kirana Mart        | sai-distributors
+ Metro Kirana Bazar      | tarsun
+ Milan Provision Mart    | sai-distributors
+ Nandivali Super Bazar   | sai-distributors
+ Prerna Super Market     | tarsun
+ Rajhans General Store   | sai-distributors
+ Thakurli Station Kirana | sai-distributors
+ Vaibhav Kirana Mart     | tarsun
+(10 rows)
+
+          List of relations
+ Schema |    Name    | Type  | Owner 
+--------+------------+-------+-------
+ public | pick_lines | table | dos
+ public | picklists  | table | dos
+(2 rows)
+
+             List of relations
+ Schema |       Name        | Type  | Owner 
+--------+-------------------+-------+-------
+ public | vehicle_positions | table | dos
+ public | vehicles          | table | dos
+(2 rows)
+
+             List of relations
+ Schema |       Name       | Type  | Owner 
+--------+------------------+-------+-------
+ public | beat_assignments | table | dos
+ public | beats            | table | dos
+(2 rows)
+
+## warehouse marker uniqueness (dos_qa, read-only) 02:30:12
+        name        |     tenants      
+--------------------+------------------
+ Ayre Road          | sai-distributors
+ Godrej Hill        | tarsun
+ Kalyan West Market | tarsun
+ Khadakpada         | tarsun
+ Kolsewadi          | tarsun
+ Kopar Road         | sai-distributors
+ Manpada Road       | sai-distributors
+ Nandivali          | sai-distributors
+ Station Road       | tarsun
+ Tilak Nagar        | sai-distributors
+(10 rows)
+
+ order_no |         tenants         
+----------+-------------------------
+ SO-0453  | sai-distributors,tarsun
+ SO-0454  | sai-distributors,tarsun
+ SO-0870  | tarsun
+ SO-0873  | tarsun
+ SO-0877  | tarsun
+(5 rows)
+
+ picklist_no |         tenants         
+-------------+-------------------------
+ PICK-0051   | sai-distributors,tarsun
+ PICK-0052   | sai-distributors,tarsun
+ PICK-0078   | tarsun
+(3 rows)
+

@@ -1,0 +1,7 @@
+## step3 design checks 02:10:04
+$ ios-drive.mjs has "Chavan Kirana"   (must exit 1)
+NO
+exit 1
+$ ios-drive.mjs has "Khadakpada"   (must exit 1)
+NO
+exit 1

@@ -1,0 +1,8 @@
+## W2 dinesh signs out through the product 02:30:43 (no keychain reset)
+tapped "More" Button at 348,108 (1 of 1)
+menu: Expo Go|More, Settings, Me, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (Sign out row: the bottom-anchored menu puts it at the same place as in sales and delivery)
+tapped 150 723
+sign-in form visible after ~1s: Expo Go|Distribution OS - Warehouse|Sign in|Username|Password|Sign in|The godown sign-in. Ask your manager for a username.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|space|return|Emoji|Dictate|
+$ find "$C" -path '*SQLite*' -name 'dos-warehouse*'   02:30:51
+(end of find; empty = dinesh's file is gone)

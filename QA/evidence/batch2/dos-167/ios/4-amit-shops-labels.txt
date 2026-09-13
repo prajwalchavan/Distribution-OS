@@ -1,0 +1,24 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x27]	Shops
+StaticText	[24,222 94x27]	Shops: 29
+Other	[16,277 124x70]	Shops
+Other	[139,277 124x70]	Losing
+Other	[262,277 125x70]	Catalog
+SearchField	[17,364 368x68]	 = Search by name, code or phone
+Button	[16,456 370x70]	Anand Bhavan Provision, R-0043 · Kolsewadi · Kolsewadi, Kalyan East, 35548 rupees, C
+Button	[16,525 370x70]	Ansari Kirana Stores, R-0032 · Godrej Hill · Godrej Hill, Kalyan West, 8042 rupees, C
+Button	[16,594 370x70]	Ashirwad Provision, R-0055 · Birla College Road · Birla College Road, Kalyan West, —, C
+Button	[16,663 370x70]	Birla Road Kirana Mart, R-0058 · Birla College Road · Birla College Road, Kalyan West, 18873 rupees, C
+Button	[16,732 370x70]	City Light Provision, R-0034 · Godrej Hill · Godrej Hill, Kalyan West, 29824 rupees, C
+Other	[369,261 30x510]	Vertical scroll bar, 5 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

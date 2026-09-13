@@ -1,0 +1,23 @@
+## step5e 'Sign out, keep here' 02:18:11
+$ ios-drive.mjs tapxy 201 637   (the 'Sign out, keep here' button in 5d-amit-leave-sheet.png; the sheet is one aggregated accessibility element)
+tapped 201 637
+after: Expo Go|Icon|Expo Go|Enter URL|Account|DEVELOPMENT SERVERS|HELP|Start a local development server with:|
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:18:51  (expect amit's file still here)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+(end of find)
+--- kept file, read-only: _outbox
+1|01a09c85-de3c-718a-a3c3-eb59744ec130|sales_orders|01a09c84-5bf4-76e1-a7f5-7d1f3418e2c4|queued
+2|01a09c85-de5c-7367-8b5f-d52a5913a8b9|sales_order_lines|01a09c85-c7e2-736a-a3b4-b54e3cae9303|queued
+--- _sync_state keys
+cursor|NULL
+deviceId|01a09c7c-4a2a-77fc-b61f-5fafdcc83d31
+role|NULL
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+--- read-set tables left (non-underscore)
+0
+## restart sales-service on dos_qa as QA/tools/start-services.sh starts it 02:18:51
+sales-service :3003 /health 200 at 02:18:55
+node    35721 prajwalchavan   17u  IPv4 0xdc95a8a7ea8340c2      0t0  TCP *:3003 (LISTEN)

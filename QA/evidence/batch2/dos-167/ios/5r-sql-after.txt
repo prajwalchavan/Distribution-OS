@@ -1,0 +1,17 @@
+## step5r SQL after the reproduction's order was sent (dos_qa, read-only) 02:24:50
+                  id                  | state |   source    |  username  |        shop         |            created_at            
+--------------------------------------+-------+-------------+------------+---------------------+----------------------------------
+ 01a09c8b-13de-75d1-9850-38fa7512541f | draft | salesperson | amit.pawar | Prerna Super Market | 2026-09-14 02:24:12.451317+05:30
+(1 row)
+
+                op_id                 |   outcome    |            created_at            
+--------------------------------------+--------------+----------------------------------
+ 01a09c8b-5486-730e-b4c7-bfedf3eda34f | {"ok": true} | 2026-09-14 02:24:12.451317+05:30
+ 01a09c8b-54a7-774a-95dc-63b42c0d7ce2 | {"ok": true} | 2026-09-14 02:24:12.488058+05:30
+(2 rows)
+
+ amit_orders_total 
+-------------------
+               386
+(1 row)
+

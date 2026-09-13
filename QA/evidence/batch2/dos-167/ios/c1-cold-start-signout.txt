@@ -1,0 +1,27 @@
+## C1d cold start with 1 order (2 ops) queued and the office unreachable 02:36:23
+$ xcrun simctl terminate booted host.exp.Exponent
+$ ios-drive.mjs new   (new WebDriver session; launches Expo Go)
+session 100a2a42-8f7a-4992-a066-63825e00823a
+$ xcrun simctl openurl booted exp://127.0.0.1:5175   at 02:36:31
+account control 'More' present at +4.34s
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+Sign out tapped at +6.48s
+state after the tap: Expo Go|2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs has "Send now"  (expect exit 1)
+NO
+exit 1
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:36:44  (expect the file NOT deleted)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+(end of find)
+$ ios-drive.mjs tapxy 201 722   (Cancel, per the sheet layout in 5d-amit-leave-sheet.png)
+tapped 201 722
+after Cancel: Expo Go|More|Tarsun Enterprise|TE|salesperson|Offline since 2:34 am · 2 waiting to send|Godrej Hill|Today's beat|Shops: 10|Visited: 0|
+$ find again 02:36:48
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+1|01a09c97-2fd2-731c-a7cb-5b993f1cb30b|queued
+2|01a09c97-2fea-7078-b25c-e1b8d499cc48|queued

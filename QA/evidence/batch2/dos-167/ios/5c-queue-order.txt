@@ -1,0 +1,34 @@
+## step5c queue one order for Prerna Super Market with the office unreachable 02:15:44
+$ ios-drive.mjs swipe up 0.3
+swiped up 0.3
+visible 'Add a case' rows:
+$ ios-drive.mjs tap "Add a case" 0
+tapped "Add a case" Button at 314,750 (1 of 12)
+after add: Offline since 2:13 am|Items: 0|(disabled) Save on this phone|Items 0 · ₹0.00 before GST|
+$ ios-drive.mjs tap "Save on this phone"
+tapped "Save on this phone" Button at 281,694 (1 of 1)
+after save: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Offline since 2:13 am|Prerna Super Market|Order|Items: 0|No signal|Repeat last order (6)|This order|Nothing on this order yet|Add items|On this phone: 171 items| = Search by item or brand|Vertical scroll bar, 5 pages = 0%|Horizontal scroll bar, 1 page = 0%|(disabled) Save on this phone|Items 0 · ₹0.00 before GST|Add at least one item|Beat|Orders|Shops|Me|gearshape.fill|
+--- device outbox (sqlite3 -readonly on amit's file in the simulator container) 02:16:00
+_sync_errors: 0
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+NOTE: attempt 1 above added nothing — the whole-screen swipe started below the order screen's scroll window (y 243-640 pt), so every 'Add a case' stayed hidden under the footer and the tap on an invisible row did nothing; Save stayed disabled and the outbox stayed empty.
+## step5c attempt 2 02:16:42: drag inside the scroll window
+$ ios-drive.mjs drag 100 600 100 300
+dragged 100 600 -> 100 300
+visible 'Add a case' rows:
+Button	[255,429 118x70]	Add a case
+Button	[255,515 118x70]	Add a case
+Button	[255,600 118x70]	Add a case
+$ ios-drive.mjs tap "Add a case" 0
+tapped "Add a case" Button at 314,464 (1 of 3)
+after add: Offline since 2:13 am|Campa Cola 2 L|Campa · 24 pc case|Campa Cola 200 ml|Campa · 48 pc case|Campa Cola 500 ml|Campa · 24 pc case|Save on this phone|Items 1 · ₹673.68 before GST|
+$ ios-drive.mjs tap "Save on this phone"
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+after save: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Offline since 2:13 am · 2 waiting to send|Prerna Super Market|Order|Back to the beat|This order|Clear|Campa Cola 1 L|Add items|On this phone: 171 items|Vertical scroll bar, 6 pages = 17%|Horizontal scroll bar, 1 page = 0%|(disabled) Saved on this phone|Items 1 · ₹673.68 before GST|Beat|Orders|Shops|Me|gearshape.fill|
+--- device outbox (sqlite3 -readonly on amit's file) 02:16:58
+1|01a09c85-de3c-718a-a3c3-eb59744ec130|sales_orders|01a09c84-5bf4-76e1-a7f5-7d1f3418e2c4|PUT|queued|3|2026-09-13T20:46:54.012Z|{"retailer_id":"8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}
+2|01a09c85-de5c-7367-8b5f-d52a5913a8b9|sales_order_lines|01a09c85-c7e2-736a-a3b4-b54e3cae9303|PUT|queued|3|2026-09-13T20:46:54.045Z|{"order_id":"01a09c84-5bf4-76e1-a7f5-7d1f3418e2c4","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}
+_sync_errors: 0

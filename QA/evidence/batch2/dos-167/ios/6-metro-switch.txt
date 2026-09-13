@@ -1,0 +1,17 @@
+## stop the sales Metro :5175 (sales steps done) 02:25:02
+31370     1 node /Users/prajwalchavan/.local/state/fnm_multishells/31302_1789331118291/bin/pnpm --filter @dos/sales-app web --clear
+31389 31370 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+31391 31389 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+$ kill 31370 31389 31391 
+(eval):kill:1: illegal pid: 31370 31389 31391 
+:5175 listeners: 1
+## start the delivery Metro :5177 as QA/tools/start-all.sh does (CI=1) 02:25:05
+8758f70 QA batch 2: DOS-167 addendum (x) for the Android keep-path crash (S-128); S-126, S-127; approval request for DOS-168..173
+delivery Metro :5177 packager-status:running at 02:25:07
+36731 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5177
+36733 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5177
+System-wide memory free percentage: 27%
+NOTE 02:25:35: the kill above failed (zsh passed the three pids as one word); repeated with separate pids:
+$ kill 31370 31389 31391
+:5175 listeners: 0
+memory: System-wide memory free percentage: 34%

@@ -1,0 +1,24 @@
+## D3 after sachin sign-in 02:28:02
+ALERT: Save Password?
+Save Password sheet -> Not Now
+tapped "Not Now" Button at 201,812 (1 of 1)
+strip 'Updated just now' at 02:28:09
+home: Expo Go|More|Sai Distributors, Dombivli|SD|delivery|Updated just now|TRIP-ACTIVE · 12 Sep 2026|Today's trip|On the road|3 of 10 stops done|MH-05-BQ-4471|STILL TO COLLECT|COLLECTED TODAY|85307 rupees|0 rupees|FLOAT AT START|STOPS|5000 rupees|3 / 10|Next stop|Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop|Shop 19, Nandivali, Dombivli East, Dombivli, 421201|Vertical scroll bar, 6 pages = 0%|Horizontal scroll bar, 1 page = 0%|
+stops: Expo Go|More|Sai Distributors, Dombivli|SD|delivery|Updated just now|TRIP-ACTIVE · 12 Sep 2026|Today's trip|On the road|3 of 10 stops done|MH-05-BQ-4471|3. Nandivali Super Bazar, Shop 16, Nandivali, Dombivli East, Dombivli, 421201, 44645 rupees, Delivered|4. Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop|5. Dombivli Fresh Mart, Shop 27, Kopar Road, Dombivli East, Dombivli, 421201, 32368 rupees, At the shop|6. Sanjivani General Store, Shop 9, Nandivali, Dombivli East, Dombivli, 421201, 3794 rupees, At the shop|7. Vaishnavi Provision, Shop 11, Tilak Nagar, Dombivli East, Dombivli, 421201, 4866 rupees, Not started|Vertical scroll bar, 6 pages = 38%|Horizontal scroll bar, 1 page = 0%|Next stop|Check in the vehicle|gearshape.fill|
+--- A-marker grep over home + scrolled stops labels (expect 0)
+Prerna Super Market: 0
+Metro Kirana Bazar: 0
+Anand Bhavan Provision: 0
+Vaibhav Kirana Mart: 0
+MH-05-AB-1234: 0
+Tarsun: 0
+Kolsewadi: 0
+Godrej Hill: 0
+$ ios-drive.mjs has "MH-05-AB-1234"  (must exit 1)
+NO
+exit 1
+$ find "$C" -path '*SQLite*' -name 'dos-delivery*'   02:28:20
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+(end of find)

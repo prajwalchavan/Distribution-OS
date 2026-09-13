@@ -1,0 +1,28 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	Godrej Hill
+StaticText	[16,205 370x27]	Today's beat
+StaticText	[24,240 94x27]	Shops: 10
+StaticText	[141,240 88x27]	Visited: 0
+StaticText	[252,240 100x27]	Ordered: 0
+Button	[16,295 123x70]	✓ Godrej Hill = 1
+Button	[158,295 104x70]	Kolsewadi
+Button	[280,295 165x70]	Birla College Road
+Other	[353,295 30x70]	Vertical scroll bar, 2 pages = 0%
+SearchField	[17,381 368x68]	 = Search this beat
+Button	[16,473 370x72]	Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, 394334 rupees, To visit
+Button	[16,544 370x71]	Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To visit
+Button	[16,614 370x71]	New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, 131361 rupees, To visit
+Button	[16,684 370x71]	City Light Provision, Godrej Hill, Kalyan West · your last order 11 Sep, 29824 rupees, To visit
+Button	[16,755 370x71]	Metro Kirana Bazar, Godrej Hill, Kalyan West · your last order 11 Sep, 39300 rupees, To visit
+Other	[369,279 30x492]	Vertical scroll bar, 2 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

@@ -1,0 +1,14 @@
+## D4 sachin signs out (teardown of the delivery sequence) 02:28:46
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+sign-in form after ~1s
+$ find "$C" -path '*SQLite*' -name 'dos-delivery*'   02:28:53
+(end of find)
+## stop the delivery Metro :5177 02:28:53
+kill 36717
+kill 36731
+kill 36733
+:5177 listeners: 0
+## start the warehouse Metro :5176 (CI=1, as QA/tools/start-all.sh) 02:28:56
+warehouse Metro :5176 packager-status:running at 02:28:58
+memory: System-wide memory free percentage: 45%

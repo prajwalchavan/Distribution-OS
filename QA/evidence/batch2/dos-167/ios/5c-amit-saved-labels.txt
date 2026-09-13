@@ -1,0 +1,23 @@
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+Image	[16,88 32x33]	Tarsun Enterprise logo
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[56,108 161x19]	salesperson
+Button	[16,147 370x70]	Offline since 2:13 am · 2 waiting to send
+StaticText	[16,228 370x19]	Prerna Super Market
+StaticText	[16,246 370x27]	Order
+Button	[16,238 370x70]	Back to the beat
+StaticText	[16,335 93x27]	This order
+Button	[16,373 370x70]	Clear
+Button	[29,475 344x70]	Campa Cola 1 L
+StaticText	[16,601 93x27]	Add items
+StaticText	[16,631 370x19]	On this phone: 171 items
+Other	[369,284 30x378]	Vertical scroll bar, 6 pages = 17%
+Other	[0,628 402x31]	Horizontal scroll bar, 1 page = 0%
+Button	[182,681 188x70]	(disabled) Saved on this phone
+StaticText	[32,707 139x19]	Items 1 · ₹673.68 before GST
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[344,706 26x27]	gearshape.fill

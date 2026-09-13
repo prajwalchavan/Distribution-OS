@@ -1,0 +1,48 @@
+## 3-kiran sign-in as kiran.mhatre on the same Expo Go sandbox (no keychain reset, no reinstall) 02:09:54
+$ ios-drive.mjs setclass XCUIElementTypeTextField 0 kiran.mhatre
+set XCUIElementTypeTextField 0 = kiran.mhatre
+$ ios-drive.mjs setclass XCUIElementTypeSecureTextField 0 Dos@1234
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+$ ios-drive.mjs tap "Sign in"
+tapped "Sign in" StaticText at 201,105 (1 of 2)
+tap returned at 02:09:59 (1789331999.1487548)
+early page source dumped at +4.61s -> 3-kiran-early-src.xml
+--- A-marker grep over the early page source (expect 0 for every marker)
+Chavan Kirana: 0
+Iyer Provision: 0
+SO-0875: 0
+Khadakpada: 0
+Kalyan West Market: 0
+Station Road: 0
+Tarsun: 0
+--- early visible labels (first 30)
+label="Expo Go"
+label="Distribution OS - Sales"
+label="Sign in"
+label="Username"
+label=""
+label="Password"
+label="Use the username your distributor gave you."
+label="Vertical scroll bar, 1 page"
+label="Horizontal scroll bar, 1 page"
+label="gearshape.fill"
+label="Typing Predictions"
+label="Passwords"
+label="q"
+label="w"
+label="e"
+label="r"
+label="t"
+label="y"
+label="u"
+label="i"
+label="o"
+label="p"
+label="a"
+label="s"
+label="d"
+label="f"
+label="g"
+label="h"
+label="j"
+label="k"

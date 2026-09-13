@@ -1,0 +1,19 @@
+## step1 after rahul sign-in (rerun 02:07:43: the first pass called ios-drive through an unsplit zsh variable and never ran it; the find was valid and is repeated here)
+$ ios-drive.mjs has "Updated"
+YES
+exit 0
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   (C=/Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$ find "$C" -path '*SQLite*' -name 'dos-sales.db*'  (legacy pre-DOS-167 name, present in the step0 baseline)
+(end of legacy find)
+tapped "Shops" Other at 252,806 (1 of 1)
+$ ios-drive.mjs has "Chavan Kirana"  (positive control on rahul's own Shops tab)
+YES
+exit 0
+$ ios-drive.mjs has "Iyer Provision"
+YES
+exit 0
+shops chip on the Shops tab:
+Shops: 30

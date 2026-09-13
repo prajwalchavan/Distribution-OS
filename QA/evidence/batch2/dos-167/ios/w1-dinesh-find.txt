@@ -1,0 +1,17 @@
+## W1 after dinesh sign-in 02:29:55
+strip 'Updated just now' at 02:30:00
+$ find "$C" -path '*SQLite*' -name 'dos-warehouse*'   (C=/Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227)
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+(end of find; the legacy dos-warehouse.db of the step0 baseline must be gone)
+tapped "Pick" Other at 151,803 (1 of 1)
+home: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|warehouse|Updated just now|Tarsun Enterprise|Inbound|✓ Queues = 1|Capture|Stock|Counts|Vertical scroll bar, 2 pages = 0%|BILLS TO COUNT|WAVES OPEN|0|1|PACKED, NO BILL|SHEETS WAITING|0|1|GATE COUNTS WAITING|0 lines|Nothing at the gate|WAVES ON THE FLOOR|1 being picked · 0 waiting to start|Vertical scroll bar, 3 pages = 0%|Horizontal scroll bar, 1 page = 0%|Inbound|Pick|
+pick: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|warehouse|Updated just now|Tarsun Enterprise|Pick|✓ Every beat = 1|Khadakpada|Station Road|Vertical scroll bar, 3 pages = 0%|ORDERS WAITING|Select all|Clear|0 selected · 0 pc|Bhosale Traders, SO-0877 · Khadakpada · 750 pc, confirmed|Shree Ganesh Kirana, SO-0873 · Station Road · 163 pc, confirmed|Vitthal Traders, SO-9003 · Kalyan West Market · 2 pc, confirmed|Nutan Kirana Stores, SO-0870 · Birla College Road · 158 pc, confirmed|Vertical scroll bar, 6 pages = 0%|Horizontal scroll bar, 1 page = 0%|Inbound|Pick|Pack|Load|gearshape.fill|
+--- positive controls on dinesh's own home + pick screens
+PICK-0078: 0
+Tarsun: 6
+Khadakpada: 2
+Station Road: 2
+SO-0877: 1
+Bhosale Traders: 1

@@ -1,0 +1,16 @@
+## step5c SQL while queued (dos_qa, read-only) 02:17:35
+ rows_with_queued_order_id 
+---------------------------
+                         0
+(1 row)
+
+ amit_orders_total 
+-------------------
+               384
+(1 row)
+
+                  id                  |        name         
+--------------------------------------+---------------------
+ 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | Prerna Super Market
+(1 row)
+

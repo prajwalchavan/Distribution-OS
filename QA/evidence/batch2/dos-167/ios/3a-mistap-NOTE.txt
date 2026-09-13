@@ -1,0 +1,1 @@
+NOTE: attempt 1 of step 3 tapped the 'Sign in' HEADING (StaticText 1 of 2), not the button, so no sign-in happened; every early screenshot and marker count in these 3a-mistap-* files shows the sign-in form and proves nothing about the leak. Step 3 was redone as 3-kiran-*.

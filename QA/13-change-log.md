@@ -509,3 +509,24 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **Repair:** addendum (x) (`verdicts/DOS-167-ruling-2-addendum.md`, written by the main session as the Opus stand-in). end() drains every store call before it closes the store, and the adapter refuses calls after close. It is folded into the prepared ruling-2 build. Its re-proof adds the keep path three times on delivery, once on warehouse and once on iOS, plus the S-126 and S-127 checks.
 
 **Approval request sent:** add DOS-168..DOS-173 to batch 2, with questions Q1–Q3.
+
+### Batch 2 — DOS-167 iOS proof: a P0 on the keep path; addendum (y) (2026-09-14 02:44 IST)
+
+**Run `wf_74bd442f-12c` finished.** 18 agents ran; the Fable judge failed on the usage limit, so the run has no verdict. Lane result: `lane-results/DOS-167.json`.
+
+**iOS, Expo Go on the iPhone 16 Pro simulator: FAIL.** Evidence: `QA/evidence/batch2/dos-167/ios/`.
+- **PASS:**
+  - Sales steps 1–4: a store file per person, sign-out removes it, and the next person sees none of the previous rep's rows.
+  - The cold-start sign-out sheet with Cancel.
+  - The delivery and warehouse leak sequences.
+- **P0 (S-130), 2 of 2:** "Sign out, keep here" crashes Expo Go natively.
+  - The fault is SIGSEGV at 0x1000000bb in `exsqlite3_reset`, the same as Android S-128.
+  - The sign-out never completes. The relaunch is still signed in as the rep who chose to sign out, so on a shared phone the next person is inside that rep's session.
+  - No data was lost: both kept orders reached dos_qa once.
+- **P3 (S-129):** the kit's native sheets are one accessibility element on iOS, so rows cannot be targeted one by one. This predates DOS-167.
+
+**Repair — addendum (y)**, written by the main session as the Opus stand-in:
+- The leave flow clears the stored session before `end()` touches the store, and revokes on the server afterwards in the background.
+- A crash during sign-out can therefore never leave the person signed in.
+- Addendum (x) is the drain before close.
+- Both are folded into the ruling-2 build, whose re-proof now includes the iOS and Android keep paths three times each with the outbox retrying.

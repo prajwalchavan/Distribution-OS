@@ -1,0 +1,49 @@
+## w3-bharat sign-in as bharat.jadhav on the same Expo Go sandbox (no keychain reset, no reinstall) 02:30:51
+$ ios-drive.mjs setclass XCUIElementTypeTextField 0 bharat.jadhav
+set XCUIElementTypeTextField 0 = bharat.jadhav
+$ ios-drive.mjs setclass XCUIElementTypeSecureTextField 0 Dos@1234
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+$ ios-drive.mjs tap "Sign in" 1   (index 1: element 0 is the screen heading, the button is the next one)
+tapped "Sign in" Button at 201,457 (2 of 2)
+tap returned at 02:30:56 (1789333256.358604)
+early page source dumped at +5.589s -> w3-bharat-early-src.xml
+--- A-marker grep over the early page source (expect 0 for every marker)
+PICK-0078: 0
+Tarsun: 0
+Khadakpada: 0
+Station Road: 0
+SO-0877: 0
+SO-0873: 0
+Bhosale Traders: 0
+Kalyan West Market: 0
+--- early visible labels (first 30)
+label="Expo Go"
+label="More"
+label="Sai Distributors, Dombivli"
+label="SD"
+label="warehouse"
+label="Updated just now"
+label="Inbound"
+label="✓ Queues"
+label="Capture"
+label="Stock"
+label="Counts"
+label="Held"
+label="Vertical scroll bar, 2 pages"
+label="BILLS TO COUNT"
+label="WAVES OPEN"
+label="0"
+label="1"
+label="PACKED, NO BILL"
+label="SHEETS WAITING"
+label="GATE COUNTS WAITING"
+label="0 lines"
+label="Nothing at the gate"
+label="WAVES ON THE FLOOR"
+label="1 being picked · 0 waiting to start"
+label="PICK-0052, 3027 of 3999 pc picked, picking"
+label="PACKED WITHOUT A BILL"
+label="Every pack has its bill"
+label="LOAD SHEETS"
+label="MH-05-BQ-4471 · 12 Sep, 2 orders · 24 cartons, draft"
+label="COUNTS OPEN"

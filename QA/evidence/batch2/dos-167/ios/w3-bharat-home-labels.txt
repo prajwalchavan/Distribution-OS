@@ -1,0 +1,33 @@
+Application	[0,0 402x874]	Expo Go
+Button	[310,70 76x76]	More
+StaticText	[56,86 231x26]	Sai Distributors, Dombivli
+StaticText	[22,97 20x22]	SD
+StaticText	[56,112 231x18]	warehouse
+StaticText	[48,159 117x19]	Updated just now
+StaticText	[16,194 370x19]	Sai Distributors, Dombivli
+StaticText	[16,212 370x27]	Inbound
+Button	[16,266 102x77]	✓ Queues = 1
+Button	[143,266 88x77]	Capture
+Button	[255,266 70x77]	Stock
+Button	[350,266 81x77]	Counts
+Other	[353,266 30x77]	Vertical scroll bar, 2 pages = 0%
+StaticText	[28,379 161x19]	BILLS TO COUNT
+StaticText	[214,379 160x19]	WAVES OPEN
+StaticText	[28,397 13x27]	0
+StaticText	[214,397 13x27]	1
+StaticText	[28,448 161x19]	PACKED, NO BILL
+StaticText	[214,448 160x19]	SHEETS WAITING
+StaticText	[28,466 13x27]	0
+StaticText	[214,466 13x27]	1
+StaticText	[16,537 224x27]	GATE COUNTS WAITING
+StaticText	[16,567 370x19]	0 lines
+StaticText	[131,630 140x22]	Nothing at the gate
+StaticText	[16,708 212x27]	WAVES ON THE FLOOR
+StaticText	[16,738 370x19]	1 being picked · 0 waiting to start
+Other	[369,250 30x514]	Vertical scroll bar, 3 pages = 0%
+Other	[0,730 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,764 101x77]	Inbound
+Other	[100,764 101x77]	Pick
+Other	[201,764 101x77]	Pack
+Other	[301,764 101x77]	Load
+Image	[344,706 26x27]	gearshape.fill

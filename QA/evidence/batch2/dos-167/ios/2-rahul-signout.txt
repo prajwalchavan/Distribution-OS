@@ -1,0 +1,34 @@
+## step2 rahul signs out through the product 02:08:18 (no keychain reset)
+$ ios-drive.mjs tap "More"   (the ⋯ account control is exposed to XCUITest as Button label 'More')
+tapped "More" Button at 352,105 (1 of 1)
+menu labels:
+Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tap "Sign out"
+NOT FOUND Sign out (matches 0)
+after sign-out labels:
+Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|gearshape.fill|
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:08:52
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+(end of find; empty = the rahul file is gone)
+$ ls -la $C/Documents/ExponentExperienceData/@anonymous/dos-sales-*/SQLite
+total 16824
+drwxr-xr-x  5 prajwalchavan  staff      160 Sep 14 02:06 .
+drwxr-xr-x  3 prajwalchavan  staff       96 Sep  7 02:10 ..
+-rw-r--r--  1 prajwalchavan  staff  2617344 Sep 14 02:06 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw-r--r--  1 prajwalchavan  staff    32768 Sep 14 02:06 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw-r--r--  1 prajwalchavan  staff  4515552 Sep 14 02:08 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+NOTE 02:09:07: attempt 1 did NOT sign out — the menu's items are one aggregated accessibility element, so the exact-label tap "Sign out" matched nothing; the find above was taken with rahul still signed in (the file is expected there). Attempt 2 below taps the Sign out row by its own element rect.
+## step2 attempt 2 02:09:31: tap the 'Sign out' row at its on-screen position (2-rahul-menu.png: row centre ≈ 723 pt, x 150 pt clear of Expo Go's gear)
+$ ios-drive.mjs tapxy 150 723
+tapped 150 723
+sign-in form visible after ~2s
+after sign-out labels:
+Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|space|return|Emoji|Dictate|
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:09:35
+(end of find)
+$ ls -la $C/Documents/ExponentExperienceData/@anonymous/dos-sales-*/SQLite
+total 0
+drwxr-xr-x  2 prajwalchavan  staff  64 Sep 14 02:09 .
+drwxr-xr-x  3 prajwalchavan  staff  96 Sep  7 02:10 ..

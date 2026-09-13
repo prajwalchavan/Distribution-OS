@@ -1,0 +1,12 @@
+## step5f reopen the sales app in Expo Go after the crash (sales-service is back up) 02:20:17
+$ xcrun simctl openurl booted exp://127.0.0.1:5175
+02:20:23 signed-in screen: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|2 waiting to send|No beat today|Today's beat|Shops: 0|Visited: 0|Ordered: 0| = Search this beat|Still loading the beat onto this phone|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|Beat|Orders|Shops|Me|gearshape.fill|
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'   02:20:23
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+(end of find)
+1|01a09c85-de3c-718a-a3c3-eb59744ec130|acked
+2|01a09c85-de5c-7367-8b5f-d52a5913a8b9|acked
+## step5f after the automatic send 02:21:11
+labels: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Godrej Hill|Today's beat|Shops: 10|Visited: 0|Ordered: 1|✓ Godrej Hill = 1|Kolsewadi|Birla College Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|
