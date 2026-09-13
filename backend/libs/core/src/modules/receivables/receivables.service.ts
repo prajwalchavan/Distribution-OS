@@ -95,13 +95,14 @@ import {
 } from './allocation.js'
 import { checkCredit, type CreditVerdict } from './credit.js'
 import {
+  AGEING_BATCH,
   loadOpenBills,
   loadOutstanding,
   openPaiseOf,
+  rebuildAgeingPage,
   refreshOutstandingFor,
   retailerIdPage,
   toOpenBill,
-  writeAgeingSnapshot,
 } from './outstanding.js'
 import {
   accountIdsByCode,
@@ -185,8 +186,6 @@ const MONEY_DESK: readonly ActorRole[] = BACK_OFFICE
 /** The shop's own online-payment path, and nothing else in this module. */
 const SHOPKEEPER: readonly ActorRole[] = ['retailer']
 
-/** How many shops one `ageing.rebuild` statement handles before taking the next page (scale rule 3). */
-const AGEING_BATCH = 500
 /** How long the UPI intent a shop is shown stays quotable. */
 const PAYMENT_INTENT_MINUTES = 30
 
@@ -1446,7 +1445,11 @@ export class ReceivablesService {
     )
   }
 
-  /** The same code path the nightly worker job runs, exposed so the owner can force a refresh. */
+  /**
+   * The page body the nightly worker path runs (`rebuildAgeingPage`; the worker's per-tenant path is
+   * `rebuildTenantAgeing` in ageing-rebuild.ts, one `receivables.ageing.rebuild` job per tenant), exposed
+   * so the owner can force a refresh.
+   */
   async rebuildAgeing(input: RebuildIn): Promise<RebuildOut> {
     requireRole(OWNER)
     const db = requireDb(this.db)
@@ -1465,13 +1468,10 @@ export class ReceivablesService {
               : []
             : await retailerIdPage(tx, cursor, AGEING_BATCH)
           if (ids.length === 0) break
-          const rows = await refreshOutstandingFor(tx, ids, asOf)
-          await writeAgeingSnapshot(tx, asOf, [...rows.values()])
-          for (const row of rows.values()) {
-            count += 1
-            outstandingPaise += row.outstandingPaise ?? 0
-            overduePaise += row.overduePaise ?? 0
-          }
+          const page = await rebuildAgeingPage(tx, asOf, ids)
+          count += page.retailers
+          outstandingPaise += page.outstandingPaise
+          overduePaise += page.overduePaise
           cursor = ids[ids.length - 1] ?? null
           if (input.retailerId || ids.length < AGEING_BATCH) break
         }

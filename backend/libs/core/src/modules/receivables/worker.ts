@@ -5,3 +5,4 @@
  * receive `undefined` dependencies.
  */
 export { loadStatementSummary, type StatementSummary } from './documents.js'
+export { ageingNeedsRebuild, rebuildTenantAgeing } from './ageing-rebuild.js'

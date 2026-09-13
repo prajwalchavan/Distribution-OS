@@ -78,7 +78,7 @@ await boss.work(PDF_RENDER, async ([job]) => {
   await renderPending(db)
 })
 logger.info(
-  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications, statements handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST, incentives achievement sweep hourly, ai forecast pass on demand + nightly 03:40 IST',
+  'worker started: outbox relay every minute (PDF render, docint, integrations, notifications, statements handlers registered), retention sweep hourly, docint queues qr-read/extract/validate/match, integrations queues imports.run/exports.render + sweep, notifications dispatch every minute + delivery-today 07:00 IST + dues-reminder 09:00 IST, reporting rollup every 15 min + finalize 00:20 IST (queues receivables.ageing.rebuild per tenant) + receivables.ageing.catchup on start, incentives achievement sweep hourly, ai forecast pass on demand + nightly 03:40 IST',
 )
 
 const shutdown = async (): Promise<void> => {

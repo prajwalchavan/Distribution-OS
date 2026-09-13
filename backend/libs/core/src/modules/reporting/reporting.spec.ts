@@ -30,6 +30,7 @@ type FillRate = z.infer<typeof FillRateOutput>
 type Collections = z.infer<typeof CollectionsRegisterOutput>
 import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import {
+  ageingSnapshots,
   beatAssignments,
   beats,
   bootstrapTenant,
@@ -50,6 +51,7 @@ import {
   products,
   receipts,
   retailerBehaviour,
+  retailerOutstandingSummary,
   retailers,
   salesOrderLines,
   salesOrders,
@@ -1351,6 +1353,87 @@ describeDb('reporting (DATABASE_URL)', () => {
     // The order's three lines, each picked at 80%: 96 + 192 + 48 of 120 + 240 + 60.
     expect(Number((once.day as { ordered_pcs: unknown }).ordered_pcs)).toBe(420)
     expect(Number((once.day as { picked_pcs: unknown }).picked_pcs)).toBe(336)
+  })
+
+  it("DOS-117: once a day carries its nightly ageing snapshot, today's rollup still takes dues from the live summary and re-running a past day keeps the closing figure it stored", async () => {
+    // Its own distributor, so no other test's stored rows move.
+    const duesTenantId = uuidv7()
+    const duesShopId = uuidv7()
+    const yesterday = plusDays(today, -1)
+    const weekAgo = plusDays(today, -7)
+    await db
+      .insert(tenants)
+      .values({
+        id: duesTenantId,
+        slug: `rep-d-${run}`,
+        legalName: 'Dues precedence',
+        stateCode: '27',
+      })
+    await db.insert(retailers).values({
+      id: duesShopId,
+      tenantId: duesTenantId,
+      code: `D1-${run}`,
+      name: `Shop D1 ${run}`,
+      phone: `+91917${run}1`,
+      stateCode: '27',
+    })
+    // The dues row today's postings keep live.
+    await db.insert(retailerOutstandingSummary).values({
+      tenantId: duesTenantId,
+      retailerId: duesShopId,
+      outstandingPaise: 70_000,
+      overduePaise: 20_000,
+      asOf: today,
+    })
+    // The nightly snapshots: today's (written at 00:20, before the day's postings), yesterday's opening
+    // one, and a week-old day the rollup never saw.
+    await db.insert(ageingSnapshots).values([
+      {
+        tenantId: duesTenantId,
+        retailerId: duesShopId,
+        asOf: today,
+        outstandingPaise: 50_000,
+        overduePaise: 10_000,
+      },
+      {
+        tenantId: duesTenantId,
+        retailerId: duesShopId,
+        asOf: yesterday,
+        outstandingPaise: 40_000,
+        overduePaise: 5_000,
+      },
+      {
+        tenantId: duesTenantId,
+        retailerId: duesShopId,
+        asOf: weekAgo,
+        outstandingPaise: 30_000,
+        overduePaise: 3_000,
+      },
+    ])
+    // Yesterday's closing figure, stored by its last rollup of the day.
+    await db.insert(dailyTenantStats).values({
+      tenantId: duesTenantId,
+      day: yesterday,
+      outstandingPaise: 60_000,
+      overduePaise: 15_000,
+    })
+
+    for (const day of [today, yesterday, weekAgo]) await rollupTenantDay(db, duesTenantId, day)
+
+    const stored = await db.execute(sql`
+      select day::text as day, outstanding_paise, overdue_paise
+        from daily_tenant_stats where tenant_id = ${duesTenantId} order by day desc`)
+    expect(
+      stored.rows.map((r) => ({
+        day: String(r.day),
+        outstanding: Number(r.outstanding_paise),
+        overdue: Number(r.overdue_paise),
+      })),
+    ).toEqual([
+      { day: today, outstanding: 70_000, overdue: 20_000 },
+      { day: yesterday, outstanding: 60_000, overdue: 15_000 },
+      { day: weekAgo, outstanding: 30_000, overdue: 3_000 },
+    ])
   })
 
   // ===============================================================================================
