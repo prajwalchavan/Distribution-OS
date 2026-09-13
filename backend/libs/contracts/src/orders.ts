@@ -71,6 +71,12 @@ export const OrderLineSchema = z.object({
   id: IdSchema,
   lineNo: z.number().int(),
   variantId: IdSchema,
+  /**
+   * The tenant's name for the item: `tenant_products.local_alias`, else the global `product_variants.name`.
+   * Read when the order is fetched, so a line whose item was delisted after ordering is still named; the
+   * invoice line freezes its own `description` at issue.
+   */
+  variantName: z.string(),
   /** What was typed, in the unit it was typed in, with the pack size frozen at entry (docs/17 A3). */
   enteredQty: z.number().int(),
   enteredUnit: EnteredUnitSchema,
@@ -146,6 +152,19 @@ export const ApprovalSchema = z.object({
   createdAt: z.string(),
 })
 export type Approval = z.infer<typeof ApprovalSchema>
+
+/**
+ * A row of the approvals queue: the approval plus its order's number, total and shop, read from that order when
+ * the list is asked (DOS-004), so no screen depends on what a payload happens to carry. All four are null for an
+ * approval with no order behind it (a trip settlement, a bargain gate whose request names no order).
+ */
+export const ApprovalQueueItemSchema = ApprovalSchema.extend({
+  orderNo: z.string().nullable(),
+  orderTotalPaise: PaiseSchema.nullable(),
+  retailerId: IdSchema.nullable(),
+  retailerName: z.string().nullable(),
+})
+export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>
 
 /** `approvals` is empty for a retailer-role caller: an approval payload carries the shop's credit position. */
 export const OrderDetailSchema = OrderSchema.extend({
@@ -261,7 +280,7 @@ export const ApprovalsListInput = z.object({
   ...CursorInput,
 })
 export const ApprovalsListOutput = z.object({
-  items: z.array(ApprovalSchema),
+  items: z.array(ApprovalQueueItemSchema),
   nextCursor: z.string().nullable(),
 })
 

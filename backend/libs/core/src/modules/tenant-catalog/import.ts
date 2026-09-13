@@ -303,6 +303,31 @@ export async function variantLabels(tx: Db, ids: readonly string[]): Promise<Map
 }
 
 /**
+ * What this tenant calls each variant — its listing's `local_alias`, else the global variant name — one
+ * query. Order lines are named with it, the same rule billing freezes into an invoice line's `description`
+ * at issue, so an order panel and its bill agree. A LEFT JOIN on the listing, never an inner one: an order
+ * line may point at an item the tenant has since delisted or never listed, and it must still be named.
+ */
+export async function variantNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return new Map()
+  const { tenantId } = currentTenant()
+  const rows = await tx
+    .select({
+      id: productVariants.id,
+      name: productVariants.name,
+      alias: tenantProducts.localAlias,
+    })
+    .from(productVariants)
+    .leftJoin(
+      tenantProducts,
+      and(eq(tenantProducts.variantId, productVariants.id), eq(tenantProducts.tenantId, tenantId)),
+    )
+    .where(inArray(productVariants.id, unique))
+  return new Map(rows.map((r) => [r.id, r.alias ?? r.name]))
+}
+
+/**
  * variant → brand id (global catalog), one query. Reporting's stock and margin registers group by
  * brand and may not join `products` themselves (coordination §4: the global catalog is curator-owned
  * and reached through this module).
