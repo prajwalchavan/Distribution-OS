@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createApiClient } from './client.js'
-import { ApiError } from './errors.js'
+import { ApiError, defaultMessageFor } from './errors.js'
 import { memoryTokenStorage } from './storage.js'
 
 const DEVICE = '01924f9a-0000-7000-8000-000000000001'
@@ -429,5 +429,70 @@ describe('a service that accepts the connection and never answers', () => {
     expect(seen.length).toBeGreaterThan(0)
     expect(seen.every((init) => init.redirect === 'manual')).toBe(true)
     expect(seen.every((init) => init.signal !== undefined)).toBe(true)
+  })
+})
+
+describe('DOS-156 a phone whose native fetch cannot reach the service', () => {
+  /**
+   * On Android and iOS Expo installs expo/fetch as the global `fetch` (expo/src/winter/runtime.native.ts).
+   * It rejects a refused connection AND the deadline's abort with `FetchError`: message 'fetch failed: …',
+   * `name` still 'Error'. The manager app says "No connection. Check the signal, then press again." only
+   * for kind `network` (manager-app/src/lib/ui.tsx), so while this client read that error as `unknown`
+   * every write pressed with no connection said "Something could not be completed. Try again."
+   */
+  const PICKING_SHEET = {
+    id: '01924f9a-0000-7000-8000-0000000000c1',
+    idempotencyKey: '01924f9a-0000-7000-8000-0000000000c2',
+    orderIds: ['01924f9a-0000-7000-8000-0000000000c3'],
+    pickDate: '2026-09-13',
+  }
+
+  function stubNativeFetch(failure: (signal: AbortSignal) => Promise<Response>): void {
+    vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+      const request = input instanceof Request ? input : new Request(String(input), init)
+      if (new URL(request.url).pathname === '/auth/login') return json(tokenPair('a1', 'r1'))
+      return failure(init?.signal ?? request.signal)
+    })
+  }
+
+  it("DOS-156 a manager write whose native fetch is refused, or cut off at the deadline, rejects as `network` — never 'Something could not be completed'", async () => {
+    stubNativeFetch(() =>
+      Promise.reject(
+        new Error('fetch failed: java.net.ConnectException: Failed to connect to /127.0.0.1:3002'),
+      ),
+    )
+    const refusedClient = client()
+    await refusedClient.signIn({ username: 'vikas.kadam', password: 'Dos@1234' })
+    const refused = await refusedClient.api.warehouse.picklists
+      .create(PICKING_SHEET)
+      .catch((e: unknown) => e)
+
+    stubNativeFetch(
+      (signal) =>
+        new Promise<Response>((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            reject(new Error('fetch failed: The operation was aborted.'))
+          })
+        }),
+    )
+    const cutOffClient = createApiClient({
+      apiUrl: 'http://api.test',
+      authUrl: 'http://auth.test',
+      storage: memoryTokenStorage(DEVICE),
+      platform: 'android',
+      deviceName: 'vitest',
+      requestTimeoutMs: 40,
+    })
+    await cutOffClient.signIn({ username: 'vikas.kadam', password: 'Dos@1234' })
+    const cutOff = await cutOffClient.api.warehouse.picklists
+      .create(PICKING_SHEET)
+      .catch((e: unknown) => e)
+
+    for (const failure of [refused, cutOff]) {
+      expect(failure).toBeInstanceOf(ApiError)
+      expect((failure as ApiError).kind).toBe('network')
+      expect((failure as ApiError).message).toBe(defaultMessageFor('network'))
+      expect((failure as ApiError).message).not.toBe(defaultMessageFor('unknown'))
+    }
   })
 })

@@ -7,7 +7,11 @@ import { SignJWT } from 'jose'
 import { uuidv7 } from '@dos/domain'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import { AUTH_ALG, AUTH_AUDIENCE, AUTH_ISSUER, DbModule, loadAuthKeys } from '../platform/index.js'
-import { registerStorageBodyParsers, STORAGE_BODY_LIMIT_BYTES } from '../service/bootstrap.js'
+import {
+  registerStorageBodyParsers,
+  registerSyncUploadBodyLimit,
+  STORAGE_BODY_LIMIT_BYTES,
+} from '../service/bootstrap.js'
 import { StorageController } from '../service/storage.controller.js'
 import { SupportAuditInterceptor } from '../service/support-audit.interceptor.js'
 
@@ -31,6 +35,7 @@ export async function bootTestApp(
     new FastifyAdapter({ bodyLimit: STORAGE_BODY_LIMIT_BYTES }),
   )
   registerStorageBodyParsers(app)
+  registerSyncUploadBodyLimit(app)
   await app.init()
   await app.getHttpAdapter().getInstance().ready()
   return app

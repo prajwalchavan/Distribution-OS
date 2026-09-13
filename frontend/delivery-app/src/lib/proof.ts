@@ -12,9 +12,10 @@
  * is held as base64 the moment it is taken rather than as a `blob:` URI the browser will forget —
  * `delivery.sync.ts` reads `pod[].inline` off the same op as the lines.
  *
- * The camera already compresses to ≤ 1600 px (UX-00 §8.2, `camera.web.ts` / `camera.native.ts`);
- * `InlineFileInput` caps a base64 body at ~700 KB, which is the wire limit this checks against so a
- * driver is told at the door rather than by a rejection in the tray an hour later.
+ * The camera squeezes a proof to ≤ 1600 px and at most `PROOF_MAX_BYTES` of JPEG before anything is
+ * queued (DOS-056, `camera.web.ts` / `camera.native.ts`); `InlineFileInput` caps a base64 body at
+ * ~700 KB, which is the wire limit this checks against so a driver is told at the door rather than by
+ * a rejection in the tray an hour later — the one photo the camera could not re-encode.
  */
 import { uuidv7 } from '@dos/domain'
 import { camera, files as platformFiles } from '@dos/ui/platform'
@@ -24,6 +25,13 @@ import { absoluteUrl } from '../config'
 
 /** `InlineFileInput.contentBase64` is `.max(700_000)`; stay under it with room for the wrapper. */
 export const MAX_INLINE_BASE64 = 690_000
+
+/**
+ * The most a proof photo weighs as JPEG (DOS-056). With no signal it rides inside the queued
+ * `deliveries` op (docs/27 §15), so the camera squeezes it this small first: ~400 KB as base64, under
+ * `InlineFileInput`'s cap and well under the sync route's 1 MB per write.
+ */
+export const PROOF_MAX_BYTES = 300_000
 
 /** The subset of `FileMimeTypeSchema` a camera can produce. */
 export type ProofMimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic'
@@ -56,7 +64,7 @@ const ALLOWED: readonly string[] = ['image/jpeg', 'image/png', 'image/webp', 'im
  * camera in this trade produces one, and a phone reporting `image/jpg` must not cost a driver a POD.
  */
 export async function captureProof(): Promise<CapturedProof | null> {
-  const photo = await camera.photograph({ maxWidth: 1600 })
+  const photo = await camera.photograph({ maxWidth: 1600, maxBytes: PROOF_MAX_BYTES })
   if (photo === null) return null
   const contentBase64 = await platformFiles.readBase64(photo)
   if (contentBase64 === null) return null
