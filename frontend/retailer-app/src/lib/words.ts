@@ -14,12 +14,34 @@
  * never as `partly_settled`. That fallback is what makes it safe to point this at every enum in the
  * contract instead of maintaining a list that has to keep up.
  */
+import type { CreditNoteState } from '@dos/contracts'
 import { useStrings, wordFor } from '@dos/ui'
 
 /** `const word = useWord(); word(row.state)`. Null and undefined render as the em dash. */
 export function useWord(): (value: string | null | undefined) => string {
   const t = useStrings()
   return (value) => wordFor(t, value)
+}
+
+/**
+ * DOS-105: a credit note's OWN state — never through the shared `word()` lookup above. `word.issued`
+ * is the INVOICE's own "issued" ("To pay", still owed); a credit note in that same raw state has
+ * REDUCED what the shop owes, the opposite meaning, so every credit note read "To pay" regardless of
+ * what it actually did. `useWord()` stays exactly as it is for every other enum in the contract.
+ */
+export function useCreditNoteWord(): (state: CreditNoteState) => string {
+  const t = useStrings()
+  return (state) => {
+    switch (state) {
+      case 'cancelled':
+        return t('rt.cancelled')
+      case 'draft':
+        return t('rt.notIssued')
+      case 'issued':
+      case 'applied':
+        return t('rt.credited')
+    }
+  }
 }
 
 /**

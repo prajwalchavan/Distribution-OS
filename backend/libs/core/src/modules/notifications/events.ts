@@ -7,6 +7,7 @@ import { contactPreferences, contactPreferencesFor } from '../retailers/index.js
 import {
   DUES_REMINDER_COOLDOWN_DAYS,
   latestMessageAt,
+  longIsoDate,
   queueShopMessage,
   queueStaffNotice,
   rupees,
@@ -422,7 +423,8 @@ export async function queueDuesReminders(
           refId: shop.retailerId,
           variables: {
             overdueRupees: rupees(shop.overduePaise),
-            oldestDueDate: shop.oldestDueDate ?? '',
+            // DOS-105: the only ISO date in the app, in the one message that goes out on WhatsApp.
+            oldestDueDate: shop.oldestDueDate === null ? '' : longIsoDate(shop.oldestDueDate),
           },
           idempotencyKey: `DuesReminder:${shop.retailerId}:${today}`,
         },

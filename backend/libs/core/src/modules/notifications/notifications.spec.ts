@@ -1256,6 +1256,28 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect(blocked).toEqual({ queued: 0, cooled: 0, skipped: 1 })
   })
 
+  it('DOS-105: dues_reminder renders oldestDueDate as 6 Aug 2026, never ISO', async () => {
+    // shopE (not shopB, which the previous test already cooled down): its own dues_reminder never
+    // sent before, so this call is a fresh queue, not a cooldown skip that would read the OLD row.
+    await queueDuesReminders(db, tenantId, [
+      { retailerId: shopE, overduePaise: 36_548_00, oldestDueDate: '2026-08-06' },
+    ])
+    const [row] = await db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.tenantId, tenantId),
+          eq(messages.recipientRetailerId, shopE),
+          eq(messages.templateKey, 'dues_reminder'),
+        ),
+      )
+    const payload = row?.payload as Record<string, unknown>
+    expect(payload.oldestDueDate).toBe('6 Aug 2026')
+    expect(payload.body).toContain('6 Aug 2026')
+    expect(payload.body).not.toContain('2026-08-06')
+  })
+
   // -------------------------------------------------------------------------------------------------------------
   // DOS-007: the statement (the worker supplies receivables' figures, this module writes the row)
 

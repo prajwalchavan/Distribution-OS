@@ -38,11 +38,12 @@ import { absoluteUrl } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { addressLine } from '../../src/lib/shop'
 import { Async, Field, Panel, billFamily } from '../../src/lib/ui'
-import { useWord } from '../../src/lib/words'
+import { useCreditNoteWord, useWord } from '../../src/lib/words'
 
 export default function BillDetail(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
+  const creditNoteWord = useCreditNoteWord()
   const api = useApi()
   const colors = useColors()
   const router = useRouter()
@@ -218,7 +219,9 @@ export default function BillDetail(): React.JSX.Element {
                         primary={t('rt.no', { no: note.creditNoteNo ?? '—' })}
                         secondary={`${word(note.reason)} · ${longDate(note.noteDate)}`}
                         trailingMoney={note.totalPaise}
-                        trailing={<StatusChip label={word(note.state)} family="neutral" />}
+                        trailing={
+                          <StatusChip label={creditNoteWord(note.state)} family="neutral" />
+                        }
                       />
                     ))}
                   </Group>

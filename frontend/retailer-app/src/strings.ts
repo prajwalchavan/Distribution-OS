@@ -163,6 +163,7 @@ export const strings = {
   'r8.stopSeq': 'Stop {seq} on that round',
   'r8.bill': 'Bill {no}',
   'r8.cancel': 'Cancel this order',
+  'r8.keepIt': 'Keep it',
   'r8.cancelReason': 'Why are you cancelling',
   'r8.cancelConfirm': 'Cancel order {no}?',
   'r8.cancelBody': 'The items are released and nothing is billed.',
@@ -314,6 +315,7 @@ export const strings = {
   'r9.requests': 'RATES YOU ASKED FOR',
   'r9.noRequests': 'You have not asked for a special rate',
   'r9.asked': 'You asked {rate}',
+  'r9.repAsked': 'Your salesperson asked {rate}',
   'r9.gotRate': 'They agreed {rate}',
   'r9.waiting': 'Waiting for an answer',
   'r9.rejected': 'Not agreed',
@@ -330,6 +332,9 @@ export const strings = {
   'rt.howTo': 'To return goods',
   'rt.howToBody':
     'Tell the delivery crew at the door, or message {name}. They raise the credit note and it appears here.',
+  'rt.credited': 'Credited',
+  'rt.notIssued': 'Not yet issued',
+  'rt.cancelled': 'Cancelled',
 
   // --- R12 messages ---------------------------------------------------------------------------------------
   'r12.title': 'Messages from {name}',

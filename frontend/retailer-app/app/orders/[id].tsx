@@ -117,7 +117,10 @@ export default function OrderDetail(): React.JSX.Element {
       }
       testID="r8-detail"
       bottomBar={
-        detail === undefined ? undefined : (
+        // DOS-105: a cancelled order has nothing payable — the footer used to keep reading "You pay
+        // {total}" as if the order still stood, next to no button at all (CANCELLABLE and isDraft
+        // are both false by then, so there was nothing to press either).
+        detail === undefined || detail.state === 'cancelled' ? undefined : (
           <Row gap={4} justify="between" align="center" wrap>
             <Stack gap={1}>
               <Txt field="label" desk="meta" color={colors.text.secondary}>
@@ -314,6 +317,9 @@ export default function OrderDetail(): React.JSX.Element {
           </Stack>
         }
         confirmLabel={t('r8.cancel')}
+        // DOS-105: "Cancel" beside "Cancel this order" reads, on a phone, like the safe choice is
+        // the destructive one. "Keep it" says what tapping the other button actually does.
+        cancelLabel={t('r8.keepIt')}
         destructive
         busy={cancel.status === 'pending'}
         onConfirm={() => {
