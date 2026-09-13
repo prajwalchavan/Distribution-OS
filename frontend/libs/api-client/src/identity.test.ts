@@ -143,8 +143,8 @@ describe('DOS-167 who is signed in', () => {
   /*
    * Addendum (y). On iOS "Sign out, keep here" crashed Expo Go inside the engine's `end()` (2 of 2), and the relaunch came
    * back signed in as the rep who had chosen to sign out: the leave flow cleared the session last, after awaiting the
-   * server's revoke. Signing out on the device clears the stored session at once, before any network call, and hands
-   * back the revoke bound to the token it kept.
+   * server's revoke. Signing out on the device clears the stored session at once, before any network call, runs the
+   * device's leaving, and only then revokes with the token it kept — never waiting for the answer.
    */
   it('DOS-167 signing out on the device does not wait for the network', async () => {
     const storage = memoryTokenStorage()
@@ -328,6 +328,108 @@ describe('DOS-167 who is signed in', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  /*
+   * Merge review of ruling 2, problem 1 (verifier PROBE-Y3). The engine's calls go through this client, so an access
+   * token that expired a moment before "Sign out, keep here" had a refresh in flight at the tap. When it answered,
+   * `refreshNow` wrote the rotated pair back unguarded: the rep who had chosen to sign out was signed in again on the
+   * device (session, access token and refresh token), with the call replayed under it — and, had the next person
+   * already signed in, their session would have been replaced by his.
+   */
+  it('DOS-167 a refresh in flight when the person signs out on the device signs nobody back in', async () => {
+    const RAHUL_REFRESH = `refresh-${RAHUL.id}-${TARSUN.id}`
+    async function refreshLandsAfterTheSignOut(next: 'nobody' | 'amit'): Promise<unknown> {
+      let answerRefresh = (): void => {}
+      const refreshHeld = new Promise<void>((resolve) => {
+        answerRefresh = resolve
+      })
+      let refreshArrived = (): void => {}
+      const refreshAsked = new Promise<void>((resolve) => {
+        refreshArrived = resolve
+      })
+      const calls = stubAuth(async (path, body, authorization) => {
+        if (path === '/auth/login') {
+          const who = (body as { username?: string }).username === 'amit.pawar' ? AMIT : RAHUL
+          return json(pair(who, TARSUN))
+        }
+        if (path === '/auth/refresh') {
+          refreshArrived()
+          await refreshHeld
+          return json({
+            ...pair(RAHUL, TARSUN),
+            accessToken: 'access-rotated',
+            refreshToken: 'refresh-rotated',
+          })
+        }
+        if (path === '/auth/logout') return json({ ok: true })
+        // Rahul's first access token has just expired; any other is good.
+        if (authorization === `Bearer access-${RAHUL.id}`)
+          return json({ code: 'UNAUTHORIZED', message: 'expired' }, 401)
+        return json({ ok: true, database: 'up' })
+      })
+      try {
+        const client = createApiClient({
+          apiUrl: 'http://localhost:3003',
+          authUrl: 'http://localhost:3000',
+          storage: memoryTokenStorage(),
+          requestTimeoutMs: 0,
+        })
+        await client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' })
+        // A call the engine makes on the expired token: the refresh goes out, and the office is slow to answer.
+        const reading = client.api.health.ping().then(
+          () => 'answered',
+          (error: unknown) => toApiError(error).kind,
+        )
+        await refreshAsked
+        // "Sign out, keep here".
+        await client.signOutOnDevice(async (stored) => {
+          await stored
+        })
+        if (next === 'amit') await client.signIn({ username: 'amit.pawar', password: 'Dos@1234' })
+        answerRefresh()
+        const read = await reading
+        await sleep(20)
+        return {
+          read,
+          signedIn: client.session.getSnapshot().session?.user.name ?? null,
+          accessToken: client.session.accessToken,
+          refreshToken: client.session.refreshToken,
+          pings: calls
+            .filter((call) => call.path === '/health/ping')
+            .map((call) => call.authorization),
+          revoked: calls
+            .filter((call) => call.path === '/auth/logout')
+            .map((call) => (call.body as { refreshToken?: string }).refreshToken),
+        }
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    }
+
+    expect({
+      nobody: await refreshLandsAfterTheSignOut('nobody'),
+      amit: await refreshLandsAfterTheSignOut('amit'),
+    }).toEqual({
+      nobody: {
+        // The call fails as signed out; nothing is written, and it is not replayed.
+        read: 'auth',
+        signedIn: null,
+        accessToken: null,
+        refreshToken: null,
+        pings: [`Bearer access-${RAHUL.id}`],
+        // His kept token once the leaving has settled, and the pair that came back too late.
+        revoked: [RAHUL_REFRESH, 'refresh-rotated'],
+      },
+      amit: {
+        read: 'auth',
+        signedIn: AMIT.name,
+        accessToken: `access-${AMIT.id}`,
+        refreshToken: `refresh-${AMIT.id}-${TARSUN.id}`,
+        pings: [`Bearer access-${RAHUL.id}`],
+        revoked: [RAHUL_REFRESH, 'refresh-rotated'],
+      },
+    })
+  })
 })
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
@@ -341,7 +443,11 @@ function json(body: unknown, status = 200): Response {
 
 /** The services as the phone reaches them: every call written down, in the order it was made. */
 function stubAuth(
-  answer: (path: string, body: unknown) => Response | Promise<Response>,
+  answer: (
+    path: string,
+    body: unknown,
+    authorization: string | null,
+  ) => Response | Promise<Response>,
 ): { path: string; body: unknown; authorization: string | null }[] {
   const calls: { path: string; body: unknown; authorization: string | null }[] = []
   vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
@@ -349,8 +455,9 @@ function stubAuth(
     const path = new URL(request.url).pathname
     const text = await request.clone().text()
     const body = text === '' ? undefined : (JSON.parse(text) as unknown)
-    calls.push({ path, body, authorization: request.headers.get('authorization') })
-    return answer(path, body)
+    const authorization = request.headers.get('authorization')
+    calls.push({ path, body, authorization })
+    return answer(path, body, authorization)
   })
   return calls
 }
