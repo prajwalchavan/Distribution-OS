@@ -157,3 +157,9 @@ Process change (founder, 2026-09-13, option "A"): Fable runs as helper agents fr
 sign-off before it is built (`QA/evidence/batch2/verdicts/<id>.md`: approve / approve with lettered binding amendments / reject). Every
 lane gets a Fable review of its combined diff before it merges into main. Planners, builders, verifiers and walkers stay on Opus. The nine
 held plans already carry Fable's 2026-09-13 07:40 verdicts, so they went straight to build (run `wf_beb0d5ef-504`).
+
+Lean mode for P2/P3 (founder, 2026-09-13: "yes for lean mode"). P0 and P1 keep the full process: plan, adversarial review, Fable
+sign-off, build, verify. P2 and P3 are grouped by app, with one Opus builder and one Opus verifier per group of five to eight and no
+separate planning step. Copy-only or layout-only P3 fixes may run on Sonnet. Fable designs the ones that need a decision. One full A.12
+regression runs at the end of batch 2, and phones are walked only where a fix changes a phone screen. If overall weekly usage passes
+about 70% by Wednesday, work stops after P0/P1 and its regression, and P2/P3 resume after the Saturday 11:30 IST reset.
