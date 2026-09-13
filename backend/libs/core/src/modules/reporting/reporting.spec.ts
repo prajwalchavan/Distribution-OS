@@ -1361,14 +1361,12 @@ describeDb('reporting (DATABASE_URL)', () => {
     const duesShopId = uuidv7()
     const yesterday = plusDays(today, -1)
     const weekAgo = plusDays(today, -7)
-    await db
-      .insert(tenants)
-      .values({
-        id: duesTenantId,
-        slug: `rep-d-${run}`,
-        legalName: 'Dues precedence',
-        stateCode: '27',
-      })
+    await db.insert(tenants).values({
+      id: duesTenantId,
+      slug: `rep-d-${run}`,
+      legalName: 'Dues precedence',
+      stateCode: '27',
+    })
     await db.insert(retailers).values({
       id: duesShopId,
       tenantId: duesTenantId,
