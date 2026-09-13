@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AccountsListInput,
@@ -269,6 +269,13 @@ export interface RecordReceiptInput {
 
 export type RecordReceiptResult = CreateReceiptOut
 
+/**
+ * "This trip's money has reached the office", as SQL over a trip id and the tenant (DOS-132). Delivery owns
+ * `trips`, so it supplies the predicate at start-up through `ReceivablesService.registerTripSettled` and no SQL in
+ * receivables names the table. The predicate is tenant-qualified: RLS is the second lock, never the only one.
+ */
+export type TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL
+
 /** Where the money lands. Cash taken on a trip sits in CASH_VAN until the trip settlement hands it over. */
 function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
   switch (mode) {
@@ -307,7 +314,20 @@ export interface ReceiptForExport {
 
 @Injectable()
 export class ReceivablesService {
+  /** Fail closed: until delivery says how to tell, no trip is settled, so no trip receipt is money in hand. */
+  private tripSettled: TripSettledPredicate = () => sql`false`
+
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
+
+  /**
+   * Delivery owns trips and supplies the "trip settled" predicate at start-up (DeliveryModule.onModuleInit,
+   * DOS-132). With nothing registered — a process that mounts receivables without delivery — no receipt taken on
+   * a trip is ever treated as in hand: `receipts.list` leaves it out of `withCrew=false`, `receipts.get` reads
+   * `withCrew: true` to the money desk and `receipts.deposit` refuses it.
+   */
+  registerTripSettled(predicate: TripSettledPredicate): void {
+    this.tripSettled = predicate
+  }
 
   // =============================================================================================================
   // the surface other modules import (docs/plans/00-coordination.md §3.1)
@@ -731,7 +751,10 @@ export class ReceivablesService {
     requireRole(MONEY_READERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
-    return withTenant(db, ctx, (tx) => listReceipts(tx, input))
+    // `withCrew` is the money desk's filter (DOS-132). For any other role it is not applied: a role whose RLS
+    // hides the trip (a shop, a crew member not on it) would otherwise silently lose rows.
+    const tripSettled = MONEY_DESK.includes(ctx.actorRole) ? this.tripSettled : null
+    return withTenant(db, ctx, (tx) => listReceipts(tx, input, tripSettled))
   }
 
   async getReceipt(
@@ -757,12 +780,27 @@ export class ReceivablesService {
       const reversalAllocated = reversal
         ? ((await allocatedAgainst(tx, 'receiptId', [reversal.id])).get(reversal.id) ?? 0)
         : 0
+      // The money desk's banking gate (DOS-132): true while the receipt was taken on a trip that has not settled.
+      // Null outside the desk: it is not that caller's gate, and a shop cannot read trips at all.
+      let withCrew: boolean | null = null
+      if (MONEY_DESK.includes(ctx.actorRole)) {
+        const tripId = found.row.tripId
+        if (tripId === null) {
+          withCrew = false
+        } else {
+          const settled = await tx.execute(
+            sql`select (${this.tripSettled(sql`${tripId}`, ctx.tenantId)}) as settled`,
+          )
+          withCrew = (settled.rows[0] as { settled: boolean } | undefined)?.settled !== true
+        }
+      }
       return {
         item: toReceipt(found.row, found.allocatedPaise),
         allocations: rows.map(toAllocation),
         reversal: reversal ? toReceipt(reversal, reversalAllocated) : null,
         // The receipt is the third white-label document (docs/22 §4 D6): the distributor's own block.
         seller: await sellerBranding(tx),
+        withCrew,
       }
     })
   }
@@ -854,6 +892,32 @@ export class ReceivablesService {
             })
           }
         }
+        // Money a crew still carries is not the office's to bank (DOS-132, docs/22 §6): a receipt taken on a trip,
+        // cash or a cheque, waits for that trip's settlement. One lookup over the batch's distinct trips; the whole
+        // batch is refused, so nothing is updated, posted or emitted.
+        const tripIds = [
+          ...new Set(rows.flatMap((row) => (row.tripId === null ? [] : [row.tripId]))),
+        ]
+        if (tripIds.length > 0) {
+          const open = await tx.execute(sql`
+            select v.id from (values ${sql.join(
+              tripIds.map((id) => sql`(${id}::text)`),
+              sql`, `,
+            )}) as v(id)
+             where not (${this.tripSettled(sql`v.id`, ctx.tenantId)})`)
+          const unsettled = new Set((open.rows as { id: string }[]).map((row) => row.id))
+          const refused = rows
+            .filter((row) => row.tripId !== null && unsettled.has(row.tripId))
+            .map((row) => ({ id: row.id, no: row.receiptNo ?? row.id }))
+            .sort((a, b) => (a.no < b.no ? -1 : a.no > b.no ? 1 : 0))
+          if (refused.length > 0) {
+            const many = refused.length > 1
+            throw new ORPCError('CONFLICT', {
+              message: `${many ? 'receipts' : 'receipt'} ${refused.map((r) => r.no).join(', ')} ${many ? 'were' : 'was'} taken on a trip that is not settled yet; bank ${many ? 'them' : 'it'} after the trip's cash is handed over at Day-end`,
+              data: { code: 'trip_cash_not_settled', receiptIds: refused.map((r) => r.id) },
+            })
+          }
+        }
         const depositedAt = new Date(input.depositedAt)
         const bankId = (await accountIdsByCode(tx, [input.depositAccountCode])).get(
           input.depositAccountCode,
@@ -861,7 +925,9 @@ export class ReceivablesService {
         const totalPaise = rows.reduce((s, r) => s + r.amountPaise, 0)
         const bySource = new Map<string, number>()
         for (const row of rows) {
-          const code = receiptAccountCode(row.mode as ReceiptMode, row.tripId)
+          // Every trip receipt that reaches this line belongs to a settled trip, whose settlement already posted
+          // Dr CASH / Cr CASH_VAN for its cash: the money leaves CASH, never CASH_VAN a second time (DOS-132).
+          const code = receiptAccountCode(row.mode as ReceiptMode, null)
           bySource.set(code, (bySource.get(code) ?? 0) + row.amountPaise)
         }
         await tx

@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { sql, type SQL } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { financialYear, uuidv7 } from '@dos/domain'
 import {
@@ -1546,6 +1546,108 @@ describeDb('delivery (DATABASE_URL)', () => {
   })
 
   // ---------------------------------------------------------------------------------------------------------------
+  // the trip's cash is still with the crew (DOS-132)
+
+  interface ReceiptListBody {
+    items: { id: string; receiptNo: string | null; status: string; tripId: string | null }[]
+    totals: { countedPaise: number }
+  }
+  /** Every cash receipt the crew took on the trip and still holds: what the settlement counts as cash collected. */
+  const tripCash = { tripId, status: 'collected', mode: 'cash', limit: 200 }
+  const tripStateOf = async (id: string): Promise<string> =>
+    (
+      (await db.execute(sql`select state::text as state from trips where id = ${id}`)).rows[0] as {
+        state: string
+      }
+    ).state
+
+  it('DOS-132: cash taken on a trip still on the road is not in hand — receipts.list withCrew=false leaves it out of the rows and the totals (withCrew=true lists it), receipts.get says withCrew to the desk and null to the crew, and receipts.deposit refuses it 409 trip_cash_not_settled with nothing banked', async () => {
+    expect(await tripStateOf(tripId)).toBe('active')
+
+    // the control: no filter lists every cash receipt of the trip, and they add up to the settlement's cash figure
+    const all = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', tripCash)
+    expect(all.status).toBe(200)
+    expect(all.body.items.length).toBeGreaterThan(0)
+    expect(all.body.items.every((r) => r.tripId === tripId && r.status === 'collected')).toBe(true)
+    expect(all.body.totals.countedPaise).toBe(cashCollected)
+    const ids = all.body.items.map((r) => r.id).sort()
+
+    const onTheRoad = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: true,
+    })
+    expect(onTheRoad.status).toBe(200)
+    expect(onTheRoad.body.items.map((r) => r.id).sort()).toEqual(ids)
+    expect(onTheRoad.body.totals.countedPaise).toBe(cashCollected)
+
+    // the office does not hold it: neither the rows nor the totals behind "Cash to bank" carry it
+    const inHand = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: false,
+    })
+    expect(inHand.status).toBe(200)
+    expect(inHand.body.totals.countedPaise).toBe(0)
+    expect(inHand.body.items).toEqual([])
+
+    // the doorstep cash receipt of the first stop: the desk's banking gate says "with the crew"; the crew is told nothing
+    const [doorstep] = (
+      await db.execute(
+        sql`select receipt_id from collections
+             where tenant_id = ${tenantId} and trip_id = ${tripId} and stop_id = ${stopA1} and mode = 'cash'
+             order by id limit 1`,
+      )
+    ).rows as { receipt_id: string }[]
+    const receiptId = doorstep?.receipt_id ?? ''
+    expect(ids).toContain(receiptId)
+    const desk = await call<{
+      item: { receiptNo: string | null; status: string }
+      withCrew: boolean | null
+    }>(app, accountant, 'GET', `/receipts/${receiptId}`)
+    expect(desk.status).toBe(200)
+    expect(desk.body.withCrew).toBe(true)
+    const crew = await call<{ withCrew: boolean | null }>(
+      app,
+      driver,
+      'GET',
+      `/receipts/${receiptId}`,
+    )
+    expect(crew.status).toBe(200)
+    expect(crew.body.withCrew).toBeNull()
+
+    // banking it is refused: the receipt stays in hand and nothing is posted
+    const batch = uuidv7()
+    const refused = await call<{
+      message: string
+      data?: { code?: string; receiptIds?: string[] }
+    }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-132-crew-${run}`,
+      id: batch,
+      receiptIds: [receiptId],
+      depositedAt: new Date().toISOString(),
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('trip_cash_not_settled')
+    expect(refused.body.data?.receiptIds).toEqual([receiptId])
+    expect(refused.body.message).toBe(
+      `receipt ${desk.body.item.receiptNo ?? receiptId} was taken on a trip that is not settled yet; bank it after the trip's cash is handed over at Day-end`,
+    )
+    const after = await call<{ item: { status: string } }>(
+      app,
+      accountant,
+      'GET',
+      `/receipts/${receiptId}`,
+    )
+    expect(after.body.item.status).toBe('collected')
+    const [posted] = (
+      await db.execute(
+        sql`select count(*)::int as n from journal_entries
+             where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`,
+      )
+    ).rows as { n: number }[]
+    expect(posted?.n).toBe(0)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
   // check-in
 
   let settlementId = ''
@@ -1653,6 +1755,108 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(409)
+  })
+
+  it("DOS-132: once the trip is settled its cash is in hand and banks from CASH (Dr BANK / Cr CASH, no CASH_VAN line), so CASH_VAN over the trip's receipts, its settlement and the deposit nets to zero", async () => {
+    expect(settlementId).not.toBe('')
+    expect(await tripStateOf(tripId)).toBe('settled')
+
+    const all = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', tripCash)
+    expect(all.status).toBe(200)
+    expect(all.body.totals.countedPaise).toBe(cashCollected)
+    const ids = all.body.items.map((r) => r.id).sort()
+    expect(ids.length).toBeGreaterThan(0)
+
+    // the settlement handed the cash over: all of it is in hand now, in the rows and in the totals
+    const inHand = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: false,
+    })
+    expect(inHand.status).toBe(200)
+    expect(inHand.body.items.map((r) => r.id).sort()).toEqual(ids)
+    expect(inHand.body.totals.countedPaise).toBe(cashCollected)
+
+    // every cash receipt of the trip posted Dr CASH_VAN when the crew took it
+    const vanNet = async (refs: SQL): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(sql`
+              select coalesce(sum(l.amount_paise), 0)::bigint as net
+                from journal_lines l
+                join journal_entries e on e.id = l.entry_id and e.tenant_id = l.tenant_id
+                join accounts a on a.id = l.account_id
+               where e.tenant_id = ${tenantId} and a.code = 'CASH_VAN' and (${refs})`)
+          ).rows[0] as { net: string }
+        ).net,
+      )
+    const ofReceipts = sql`e.ref_type = 'receipt' and e.ref_id in (${sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )})`
+    expect(await vanNet(ofReceipts)).toBe(cashCollected)
+
+    const batch = uuidv7()
+    const banked = await call<{ updated: number; journalEntryId: string; totalPaise: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receipts/deposit',
+      {
+        idempotencyKey: `dep-132-settled-${run}`,
+        id: batch,
+        receiptIds: ids,
+        depositedAt: new Date().toISOString(),
+        depositRef: `DEP-132-${run}`,
+      },
+    )
+    expect(banked.status).toBe(200)
+    expect(banked.body).toMatchObject({ updated: ids.length, totalPaise: cashCollected })
+    // the deposit takes the money out of CASH, where the settlement put it — never out of CASH_VAN a second time
+    const deposit = Object.fromEntries(
+      (
+        (
+          await db.execute(sql`
+            select a.code, sum(l.amount_paise)::bigint as amount
+              from journal_lines l
+              join journal_entries e on e.id = l.entry_id and e.tenant_id = l.tenant_id
+              join accounts a on a.id = l.account_id
+             where e.tenant_id = ${tenantId} and e.ref_type = 'deposit' and e.ref_id = ${batch}
+             group by a.code`)
+        ).rows as { code: string; amount: string }[]
+      ).map((row) => [row.code, Number(row.amount)]),
+    )
+    expect(deposit).toEqual({ BANK: cashCollected, CASH: -cashCollected })
+    // the van account over this money: the receipts' debits, the settlement's credit and the deposit net to zero
+    expect(
+      await vanNet(
+        sql`(${ofReceipts})
+            or (e.ref_type = 'trip_settlement' and e.ref_id = ${settlementId})
+            or (e.ref_type = 'deposit' and e.ref_id = ${batch})`,
+      ),
+    ).toBe(0)
+
+    // banked, and nothing of the trip's money reads as still with the crew
+    const onTheRoad = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      tripId,
+      mode: 'cash',
+      limit: 200,
+      withCrew: true,
+    })
+    expect(onTheRoad.status).toBe(200)
+    expect(onTheRoad.body.items).toEqual([])
+    expect(onTheRoad.body.totals.countedPaise).toBe(0)
+    for (const id of ids) {
+      const got = await call<{ item: { status: string }; withCrew: boolean | null }>(
+        app,
+        accountant,
+        'GET',
+        `/receipts/${id}`,
+      )
+      expect(got.status).toBe(200)
+      expect(got.body.item.status).toBe('deposited')
+      expect(got.body.withCrew).toBe(false)
+    }
   })
 
   // ---------------------------------------------------------------------------------------------------------------

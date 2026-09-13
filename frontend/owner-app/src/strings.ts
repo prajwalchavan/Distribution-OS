@@ -321,6 +321,7 @@ export const strings = {
   'o11.record': 'Record receipt',
   'o11.reverse': 'Reverse receipt',
   'o11.deposit': 'Bank it',
+  'o11.withCrew': 'Still with the delivery crew — bank it once the trip is settled',
   'o11.bounce': 'Mark bounced',
   'o11.bounceReason': 'Why it bounced',
   'o11.allocate': 'Allocate to a bill',

@@ -1659,6 +1659,127 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(await invoiceState(billJ)).toBe('partially_paid')
   })
 
+  /*
+   * Receivables cannot read `trips`: delivery hands it the "this trip is settled" predicate at start-up (DOS-132).
+   * This app mounts receivables without delivery, so nothing has registered one, and a receipt taken on a trip
+   * must read as still with the crew — never as money the office holds.
+   */
+  it('DOS-132 (fail closed): with no delivery module to say a trip is settled, a receipt carrying a tripId is never listed in hand, reads withCrew, and is refused for banking', async () => {
+    const shopK = uuidv7()
+    await db.insert(retailers).values({
+      id: shopK,
+      tenantId,
+      code: `S11-${run}`,
+      name: `Shop 11 ${run}`,
+      phone: `+9192${run}11`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    const tripId = uuidv7()
+    type Taken = { id: string; receiptNo: string }
+    const take = async (
+      actor: Actor,
+      mode: 'cash' | 'cheque',
+      amountPaise: number,
+      extra: Record<string, unknown> = {},
+    ): Promise<Taken> => {
+      const id = uuidv7()
+      const res = await call<ReceiptReply>(app, actor, 'POST', '/receipts', {
+        idempotencyKey: `rcpt-132-${id}`,
+        id,
+        retailerId: shopK,
+        mode,
+        amountPaise,
+        ...extra,
+      })
+      expect(res.status).toBe(200)
+      return { id, receiptNo: res.body.item.receiptNo ?? id }
+    }
+    // the crew at the door on a trip, a cash payment and a cheque; the office's own cash beside them
+    const crewCash = await take(crew, 'cash', 4_000, { tripId })
+    const crewCheque = await take(crew, 'cheque', 6_000, {
+      tripId,
+      reference: '132001',
+      bankName: 'Bank of Maharashtra',
+    })
+    const officeCash = await take(accountant, 'cash', 2_500)
+
+    type ReceiptList = { items: Receipt[]; totals: { countedPaise: number } }
+    const list = (actor: Actor, extra: Record<string, unknown> = {}) =>
+      call<ReceiptList>(app, actor, 'GET', '/receipts', {
+        retailerId: shopK,
+        status: 'collected',
+        limit: 200,
+        ...extra,
+      })
+    const idsOf = (res: { body: ReceiptList }): string[] => res.body.items.map((r) => r.id).sort()
+
+    const everything = await list(accountant)
+    expect(everything.status).toBe(200)
+    expect(idsOf(everything)).toEqual([crewCash.id, crewCheque.id, officeCash.id].sort())
+    expect(everything.body.totals.countedPaise).toBe(12_500)
+    const inHand = await list(accountant, { withCrew: false })
+    expect(inHand.status).toBe(200)
+    expect(idsOf(inHand)).toEqual([officeCash.id])
+    expect(inHand.body.totals.countedPaise).toBe(2_500)
+    const onTheRoad = await list(accountant, { withCrew: true })
+    expect(onTheRoad.status).toBe(200)
+    expect(idsOf(onTheRoad)).toEqual([crewCash.id, crewCheque.id].sort())
+    expect(onTheRoad.body.totals.countedPaise).toBe(10_000)
+    // the filter is the money desk's: for the crew it is not applied, so no row goes missing behind RLS
+    const crewAll = await list(crew)
+    const crewFiltered = await list(crew, { withCrew: false })
+    expect(crewFiltered.status).toBe(200)
+    expect(idsOf(crewFiltered)).toEqual(idsOf(crewAll))
+    expect(idsOf(crewFiltered)).toContain(crewCash.id)
+    expect(crewFiltered.body.totals.countedPaise).toBe(crewAll.body.totals.countedPaise)
+
+    const gate = async (actor: Actor, id: string): Promise<boolean | null | undefined> => {
+      const res = await call<{ item: Receipt; withCrew?: boolean | null }>(
+        app,
+        actor,
+        'GET',
+        `/receipts/${id}`,
+      )
+      expect(res.status).toBe(200)
+      return res.body.withCrew
+    }
+    expect(await gate(accountant, crewCash.id)).toBe(true)
+    expect(await gate(accountant, crewCheque.id)).toBe(true)
+    expect(await gate(accountant, officeCash.id)).toBe(false)
+    expect(await gate(crew, crewCash.id)).toBeNull()
+
+    // one batch holding the office cash and both trip receipts is refused whole, naming only the trip receipts
+    const batch = uuidv7()
+    const refused = await call<{
+      message: string
+      data?: { code?: string; receiptIds?: string[] }
+    }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-132-${run}`,
+      id: batch,
+      receiptIds: [officeCash.id, crewCash.id, crewCheque.id],
+      depositedAt: new Date().toISOString(),
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('trip_cash_not_settled')
+    const byNumber = [crewCash, crewCheque].sort((a, b) =>
+      a.receiptNo < b.receiptNo ? -1 : a.receiptNo > b.receiptNo ? 1 : 0,
+    )
+    expect(refused.body.data?.receiptIds).toEqual(byNumber.map((r) => r.id))
+    expect(refused.body.message).toBe(
+      `receipts ${byNumber.map((r) => r.receiptNo).join(', ')} were taken on a trip that is not settled yet; bank them after the trip's cash is handed over at Day-end`,
+    )
+    for (const id of [officeCash.id, crewCash.id, crewCheque.id]) {
+      const res = await call<{ item: Receipt }>(app, accountant, 'GET', `/receipts/${id}`)
+      expect(res.body.item.status).toBe('collected')
+    }
+    const posted = await db.execute(sql`
+      select count(*)::int as n from journal_entries
+       where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`)
+    expect((posted.rows[0] as { n: number }).n).toBe(0)
+  })
+
   // -------------------------------------------------------------------------------------------------------------
   // the receipt number (DOS-032 / DOS-059)
 

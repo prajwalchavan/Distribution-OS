@@ -407,6 +407,14 @@ export const ReceiptsListInput = z.object({
   to: IsoDateSchema.optional(),
   /** The desk's "money sitting on account" filter. */
   unallocatedOnly: QueryBoolSchema.optional(),
+  /**
+   * The money desk's "in hand" filter (DOS-132). `false`: only money the office holds — receipts taken at the
+   * desk, and receipts taken on a trip that is settled (`settled` or `settled_with_variance`); Day-end and Today
+   * read this, rows and `totals` alike. `true`: only receipts taken on a trip that is not settled yet — the cash
+   * and cheques a delivery crew still carries. Omitted: no filter. Applied for the money desk (owner, manager,
+   * accountant) only and ignored for every other role, whose RLS may hide the trip.
+   */
+  withCrew: QueryBoolSchema.optional(),
   ...CursorInput,
 })
 export const ReceiptsListOutput = z.object({
@@ -423,6 +431,12 @@ export const ReceiptGetOutput = z.object({
   reversal: ReceiptSchema.nullable(),
   /** The distributor's own name and logo: the receipt is the third white-label document (docs/22 §4 D6). */
   seller: SellerBrandingSchema,
+  /**
+   * The money desk's banking gate (DOS-132): `true` while the receipt, cash or cheque, was taken on a trip that
+   * is not settled yet (`receipts.deposit` then refuses it), `false` otherwise. `null` for a caller outside the
+   * money desk: it is not that caller's gate, and a shop cannot read trips under RLS.
+   */
+  withCrew: z.boolean().nullable(),
 })
 
 /** A5 for the office printer, 80 mm thermal for the crew's Bluetooth printer at the door. */
@@ -453,7 +467,14 @@ export const ReverseReceiptOutput = z.object({
   outstanding: RetailerOutstandingSchema,
 })
 
-/** Banking a batch of cash and cheque receipts. No AR movement: DR BANK, CR CASH / CHEQUES. */
+/**
+ * Banking a batch of cash and cheque receipts. No AR movement: DR BANK, CR CASH / CHEQUES.
+ *
+ * Money a delivery crew still carries is not banked (DOS-132): a batch holding a receipt, cash or cheque, taken
+ * on a trip that is not settled yet is refused whole with 409 `data.code = 'trip_cash_not_settled'` and
+ * `data.receiptIds` (the refused receipts), and nothing is banked. Cash of a settled trip banks from CASH, because
+ * the settlement already moved it out of CASH_VAN.
+ */
 export const DepositReceiptsInput = MutationBase.extend({
   /** Client-generated id of the deposit batch; becomes the journal entry's `ref_id`. */
   id: IdSchema,
