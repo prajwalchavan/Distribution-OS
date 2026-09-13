@@ -60,7 +60,13 @@ import {
   useShop,
   type CatalogItem,
 } from '../../src/lib/local'
-import { quoteOnDevice, type DraftLine } from '../../src/lib/pricing'
+import {
+  describePriceChange,
+  diffQuoteVsOrder,
+  quoteOnDevice,
+  type DraftLine,
+  type PriceChange,
+} from '../../src/lib/pricing'
 import { useGodownStock } from '../../src/lib/stock'
 import { OrderLineRow, Panel } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
@@ -180,7 +186,7 @@ export default function OrderEntry(): React.JSX.Element {
           lines: draft.lines.filter((line) => line.qtyPcs > 0),
           catalog: byVariant,
         })
-        return { id: draft.id, queued: true as const }
+        return { id: draft.id, queued: true as const, priceChanges: [] as PriceChange[] }
       }
 
       /*
@@ -189,7 +195,7 @@ export default function OrderEntry(): React.JSX.Element {
        * both keys are derived from the ORDER's id, so a retry of a lost reply replays the same intent
        * instead of writing a second order.
        */
-      await api.api.orders.create({
+      const created = await api.api.orders.create({
         id: draft.id,
         idempotencyKey: `${draft.id}:create`,
         retailerId,
@@ -200,13 +206,20 @@ export default function OrderEntry(): React.JSX.Element {
         deviceId: deviceId(),
         lines,
       })
+      /*
+       * DOS-082: `create` re-prices from the same tables the device just quoted from, and its answer
+       * is what the order and the bill carry — never re-priced again here, and no contract change.
+       * This only NAMES what moved, from the two replies the screen already holds, before submit.
+       */
+      const priceChanges =
+        quote.result === null ? [] : diffQuoteVsOrder(quote.result.lines, created.item.lines)
       await api.api.orders.submit({
         id: draft.id,
         idempotencyKey: `${draft.id}:submit`,
         deviceId: deviceId(),
       })
       void meta
-      return { id: draft.id, queued: false as const }
+      return { id: draft.id, queued: false as const, priceChanges }
     },
     {
       invalidates: [['orders']],
@@ -341,21 +354,40 @@ export default function OrderEntry(): React.JSX.Element {
             title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
             meta={local.online ? t('s3.placedBody') : t('s3.queuedBody')}
           >
-            <Row gap={3} wrap>
-              <Button
-                label={t('s3.openOrder')}
-                onPress={() => {
-                  router.replace(`/orders/${placed}`)
-                }}
-              />
-              <Button
-                label={t('s3.backToBeat')}
-                variant="secondary"
-                onPress={() => {
-                  router.replace('/')
-                }}
-              />
-            </Row>
+            <Stack gap={3}>
+              {/*
+               * DOS-082: a price the office changed while the draft sat open lands silently
+               * otherwise — the shop hears one number and the bill carries another. `place.data` is
+               * the same reply `onSuccess` read to set `placed`, so this is never stale.
+               */}
+              {(place.data?.priceChanges.length ?? 0) === 0 ? null : (
+                <Stack gap={1}>
+                  <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                    {t('s3.pricesChanged')}
+                  </Txt>
+                  {place.data?.priceChanges.map((change) => (
+                    <Txt key={change.variantId} field="body" desk="body">
+                      {describePriceChange(change)}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
+              <Row gap={3} wrap>
+                <Button
+                  label={t('s3.openOrder')}
+                  onPress={() => {
+                    router.replace(`/orders/${placed}`)
+                  }}
+                />
+                <Button
+                  label={t('s3.backToBeat')}
+                  variant="secondary"
+                  onPress={() => {
+                    router.replace('/')
+                  }}
+                />
+              </Row>
+            </Stack>
           </Panel>
         ) : null}
 

@@ -19,7 +19,9 @@
  * role's manifest, so the phone could not show one if a screen asked (docs/22 §9 rule 1).
  */
 import {
+  paise,
   priceOrder,
+  toRupees,
   type PriceBargainInput,
   type PriceOrderInput,
   type PriceOrderResult,
@@ -232,4 +234,46 @@ export function quoteOnDevice(
   } catch (raw) {
     return { result: null, unpriced, error: raw instanceof Error ? raw.message : String(raw) }
   }
+}
+
+/** A rate the office changed between the device's quote and the server's `orders.create` reply. */
+export interface PriceChange {
+  variantId: string
+  name: string
+  fromRatePaise: number
+  toRatePaise: number
+}
+
+/**
+ * DOS-082: the device quotes at one set of rates and `orders.create` re-prices moments later from
+ * the same price-list tables — correct, because the office may have edited a price list while the
+ * draft sat open, and the server's answer is what the order, the bill and the shop carry (docs/22).
+ * But nothing told the rep when the two disagreed: "Neelam Neem Soap 100 g" was quoted at ₹26.08
+ * across the counter and the order went through at ₹27.50 with no notice at all (SO-0882).
+ *
+ * This never re-prices — `priceOrder()` stays the only engine, and the server has already decided —
+ * it only NAMES what moved, from the two replies the screen already holds.
+ */
+export function diffQuoteVsOrder(
+  deviceLines: readonly { variantId: string; ratePaise: number }[],
+  serverLines: readonly { variantId: string; variantName: string; ratePaise: number }[],
+): PriceChange[] {
+  const quotedRate = new Map(deviceLines.map((line) => [line.variantId, line.ratePaise]))
+  const changes: PriceChange[] = []
+  for (const line of serverLines) {
+    const before = quotedRate.get(line.variantId)
+    if (before === undefined || before === line.ratePaise) continue
+    changes.push({
+      variantId: line.variantId,
+      name: line.variantName,
+      fromRatePaise: before,
+      toRatePaise: line.ratePaise,
+    })
+  }
+  return changes
+}
+
+/** "Neelam Neem Soap 100 g 26.08 → 27.50" — the sentence a rep reads before the order goes further. */
+export function describePriceChange(change: PriceChange): string {
+  return `${change.name} ${toRupees(paise(change.fromRatePaise))} → ${toRupees(paise(change.toRatePaise))}`
 }
