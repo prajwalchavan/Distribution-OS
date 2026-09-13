@@ -370,13 +370,12 @@ export const strings = {
   'w8.adjust': 'Adjust',
   'w8.transfer': 'Move',
   'w8.adjustTitle': 'Adjust {item}',
-  'w8.adjustQty': 'Pieces, + or −',
+  'w8.adjustQty': 'Pieces going out',
   'w8.adjustReason': 'Reason',
   'w8.reasonAdjustment': 'Correction',
   'w8.reasonDamage': 'Damaged',
   'w8.reasonExpiry': 'Written off, expired',
   'w8.reasonCycle': 'Count difference',
-  'w8.reasonOpening': 'Opening stock',
   'w8.adjustNote': 'Note',
   'w8.adjustDo': 'Post the adjustment',
   'w8.adjustFailed': 'Could not post it',
@@ -391,6 +390,9 @@ export const strings = {
   'w8.ledgerEmpty': 'No movement recorded',
   'w8.reasonNeeded': 'Choose a reason',
   'w8.qtyNeeded': 'Enter a number of pieces',
+  'w8.adjustQtyNeeded': 'Enter the pieces going out',
+  'w8.addIsDesk':
+    'More on the rack than the books show? Record it under Counts and tell the desk — only the owner or a manager can add stock. Goods arriving come in on a GRN.',
 
   // cycle counts
   'w8c.title': 'Cycle counts',

@@ -7,6 +7,7 @@ import {
   type MembershipRole,
   type PlatformRole,
 } from './common.js'
+import { AdjustmentReasonSchema } from './inventory.js'
 import {
   ADMIN_LEVELS,
   ALL_ROLES,
@@ -14,10 +15,12 @@ import {
   isAllowed,
   levelAllows,
   listProcedures,
+  mayPostAdjustment,
   PERMISSIONS,
   permissionFor,
   PLATFORM_ROLES,
   ROLE_GROUPS,
+  STOCK_ADDERS,
   type AdminProcedurePath,
 } from './permissions.js'
 
@@ -1499,6 +1502,59 @@ describe('role groups', () => {
       for (const role of PLATFORM_ROLES) {
         expect(group as readonly string[], `${name} must not contain ${role}`).not.toContain(role)
       }
+    }
+  })
+
+  /**
+   * DOS-044 (docs/22 §8, 2026-09-13). `inventory.stock.adjust` stays BACK_OFFICE_OR_WAREHOUSE at the
+   * gate; the handler narrows it through this one predicate, which the /docs example, smoke and W8 read
+   * too. Pieces go INTO the books by hand only from the owner or a manager.
+   */
+  it('DOS-044: only the owner and a manager may add stock or post opening stock by an adjustment; every other role only takes stock off, and every stock adder can reach inventory.stock.adjust', () => {
+    const reasons = AdjustmentReasonSchema.options
+    expect([...STOCK_ADDERS].sort()).toEqual(['manager', 'owner'])
+    for (const role of ['owner', 'manager'] as const) {
+      for (const reason of reasons) {
+        for (const qtyDelta of [1, 5, 100000, -1, -5]) {
+          expect(mayPostAdjustment(role, reason, qtyDelta), `${role} ${reason} ${qtyDelta}`).toBe(
+            true,
+          )
+        }
+      }
+    }
+    const takersOnly = [
+      'accountant',
+      'warehouse',
+      'delivery',
+      'salesperson',
+      'retailer',
+      'system',
+      null,
+      undefined,
+    ] as const
+    for (const role of takersOnly) {
+      const who = String(role)
+      for (const reason of reasons) {
+        for (const qtyDelta of [1, 5, 100000]) {
+          expect(mayPostAdjustment(role, reason, qtyDelta), `${who} ${reason} +${qtyDelta}`).toBe(
+            false,
+          )
+        }
+      }
+      // opening stock is the desk's in both signs
+      expect(mayPostAdjustment(role, 'opening', -1), `${who} opening -1`).toBe(false)
+      for (const reason of ['adjustment', 'damage', 'expiry_writeoff', 'cycle_count'] as const) {
+        expect(mayPostAdjustment(role, reason, -1), `${who} ${reason} -1`).toBe(true)
+        expect(mayPostAdjustment(role, reason, -100), `${who} ${reason} -100`).toBe(true)
+      }
+    }
+    // `system` is deliberately NOT an adder: internal modules post through InventoryService.post and
+    // never through StockService.adjust(), so this guards the HTTP door only.
+    expect(mayPostAdjustment('system', 'opening', 1)).toBe(false)
+    expect(mayPostAdjustment('system', 'damage', -1)).toBe(true)
+    // every adder can reach the handler at the gate
+    for (const role of STOCK_ADDERS) {
+      expect(isAllowed(permissionFor('inventory.stock.adjust'), role), role).toBe(true)
     }
   })
 })

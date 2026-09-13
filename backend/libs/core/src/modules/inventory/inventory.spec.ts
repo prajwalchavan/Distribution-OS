@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
@@ -481,6 +481,137 @@ describeDb('inventory (DATABASE_URL)', () => {
       { nearExpiryOnly: true },
     )
     expect(near.status).toBe(200)
+  })
+
+  it('DOS-044: a warehouse login cannot add stock by an adjustment or post opening stock (403 stock_add_desk_only, no ledger row, balance unchanged, replay refused) and still takes damaged stock off; a manager still adds', async () => {
+    // docs/22 §8 (2026-09-13, QA DOS-044): only the owner or a manager puts pieces INTO the books by hand.
+    // Its own lot, so the FEFO, sale and cycle-count expectations on lotLate/lotEarly stay untouched.
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const desk: Actor = { tenantId, actorId: ownerId, role: 'manager' }
+    const lotId = uuidv7()
+    const lot = await call<{ item: { id: string }; created: boolean }>(
+      app,
+      owner,
+      'POST',
+      '/inventory/lots',
+      {
+        idempotencyKey: `lot-dos044-${run}`,
+        id: lotId,
+        variantId,
+        batchNo: `DOS044-${run}`,
+        mrpPaise: 1000,
+      },
+    )
+    expect(lot.status).toBe(200)
+    expect(lot.body.item.id).toBe(lotId)
+    const onHand = async (): Promise<number> => {
+      const rows = (
+        await db.execute(
+          sql`select on_hand from stock_balances where tenant_id = ${tenantId} and lot_id = ${lotId} and location_id = ${godown}`,
+        )
+      ).rows as { on_hand: number }[]
+      return Number(rows[0]?.on_hand)
+    }
+    const idempotencyRows = async (key: string): Promise<number> => {
+      const rows = (
+        await db.execute(
+          sql`select count(*)::int as n from idempotency_keys where tenant_id = ${tenantId} and key = ${key}`,
+        )
+      ).rows as { n: number }[]
+      return Number(rows[0]?.n)
+    }
+    const opened = await call<{ entry: Entry; balance: Balance }>(
+      app,
+      owner,
+      'POST',
+      '/inventory/adjustments',
+      {
+        idempotencyKey: `dos044-open-${run}`,
+        lotId,
+        locationId: godown,
+        qtyDelta: 10,
+        reason: 'opening',
+      },
+    )
+    expect(opened.status).toBe(200)
+    expect(opened.body.balance.onHand).toBe(10)
+
+    type Refusal = { message: string; data?: { code?: string } }
+    const probes = [
+      { idempotencyKey: `dos044-huge-opening-${run}`, qtyDelta: 100000, reason: 'opening' },
+      { idempotencyKey: `dos044-add-adjustment-${run}`, qtyDelta: 5, reason: 'adjustment' },
+      { idempotencyKey: `dos044-add-cycle-${run}`, qtyDelta: 5, reason: 'cycle_count' },
+      { idempotencyKey: `dos044-minus-opening-${run}`, qtyDelta: -1, reason: 'opening' },
+    ] as const
+    const send = (probe: (typeof probes)[number]) =>
+      call<Refusal>(app, store, 'POST', '/inventory/adjustments', {
+        ...probe,
+        lotId,
+        locationId: godown,
+        note: 'DOS-044 probe',
+      })
+    for (const probe of probes) {
+      const res = await send(probe)
+      const label = `warehouse ${probe.reason} ${String(probe.qtyDelta)}`
+      expect(res.status, label).toBe(403)
+      expect(res.body.data?.code, label).toBe('stock_add_desk_only')
+      expect(res.body.message, label).toMatch(/owner or a manager/)
+      expect(res.body.message, label).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i)
+    }
+    // a replayed key is refused the same way: nothing was stored under it
+    const huge = probes[0]
+    const replay = await send(huge)
+    expect(replay.status).toBe(403)
+    expect(replay.body.data?.code).toBe('stock_add_desk_only')
+    const written = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(stockLedger)
+      .where(
+        and(
+          eq(stockLedger.tenantId, tenantId),
+          inArray(
+            stockLedger.idempotencyKey,
+            probes.map((p) => p.idempotencyKey),
+          ),
+        ),
+      )
+    expect(Number(written[0]?.n)).toBe(0)
+    // the refusal comes before idempotent(): no idempotency row either, so the ordering is pinned
+    expect(await idempotencyRows(huge.idempotencyKey)).toBe(0)
+    expect(await onHand()).toBe(10)
+
+    // the godown still takes damaged stock off
+    const damageKey = `dos044-damage-${run}`
+    const damaged = await call<{ entry: Entry; balance: Balance }>(
+      app,
+      store,
+      'POST',
+      '/inventory/adjustments',
+      { idempotencyKey: damageKey, lotId, locationId: godown, qtyDelta: -2, reason: 'damage' },
+    )
+    expect(damaged.status).toBe(200)
+    expect(damaged.body.entry).toMatchObject({ reason: 'damage', qtyDelta: -2 })
+    expect(damaged.body.balance.onHand).toBe(8)
+    // the same query does see an accepted call's key, so the zero above is not vacuous
+    expect(await idempotencyRows(damageKey)).toBe(1)
+
+    // the desk still adds
+    const added = await call<{ entry: Entry; balance: Balance }>(
+      app,
+      desk,
+      'POST',
+      '/inventory/adjustments',
+      {
+        idempotencyKey: `dos044-desk-add-${run}`,
+        lotId,
+        locationId: godown,
+        qtyDelta: 5,
+        reason: 'adjustment',
+      },
+    )
+    expect(added.status).toBe(200)
+    expect(added.body.balance.onHand).toBe(13)
+    expect(await onHand()).toBe(13)
   })
 
   it('keeps the ledger append-only even for the owner', async () => {

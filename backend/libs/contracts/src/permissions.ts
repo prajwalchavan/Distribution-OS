@@ -1,5 +1,8 @@
 import type { MembershipRole, PlatformAdminLevel, PlatformRole } from './common.js'
 import { contract, type AppContract } from './contract.js'
+// Type-only on purpose: permissions.ts already reaches inventory.ts through contract.js, and a value
+// import in this direction would turn that into a real cycle.
+import type { AdjustmentReason } from './inventory.js'
 
 /**
  * Who may call what, declared next to the contract instead of scattered across handlers.
@@ -79,6 +82,34 @@ const BACK_OFFICE_OR_WAREHOUSE = [
   'accountant',
   'warehouse',
 ] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who may put pieces INTO the books by hand (docs/22 §8, 2026-09-13, QA DOS-044): the owner and the
+ * manager. More on the rack than the books show is a cycle count (`inventory.cycleCounts.*`: the godown
+ * counts, the desk posts); goods arriving come in on a GRN. The accountant is not an adder — its write
+ * scope is the money desk (docs/22 §8, 2026-09-05) — and adding that one role here reverses it.
+ */
+export const STOCK_ADDERS = ['owner', 'manager'] as const satisfies readonly MembershipRole[]
+
+/**
+ * May `role` send this `inventory.stock.adjust` body (DOS-044)? A STOCK_ADDERS role may send any reason
+ * in either sign. Every other role only takes stock off: `qtyDelta < 0`, and never `opening`, which is
+ * the desk's in both signs.
+ *
+ * It guards the HTTP door only. The matrix row stays BACK_OFFICE_OR_WAREHOUSE and
+ * `StockService.adjust()`, the one handler behind it, narrows through this predicate. Internal modules
+ * (a GRN, a sale, a return, a cycle-count post, a settlement) post through `InventoryService.post` and
+ * never through `adjust()`, so `system` is deliberately NOT an adder here. The /docs example builder,
+ * `pnpm smoke` and W8 read the same predicate, so none of them offers a body the server refuses.
+ */
+export function mayPostAdjustment(
+  role: string | null | undefined,
+  reason: AdjustmentReason,
+  qtyDelta: number,
+): boolean {
+  if (typeof role === 'string' && (STOCK_ADDERS as readonly string[]).includes(role)) return true
+  return qtyDelta < 0 && reason !== 'opening'
+}
 
 /**
  * Per-lot balances and the ledger: everyone who holds stock somewhere (a van counts). Never a rep or a
@@ -479,6 +510,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'inventory.stock.sellable': ANY_MEMBER,
   'inventory.stock.availability': ANY_MEMBER,
   'inventory.stock.balances': STOCK_VIEWERS,
+  // Every role outside STOCK_ADDERS may only take stock off (qtyDelta < 0, never `opening`): narrowed in
+  // `StockService.adjust()` through `mayPostAdjustment` (QA DOS-044).
   'inventory.stock.adjust': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.transfer': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.ledger': STOCK_VIEWERS,

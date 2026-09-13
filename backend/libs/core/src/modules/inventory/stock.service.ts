@@ -24,6 +24,7 @@ import type {
   UpsertLotInput,
   UpsertLotOutput,
 } from '@dos/contracts'
+import { mayPostAdjustment } from '@dos/contracts'
 import {
   locations,
   products,
@@ -92,7 +93,11 @@ export const STOCK_KEEPERS: readonly ActorRole[] = [
   'system',
 ]
 
-/** Who may move stock and maintain locations/lots: the desk plus the godown. None of this touches a rate. */
+/**
+ * Who may move stock and maintain locations/lots: the desk plus the godown. None of this touches a rate.
+ * Adding stock by an adjustment is narrower (owner or manager only), checked in `adjust()` through
+ * `mayPostAdjustment` (DOS-044).
+ */
 const STOCK_WRITERS: readonly ActorRole[] = [...BACK_OFFICE, 'warehouse']
 
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
@@ -287,8 +292,17 @@ export class StockService {
 
   async adjust(input: AdjustIn): Promise<AdjustOut> {
     requireRole(STOCK_WRITERS)
-    const db = requireDb(this.db)
     const ctx = currentTenant()
+    // DOS-044: only the owner or a manager puts pieces INTO the books by hand; every other role only
+    // takes stock off. Refused before the transaction and before `idempotent()`, so nothing is written
+    // and a replayed key is refused the same way.
+    if (!mayPostAdjustment(ctx.actorRole, input.reason, input.qtyDelta))
+      throw new ORPCError('FORBIDDEN', {
+        message:
+          'Only the owner or a manager can add stock or post opening stock. If the rack holds more than the books show, record a count and tell the desk; goods arriving come in on a GRN.',
+        data: { code: 'stock_add_desk_only', reason: input.reason, qtyDelta: input.qtyDelta },
+      })
+    const db = requireDb(this.db)
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)

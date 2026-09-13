@@ -22,7 +22,13 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import pg from 'pg'
-import { isAllowed, permissionFor, type MembershipRole, type PermissionRole } from '@dos/contracts'
+import {
+  isAllowed,
+  mayPostAdjustment,
+  permissionFor,
+  type MembershipRole,
+  type PermissionRole,
+} from '@dos/contracts'
 import { loadDotenv } from '../libs/database/src/env.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -1462,9 +1468,16 @@ async function planFor(
       return { pathParams: { id: await fx.supplierInvoiceId() } }
 
     // --- inventory: the lot has to actually sit in that location --------------------------------
+    // DOS-044: only the owner or a manager adds stock by hand, so every other login sends −1 (the lot has
+    // free stock, `fx.lotBalance`). A 403 for a role the matrix allows is still BROKEN.
     case 'inventory.stock.adjust':
       return {
-        pinned: { lotId: await fx.lotId(), locationId: await fx.lotLocationId(), qtyDelta: 1 },
+        pinned: {
+          lotId: await fx.lotId(),
+          locationId: await fx.lotLocationId(),
+          reason: 'adjustment',
+          qtyDelta: mayPostAdjustment(target.role, 'adjustment', 1) ? 1 : -1,
+        },
       }
     case 'inventory.stock.transfer': {
       // `locationIdAlt` was "the oldest non-warehouse", which on this demo tenant is the damaged bin

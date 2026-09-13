@@ -10,6 +10,11 @@
  * contract's own five (`AdjustmentReasonSchema`) and never a free-text excuse, and a move between
  * locations. Both are single append-only ledger rows; there is no edit and no delete, which is why a
  * damaged case is `damage`, an expired one is `expiry_writeoff`, and a miscount is `cycle_count`.
+ *
+ * The godown only takes stock OFF (DOS-044, docs/22 §8): damaged, expired, a correction or a count
+ * found short. The sheet asks for the pieces going out and sends them negative, and lists only the
+ * reasons `mayPostAdjustment` lets this login send, so never "Opening stock". Adding is the desk's:
+ * more on the rack than the books show is recorded under Counts, and goods arriving come in on a GRN.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -30,23 +35,23 @@ import {
   useColors,
   useStrings,
 } from '@dos/ui'
-import type { AdjustmentReasonSchema, StockBalanceRow } from '@dos/contracts'
-import type { z } from 'zod'
+import { mayPostAdjustment, type AdjustmentReason, type StockBalanceRow } from '@dos/contracts'
 import { haptics } from '@dos/ui/platform'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { instantWithClock } from '../../src/lib/dates'
 import { useLotCaseSize } from '../../src/lib/local'
 import { Async, ExpiryChip, PageTabs, Panel, count, qtyLine } from '../../src/lib/ui'
 
-type AdjustmentReason = z.infer<typeof AdjustmentReasonSchema>
-
-const REASONS: readonly { id: AdjustmentReason; key: string }[] = [
+/**
+ * The reasons the sheet can list, in order. "Opening stock" is not one of them: it is the desk's in
+ * both signs (DOS-044), and the component still filters this list through `mayPostAdjustment`.
+ */
+const ADJUSTMENT_REASONS: readonly { id: AdjustmentReason; key: string }[] = [
   { id: 'adjustment', key: 'w8.reasonAdjustment' },
   { id: 'damage', key: 'w8.reasonDamage' },
   { id: 'expiry_writeoff', key: 'w8.reasonExpiry' },
   { id: 'cycle_count', key: 'w8.reasonCycle' },
-  { id: 'opening', key: 'w8.reasonOpening' },
 ]
 
 export default function Stock(): React.JSX.Element {
@@ -55,6 +60,12 @@ export default function Stock(): React.JSX.Element {
   const colors = useColors()
   const { session } = useSession()
   const signedIn = session !== null
+  // DOS-044: only the reasons this login may send with pieces going OUT (the server reads the same rule).
+  const role = session?.role
+  const reasons = useMemo(
+    () => ADJUSTMENT_REASONS.filter((one) => mayPostAdjustment(role, one.id, -1)),
+    [role],
+  )
 
   const [locationId, setLocationId] = useState<string | null>(null)
   const [q, setQ] = useState('')
@@ -153,7 +164,8 @@ export default function Stock(): React.JSX.Element {
       row.batchNo.toLowerCase().includes(term),
   )
   const deltaValue = Number.parseInt(delta, 10)
-  const deltaOk = Number.isSafeInteger(deltaValue) && deltaValue !== 0
+  // Pieces going OUT: a positive number, sent negative (iOS's decimal pad has no minus key, DOS-044).
+  const deltaOk = Number.isSafeInteger(deltaValue) && deltaValue > 0
   const moveValue = Number.parseInt(moveQty, 10)
   const moveOk = Number.isSafeInteger(moveValue) && moveValue > 0 && moveTo !== null
 
@@ -317,11 +329,11 @@ export default function Stock(): React.JSX.Element {
             value={delta}
             onChange={setDelta}
             keyboard="decimal"
-            helper={t('w8.qtyNeeded')}
+            helper={t('w8.adjustQtyNeeded')}
             testID="w8-adjust-qty"
           />
           <Group>
-            {REASONS.map((one) => (
+            {reasons.map((one) => (
               <ListRow
                 key={one.id}
                 testID={`w8-reason-${one.id}`}
@@ -340,6 +352,9 @@ export default function Stock(): React.JSX.Element {
             capitalize="sentences"
             testID="w8-adjust-note"
           />
+          <Txt field="body" desk="body" color={colors.text.secondary} testID="w8-add-is-desk">
+            {t('w8.addIsDesk')}
+          </Txt>
           {adjust.error === undefined ? null : (
             <Txt field="body" desk="body" color={colors.status.brick.fg}>
               {adjust.error.message}
@@ -350,13 +365,13 @@ export default function Stock(): React.JSX.Element {
             variant="primary"
             loading={adjust.status === 'pending'}
             disabled={!deltaOk}
-            {...(deltaOk ? {} : { disabledReason: t('w8.qtyNeeded') })}
+            {...(deltaOk ? {} : { disabledReason: t('w8.adjustQtyNeeded') })}
             onPress={() => {
               if (adjusting === null || !deltaOk) return
               adjust.mutate({
                 lotId: adjusting.lotId,
                 locationId: adjusting.locationId,
-                qtyDelta: deltaValue,
+                qtyDelta: -deltaValue,
               })
             }}
             fullWidth
