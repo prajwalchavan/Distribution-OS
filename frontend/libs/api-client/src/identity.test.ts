@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import type { AuthTenant, AuthUser, MembershipRole, TokenPair } from '@dos/contracts'
 
 import { QueryCache } from './cache.js'
+import { toApiError } from './errors.js'
 import { identityKey, SessionStore, sessionIdentity, type Session } from './index.js'
 import { bindCacheToSession } from './react/index.js'
 import { memoryTokenStorage } from './storage.js'
@@ -118,5 +119,23 @@ describe('DOS-167 who is signed in', () => {
     await cache.fetch(['orders'], async () => ['SO-SAI-1'])
     store.clear()
     expect(cache.get(['orders']).data).toEqual(['SO-SAI-1'])
+  })
+
+  /*
+   * Ruling 2 (v), ruling 1's (q) made mandatory. The sales order screen shows `place.error.message`, which passes through
+   * `toApiError`: the engine's refusal at sign-out read "Something could not be completed. Try again." (web V5E, S-122),
+   * where the delivery and warehouse screens showed the engine's own sentence. The check is by name: this package never
+   * imports `@dos/offline`.
+   */
+  it('DOS-167 an engine that is signing out reaches the screen as a sign-in-again error in its own words', () => {
+    const sentence =
+      'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.'
+    const refused = toApiError(
+      Object.assign(new Error(sentence), { name: 'SyncEngineEndedError', code: 'ended' }),
+    )
+    expect({ kind: refused.kind, message: refused.message }).toEqual({
+      kind: 'auth',
+      message: sentence,
+    })
   })
 })

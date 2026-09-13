@@ -86,6 +86,15 @@ const DEFAULT_MESSAGE: Readonly<Record<ApiErrorKind, string>> = {
   unknown: 'Something could not be completed. Try again.',
 }
 
+/** `SyncEngineEndedError` from `@dos/offline`, recognised by its name and carrying its own sentence. */
+function isEngineSigningOut(
+  err: unknown,
+): err is { readonly name: string; readonly message: string } {
+  if (typeof err !== 'object' || err === null) return false
+  const candidate = err as { name?: unknown; message?: unknown }
+  return candidate.name === 'SyncEngineEndedError' && typeof candidate.message === 'string'
+}
+
 function isAbort(err: unknown): boolean {
   return err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')
 }
@@ -161,6 +170,15 @@ export function toApiError(err: unknown): ApiError {
       message: serviceMessage(data, code) ?? (usable ? message : DEFAULT_MESSAGE[kind]),
       cause: err,
     })
+  }
+  /*
+   * THE DEVICE REFUSING A WRITE BECAUSE THE PERSON IS SIGNING OUT (DOS-167 ruling 2 (v)). `@dos/offline`'s engine
+   * throws `SyncEngineEndedError` with its own sentence from the tap on, and the sales order screen shows
+   * `error.message`: the generic "Something could not be completed" told the rep nothing (web proof V5E). Known by
+   * NAME, because this package never imports `@dos/offline`, and labelled 'auth', the kind that means sign in again.
+   */
+  if (isEngineSigningOut(err)) {
+    return new ApiError({ kind: 'auth', message: err.message, cause: err })
   }
   if (isAbort(err)) {
     return new ApiError({ kind: 'network', message: DEFAULT_MESSAGE.network, cause: err })
