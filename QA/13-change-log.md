@@ -367,3 +367,38 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 **New suspects:** S-110..S-115.
 
 **Process fix:** later lean waves use `qa-batch2-lean-wave3.js`. Its integration verifier checks each review blocker on HEAD.
+
+### Batch 2 — DOS-112 settle repair merged: S-113 confirmed and fixed (23:16 IST)
+
+**Run `wf_4cfc5e81-4e4`** — 7 agents, about 49 min. Lane result: `lane-results/dos112-settle.json`. Review: `merge-reviews/dos112-settle.md` (MERGE).
+
+**Proven before the fix.**
+- The real `createApiClient`, given Day-end's input, sent `POST /delivery/trips/<settlementId>/settle` with the trip in the body.
+- A temporary server probe sent that same request; the guard answered 400 ("the id in the URL … does not match the tripId in the body").
+- The regression was real: every manager Day-end settle on main `d1c7da0` was refused.
+
+**Fix `dd5ffeb`.**
+- The contract path is now `/delivery/trips/{tripId}/settle`, and the settle redirect is removed.
+- Smoke pathParams use `{ tripId }`.
+- The published example now puts the trip in the path.
+- 10 READMEs were regenerated (`2137755`), and the delivery plan doc was corrected (`dfeacab`).
+- Test results:
+  - api-client client.test.ts: 22/22
+  - delivery.spec.ts: 34/34
+  - manager-service permission matrix: 346/346
+  - delivery-service: 262/262
+  - examples.spec: 32/32
+- The adversarial verifier re-proved red and green.
+
+**Merged** `468a926` and pushed.
+
+**Live probe on dos_qa.**
+- NOT TESTED: a successful settle. dos_qa holds no trip in `closing` (Tarsun: 61 settled, 20 settled with variance, 1 active, 1 planned), and no data was made up.
+- PASS: the path check. The same client call on a settled trip put the trip id in the path and got 409 "already settled", not 400.
+- The script `QA/tools/e2e/dos-112-settle-probe.mjs` is kept for the re-run.
+- The prober rebuilt the main libs at `468a926` and migrated dos_qa; services answer 200.
+
+**Still owed:**
+- A manager Day-end settle walk on web and Android.
+- `pnpm smoke --run-tag`.
+- A pre-existing minor stays open: the path/body check runs before the bearer check, so an anonymous mismatched call gets 400 instead of 401.
