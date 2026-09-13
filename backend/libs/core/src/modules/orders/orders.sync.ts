@@ -18,7 +18,10 @@ import type { EnteredLine, EnteredUnit } from './pricing-lines.js'
  * `sync_ops(tenant, device, op_id)`.
  *
  * The device doors follow the same rule as the five order procedures (DOS-115): only ORDER_PLACERS draft or
- * re-line an order from a device, so `requirePlacer` refuses the godown, the crew and the accountant first.
+ * re-line an order from a device. The upload door refuses a non-placer first: `SyncService.upload` answers
+ * `role_not_allowed` from `SyncRegistry.mayUploadTable` (DOS-166) before any handler runs. `requirePlacer` is
+ * defence in depth behind it, refusing the godown, the crew and the accountant `forbidden` if a handler is
+ * ever reached without that check.
  */
 
 const UNITS: readonly EnteredUnit[] = ['piece', 'inner', 'case']
