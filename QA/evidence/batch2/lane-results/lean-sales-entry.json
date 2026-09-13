@@ -1,0 +1,136 @@
+{
+ "group": "lean-sales-entry",
+ "items": [
+  "DOS-128",
+  "DOS-147",
+  "DOS-161",
+  "DOS-085",
+  "DOS-082",
+  "DOS-129"
+ ],
+ "build": [
+  {
+   "id": "DOS-128",
+   "status": "fixed",
+   "commits": [
+    "636cc3f fix(DOS-128): sales catalog rows keep the item name readable below desk width"
+   ],
+   "deviations": "None. No repair needed \u2014 verifier verdict was pass with zero problems.",
+   "followUps": "Same as builder's original report: a real-browser walk (web desk/phone) is still owed and was not run in this repair session either (no dev server started, per environment rules).",
+   "platformCheck": "web desk (1280 px) and web phone (390\u00d7844) \u2014 not walked in this session."
+  },
+  {
+   "id": "DOS-147",
+   "status": "fixed",
+   "commits": [
+    "636cc3f fix(DOS-128): sales catalog rows keep the item name readable below desk width"
+   ],
+   "deviations": "None. No repair needed \u2014 verifier verdict was pass with zero problems.",
+   "followUps": "Android (Pixel_7_API_36) walk still owed; not run in this repair session (no emulator started, per environment rules).",
+   "platformCheck": "Android (Pixel_7_API_36) \u2014 not walked in this session."
+  },
+  {
+   "id": "DOS-161",
+   "status": "fixed",
+   "commits": [
+    "30927ba fix(DOS-161): a compact one-row phone footer, chips scroll off desk"
+   ],
+   "deviations": "None. No repair needed \u2014 verifier verdict was pass with zero problems.",
+   "followUps": "iOS simulator walk via QA/tools/ios-drive.mjs still owed; not run in this repair session (no simulator started, per environment rules).",
+   "platformCheck": "iOS simulator (iPhone 16 Pro, iOS 18.0) \u2014 not walked in this session."
+  },
+  {
+   "id": "DOS-085",
+   "status": "fixed",
+   "commits": [
+    "a226956 fix(DOS-085): QtyStepper gets a pieces pad, piece-minus, and asks before it deletes loose pieces",
+    "996a4e1 fix(DOS-085): address review \u2014 pieces sheet moves to the app, no longer mislabels the entered unit"
+   ],
+   "deviations": "Re-scoped again, this time to fix the verifier's blocker: the loose-pieces PAD (typed exact count, piece-minus/plus) moved OUT of the kit's QtyStepper and INTO sales-app's own new.tsx (a new PiecesSheet component, using the manager credit-notes TextInput+parsePieces pattern, matching the group note's literal instruction 'wire QtyStepperProps.onOpenPieces to a pieces pad'), because the kit's single onChange(pieces: number) callback structurally cannot tell the caller whether a committed count came from a case step or a typed piece count \u2014 and QtyStepperProps must stay unchanged (confirmed: no types.ts edit was made or needed). The kit's 'Pieces' button now only calls onOpenPieces(), exactly as it did before commit a226956 (confirmed against a226956^). The kit KEEPS the 'one case less at zero asks before deleting' confirm dialog (caseStepNeedsConfirm + Dialog) unchanged, since that path has no unit ambiguity (stepByCase always changes by a whole case) and still benefits every QtyStepper caller for free. No contract, types.ts, credit-notes.tsx, or draft.ts change; only frontend/libs/ui/src/{native,web}/money.tsx and frontend/sales-app/app/orders/new.tsx were touched.",
+   "followUps": "Corrects the earlier followUp: lean-delivery-door and lean-manager-billing do NOT get a free pieces-pad by rebasing onto this commit \u2014 the kit only gives every QtyStepper caller the case-decrement confirm dialog for free. A caller that wants exact-piece entry (delivery D4/van sale, manager M20, retailer R7) must build its own pieces sheet the way sales-app now does, reusing parsePieces/stepPiece from @dos/ui. A full interactive platform walk (web desk/phone, Android, iOS) of the Pieces sheet, piece-minus/plus, exact-count entry, and the case-decrement confirm dialog is still needed \u2014 none of it was executed in this sandboxed repair session (no dev servers/emulators/simulators started, per environment rules). The verifier's own re-walk of D4 (delivery) and M20 (manager) on web, mentioned in the group note, is also still owed.",
+   "platformCheck": "Web desk/phone, Android (Pixel 7), iOS \u2014 open a line, tap 'Pieces' (now opens sales-app's own sheet), type an exact count (e.g. 18) at a case size that does not divide evenly, confirm the placed/queued order's line ships exactly 18 pc (not rounded to a case multiple); use piece-minus/plus; confirm 'one case less' at 0 cs still opens the kit's remove-confirmation dialog. Also re-walk delivery D4/van sale and manager M20/credit notes per the group note. None of this was walked in this session."
+  },
+  {
+   "id": "DOS-082",
+   "status": "fixed",
+   "commits": [
+    "3d7e61f fix(DOS-082): name a price the office changed while the draft sat open"
+   ],
+   "deviations": "None. No repair needed \u2014 verifier verdict was pass with zero problems.",
+   "followUps": "Same as builder's original report: reproduce a mid-draft price change against a live backend and confirm the on-screen notice; not run in this repair session (no dev server/backend started, per environment rules).",
+   "platformCheck": "Web (client) + backend \u2014 not walked in this session."
+  },
+  {
+   "id": "DOS-129",
+   "status": "fixed",
+   "commits": [
+    "e250fde fix(DOS-129): order footer counts cases against each line's own case size"
+   ],
+   "deviations": "None. No repair needed \u2014 verifier verdict was pass with zero problems.",
+   "followUps": "Same as builder's original report: a real-browser walk with mixed case-size lines on desk and phone is still owed; not run in this repair session (no dev server started, per environment rules).",
+   "platformCheck": "Web (sales app :5175), desk and phone \u2014 not walked in this session."
+  }
+ ],
+ "verdict": [
+  {
+   "id": "DOS-128",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-147",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-161",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-085",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-082",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-129",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  }
+ ],
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "frontend/sales-app/app/orders/new.tsx phone bottomBar (DOS-161): the new one-row Row has no `wrap` and the kit Button is full-width by default off desk (web/controls.tsx:42,56 width:100%; native/controls.tsx:77 width:'100%', flexShrink:1, minWidth:0). In a non-wrapping flex row the button's basis is the whole row: on web at 390 px the clamped summary Txt shrinks to ~130 px and the money reads 'Items 2 \u00b7 \u20b91,87\u2026'; on native the Text (flexShrink 0) wins and 'Place order' is squeezed. Fix: fullWidth={false} on the phone button and wrap the summary Txt in <Box grow> (or style flexShrink:1, minWidth:0), then measure at 390\u00d7844 web, Pixel 7 and iPhone."
+  ],
+  "conflicts": [
+   "None with main: no branch file changed on main since merge base 53daedb (lean-kit-overlays, h13-owner-support, docs/22 landed elsewhere); no in-flight qa/b2-* branch touches these files.",
+   "After it lands, rebase the waiting groups: lean-retailer-shop (native/money.tsx), lean-kit-polish (native/money.tsx, ui/strings.ts), lean-sales-rep and lean-sales-orders-pricing (new.tsx, sales-app/src/strings.ts, qty.ts, pricing.ts). The kit stepper confirm dialog reaches delivery D4/van sale and manager M20; the pieces pad does not (app-level)."
+  ],
+  "unfiledDefects": [
+   "frontend/libs/ui/src/web/controls.tsx:42 \u2014 a kit Button defaults to width:100% off desk with no flexShrink:0, so any non-wrapping Row pairing it with text divides the row by flex basis (SuggestionRow already dodges this with fullWidth={false}); a Row should probably not stretch a child button by default \u2014 kit question for lean-kit-polish."
+  ]
+ },
+ "final": "merged",
+ "mainHead": "e6f931c",
+ "pushed": true,
+ "run": "wf_5c958b90-522",
+ "setup": "Sonnet 5 builder/verifier/integrator, Fable merge review (founder-approved lean setup)"
+}

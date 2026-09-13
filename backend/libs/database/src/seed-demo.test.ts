@@ -215,6 +215,21 @@ describeDb('demo seed on an empty database', () => {
     expect(sheetRows.every((r) => /^CLM-\d{4}$/.test(r.claim_no))).toBe(true)
     expect(sheetRows.every((r) => typeof r.shop === 'string' && r.shop.length > 0)).toBe(true)
 
+    /*
+     * DOS-123: a demo POD "photo" is a row with no object behind it — `demo/pod/<trip>/<invoice>.jpg`
+     * was never PUT to the object store, so `files.readUrl` on batch1's dev database signed a URL for
+     * a key the service itself answers 404 for, and the retailer app drew a broken image where a
+     * photo should be. `objectKey` is nullable for exactly this: no key at all reads as "no photo"
+     * (`delivery.mappers.ts` answers `readUrl: null` and the bill screen already hides those), which
+     * is honest, unlike a key that LOOKS like a photo but 404s.
+     */
+    const pod = (
+      await db.execute(sql`
+        SELECT object_key FROM pod_evidence WHERE tenant_id = ${tenantId}`)
+    ).rows as { object_key: string | null }[]
+    expect(pod.length).toBeGreaterThan(0)
+    expect(pod.every((r) => r.object_key === null)).toBe(true)
+
     await expectAiDemo(db, tenantId, 'pilot')
 
     // The owner's half of platform support access: a pending request the owner app can answer, filed
@@ -557,6 +572,32 @@ describeDb('demo seed on an empty database', () => {
     }
     // the 90+ comparison is not 0 = 0: the demo carries debt older than ninety days
     expect(rows.some((r) => Number(r['b90plus']) > 0)).toBe(true)
+  }, 180_000)
+
+  /**
+   * DOS-105 (merge-review blocker): the inbox row a shopkeeper reads is seeded, not swept, so a
+   * `pnpm db:seed` re-run alone could never fix an ISO date left in a `dues_reminder` body — the
+   * seed itself must never write `oldestDueDate` as `2026-08-06`.
+   */
+  it('DOS-105: no dues_reminder message body carries a raw ISO date (oldestDueDate is worded, e.g. "6 Aug 2026")', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+
+    // The rendered sentence lives at `payload.body` (the message's own frozen text, docs/plans/
+    // notifications.md §6); `payload.oldestDueDate` is the variable that fed it. Every distributor,
+    // not only this spec's own tenant: `seedExtraTenants` runs the same `seedNotifications` per tenant.
+    const rows = (
+      await db.execute(
+        sql`SELECT id, payload ->> 'body' AS body, payload ->> 'oldestDueDate' AS oldest_due_date
+              FROM messages WHERE template_key = 'dues_reminder'`,
+      )
+    ).rows as { id: string; body: string | null; oldest_due_date: string | null }[]
+    expect(rows.length).toBeGreaterThan(0)
+    const isoDated = rows.filter(
+      (r) =>
+        /\d{4}-\d{2}-\d{2}/.test(r.body ?? '') || /\d{4}-\d{2}-\d{2}/.test(r.oldest_due_date ?? ''),
+    )
+    expect(isoDated).toEqual([])
   }, 180_000)
 
   /**

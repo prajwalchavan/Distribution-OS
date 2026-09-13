@@ -162,7 +162,10 @@ export const strings = {
   'r8.stopState': 'The van is {state}',
   'r8.stopSeq': 'Stop {seq} on that round',
   'r8.bill': 'Bill {no}',
+  'r8.seeBill': 'See the bill',
+  'r8.short': '{picked} of {ordered} pc, {short} short and not billed',
   'r8.cancel': 'Cancel this order',
+  'r8.keepIt': 'Keep it',
   'r8.cancelReason': 'Why are you cancelling',
   'r8.cancelConfirm': 'Cancel order {no}?',
   'r8.cancelBody': 'The items are released and nothing is billed.',
@@ -197,6 +200,7 @@ export const strings = {
   'r5.title': 'Pay',
   'r5.amount': 'How much are you paying',
   'r5.amountHelper': 'Leave it as it is to pay everything you owe',
+  'r5.chosenHelper': 'Total of the bills you ticked',
   'r5.choose': 'WHICH BILLS',
   'r5.chooseBody': 'Choose nothing and it goes against your oldest bills first.',
   'r5.start': 'Start the payment',
@@ -212,6 +216,9 @@ export const strings = {
   'r5.noVpa': '{name} has not set up online payment yet.',
   'r5.pending': 'The money shows here once {name} has matched it. Keep the reference.',
   'r5.overDues': 'More than you owe today. The extra stays on your account with them.',
+  // DOS-154: the reason Start is disabled when dues are outstanding but the amount field reads 0 —
+  // never "Nothing is pending", which is only true when there is nothing owed at all.
+  'r5.enterAmount': 'Enter an amount',
 
   // --- R4 bill detail -------------------------------------------------------------------------------
   'r4.title': 'My bills',
@@ -313,6 +320,7 @@ export const strings = {
   'r9.requests': 'RATES YOU ASKED FOR',
   'r9.noRequests': 'You have not asked for a special rate',
   'r9.asked': 'You asked {rate}',
+  'r9.repAsked': 'Your salesperson asked {rate}',
   'r9.gotRate': 'They agreed {rate}',
   'r9.waiting': 'Waiting for an answer',
   'r9.rejected': 'Not agreed',
@@ -329,6 +337,9 @@ export const strings = {
   'rt.howTo': 'To return goods',
   'rt.howToBody':
     'Tell the delivery crew at the door, or message {name}. They raise the credit note and it appears here.',
+  'rt.credited': 'Credited',
+  'rt.notIssued': 'Not yet issued',
+  'rt.cancelled': 'Cancelled',
 
   // --- R12 messages ---------------------------------------------------------------------------------------
   'r12.title': 'Messages from {name}',

@@ -38,11 +38,12 @@ import { absoluteUrl } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { addressLine } from '../../src/lib/shop'
 import { Async, Field, Panel, billFamily } from '../../src/lib/ui'
-import { useWord } from '../../src/lib/words'
+import { useCreditNoteWord, useWord } from '../../src/lib/words'
 
 export default function BillDetail(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
+  const creditNoteWord = useCreditNoteWord()
   const api = useApi()
   const colors = useColors()
   const router = useRouter()
@@ -113,7 +114,9 @@ export default function BillDetail(): React.JSX.Element {
                 label={t('r3.payBill')}
                 variant="primary"
                 onPress={() => {
-                  router.push('/pay')
+                  // DOS-124: carry this bill's id, so Pay opens ticked to it instead of forgetting
+                  // it and prefilling the shop's whole dues.
+                  router.push(billId === null ? '/pay' : `/pay?bill=${billId}`)
                 }}
                 testID="r4-pay"
               />
@@ -216,7 +219,9 @@ export default function BillDetail(): React.JSX.Element {
                         primary={t('rt.no', { no: note.creditNoteNo ?? '—' })}
                         secondary={`${word(note.reason)} · ${longDate(note.noteDate)}`}
                         trailingMoney={note.totalPaise}
-                        trailing={<StatusChip label={word(note.state)} family="neutral" />}
+                        trailing={
+                          <StatusChip label={creditNoteWord(note.state)} family="neutral" />
+                        }
                       />
                     ))}
                   </Group>
@@ -294,11 +299,20 @@ export default function BillDetail(): React.JSX.Element {
                         </Txt>
                       )}
                       {proofs
-                        .filter((proof) => proof.readUrl !== null)
-                        .map((proof) => (
+                        .map((proof) => ({ proof, url: absoluteUrl(proof.readUrl) }))
+                        // DOS-123: `readUrl` comes back service-relative; a browser resolves a bare
+                        // one against THIS app's own origin (its own HTML shell answers, 200
+                        // text/html) and a phone refuses it outright. `absoluteUrl()` also turns a
+                        // missing key into `null`, same as DOS-099's PDF, so the row is left out
+                        // rather than drawn as a broken image.
+                        .filter(
+                          (row): row is { proof: (typeof proofs)[number]; url: string } =>
+                            row.url !== null,
+                        )
+                        .map(({ proof, url }) => (
                           <Img
                             key={proof.id}
-                            source={proof.readUrl ?? ''}
+                            source={url}
                             alt={t('r4.podPhoto')}
                             height={220}
                             radius="md"

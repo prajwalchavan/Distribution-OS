@@ -98,6 +98,12 @@ export default function OrderDetail(): React.JSX.Element {
 
   const canCancel = detail !== undefined && CANCELLABLE.has(detail.state)
   const isDraft = detail?.state === 'draft'
+  /*
+   * DOS-144: once an order has a bill, the bill's OWN amount due answers "how much" — not the
+   * order's original total, which still counted pieces a short pick never shipped. An order becomes
+   * at most one invoice at pack (docs/22's order-to-cash flow); `bills.data.items[0]` is it.
+   */
+  const bill = bills.data?.items[0]
 
   return (
     <Screen
@@ -117,15 +123,40 @@ export default function OrderDetail(): React.JSX.Element {
       }
       testID="r8-detail"
       bottomBar={
-        detail === undefined ? undefined : (
+        // DOS-105: a cancelled order has nothing payable — the footer used to keep reading "You pay
+        // {total}" as if the order still stood, next to no button at all (CANCELLABLE and isDraft
+        // are both false by then, so there was nothing to press either).
+        detail === undefined || detail.state === 'cancelled' ? undefined : (
           <Row gap={4} justify="between" align="center" wrap>
             <Stack gap={1}>
               <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {t('r7.net')}
+                {bill === undefined
+                  ? t('r7.net')
+                  : bill.amountDuePaise > 0
+                    ? t('r4.due')
+                    : t('r4.paid')}
               </Txt>
-              <Money value={detail.totalPaise} size="moneyL" />
+              {/*
+                DOS-144: once there is a bill, ITS amount due is what the shop pays — the order's own
+                total still counted the 6 pieces a short pick never shipped ("You pay ₹6,753.00" next
+                to a bill that read ₹6,679.00 for the same order).
+              */}
+              <Money
+                value={bill === undefined ? detail.totalPaise : bill.amountDuePaise}
+                size="moneyL"
+              />
             </Stack>
             <Row gap={4} wrap>
+              {bill === undefined ? null : (
+                <Button
+                  label={t('r8.seeBill')}
+                  variant="secondary"
+                  onPress={() => {
+                    router.push(`/bills/${bill.id}`)
+                  }}
+                  testID="r8-see-bill"
+                />
+              )}
               {canCancel ? (
                 <Button
                   label={t('r8.cancel')}
@@ -177,20 +208,42 @@ export default function OrderDetail(): React.JSX.Element {
                 testID="r8-lines"
               >
                 <Group>
-                  {detail.lines.map((line) => (
-                    <ListRow
-                      key={line.id}
-                      primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
-                      secondary={`${billLineQty(line, t)} · ${formatMoney(line.ratePaise)}${
-                        offRate(line) > 0 ? ` · −${formatMoney(offRate(line))}` : ''
-                      }${
-                        line.taxPaise > 0
-                          ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
-                          : ''
-                      }`}
-                      trailingMoney={line.lineTotalPaise}
-                    />
-                  ))}
+                  {detail.lines.map((line) => {
+                    // DOS-144: once the order has a bill, a short-picked line said nothing about the
+                    // pieces that never shipped — "60 pc" stayed the ordered count, next to a bill
+                    // that had already billed 54. `billLineQty` prints what was ORDERED; this is what
+                    // was actually PICKED, the only figure the bill can agree with.
+                    //
+                    // This deliberately reads `pickedQtyPcs`, never `deliveredQtyPcs`: the bill is
+                    // issued at pack, so between pack and the door every line's `deliveredQtyPcs` is
+                    // still 0 (its one writer is `recordDelivered` at the door) — reading it here
+                    // would print "0 of 60 pc, 60 short" on every packed or dispatched order, and a
+                    // door-side shortfall becomes a credit note, never "not billed". `pickedQtyPcs` is
+                    // written once, at pick, and is what the invoice actually billed.
+                    const short = bill === undefined ? 0 : line.qtyPcs - line.pickedQtyPcs
+                    const qtyText =
+                      short > 0
+                        ? t('r8.short', {
+                            picked: String(line.pickedQtyPcs),
+                            ordered: String(line.qtyPcs),
+                            short: String(short),
+                          })
+                        : billLineQty(line, t)
+                    return (
+                      <ListRow
+                        key={line.id}
+                        primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
+                        secondary={`${qtyText} · ${formatMoney(line.ratePaise)}${
+                          offRate(line) > 0 ? ` · −${formatMoney(offRate(line))}` : ''
+                        }${
+                          line.taxPaise > 0
+                            ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
+                            : ''
+                        }`}
+                        trailingMoney={line.lineTotalPaise}
+                      />
+                    )
+                  })}
                 </Group>
               </Panel>
 
@@ -314,6 +367,9 @@ export default function OrderDetail(): React.JSX.Element {
           </Stack>
         }
         confirmLabel={t('r8.cancel')}
+        // DOS-105: "Cancel" beside "Cancel this order" reads, on a phone, like the safe choice is
+        // the destructive one. "Keep it" says what tapping the other button actually does.
+        cancelLabel={t('r8.keepIt')}
         destructive
         busy={cancel.status === 'pending'}
         onConfirm={() => {
