@@ -37,18 +37,18 @@ Full request/response samples for each are in `backend-services/admin-service/RE
 | Method | Path | Used for | Roles |
 |---|---|---|---|
 | GET | `/health/ping` | Liveness + database reachability | public |
-| POST | `/admin/tenants` | Onboard a distributor: tenant, chart of accounts, owner login and a trial | platform_admin |
-| GET | `/admin/tenants` | Distributors on the platform, with subscription state and size | platform_admin |
-| GET | `/admin/tenants/{id}` | One distributor: subscription, size, storage and its support grants | platform_admin |
-| POST | `/admin/tenants/{id}/suspend` | Refuse every sign-in to this distributor; nothing is deleted (audited) | platform_admin |
-| POST | `/admin/tenants/{id}/reactivate` | Let a suspended distributor back in (audited) | platform_admin |
-| POST | `/admin/subscriptions` | Set a distributor's plan, price and period (audited) | platform_admin |
-| GET | `/admin/subscriptions` | Subscriptions, filtered by state, plan or what is about to end | platform_admin |
-| GET | `/admin/subscriptions/{id}` | One subscription | platform_admin |
-| POST | `/admin/support-grants` | Ask a distributor's owner for a time-boxed window; grants nothing by itself | platform_admin |
-| GET | `/admin/support-grants` | Support requests and windows across every distributor | platform_admin |
-| POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses | platform_admin |
-| GET | `/admin/users` | Global sign-in identities with every distributor they are a member of | platform_admin |
-| POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) | platform_admin |
-| GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage | platform_admin |
-| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks | platform_admin |
+| POST | `/admin/tenants` | Onboard a distributor: tenant, chart of accounts, owner login and a trial · console level: super | platform_admin |
+| GET | `/admin/tenants` | Distributors on the platform, with subscription state and size · console levels: super, support, billing | platform_admin |
+| GET | `/admin/tenants/{id}` | One distributor: subscription, size, storage and its support grants · console levels: super, support, billing | platform_admin |
+| POST | `/admin/tenants/{id}/suspend` | Refuse every sign-in to this distributor; nothing is deleted (audited) · console level: super | platform_admin |
+| POST | `/admin/tenants/{id}/reactivate` | Let a suspended distributor back in (audited) · console level: super | platform_admin |
+| POST | `/admin/subscriptions` | Set a distributor's plan, price and period (audited) · console levels: super, billing | platform_admin |
+| GET | `/admin/subscriptions` | Subscriptions, filtered by state, plan or what is about to end · console levels: super, support, billing | platform_admin |
+| GET | `/admin/subscriptions/{id}` | One subscription · console levels: super, support, billing | platform_admin |
+| POST | `/admin/support-grants` | Ask a distributor's owner for a time-boxed window; grants nothing by itself · console levels: super, support | platform_admin |
+| GET | `/admin/support-grants` | Support requests and windows across every distributor · console levels: super, support, billing | platform_admin |
+| POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses · console levels: super, support | platform_admin |
+| GET | `/admin/users` | Global sign-in identities with every distributor they are a member of · console levels: super, support, billing | platform_admin |
+| POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) · console level: super | platform_admin |
+| GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing | platform_admin |
+| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing | platform_admin |
