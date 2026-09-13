@@ -207,7 +207,8 @@ browser". The strip never shows a spinner without a word.
 - `useLeaveSession()` → `{ pending, rejected, online, waiting(), sendNow(), end({ keepQueue }) }` — the app's sign-out flow
   (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is given
   `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which reads 0
-  until then. `end` is called before the session is cleared; `SyncEngine.sweepIdentityStores` deletes the person's
+  until then. the session is cleared on the device first, then `end` is called, and the server's revoke goes last, in
+  the background (addendum (y), 2026-09-14); `SyncEngine.sweepIdentityStores` deletes the person's
   other-distributor files that hold nothing unsent.
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
@@ -219,8 +220,9 @@ Screens never write SQL; only the library does. Screens never call `sync.upload`
 Tokens live in `platform.storage` (secure store on native; `localStorage` on web with the documented XSS caveat: no third-party
 scripts, strict CSP on the hosted site). The local database is unencrypted for the pilot (SQLCipher is a phase-2 item in docs/25); it
 contains no cost or margin column by construction (the manifest strips them server-side). A device file belongs to one person in
-one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out ends the engine before the session is
-cleared: with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
+one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out clears the session on the device first — a
+crash from then on relaunches to the sign-in form — then ends the engine, and asks the server to revoke last, in the background
+(addendum (y), 2026-09-14): with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
 other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for

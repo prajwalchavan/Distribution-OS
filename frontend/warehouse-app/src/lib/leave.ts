@@ -134,7 +134,11 @@ export interface LeaveSteps {
   end: (options: { keepQueue: boolean }) => Promise<{ kept: boolean } | void>
   /** This hand's files at their other distributors: deleted where nothing waits in them. */
   sweep: () => Promise<unknown>
-  signOut: () => Promise<void>
+  /**
+   * Sign out on this phone at once (addendum (y)): the stored session is cleared before `end` touches the store, so a
+   * crash from here on relaunches to the sign-in form. Hands back the server's revoke, bound to the token it kept.
+   */
+  signOutOnDevice: () => () => Promise<void>
   switchDistributor: (tenantId: string) => Promise<unknown>
 }
 
@@ -175,17 +179,23 @@ export async function sendNowThenLeave(to: Leaving, steps: LeaveSteps): Promise<
 
 /**
  * The leaving itself, once there is nothing left to ask. A switch wipes nothing: the provider stops the
- * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out ends the
- * engine BEFORE the session is cleared ("Send now" needed the token, and the revoke may wait out the
- * 20 s deadline with no signal); `keepQueue: false` deletes this hand's file unless the engine's own count
+ * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out clears the
+ * session on this phone FIRST and only then ends the engine (addendum (y)): a crash inside `end()` relaunches
+ * to the sign-in form, and "Send now" has already sent with the live session before this runs. `keepQueue: false` deletes this hand's file unless the engine's own count
  * found something waiting, which keeps it. Then their other files are swept, on EVERY sign-out — the sweep deletes
- * only files with nothing unsent (ruling 2 (u)). The session is cleared whatever those steps did.
+ * only files with nothing unsent (ruling 2 (u)). The server's revoke goes last, in the background.
  */
 export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveSteps): Promise<void> {
   if (to.mode === 'switch') {
     await steps.switchDistributor(to.tenantId)
     return
   }
+  /*
+   * SIGNED OUT ON THIS PHONE FIRST (addendum (y)). On iOS the app died inside `end()` and came back signed in as the
+   * person who had chosen to sign out. The stored session goes now, and `end` is called in the same turn — nothing is
+   * awaited between them — so the engine refuses reads and writes before the cleared session re-renders the app.
+   */
+  const revoke = steps.signOutOnDevice()
   try {
     await steps.end({ keepQueue })
   } catch {
@@ -196,5 +206,6 @@ export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveStep
   } catch {
     // Best effort, file by file: a file left behind is still under this hand's own name.
   }
-  await steps.signOut()
+  // Last, and in the background: the revoke never holds the screen and never signs anyone back in.
+  void revoke()
 }

@@ -139,6 +139,11 @@ export function useQueryCache(): QueryCache {
 export interface UseSession extends SessionState {
   signIn: (options: SignInOptions) => Promise<Session>
   signOut: () => Promise<void>
+  /**
+   * Sign out on this device at once and hand back the server's revoke (DOS-167 addendum (y)); the query cache follows
+   * through `bindCacheToSession`. See `ApiClient.signOutOnDevice`.
+   */
+  signOutOnDevice: () => () => Promise<void>
   switchDistributor: (tenantId: string) => Promise<Session>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   /** True when the signed-in user works for more than one distributor. */
@@ -171,6 +176,7 @@ export function useSession(): UseSession {
     ...state,
     signIn: client.signIn,
     signOut,
+    signOutOnDevice: client.signOutOnDevice,
     switchDistributor,
     changePassword: client.changePassword,
     hasManyDistributors: (state.session?.memberships.length ?? 0) > 1,

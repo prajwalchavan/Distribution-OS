@@ -6,11 +6,12 @@
  * `switchDistributor` used to clear it. A FORCED sign-out — a refresh answered 401, `client.ts` → `session.clear()` —
  * cleared nothing, so the next person to sign in on that phone was painted the last one's rows until revalidation.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { AuthTenant, AuthUser, MembershipRole, TokenPair } from '@dos/contracts'
 
 import { QueryCache } from './cache.js'
+import { createApiClient } from './client.js'
 import { toApiError } from './errors.js'
 import { identityKey, SessionStore, sessionIdentity, type Session } from './index.js'
 import { bindCacheToSession } from './react/index.js'
@@ -137,5 +138,72 @@ describe('DOS-167 who is signed in', () => {
       kind: 'auth',
       message: sentence,
     })
+  })
+
+  /*
+   * Addendum (y). On iOS "Sign out, keep here" crashed Expo Go inside the engine's `end()` (2 of 2), and the relaunch came
+   * back signed in as the rep who had chosen to sign out: the leave flow cleared the session last, after awaiting the
+   * server's revoke. Signing out on the device clears the stored session at once, before any network call, and hands
+   * back the revoke bound to the token it kept.
+   */
+  it('DOS-167 signing out on the device does not wait for the network', async () => {
+    const storage = memoryTokenStorage()
+    const calls: { path: string; body: unknown }[] = []
+    vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+      const request = input instanceof Request ? input : new Request(String(input), init)
+      const path = new URL(request.url).pathname
+      const text = await request.clone().text()
+      calls.push({ path, body: text === '' ? undefined : (JSON.parse(text) as unknown) })
+      if (path === '/auth/login')
+        return new Response(JSON.stringify(pair(RAHUL, TARSUN)), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      // The office cannot be reached, and nothing tells the phone so: the revoke never answers.
+      return new Promise<Response>(() => {})
+    })
+    try {
+      const client = createApiClient({
+        apiUrl: 'http://localhost:3003',
+        authUrl: 'http://localhost:3000',
+        storage,
+        requestTimeoutMs: 0,
+      })
+      await client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' })
+      const kept = storage.getRefreshToken()
+      calls.length = 0
+
+      const revoke = client.signOutOnDevice()
+      const onTheDevice = {
+        refreshToken: storage.getRefreshToken(),
+        accessToken: client.session.accessToken,
+        session: client.session.getSnapshot().session,
+        networkCalls: calls.length,
+      }
+      const revoking = revoke()
+      const answer = await Promise.race([
+        revoking.then(() => 'answered'),
+        new Promise((resolve) => setTimeout(() => resolve('still waiting'), 30)),
+      ])
+
+      expect({
+        kept: kept !== null,
+        onTheDevice,
+        revoke: calls,
+        answer,
+        whileTheRevokeWaits: {
+          refreshToken: storage.getRefreshToken(),
+          session: client.session.getSnapshot().session,
+        },
+      }).toEqual({
+        kept: true,
+        onTheDevice: { refreshToken: null, accessToken: null, session: null, networkCalls: 0 },
+        revoke: [{ path: '/auth/logout', body: { refreshToken: kept } }],
+        answer: 'still waiting',
+        whileTheRevokeWaits: { refreshToken: null, session: null },
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

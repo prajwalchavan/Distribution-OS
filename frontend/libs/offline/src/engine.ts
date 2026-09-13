@@ -538,7 +538,8 @@ export class SyncEngine {
   }
 
   /**
-   * What the app's sign-out calls, BEFORE it clears the session (DOS-167; founder, 2026-09-13).
+   * What the app's sign-out calls, in the same turn as it clears the session on the device (DOS-167; founder,
+   * 2026-09-13; addendum (y): a crash in here must never relaunch the app signed in).
    *
    * From the call on every write is refused with `SyncEngineEndedError` (ruling (m)): a write that was
    * never saved is never deleted, and the screen says so instead of "saved on this phone". Nothing is

@@ -313,7 +313,7 @@ export interface LeaveSession {
   /** Upload what is queued now; what is still waiting afterwards, counted the same way. */
   sendNow: () => Promise<{ pending: number; rejected: number }>
   /**
-   * End the engine BEFORE the session is cleared: `keepQueue: false` deletes this person's file,
+   * End the engine once the session is cleared on the device (addendum (y)): `keepQueue: false` deletes this person's file,
    * `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the
    * engine refuses every new write; a write already in hand lands first, and when anything waits once it
    * has, the file is kept for this person whatever was asked. `kept` says which (DOS-167, ruling (m)).

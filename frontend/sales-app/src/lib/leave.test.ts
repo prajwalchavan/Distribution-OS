@@ -226,8 +226,11 @@ describe('DOS-167 the sales leave sheet', () => {
         forgetDrafts: async () => {
           calls.push('forgetDrafts')
         },
-        signOut: async () => {
-          calls.push('signOut')
+        signOutOnDevice: () => {
+          calls.push('signOutOnDevice')
+          return async () => {
+            calls.push('revoke')
+          }
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)
@@ -246,9 +249,69 @@ describe('DOS-167 the sales leave sheet', () => {
     await leaveNow({ mode: 'signOut' }, false, gone.steps)
 
     expect({ recount: recount.calls, keep: keep.calls, gone: gone.calls }).toEqual({
-      recount: ['end keepQueue=false', 'sweep', 'signOut'],
-      keep: ['end keepQueue=true', 'sweep', 'signOut'],
-      gone: ['end keepQueue=false', 'sweep', 'forgetDrafts', 'signOut'],
+      recount: ['signOutOnDevice', 'end keepQueue=false', 'sweep', 'revoke'],
+      keep: ['signOutOnDevice', 'end keepQueue=true', 'sweep', 'revoke'],
+      gone: ['signOutOnDevice', 'end keepQueue=false', 'sweep', 'forgetDrafts', 'revoke'],
+    })
+  })
+
+  /*
+   * Addendum (y). On iOS "Sign out, keep here" crashed Expo Go inside `end()` (2 of 2), and the relaunch came back signed
+   * in as the rep who had chosen to sign out: on a shared phone the next person is inside his session. The session is
+   * cleared on this phone before `end()` touches the store, and the server's revoke goes last, with the token it kept.
+   */
+  it('DOS-167 the keep sign-out clears the stored session before the store is touched', async () => {
+    function phoneOf(end: LeaveSteps['end']): {
+      calls: string[]
+      signedIn: () => boolean
+      steps: LeaveSteps
+    } {
+      const calls: string[] = []
+      let signedIn = true
+      const steps: LeaveSteps = {
+        waiting: async () => ({ pending: 1, rejected: 0 }),
+        sendNow: async () => ({ pending: 1, rejected: 0 }),
+        end: async (options) => {
+          calls.push(`end keepQueue=${String(options.keepQueue)} signedIn=${String(signedIn)}`)
+          return end(options)
+        },
+        sweep: async () => {
+          calls.push('sweep')
+        },
+        forgetDrafts: async () => {
+          calls.push('forgetDrafts')
+        },
+        signOutOnDevice: () => {
+          signedIn = false
+          calls.push('signOutOnDevice')
+          return async () => {
+            calls.push('revoke')
+          }
+        },
+        switchDistributor: async (tenantId) => {
+          calls.push(`switch ${tenantId}`)
+        },
+      }
+      return { calls, signedIn: () => signedIn, steps }
+    }
+
+    // "Sign out, keep here".
+    const keep = phoneOf(async () => ({ kept: true }))
+    const [left] = await Promise.allSettled([leaveNow({ mode: 'signOut' }, true, keep.steps)])
+    // The same, and the app dies inside end(): it never returns.
+    const crash = phoneOf(() => new Promise<{ kept: boolean }>(() => {}))
+    void leaveNow({ mode: 'signOut' }, true, crash.steps)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect({
+      keep: { left: left?.status, calls: keep.calls },
+      crash: { signedIn: crash.signedIn(), calls: crash.calls },
+    }).toEqual({
+      keep: {
+        left: 'fulfilled',
+        calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false', 'sweep', 'revoke'],
+      },
+      crash: { signedIn: false, calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false'] },
     })
   })
 
@@ -308,7 +371,7 @@ describe('DOS-167 the sales leave sheet', () => {
     )
   })
 
-  it('DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count', async () => {
+  it('DOS-167 leaving decides on what waits in the file once it is open, clears the session on the phone before it ends the engine and never deletes what it did not count', async () => {
     const NOTHING: WaitingCounts = { pending: 0, rejected: 0 }
 
     /** The device and the session, writing down in order what the leave flow asked of them. */
@@ -345,8 +408,11 @@ describe('DOS-167 the sales leave sheet', () => {
         forgetDrafts: async () => {
           calls.push('forgetDrafts')
         },
-        signOut: async () => {
-          calls.push('signOut')
+        signOutOnDevice: () => {
+          calls.push('signOutOnDevice')
+          return async () => {
+            calls.push('revoke')
+          }
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)
@@ -366,28 +432,43 @@ describe('DOS-167 the sales leave sheet', () => {
     await expect(tapLeave({ mode: 'switch', tenantId: 'sai' }, refused.steps)).resolves.toBe('ask')
     expect(refused.calls).toEqual(['waiting', 'counted 0+2'])
 
-    // Nothing waits: one tap. The engine ends (file deleted) BEFORE the session is cleared, then the
-    // person's other files are swept and this rep's drafts forgotten.
+    // Nothing waits: one tap. The session is cleared on this phone FIRST (addendum (y)), then the engine ends
+    // (file deleted), the person's other files are swept, this rep's drafts are forgotten, and the revoke goes last.
     const clean = phone({})
     await expect(tapLeave({ mode: 'signOut' }, clean.steps)).resolves.toBe('left')
     expect(clean.calls).toEqual([
       'waiting',
       'counted 0+0',
+      'signOutOnDevice',
       'end keepQueue=false',
       'sweep',
       'forgetDrafts',
-      'signOut',
+      'revoke',
     ])
 
     // The file could not be counted: it is never deleted, and the rep is still signed out.
     const unreadable = phone({ waiting: new Error('database disk image is malformed') })
     await expect(tapLeave({ mode: 'signOut' }, unreadable.steps)).resolves.toBe('left')
-    expect(unreadable.calls).toEqual(['waiting', 'end keepQueue=true', 'sweep', 'signOut'])
+    expect(unreadable.calls).toEqual([
+      'waiting',
+      'signOutOnDevice',
+      'end keepQueue=true',
+      'sweep',
+      'revoke',
+    ])
 
-    // Ending the engine threw: signed out regardless.
+    // Ending the engine threw: already signed out on this phone, and the rest of the leaving still runs.
     const endFails = phone({ endFails: true })
     await expect(tapLeave({ mode: 'signOut' }, endFails.steps)).resolves.toBe('left')
-    expect(endFails.calls.at(-1)).toBe('signOut')
+    expect(endFails.calls).toEqual([
+      'waiting',
+      'counted 0+0',
+      'signOutOnDevice',
+      'end keepQueue=false',
+      'sweep',
+      'forgetDrafts',
+      'revoke',
+    ])
 
     // A switch with nothing waiting wipes nothing.
     const switching = phone({})
@@ -401,10 +482,11 @@ describe('DOS-167 the sales leave sheet', () => {
     await expect(sendNowThenLeave({ mode: 'signOut' }, sent.steps)).resolves.toBe('left')
     expect(sent.calls).toEqual([
       'sendNow',
+      'signOutOnDevice',
       'end keepQueue=false',
       'sweep',
       'forgetDrafts',
-      'signOut',
+      'revoke',
     ])
     // ...something is still waiting, or the send itself failed: the sheet stays.
     const stillWaiting = phone({ afterSend: { pending: 1, rejected: 0 } })
@@ -418,7 +500,7 @@ describe('DOS-167 the sales leave sheet', () => {
     // sign-out does (ruling 2 (u)); "Switch anyway" only switches.
     const keep = phone({})
     await leaveNow({ mode: 'signOut' }, true, keep.steps)
-    expect(keep.calls).toEqual(['end keepQueue=true', 'sweep', 'signOut'])
+    expect(keep.calls).toEqual(['signOutOnDevice', 'end keepQueue=true', 'sweep', 'revoke'])
     const anyway = phone({})
     await leaveNow({ mode: 'switch', tenantId: 'sai' }, true, anyway.steps)
     expect(anyway.calls).toEqual(['switch sai'])

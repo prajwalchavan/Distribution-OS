@@ -105,6 +105,14 @@ export interface ApiClient {
   signIn: (options: SignInOptions) => Promise<Session>
   /** Revokes this device's session server-side (best effort), then always clears locally. */
   signOut: () => Promise<void>
+  /**
+   * Sign out on THIS device first (DOS-167 addendum (y)): the refresh token in storage and the access token in memory
+   * are cleared at once, before any network call, so a crash or a relaunch from here on shows the sign-in form. What
+   * the server's revoke needs — the refresh token — is kept in memory only, inside the function handed back: calling it
+   * asks the server to revoke, best effort. It never rejects, never signs anyone back in, and a revoke that never
+   * answers holds nobody.
+   */
+  signOutOnDevice: () => () => Promise<void>
   /** Who am I, in this distributorship. Refreshes the local session snapshot. */
   me: () => Promise<AuthMe>
   /** Open a session on another membership of the same user. */
@@ -272,6 +280,20 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       }
       session.clear()
       options.onSignOut?.(null)
+    },
+
+    signOutOnDevice(): () => Promise<void> {
+      const refreshToken = session.refreshToken
+      session.clear()
+      options.onSignOut?.(null)
+      return async () => {
+        if (refreshToken === null) return
+        try {
+          await authClient.logout({ refreshToken })
+        } catch {
+          // Best effort: the token is already gone from this device; a revoke that never arrived changes nothing here.
+        }
+      }
     },
 
     async me(): Promise<AuthMe> {
