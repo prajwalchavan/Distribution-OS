@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { uuidv7 } from '@dos/domain'
+import { financialYear as istFinancialYear, uuidv7 } from '@dos/domain'
 import type { Db } from './client.js'
 import {
   accounts,
@@ -16,11 +16,14 @@ import {
  * Called by the seed and by the tenancy service when a distributor signs up.
  */
 
-/** Indian financial year label for a date, e.g. 2026-09-04 -> "2026-27". */
+/**
+ * Indian financial year label for an instant, e.g. 2026-09-04 -> "2026-27". IST whatever the server's clock
+ * (docs/22: business dates and FY are IST): it is `@dos/domain`'s `financialYear`, so the series a new
+ * tenant is given carries the same FY key `nextDocumentNumber` draws under, even at 00:00–05:30 IST on 1 April
+ * on a host whose clock is UTC.
+ */
 export function financialYear(date: Date = new Date()): string {
-  const y = date.getFullYear()
-  const start = date.getMonth() >= 3 ? y : y - 1
-  return `${start}-${String((start + 1) % 100).padStart(2, '0')}`
+  return istFinancialYear(date)
 }
 
 export const CHART_OF_ACCOUNTS = [

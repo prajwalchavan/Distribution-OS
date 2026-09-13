@@ -2447,6 +2447,7 @@ export async function seedSales(
         id: receiptId,
         tenantId,
         receiptNo: `${rcptPrefix}${String(receiptSeq).padStart(4, '0')}`,
+        fy: FY,
         retailerId: retailer.id,
         mode,
         amountPaise: receiptAmount,
@@ -2535,6 +2536,7 @@ export async function seedSales(
           id: residualId,
           tenantId,
           receiptNo: `${rcptPrefix}${String(receiptSeq).padStart(4, '0')}-A`,
+          fy: FY,
           retailerId: retailer.id,
           mode: residualMode,
           amountPaise: residualPaise,
@@ -2598,6 +2600,7 @@ export async function seedSales(
           id: reversalId,
           tenantId,
           receiptNo: `${rcptPrefix}${String(receiptSeq).padStart(4, '0')}-R`,
+          fy: FY,
           retailerId: retailer.id,
           mode: 'cheque',
           amountPaise: -receiptAmount,
@@ -2645,6 +2648,7 @@ export async function seedSales(
             id: secondId,
             tenantId,
             receiptNo: `${rcptPrefix}${String(receiptSeq).padStart(4, '0')}`,
+            fy: FY,
             retailerId: retailer.id,
             mode: secondMode,
             amountPaise: remainder,
@@ -2909,6 +2913,10 @@ export async function seedSales(
   await insertMany(db, invoiceLines, invoiceLineRows)
   // Receipt numbers follow the day the money came in, not the bill it settled: a part payment's
   // balance and a bill paid late take their numbers where they land on the desk's register.
+  // `rcptNumbered` is how many numbers that register used — every receipt but a reversal, the
+  // short-paid residuals included, which never moved `receiptSeq` — and so where the counter must end
+  // (DOS-032 / DOS-059: stopping at `receiptSeq` left it four numbers behind its own receipts).
+  let rcptNumbered: number
   {
     const originals = receiptRows
       .filter((r) => !r.reversesReceiptId)
@@ -2917,6 +2925,7 @@ export async function seedSales(
           (a.receivedAt?.getTime() ?? 0) - (b.receivedAt?.getTime() ?? 0) || (a.id < b.id ? -1 : 1),
       )
     const numberOf = new Map<string, string>()
+    rcptNumbered = originals.length
     originals.forEach((r, i) => {
       const no = `${rcptPrefix}${String(i + 1).padStart(4, '0')}`
       r.receiptNo = no
@@ -3034,7 +3043,7 @@ export async function seedSales(
   await bumpSeries(db, tenantId, 'SO', soPrefix, soSeq + 1)
   await bumpSeries(db, tenantId, 'INV', invPrefix, invSeq + 1)
   await bumpSeries(db, tenantId, 'CN', cnPrefix, cnRows.length + 1)
-  await bumpSeries(db, tenantId, 'RCPT', rcptPrefix, receiptSeq + 1)
+  await bumpSeries(db, tenantId, 'RCPT', rcptPrefix, rcptNumbered + 1)
 
   return {
     orders: ordersOut,

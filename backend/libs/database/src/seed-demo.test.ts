@@ -132,7 +132,9 @@ async function expectAiDemo(db: Db, tenantId: string, slug: string): Promise<voi
 
 describeDb('demo seed on an empty database', () => {
   const run = uuidv7().slice(-8)
-  const dbName = `dos_seedtest_${run}`
+  // Named after DATABASE_URL's own database (`dos` → `dos_seedtest_…`, as before), so a checkout that points
+  // at a database of its own creates and drops only throwaway databases under that name.
+  const dbName = `${new URL(url ?? 'postgres://localhost/dos').pathname.slice(1) || 'dos'}_seedtest_${run}`
   const adminPool = createPool(withDatabase(url ?? '', 'postgres'), 1)
   let pool: ReturnType<typeof createPool> | undefined
   let db: Db
@@ -425,6 +427,75 @@ describeDb('demo seed on an empty database', () => {
       .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
     expect(drift).toEqual([])
   }, 120_000)
+
+  /**
+   * DOS-032 / DOS-059. The seed writes receipts in the counter's own shape (`RCPT-0001` … from the sales
+   * history, `RCPT-9001` … from billing) and must leave every RCPT counter past the highest of them: a
+   * counter that lags its register hands the next desk, doorstep or offline receipt a number the register
+   * already holds (dos_qa, 12 Sep: RCPT-0696 … RCPT-0699 each twice). Prefix and FY come from each
+   * distributor's own series row, never a literal.
+   */
+  it('DOS-032 DOS-059: every RCPT counter ends past the highest receipt number the seed wrote, and no two receipts share a number', async () => {
+    // So it also runs alone under `-t DOS-059`: both are idempotent, in `pnpm db:seed`'s order.
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+
+    // Every counter that has issued anything, against the highest number of ITS shape — its own prefix
+    // followed only by digits — on that distributor's register.
+    const counters = (
+      await db.execute(sql`
+        SELECT t.slug, ns.fy, ns.prefix, ns.next_no::bigint AS next_no,
+               (SELECT max(substring(r.receipt_no FROM char_length(ns.prefix) + 1)::bigint)
+                  FROM receipts r
+                 WHERE r.tenant_id = ns.tenant_id
+                   AND left(r.receipt_no, char_length(ns.prefix)) = ns.prefix
+                   AND substring(r.receipt_no FROM char_length(ns.prefix) + 1) ~ '^[0-9]{1,18}$'
+               ) AS highest
+          FROM numbering_series ns JOIN tenants t ON t.id = ns.tenant_id
+         WHERE ns.series_code = 'RCPT' AND ns.next_no > 1
+           AND t.slug IN ('tarsun', 'kalyan-agencies', 'sai-distributors')
+         ORDER BY t.slug, ns.fy`)
+    ).rows as {
+      slug: string
+      fy: string
+      prefix: string
+      next_no: string
+      highest: string | null
+    }[]
+    expect([...new Set(counters.map((c) => c.slug))]).toEqual([
+      'kalyan-agencies',
+      'sai-distributors',
+      'tarsun',
+    ])
+    for (const slug of ['kalyan-agencies', 'sai-distributors', 'tarsun']) {
+      const seeded = counters.some((c) => c.slug === slug && Number(c.highest ?? 0) > 0)
+      expect({ slug, seeded }).toEqual({ slug, seeded: true })
+    }
+    for (const c of counters) {
+      const next = Number(c.next_no)
+      const highest = Number(c.highest ?? 0)
+      expect({
+        slug: c.slug,
+        fy: c.fy,
+        prefix: c.prefix,
+        next,
+        highest,
+        past: next > highest,
+      }).toEqual({ slug: c.slug, fy: c.fy, prefix: c.prefix, next, highest, past: true })
+    }
+
+    // ...and the register itself never repeats a number inside one series and financial year.
+    const repeated = (
+      await db.execute(sql`
+        SELECT t.slug, r.series_code, r.fy, r.receipt_no, count(*)::int AS n
+          FROM receipts r JOIN tenants t ON t.id = r.tenant_id
+         WHERE r.receipt_no IS NOT NULL
+         GROUP BY t.slug, r.series_code, r.fy, r.receipt_no
+        HAVING count(*) > 1
+         ORDER BY 1, 2, 3, 4`)
+    ).rows
+    expect(repeated).toEqual([])
+  }, 180_000)
 
   /**
    * DOS-001. The owner's and the manager's Today read "Money owed, by age" from ONE row,

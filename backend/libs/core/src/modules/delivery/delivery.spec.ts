@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
-import { uuidv7 } from '@dos/domain'
+import { financialYear, uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
   createDb,
@@ -1349,6 +1349,93 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(trip.body.item.expenses.map((e) => e.kind).sort()).toEqual(['diesel', 'toll'])
     expect(trip.body.item.collections).toHaveLength(4)
     expect(trip.body.item.expectedCashPaise).toBe(200_000 + cashCollected - 35_000)
+  })
+
+  it('DOS-059: a doorstep collection drawn onto a receipt number already on the register takes the next free number: one receipt, one collection, and the counter past the register', async () => {
+    const fy = financialYear()
+    const series = sql`tenant_id = ${tenantId} and series_code = 'RCPT' and fy = ${fy}`
+    const counter = async (): Promise<{ prefix: string; nextNo: number }> => {
+      const [row] = (
+        await db.execute(sql`select prefix, next_no from numbering_series where ${series}`)
+      ).rows as { prefix: string; next_no: number }[]
+      return { prefix: row?.prefix ?? '', nextNo: Number(row?.next_no ?? 1) }
+    }
+    const numbered = async (receiptNo: string): Promise<number> =>
+      (
+        (
+          await db.execute(
+            sql`select count(*)::int as n from receipts where tenant_id = ${tenantId} and receipt_no = ${receiptNo}`,
+          )
+        ).rows[0] as { n: number }
+      ).n
+    const before = await counter()
+    const { prefix } = before
+    // the collections above drew their numbers from this counter, so its newest number is on the register
+    const taken = `${prefix}${String(before.nextNo - 1).padStart(4, '0')}`
+    expect(await numbered(taken)).toBe(1)
+    // a counter stepped back onto it (a restored backup, a reseed); the owner connection may rewind (0013)
+    await db.execute(sql`update numbering_series set next_no = next_no - 1 where ${series}`)
+    try {
+      const [top] = (
+        await db.execute(sql`
+          select coalesce(max(substring(receipt_no from ${prefix.length + 1}::int)::bigint), 0) as n
+            from receipts
+           where tenant_id = ${tenantId}
+             and left(receipt_no, ${prefix.length}::int) = ${prefix}
+             and substring(receipt_no from ${prefix.length + 1}::int) ~ '^[0-9]{1,18}$'`)
+      ).rows as { n: string }[]
+      const highest = Number(top?.n ?? 0)
+      const healed = `${prefix}${String(highest + 1).padStart(4, '0')}`
+      const collectionId = uuidv7()
+      const receiptId = uuidv7()
+      const res = await call<{ receipt: { id: string; receiptNo: string | null } }>(
+        app,
+        driver,
+        'POST',
+        '/delivery/collections',
+        {
+          idempotencyKey: `collect-dos059-${run}`,
+          id: collectionId,
+          receiptId,
+          tripId,
+          retailerId: retailerB,
+          mode: 'cash',
+          amountPaise: 1_000,
+        },
+      )
+      expect(res.status).toBe(200)
+      cashCollected += 1_000
+      expect(res.body.receipt.receiptNo).not.toBe(taken)
+      expect(res.body.receipt.receiptNo).toBe(healed)
+      expect(await numbered(taken)).toBe(1)
+      expect(await numbered(healed)).toBe(1)
+      const [written] = (
+        await db.execute(sql`
+          select (select count(*) from receipts where id = ${receiptId})::int as receipts,
+                 (select count(*) from collections
+                   where id = ${collectionId} and receipt_id = ${receiptId})::int as collections`)
+      ).rows as { receipts: number; collections: number }[]
+      expect(written).toEqual({ receipts: 1, collections: 1 })
+      expect((await counter()).nextNo).toBe(highest + 2)
+      const audit = (
+        await db.execute(sql`
+          select actor_id, entity_type, entity_id, before, after from audit_log
+           where tenant_id = ${tenantId} and action = 'numbering.heal'
+             and after->>'receiptId' = ${receiptId}`)
+      ).rows
+      expect(audit).toHaveLength(1)
+      expect(audit[0]).toMatchObject({
+        actor_id: driverId,
+        entity_type: 'numbering_series',
+        entity_id: `RCPT/${fy}`,
+        before: { collidedNo: taken },
+        after: { receiptNo: healed },
+      })
+    } finally {
+      await db.execute(
+        sql`update numbering_series set next_no = greatest(next_no, ${before.nextNo}) where ${series}`,
+      )
+    }
   })
 
   // ---------------------------------------------------------------------------------------------------------------
