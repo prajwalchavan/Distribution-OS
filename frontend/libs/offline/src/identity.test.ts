@@ -1555,6 +1555,75 @@ describe('DOS-167 sign-out ends the engine', () => {
   })
 
   /*
+   * Merge review of ruling 2, problem 3. On a phone the session's delete from the Keychain / EncryptedSharedPreferences is
+   * asynchronous behind a synchronous cache, and the leave flow calls `end()` in the same turn as it clears the session:
+   * a native crash inside `end()` before that delete had landed relaunched the app signed in. `end()` refuses every
+   * write at once, and touches the file only once the removal has landed.
+   */
+  it('DOS-167 end() touches the store only once the session has left the device store', async () => {
+    const inner = createMemoryStore()
+    const touched: string[] = []
+    const file: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => {
+        touched.push('exec')
+        return inner.exec(sql, params)
+      },
+      query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> => {
+        touched.push('query')
+        return inner.query<T>(sql, params)
+      },
+      transaction: (fn) => {
+        touched.push('transaction')
+        return inner.transaction(fn)
+      },
+      close: async () => {
+        touched.push('close')
+        await inner.close()
+      },
+    }
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const engine = engineAs(RAHUL, file, server.transport())
+    await engine.start()
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-kept',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await engine.flush()
+    touched.length = 0
+
+    // "Sign out, keep here": the session is out of the cache, and the secure store's delete has not answered yet.
+    let removed = (): void => {}
+    const removal = new Promise<void>((resolve) => {
+      removed = resolve
+    })
+    const ending = engine.end({ keepQueue: true, after: removal })
+    const late = await outcomeOf(
+      engine.enqueue({ table: 'sales_orders', id: 'o-late', op: 'PUT', data: {} }),
+      () => 'saved',
+    )
+    await sleep(20)
+    const beforeTheRemoval = [...touched]
+    removed()
+    const ended = await ending
+
+    expect({ beforeTheRemoval, late, ended, closedAfter: touched.at(-1) }).toEqual({
+      beforeTheRemoval: [],
+      late: 'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+      ended: { kept: true, pending: 1, rejected: 0 },
+      closedAfter: 'close',
+    })
+  })
+
+  /*
    * Merge review of ruling 2, problem 2 (verifier PROBE-Y1, PROBE-Y2). Addendum (y) clears the session before `end()` has
    * finished, so the sign-in form is on the screen while `end()` still waits for a page in flight. The same rep signed
    * straight back in and the provider started a second engine on the SAME file — on a phone expo-sqlite hands both the

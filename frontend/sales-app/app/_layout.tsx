@@ -338,8 +338,8 @@ interface ChromeProps {
   tenant: Omit<ShellTenant, 'onSwitch'>
   /** The account menu without its sign-out: signing out goes through the leave flow below. */
   account: Omit<ShellAccount, 'onSignOut'>
-  /** Sign out on this phone at once, handing back the server's revoke (DOS-167 addendum (y)). */
-  signOutOnDevice: () => () => Promise<void>
+  /** Sign out on this phone at once, run the leaving, then revoke on the server (DOS-167 addendum (y)). */
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   switchDistributor: (tenantId: string) => Promise<unknown>
   children: React.ReactNode
 }

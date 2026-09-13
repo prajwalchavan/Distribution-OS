@@ -40,6 +40,13 @@ export async function boot(): Promise<ApiClient> {
     setItem: (key, value) => {
       storage.setItemSync(key, value)
     },
+    /*
+     * Out of the Keychain / EncryptedSharedPreferences, not only out of the cache in front of it (DOS-167 addendum (y)):
+     * a sign-out's engine touches the file only once this has landed, so a crash inside it relaunches to the sign-in form.
+     */
+    clearSession: async () => {
+      await Promise.all([storage.removeItem(REFRESH_KEY), storage.removeItem(SNAPSHOT_KEY)])
+    },
   }
 
   return createApiClient({

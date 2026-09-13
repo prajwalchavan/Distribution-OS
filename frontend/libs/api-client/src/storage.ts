@@ -29,6 +29,13 @@ export interface TokenStorage {
   getItem: (key: string) => string | null
   setItem: (key: string, value: string | null) => void
   /**
+   * Remove the refresh token and the session snapshot, resolving once the platform store itself has let go of them
+   * (DOS-167 addendum (y)). On a phone the Keychain / EncryptedSharedPreferences delete is asynchronous behind the
+   * synchronous cache the two calls above read, and a crash before it lands relaunches signed in. A storage that
+   * writes synchronously (memory, a browser) leaves it out.
+   */
+  clearSession?: () => Promise<void>
+  /**
    * "Remember this device". `true` keeps the session across a browser restart, `false` clears it when
    * the tab closes. Storages with only one durability (memory, secure store) leave this undefined.
    */

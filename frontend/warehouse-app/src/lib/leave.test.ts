@@ -223,11 +223,11 @@ describe('DOS-167 the warehouse leave sheet', () => {
         sweep: async () => {
           calls.push('sweep')
         },
-        signOutOnDevice: () => {
+        // The client's side (`useSession().signOutOnDevice`): the leaving runs inside, and the revoke follows it.
+        signOutOnDevice: async (leave) => {
           calls.push('signOutOnDevice')
-          return async () => {
-            calls.push('revoke')
-          }
+          await leave(Promise.resolve())
+          calls.push('revoke')
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)
@@ -265,22 +265,27 @@ describe('DOS-167 the warehouse leave sheet', () => {
     } {
       const calls: string[] = []
       let signedIn = true
+      // The session's removal from the platform store, which the engine waits for before it touches the file.
+      const stored = Promise.resolve()
       const steps: LeaveSteps = {
         waiting: async () => ({ pending: 1, rejected: 0 }),
         sendNow: async () => ({ pending: 1, rejected: 0 }),
         end: async (options) => {
-          calls.push(`end keepQueue=${String(options.keepQueue)} signedIn=${String(signedIn)}`)
+          const after =
+            options.after === stored ? 'stored' : options.after === undefined ? 'none' : 'another'
+          calls.push(
+            `end keepQueue=${String(options.keepQueue)} signedIn=${String(signedIn)} after=${after}`,
+          )
           return end(options)
         },
         sweep: async () => {
           calls.push('sweep')
         },
-        signOutOnDevice: () => {
+        signOutOnDevice: async (leave) => {
           signedIn = false
           calls.push('signOutOnDevice')
-          return async () => {
-            calls.push('revoke')
-          }
+          await leave(stored)
+          calls.push('revoke')
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)
@@ -303,9 +308,17 @@ describe('DOS-167 the warehouse leave sheet', () => {
     }).toEqual({
       keep: {
         left: 'fulfilled',
-        calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false', 'sweep', 'revoke'],
+        calls: [
+          'signOutOnDevice',
+          'end keepQueue=true signedIn=false after=stored',
+          'sweep',
+          'revoke',
+        ],
       },
-      crash: { signedIn: false, calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false'] },
+      crash: {
+        signedIn: false,
+        calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false after=stored'],
+      },
     })
   })
 
@@ -399,11 +412,11 @@ describe('DOS-167 the warehouse leave sheet', () => {
         sweep: async () => {
           calls.push('sweep')
         },
-        signOutOnDevice: () => {
+        // The client's side (`useSession().signOutOnDevice`): the leaving runs inside, and the revoke follows it.
+        signOutOnDevice: async (leave) => {
           calls.push('signOutOnDevice')
-          return async () => {
-            calls.push('revoke')
-          }
+          await leave(Promise.resolve())
+          calls.push('revoke')
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)

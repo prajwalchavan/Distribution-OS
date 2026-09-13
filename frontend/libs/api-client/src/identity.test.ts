@@ -15,7 +15,7 @@ import { createApiClient } from './client.js'
 import { toApiError } from './errors.js'
 import { identityKey, SessionStore, sessionIdentity, type Session } from './index.js'
 import { bindCacheToSession } from './react/index.js'
-import { memoryTokenStorage } from './storage.js'
+import { memoryTokenStorage, type TokenStorage } from './storage.js'
 
 const TARSUN: AuthTenant = {
   id: '0192f3c4-0000-7000-8000-0000000000a1',
@@ -173,22 +173,26 @@ describe('DOS-167 who is signed in', () => {
       const kept = storage.getRefreshToken()
       calls.length = 0
 
-      const revoke = client.signOutOnDevice()
-      const onTheDevice = {
-        refreshToken: storage.getRefreshToken(),
-        accessToken: client.session.accessToken,
-        session: client.session.getSnapshot().session,
-        networkCalls: calls.length,
-      }
-      const revoking = revoke()
+      // What the leaving finds the moment it begins — the engine's end, in the apps.
+      const seen: { onTheDevice?: unknown } = {}
+      const leaving = client.signOutOnDevice(async () => {
+        seen.onTheDevice = {
+          refreshToken: storage.getRefreshToken(),
+          accessToken: client.session.accessToken,
+          session: client.session.getSnapshot().session,
+          networkCalls: calls.length,
+        }
+      })
       const answer = await Promise.race([
-        revoking.then(() => 'answered'),
-        new Promise((resolve) => setTimeout(() => resolve('still waiting'), 30)),
+        Promise.resolve(leaving).then(() => 'answered'),
+        sleep(30).then(() => 'still waiting'),
       ])
+      await sleep(20)
 
       expect({
         kept: kept !== null,
-        onTheDevice,
+        onTheDevice: seen.onTheDevice,
+        // Asked once the leaving has settled, with the token kept in memory — and never answered.
         revoke: calls,
         answer,
         whileTheRevokeWaits: {
@@ -199,11 +203,154 @@ describe('DOS-167 who is signed in', () => {
         kept: true,
         onTheDevice: { refreshToken: null, accessToken: null, session: null, networkCalls: 0 },
         revoke: [{ path: '/auth/logout', body: { refreshToken: kept } }],
-        answer: 'still waiting',
+        answer: 'answered',
         whileTheRevokeWaits: { refreshToken: null, session: null },
       })
     } finally {
       vi.unstubAllGlobals()
     }
   })
+
+  /*
+   * Merge review of ruling 2, problem 2. With the session cleared first, the sign-in form is on the screen while the
+   * sign-out is still ending the engine, sweeping this person's other files and forgetting their drafts. Nothing
+   * stopped the next person — or the same one — signing straight in on a phone that was still leaving.
+   */
+  it('DOS-167 a sign-in on this phone waits until the sign-out before it has left the device', async () => {
+    const calls = stubAuth((path, body) => {
+      if (path === '/auth/login') {
+        const who = (body as { username?: string }).username === AMIT.username ? AMIT : RAHUL
+        return json(pair(who, TARSUN))
+      }
+      if (path === '/auth/logout') return json({ ok: true })
+      return json({ code: 'NOT_FOUND', message: path }, 404)
+    })
+    try {
+      const client = createApiClient({
+        apiUrl: 'http://localhost:3003',
+        authUrl: 'http://localhost:3000',
+        storage: memoryTokenStorage(),
+        requestTimeoutMs: 0,
+      })
+      await client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' })
+      calls.length = 0
+
+      // Rahul signs out; ending the engine on his file takes a while (a page in flight).
+      let finishLeaving = (): void => {}
+      const leaving = client.signOutOnDevice(
+        () =>
+          new Promise<void>((resolve) => {
+            finishLeaving = resolve
+          }),
+      )
+      // Amit takes the phone and signs in at once.
+      const signingIn = client.signIn({ username: 'amit.pawar', password: 'Dos@1234' })
+      await sleep(30)
+      const whileLeaving = {
+        asked: calls.map((call) => call.path),
+        session: client.session.getSnapshot().session,
+      }
+      finishLeaving()
+      await leaving
+      const signedIn = await signingIn
+      await sleep(20)
+
+      expect({
+        whileLeaving,
+        afterwards: {
+          user: signedIn.user.username,
+          asked: calls.map((call) => call.path).sort(),
+        },
+      }).toEqual({
+        // Neither the sign-in nor the revoke goes while the phone is still leaving.
+        whileLeaving: { asked: [], session: null },
+        afterwards: { user: AMIT.username, asked: ['/auth/login', '/auth/logout'] },
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  /*
+   * Merge review of ruling 2, problem 3. On a phone the refresh token is written through a synchronous cache to the
+   * Keychain / EncryptedSharedPreferences, whose delete is asynchronous and was never awaited: the engine's `end()` ran
+   * while it was still queued, and a native crash in that window relaunched signed in (`boot()` primes the cache from
+   * the secure store).
+   */
+  it('DOS-167 the leaving is told when the session has left the platform store, not only its cache', async () => {
+    stubAuth((path) =>
+      path === '/auth/login' ? json(pair(RAHUL, TARSUN)) : new Promise<Response>(() => {}),
+    )
+    try {
+      const cache = memoryTokenStorage()
+      let keychainDone = (): void => {}
+      let keychainAsked = 0
+      const phone: TokenStorage = {
+        ...cache,
+        clearSession: () => {
+          keychainAsked += 1
+          return new Promise<void>((resolve) => {
+            keychainDone = resolve
+          })
+        },
+      }
+      const client = createApiClient({
+        apiUrl: 'http://localhost:3003',
+        authUrl: 'http://localhost:3000',
+        storage: phone,
+        requestTimeoutMs: 0,
+      })
+      await client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' })
+
+      const handed: { stored?: Promise<void> } = {}
+      const leaving = client.signOutOnDevice(async (stored) => {
+        handed.stored = stored
+        await stored
+      })
+      const race = (promise: Promise<unknown> | undefined, done: string): Promise<string> =>
+        promise === undefined
+          ? Promise.resolve('never handed over')
+          : Promise.race([promise.then(() => done), sleep(30).then(() => 'waiting')])
+      const beforeTheKeychain = {
+        asked: keychainAsked,
+        cache: cache.getRefreshToken(),
+        stored: await race(handed.stored, 'landed'),
+      }
+      keychainDone()
+      const afterTheKeychain = await race(Promise.resolve(leaving), 'left')
+
+      expect({ beforeTheKeychain, afterTheKeychain }).toEqual({
+        // Out of the cache at once; the removal from the secure store is waited for, not assumed.
+        beforeTheKeychain: { asked: 1, cache: null, stored: 'waiting' },
+        afterTheKeychain: 'left',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+/** The services as the phone reaches them: every call written down, in the order it was made. */
+function stubAuth(
+  answer: (path: string, body: unknown) => Response | Promise<Response>,
+): { path: string; body: unknown; authorization: string | null }[] {
+  const calls: { path: string; body: unknown; authorization: string | null }[] = []
+  vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+    const request = input instanceof Request ? input : new Request(String(input), init)
+    const path = new URL(request.url).pathname
+    const text = await request.clone().text()
+    const body = text === '' ? undefined : (JSON.parse(text) as unknown)
+    calls.push({ path, body, authorization: request.headers.get('authorization') })
+    return answer(path, body)
+  })
+  return calls
+}

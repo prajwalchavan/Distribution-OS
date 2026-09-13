@@ -626,12 +626,15 @@ export class SyncEngine {
    * re-snapshots, and anyone else's `start()` wipes them unread. The engine is finished either way; a later
    * `stop()` does nothing, and a second `end()` waits for the first.
    */
-  end(options: { keepQueue: boolean }): Promise<EndResult> {
+  end(options: { keepQueue: boolean; after?: Promise<unknown> }): Promise<EndResult> {
     this.ending ??= this.endOnce(options)
     return this.ending
   }
 
-  private async endOnce(options: { keepQueue: boolean }): Promise<EndResult> {
+  private async endOnce(options: {
+    keepQueue: boolean
+    after?: Promise<unknown>
+  }): Promise<EndResult> {
     // Before the first `await`: a write that begins from here on is refused (`requireStore`), and a read answers
     // empty without touching the store (`readsOpen`, addendum (x)).
     this.ended = true
@@ -640,6 +643,17 @@ export class SyncEngine {
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
     this.retryTimer = null
     this.pollTimer = null
+    /*
+     * NOT BEFORE THE SESSION HAS LEFT THE DEVICE STORE (addendum (y), merge review of ruling 2). `after` is the sign-out's
+     * removal of the session from the platform store: on a phone the Keychain / EncryptedSharedPreferences delete is
+     * asynchronous, and a native crash in here before it landed relaunched the app signed in. Nothing in the file is
+     * touched until it has settled; every write is already refused.
+     */
+    if (options.after !== undefined)
+      await options.after.then(
+        () => undefined,
+        () => undefined,
+      )
     await this.settled()
     const store = this.store
     try {

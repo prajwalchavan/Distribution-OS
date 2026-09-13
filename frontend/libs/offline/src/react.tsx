@@ -313,12 +313,13 @@ export interface LeaveSession {
   /** Upload what is queued now; what is still waiting afterwards, counted the same way. */
   sendNow: () => Promise<{ pending: number; rejected: number }>
   /**
-   * End the engine once the session is cleared on the device (addendum (y)): `keepQueue: false` deletes this person's file,
-   * `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the
-   * engine refuses every new write; a write already in hand lands first, and when anything waits once it
-   * has, the file is kept for this person whatever was asked. `kept` says which (DOS-167, ruling (m)).
+   * End the engine once the session is cleared on the device (addendum (y)): `keepQueue: false` deletes this person's
+   * file, `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the engine
+   * refuses every new write; `after`, the session's removal from the platform store, is waited for before the file is
+   * touched; a write already in hand lands first, and when anything waits once it has, the file is kept for this
+   * person whatever was asked. `kept` says which (DOS-167, ruling (m)).
    */
-  end: (options: { keepQueue: boolean }) => Promise<EndResult>
+  end: (options: { keepQueue: boolean; after?: Promise<unknown> }) => Promise<EndResult>
 }
 
 /**
@@ -338,7 +339,7 @@ export function useLeaveSession(): LeaveSession {
     return engine.waiting()
   }, [engine])
   const end = useCallback(
-    async (options: { keepQueue: boolean }): Promise<EndResult> => {
+    async (options: { keepQueue: boolean; after?: Promise<unknown> }): Promise<EndResult> => {
       if (engine === null) return { kept: false, pending: 0, rejected: 0 }
       return engine.end(options)
     },

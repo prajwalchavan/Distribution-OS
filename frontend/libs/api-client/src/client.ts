@@ -106,13 +106,15 @@ export interface ApiClient {
   /** Revokes this device's session server-side (best effort), then always clears locally. */
   signOut: () => Promise<void>
   /**
-   * Sign out on THIS device first (DOS-167 addendum (y)): the refresh token in storage and the access token in memory
-   * are cleared at once, before any network call, so a crash or a relaunch from here on shows the sign-in form. What
-   * the server's revoke needs — the refresh token — is kept in memory only, inside the function handed back: calling it
-   * asks the server to revoke, best effort. It never rejects, never signs anyone back in, and a revoke that never
-   * answers holds nobody.
+   * Sign out on THIS device first, then leave it (DOS-167 addendum (y)). In the same turn: the access token in memory
+   * and the refresh token and snapshot in storage are cleared, before any network call — a crash from here on
+   * relaunches to the sign-in form — and `leave(stored)` is called, `stored` settling once the platform store has let
+   * go of the session too (on a phone that delete is asynchronous). Only once `leave` has settled does the client ask
+   * the server to revoke, with the refresh token it kept in memory: best effort, in the background, never signing
+   * anyone back in. Resolves when `leave` has, never waiting for the revoke. Until then a `signIn` on this client
+   * waits: nobody signs in on a phone that is still leaving.
    */
-  signOutOnDevice: () => () => Promise<void>
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   /** Who am I, in this distributorship. Refreshes the local session snapshot. */
   me: () => Promise<AuthMe>
   /** Open a session on another membership of the same user. */
@@ -143,6 +145,14 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   }
 
   let refreshInFlight: Promise<void> | null = null
+
+  /**
+   * The device's own leaving after `signOutOnDevice` — the engine ended, the person's other files swept, their drafts
+   * forgotten — until it has settled (merge review of ruling 2, problem 2). The session is cleared before it begins,
+   * so the sign-in form is already on the screen: a sign-in waits for this rather than open the same file, or let a
+   * sweep and a forgetting still running reach the person signing in.
+   */
+  let leaving: Promise<void> = Promise.resolve()
 
   /**
    * Only the SERVER may end a session.
@@ -252,6 +262,8 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     newMutation,
 
     async signIn(input: SignInOptions): Promise<Session> {
+      // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first.
+      await leaving
       storage.setDurable?.(input.remember !== false)
       const pair: TokenPair = await authClient.login({
         username: input.username,
@@ -282,18 +294,33 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       options.onSignOut?.(null)
     },
 
-    signOutOnDevice(): () => Promise<void> {
+    signOutOnDevice(leave: (stored: Promise<void>) => Promise<void>): Promise<void> {
+      // Kept in memory only, for the revoke: the one copy that outlives the clear below.
       const refreshToken = session.refreshToken
-      session.clear()
+      const stored = session.clearOnDevice()
       options.onSignOut?.(null)
-      return async () => {
+      // In the same turn as the clear: the leave flow ends the engine before the cleared session re-renders the app.
+      let local: Promise<void>
+      try {
+        local = leave(stored)
+      } catch (error) {
+        local = Promise.reject(error instanceof Error ? error : new Error(String(error)))
+      }
+      const settled = local.then(
+        () => undefined,
+        () => undefined,
+      )
+      const before = leaving
+      leaving = settled.then(() => before)
+      void settled.then(async () => {
         if (refreshToken === null) return
         try {
           await authClient.logout({ refreshToken })
         } catch {
           // Best effort: the token is already gone from this device; a revoke that never arrived changes nothing here.
         }
-      }
+      })
+      return local
     },
 
     async me(): Promise<AuthMe> {

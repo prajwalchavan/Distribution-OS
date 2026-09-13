@@ -140,10 +140,10 @@ export interface UseSession extends SessionState {
   signIn: (options: SignInOptions) => Promise<Session>
   signOut: () => Promise<void>
   /**
-   * Sign out on this device at once and hand back the server's revoke (DOS-167 addendum (y)); the query cache follows
-   * through `bindCacheToSession`. See `ApiClient.signOutOnDevice`.
+   * Sign out on this device at once, run the device's leaving, and revoke on the server after it (DOS-167 addendum
+   * (y)); the query cache follows through `bindCacheToSession`. See `ApiClient.signOutOnDevice`.
    */
-  signOutOnDevice: () => () => Promise<void>
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   switchDistributor: (tenantId: string) => Promise<Session>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   /** True when the signed-in user works for more than one distributor. */
