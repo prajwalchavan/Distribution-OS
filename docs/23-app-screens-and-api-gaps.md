@@ -423,8 +423,9 @@ None beyond counts on W1 (a `<Sparkline>` of packs per day from `reporting.regis
   "waiting for manager", or (b) an `auth.stepUp` procedure (manager username + PIN on the warehouse device → short-lived
   manager token scoped to `loadSheets.confirm`) is added and warehouse-service accepts it. Decision needed; (a) needs no backend.
 - Can but no screen (wider than the app): `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
-  `orders.create/setLines/submit/repeatLast` (a loader can place and submit orders), `catalog.propose`, `tenantCatalog.suppliers`.
-  Recommendation: keep `catalog.propose`; move the retailer/beat/visit/order writes to tuples without `warehouse`.
+  `catalog.propose`, `tenantCatalog.suppliers`. The order writes (`orders.create/setLines/submit/repeatLast`, a loader placing and
+  submitting orders): closed by DOS-115 (2026-09-13).
+  Recommendation: keep `catalog.propose`; move the retailer/beat/visit writes to tuples without `warehouse`.
 
 ### 4.4 Offline
 
@@ -488,7 +489,8 @@ None required. D8 shows totals only; D11 may show own on-time rate (`deliveryPer
   as planned; the app must never build the van sale from `orders.create` + `orders.submit` alone.
 - Can but no screen (wider than the app): `receivables.outstanding.list` (MONEY_COLLECTORS — the crew can read the whole ageing
   register; the app needs one shop at a time), `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
-  `orders.create/submit` for non-van orders, `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`.
+  `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`. The order writes (`orders.create/submit` for
+  non-van orders): closed by DOS-115 (2026-09-13).
   Recommendation: drop `delivery` from `outstanding.list`; move retailer/beat/visit writes off STAFF.
 - `retailers.get` returns the staff shape (code, tier, credit limit, credit days, mode) to the crew; the ROLE_GROUPS comment says
   credit terms are back-office. The crew needs `creditMode` and dues, not the limit. Field-level narrowing to consider.

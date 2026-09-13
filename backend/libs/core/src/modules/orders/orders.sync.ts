@@ -1,8 +1,9 @@
 import { asc, eq } from 'drizzle-orm'
 import type { SyncOp } from '@dos/contracts'
 import { salesOrderLines, salesOrders, type Db } from '@dos/db'
+import { currentTenant } from '../../platform/index.js'
 import { SyncRejection } from '../sync/index.js'
-import { callerReaches } from './orders.internals.js'
+import { callerReaches, ORDER_PLACERS } from './orders.internals.js'
 import type { OrdersService } from './orders.service.js'
 import type { EnteredLine, EnteredUnit } from './pricing-lines.js'
 
@@ -15,6 +16,9 @@ import type { EnteredLine, EnteredUnit } from './pricing-lines.js'
  * device's queue. Business faults raised deeper down (unknown variant, no price, no dated HSN rate) surface as
  * 4xx ORPCErrors, which `SyncService` already turns into rejections. Replays are handled upstream by
  * `sync_ops(tenant, device, op_id)`.
+ *
+ * The device doors follow the same rule as the five order procedures (DOS-115): only ORDER_PLACERS draft or
+ * re-line an order from a device, so `requirePlacer` refuses the godown, the crew and the accountant first.
  */
 
 const UNITS: readonly EnteredUnit[] = ['piece', 'inner', 'case']
@@ -41,8 +45,23 @@ function putOnly(op: SyncOp, table: string): void {
     )
 }
 
+/**
+ * DOS-115: the rule of `orders.create/setLines/repeatLast/submit/cancel` at the device doors — a login
+ * outside ORDER_PLACERS neither drafts nor re-lines an order by upload. First statement of both handlers,
+ * before `putOnly` and any lookup, so the answer says nothing about the order the op names.
+ */
+export function requirePlacer(): void {
+  if (!ORDER_PLACERS.includes(currentTenant().actorRole))
+    throw new SyncRejection(
+      'forbidden',
+      'This login does not draft or change orders',
+      'इस लॉगिन से ऑर्डर नहीं बनाया या बदला जा सकता',
+    )
+}
+
 /** Create or update the header of a draft order uploaded by a device. Idempotent by the row's own id. */
 export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService): Promise<void> {
+  requirePlacer()
   putOnly(op, 'sales_orders')
   const data = op.data ?? {}
   const state = str(data.state)
@@ -95,6 +114,7 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
 
 /** One line of a draft; the whole order is re-priced so the header always matches its lines. */
 export async function applyLineSync(tx: Db, op: SyncOp, orders: OrdersService): Promise<void> {
+  requirePlacer()
   putOnly(op, 'sales_order_lines')
   const data = op.data ?? {}
   const orderId = str(data.order_id)
