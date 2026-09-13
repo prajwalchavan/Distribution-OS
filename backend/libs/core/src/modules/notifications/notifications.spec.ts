@@ -29,7 +29,7 @@ import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { RetailersModule } from '../retailers/index.js'
 import { stubProviders, type ProviderSet } from './adapters/index.js'
 import { dispatchDueMessages, type DispatchOptions } from './dispatch.js'
-import { handleNotificationEvent, queueDuesReminders } from './events.js'
+import { handleNotificationEvent, queueDuesReminders, queueStatement } from './events.js'
 import { NotificationsModule } from './index.js'
 import { MAX_ATTEMPTS, RETRY_BACKOFF_MS } from './notifications.internals.js'
 
@@ -309,6 +309,31 @@ describeDb('notifications (DATABASE_URL)', () => {
           ['overdueRupees', 'oldestDueDate'],
         ),
         platformTemplate('welcome', 'in_app', 'Welcome, {{shopName}}!', ['shopName']),
+        // DOS-007: a statement with a pay link, and the same statement when there is nothing to link to.
+        platformTemplate(
+          'statement',
+          'whatsapp',
+          'Statement {{fromDate}} to {{toDate}}: opening {{openingRupees}}, closing {{closingRupees}}, overdue {{overdueRupees}}. Pay: {{upiLink}} — {{distributorName}}',
+          ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees', 'upiLink'],
+        ),
+        platformTemplate(
+          'statement',
+          'sms',
+          'Statement {{fromDate}} to {{toDate}}: balance {{closingRupees}}, overdue {{overdueRupees}}. UPI: {{upiLink}} {{distributorName}}',
+          ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees', 'upiLink'],
+        ),
+        platformTemplate(
+          'statement_no_upi',
+          'whatsapp',
+          'Statement {{fromDate}} to {{toDate}}: opening {{openingRupees}}, closing {{closingRupees}}, overdue {{overdueRupees}}. — {{distributorName}}',
+          ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees'],
+        ),
+        platformTemplate(
+          'statement_no_upi',
+          'sms',
+          'Statement {{fromDate}} to {{toDate}}: balance {{closingRupees}}, overdue {{overdueRupees}}. {{distributorName}}',
+          ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees'],
+        ),
       ])
       .onConflictDoNothing()
     app = await bootTestApp([NotificationsModule, RetailersModule])
@@ -1229,5 +1254,154 @@ describeDb('notifications (DATABASE_URL)', () => {
       { retailerId: shopC, overduePaise: 100, oldestDueDate: null },
     ])
     expect(blocked).toEqual({ queued: 0, cooled: 0, skipped: 1 })
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-007: the statement (the worker supplies receivables' figures, this module writes the row)
+
+  /** Every variable the rendered row carries is a real value: Meta refuses an empty template parameter. */
+  const expectNoEmptyVariable = (payload: Record<string, unknown>): void => {
+    for (const name of payload.variableNames as string[]) {
+      const value = payload[name]
+      expect(typeof value === 'string' && value.length > 0, `${name} is empty`).toBe(true)
+    }
+  }
+
+  it("DOS-007: a statement request queues ONE statement message to the shop with the period balances and a UPI link for today's dues, a replay adds nothing, a non-opted-in shop gets SMS and an opted-out shop is skipped", async () => {
+    const figures = {
+      from: '2026-06-14',
+      to: '2026-09-12',
+      includeUpiQr: true,
+      openingPaise: 12_300,
+      closingPaise: 39_433_500,
+      overduePaise: 28_533_200,
+      // today's dues: deliberately not the window's closing
+      duePaise: 25_000_050,
+    }
+    const eventA = uuidv7()
+    const first = await queueStatement(db, tenantId, {
+      ...figures,
+      eventId: eventA,
+      retailerId: shopA,
+    })
+    expect(first.outcome).toBe('queued')
+    const again = await queueStatement(db, tenantId, {
+      ...figures,
+      eventId: eventA,
+      retailerId: shopA,
+    })
+    expect(again.outcome).toBe('replayed')
+    const rows = await messagesByKey(`Statement:${eventA}`)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      channel: 'whatsapp', // opted in
+      templateKey: 'statement',
+      status: 'queued',
+      to: shopPhoneA,
+      recipientRetailerId: shopA,
+      refType: 'retailer',
+      refId: shopA,
+    })
+    const payload = rows[0]?.payload as Record<string, unknown>
+    expect(payload).toMatchObject({
+      fromDate: '2026-06-14',
+      toDate: '2026-09-12',
+      openingRupees: '₹123.00',
+      closingRupees: '₹3,94,335.00',
+      overdueRupees: '₹2,85,332.00',
+      distributorName: 'Notify Traders',
+      // the distributor's own VPA and name, today's dues, and no single-bill reference
+      upiLink: `upi://pay?pa=notify${run}%40okhdfcbank&pn=Notify%20Traders&am=250000.50&cu=INR`,
+    })
+    expect(payload.body).toContain('₹3,94,335.00')
+    expect(payload.body).not.toContain('{{')
+    expectNoEmptyVariable(payload)
+
+    const eventB = uuidv7()
+    const sms = await queueStatement(db, tenantId, {
+      ...figures,
+      eventId: eventB,
+      retailerId: shopB,
+    })
+    expect(sms.outcome).toBe('queued')
+    expect((await messagesByKey(`Statement:${eventB}`))[0]).toMatchObject({
+      channel: 'sms',
+      templateKey: 'statement',
+      to: shopPhoneB,
+    })
+
+    const eventC = uuidv7()
+    expect(
+      await queueStatement(db, tenantId, { ...figures, eventId: eventC, retailerId: shopC }),
+    ).toEqual({ outcome: 'skipped', reason: 'opted_out' })
+    expect(await messagesByKey(`Statement:${eventC}`)).toHaveLength(0)
+  })
+
+  it('DOS-007: a statement with nothing owed today, no pay link asked for, or a distributor with no UPI id goes out on statement_no_upi and never with an empty variable', async () => {
+    const period = {
+      from: '2026-06-14',
+      to: '2026-09-12',
+      openingPaise: 0,
+      closingPaise: 50_000,
+      overduePaise: 0,
+    }
+    const expectNoUpi = async (tid: string, eventId: string): Promise<void> => {
+      const rows = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.tenantId, tid), eq(messages.idempotencyKey, `Statement:${eventId}`)))
+      expect(rows).toHaveLength(1)
+      expect(rows[0]?.templateKey).toBe('statement_no_upi')
+      const payload = rows[0]?.payload as Record<string, unknown>
+      expect(payload).not.toHaveProperty('upiLink')
+      expect(payload.body).not.toContain('upi://')
+      expect(payload.body).not.toContain('{{')
+      expectNoEmptyVariable(payload)
+    }
+
+    // Nothing owed today (a past window may still have closed on a balance).
+    const settled = uuidv7()
+    const nothingOwed = await queueStatement(db, tenantId, {
+      ...period,
+      eventId: settled,
+      retailerId: shopA,
+      includeUpiQr: true,
+      duePaise: 0,
+    })
+    expect(nothingOwed.outcome).toBe('queued')
+    await expectNoUpi(tenantId, settled)
+
+    // Money owed, but the desk asked for no pay link.
+    const unlinked = uuidv7()
+    const noLink = await queueStatement(db, tenantId, {
+      ...period,
+      eventId: unlinked,
+      retailerId: shopB,
+      includeUpiQr: false,
+      duePaise: 50_000,
+    })
+    expect(noLink.outcome).toBe('queued')
+    await expectNoUpi(tenantId, unlinked)
+
+    // Money owed, but the distributor has configured no UPI id (bootstrap never invents one).
+    const elsewhereShop = uuidv7()
+    await db.insert(retailers).values({
+      id: elsewhereShop,
+      tenantId: otherTenantId,
+      code: `N${run}-X`,
+      name: 'Elsewhere Kirana',
+      phone: `+919${run}8`,
+      stateCode: '27',
+    })
+    const noVpaEvent = uuidv7()
+    const noVpa = await queueStatement(db, otherTenantId, {
+      ...period,
+      eventId: noVpaEvent,
+      retailerId: elsewhereShop,
+      includeUpiQr: true,
+      duePaise: 50_000,
+    })
+    expect(noVpa.outcome).toBe('queued')
+    await expectNoUpi(otherTenantId, noVpaEvent)
   })
 })

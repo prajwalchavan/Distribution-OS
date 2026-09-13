@@ -4,8 +4,14 @@ import { allocations, invoices, receipts, retailers, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { sellerBranding } from '../tenancy/index.js'
 import { allocatedAgainst } from './allocation.js'
+import { loadOutstanding } from './outstanding.js'
 import { toAllocation, toReceipt } from './receivables.mappers.js'
-import { receiptWithAllocations } from './receivables.queries.js'
+import {
+  ledgerBalances,
+  MAX_LEDGER_WINDOW_DAYS,
+  receiptWithAllocations,
+  shiftDate,
+} from './receivables.queries.js'
 
 /** What the printed receipt carries (docs/22 §4 D6: the third white-label document). */
 export interface ReceiptDocument {
@@ -71,5 +77,56 @@ export async function loadReceiptDocument(
     reversal: reversal ? toReceipt(reversal, reversalAllocated) : null,
     seller: await sellerBranding(tx),
     retailer: shop ?? { id: found.row.retailerId, code: '', name: '', phone: null },
+  }
+}
+
+/** What a shop's statement message prints (DOS-007). */
+export interface StatementSummary {
+  /** The window actually covered: `from` is clamped to `to` − 400 days, exactly as `ledger.get` clamps it. */
+  from: string
+  to: string
+  openingPaise: number
+  closingPaise: number
+  /** Overdue as of today (the rollup), whatever the window. */
+  overduePaise: number
+  /** What the shop owes today net of money on account, never below zero: the pay link's amount. */
+  duePaise: number
+  openBills: number
+}
+
+/**
+ * One shop's statement figures, for the worker's `StatementRequested` consumer. Opening and closing come
+ * from the AR journal the way `receivables.ledger.get` reads them for staff — same source, same 400-day
+ * clamp — so the message and the ledger agree for the same window; overdue and dues are TODAY's, from the
+ * outstanding rollup (a statement for a past quarter must never ask the shop to pay that quarter's balance).
+ * `null` when the shop is not this tenant's. Plain function, no Nest DI (coordination §3.9 worker rule).
+ */
+export async function loadStatementSummary(
+  tx: Db,
+  input: { retailerId: string; from: string; to: string },
+): Promise<StatementSummary | null> {
+  const { tenantId } = currentTenant()
+  const [shop] = await tx
+    .select({ id: retailers.id })
+    .from(retailers)
+    .where(and(eq(retailers.tenantId, tenantId), eq(retailers.id, input.retailerId)))
+    .limit(1)
+  if (!shop) return null
+  const earliest = shiftDate(input.to, -MAX_LEDGER_WINDOW_DAYS)
+  const from = input.from < earliest ? earliest : input.from
+  const { openingPaise, closingPaise } = await ledgerBalances(
+    tx,
+    { retailerId: shop.id, from, to: input.to },
+    true,
+  )
+  const outstanding = await loadOutstanding(tx, shop.id)
+  return {
+    from,
+    to: input.to,
+    openingPaise,
+    closingPaise,
+    overduePaise: outstanding.overduePaise,
+    duePaise: Math.max(0, outstanding.outstandingPaise - outstanding.unallocatedCreditPaise),
+    openBills: outstanding.openBills,
   }
 }

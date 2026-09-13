@@ -22,6 +22,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   useStrings,
   type RegisterColumn,
@@ -55,6 +56,7 @@ export default function Shops(): React.JSX.Element {
   const [dialog, setDialog] = useState<'credit' | 'statement' | null>(null)
   const [limit, setLimit] = useState<number | null>(null)
   const [days, setDays] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list({}), {
     staleTime: 300_000,
@@ -367,9 +369,28 @@ export default function Shops(): React.JSX.Element {
                 creditMode: current.creditMode,
               })
               .then(done, done)
-          else void statement.mutateAsync(current.id).then(done, done)
+          else
+            void statement.mutateAsync(current.id).then(
+              () => {
+                done()
+                setToast(t('o6.statementSent'))
+              },
+              (error: unknown) => {
+                done()
+                setToast(error instanceof Error ? error.message : t('app.retry'))
+              },
+            )
         }}
         testID="shop-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="shop-toast"
       />
     </Screen>
   )

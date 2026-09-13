@@ -126,6 +126,7 @@ import {
 import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
 import {
+  MAX_LEDGER_WINDOW_DAYS,
   listAccounts,
   listCashDiscounts,
   listJournal,
@@ -186,8 +187,6 @@ const SHOPKEEPER: readonly ActorRole[] = ['retailer']
 
 /** How many shops one `ageing.rebuild` statement handles before taking the next page (scale rule 3). */
 const AGEING_BATCH = 500
-/** A statement of account never looks further back than this in one request (scale rule 3). */
-const MAX_LEDGER_WINDOW_DAYS = 400
 /** How long the UPI intent a shop is shown stays quotable. */
 const PAYMENT_INTENT_MINUTES = 30
 
@@ -1283,11 +1282,19 @@ export class ReceivablesService {
   // =============================================================================================================
 
   /**
-   * Long work never runs on the request path (scale rule 3): one `outbox_events` row per statement is
-   * written inside the transaction and the worker renders and sends them.
+   * Long work never runs on the request path (scale rule 3): one `StatementRequested` outbox row per shop
+   * is written inside the transaction. The worker's consumer (`backend/worker/src/jobs/notifications.ts`)
+   * reads the window's balances and today's dues (`loadStatementSummary`) and queues ONE WhatsApp / SMS
+   * statement per shop through notifications. The PDF statement is not built, so a `pdf` run is refused
+   * here rather than accepted and never sent (DOS-007).
    */
   async sendStatements(input: StatementsIn): Promise<StatementsOut> {
     requireRole(BACK_OFFICE)
+    if (input.channel === 'pdf')
+      throw new ORPCError('NOT_IMPLEMENTED', {
+        message:
+          'statement_pdf_not_rendered: a statement is sent as a WhatsApp/SMS summary; the PDF is not built yet',
+      })
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

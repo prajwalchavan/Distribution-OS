@@ -28,7 +28,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { SyncModule } from '../sync/index.js'
-import { ReceivablesModule, ReceivablesService } from './index.js'
+import { loadStatementSummary, ReceivablesModule, ReceivablesService } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -1942,5 +1942,127 @@ describeDb('receivables (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(401)
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-007: the statement a shop is sent (the worker's StatementRequested consumer reads these figures)
+
+  it("DOS-007: loadStatementSummary gives the same opening and closing as ledger.get for the same window (including a clamped 500-day window), today's dues equal to the AR balance and the rollup's overdue", async () => {
+    // A shop with one bill 455 days old and one 30 days old: only a window past 400 days tells a clamped
+    // opening from an unclamped one.
+    const oldShop = uuidv7()
+    await db.insert(retailers).values({
+      id: oldShop,
+      tenantId,
+      code: `S0-${run}`,
+      name: `Old shop ${run}`,
+      phone: `+9192${run}0`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    await seedInvoice({ id: uuidv7(), retailerId: oldShop, totalPaise: 7_000, dueOffsetDays: -440 })
+    await seedInvoice({ id: uuidv7(), retailerId: oldShop, totalPaise: 3_000, dueOffsetDays: -15 })
+
+    const desk = ctxFor('accountant', accountantId)
+    const summaryOf = (retailerId: string, from: string, to: string) =>
+      as(desk, (tx) => loadStatementSummary(tx, { retailerId, from, to }))
+    const windows: readonly (readonly [string, string, string])[] = [
+      [shop.a, day(-90), day(0)], // what the shop panel sends
+      [shop.a, day(-20), day(0)], // opens on a balance
+      [oldShop, day(-500), day(0)], // past the 400-day cap: ledger.get clamps it
+      [oldShop, day(-500), day(-100)], // a past window
+    ]
+    for (const [retailerId, from, to] of windows) {
+      const ledger = await call<LedgerReply>(
+        app,
+        accountant,
+        'GET',
+        `/receivables/ledger/${retailerId}`,
+        { from, to, limit: 1 },
+      )
+      expect(ledger.status).toBe(200)
+      const summary = await summaryOf(retailerId, from, to)
+      expect({ opening: summary?.openingPaise, closing: summary?.closingPaise }).toEqual({
+        opening: ledger.body.openingPaise,
+        closing: ledger.body.closingPaise,
+      })
+    }
+    expect((await summaryOf(shop.a, day(-20), day(0)))?.openingPaise).toBeGreaterThan(0)
+    // The clamp: the statement prints the window it actually covers.
+    expect(await summaryOf(oldShop, day(-500), day(0))).toMatchObject({
+      from: day(-400),
+      to: day(0),
+      openingPaise: 7_000,
+      closingPaise: 10_000,
+    })
+    // A past window closes on its own balance; the dues are still today's.
+    expect(await summaryOf(oldShop, day(-500), day(-100))).toMatchObject({
+      closingPaise: 7_000,
+      duePaise: 10_000,
+    })
+    expect((await summaryOf(oldShop, day(-500), day(-100)))?.duePaise).toBe(
+      await arBalance(oldShop),
+    )
+
+    const rollup = await call<Outstanding>(
+      app,
+      accountant,
+      'GET',
+      `/receivables/outstanding/${shop.a}`,
+    )
+    expect(rollup.status).toBe(200)
+    const current = await summaryOf(shop.a, day(-90), day(0))
+    expect(current?.duePaise).toBe(await arBalance(shop.a))
+    expect(current).toMatchObject({
+      overduePaise: rollup.body.overduePaise,
+      openBills: rollup.body.openBills,
+      duePaise: Math.max(0, rollup.body.outstandingPaise - rollup.body.unallocatedCreditPaise),
+    })
+    // Another distributor's shop, or no shop at all: nothing to send.
+    expect(await summaryOf(otherRetailer, day(-90), day(0))).toBeNull()
+  })
+
+  it('DOS-007: a statement run asking for a PDF is refused 501 and writes no StatementRequested row, while a WhatsApp run still queues one', async () => {
+    const requested = async (jobId: string): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(sql`
+              select count(*)::int as n from outbox_events
+               where tenant_id = ${tenantId} and event_type = 'StatementRequested'
+                 and payload->>'jobId' = ${jobId}`)
+          ).rows[0] as { n: number }
+        ).n,
+      )
+    const run1 = {
+      retailerIds: [shop.b],
+      from: day(-90),
+      to: day(0),
+      includeUpiQr: true,
+      overdueOnly: false,
+    }
+    const pdfJob = uuidv7()
+    const pdf = await call<{ message: string }>(app, owner, 'POST', '/receivables/statements', {
+      ...run1,
+      idempotencyKey: `stmt-pdf-${run}`,
+      id: pdfJob,
+      channel: 'pdf',
+    })
+    expect(pdf.status).toBe(501)
+    expect(pdf.body.message).toMatch(/^statement_pdf_not_rendered/)
+    expect(await requested(pdfJob)).toBe(0)
+
+    const whatsappJob = uuidv7()
+    const whatsapp = await call<{ jobId: string; queued: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receivables/statements',
+      { ...run1, idempotencyKey: `stmt-wa-${run}`, id: whatsappJob, channel: 'whatsapp' },
+    )
+    expect(whatsapp.status).toBe(200)
+    expect(whatsapp.body).toEqual({ jobId: whatsappJob, queued: 1 })
+    expect(await requested(whatsappJob)).toBe(1)
   })
 })

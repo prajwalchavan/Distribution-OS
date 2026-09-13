@@ -202,7 +202,7 @@ export const strings = {
   'o6.creditBills': 'Open bills allowed',
   'o6.creditMode': 'When it is crossed',
   'o6.statement': 'Send statement',
-  'o6.statementSent': 'Statement sent',
+  'o6.statementSent': 'Statement queued for sending',
   'o6.ledger': 'Ledger',
   'o6.behaviour': 'Behaviour',
   'o6.visits': 'Visits',
@@ -305,6 +305,7 @@ export const strings = {
   'o10.writeOffReason': 'Reason',
   'o10.cashDiscounts': 'Cash-discount windows',
   'o10.statements': 'Send statements',
+  'o10.statementsSent': '{count} statements queued',
   'o10.empty': 'Nothing is owed',
 
   // --- O11 Receipts & banking --------------------------------------------------------------------------
@@ -753,6 +754,8 @@ export const strings = {
   'word.order_confirmed': 'Order confirmed',
   'word.invoice_issued': 'Bill issued',
   'word.dues_reminder': 'Dues reminder',
+  'word.statement': 'Statement',
+  'word.statement_no_upi': 'Statement',
   'word.scheme_announcement': 'Scheme announcement',
 
   // Chart series: `reporting.series.*` names its metrics in code, the screen names them in words.
