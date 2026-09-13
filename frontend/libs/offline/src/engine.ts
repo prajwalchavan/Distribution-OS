@@ -250,9 +250,10 @@ export class SyncEngine {
     this.opening = new Promise<void>((resolve) => {
       opened = resolve
     })
+    let unclaimed: SyncStore | null = null
     try {
       const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
-      this.store = store
+      unclaimed = store
       await createSystemTables(store)
       await store.exec(
         `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
@@ -264,6 +265,14 @@ export class SyncEngine {
        * answered, and a colleague at the same distributor was never re-snapshotted at all.
        */
       await this.claimIdentity(store)
+      /*
+       * Only now does the engine answer from this file (DOS-167, ruling (o)). `outbox()` and
+       * `needsAttention()` have no shape to gate them, and `useOutbox` asks the moment the provider sets the
+       * engine: handed the store before the claim, they read another person's queue and refusals for as
+       * long as the claim took.
+       */
+      this.store = store
+      unclaimed = null
       await writeState(store, 'deviceId', this.options.deviceId)
       this.schemaVersion = await readState(store, 'schemaVersion')
       this.lastPulledAt = await readState(store, 'lastPulledAt')
@@ -284,6 +293,10 @@ export class SyncEngine {
        * device gains the ability to answer, so it says so.
        */
       this.bus.emit([...this.shapes.keys(), OUTBOX_CHANNEL])
+    } catch (error) {
+      // A file opened and never claimed is this call's alone to close: no `stop()` or `end()` can reach it.
+      if (unclaimed !== null) await unclaimed.close().catch(() => {})
+      throw error
     } finally {
       opened()
     }

@@ -312,6 +312,91 @@ describe('DOS-167 one file per app, person and distributor', () => {
     expect(await readState(store, 'role')).toBe('delivery')
     await asCrew.stop()
   })
+
+  /*
+   * Ruling (o). The stamp is checked before a shape is restored, but the store used to be handed to the engine
+   * before the check: `outbox()` and `needsAttention()` have no shape to gate them, and `useOutbox` asks the
+   * moment the provider sets the engine, while `start()` is still opening.
+   */
+  it('DOS-167 outbox() and needsAttention() answer nothing until the identity is claimed', async () => {
+    // Amit's file, holding an order he queued and one the office refused.
+    const inner = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.offline = true
+    const amit = engineAs(AMIT, inner, server.transport())
+    await amit.start()
+    await amit.stop()
+    await inner.exec(
+      `INSERT INTO ${OUTBOX_TABLE} (op_id, tbl, row_id, op, data, idempotency_key, status, attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'op-amit',
+        'sales_orders',
+        'o-amit',
+        'PUT',
+        '{}',
+        'op-amit',
+        'queued',
+        0,
+        '2026-09-13T11:00:00.000Z',
+      ],
+    )
+    await inner.exec(
+      `INSERT INTO ${SYNC_ERRORS_TABLE} (op_id, tbl, row_id, code, message, created_at, discarded_at)
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [
+        'op-amit-refused',
+        'sales_orders',
+        'o-amit-refused',
+        'credit_hold',
+        'Shop is on credit hold',
+        '2026-09-13T11:00:00.000Z',
+      ],
+    )
+
+    // Rahul's engine is handed that file, and reading whose it is takes a moment.
+    let openDoor = (): void => {}
+    const door = new Promise<void>((resolve) => {
+      openDoor = resolve
+    })
+    let firstStateRead = true
+    const store: SyncStore = {
+      persistent: inner.persistent,
+      kind: inner.kind,
+      exec: (sql, params) => inner.exec(sql, params),
+      async query<T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> {
+        if (firstStateRead && sql.includes('_sync_state')) {
+          firstStateRead = false
+          await door
+        }
+        return inner.query<T>(sql, params)
+      },
+      transaction: (fn) => inner.transaction(fn),
+      close: () => inner.close(),
+    }
+    const rahul = engineAs(RAHUL, store, server.transport())
+    const starting = rahul.start()
+    await sleep(0)
+
+    const duringClaim = {
+      outbox: (await rahul.outbox()).map((op) => op.opId),
+      needsAttention: (await rahul.needsAttention()).map((item) => item.error.opId),
+      pending: rahul.status().pending,
+    }
+    openDoor()
+    await starting
+    const afterClaim = {
+      outbox: (await rahul.outbox()).map((op) => op.opId),
+      needsAttention: (await rahul.needsAttention()).map((item) => item.error.opId),
+    }
+
+    expect({ duringClaim, afterClaim }).toEqual({
+      duringClaim: { outbox: [], needsAttention: [], pending: 0 },
+      // The foreign file was wiped at the claim.
+      afterClaim: { outbox: [], needsAttention: [] },
+    })
+    await rahul.stop()
+  })
 })
 
 // 13 -------------------------------------------------------------------------------------------------------------
