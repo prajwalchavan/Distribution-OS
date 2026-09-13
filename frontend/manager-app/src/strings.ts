@@ -547,6 +547,7 @@ export const strings = {
   'm9.deposit': 'Bank it',
   'm9.bounce': 'Mark bounced',
   'm9.notBankable': 'Only cash or a cheque in hand goes to the bank',
+  'm9.withCrew': 'Still with the delivery crew — bank it once the trip is settled',
   'm9.notBounceable': 'Only a cheque in hand or banked can bounce',
 
   // --- M10 Day-end: banking, cheques, trip settlement ------------------------------------------------

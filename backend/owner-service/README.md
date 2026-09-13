@@ -12538,13 +12538,14 @@ Receipts (a shop sees only its own) · contract `receivables.receipts.list`
 | `from` | date | no |
 | `to` | date | no |
 | `unallocatedOnly` | boolean | string | no |
+| `withCrew` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3001/receipts?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&mode=cash&status=collected&from=2026-09-04&to=2026-09-04&unallocatedOnly=true&limit=50" \
+curl "http://localhost:3001/receipts?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&mode=cash&status=collected&from=2026-09-04&to=2026-09-04&unallocatedOnly=true&withCrew=true&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -12758,7 +12759,8 @@ curl "http://localhost:3001/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "logoUrl": "docs/2026/09/invoice-0042.jpg",
     "invoiceFooter": "text",
     "upiVpa": "text"
-  }
+  },
+  "withCrew": true
 }
 ```
 

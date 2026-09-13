@@ -131,6 +131,29 @@ export const TRIP_TERMINAL: ReadonlySet<TripState> = new Set([
 ])
 /** A trip the crew is out on: the only states a doorstep write, a collection or a GPS point belong to. */
 export const TRIP_ON_THE_ROAD: ReadonlySet<TripState> = new Set(['active', 'closing'])
+/**
+ * A trip whose cash has reached the office (DOS-132). A settlement is the only thing that moves a trip's cash
+ * out of CASH_VAN, so `cancelled` is deliberately not in it: a receipt naming a cancelled trip is never in hand.
+ */
+export const TRIP_CASH_HANDED_OVER: ReadonlySet<TripState> = new Set([
+  'settled',
+  'settled_with_variance',
+])
+
+/**
+ * "This trip's money is in the office", as SQL receivables embeds (DOS-132). Delivery owns `trips`, so it hands
+ * this predicate to `ReceivablesService.registerTripSettled` at start-up and receivables never names the table.
+ * Tenant-qualified on top of `trips_read` RLS, and a lookup on the trips primary key. The state list comes from
+ * `TRIP_CASH_HANDED_OVER`, so the two cannot drift.
+ */
+export function tripSettledSql(tripId: SQL, tenantId: string): SQL {
+  const handedOver = sql.join(
+    [...TRIP_CASH_HANDED_OVER].map((state) => sql`${state}`),
+    sql`, `,
+  )
+  return sql`exists (select 1 from trips t
+    where t.id = ${tripId} and t.tenant_id = ${tenantId} and t.state in (${handedOver}))`
+}
 
 /**
  * The events that take a stop from where it is to `target`, every one of them through

@@ -427,3 +427,30 @@ export async function writeAgeingSnapshot(
       },
     })
 }
+
+/** How many shops one ageing-rebuild page handles before taking the next one (scale rule 3). */
+export const AGEING_BATCH = 500
+
+/**
+ * One page of the ageing rebuild: recompute and store the named shops' dues as of `asOf`, then write the
+ * day's snapshot for them. The one body both rebuilds share — the owner's `receivables.ageing.rebuild`
+ * procedure and the worker's nightly `rebuildTenantAgeing` (ageing-rebuild.ts) — so the computation
+ * stays one code path.
+ */
+export async function rebuildAgeingPage(
+  tx: Db,
+  asOf: string,
+  retailerIds: readonly string[],
+): Promise<{ retailers: number; outstandingPaise: number; overduePaise: number }> {
+  const rows = await refreshOutstandingFor(tx, retailerIds, asOf)
+  await writeAgeingSnapshot(tx, asOf, [...rows.values()])
+  let retailers = 0
+  let outstandingPaise = 0
+  let overduePaise = 0
+  for (const row of rows.values()) {
+    retailers += 1
+    outstandingPaise += row.outstandingPaise ?? 0
+    overduePaise += row.overduePaise ?? 0
+  }
+  return { retailers, outstandingPaise, overduePaise }
+}

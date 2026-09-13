@@ -6,6 +6,7 @@ export {
   type InvoiceForPosting,
   type RecordReceiptInput,
   type RecordReceiptResult,
+  type TripSettledPredicate,
 } from './receivables.service.js'
 /** Moved here from `modules/orders/credit.ts` (docs/plans/00-coordination.md §3.1); orders re-exports it. */
 export {
@@ -17,7 +18,12 @@ export {
 } from './credit.js'
 /** The open balance of one bill, as a plain function for the document loaders (billing's renderer data). */
 export { invoiceOpenPaise } from './allocation.js'
-export { loadReceiptDocument, type ReceiptDocument } from './documents.js'
+export {
+  loadReceiptDocument,
+  loadStatementSummary,
+  type ReceiptDocument,
+  type StatementSummary,
+} from './documents.js'
 /**
  * Reads reporting (slice 9) composes (coordination §3.1 / §4). Plain functions, so the worker's rollup
  * and the CSV renderers use them without Nest DI; `ReceivablesService` delegates to the same code.
