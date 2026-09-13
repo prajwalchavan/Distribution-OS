@@ -1,0 +1,426 @@
+{
+ "build": {
+  "status": "fixed",
+  "commits": [
+   "dcbd1c8 fix(DOS-167): ruling 2 (s) \u2014 a 51-character store name web SQLite can open",
+   "8a62f92 fix(DOS-167): ruling 2 (t) \u2014 a store in memory says so and never offers to keep",
+   "910eb3f fix(DOS-167): ruling 2 (u) \u2014 an order and its lines are queued as one write",
+   "428f886 fix(DOS-167): ruling 2 (v) \u2014 the sign-out refusal reaches the order screen in its own words",
+   "e4d251e fix(DOS-167): ruling 2 (x) \u2014 end() and stop() drain the store before it closes",
+   "fb2b786 fix(DOS-167): ruling 2 (y) \u2014 a crash during sign-out never leaves the person signed in",
+   "840f494 fix(DOS-167): ruling 2 \u2014 address review, one holder of a device file at a time",
+   "2956624 fix(DOS-167): ruling 2 \u2014 address review, the leaving runs inside the sign-out and waits for the secure store",
+   "9dc1c0d fix(DOS-167): ruling 2 \u2014 address review, an answer for an ended session signs nobody back in",
+   "c1ce0a7 fix(DOS-167): ruling 2 \u2014 address review, docs/27 for the review fixes and the BigInt note"
+  ],
+  "failBefore": "FIRST ROUND (dcbd1c8..fb2b786): as the implementer reported and the verifier re-confirmed by reverse-applying each commit. (s) the name came out as 'dos-sales__u-\u2026__t-\u2026.db' and 'interimStoreName is not a function'. (t) nothing was announced, storeNote was undefined, and 'leaveButtons is not a function'. (u) 'leaving.enqueueMany is not a function'; the keep path had no sweep. (v) kind 'unknown' with the generic sentence. (x) store calls started or finished after close began. (y) 'client.signOutOnDevice is not a function', and end ran while still signed in.\n\nREVIEW ROUND. Every red run was taken on the code before its fix, one vitest file per command, and saved under scratchpad/red2/.\n\n- 840f494 (problem 2, file holds), offline identity.test.ts:\n  - 'the same person signing straight back in\u2026': whileTheFirstEnds was {opens: 2, ready: true}. back.write was 'no such table: _outbox', outbox the same, shops 'no such table: retailers', pending 0.\n  - 'the sweep never takes a file an engine holds\u2026': sweptWhileSaiIsOpen was {destroyed: 1}, saiShops 'no such table: retailers', readyWhileSwept true, said []. The balaji write failed with 'no such table: _outbox'.\n- 2956624 (problems 2 and 3):\n  - api-client 'signing out on the device does not wait for the network': onTheDevice undefined and revoke [].\n  - api-client 'a sign-in on this phone waits\u2026': whileLeaving.asked was ['/auth/login'] with Amit's session already set, and there was no '/auth/logout' afterwards.\n  - api-client 'the leaving is told when the session has left the platform store\u2026': asked 0.\n  - offline 'end() touches the store only once the session has left the device store': 15 store calls before the removal landed.\n  - sales, delivery and warehouse leave.test.ts: 3 failed each, with 'TypeError: revoke is not a function' and unhandled 'TypeError: leave is not a function'.\n- 9dc1c0d (problem 1), api-client 'a refresh in flight when the person signs out on the device signs nobody back in':\n  - nobody signs in next: read 'answered', signedIn 'Rahul Deshmukh', accessToken 'access-rotated', refreshToken 'refresh-rotated', the ping was replayed with 'Bearer access-rotated', and only the kept token was revoked.\n  - Amit signs in next: Amit's session was replaced by Rahul's rotated pair (signedIn 'Rahul Deshmukh', accessToken 'access-rotated').",
+  "passAfter": "Final runs on HEAD c1ce0a7, one vitest file per command:\n\n| File | Result |\n|---|---|\n| frontend/libs/offline/src/identity.test.ts | 26/26 |\n| frontend/libs/offline/src/engine.test.ts | 29/29 |\n| frontend/libs/api-client/src/identity.test.ts | 7/7 |\n| frontend/libs/api-client/src/client.test.ts | 22/22 |\n| frontend/libs/api-client/src/errors.test.ts | 12/12 |\n| sales-app src/lib/leave.test.ts | 6/6 |\n| delivery-app src/lib/leave.test.ts | 6/6 |\n| warehouse-app src/lib/leave.test.ts | 6/6 |\n| sales-app src/lib/draft.test.ts | 1/1 |\n\nAlso run during the review round:\n- offline sql.test.ts: 10/10, after 840f494.\n- api-client storage.test.ts: 8/8, and platform-client.test.ts: 5/5, both after 9dc1c0d.\n\nTypes and lint, each after that package's last code change:\n- `tsc --noEmit` exited 0 for @dos/api-client (after 9dc1c0d), @dos/offline (after c1ce0a7), and @dos/sales-app, @dos/delivery-app and @dos/warehouse-app (after 2956624; the later commits do not touch them).\n- `eslint .` exited 0 for @dos/api-client and @dos/offline.\n- For the three apps, eslint was run only on the files touched (src/lib/leave.ts, src/lib/leave.test.ts, src/api.ts, app/_layout.tsx) and exited 0. The first sales run flagged no-base-to-string in the test label; that was fixed and re-run.\n\n`prettier --write` was run on every touched frontend file. docs/27 was not formatted. `git status --short --untracked-files=all` is empty.",
+  "testsAdded": [
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 the 199952b store is swept once for the signed-in person: deleted when empty, kept and logged with a queue"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 a memory store is announced at start and named in the status"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 an order and its lines are queued whole or not at all"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 end() never lets a store call start or run after close begins"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 the SQLite adapter refuses a call after close began"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 end() touches the store only once the session has left the device store"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 the same person signing straight back in opens the file only once the engine before has closed it"
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 the sweep never takes a file an engine holds, and an engine waits for a sweep that holds its file"
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 an engine that is signing out reaches the screen as a sign-in-again error in its own words"
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 signing out on the device does not wait for the network"
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 a sign-in on this phone waits until the sign-out before it has left the device"
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 the leaving is told when the session has left the platform store, not only its cache"
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 a refresh in flight when the person signs out on the device signs nobody back in"
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait"
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait"
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait"
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out"
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out"
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out"
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched"
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched"
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched"
+   }
+  ],
+  "testsCorrected": [
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 storeNameFor keys the file by app, user and distributor",
+    "before": "Expected 'dos-sales__u-rahul__t-tarsun.db' and names matching [A-Za-z0-9_.-]. It checked that 'a/b', '../rahul', 'tarsun:sai', '' and the prefix 'dos/sales' throw.",
+    "after": "The name for Rahul at Tarsun is 's80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft'. Every name matches /^[sdw][0-9a-z]{50}$/ and './'+name is at most 56 characters. parseStoreName round-trips 200 seeded UUIDs plus the all-zero and all-f ids. A different user, tenant or app gives a different name; a different role or an upper-case id gives the same one. The ids 'a', 'a/b', '../rahul', '' and the prefixes 'dos/sales', 'dos-shop' throw.",
+    "why": "Ruling 2 (s) says to rewrite this test for the 51-character base-36 format."
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 the SQLite adapter's destroy closes then deletes the file by name",
+    "before": "Identity {userId:'a', tenantId:'t1'}, expecting 'deleteDatabaseAsync dos-sales__u-a__t-t1.db'.",
+    "after": "Uses Rahul's and Tarsun's UUIDs and expects 'deleteDatabaseAsync s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft'.",
+    "why": "Ruling 2 (s): this test takes canonical-UUID fixtures, because 'a' and 't1' are now refused."
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 sweepIdentityStores deletes a sibling identity's empty store and keeps one with a queue",
+    "before": "AT_SAI and AT_BALAJI used the tenant ids 'sai' and 'balaji'.",
+    "after": "Both use UUID tenant ids (SAI_ID, BALAJI_ID). The assertions are unchanged.",
+    "why": "Ruling 2 (s): the sweep tests take canonical-UUID fixtures."
+   },
+   {
+    "file": "frontend/libs/offline/src/identity.test.ts",
+    "name": "DOS-167 sweepIdentityStores closes a store it could not count and never deletes it",
+    "before": "AT_SAI and AT_BALAJI used the tenant ids 'sai' and 'balaji'.",
+    "after": "Both use UUID tenant ids. The assertions are unchanged.",
+    "why": "Ruling 2 (s)."
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count (renamed: '\u2026 clears the session on the phone before it ends the engine and never deletes what it did not count')",
+    "before": "The mock had signOut. Expected calls:\n- clean: [waiting, counted 0+0, end keepQueue=false, sweep, forgetDrafts, signOut]\n- unreadable: [waiting, end keepQueue=true, signOut]\n- endFails: last call 'signOut'\n- sent: [sendNow, end keepQueue=false, sweep, forgetDrafts, signOut]\n- keep: [end keepQueue=true, signOut]",
+    "after": "The mock's signOutOnDevice(leave) records 'signOutOnDevice', runs await leave(Promise.resolve()) and then records 'revoke'. Expected calls:\n- clean: [waiting, counted 0+0, signOutOnDevice, end keepQueue=false, sweep, forgetDrafts, revoke]\n- unreadable: [waiting, signOutOnDevice, end keepQueue=true, sweep, revoke]\n- endFails: the same as clean\n- sent: [sendNow, signOutOnDevice, end keepQueue=false, sweep, forgetDrafts, revoke]\n- keep: [signOutOnDevice, end keepQueue=true, sweep, revoke]",
+    "why": "Ruling 2 (u): the sweep runs on every sign-out. Addendum (y): the session is cleared before end. Review problem 2: end, sweep and forgetDrafts run inside signOutOnDevice's leaving, and the client revokes after it. Only the mock changed in the review round; the expected lists are from fb2b786."
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count (renamed as in sales)",
+    "before": "The mock had signOut. The call lists ended in 'signOut'; keep and unreadable had no 'sweep'.",
+    "after": "The mock's signOutOnDevice(leave) runs the leaving and then records 'revoke'. Each list starts the leaving with signOutOnDevice, sweeps on every sign-out and ends with revoke; there is no forgetDrafts.",
+    "why": "Ruling 2 (u), addendum (y) and review problem 2."
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count (renamed as in sales)",
+    "before": "The same shape as delivery: the mock had signOut and the lists ended in 'signOut'.",
+    "after": "The same shape as delivery: signOutOnDevice runs the leaving, then 'revoke'.",
+    "why": "Ruling 2 (u), addendum (y) and review problem 2."
+   },
+   {
+    "file": "frontend/libs/api-client/src/identity.test.ts",
+    "name": "DOS-167 signing out on the device does not wait for the network (added in this lane at fb2b786; changed in the review round)",
+    "before": "At fb2b786 it called client.signOutOnDevice(), read the device state straight after, then called the returned revoke and expected answer 'still waiting'.",
+    "after": "It passes a leaving that records the device state when it begins: all null, with 0 network calls. It expects the logout with the kept token to be sent after the leaving has settled, and the returned promise to resolve ('answered') although that revoke never answers.",
+    "why": "Review problem 2 changed the API to signOutOnDevice(leave): the revoke follows the leaving and the returned promise is the leaving's."
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched (added in this lane at fb2b786; changed in the review round)",
+    "before": "At fb2b786 the mock's signOutOnDevice returned a revoke function, and the end label was 'end keepQueue=true signedIn=false'.",
+    "after": "The mock's signOutOnDevice(leave) sets signedIn false, runs await leave(stored) and then records 'revoke'. end records after=stored.\n- keep: ['signOutOnDevice', 'end keepQueue=true signedIn=false after=stored', 'sweep', 'revoke']\n- crash: ['signOutOnDevice', 'end keepQueue=true signedIn=false after=stored'] with signedIn false",
+    "why": "Review problems 2 and 3: the leaving runs inside signOutOnDevice, and end waits for the session's removal from the platform store."
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched (added in this lane at fb2b786; changed in the review round)",
+    "before": "The mock returned a revoke function; the end label had no after.",
+    "after": "The same change as in sales: end gets after=stored, and 'revoke' follows the leaving.",
+    "why": "Review problems 2 and 3."
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 the keep sign-out clears the stored session before the store is touched (added in this lane at fb2b786; changed in the review round)",
+    "before": "The mock returned a revoke function; the end label had no after.",
+    "after": "The same change as in sales: end gets after=stored, and 'revoke' follows the leaving.",
+    "why": "Review problems 2 and 3."
+   },
+   {
+    "file": "frontend/sales-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out (added in this lane; mock changed in the review round)",
+    "before": "The mock's signOutOnDevice returned a revoke function.",
+    "after": "The mock runs await leave(Promise.resolve()) and then records 'revoke'. The expected lists are unchanged: recount [signOutOnDevice, end keepQueue=false, sweep, revoke]; keep [signOutOnDevice, end keepQueue=true, sweep, revoke]; gone [signOutOnDevice, end keepQueue=false, sweep, forgetDrafts, revoke].",
+    "why": "Review problem 2 changed the signOutOnDevice shape."
+   },
+   {
+    "file": "frontend/delivery-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out (added in this lane; mock changed in the review round)",
+    "before": "The mock's signOutOnDevice returned a revoke function.",
+    "after": "The mock runs the leaving and then records 'revoke'. The expected lists are unchanged.",
+    "why": "Review problem 2 changed the signOutOnDevice shape."
+   },
+   {
+    "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+    "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out (added in this lane; mock changed in the review round)",
+    "before": "The mock's signOutOnDevice returned a revoke function.",
+    "after": "The mock runs the leaving and then records 'revoke'. The expected lists are unchanged.",
+    "why": "Review problem 2 changed the signOutOnDevice shape."
+   }
+  ],
+  "filesChanged": [
+   "docs/27-offline-sync-client.md",
+   "frontend/libs/offline/README.md",
+   "frontend/libs/offline/src/engine.ts",
+   "frontend/libs/offline/src/react.tsx",
+   "frontend/libs/offline/src/shared.ts",
+   "frontend/libs/offline/src/types.ts",
+   "frontend/libs/offline/src/store/memory.ts",
+   "frontend/libs/offline/src/store/open.web.ts",
+   "frontend/libs/offline/src/store/open.native.ts",
+   "frontend/libs/offline/src/store/expo-sqlite.ts",
+   "frontend/libs/offline/src/identity.test.ts",
+   "frontend/libs/api-client/src/errors.ts",
+   "frontend/libs/api-client/src/client.ts",
+   "frontend/libs/api-client/src/session.ts",
+   "frontend/libs/api-client/src/storage.ts",
+   "frontend/libs/api-client/src/react/index.tsx",
+   "frontend/libs/api-client/src/identity.test.ts",
+   "frontend/sales-app/src/strings.ts",
+   "frontend/sales-app/src/api.ts",
+   "frontend/sales-app/src/lib/leave.ts",
+   "frontend/sales-app/src/lib/leave-sheet.tsx",
+   "frontend/sales-app/src/lib/leave.test.ts",
+   "frontend/sales-app/src/lib/queue.ts",
+   "frontend/sales-app/app/_layout.tsx",
+   "frontend/delivery-app/src/strings.ts",
+   "frontend/delivery-app/src/api.ts",
+   "frontend/delivery-app/src/lib/leave.ts",
+   "frontend/delivery-app/src/lib/leave-sheet.tsx",
+   "frontend/delivery-app/src/lib/leave.test.ts",
+   "frontend/delivery-app/app/_layout.tsx",
+   "frontend/warehouse-app/src/strings.ts",
+   "frontend/warehouse-app/src/api.ts",
+   "frontend/warehouse-app/src/lib/leave.ts",
+   "frontend/warehouse-app/src/lib/leave-sheet.tsx",
+   "frontend/warehouse-app/src/lib/leave.test.ts",
+   "frontend/warehouse-app/app/_layout.tsx"
+  ],
+  "amendments": [
+   {
+    "amendment": "(s) The store name is <app><user><distributor>: 51 lowercase base-36 characters, with parseStoreName and a one-time sweep of the 199952b name.",
+    "done": true,
+    "how": "Unchanged from dcbd1c8, which the verifier marked satisfied.\n- engine.ts has the app-letter table; ids must be canonical UUIDs, written as BigInt base 36 padded to 25 digits.\n- parseStoreName, interimStoreName and SyncEngine.sweepStores exist; react.tsx sweepInterimStore runs once per identity.\n- docs/27 \u00a72 and \u00a713 test 12, and README line 45, are updated.\n- Review minor 5: c1ce0a7 adds a note beside the BigInt call and in docs/27 \u00a72. Hermes has BigInt from RN 0.70, the Android proof checks typeof BigInt, and the four-limb fallback is the rule should it be missing."
+   },
+   {
+    "amendment": "(t) The fallback is loud, the status names it, and a memory store's leave sheet never offers keep or switch anyway, so the sign-out waits.",
+    "done": true,
+    "how": "Unchanged from 8a62f92, which the verifier marked satisfied.\n- SyncStore gains fallback, and SyncStatus gains storeNote.\n- The openers give their reasons, and start() writes the log line.\n- useLeaveSession exposes persistent.\n- leaveButons and leaveSentence, with the leave.bodyMemory string, are in all three apps; leave-sheet.tsx renders from leaveButtons."
+   },
+   {
+    "amendment": "(u) An order and its lines are queued as one write, whole or not at all; a kept file keeps its drafts; the sweep runs on every sign-out.",
+    "done": true,
+    "how": "Unchanged from 910eb3f: SyncEngine.enqueueMany, and sales useEnqueueOrder calls it once.\n- LeaveSteps.end returns {kept}.\n- Sales forgets drafts only when !kept.\n- The sweep runs on every sign-out. Since 2956624 the sweep and forgetDrafts run inside the signOutOnDevice leaving."
+   },
+   {
+    "amendment": "(v) The refusal reaches the sales order screen in its own words.",
+    "done": true,
+    "how": "Unchanged from 428f886: toApiError maps an error whose name is 'SyncEngineEndedError' to kind 'auth' with its own message, without importing @dos/offline."
+   },
+   {
+    "amendment": "(w) The count stays as outbox ops (S-121 open).",
+    "done": true,
+    "how": "No change, as ruled."
+   },
+   {
+    "amendment": "(x) Addendum: end() drains the store before it closes; stop() and a switch use the same drain; the adapter refuses late calls and closes once.",
+    "done": true,
+    "how": "Unchanged from e4d251e, which the verifier marked satisfied.\n- HeldStore tracks every call and drains before a single close.\n- Reads are gated once the engine has ended or stopped.\n- The expo-sqlite adapter throws StoreClosedError for any call after close began.\n- Since 840f494, stop() and end() also let go of the file hold, but only after the close has resolved."
+   },
+   {
+    "amendment": "(y) Addendum: a crash during sign-out never leaves the person signed in: clear the stored session before end() touches the store; revoke with the kept token last, best effort, never signing anyone back in.",
+    "done": true,
+    "how": "fb2b786 plus three review fixes.\n\nProblem 1, 9dc1c0d (client.ts): the client counts sessions.\n- signIn, signOut, signOutOnDevice, switchDistributor and a forced 401 clear each start a new session; a refresh does not.\n- A refresh or switch that set off under an ended session writes nothing, throws 'Signed out.' and revokes its late pair, best effort.\n- Its 401 never clears a session begun since.\n- The interceptor never refreshes or replays a call across a session change.\n- me() and changePassword() update only the session that asked.\n\nProblem 2, 840f494 and 2956624:\n- Engine file holds, per opener and name: start() waits for the previous holder (an engine still ending, or a sweep) before it opens. The hold is released only after close or destroy has resolved. sweepStores skips a held file ('offline: sweep skipped a store in use') and holds a file while it works on it.\n- ApiClient.signOutOnDevice(leave) clears the session, calls leave(stored) in the same turn, and sends the revoke with the kept token only once leave has settled.\n- signIn waits for that leaving.\n- The three apps' leaveNow runs end, sweep and (sales) forgetDrafts inside it.\n\nProblem 3, 2956624:\n- TokenStorage gains optional clearSession(); the three field apps implement it with @dos/ui/platform storage.removeItem for the refresh and snapshot keys.\n- SessionStore.clearOnDevice() returns that promise as 'stored'; it never rejects.\n- SyncEngine.end({ keepQueue, after }) refuses writes at once and touches the file only once 'after' has settled. Apps pass after: stored.\n\nMinor 4, c1ce0a7: the lower-case \u00a711 sentence is rewritten, and \u00a711, \u00a712, \u00a713 (tests 13, 14 and 16) and \u00a72 describe the new order and the holds."
+   }
+  ],
+  "deviations": "From the first round (unchanged):\n- sweepInterimStore is exported from react.tsx so that a Node test can drive it.\n- parseStoreName returns null for any name that is not a store name.\n- UUID fixtures are used only where a test builds a file name.\n- storeNote is null for a memory store that has no fallback reason.\n- Delivery and warehouse leaveNow do not compute kept.\n- HeldStore drains but does not refuse calls; the expo-sqlite adapter refuses them.\n- Rule 4 of (x) has no dedicated test.\n- The (y) red for today's signOut came from a throwaway probe.\n- The existing leave test was renamed.\n\nReview round, each answering a review problem and going beyond the addendum's literal text:\n1. signOutOnDevice's shape changed a second time. It now takes the device's leaving as a callback instead of returning the revoke, and signIn on that client waits for the leaving to settle. The wait has no cap: if end() hangs, a sign-in on that phone stays pending until the app restarts. The revoke ordering is now enforced in client.ts and asserted by the api-client tests; the app leave tests' 'revoke' entry is recorded by the mock after the leaving.\n2. The file holds live in the engine, in a module-level WeakMap keyed by the store factory, then the name. Two different openers do not share holds, so fixedStoreFactory tests are unaffected. In the apps, openStore is the single opener for both the provider and the sweep.\n3. The session counter guards more than the refresh the review named: switchDistributor, me(), changePassword() and the interceptor's replay too, all under the same rule. A late refresh or switch pair is revoked best effort with its own refresh token. The backend's createSession inserts a new row per login, so this revokes only the orphaned session.\n4. clearSession is an optional member of the api-client TokenStorage type, not a kit type. The owner, manager, retailer and admin apps do not implement it, since they never call signOutOnDevice.\n5. In the review round, app eslint ran on the four touched files per app, not `eslint .`.\n6. docs/27 \u00a72, \u00a711, \u00a712 and \u00a713 were changed beyond the sections ruling 2 names, to fix minor 4 and document the holds and the new order.\n7. The review's re-proof items were not run (see follow-ups).\n8. The branch is still based on 1d8a964, and main has moved on (2f55c4d and later). No merge was run.",
+  "followUps": "- **Platform re-proof (required before merge, not run in this lane):** the re-proof from ruling 2 and its addenda, plus the review's additions.\n  - Web: persistent store V5A\u2013V5E and the memory variant. storeFacts in QA/tools/e2e/s-098-shared-device.mjs must switch to /^[sdw][0-9a-z]{50}$/.\n  - Android: sales steps 1\u20136, the long-name upgrade, delivery keep \u00d73 and warehouse keep \u00d71 with no am_crash, and a first-run `typeof BigInt` check.\n  - iOS: sales keep \u00d73 with the office unreachable (each relaunch must show the sign-in form), plus Send now.\n  - New, a refresh in flight at the tap: let the access token expire, then tap \"Sign out, keep here\". The relaunch must show the sign-in form, and the tokens must not return to SecureStore or localStorage.\n  - New, fast re-sign-in: the same person, and separately another person, signs in while end() is still waiting on a page in flight. The sign-in must wait, and the kept op must go exactly once.\n- **Checks not run:** the full `cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check`. Owner, manager, retailer, admin, app-template and the offline harness were not typechecked. ApiClient.signOutOnDevice and UseSession.signOutOnDevice changed signature; a grep found no other implementer or caller.\n- **Main session:** docs/22 \u00a78/\u00a711 rows.\n  - The ruling 2 row.\n  - Addendum (y): sign-out clears the session on the device first and revokes after the leaving.\n  - Review: a sign-in waits for the last sign-out to finish on the phone; one holder per device file; an answer for an ended session writes nothing.\n- **New behaviour to decide on:** a hung end() now also holds the next sign-in on that phone until the app restarts. Consider ruling 1's optional (r), a visible 'Signing out\u2026', or a bounded wait.\n- **Not proven:** on Android, an expo-secure-store set queued just before the sign-out's delete might land after it (native call ordering); the generation guard prevents only late refreshes from writing.\n- **Pre-existing latent issues noted in the first round, unchanged:** flushChain stays rejected after a store error in flushInternal, and scheduleRetry can re-arm after end().\n- S-121 (count as ops) stays open, per (w)."
+ },
+ "verdict": {
+  "verdict": "pass",
+  "failBeforeConfirmed": true,
+  "passAfterConfirmed": true,
+  "amendmentsChecked": [
+   {
+    "amendment": "(s) the store name is <app><user><distributor>: 51 lowercase base-36 characters, with parseStoreName, interimStoreName and a one-time sweep of the 199952b name",
+    "satisfied": true,
+    "detail": "engine.ts:60-134. The letter table covers dos-sales/delivery/warehouse/harness; any other prefix throws. The CANONICAL_UUID regex is case-insensitive and the id is lower-cased. The id becomes BigInt base 36 padded to 25 digits. parseStoreName matches /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/ and returns null past 128 bits. It is exported from shared.ts, which index.web.ts and index.native.ts re-export. interimStoreName is at engine.ts:141, and SyncEngine.sweepStores at :842, which sweepIdentityStores now calls. sweepInterimStore runs once per identity per mount (react.tsx:77,213-221). Legacy <prefix>.db destroy is unchanged (react.tsx:188-207). docs/27 \u00a72 and \u00a713 test 12, and README line 45, are updated, with the node -e decode and the BigInt/four-limb note beside the call.\n\nVerifier probe P1 over 4 prefixes and 2005 ids (all-zero, all-f, upper-case F, random): every name is exactly 51 characters, './'+name is at most 53, and parseStoreName is the exact inverse. 5000 random 51-character names either round-trip exactly (885) or are refused (4115). Overflow, upper-case, unknown letters and short names give null.\n\nProbe P3: the 199952b sweep keeps queued, sending and rejected files with the log line, deletes empty and acked-only files, and opens only the signed-in person's interim name. Another person's interim file is untouched."
+   },
+   {
+    "amendment": "(t) the fallback is loud, the status names it, and a memory store never offers keep or Switch anyway, so the sign-out waits",
+    "satisfied": true,
+    "detail": "- types.ts: SyncStore.fallback and SyncStatus.storeNote.\n- memory.ts: createMemoryStore(fallback).\n- open.web.ts: gives 'not cross-origin isolated (no COOP/COEP)', 'no OPFS', 'expo-sqlite did not load' or 'open failed: <msg>'.\n- open.native.ts: gives 'expo-sqlite is not in this binary' or 'open failed: <msg>'.\n- engine.ts start():481 logs 'offline: no persistent store; running in memory' with {name, fallback}. status().storeNote carries it (HeldStore copies fallback).\n- useLeaveSession exposes persistent (react.tsx:307,353).\n\nsales, delivery and warehouse leave.ts have an identical leaveButtons: sendNow only online, keep only when persistent, then cancel. The mode is ignored, so Switch anyway is withheld the same way.\n\nleaveSentence uses leave.bodyMemory for both modes when persistent === false. The string is byte-identical in the three strings.ts and matches the ruling text.\n\nAll three leave-sheet.tsx render their buttons only from leaveButtons, and all three _layout.tsx pass persistent={device.persistent}."
+   },
+   {
+    "amendment": "(u) an order and its lines are queued as one write, whole or not at all; a kept file keeps its drafts; the sweep runs on every sign-out",
+    "satisfied": true,
+    "detail": "engine.ts:1233 enqueueMany:\n- one synchronous requireStore gate;\n- every shape and writable flag checked before any write;\n- one inHand and one store.transaction, inserting in call order;\n- one refreshCounts, one emit (tables plus OUTBOX_CHANNEL), one flush.\n\nenqueue delegates to enqueueMany([input]), and useOutbox exposes enqueueMany. sales queue.ts builds the header plus its positive lines and calls enqueueMany once. It is the only enqueue call site in sales-app (grep).\n\nleaveNow in all three apps sweeps on every sign-out. Sales computes kept = keptBy(end result) ?? keepQueue and calls forgetDrafts only when !kept.\n\nProbe P2: a statement failing mid-transaction (the line's local insert) leaves _outbox, sales_orders and sales_order_lines empty, with pending 0 and no emit."
+   },
+   {
+    "amendment": "(v) the refusal reaches the sales order screen in its own words",
+    "satisfied": true,
+    "detail": "api-client errors.ts isEngineSigningOut maps name === 'SyncEngineEndedError' to kind 'auth' with the error's own message. It does not import @dos/offline.\n\nThe sales orders/new.tsx shows place.error.message from useMutation, which runs toApiError (react/index.tsx:443)."
+   },
+   {
+    "amendment": "(w) no change: the count stays as outbox ops (S-121 open)",
+    "satisfied": true,
+    "detail": "No group_id and no count change. The sheet and strip still count ops; the leave tests still expect '2 changes have not reached the office' for pending 2."
+   },
+   {
+    "amendment": "(x) addendum: end() drains the store before it closes; reads answer empty once end or stop begins; the adapter refuses late calls and closes once; stop() and a switch use the same drain",
+    "satisfied": true,
+    "detail": "- HeldStore (engine.ts:313) tracks every call and closes once, after drain; destroy runs only after close.\n- readsOpen() (started && !ended) gates queryTable, countRows, outbox, needsAttention (also inside its loop), waiting and flushGps.\n- endOnce order: after, settled (opening, flushChain, syncing, writes, store drain), recount, dropReadSet with its emit, close, destroy.\n- stop() closes through HeldStore.close.\n- ExpoSqliteStore refuses every call with StoreClosedError once close began, and closeAsync is called once.\n\nProbe P4, through the real openExpoSqlite adapter over an async fake binding, with listeners re-querying on every emit and a slow read in flight: end keep (kept, pending 2) and end one-tap had zero binding calls started or running after closeAsync began.\n- stop() with a pull page truly in flight: zero late binding calls; the late applyPull was refused by the adapter.\n- end() with a page in flight: waited, zero late calls.\n- stop() with an upload in flight: zero late calls; settle was refused with StoreClosedError."
+   },
+   {
+    "amendment": "(y) addendum: a crash during sign-out never leaves the person signed in: clear the stored session before end() touches the store, revoke last, best effort, never restoring the session",
+    "satisfied": true,
+    "detail": "client.ts:326 signOutOnDevice runs in this order:\n1. keeps the refresh token in memory;\n2. bumps generation;\n3. session.clearOnDevice() clears the cache synchronously and returns the platform-store removal promise;\n4. calls leave(stored) in the same turn;\n5. sends logout with the kept token only after leave settles, never awaited and never writing the session.\n\nsignIn awaits leaving.\n\nrefreshNow and switchDistributor discard and revoke a pair that arrives for an ended generation. The backend check: logout of a late pair hits an already revoked or rotated row, and switchTenant creates a new session row, so the next session is never revoked.\n\nThe three apps' api.ts add clearSession (storage.removeItem for the refresh and snapshot keys).\n\nIn all three apps leaveNow runs end({keepQueue, after: stored}), then sweep, then (sales) forgetDrafts, all inside signOutOnDevice. end() awaits after before any store call.\n\nSend now still sends with the live session first. The forced-401 path is unchanged."
+   }
+  ],
+  "problems": [
+   {
+    "severity": "minor",
+    "file": "frontend/delivery-app/app/settings.tsx",
+    "detail": "Pre-existing (since 2f8a5a5, delivery; the warehouse copy at frontend/warehouse-app/app/settings.tsx:165 since 335a11c) and not introduced by ruling 2. The settings 'Sign out' button calls useSession().signOut() directly (line 285), bypassing the DOS-167 leave flow.\n- No sheet is shown and end() is never called; the provider only stop()s the engine, so the file keeps its read set.\n- The server revoke is awaited (up to the 20 s deadline) before the session is cleared, which is what addendum (y) rule 1.4 forbids on the leave flow.\n\nNothing is lost or leaked: the file is per person and claimed at open. Neither ruling 1, ruling 2 nor the merge reviews mention it. Worth an S-row or a follow-up that routes these buttons through Chrome's leave flow."
+   },
+   {
+    "severity": "minor",
+    "file": "frontend/libs/ui/src/platform/storage.native.ts",
+    "detail": "Not proven either way (the implementer also flagged it). setItemSync fires SecureStore.setItemAsync without awaiting it. A token refresh applied milliseconds before 'Sign out, keep here' could have its native set land after clearSession's delete, if expo-secure-store does not serialise calls. A relaunch would then be signed in. The generation guard only stops late refresh answers from writing. This needs a device check in the re-proof."
+   },
+   {
+    "severity": "minor",
+    "file": "frontend/libs/api-client/src/client.ts",
+    "detail": "signIn awaits the previous leaving with no cap (line 294). If end() or the platform-store removal ever hangs, the next sign-in on that phone waits until the app restarts. In practice it is bounded by the 20 s request deadline on pull and upload. This is a design note beyond the ruling's text."
+   },
+   {
+    "severity": "minor",
+    "file": "frontend/sales-app/src/lib/leave.ts",
+    "detail": "kept falls back to keepQueue when end() throws. end() also returns {kept:false} when a stop() already cleared this.store, while the file and any queue in it survive. In both cases forgetDrafts runs even though the file survived. This matches the ruling's formula (kept = result?.kept ?? keepQueue) and needs a rare race, but a conservative 'kept on throw' would never drop a draft."
+   },
+   {
+    "severity": "minor",
+    "file": "docs/27-offline-sync-client.md",
+    "detail": "Beyond \u00a72 line 40 and \u00a713 test 12, the docs also change \u00a76 (enqueueMany), \u00a711 (useLeaveSession with persistent and after), \u00a712 (the sign-out order, holds and generation guard) and \u00a713 tests 13, 14 and 16. The text is accurate to the code and documents (t), (u), (x), (y) and the review fixes, but it goes past the sections ruling 2 names (the implementer's deviation 6)."
+   },
+   {
+    "severity": "minor",
+    "file": "frontend/libs/offline/src/engine.ts",
+    "detail": "Pre-existing latent issue, confirmed by probe P4. After stop() with an upload in flight, the late settle is refused by the adapter (StoreClosedError, never reaching the binding), release() is refused too, and flushChain stays rejected. It is harmless for a stopped engine, but the rejection surfaces to any void flush() caller."
+   }
+  ],
+  "evidence": "Worktree .claude/worktrees/b2-dos167r2 on branch qa/b2-dos167r2 at HEAD c1ce0a7, based on 1d8a964. main is at 2f55c4d, which differs only in QA/STATE.md, so no fast-forward was run.\n\n**Commits.** main..HEAD holds 10 commits, touching 36 files: offline, api-client, the three field apps, docs/27 and the offline README. `git diff --stat 1d8a964 HEAD` shows no change under frontend/libs/ui, frontend/libs/app-template or backend, and no file was added or deleted. grep found no react-native or react-dom import in the touched app files.\n\n**Red, one vitest file per command, outputs in scratchpad/red/<commit>/.** Commits that still reverse-apply on HEAD (428f886, 840f494, 9dc1c0d) were red-tested at HEAD with the non-test diff reverse-applied. For the rest, `git diff C^ C | git apply -R --check` fails on HEAD because later commits touched the same hunks, so I checked out C's tree for frontend and docs, reverse-applied C's non-test diff, ran C's tests, then restored with `git checkout HEAD -- frontend docs`. `git status` was empty after every commit.\n- **dcbd1c8 (s):** 3 failed.\n  - storeNameFor received 'dos-sales__u-8760e17e\u2026__t-\u2026.db' instead of 's80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft'.\n  - The 199952b sweep test failed with 'interimStoreName is not a function'.\n  - The adapter destroy test got the same name mismatch.\n  - The two sweepIdentityStores tests passed at C^, since only their fixtures changed.\n- **8a62f92 (t):** the offline memory-store test got announced [] and note undefined. The sales, delivery and warehouse leave tests failed with 'leaveButtons is not a function'.\n- **910eb3f (u):** offline failed with 'leaving.enqueueMany is not a function'. In the three apps' keep-drafts test, keep had no 'sweep' and the sales recount called 'forgetDrafts'; the old flow test failed the same way.\n- **428f886 (v):** got kind 'unknown' where 'auth' was expected.\n- **e4d251e (x):**\n  - The drain test logged calls that finished or started after close began: the _outbox read, the _sync_errors read, 'SELECT * FROM _outbox WHERE op_id = ?' and the retailers read.\n  - In the drain test, close began before the slow read landed.\n  - The adapter test showed getAllAsync, execAsync, runAsync and withTransactionAsync reaching the binding after closeAsync, which was called 3 times.\n- **fb2b786 (y):** api-client failed with 'client.signOutOnDevice is not a function'. The three apps failed 3 tests each with 'steps.signOut is not a function'.\n- **840f494:** 2 failed (the same person signing straight back in, and the sweep versus a held file).\n- **2956624:**\n  - api-client: 3 failed.\n  - offline 'end() touches the store only once\u2026': beforeTheRemoval held 15 store calls.\n  - The three apps: 3 failed each with 'revoke is not a function', plus unhandled 'leave is not a function'.\n- **9dc1c0d:** the refresh-in-flight test failed.\n- **c1ce0a7:** a comment and docs only, so no red is expected.\n\n**Green at HEAD, one file per command.**\n\n| Package | File | Result |\n|---|---|---|\n| offline | identity.test.ts | 26/26 |\n| offline | engine.test.ts | 29/29 |\n| offline | sql.test.ts | 10/10 |\n| api-client | identity.test.ts | 7/7 |\n| api-client | client.test.ts | 22/22 |\n| api-client | errors.test.ts | 12/12 |\n| api-client | storage.test.ts | 8/8 |\n| api-client | platform-client.test.ts | 5/5 |\n| api-client | cache.test.ts | 15/15 |\n| api-client | pages.test.ts | 8/8 |\n| api-client | react/reads.test.ts | 9/9 |\n| api-client | react/refusal.test.ts | 5/5 |\n| sales-app | leave.test.ts | 6/6 |\n| sales-app | draft.test.ts | 1/1 |\n| sales-app | pricing.test.ts | 8/8 |\n| sales-app | order-entry-layout.test.ts | 4/4 |\n| delivery-app | leave.test.ts | 6/6 |\n| delivery-app | doorstep.test.ts | 4/4 |\n| delivery-app | opening-cash.test.ts | 5/5 |\n| delivery-app | trip-choice.test.ts | 6/6 |\n| warehouse-app | leave.test.ts | 6/6 |\n| warehouse-app | trip-plan.test.ts | 2/2 |\n\n- `tsc --noEmit` exited 0 for @dos/offline (which includes the harness), @dos/api-client, @dos/sales-app, @dos/delivery-app and @dos/warehouse-app.\n- Full `eslint .` exited 0 for the same five packages.\n- `prettier --check` on all 35 touched frontend files passed.\n\n**Hunt probes.** I wrote a temporary untracked file, frontend/libs/offline/src/zz-verifier-probe.test.ts, ran it, and removed it; all passed.\n- **P1:** every storeNameFor output is 51 characters for all 4 prefixes and edge or random UUIDs, and parseStoreName is the exact inverse in both directions.\n- **P2:** enqueueMany rolls back whole on a mid-transaction statement failure.\n- **P3:** the 199952b sweep keeps queued, sending and rejected files, deletes empty and acked-only ones, and never opens another person's file.\n- **P4:** through openExpoSqlite over an async fake binding, end keep, end one-tap, stop with a pull page in flight, end with a pull page in flight and stop with an upload in flight made zero binding calls after closeAsync began.\n\n**Code reading.**\n- The identity claim still runs before any read, and stoppedWhileOpening is kept.\n- A switch uses stop, which goes through the HeldStore drain.\n- The backend logout of a late pair cannot revoke a newer session: switchTenant inserts a new row and logout skips a revoked row.\n- The only remaining sign-out paths that bypass the leave flow are delivery and warehouse settings.tsx, both pre-existing (see problems).\n\n**Not run:** frontend `pnpm build` (expo export) and the platform re-proof that ruling 2 and the addenda require before the P0 closes: web V5A\u2013V5E plus the memory variant, Android sales, delivery \u00d73 and warehouse, and iOS keep \u00d73.\n\nFinal `git status --porcelain --untracked-files=all` is empty. Nothing was committed."
+ },
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "The frontend gate ruling 2 orders before the re-proof was never run. The lane typechecked and linted only five packages, and expo export has never bundled the BigInt code in frontend/libs/offline/src/engine.ts:98-134 (0n literals, BigInt(...).toString(36)) for web or for Hermes. Fix, in the worktree: git merge main (it merges cleanly), then in frontend/ run pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check, and commit any prettier drift. Anything red means no merge."
+  ],
+  "minors": [
+   "frontend/libs/api-client/src/client.ts:294: signIn waits for the previous leaving with no cap, so a hung native close holds every sign-in on that phone until restart, with only a spinner. The file holds (engine.ts:455-461) already protect the same person's file, and the sweep and forgetDrafts are keyed to the person leaving, so a bounded wait (about 25 s, then proceed) is safe.",
+   "frontend/sales-app/src/lib/leave.ts:210-212 with engine.ts:665: when end() throws, kept falls back to keepQueue, and end() answers kept:false when a stop() already nulled the store although the file survives. Either way a one-tap sign-out can forget drafts whose file lives on. This matches the ruling's formula and the race is rare; the safe fix is kept=true on a throw and on a store stop() closed.",
+   "docs/27-offline-sync-client.md:236: the colon hangs the one-tap clause off the generation sentence; reword it. docs/27:211: the useOutbox() signature still omits enqueueMany.",
+   "frontend/libs/offline/src/store/expo-sqlite.ts close(): a rejected closeAsync stays cached in `closing`, and destroy rethrows it unless the error means already gone. Harmless today.",
+   "engine.ts:1328-1335 and :1376, pre-existing and unchanged: flushChain stays rejected after a store error, and scheduleRetry can re-arm after end(). Harmless, because flushInternal checks started.",
+   "react.tsx:218: on the web the interim sweep makes one doomed wasm open of the 92-character name per new identity. The ruling calls this harmless; confirm in V5A that any sqlite3_open_v2 console noise is not misread as the engine's store failing."
+  ],
+  "conflicts": [
+   "main: none. main differs from the merge base 1d8a964 only in QA/STATE.md, which the branch does not touch, so the merge is clean.",
+   "lean-delivery-door (not built yet) owns delivery _layout.tsx, delivery strings.ts and libs/offline/src/react.tsx, all rewritten here. Branch it from main after this merge and keep Chrome's signOutOnDevice prop, persistent on LeaveSheet and leave.bodyMemory. Its useSyncEngine().sync() does nothing once end() has begun (engine.ts:972).",
+   "lean-libs-offline-boot (not built yet) owns engine.ts, react.tsx, client.ts, session.ts, errors.ts, docs/27, the three _layout.tsx files and warehouse settings.tsx. On rebase: DOS-046's retry() (engine.ts:1499) keeps requireStore() and inHand. systemSchema stays out of dropReadSet's keys (:599-607) and out of CLEARED_FOR_ANOTHER_IDENTITY (:167), and its ALTER also runs inside sweepStores through createSystemTables (:859), so it must be idempotent. DOS-089 adds !hydrating at sales _layout.tsx:255, and any proactive refresh goes through refreshNow so the generation guard applies. DOS-068's NetInfo hint stays behind the started/ended gates.",
+   "The DOS-168..172 designs already plan to rebase after ruling 2 (the delivery strings d6 block, a docs/27 \u00a714 row, useSyncEngine().sync). No overlap.",
+   "QA/tools/e2e/s-098-shared-device.mjs:56 still builds the 199952b name. Before the web re-proof, storeFacts must match /^[sdw][0-9a-z]{50}$/ and decode both ids. This is the main session's job; the file is QA-owned."
+  ],
+  "walks": [
+   "Web, persistent store (COOP/COEP): V5A-V5E with the new storeFacts, plus the memory variant, as ruling 2 lists. If dos_qa has a rep at more than one distributor, add their sign-out: the sibling sweep creates and deletes OPFS pool files, and the next open must stay persistent.",
+   "Android sales steps 1-6. files/SQLite holds only s<50> names, with no -wal or -shm left beside a deleted name. On the first run check typeof BigInt, and check that Rahul's name is byte-equal to s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (Hermes base 36 against V8). Run the long-name upgrade twice: with an empty file, and with one queued op.",
+   "Android delivery keep x3 and warehouse keep x1, with the office unreachable and the outbox retrying. Pass: no am_crash or Fatal signal, each relaunch shows the sign-in form, and each op is sent once.",
+   "iOS sales keep x3 with sales-service stopped. Pass: no new .ips, each relaunch shows the sign-in form, and the ops are sent once. Also run Send now while online.",
+   "A refresh in flight at the tap: let the access token expire, tap 'Sign out, keep here', then relaunch. Pass: the sign-in form shows, and no token is in SecureStore or localStorage.",
+   "SecureStore ordering on Android: force a token refresh, tap keep within 100 ms, then am force-stop during end(). Pass: the relaunch shows the sign-in form.",
+   "Fast re-sign-in: sign in as the same person, and separately as another person, while end() waits on a page in flight. Pass: the sign-in waits, the kept op goes exactly once, and the other person sees none of the first person's data.",
+   "The S-126 (warehouse Fabric cold start) and S-127 ('Still filling') checks from addendum (x)."
+  ],
+  "unfiledDefects": [
+   "frontend/delivery-app/app/settings.tsx:285 and frontend/warehouse-app/app/settings.tsx:165: Settings > Sign out calls plain useSession().signOut() and bypasses the DOS-167 leave flow. It shows no sheet and never calls end(), so the read set stays on the phone and the sibling sweep is skipped; it clears the session only after the server revoke (up to 20 s). On a browser memory store it throws away queued deliveries and picks, against answer A and ruling (t). Pre-existing since 2f8a5a5 and 335a11c. Suggest P1, fixed before DOS-167 is declared closed: expose Chrome's leave({mode:'signOut'}) through a context and call it from both screens.",
+   "frontend/libs/ui/src/platform/storage.native.ts:36-45: setItemSync fires SecureStore writes without awaiting them, so a refresh applied just before the tap may land after clearSession's delete (not proven on Android). Together with a crash inside end() before the revoke, the relaunch would be signed in. The fix is a per-key write chain, which is a kit change, so it needs its own S-row.",
+   "A forced sign-out (refresh answered 401) on a memory store drops the queue without a word. Needs a docs/27 \u00a714 row, folded into ruling 2's S-row for the strip's persistence field (P3).",
+   "On the QA phones, a 199952b interim file kept with a queued op is never sent (the ruling accepts this). pm clear the QA phones after the upgrade proof.",
+   "Owed by the main session: docs/22 \u00a78 and \u00a711 rows (ruling 2, addendum (y), one holder per file, the sign-in wait, the generation guard), then render and republish; plus ruling 2's two P3 S-rows (the strip has no field to say a browser keeps nothing; 'Saved on this phone' shows on a memory store)."
+  ]
+ },
+ "final": "integration-blocked",
+ "integration": {
+  "status": "blocked",
+  "headCommit": "31de0f8",
+  "conflicts": [],
+  "fixes": [
+   "No code fix was needed, so there is no fix commit. The review blocker was about running the gate. I ran the full gate on the merged tree: prettier reported no drift, the lockfile did not change, and lint, typecheck, build and docs:readme:check are green. One test fails, and that failure was already on main (see notes).",
+   "31de0f8 merges main into qa/b2-dos167r2. The merge was clean and main brought in only QA/STATE.md.",
+   "BigInt check from the blocker, web: expo export bundled engine.ts into the sales, delivery and warehouse web bundles, and the native BigInt literals are still there (for example '36n*s+BigInt(Number.parseInt(i,36))').",
+   "BigInt check from the blocker, Hermes (beyond the listed commands): 'expo export --platform android' for sales-app, written to the scratchpad, exited 0. It produced Hermes bytecode (entry-098b8963\u2026.hbc, 5.1 MB, Hermes magic c61fbc03c103191f). The store-name error strings from idDigits and storeNameFor are inside it, so hermesc compiled the BigInt code. Nothing was run on a device."
+  ],
+  "testsRun": [
+   "backend: pnpm install (already up to date); pnpm exec turbo run build --filter='./libs/*': 4/4 green, all from turbo cache, dist present",
+   "frontend: pnpm install (already up to date, lockfile unchanged)",
+   "frontend: pnpm format:check: exit 0, all files match prettier",
+   "frontend: pnpm lint: exit 0, 11/11 tasks (only @dos/app-template came from cache)",
+   "frontend: pnpm typecheck: exit 0, 11/11 tasks (only @dos/app-template came from cache)",
+   "frontend: pnpm test: exit 1. turbo stopped at the first failure (@dos/ui#test), so I reran it as below",
+   "frontend: pnpm exec turbo run test --continue --concurrency=1: exit 1, 8/9 green. Freshly run: @dos/api-client 91/91, @dos/offline 65/65, @dos/sales-app 19/19, @dos/delivery-app 21/21. From turbo cache: admin 6/6, manager 14/14, owner 4/4, warehouse 8/8. FAILED: @dos/ui 264/265, src/document-urls.test.ts 'DOS-057 DOS-099: every signed URL an app hands to documents.open/print/share is absolutised with absoluteUrl()'. The two offending lines: manager-app/app/fulfilment/load-out.tsx:236 documents.open(step.url) and :464 documents.open(challanUrl)",
+   "frontend: pnpm exec turbo run build --concurrency=1: exit 0, 8/8 expo web exports, none from cache",
+   "frontend/sales-app: pnpm exec expo export --platform android --output-dir <scratchpad>: exit 0, Hermes .hbc produced, contains the store-name code",
+   "backend: pnpm docs:readme:check: exit 0",
+   "git status --short: clean. Build output (dist/, .expo/) is gitignored and nothing is untracked"
+  ],
+  "notes": "BLOCKED: the ruling's frontend unit gate is red, and \"anything red means no merge\". The failing test is @dos/ui src/document-urls.test.ts. This lane did not cause it and I did not fix it.\n\nWhere it comes from: both lines blamed (manager-app/app/fulfilment/load-out.tsx:236 and :464) come from 144bcfe, \"fix(DOS-026): merge-review blocker \u2014 Print the challan\u2026\", dated 2026-09-13. That commit is on main and in this branch's base 1d8a964. The lane does not touch manager-app or libs/ui: `git diff main -- frontend/manager-app frontend/libs/ui` is empty. Main has the same red today.\n\nProbably a false alarm from the guard, not a real bug. load-out.tsx:227-228 already passes absoluteUrl(result.url) into nextChallanPoll, so step.url and challanUrl are absolute. The guard only accepts an inline absoluteUrl(...) argument, or a name the same file assigns with '<name> = absoluteUrl('. It cannot see the URL going through nextChallanPoll or setChallanUrl.\n\nWhy I did not fix it: load-out.tsx is not one of ruling 2's files, and changing the test would weaken it. The charter forbids both. It needs its own small slice on main, either:\n(a) load-out.tsx assigns something like 'const readyUrl = absoluteUrl(result.url)' and passes that, or\n(b) the guard learns to follow a value through a helper, without loosening the rule.\nOnce main is green there, merge main into qa/b2-dos167r2 again and rerun pnpm test. Everything else in the gate is already green on 31de0f8.\n\ntestsCorrected: none. No test changed. Minors: none applied; none of the review's minors is a one-line change inside ruling 2's files that the blocker needed. No backend, contract, kit, docs/22, docs/18 or QA change. No push, and nothing was merged into main.\n\nOutputs: logs are in /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/ (format.log, lint.log, typecheck.log, test.log, test2.log, build.log, android-export.log, readme.log), with the Hermes export in sales-android/ there. The worktree is /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167r2 on branch qa/b2-dos167r2, HEAD 31de0f8, clean."
+ },
+ "run": "wf_a77ba6a6-adc"
+}

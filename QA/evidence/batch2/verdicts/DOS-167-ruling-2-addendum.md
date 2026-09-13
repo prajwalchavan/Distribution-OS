@@ -117,6 +117,45 @@ Author: the same main session (Opus 5), standing in for the architect, 2026-09-1
 - **iOS sales, online.** Open the leave sheet while online and tap "Send now". Pass when the changes are sent and the person is then signed out.
 - **Android delivery, keep path.** Run the keep path three times with the office unreachable and the outbox retrying. Pass when each relaunch shows the sign-in form and logcat shows no crash.
 
+## Addendum (z): every sign-out button takes the leave path; a hung leaving never locks sign-in; a surviving file keeps its drafts
+
+Author: the same main session (Opus 5), standing in for the architect, 2026-09-14 about 05:25 IST. Source: the ruling-2 merge review (Opus stand-in), `QA/evidence/batch2/merge-reviews/dos167-ruling2.md`. It is binding as merge-time fixes of the ruling-2 lane.
+
+### Rules
+
+- **(z1) Every sign-out button takes the leave flow.**
+  - **Where.** "Sign out" in Settings, in the delivery app (`app/settings.tsx`, the `void signOut()` at :285) and in the warehouse app (`app/settings.tsx`, at :165), bypasses the leave flow today. It shows no sheet and never calls `end()`, so the read set stays on the phone and the sibling sweep is skipped.
+  - **Why it matters.** On a browser memory store it throws away queued deliveries and picks, against answer A and ruling (t). It also waits for the server revoke before it clears the session, against (y).
+  - **Rule.** Both buttons call the same leave flow as the account menu (Chrome's `leave({ mode: 'signOut' })`), through a small app-level context. They never call `useSession().signOut()` directly. A grep found no second sign-out button in the sales app.
+- **(z2) The sign-in wait has a cap.** A sign-in waits at most 25 s for the previous leaving on the phone. After that it proceeds and logs 'sign-in did not wait for a leaving that took over 25 s'. The file holds from `840f494` still protect the same person's file.
+- **(z3) A file that may survive keeps its drafts.** In the leave flow, `kept` is true in two cases, so drafts are never forgotten while the file may live on:
+  - when `end()` throws;
+  - when `end()` answers `kept: false` because a `stop()` had already closed the store.
+
+### Tests (red first)
+
+- **(z1)** A source guard: 'DOS-167 every sign-out button in the app goes through the leave flow'. It runs in each of the three apps' `src/lib/leave.test.ts`, reads `app/**/*.tsx`, and fails on any `signOut()` call outside the layout's leave flow. Red today: `delivery-app/app/settings.tsx:285` and `warehouse-app/app/settings.tsx:165`.
+- **(z2)** `frontend/libs/api-client/src/identity.test.ts`: 'DOS-167 a leaving that never settles holds a sign-in for at most 25 seconds'. Uses fake timers. Red today: the sign-in stays pending.
+- **(z3)** `frontend/sales-app/src/lib/leave.test.ts`: 'DOS-167 a leaving whose end() throws keeps the drafts'. When `end` rejects, `forgetDrafts` is not called. Red today: it is called.
+
+### Re-proof additions for (z)
+
+- **Android delivery and warehouse, Settings > Sign out.**
+  - With one change queued offline: the leave sheet shows, not an instant sign-out.
+  - With nothing queued: one tap signs out and the file is removed.
+- **The WALKS section of the merge review.** These are all required:
+  - a refresh in flight at the tap;
+  - SecureStore ordering, with a force-stop during `end()`;
+  - a fast re-sign-in, once as the same person and once as another person;
+  - Rahul's store name, checked byte for byte on Hermes against V8;
+  - the long-name upgrade, once with an empty file and once with one queued op.
+
+### Out of scope (S-rows)
+
+- **S-132.** `storage.native.ts` `setItemSync` does not await its SecureStore writes. This is a kit change.
+- **S-133.** A forced sign-out on a memory store drops the queue without a word. It needs a row in docs/27 §14.
+- **The document-URL guard.** It was red on main since wave 1 (`144bcfe`, manager `load-out.tsx`). The main session fixes it on main, so this lane's full `pnpm test` can go green after `git merge main`.
+
 ## Out of scope
 
 - **S-129.** On iOS the native kit Sheet exposes one accessibility element, so its rows cannot be targeted one by one. This predates DOS-167; it stays a P3 row for the kit.
