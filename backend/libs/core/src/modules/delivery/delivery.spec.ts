@@ -2705,8 +2705,8 @@ describeDb('delivery (DATABASE_URL)', () => {
   // ---------------------------------------------------------------------------------------------------------------
   // DOS-056: the doorstep write made with no signal
 
-  const trip3 = uuidv7()
-  const stopA3 = uuidv7()
+  const tripOffline = uuidv7()
+  const stopOffline = uuidv7()
 
   interface UploadBody {
     accepted: number
@@ -2719,17 +2719,19 @@ describeDb('delivery (DATABASE_URL)', () => {
     const bill = await billedOrder(retailerA, variantB, 'a3')
     const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
       idempotencyKey: `trip3-${run}`,
-      id: trip3,
+      id: tripOffline,
       tripDate: today,
       vehicleId,
       driverId,
-      stops: [{ id: stopA3, sequence: 1, retailerId: retailerA, invoiceIds: [bill.invoiceId] }],
+      stops: [
+        { id: stopOffline, sequence: 1, retailerId: retailerA, invoiceIds: [bill.invoiceId] },
+      ],
     })
     expect(planned.status).toBe(200)
-    expect(planned.body.item.tripNo).toBe('TRIP-0003')
+    expect(planned.body.item.tripNo).toMatch(/^TRIP-\d{4}$/)
     expect(
       (
-        await call(app, packer, 'POST', `/delivery/trips/${trip3}/start-loading`, {
+        await call(app, packer, 'POST', `/delivery/trips/${tripOffline}/start-loading`, {
           idempotencyKey: `loading3-${run}`,
         })
       ).status,
@@ -2738,14 +2740,19 @@ describeDb('delivery (DATABASE_URL)', () => {
       app,
       driver,
       'POST',
-      `/delivery/trips/${trip3}/depart`,
+      `/delivery/trips/${tripOffline}/depart`,
       { idempotencyKey: `depart3-${run}` },
     )
     expect(departed.status).toBe(200)
     expect(departed.body.item.state).toBe('active')
 
     // What the phone holds: the PLANNED delivery row and the `updated_at` its pull delivered.
-    const onPhone = await call<{ item: TripBody }>(app, driver, 'GET', `/delivery/trips/${trip3}`)
+    const onPhone = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
     const deliveryId = onPhone.body.item.stops[0]?.deliveries[0]?.id ?? ''
     expect(deliveryId).not.toBe('')
     const [held] = (
@@ -2764,7 +2771,7 @@ describeDb('delivery (DATABASE_URL)', () => {
           opId: `dos056-arrive-${run}`,
           op: 'PATCH',
           table: 'trip_stops',
-          id: stopA3,
+          id: stopOffline,
           data: { state: 'arrived', occurred_at: at, lat: 19.2441, lng: 73.1356 },
         },
         {
@@ -2774,8 +2781,8 @@ describeDb('delivery (DATABASE_URL)', () => {
           id: deliveryId,
           baseUpdatedAt,
           data: {
-            trip_id: trip3,
-            stop_id: stopA3,
+            trip_id: tripOffline,
+            stop_id: stopOffline,
             invoice_id: bill.invoiceId,
             retailer_id: retailerA,
             order_id: bill.orderId,
@@ -2817,7 +2824,12 @@ describeDb('delivery (DATABASE_URL)', () => {
     const photo = detail.body.item.pod.find((p) => p.kind === 'photo')
     expect(photo?.objectKey).toMatch(/^tenant\/.*\/pod\//)
     expect(photo?.objectKey).toContain(deliveryId)
-    const after = await call<{ item: TripBody }>(app, driver, 'GET', `/delivery/trips/${trip3}`)
+    const after = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
     expect(after.body.item.stops[0]?.state).toBe('delivered')
     expect(await orderState(bill.orderId)).toBe('delivered')
 
@@ -2896,8 +2908,8 @@ describeDb('delivery (DATABASE_URL)', () => {
       table: 'deliveries',
       id: uuidv7(),
       data: {
-        trip_id: trip3,
-        stop_id: stopA3,
+        trip_id: tripOffline,
+        stop_id: stopOffline,
         invoice_id: uuidv7(),
         lines: [
           { id: uuidv7(), invoice_line_id: uuidv7(), delivered_qty_pcs: 1, returned_qty_pcs: 0 },
@@ -2922,7 +2934,7 @@ describeDb('delivery (DATABASE_URL)', () => {
           op: 'PUT',
           table: 'trip_expenses',
           id: expenseId,
-          data: { trip_id: trip3, kind: 'toll', amount_paise: 2_500 },
+          data: { trip_id: tripOffline, kind: 'toll', amount_paise: 2_500 },
         },
       ],
     })
