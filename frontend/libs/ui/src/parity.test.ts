@@ -302,6 +302,37 @@ describe('native sheet fits the screen', () => {
 })
 
 /**
+ * DOS-152: the W5 Short sheet's Short button and the pad's last row sat below the sheet's own
+ * ScrollView, behind a Close pinned after it — measured on the Pixel 7: `Short` laid out at y 2293
+ * against a 2075 viewport, and a tap where it was drawn hit Close instead and discarded the entry.
+ * Close is now the LAST row of the scrollable content, not a footer sibling the ScrollView's own
+ * height calculation knows nothing about, so scrolling to the end of the content always reaches it
+ * and it never overlaps anything laid out above it.
+ */
+describe('DOS-152: sheet Close lives inside the scrollable content, never behind it', () => {
+  const source = readFileSync(join(here, 'native', 'feedback.tsx'), 'utf8')
+
+  function bodyOf(name: string): string {
+    const start = source.indexOf(`function ${name}(`)
+    expect(start, `${name} is not declared in native/feedback.tsx`).toBeGreaterThan(-1)
+    const next = source.indexOf('\nfunction ', start + 1)
+    const nextExport = source.indexOf('\nexport function ', start + 1)
+    const candidates = [next, nextExport].filter((n) => n !== -1)
+    const end = candidates.length > 0 ? Math.min(...candidates) : source.length
+    return source.slice(start, end)
+  }
+
+  it('renders Close before the ScrollView closes, not as a footer sibling after it', () => {
+    const body = bodyOf('SheetPanel')
+    const scrollClose = body.indexOf('</ScrollView>')
+    const closeButton = body.indexOf("theme.t('action.close')")
+    expect(scrollClose, 'SheetPanel has no </ScrollView>').toBeGreaterThan(-1)
+    expect(closeButton, 'SheetPanel has no Close button').toBeGreaterThan(-1)
+    expect(closeButton).toBeLessThan(scrollClose)
+  })
+})
+
+/**
  * The phone shell has to BE the window, not merely be at least as tall as it.
  *
  * Expo's web template sets `body { overflow: hidden }` and `#root { height: 100% }`, so nothing

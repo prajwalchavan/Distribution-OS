@@ -245,10 +245,21 @@ function SheetPanel({
           keyboardShouldPersistTaps="handled"
         >
           {children}
+          {/*
+           * CLOSE IS THE LAST ROW OF THE SCROLLABLE CONTENT, NEVER A FOOTER PINNED AFTER IT (DOS-152).
+           *
+           * A footer sibling sits outside the ScrollView's own height bookkeeping, so a sheet whose
+           * content is taller than the viewport (the W5 Short sheet's keypad) laid Close out past
+           * where the ScrollView's own bounds ended — measured on the Pixel 7: Close at y 2117-2317
+           * while the ScrollView itself stopped at 2075, so a tap on the CONTENT's own save button
+           * (drawn even further down, at 2293) landed on Close instead and discarded the entry.
+           * Scrolling to the end of the content now always reaches Close, and nothing drawn above it
+           * can ever be laid out behind it.
+           */}
+          <View style={{ marginTop: space[4] }}>
+            <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
+          </View>
         </ScrollView>
-        <View style={{ marginTop: space[4] }}>
-          <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
-        </View>
       </Pressable>
     </Pressable>
   )
