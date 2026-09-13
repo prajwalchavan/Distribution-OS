@@ -15,7 +15,7 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
+import { orderStateTransitions, outboxEvents, salesOrders, type ActorRole, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
@@ -270,6 +270,22 @@ export function callerReaches(order: Pick<OrderRow, 'salespersonId'>): boolean {
   const ctx = currentTenant()
   return ctx.actorRole !== 'salesperson' || order.salespersonId === ctx.actorId
 }
+
+/**
+ * Who places, re-lines, repeats, submits and cancels an order through the five order procedures and the
+ * device-upload doors (DOS-115): the owner, the manager, the rep and the shop, plus `system` for the worker
+ * and the escalation pattern. The godown and the crew take no order — the crew's van sale drafts through
+ * `insertDraft` under `delivery.vanSales.create` (DOORSTEP) — and neither does the accountant. It mirrors
+ * `ORDER_PLACERS` in `@dos/contracts` permissions.ts, the tuple the gate enforces first; the DOS-115 block
+ * of orders.spec.ts pins the two together. Reads (`get`, `list`) stay with every member.
+ */
+export const ORDER_PLACERS: readonly ActorRole[] = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+  'system',
+]
 
 /**
  * A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query.

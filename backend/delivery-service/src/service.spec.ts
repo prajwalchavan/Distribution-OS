@@ -87,6 +87,35 @@ describe('delivery-service', () => {
       expect(allowed.json<{ code?: string }>().code).toBe('UNAUTHORIZED')
     }
   })
+
+  it('DOS-115: delivery-service refuses order submit and cancel to the delivery role at the gate', async () => {
+    const auth = await bearer({ tenantId, actorId, role: 'delivery' })
+    const headers = { ...auth, 'content-type': 'application/json' }
+    const order = '00000000-0000-7000-8000-0000000000bb'
+    const submit = await app.inject({
+      method: 'POST',
+      url: `/orders/${order}/submit`,
+      headers,
+      payload: { idempotencyKey: 'dos-115-submit' },
+    })
+    expect(submit.statusCode).toBe(403)
+    expect(submit.json<{ message: string }>().message).toBe(
+      'the delivery role may not call POST /orders/:id/submit',
+    )
+    const cancel = await app.inject({
+      method: 'POST',
+      url: `/orders/${order}/cancel`,
+      headers,
+      payload: { idempotencyKey: 'dos-115-cancel', reason: 'DOS-115 probe' },
+    })
+    expect(cancel.statusCode).toBe(403)
+    expect(cancel.json<{ message: string }>().message).toBe(
+      'the delivery role may not call POST /orders/:id/cancel',
+    )
+    // The crew still reads the order at its stop: the gate lets GET /orders/{id} through.
+    const got = await app.inject({ method: 'GET', url: `/orders/${order}`, headers: auth })
+    expect(got.json<{ message?: string }>().message ?? '').not.toContain('may not call')
+  })
 })
 
 describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))

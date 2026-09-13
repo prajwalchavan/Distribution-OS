@@ -52,6 +52,7 @@ import {
   emitOrderEvent,
   isUniqueViolation,
   listOrders,
+  ORDER_PLACERS,
   recordTransition,
   transition,
   warehouseLocation,
@@ -98,6 +99,7 @@ type GetOut = z.infer<typeof OrderGetOutput>
 type ListIn = z.infer<typeof OrdersListInput>
 type ListOut = z.infer<typeof OrdersListOutput>
 
+/** Who reads an order (`get`, `list`): every member. The five writes are ORDER_PLACERS (DOS-115). */
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
 
@@ -139,7 +141,7 @@ export class OrdersService {
   // drafting
 
   async create(input: CreateIn): Promise<CreateOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -152,7 +154,7 @@ export class OrdersService {
   }
 
   async setLines(input: SetLinesIn): Promise<SetLinesOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -171,7 +173,7 @@ export class OrdersService {
 
   /** A repeat order is the retailer's last non-cancelled order, re-priced today (docs/06 "Reorder last order"). */
   async repeatLast(input: RepeatIn): Promise<RepeatOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -232,7 +234,7 @@ export class OrdersService {
    * under the system role (`asSystem`) while `actor_id` keeps recording the shopkeeper.
    */
   async submit(input: SubmitIn): Promise<SubmitOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -391,7 +393,7 @@ export class OrdersService {
   }
 
   async cancel(input: CancelIn): Promise<CancelOut> {
-    requireRole(ORDER_ROLES)
+    requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
