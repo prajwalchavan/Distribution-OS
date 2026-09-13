@@ -501,6 +501,7 @@ function Chrome({
         pending={device.pending}
         rejected={device.rejected}
         online={device.online}
+        persistent={device.persistent}
         name={session.user.name}
         tenantName={session.tenant.displayName}
         busy={busy}

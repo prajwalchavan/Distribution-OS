@@ -5,6 +5,8 @@
  * generated from the template before the dependency was added, or an old dev build on a rep's phone,
  * has the JavaScript and not the native side — so this asks for it dynamically and falls back to the
  * memory store, which says so in the strip, instead of a white screen on launch.
+ *
+ * The fallback carries the reason it was taken, and the engine says it (DOS-167 ruling 2 (t)): never silent.
  */
 import { createMemoryStore } from './memory.js'
 import { openExpoSqlite, type ExpoSqliteLike } from './expo-sqlite.js'
@@ -22,11 +24,18 @@ async function loadSqlite(): Promise<ExpoSqliteLike | null> {
 
 export async function openStore(name: string): Promise<SyncStore> {
   const sqlite = await loadSqlite()
-  if (sqlite === null) return createMemoryStore()
+  if (sqlite === null)
+    return createMemoryStore({
+      wanted: 'sqlite-native',
+      reason: 'expo-sqlite is not in this binary',
+    })
   try {
     return await openExpoSqlite(sqlite, name, 'sqlite-native')
-  } catch {
-    return createMemoryStore()
+  } catch (error) {
+    return createMemoryStore({
+      wanted: 'sqlite-native',
+      reason: `open failed: ${error instanceof Error ? error.message : String(error)}`,
+    })
   }
 }
 

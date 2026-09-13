@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest'
 
 import { strings } from '../strings'
 import {
+  leaveButtons,
   leaveNow,
   leaveSentence,
   sendNowThenLeave,
@@ -202,6 +203,62 @@ describe('DOS-167 the sales leave sheet', () => {
       missingKeys: [],
       longButtons: [],
     })
+  })
+
+  /*
+   * Ruling 2 (t). A browser that cannot keep the device store (not cross-origin isolated, no OPFS, an open that
+   * failed) holds the queue in memory, and it goes with the tab: "keep here" would be a promise nothing keeps.
+   */
+  it('DOS-167 a browser that cannot keep offers no keep: Send now or wait', () => {
+    const memorySignOut = leaveSentence({
+      mode: 'signOut',
+      pending: 2,
+      rejected: 1,
+      name: RAHUL,
+      tenantName: TARSUN,
+      persistent: false,
+    })
+    const memorySwitch = leaveSentence({
+      mode: 'switch',
+      pending: 2,
+      rejected: 0,
+      name: RAHUL,
+      tenantName: TARSUN,
+      persistent: false,
+    })
+    expect({
+      buttons: {
+        persistentOnline: leaveButtons({ mode: 'signOut', online: true, persistent: true }),
+        persistentOffline: leaveButtons({ mode: 'signOut', online: false, persistent: true }),
+        memoryOnline: leaveButtons({ mode: 'signOut', online: true, persistent: false }),
+        memoryOffline: leaveButtons({ mode: 'signOut', online: false, persistent: false }),
+        switchMemoryOnline: leaveButtons({ mode: 'switch', online: true, persistent: false }),
+        switchMemoryOffline: leaveButtons({ mode: 'switch', online: false, persistent: false }),
+      },
+      bodies: [memorySignOut.body, memorySwitch.body],
+      promisesToKeep: [memorySignOut.body, memorySwitch.body].filter((body) =>
+        body.includes('stay on this phone'),
+      ),
+      // The count and the refusals read the same on any store.
+      title: memorySignOut.title,
+      attention: memorySignOut.attention,
+    }).toEqual({
+      buttons: {
+        persistentOnline: ['sendNow', 'keep', 'cancel'],
+        persistentOffline: ['keep', 'cancel'],
+        memoryOnline: ['sendNow', 'cancel'],
+        memoryOffline: ['cancel'],
+        switchMemoryOnline: ['sendNow', 'cancel'],
+        switchMemoryOffline: ['cancel'],
+      },
+      bodies: [catalogue['leave.bodyMemory'], catalogue['leave.bodyMemory']],
+      promisesToKeep: [],
+      title: '2 changes have not reached the office',
+      attention: '1 needs attention',
+    })
+    expect(catalogue['leave.bodyMemory']).toBe(
+      'This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.',
+    )
   })
 
   it('DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count', async () => {

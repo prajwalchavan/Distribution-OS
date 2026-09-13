@@ -36,6 +36,11 @@ interface SyncStore {
   (COOP/COEP headers); the dev server and the CloudFront distribution send them. If OPFS is unavailable the client falls to:
 - `memory`: an in-memory SQL-compatible store (better-sqlite3-style API over `sql.js` is acceptable on web only). It is honest:
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
+  A fallback to it is never silent (ruling 2 (t), 2026-09-14): the opener hands back the memory store with
+  `fallback = { wanted, reason }` — `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load` (web),
+  `expo-sqlite is not in this binary` (native) or `open failed: <message>` — `start()` logs
+  `offline: no persistent store; running in memory` once with that reason, and `SyncStatus.storeNote` names it (null on a
+  persistent store).
 
 One file per (app, user, distributor): `<app><user><distributor>` (`storeNameFor`), exactly 51 characters of `[0-9a-z]`, no
 separator and no extension — the app's letter (`dos-sales` → `s`, `dos-delivery` → `d`, `dos-warehouse` → `w`, `dos-harness` →
@@ -217,7 +222,9 @@ write already in hand is finished, counted and kept for that person. With anythi
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
 that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
 refused ones wait in Needs attention for that person to fix or discard. Discarding is never
-offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
+offered at sign-out; it stays in the Needs-attention tray (§11). A store that cannot keep (§2, memory) never offers to keep, nor
+to switch anyway: the sheet says the browser cannot keep them and offers "Send now" while online, and Cancel; the sign-out waits
+for a signal, and refused ones are fixed or discarded in Needs attention (ruling 2 (t), 2026-09-14). A session that ends by itself (a refresh answered 401) keeps the
 queue in that person's file the same way (§14). Decided by the founder, 2026-09-13.
 
 ## 13. Tests (deterministic, fake transport, no network)

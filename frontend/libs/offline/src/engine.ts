@@ -324,7 +324,8 @@ export class SyncEngine {
     })
     let unclaimed: SyncStore | null = null
     try {
-      const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
+      const name = this.options.databaseName ?? 'dos-offline.db'
+      const store = await this.options.storeFactory(name)
       unclaimed = store
       /*
        * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
@@ -337,6 +338,16 @@ export class SyncEngine {
         await store.close().catch(() => {})
         return
       }
+      /*
+       * NEVER SILENT (DOS-167 ruling 2 (t)). A person's store that keeps nothing past this tab or this process says so,
+       * once, with the opener's reason: on the web proof of 199952b every open fell back to memory without a word, and
+       * a rep was told his order was kept on this phone while only the tab held it. `storeNote` carries the reason.
+       */
+      if (!store.persistent && this.options.identity !== undefined)
+        this.options.onLog?.('offline: no persistent store; running in memory', {
+          name,
+          fallback: store.fallback,
+        })
       await createSystemTables(store)
       await store.exec(
         `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
@@ -691,6 +702,8 @@ export class SyncEngine {
       online: this.radio() && this.reachable,
       store: this.store?.kind ?? 'memory',
       persistent: this.store?.persistent ?? false,
+      storeNote:
+        this.store === null || this.store.persistent ? null : (this.store.fallback?.reason ?? null),
       lastPulledAt: this.lastPulledAt,
       pulling: this.pulling,
       pending: this.pending,

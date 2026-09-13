@@ -67,6 +67,8 @@ export const strings = {
     'They wait in Needs attention until you come back to {tenantName} on this phone. They do not go by themselves.',
   'leave.bodySwitchBoth':
     'The queued ones go when you come back to {tenantName} on this phone; the ones needing attention wait there for you to fix or discard.',
+  'leave.bodyMemory':
+    'This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.',
   'leave.attention': '{n} need attention',
   'leave.attention.one': '1 needs attention',
   'leave.sendNow': 'Send now',

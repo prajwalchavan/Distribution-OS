@@ -33,12 +33,28 @@ export interface SyncStore {
   /** False only for the memory adapter — the one the strip must be honest about. */
   readonly persistent: boolean
   readonly kind: StoreKind
+  /**
+   * Set on a store in memory handed back INSTEAD of the one the platform was asked for (DOS-167 ruling 2 (t)): which
+   * store was wanted and why it could not be had. Never silent: the engine logs it at start and names it in the
+   * status as `storeNote`.
+   */
+  readonly fallback?: StoreFallback
   close(): Promise<void>
   /** Close and delete the file itself. A store with no file (memory) empties itself instead. */
   destroy?(): Promise<void>
 }
 
 export type StoreKind = 'sqlite-native' | 'sqlite-web' | 'memory'
+
+/**
+ * Why a store is in memory (DOS-167 ruling 2 (t)): the one the platform was asked for, and the opener's reason —
+ * `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load`, `expo-sqlite is not in this
+ * binary` or `open failed: <message>`.
+ */
+export interface StoreFallback {
+  readonly wanted: StoreKind
+  readonly reason: string
+}
 
 /**
  * Who a device database belongs to (DOS-167): one person inside one distributorship, and the role they hold
@@ -158,6 +174,8 @@ export interface SyncStatus {
   store: StoreKind
   /** False for the memory adapter: the strip says "Offline data is not saved on this browser". */
   persistent: boolean
+  /** Why the store is not persistent: the opener's `fallback.reason` (DOS-167 ruling 2 (t)); null on a persistent store. */
+  storeNote: string | null
   lastPulledAt: string | null
   pulling: boolean
   /** queued + sending. */

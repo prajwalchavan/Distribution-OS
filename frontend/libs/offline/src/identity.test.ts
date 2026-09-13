@@ -732,6 +732,69 @@ describe('DOS-167 one file per app, person and distributor', () => {
       handshakesWhileClosing: server.manifestCalls.length - handshakes,
     }).toEqual({ errorsAtStart: 1, errorsAfterPage: 1, handshakesWhileClosing: 0 })
   })
+
+  /*
+   * Ruling 2 (t). On the web proof of 199952b every open failed and `openStore` handed back a store in memory
+   * without a word: the rep was told his order was kept on this phone while only the tab held it.
+   */
+  it('DOS-167 a memory store is announced at start and named in the status', async () => {
+    const server = new FakeServer(TABLES)
+    const said: { line: string; detail: unknown }[] = []
+    const inMemory = engineAs(
+      RAHUL,
+      createMemoryStore({ wanted: 'sqlite-web', reason: 'open failed: sqlite3_open_v2' }),
+      server.transport(),
+      {
+        onLog: (line, detail) => {
+          said.push({ line, detail })
+        },
+      },
+    )
+    await inMemory.start()
+
+    // A store that keeps, as expo-sqlite's is.
+    const inner = createMemoryStore()
+    const disk: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => inner.exec(sql, params),
+      query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> =>
+        inner.query<T>(sql, params),
+      transaction: (fn) => inner.transaction(fn),
+      close: () => inner.close(),
+    }
+    const onDiskSaid: string[] = []
+    const onDisk = engineAs(RAHUL, disk, server.transport(), {
+      onLog: (line) => {
+        onDiskSaid.push(line)
+      },
+    })
+    await onDisk.start()
+
+    expect({
+      announced: said.filter(
+        (entry) => entry.line === 'offline: no persistent store; running in memory',
+      ),
+      note: inMemory.status().storeNote,
+      onDiskAnnounced: onDiskSaid.filter((line) => line.includes('no persistent store')),
+      onDiskNote: onDisk.status().storeNote,
+    }).toEqual({
+      announced: [
+        {
+          line: 'offline: no persistent store; running in memory',
+          detail: {
+            name: 'dos-offline.db',
+            fallback: { wanted: 'sqlite-web', reason: 'open failed: sqlite3_open_v2' },
+          },
+        },
+      ],
+      note: 'open failed: sqlite3_open_v2',
+      onDiskAnnounced: [],
+      onDiskNote: null,
+    })
+    await inMemory.stop()
+    await onDisk.stop()
+  })
 })
 
 // 13 -------------------------------------------------------------------------------------------------------------

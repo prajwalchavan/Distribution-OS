@@ -258,6 +258,7 @@ const IDLE: SyncStatus = {
   online: true,
   store: 'memory',
   persistent: false,
+  storeNote: null,
   lastPulledAt: null,
   pulling: false,
   pending: 0,
@@ -299,6 +300,11 @@ export interface LeaveSession {
   pending: number
   rejected: number
   online: boolean
+  /**
+   * False while the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the sheet
+   * never offers to keep it — "Send now" with a signal, else the person stays signed in.
+   */
+  persistent: boolean
   /**
    * What waits in this person's file, counted once the engine has opened it. The tap decides on this:
    * before the open the snapshot reads 0, and a sign-out decided on it deleted a queue it had not seen.
@@ -343,11 +349,12 @@ export function useLeaveSession(): LeaveSession {
       pending: status.pending,
       rejected: status.rejected,
       online: status.online,
+      persistent: status.persistent,
       waiting,
       sendNow,
       end,
     }),
-    [status.pending, status.rejected, status.online, waiting, sendNow, end],
+    [status.pending, status.rejected, status.online, status.persistent, waiting, sendNow, end],
   )
 }
 
