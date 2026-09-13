@@ -8,7 +8,15 @@
  *   import { OfflineProvider, useTable, useOutbox } from '@dos/offline/react'
  *   import { openStore, transportFromApi } from '@dos/offline'
  */
-export { SyncEngine, CLIENT_SYNC_PROTOCOL, type SyncEngineOptions } from './engine.js'
+export {
+  SyncEngine,
+  SyncEngineEndedError,
+  CLIENT_SYNC_PROTOCOL,
+  legacyStoreName,
+  storeNameFor,
+  type EndResult,
+  type SyncEngineOptions,
+} from './engine.js'
 export { transportFromApi, type SyncApiLike } from './transport.js'
 export { createMemoryStore, memoryStoreFactory } from './store/memory.js'
 export { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'

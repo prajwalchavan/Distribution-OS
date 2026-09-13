@@ -13,9 +13,10 @@
  * 6. Hide every destination the signed-in role could not call, from the SAME `PERMISSIONS` matrix the
  *    server enforces. There is no second permission list in this repo.
  */
+import { sessionIdentity } from '@dos/api-client'
 import { ApiProvider, useApi, useSession } from '@dos/api-client/react'
-import { connectionStateFrom, openStore } from '@dos/offline'
-import { OfflineProvider, useSyncStatus } from '@dos/offline/react'
+import { connectionStateFrom, openStore, SyncEngine } from '@dos/offline'
+import { OfflineProvider, useLeaveSession, useSyncStatus } from '@dos/offline/react'
 import {
   AppShell,
   Button,
@@ -29,17 +30,29 @@ import {
   useStrings,
 } from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
-import type { ApiClient } from '@dos/api-client'
+import type { ApiClient, Session } from '@dos/api-client'
+import type { SyncIdentity } from '@dos/offline'
 import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
 import { StatusBar } from 'expo-status-bar'
 import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { boot, deviceId } from '../src/api'
 import { APP, absoluteUrl } from '../src/config'
+import {
+  leaveNow,
+  sendNowThenLeave,
+  tapLeave,
+  type Leaving,
+  type LeaveSteps,
+} from '../src/lib/leave'
+import { LeaveSheet } from '../src/lib/leave-sheet'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
+
+/** This app's device-store prefix (DOS-167). `storeNameFor` adds the person and the distributor. */
+const STORE_PREFIX = 'dos-warehouse'
 
 export default function RootLayout(): React.JSX.Element | null {
   const [client, setClient] = useState<ApiClient | null>(null)
@@ -123,6 +136,9 @@ function Shell(): React.JSX.Element {
     [session],
   )
 
+  /** Who the device store belongs to (DOS-167): this person, inside this distributorship. */
+  const identity = useMemo(() => sessionIdentity(session), [session])
+
   const role = session?.role as PermissionRole | undefined
   const can = useCallback(
     (item: NavItem): boolean =>
@@ -194,6 +210,9 @@ function Shell(): React.JSX.Element {
     <Chrome
       can={can}
       pathname={pathname}
+      session={session}
+      signOut={signOut}
+      switchDistributor={switchDistributor}
       tenant={{
         current: {
           id: session.tenant.id,
@@ -201,16 +220,10 @@ function Shell(): React.JSX.Element {
           roleLabel: session.role,
         },
         choices,
-        onSwitch: (tenantId) => {
-          void switchDistributor(tenantId)
-        },
       }}
       account={{
         name: session.user.name,
         roleLabel: session.role,
-        onSignOut: () => {
-          void signOut()
-        },
         items: [
           {
             id: 'me',
@@ -245,7 +258,7 @@ function Shell(): React.JSX.Element {
        * refresh (see above); only its first call now waits for a token.
        */}
       <Offline
-        tenantId={session?.tenant.id ?? null}
+        identity={identity}
         enabled={session !== null && !hydrating && !mustChangePassword && !wrongRole}
       >
         {content}
@@ -276,20 +289,22 @@ function WrongRole({
 /**
  * The sync engine, started once per signed-in session.
  *
- * `tenantId` is not decoration: `schemaVersion` hashes the ROLE's tables, so a hand who works two
- * godowns for two distributors gets the same hash from both, and without the tenant on the engine the
- * second one's delta would land on the first one's rows.
+ * The device database is this person's own file inside this distributorship (DOS-167): another hand
+ * who signs in on the godown's shared phone, or this hand at another distributor, opens a different
+ * file and starts from nothing, because one book's picking sheets and stock are never another's to
+ * read. The engine also checks the file's stamp against `identity` before it reads a single row, and
+ * a switch simply stops the engine on one file and starts it on the other.
  *
  * `tables` is deliberately absent — the manifest's own thirteen tables for this role are what a
  * godown phone needs, and choosing a subset here would be this app quietly disagreeing with the
  * server about what a picking sheet is.
  */
 function Offline({
-  tenantId,
+  identity,
   enabled,
   children,
 }: {
-  tenantId: string | null
+  identity: SyncIdentity | null
   enabled: boolean
   children: React.ReactNode
 }): React.JSX.Element {
@@ -299,21 +314,40 @@ function Offline({
     <OfflineProvider
       api={api.api}
       deviceId={device}
-      {...(tenantId === null ? {} : { tenantId })}
+      identity={identity}
+      storePrefix={STORE_PREFIX}
       enabled={enabled}
       storeFactory={openStore}
-      databaseName="dos-warehouse.db"
     >
       {children}
     </OfflineProvider>
   )
 }
 
+/** The person's files at their OTHER distributors, swept at a sign-out that leaves nothing unsent. */
+function otherIdentities(session: Session): SyncIdentity[] {
+  return session.memberships
+    .filter((membership) => membership.tenantId !== session.tenant.id)
+    .map((membership) => ({
+      userId: session.user.id,
+      tenantId: membership.tenantId,
+      role: membership.role,
+    }))
+}
+
+type ShellTenant = NonNullable<React.ComponentProps<typeof AppShell>['tenant']>
+type ShellAccount = NonNullable<React.ComponentProps<typeof AppShell>['account']>
+
 interface ChromeProps {
   can: (item: NavItem) => boolean
   pathname: string
-  tenant: React.ComponentProps<typeof AppShell>['tenant']
-  account: React.ComponentProps<typeof AppShell>['account']
+  session: Session
+  /** The switcher without its handler: a switch goes through the leave flow below. */
+  tenant: Omit<ShellTenant, 'onSwitch'>
+  /** The account menu without its sign-out: signing out goes through the leave flow below. */
+  account: Omit<ShellAccount, 'onSignOut'>
+  signOut: () => Promise<void>
+  switchDistributor: (tenantId: string) => Promise<unknown>
   children: React.ReactNode
 }
 
@@ -324,10 +358,31 @@ interface ChromeProps {
  * last call reached a service", and the pending and rejected counts are the outbox's own. Tapping it
  * opens the tray, which is where a rejected pick becomes a piece of work. There is never a "Sync now"
  * button (UX-00 §6.11).
+ *
+ * LEAVING IS DECIDED HERE, inside the provider, because it needs the device (DOS-167; founder,
+ * 2026-09-13). With nothing queued and nothing refused, "Sign out" is one tap: this hand's file is
+ * deleted, their files at other distributors are deleted where nothing waits in them, and only then is
+ * the session cleared. With anything waiting, the leave sheet names the count and the person: "Send
+ * now" while there is a signal, or sign out keeping them on this phone for this hand only. A switch
+ * wipes nothing — the changes wait in this distributor's file — and asks only when something is
+ * waiting.
  */
-function Chrome({ can, pathname, tenant, account, children }: ChromeProps): React.JSX.Element {
+function Chrome({
+  can,
+  pathname,
+  session,
+  tenant,
+  account,
+  signOut,
+  switchDistributor,
+  children,
+}: ChromeProps): React.JSX.Element {
   const router = useRouter()
   const status = useSyncStatus()
+  const device = useLeaveSession()
+  const [asking, setAsking] = useState<Leaving | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
 
   const sections = useMemo(() => {
     if (status.rejected === 0) return SECTIONS
@@ -339,27 +394,128 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
     }))
   }, [status.rejected])
 
-  return (
-    <AppShell
-      sections={sections}
-      can={can}
-      activeHref={pathname}
-      onNavigate={(href) => {
-        router.push(href)
-      }}
-      tenant={tenant}
-      account={account}
-      connection={
-        <ConnectionStrip
-          testID="connection"
-          state={connectionStateFrom(status)}
-          onOpenQueue={() => {
-            router.push('/pick/attention')
-          }}
-        />
+  /**
+   * What the leave flow (`src/lib/leave.ts`) needs of the device and the session. It decides on
+   * `waiting()` — this hand's file, counted once the engine has opened it — and never on the status
+   * snapshot, which reads 0 until then: a sign-out tapped on a cold start took the one-tap path on that 0
+   * and deleted what the hand had kept on this phone, with no sheet.
+   */
+  const steps = useMemo<LeaveSteps>(
+    () => ({
+      waiting: device.waiting,
+      sendNow: device.sendNow,
+      end: device.end,
+      sweep: () =>
+        SyncEngine.sweepIdentityStores(openStore, STORE_PREFIX, otherIdentities(session)),
+      signOut,
+      switchDistributor,
+    }),
+    [device.waiting, device.sendNow, device.end, session, signOut, switchDistributor],
+  )
+
+  /** One leave step at a time: a second tap before `busy` has rendered is swallowed too. */
+  const running = useRef(false)
+  const run = useCallback((step: () => Promise<void>): void => {
+    if (running.current) return
+    running.current = true
+    setBusy(true)
+    void step().finally(() => {
+      running.current = false
+      setBusy(false)
+    })
+  }, [])
+
+  const leave = useCallback(
+    (to: Leaving): void => {
+      if (asking !== null) return
+      run(async () => {
+        if ((await tapLeave(to, steps)) === 'ask') {
+          setSent(false)
+          setAsking(to)
+        }
+      })
+    },
+    [asking, run, steps],
+  )
+
+  const sendNow = useCallback((): void => {
+    if (asking === null) return
+    const to = asking
+    run(async () => {
+      let next: 'ask' | 'left' | null = null
+      try {
+        next = await sendNowThenLeave(to, steps)
+      } finally {
+        setSent(true)
+        // Left, or a switch that failed (a failed send is 'ask'): the sheet closes.
+        if (next !== 'ask') setAsking(null)
       }
-    >
-      {children}
-    </AppShell>
+    })
+  }, [asking, run, steps])
+
+  const keep = useCallback((): void => {
+    if (asking === null) return
+    const to = asking
+    run(async () => {
+      try {
+        await leaveNow(to, true, steps)
+      } finally {
+        setAsking(null)
+      }
+    })
+  }, [asking, run, steps])
+
+  const cancel = useCallback((): void => {
+    if (!running.current) setAsking(null)
+  }, [])
+
+  return (
+    <>
+      <AppShell
+        sections={sections}
+        can={can}
+        activeHref={pathname}
+        onNavigate={(href) => {
+          router.push(href)
+        }}
+        tenant={{
+          ...tenant,
+          onSwitch: (tenantId) => {
+            leave({ mode: 'switch', tenantId })
+          },
+        }}
+        account={{
+          ...account,
+          onSignOut: () => {
+            leave({ mode: 'signOut' })
+          },
+        }}
+        connection={
+          <ConnectionStrip
+            testID="connection"
+            state={connectionStateFrom(status)}
+            onOpenQueue={() => {
+              router.push('/pick/attention')
+            }}
+          />
+        }
+      >
+        {children}
+      </AppShell>
+      <LeaveSheet
+        open={asking !== null}
+        mode={asking?.mode ?? 'signOut'}
+        pending={device.pending}
+        rejected={device.rejected}
+        online={device.online}
+        name={session.user.name}
+        tenantName={session.tenant.displayName}
+        busy={busy}
+        note={sent && device.online ? status.lastError : null}
+        onSendNow={sendNow}
+        onLeave={keep}
+        onCancel={cancel}
+      />
+    </>
   )
 }

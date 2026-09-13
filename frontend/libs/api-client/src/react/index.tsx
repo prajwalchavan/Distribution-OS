@@ -62,9 +62,49 @@ export function ApiProvider({
     [client, cache],
   )
   useEffect(() => {
+    const store: SessionStoreLike = value.client.session
+    return bindCacheToSession(store, value.cache)
+  }, [value])
+  useEffect(() => {
     if (hydrateOnMount) void value.client.hydrate()
   }, [value, hydrateOnMount])
   return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>
+}
+
+/**
+ * Whose rows the cache holds: `userId:tenantId`, which is `identityKey(sessionIdentity(session))` for a member
+ * of a distributor, and the user alone for the platform console, whose session has no tenant.
+ */
+function cacheOwner(snapshot: SessionSnapshotLike): string | null {
+  const session = snapshot.session as {
+    readonly user: { readonly id: string }
+    readonly tenant?: { readonly id: string }
+  } | null
+  if (session === null) return null
+  return `${session.user.id}:${session.tenant?.id ?? ''}`
+}
+
+/**
+ * THE CACHE FOLLOWS WHO IS SIGNED IN, not which button was pressed (DOS-167).
+ *
+ * `useQuery` repaints a key's last value first (UX-00 §6.13), and only `useSession().signOut` and
+ * `switchDistributor` used to clear the cache. A refresh answered 401 clears the session INSIDE the client
+ * (`refreshNow` → `session.clear()`), where neither runs, so the next person to sign in on that phone was
+ * painted the last one's rows until the revalidation landed. This clears on every change of identity: to
+ * nobody, from nobody (whatever was cached in between), to another person or another distributor. The same
+ * person with a changed password flag keeps what they have read. Returns the unsubscribe.
+ */
+export function bindCacheToSession(
+  store: Pick<SessionStoreLike, 'subscribe' | 'getSnapshot'>,
+  cache: QueryCache,
+): () => void {
+  let owner = cacheOwner(store.getSnapshot())
+  return store.subscribe(() => {
+    const next = cacheOwner(store.getSnapshot())
+    if (next === owner) return
+    owner = next
+    cache.clear()
+  })
 }
 
 function useApiContext(): ApiContextValue {

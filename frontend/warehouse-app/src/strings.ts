@@ -18,6 +18,32 @@ export const strings = {
   'app.signInFailed': 'Could not sign in',
   'app.signInHint': 'The godown sign-in. Ask your manager for a username.',
   'app.signOut': 'Sign out',
+  /*
+   * DOS-167: signing out, or switching distributor, while this phone still holds changes the office has
+   * not got. The founder's rule (2026-09-13): they stay on this phone for that person only; the queued ones
+   * go the next time that person signs in here, and the ones needing attention wait in Needs attention and
+   * never go by themselves. Nothing is ever thrown away from this sheet. A count of exactly 1 takes the
+   * `.one` sentence, and every button is at most 20 characters.
+   */
+  'leave.title': '{n} changes have not reached the office',
+  'leave.title.one': '1 change has not reached the office',
+  'leave.bodySignOut':
+    'They stay on this phone for {name} only and go the next time {name} signs in here. Nobody else can see them.',
+  'leave.bodySignOutRefused':
+    'They stay in Needs attention on this phone for {name} only. They do not go by themselves: {name} fixes or discards them there after signing in here. Nobody else can see them.',
+  'leave.bodySignOutBoth':
+    'They stay on this phone for {name} only. The queued ones go the next time {name} signs in here; the ones needing attention wait there for {name} to fix or discard. Nobody else can see them.',
+  'leave.bodySwitch': 'They go when you come back to {tenantName} on this phone.',
+  'leave.bodySwitchRefused':
+    'They wait in Needs attention until you come back to {tenantName} on this phone. They do not go by themselves.',
+  'leave.bodySwitchBoth':
+    'The queued ones go when you come back to {tenantName} on this phone; the ones needing attention wait there for you to fix or discard.',
+  'leave.attention': '{n} need attention',
+  'leave.attention.one': '1 needs attention',
+  'leave.sendNow': 'Send now',
+  'leave.signOutKeep': 'Sign out, keep here',
+  'leave.switchAnyway': 'Switch anyway',
+  'leave.noSignal': 'No connection — they cannot go now.',
   'app.distributor': 'Distributor',
   'app.role': 'Role',
   'app.person': 'Signed in as',

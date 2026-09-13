@@ -49,11 +49,14 @@ export {
 export { readEveryPage, type CursorPage, type EveryPage } from './pages.js'
 
 export {
+  identityKey,
   PlatformSessionStore,
+  sessionIdentity,
   SessionStore,
   type PlatformSession,
   type PlatformSessionState,
   type Session,
+  type SessionIdentity,
   type SessionSnapshotLike,
   type SessionState,
   type SessionStoreLike,

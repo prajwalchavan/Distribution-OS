@@ -29,7 +29,7 @@ import {
   SYNC_ERRORS_TABLE,
   type TableShape,
 } from './schema.js'
-import { readState, writeState } from './state.js'
+import { readState, writeState, type SyncStateKey } from './state.js'
 import type {
   EnqueueInput,
   LocalSyncError,
@@ -37,6 +37,7 @@ import type {
   OutboxRow,
   SqlValue,
   StoreFactory,
+  SyncIdentity,
   SyncStatus,
   SyncStore,
   SyncTransport,
@@ -45,6 +46,56 @@ import type {
 
 /** The wire version this client speaks; the server rejects anything else with `upgradeRequired`. */
 export const CLIENT_SYNC_PROTOCOL = 1
+
+/** A file-name part: letters, digits and hyphens. Every UUID fits; nothing that can walk a path does. */
+const STORE_PREFIX = /^[A-Za-z0-9-]+$/
+const STORE_ID = /^[A-Za-z0-9-]{1,64}$/
+
+/**
+ * The device database of one person inside one distributorship, for one app (DOS-167, docs/27 §2):
+ * `dos-sales__u-<userId>__t-<tenantId>.db`. Two identities can never open the same file, so a person who
+ * signs in on a phone somebody else used starts with no rows and no cursor by construction.
+ *
+ * LOSSLESS ON PURPOSE: the ids go in as they are, never hashed, so two identities share a file only when
+ * both ids are equal. And CHECKED: a file name never carries an unchecked string.
+ */
+export function storeNameFor(prefix: string, identity: SyncIdentity): string {
+  assertStorePrefix(prefix)
+  if (!STORE_ID.test(identity.userId) || !STORE_ID.test(identity.tenantId))
+    throw new Error(
+      'offline: a store name takes a user id and a distributor id of letters, digits and hyphens only',
+    )
+  return `${prefix}__u-${identity.userId}__t-${identity.tenantId}.db`
+}
+
+/** The one fixed file per app that every build before DOS-167 kept, whoever was signed in. */
+export function legacyStoreName(prefix: string): string {
+  assertStorePrefix(prefix)
+  return `${prefix}.db`
+}
+
+function assertStorePrefix(prefix: string): void {
+  if (!STORE_PREFIX.test(prefix)) throw new Error(`offline: unsafe store prefix: ${prefix}`)
+}
+
+type ClearedStateKey = Exclude<SyncStateKey, 'deviceId'>
+
+/**
+ * Every `_sync_state` key a store opened by another identity loses: all of them but `deviceId`, which
+ * belongs to the install, not to a person. A Record, so a key added to `SyncStateKey` does not compile
+ * until somebody decides whether another person's store may keep it.
+ */
+const CLEARED_FOR_ANOTHER_IDENTITY: Record<ClearedStateKey, true> = {
+  cursor: true,
+  schemaVersion: true,
+  manifest: true,
+  role: true,
+  tenantId: true,
+  userId: true,
+  lastPulledAt: true,
+  lastUploadAt: true,
+  protocol: true,
+}
 
 /** docs/27 §6: at most 50 ops in flight, one batch at a time, FIFO by `seq`. */
 const DEFAULT_UPLOAD_BATCH = 50
@@ -67,22 +118,52 @@ const BACKOFF_CEILING_MS = 60_000
 /** docs/27 §8: breadcrumbs are pruned locally after a week. */
 const GPS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * What every write answers once sign-out has begun (DOS-167, ruling (m)). A write refused here was never
+ * saved, so the sign-out cannot delete it, and the screen shows this sentence instead of "saved on this phone".
+ */
+export class SyncEngineEndedError extends Error {
+  readonly code = 'ended'
+
+  constructor() {
+    super(
+      'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+    )
+    this.name = 'SyncEngineEndedError'
+  }
+}
+
+/**
+ * What `end()` did with the file (DOS-167, ruling (m)): `kept` when it survives for this person — asked for,
+ * or because the count taken once the last write and pull had landed found something still waiting — and
+ * that count.
+ */
+export interface EndResult {
+  kept: boolean
+  pending: number
+  rejected: number
+}
+
 export interface SyncEngineOptions {
   transport: SyncTransport
   /** One id per install (docs/27 §4); the app already has it for `auth_sessions`. */
   deviceId: string
   storeFactory: StoreFactory
-  /** The database file name; a second signed-in tenant gets its own. */
+  /** The database file name: `storeNameFor(prefix, identity)` in the apps, one file per person and distributor. */
   databaseName?: string
   /** Hold only these manifest tables. Omit for the whole read set. */
   tables?: readonly string[]
   /**
-   * The distributor this database belongs to. docs/27 §5 re-snapshots on a distributor switch, and
-   * `sync.manifest` cannot say which one it answered for — the hash is over the role's TABLES, so a
-   * rep who switches between two distributors with the same role gets the identical `schemaVersion`.
-   * Without this the second distributor's delta would land on top of the first one's rows.
+   * Who this database belongs to. Absent only in the harness and in tests that model a device with no
+   * sign-in.
+   *
+   * It is stamped into `_sync_state` at open and compared there BEFORE anything is read (DOS-167): a
+   * store stamped for another person or another distributor is wiped whole, queue included. Its
+   * `tenantId` is also what the manifest handshake compares, because `sync.manifest` cannot say which
+   * distributor it answered for — the hash is over the role's TABLES, so a rep who switches between two
+   * distributors with the same role gets the identical `schemaVersion` (docs/27 §5).
    */
-  tenantId?: string
+  identity?: SyncIdentity
   pullLimit?: number
   uploadBatchSize?: number
   /** The most op JSON one upload batch carries, in UTF-8 bytes (default 4 MiB, docs/27 §6). */
@@ -130,7 +211,19 @@ export class SyncEngine {
   private retryTimer: Timer | null = null
   private pollTimer: Timer | null = null
   private started = false
+  /**
+   * Set the moment `end()` begins (DOS-167): every write is refused from then on (`SyncEngineEndedError`),
+   * nothing new starts, and a later `stop()` is a no-op.
+   */
+  private ended = false
+  /** The one `end()`: a second call waits for the first rather than starting again. */
+  private ending: Promise<EndResult> | null = null
+  /** Writes that passed the gate and have not landed yet; `end()` waits for every one (ruling (m)). */
+  private readonly writes = new Set<Promise<void>>()
   private flushChain: Promise<void> = Promise.resolve()
+  /** The open in `start()` and the pull in flight, so `end()` never drops a table under either. */
+  private opening: Promise<void> = Promise.resolve()
+  private syncing: Promise<void> = Promise.resolve()
 
   constructor(private readonly options: SyncEngineOptions) {
     this.now = options.now ?? (() => Date.now())
@@ -151,39 +244,84 @@ export class SyncEngine {
    * (docs/27 §14).
    */
   async start(): Promise<void> {
-    if (this.started) return
+    if (this.started || this.ended) return
     this.started = true
-    const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
-    this.store = store
-    await createSystemTables(store)
-    await store.exec(
-      `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
-    )
-    await writeState(store, 'deviceId', this.options.deviceId)
-    this.schemaVersion = await readState(store, 'schemaVersion')
-    this.lastPulledAt = await readState(store, 'lastPulledAt')
-    await this.restoreManifest(store)
-    await this.refreshCounts()
-    this.ready = true
-    this.emitStatus()
-    /*
-     * TELL EVERY MOUNTED READ THAT THE DEVICE IS OPEN FOR BUSINESS.
-     *
-     * `queryTable` answers `[]` for a table whose SHAPE it does not know yet (line ~826), and the
-     * shapes only exist after `restoreManifest`. A screen that mounted first therefore ran its one
-     * query against an engine with no shapes, got nothing, and — because `useTable` re-runs only on
-     * a table CHANGE — kept nothing for as long as it stayed mounted. On a device whose store is
-     * already full and whose delta pull has nothing new to bring, no change ever comes: measured on
-     * the Pixel 7, the delivery app's home screen said "Nothing is on the road yet" over a SQLite
-     * file holding TRIP-NEXT as `active`, on every cold start, for ever. This is the one moment the
-     * device gains the ability to answer, so it says so.
-     */
-    this.bus.emit([...this.shapes.keys(), OUTBOX_CHANNEL])
+    let opened = (): void => {}
+    this.opening = new Promise<void>((resolve) => {
+      opened = resolve
+    })
+    let unclaimed: SyncStore | null = null
+    try {
+      const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
+      unclaimed = store
+      /*
+       * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
+       * changes, and that can land before the open — or the claim below — has finished: `stop()` then had no
+       * store to close, and carrying on attached this file to a stopped engine and ran the handshake and the
+       * tray mirror through the one api client the app keeps, as whoever is signed in by then, into this
+       * file. The file is this call's alone to close. `end()` is not a stop: it waits for the open and counts.
+       */
+      if (this.stoppedWhileOpening()) {
+        await store.close().catch(() => {})
+        return
+      }
+      await createSystemTables(store)
+      await store.exec(
+        `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
+      )
+      /*
+       * WHOSE FILE IS THIS — asked before anything in it is read (DOS-167). Before this line existed the
+       * only check was the manifest handshake below, which runs over the network: a Sai Distributors rep
+       * who signed in after a restart was shown thirty Tarsun shops with their dues for the 0.4 s before it
+       * answered, and a colleague at the same distributor was never re-snapshotted at all.
+       */
+      await this.claimIdentity(store)
+      if (this.stoppedWhileOpening()) {
+        await store.close().catch(() => {})
+        return
+      }
+      /*
+       * Only now does the engine answer from this file (DOS-167, ruling (o)). `outbox()` and
+       * `needsAttention()` have no shape to gate them, and `useOutbox` asks the moment the provider sets the
+       * engine: handed the store before the claim, they read another person's queue and refusals for as
+       * long as the claim took.
+       */
+      this.store = store
+      unclaimed = null
+      await writeState(store, 'deviceId', this.options.deviceId)
+      this.schemaVersion = await readState(store, 'schemaVersion')
+      this.lastPulledAt = await readState(store, 'lastPulledAt')
+      await this.restoreManifest(store)
+      await this.refreshCounts()
+      this.ready = true
+      this.emitStatus()
+      /*
+       * TELL EVERY MOUNTED READ THAT THE DEVICE IS OPEN FOR BUSINESS.
+       *
+       * `queryTable` answers `[]` for a table whose SHAPE it does not know yet (line ~826), and the
+       * shapes only exist after `restoreManifest`. A screen that mounted first therefore ran its one
+       * query against an engine with no shapes, got nothing, and — because `useTable` re-runs only on
+       * a table CHANGE — kept nothing for as long as it stayed mounted. On a device whose store is
+       * already full and whose delta pull has nothing new to bring, no change ever comes: measured on
+       * the Pixel 7, the delivery app's home screen said "Nothing is on the road yet" over a SQLite
+       * file holding TRIP-NEXT as `active`, on every cold start, for ever. This is the one moment the
+       * device gains the ability to answer, so it says so.
+       */
+      this.bus.emit([...this.shapes.keys(), OUTBOX_CHANNEL])
+    } catch (error) {
+      // A file opened and never claimed is this call's alone to close: no `stop()` or `end()` can reach it.
+      if (unclaimed !== null) await unclaimed.close().catch(() => {})
+      throw error
+    } finally {
+      opened()
+    }
     await this.sync('start')
-    this.schedulePoll()
+    if (this.started) this.schedulePoll()
   }
 
   async stop(): Promise<void> {
+    // After `end()` the file is already closed or gone; the provider's cleanup still calls this.
+    if (this.ended) return
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
@@ -193,23 +331,38 @@ export class SyncEngine {
     this.store = null
   }
 
+  /** `stop()` ran while `start()` was still opening or claiming its file; `end()` does not count. */
+  private stoppedWhileOpening(): boolean {
+    return !this.started && !this.ended
+  }
+
   /**
-   * Sign-out (docs/27 §12): every data table and the queue go, the device id stays. The caller is
-   * expected to have shown the user what is queued first — `status().pending` is that number.
+   * The read set goes (docs/27 §12, DOS-167): every data table, the cursor and what the last handshake
+   * said, and the GPS buffer. The queue and its tray mirror go too, unless `keepQueue` — which keeps
+   * them in THIS file, for this person only. Whose file it is (`userId`, `tenantId`) and the `deviceId`
+   * are never cleared here. Every dropped table is told, so a mounted list does not keep the rows in
+   * its own state until it unmounts.
    */
-  async wipe(): Promise<void> {
-    const store = this.requireStore()
-    await dropDataTables(store, [...this.shapes.keys()])
-    await store.exec(`DELETE FROM ${OUTBOX_TABLE}`)
-    await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE}`)
+  async wipe(options: { keepQueue?: boolean } = {}): Promise<void> {
+    await this.dropReadSet(this.requireStore(), options)
+  }
+
+  /** `wipe` on the store in hand: what `end()` runs once it has refused new writes and they have all landed. */
+  private async dropReadSet(store: SyncStore, options: { keepQueue?: boolean }): Promise<void> {
+    const dropped = await this.dataTablesIn(store)
+    await dropDataTables(store, dropped)
     await store.exec(`DELETE FROM ${GPS_TABLE}`)
+    if (options.keepQueue !== true) {
+      await store.exec(`DELETE FROM ${OUTBOX_TABLE}`)
+      await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE}`)
+    }
     for (const key of [
       'cursor',
       'schemaVersion',
       'role',
-      'tenantId',
       'lastPulledAt',
       'manifest',
+      'protocol',
     ] as const)
       await writeState(store, key, null)
     this.shapes = new Map()
@@ -217,7 +370,206 @@ export class SyncEngine {
     this.schemaVersion = null
     this.lastPulledAt = null
     await this.refreshCounts()
+    this.bus.emit([...dropped, OUTBOX_CHANNEL, ERRORS_CHANNEL])
     this.emitStatus()
+  }
+
+  /**
+   * What the app's sign-out calls, BEFORE it clears the session (DOS-167; founder, 2026-09-13).
+   *
+   * From the call on every write is refused with `SyncEngineEndedError` (ruling (m)): a write that was
+   * never saved is never deleted, and the screen says so instead of "saved on this phone". Nothing is
+   * dropped under work in flight: the engine stops starting anything, then waits for the open, the upload
+   * batch, the pull page and every write already in hand — a pull page that committed after the drop would
+   * put a cursor back into the file, and on SQLite its rollback would undo the drop on the shared
+   * connection. Then the file is COUNTED AGAIN: a write that was in hand at the tap, or landed between the
+   * tap's count and this call, waits in it now, and a file with anything waiting is kept for this person
+   * exactly as `keepQueue: true` keeps it, whatever was asked — `kept` in the result says so. Then the read
+   * set goes (`wipe`), the file is closed and, with nothing to keep, deleted. A kept file holds only this
+   * person's unsent writes and their refusals: the same person's next `start()` sends them before it
+   * re-snapshots, and anyone else's `start()` wipes them unread. The engine is finished either way; a later
+   * `stop()` does nothing, and a second `end()` waits for the first.
+   */
+  end(options: { keepQueue: boolean }): Promise<EndResult> {
+    this.ending ??= this.endOnce(options)
+    return this.ending
+  }
+
+  private async endOnce(options: { keepQueue: boolean }): Promise<EndResult> {
+    // Before the first `await`: a write that begins from here on is refused (`requireStore`).
+    this.ended = true
+    this.started = false
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer)
+    if (this.pollTimer !== null) clearTimeout(this.pollTimer)
+    this.retryTimer = null
+    this.pollTimer = null
+    await this.settled()
+    const store = this.store
+    try {
+      if (store === null) return { kept: false, pending: 0, rejected: 0 }
+      await this.refreshCounts()
+      const pending = this.pending
+      const rejected = this.rejected
+      const kept = options.keepQueue || pending + rejected > 0
+      await this.dropReadSet(store, { keepQueue: kept })
+      await store.close()
+      if (!kept) await store.destroy?.()
+      return { kept, pending, rejected }
+    } finally {
+      // Even when a step threw: the caller signs out regardless, and this engine never writes again.
+      this.store = null
+    }
+  }
+
+  /**
+   * Until no open, no upload batch, no pull and no write in hand is in flight. Nothing new starts once
+   * `ended` is set, so one pass that finds the batch and the pull unchanged and no write left is the end.
+   */
+  private async settled(): Promise<void> {
+    await this.opening
+    for (;;) {
+      const flushing = this.flushChain
+      const syncing = this.syncing
+      const writes = [...this.writes]
+      await flushing.catch(() => {})
+      await syncing
+      await Promise.all(writes)
+      if (flushing === this.flushChain && syncing === this.syncing && this.writes.size === 0) return
+    }
+  }
+
+  /**
+   * What still waits in this file — queued or sending, and refused — counted from the file itself once the
+   * open in `start()` has finished (DOS-167). The sign-out decision is taken on THIS, never on `status()`:
+   * the snapshot reads 0 until the open has counted the outbox, and a sign-out tapped in that window took
+   * the one-tap path and deleted the queue it had not seen yet. An open that failed has no file to count.
+   */
+  async waiting(): Promise<{ pending: number; rejected: number }> {
+    await this.opening
+    await this.refreshCounts()
+    this.emitStatus()
+    return { pending: this.pending, rejected: this.rejected }
+  }
+
+  /**
+   * WHOSE FILE IS THIS (DOS-167). Runs in `start()` before a shape is restored, before the first table is
+   * published and before anything is uploaded.
+   *
+   * A store stamped for another person or another distributor is wiped whole — its read set, its queue,
+   * its tray mirror, its GPS buffer and every state key but the install's `deviceId` — and the wipe is
+   * logged: a foreign outbox is never sent under this person's token. A store with no stamp is simply
+   * stamped. An engine with no `identity` (the harness, tests of a device nobody signed in to) skips this.
+   */
+  private async claimIdentity(store: SyncStore): Promise<void> {
+    const wanted = this.options.identity
+    if (wanted === undefined) return
+    const stored = {
+      userId: await readState(store, 'userId'),
+      tenantId: await readState(store, 'tenantId'),
+      role: await readState(store, 'role'),
+    }
+    const stamped = stored.userId !== null || stored.tenantId !== null || stored.role !== null
+    if (stamped && (stored.userId !== wanted.userId || stored.tenantId !== wanted.tenantId)) {
+      await this.wipeAll(store)
+      this.options.onLog?.('offline: store belonged to another identity; wiped', {
+        stored,
+        wanted: { userId: wanted.userId, tenantId: wanted.tenantId, role: wanted.role },
+      })
+    }
+    await writeState(store, 'userId', wanted.userId)
+    await writeState(store, 'tenantId', wanted.tenantId)
+    /*
+     * The ROLE is stamped only where none is stored. For the same person in the same distributorship the
+     * stored role is the one the last handshake published, and the manifest compares it with the role it
+     * publishes now (docs/27 §5): overwriting it here with the session's role would make the two agree
+     * before that comparison runs, and a role changed on the server with an identical hash would keep the
+     * old role's read set.
+     */
+    if ((await readState(store, 'role')) === null) await writeState(store, 'role', wanted.role)
+  }
+
+  /** Everything another identity left, except the install's own id. */
+  private async wipeAll(store: SyncStore): Promise<void> {
+    await dropDataTables(store, await this.dataTablesIn(store))
+    await store.exec(`DELETE FROM ${OUTBOX_TABLE}`)
+    await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE}`)
+    await store.exec(`DELETE FROM ${GPS_TABLE}`)
+    for (const key of Object.keys(CLEARED_FOR_ANOTHER_IDENTITY) as ClearedStateKey[])
+      await writeState(store, key, null)
+    this.shapes = new Map()
+    this.manifestTables = []
+    this.schemaVersion = null
+    this.lastPulledAt = null
+  }
+
+  /**
+   * Every data table this file may hold: the shapes loaded in this process and the tables the stored
+   * manifest names — at open nothing is loaded yet, so the stored manifest is the only list there is.
+   */
+  private async dataTablesIn(store: SyncStore): Promise<string[]> {
+    const names = new Set(this.shapes.keys())
+    const raw = await readState(store, 'manifest')
+    if (raw === null) return [...names]
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (Array.isArray(parsed))
+        for (const entry of parsed as unknown[]) {
+          const table = (entry as { table?: unknown } | null)?.table
+          if (typeof table === 'string') names.add(table)
+        }
+    } catch {
+      /* an unreadable manifest names nothing; the loaded shapes still do */
+    }
+    return [...names]
+  }
+
+  /**
+   * The person signing out may belong to other distributorships on this phone (DOS-167). Each of their
+   * files is opened in turn: one with nothing queued, sending or refused is deleted, and one still
+   * holding that person's unsent work is kept and reported. Best effort, file by file — a file that
+   * cannot be opened is logged and skipped. The CURRENT distributorship's file is `end()`'s, not this.
+   */
+  static async sweepIdentityStores(
+    storeFactory: StoreFactory,
+    prefix: string,
+    identities: readonly SyncIdentity[],
+    onLog?: (line: string, detail?: unknown) => void,
+  ): Promise<{ destroyed: number; kept: { identity: SyncIdentity; pending: number }[] }> {
+    let destroyed = 0
+    const kept: { identity: SyncIdentity; pending: number }[] = []
+    for (const identity of identities) {
+      try {
+        const store = await storeFactory(storeNameFor(prefix, identity))
+        let pending: number
+        try {
+          await createSystemTables(store)
+          const [row] = await store.query<{ n: number }>(
+            `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending', 'rejected')`,
+          )
+          pending = Number(row?.n ?? 0)
+        } catch (error) {
+          /*
+           * A file that could not be counted is never deleted, and it is CLOSED before the sweep moves on
+           * (DOS-167, ruling (p)): on a phone expo-sqlite keeps the connection it opened, and every later
+           * delete of that file would fail "currently open" for as long as the app runs.
+           */
+          await store.close().catch(() => {})
+          throw error
+        }
+        if (pending > 0) {
+          await store.close()
+          kept.push({ identity, pending })
+        } else if (store.destroy === undefined) {
+          await store.close()
+        } else {
+          await store.destroy()
+          destroyed += 1
+        }
+      } catch (error) {
+        onLog?.('offline: sweep skipped a store', error)
+      }
+    }
+    return { destroyed, kept }
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -297,12 +649,18 @@ export class SyncEngine {
   // The manifest handshake and the pull loop (docs/27 §5)
 
   async sync(reason: string): Promise<void> {
-    if (this.pulling) return
+    // Once `end()` has begun nothing new starts: the read set is about to be dropped (DOS-167). Nor once
+    // `stop()` has: a reconnect landing while it closes the file must not run a handshake (merge review).
+    if (this.pulling || this.ended || !this.started) return
     // A timer, a reconnect or the tail of an upload may land after `stop()` closed the database. A
     // pull with nowhere to put its rows is a no-op, never a crash on a screen that is already gone.
     const store = this.store
     if (store === null) return
     this.pulling = true
+    let finished = (): void => {}
+    this.syncing = new Promise<void>((resolve) => {
+      finished = resolve
+    })
     this.emitStatus()
     try {
       const manifest = await this.call(() =>
@@ -318,6 +676,7 @@ export class SyncEngine {
       this.note(error, `sync(${reason})`)
     } finally {
       this.pulling = false
+      finished()
       this.emitStatus()
     }
   }
@@ -333,7 +692,8 @@ export class SyncEngine {
       role: await readState(store, 'role'),
       tenantId: await readState(store, 'tenantId'),
     }
-    const tenantId = this.options.tenantId ?? null
+    // The stamp at open already wrote this `tenantId`; the comparison stays as the handshake's own check.
+    const tenantId = this.options.identity?.tenantId ?? null
     const wanted = this.options.tables
     const tables = wanted
       ? manifest.tables.filter((table) => wanted.includes(table.table))
@@ -382,7 +742,8 @@ export class SyncEngine {
    */
   private async pullErrors(store: SyncStore): Promise<void> {
     const list = this.options.transport.listErrors
-    if (list === undefined || this.errorsDenied) return
+    // A page that was in flight when the engine stopped or began to end does not ask for the tray (DOS-167).
+    if (list === undefined || this.errorsDenied || !this.started) return
     /*
      * BEST EFFORT, ALWAYS. The tray mirror is a convenience; the pull that just committed is the
      * work. `transportFromApi` wires this whenever the oRPC client exposes the procedure — which it
@@ -534,6 +895,7 @@ export class SyncEngine {
    * visible but unqueued, or queued but invisible.
    */
   async enqueue(input: EnqueueInput): Promise<string> {
+    // The gate: once `end()` has begun this refuses, before anything is written (DOS-167, ruling (m)).
     const store = this.requireStore()
     const shape = this.shapes.get(input.table)
     if (!shape)
@@ -544,29 +906,31 @@ export class SyncEngine {
       throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
     const opId = input.opId ?? uuidv7()
     const createdAt = new Date(this.now()).toISOString()
-    await store.transaction(async (tx) => {
-      await tx.exec(
-        `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
-           (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
-        [
-          opId,
-          input.table,
-          input.id,
-          input.op,
-          input.data === undefined ? null : JSON.stringify(input.data),
-          input.baseUpdatedAt ?? null,
-          opId,
-          createdAt,
-        ],
-      )
-      await this.applyLocally(tx, shape, input)
+    return this.inHand(async () => {
+      await store.transaction(async (tx) => {
+        await tx.exec(
+          `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
+             (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
+          [
+            opId,
+            input.table,
+            input.id,
+            input.op,
+            input.data === undefined ? null : JSON.stringify(input.data),
+            input.baseUpdatedAt ?? null,
+            opId,
+            createdAt,
+          ],
+        )
+        await this.applyLocally(tx, shape, input)
+      })
+      await this.refreshCounts()
+      this.bus.emit([input.table, OUTBOX_CHANNEL])
+      this.emitStatus()
+      void this.flush()
+      return opId
     })
-    await this.refreshCounts()
-    this.bus.emit([input.table, OUTBOX_CHANNEL])
-    this.emitStatus()
-    void this.flush()
-    return opId
   }
 
   private async applyLocally(tx: SyncStore, shape: TableShape, input: EnqueueInput): Promise<void> {
@@ -792,49 +1156,58 @@ export class SyncEngine {
 
   /** Send a rejected op again after the user fixed what was wrong. The `opId` is deliberately kept. */
   async retry(opId: string): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
-    const rows = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
-      [opId],
-    )
-    const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-    if (op === null) return
-    await store.exec(
-      `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
-      [opId],
-    )
-    await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
-    const shape = this.shapes.get(op.table)
-    if (shape) await this.setPending(store, shape, op.rowId, 'queued')
-    await this.refreshCounts()
-    this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
-    this.emitStatus()
-    void this.flush()
+    return this.inHand(async () => {
+      const rows = await store.query<Record<string, SqlValue>>(
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        [opId],
+      )
+      const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      if (op === null) return
+      await store.exec(
+        `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
+        [opId],
+      )
+      await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
+      const shape = this.shapes.get(op.table)
+      if (shape) await this.setPending(store, shape, op.rowId, 'queued')
+      await this.refreshCounts()
+      this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
+      this.emitStatus()
+      void this.flush()
+    })
   }
 
   /** Throwing a rejected write away. Only ever offered on a rejection, and it leaves an audit line. */
   async discard(opId: string): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
-    const rows = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
-      [opId],
-    )
-    const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-    const at = new Date(this.now()).toISOString()
-    /*
-     * A tray item does NOT always have an outbox row behind it: `pullErrors` brings back rejections
-     * the server still holds for this device after a reinstall or a cleared browser, and returning
-     * early on a missing op left those un-dismissable for ever.
-     */
-    await store.exec(`DELETE FROM ${OUTBOX_TABLE} WHERE op_id = ?`, [opId])
-    await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET discarded_at = ? WHERE op_id = ?`, [at, opId])
-    if (op !== null) {
-      const shape = this.shapes.get(op.table)
-      if (shape) await this.setPending(store, shape, op.rowId, null)
-    }
-    await this.refreshCounts()
-    this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
-    this.emitStatus()
+    return this.inHand(async () => {
+      const rows = await store.query<Record<string, SqlValue>>(
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        [opId],
+      )
+      const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      const at = new Date(this.now()).toISOString()
+      /*
+       * A tray item does NOT always have an outbox row behind it: `pullErrors` brings back rejections
+       * the server still holds for this device after a reinstall or a cleared browser, and returning
+       * early on a missing op left those un-dismissable for ever.
+       */
+      await store.exec(`DELETE FROM ${OUTBOX_TABLE} WHERE op_id = ?`, [opId])
+      await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET discarded_at = ? WHERE op_id = ?`, [
+        at,
+        opId,
+      ])
+      if (op !== null) {
+        const shape = this.shapes.get(op.table)
+        if (shape) await this.setPending(store, shape, op.rowId, null)
+      }
+      await this.refreshCounts()
+      this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
+      this.emitStatus()
+    })
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -932,14 +1305,17 @@ export class SyncEngine {
     accuracyM?: number
     speedMps?: number
   }): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun, like every other write.
     const store = this.requireStore()
-    const ts = point.at ?? new Date(this.now()).toISOString()
-    await store.exec(
-      `INSERT OR REPLACE INTO ${GPS_TABLE} (ts, trip_id, lat, lng, accuracy_m, speed_mps, posted) VALUES (?, ?, ?, ?, ?, ?, 0)`,
-      [ts, point.tripId, point.lat, point.lng, point.accuracyM ?? null, point.speedMps ?? null],
-    )
-    const cutoff = new Date(this.now() - GPS_RETENTION_MS).toISOString()
-    await store.exec(`DELETE FROM ${GPS_TABLE} WHERE posted = 1 AND ts < ?`, [cutoff])
+    return this.inHand(async () => {
+      const ts = point.at ?? new Date(this.now()).toISOString()
+      await store.exec(
+        `INSERT OR REPLACE INTO ${GPS_TABLE} (ts, trip_id, lat, lng, accuracy_m, speed_mps, posted) VALUES (?, ?, ?, ?, ?, ?, 0)`,
+        [ts, point.tripId, point.lat, point.lng, point.accuracyM ?? null, point.speedMps ?? null],
+      )
+      const cutoff = new Date(this.now() - GPS_RETENTION_MS).toISOString()
+      await store.exec(`DELETE FROM ${GPS_TABLE} WHERE posted = 1 AND ts < ?`, [cutoff])
+    })
   }
 
   /**
@@ -980,9 +1356,34 @@ export class SyncEngine {
   // -------------------------------------------------------------------------------------------------------------
   // Plumbing
 
+  /**
+   * The store a write may use, and the gate every write passes first (DOS-167, ruling (m)): from the moment
+   * `end()` begins, and after it has finished, nothing more is saved on this phone and the person is told so
+   * in a sentence — never shown a write that the sign-out would then delete.
+   */
   private requireStore(): SyncStore {
+    if (this.ended) throw new SyncEngineEndedError()
     if (this.store === null) throw new Error('the sync engine has not started yet')
     return this.store
+  }
+
+  /**
+   * A write that passed the gate, held in `writes` from before its first `await` until it has landed and told
+   * the bus (DOS-167, ruling (m)). `end()` waits for every one, so a write begun a moment before the tap lands
+   * whole and is counted and kept, rather than having its tables dropped under its transaction.
+   */
+  private async inHand<T>(write: () => Promise<T>): Promise<T> {
+    let landed = (): void => {}
+    const held = new Promise<void>((resolve) => {
+      landed = resolve
+    })
+    this.writes.add(held)
+    try {
+      return await write()
+    } finally {
+      this.writes.delete(held)
+      landed()
+    }
   }
 
   /**

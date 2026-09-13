@@ -21,7 +21,7 @@
  * NOT ONE COST, MARGIN OR LANDED PRICE (docs/23 §3.3). `tenant_product_costs` is not in this role's
  * manifest and `tenantCatalog.costs` refuses a salesperson, so there is nothing here to leak.
  */
-import { useApi, useMutation, useQuery } from '@dos/api-client/react'
+import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
@@ -96,6 +96,8 @@ export default function OrderEntry(): React.JSX.Element {
   const lastLines = useOrderLines(lastOrder?.id ?? null)
 
   const { draft, restored, setQty, setNote, replaceLines, clear } = useOrderDraft(retailerId)
+  /** Whose draft this is (DOS-167): a placed order forgets that rep's draft for the shop, no one else's. */
+  const repId = useSession().session?.user.id ?? null
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [bargainFor, setBargainFor] = useState<string | null>(null)
@@ -231,7 +233,7 @@ export default function OrderEntry(): React.JSX.Element {
     {
       invalidates: [['orders']],
       onSuccess: (result) => {
-        void forgetDraft(retailerId)
+        if (repId !== null) void forgetDraft(repId, retailerId)
         setPlaced(result.id)
         /*
          * Pull straight away rather than waiting out the 60-second foreground tick: the order the rep

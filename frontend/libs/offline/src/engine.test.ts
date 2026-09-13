@@ -142,6 +142,10 @@ describe('1. the manifest decides whether the device may keep what it holds', ()
    * from both — the hash is over the role's tables. Without the tenant in the comparison the second
    * distributor's delta lands on top of the first one's rows and the device holds a mixture of two
    * businesses, which is the one thing a multi-tenant device may never do.
+   *
+   * Since DOS-167 the device settles this AT OPEN, before a shape is restored or a row is read: the
+   * store is stamped with the person and the distributor it belongs to, and a store stamped for
+   * another distributor is wiped before the handshake, not after it.
    */
   it('drops on a DISTRIBUTOR change even when the hash and the role are identical', async () => {
     const store = createMemoryStore()
@@ -152,7 +156,7 @@ describe('1. the manifest decides whether the device may keep what it holds', ()
       deviceId: 'device-1',
       storeFactory: fixedStoreFactory(store),
       pullIntervalMs: 0,
-      tenantId: 'tenant-a',
+      identity: { userId: 'user-1', tenantId: 'tenant-a', role: 'salesperson' },
       now,
     })
     await first.start()
@@ -166,7 +170,7 @@ describe('1. the manifest decides whether the device may keep what it holds', ()
       deviceId: 'device-1',
       storeFactory: fixedStoreFactory(store),
       pullIntervalMs: 0,
-      tenantId: 'tenant-b',
+      identity: { userId: 'user-1', tenantId: 'tenant-b', role: 'salesperson' },
       now,
     })
     await second.start()

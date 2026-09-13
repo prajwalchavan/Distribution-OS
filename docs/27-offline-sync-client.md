@@ -37,11 +37,17 @@ interface SyncStore {
 - `memory`: an in-memory SQL-compatible store (better-sqlite3-style API over `sql.js` is acceptable on web only). It is honest:
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
 
+One file per (app, user, distributor): `<prefix>__u-<userId>__t-<tenantId>.db` (`storeNameFor`, prefix `dos-sales`,
+`dos-delivery`, `dos-warehouse`). The ids go in unhashed after a character check, so two people, or one person at two
+distributors, never open the same file; a person signing in on a phone somebody else used starts with no rows and no cursor
+(DOS-167). The fixed `<prefix>.db` of earlier builds is deleted once at mount.
+
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
 ## 3. Local schema
 
-Created from the manifest at first start and re-created (drop + snapshot) when `schemaVersion` or `role` or `tenantId` changes.
+Created from the manifest at first start and re-created (drop + snapshot) when `schemaVersion` or `role` or `tenantId` changes,
+or the stored identity differs, checked at open before any read.
 
 - One table per manifest entry, columns exactly as published (snake_case, JSON types → `TEXT | INTEGER | REAL`), primary key as
   published (`primaryKey` array; two tables have no `id`). Money columns are integers (paise) — never REAL.
@@ -49,8 +55,8 @@ Created from the manifest at first start and re-created (drop + snapshot) when `
   `_local_rev INTEGER` (bumped on each local write), so a list can show a queued order distinctly and a pull can tell local from
   server rows.
 - System tables:
-  - `_sync_state(key TEXT PRIMARY KEY, value TEXT)` — `cursor`, `schemaVersion`, `role`, `tenantId`, `deviceId`, `lastPulledAt`,
-    `lastUploadAt`, `protocol`.
+  - `_sync_state(key TEXT PRIMARY KEY, value TEXT)` — `cursor`, `schemaVersion`, `role`, `tenantId`, `userId`, `deviceId`,
+    `lastPulledAt`, `lastUploadAt`, `protocol`. `userId` and `tenantId` are the stamp of who the file belongs to, written at open.
   - `_outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT, op_id TEXT UNIQUE, tbl TEXT, row_id TEXT, op TEXT, data TEXT, base_updated_at TEXT,
     idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
     rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
@@ -66,18 +72,27 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 ## 4. Identity and keys
 
 - `deviceId`: UUIDv7 generated once per install, kept in `platform.storage` (secure store) and mirrored in `_sync_state`. Sign-out
-  wipes the database but keeps the `deviceId`.
+  wipes the read set and deletes the file, and keeps the `deviceId`. With unsent changes (queued or refused) the app asks, and
+  what it offers is decided (founder, 2026-09-13): send them now while there is a signal, or sign out keeping them — the file
+  and its queue stay on the phone for that person only; the queued ones go out the next time that person signs in there;
+  refused ones wait in Needs attention (§12).
 - Row `id`: UUIDv7 generated on the device at creation (the contract's `MutationBase` shape).
 - `opId`: UUIDv7 per queued op. `idempotencyKey = opId`. A retry of the same op reuses both; the server's `sync_ops`
   `(tenant_id, device_id, op_id)` makes a replay return the stored outcome.
 
 ## 5. Pull
 
-1. `sync.manifest({ knownSchemaVersion })` on app start, after sign-in, after a distributor switch, and once a day. On `changed`:
+1. The identity is compared at open, before the handshake and before any read (DOS-167): `start()` reads the stamp in
+   `_sync_state` (`userId`, `tenantId`) and, when it names another person or another distributor than
+   `SyncEngineOptions.identity`, wipes the whole file — read set, cursor, manifest, queue, tray mirror, GPS buffer — and logs it,
+   before any shape is restored, any table is published or anything is uploaded. A file with no stamp is stamped. The manifest
+   is the second check:
+   `sync.manifest({ knownSchemaVersion })` on app start, after sign-in, after a distributor switch, and once a day. On `changed`:
    drop and re-create the data tables, clear the cursor. The DISTRIBUTOR is compared by the client itself (`tenantId` in
-   `_sync_state`, `SyncEngineOptions.tenantId`): the manifest cannot say which tenant it answered for — its hash is over the
-   ROLE's tables — so a rep who works for two distributors gets an identical `schemaVersion` from both, and without the tenant in
-   the comparison the second one's delta lands on top of the first one's rows (gate, 2026-09-06).
+   `_sync_state`, `SyncEngineOptions.identity.tenantId`): the manifest cannot say which tenant it answered for — its hash is over
+   the ROLE's tables — so a rep who works for two distributors gets an identical `schemaVersion` from both, and without the tenant
+   in the comparison the second one's delta lands on top of the first one's rows (gate, 2026-09-06). A role changed on the server
+   for the same membership is the manifest's check too: the stamp at open never overwrites a stored role.
 2. No cursor → **snapshot**: `sync.pull({ deviceId, limit: 500 })` in a loop while `hasMore`, always echoing the cursor the last
    response gave. The first page of a snapshot carries no tombstones; later pages carry a cursor and may.
 3. With a cursor → **delta**, same loop. For each response, in ONE transaction: apply every `deleted` id of every table first, then
@@ -172,6 +187,13 @@ browser". The strip never shows a spinner without a word.
 - `useOutbox()` → `{ enqueue, pending, rejected, retry(opId), discard(opId) }`. `discard` is only offered on a rejected op and writes
   an audit line into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
+- `useLeaveSession()` → `{ pending, rejected, online, waiting(), sendNow(), end({ keepQueue }) }` — the app's sign-out flow
+  (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is given
+  `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which reads 0
+  until then. `end` is called before the session is cleared; `SyncEngine.sweepIdentityStores` deletes the person's
+  other-distributor files that hold nothing unsent.
+- `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
+  `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
 
 Screens never write SQL; only the library does. Screens never call `sync.upload` or `sync.pull` directly.
 
@@ -179,8 +201,16 @@ Screens never write SQL; only the library does. Screens never call `sync.upload`
 
 Tokens live in `platform.storage` (secure store on native; `localStorage` on web with the documented XSS caveat: no third-party
 scripts, strict CSP on the hosted site). The local database is unencrypted for the pilot (SQLCipher is a phase-2 item in docs/25); it
-contains no cost or margin column by construction (the manifest strips them server-side). Sign-out wipes every data table and the
-outbox after confirming nothing is queued; if something is queued, the user is told what would be lost and must sync or discard first.
+contains no cost or margin column by construction (the manifest strips them server-side). A device file belongs to one person in
+one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out ends the engine before the session is
+cleared: with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
+other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
+write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
+person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
+that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
+refused ones wait in Needs attention for that person to fix or discard. Discarding is never
+offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
+queue in that person's file the same way (§14). Decided by the founder, 2026-09-13.
 
 ## 13. Tests (deterministic, fake transport, no network)
 
@@ -195,6 +225,21 @@ outbox after confirming nothing is queued; if something is queued, the user is t
 9. No cost/margin column ever exists in the local schema for a field role (walk the manifest).
 10. Status object transitions: offline → online → pulling → synced; pending counts.
 11. Memory adapter reports `persistent=false` and the strip text follows.
+12. One store per app, person and distributor (DOS-167): `storeNameFor` is lossless and refuses an unsafe id; a second person on
+    the same store sees no row and pulls with no cursor, even before the handshake; another distributor's store after a restart is
+    wiped before any table is published and its queue is never uploaded; the same person keeps rows, cursor and queue.
+13. `end()` at sign-out: with nothing queued it drops the read set, tells every table and deletes the file; `keepQueue` keeps the
+    queue and the tray for the same person only, who sends it before the re-snapshot, while anyone else's start wipes it; `end()`
+    under a pull page and an upload batch in flight waits for both and lets nothing land after the drop. A write that begins once
+    `end()` has begun is refused with `SyncEngineEndedError`, never saved and so never deleted; a write already in hand when `end()`
+    begins, or landed between the tap's count and `end()`, is finished and counted, and the file is kept for that person, who sends
+    it at the next sign-in, while anyone else's start wipes it.
+14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
+15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
+    only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through
+    `waiting()` and asks.
+16. `@dos/api-client`: `identityKey` changes with the user or the distributor, not with a password flag or a role, and the query
+    cache is cleared on every identity change, a forced sign-out included; the sales draft is keyed by the signed-in user.
 
 ## 14. Failure modes
 
@@ -204,6 +249,8 @@ outbox after confirming nothing is queued; if something is queued, the user is t
 | App killed mid-upload | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome) |
 | Server rolled forward (new manifest) | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot) |
 | Token expired while offline | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue |
+| Another person signs in on this phone | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167) |
+| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167) |
 | Storage full | writes fail loudly ("Phone storage is full"); nothing is silently dropped |
 
 ## 15. What this does not do (yet)

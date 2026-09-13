@@ -1,5 +1,5 @@
 /**
- * `_sync_state` — the eight strings that decide, on the next launch, whether the device may keep what
+ * `_sync_state` — the ten strings that decide, on the next launch, whether the device may keep what
  * it holds (docs/27 §3). Everything else on the device is derivable; these are not.
  */
 import { SYNC_STATE_TABLE } from './schema.js'
@@ -16,6 +16,11 @@ export type SyncStateKey =
   | 'manifest'
   | 'role'
   | 'tenantId'
+  /**
+   * The person this database belongs to, stamped at open together with `tenantId` (DOS-167). A store
+   * opened by anyone else is wiped before a single row is read.
+   */
+  | 'userId'
   | 'deviceId'
   | 'lastPulledAt'
   | 'lastUploadAt'

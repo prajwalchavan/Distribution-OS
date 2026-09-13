@@ -71,6 +71,31 @@ export interface SessionStoreLike {
   readonly accessToken: string | null
 }
 
+/**
+ * WHO IS SIGNED IN, as everything that keeps a copy of their data on this device keys it (DOS-167): one person
+ * inside one distributorship. The offline store's file name and its stamp, the query cache and the sales app's
+ * order drafts all take it from here, so there is exactly one definition of "the same person" in the frontend.
+ */
+export interface SessionIdentity {
+  readonly userId: string
+  readonly tenantId: string
+  readonly role: MembershipRole
+}
+
+export function sessionIdentity(session: Session | null): SessionIdentity | null {
+  if (session === null) return null
+  return { userId: session.user.id, tenantId: session.tenant.id, role: session.role }
+}
+
+/**
+ * `userId:tenantId`. The role is deliberately NOT part of it: a role changed on the server for the same
+ * membership is the same person, and the device store re-snapshots through the manifest's own role check.
+ * A changed password flag is the same person too.
+ */
+export function identityKey(identity: SessionIdentity | null): string | null {
+  return identity === null ? null : `${identity.userId}:${identity.tenantId}`
+}
+
 function toSession(pair: TokenPair | Session): Session {
   return {
     user: pair.user,

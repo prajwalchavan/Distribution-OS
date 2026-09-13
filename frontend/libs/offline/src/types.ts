@@ -34,9 +34,22 @@ export interface SyncStore {
   readonly persistent: boolean
   readonly kind: StoreKind
   close(): Promise<void>
+  /** Close and delete the file itself. A store with no file (memory) empties itself instead. */
+  destroy?(): Promise<void>
 }
 
 export type StoreKind = 'sqlite-native' | 'sqlite-web' | 'memory'
+
+/**
+ * Who a device database belongs to (DOS-167): one person inside one distributorship, and the role they hold
+ * there. `@dos/api-client`'s `sessionIdentity(session)` has exactly this shape; this package keeps its own
+ * type so it never imports the client at runtime.
+ */
+export interface SyncIdentity {
+  readonly userId: string
+  readonly tenantId: string
+  readonly role: string
+}
 
 /** How an app opens its database. `openStore()` is the platform default; tests pass their own. */
 export type StoreFactory = (name: string) => Promise<SyncStore>
