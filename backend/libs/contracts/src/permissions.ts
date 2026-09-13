@@ -1055,6 +1055,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'admin.support.revoke': PLATFORM,
   'admin.users.list': PLATFORM,
   'admin.users.disable': PLATFORM,
+  'admin.users.enable': PLATFORM,
   'admin.metrics.overview': PLATFORM,
   'admin.audit.list': PLATFORM,
 }
@@ -1100,6 +1101,7 @@ export const ADMIN_LEVELS: Record<AdminProcedurePath, readonly PlatformAdminLeve
   'admin.support.revoke': CONSOLE_SUPPORT_DESK,
   'admin.users.list': CONSOLE_EVERY_LEVEL,
   'admin.users.disable': CONSOLE_SUPER,
+  'admin.users.enable': CONSOLE_SUPER,
   'admin.metrics.overview': CONSOLE_EVERY_LEVEL,
   'admin.audit.list': CONSOLE_EVERY_LEVEL,
 }

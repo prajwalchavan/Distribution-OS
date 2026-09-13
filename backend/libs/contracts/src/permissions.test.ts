@@ -1568,7 +1568,7 @@ describe('permission matrix', () => {
 
   it('keeps the platform console and the six apps out of each other (admin)', () => {
     const adminPaths = paths.filter((p) => p.startsWith('admin.'))
-    expect(adminPaths).toHaveLength(15)
+    expect(adminPaths).toHaveLength(16)
     // Every admin row is the platform group and only the platform group.
     for (const path of adminPaths) {
       expect(permissionFor(path), path).toEqual(ROLE_GROUPS.PLATFORM)
@@ -1620,7 +1620,7 @@ describe('permission matrix', () => {
         `${path} must refuse platform_admin`,
       ).toBe(path.startsWith('admin.'))
     }
-    // Reads are GETs; onboarding, suspension, plans, a support ask and a user lock are POSTs.
+    // Reads are GETs; onboarding, suspension, plans, a support ask and a user lock and its undo are POSTs.
     const gets = new Set([
       'admin.tenants.list',
       'admin.tenants.get',
@@ -1644,12 +1644,41 @@ describe('permission matrix', () => {
       ['admin.support.request', '/admin/support-grants'],
       ['admin.support.revoke', '/admin/support-grants/{id}/revoke'],
       ['admin.users.disable', '/admin/users/{id}/disable'],
+      ['admin.users.enable', '/admin/users/{id}/enable'],
       ['admin.metrics.overview', '/admin/metrics'],
       ['admin.audit.list', '/admin/audit'],
     ] as const) {
       const row = allProcedures().find((r) => r.path === path)
       expect(row?.httpPath, path).toBe(httpPath)
     }
+  })
+
+  it('DOS-107: a lock has an undo — admin.users.enable is POST /admin/users/{id}/enable, platform_admin only, and only a super may call it', () => {
+    const enable = allProcedures().find((r) => r.path === 'admin.users.enable')
+    expect(enable?.method).toBe('POST')
+    expect(enable?.httpPath).toBe('/admin/users/{id}/enable')
+    // The same door as the lock it undoes: the platform role, and no distributor's role at all.
+    expect(permissionFor('admin.users.enable')).toEqual(['platform_admin'])
+    expect(permissionFor('admin.users.enable')).toEqual(permissionFor('admin.users.disable'))
+    for (const role of ALL_ROLES) {
+      expect(isAllowed(permissionFor('admin.users.enable'), role), `must refuse ${role}`).toBe(
+        false,
+      )
+    }
+    expect(isAllowed(permissionFor('admin.users.enable'), null)).toBe(false)
+    // ...and the same console level: only a super locks or unlocks a login (docs/22 §7).
+    expect(levelAllows('admin.users.enable', 'super')).toBe(true)
+    for (const level of ['support', 'billing'] as const) {
+      expect(levelAllows('admin.users.enable', level), level).toBe(false)
+    }
+    expect(levelAllows('admin.users.enable', null)).toBe(false)
+    // Declared directly after the lock: document order is the smoke harness's run order, and the
+    // undo has to run after the lock it undoes.
+    expect(
+      allProcedures()
+        .map((r) => r.path)
+        .filter((p) => p.startsWith('admin.users.')),
+    ).toEqual(['admin.users.list', 'admin.users.disable', 'admin.users.enable'])
   })
 
   it('gives the console the ask and the owner the decision (support access)', () => {
@@ -1910,7 +1939,7 @@ describe('console levels (DOS-106)', () => {
     const adminPaths = allProcedures()
       .map((row) => row.path)
       .filter((path): path is AdminProcedurePath => path.startsWith('admin.'))
-    expect(adminPaths).toHaveLength(15)
+    expect(adminPaths).toHaveLength(16)
     // Exactly one row per console procedure: a new `admin.*` procedure without a level fails here
     // (and fails to compile, because the table is keyed by the contract's own paths).
     expect(Object.keys(ADMIN_LEVELS).sort()).toEqual([...adminPaths].sort())
@@ -1931,6 +1960,7 @@ describe('console levels (DOS-106)', () => {
       'admin.tenants.suspend',
       'admin.tenants.reactivate',
       'admin.users.disable',
+      'admin.users.enable',
     ]
     for (const path of superOnly) expect(ADMIN_LEVELS[path], path).toEqual(['super'])
     for (const path of reads) {

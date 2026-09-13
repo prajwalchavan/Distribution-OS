@@ -7,6 +7,7 @@ import {
   type NestInterceptor,
 } from '@nestjs/common'
 import { catchError, concatMap, from, throwError, type Observable } from 'rxjs'
+import type { PlatformAuditAction } from '@dos/contracts'
 import { platformAudit, withSystem, type Db } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { DB } from '../platform/db.module.js'
@@ -71,7 +72,7 @@ export class SupportAuditInterceptor implements NestInterceptor {
         await tx.insert(platformAudit).values({
           id: uuidv7(),
           adminUserId: access.claims.adminUserId,
-          action: 'support.read',
+          action: 'support.read' satisfies PlatformAuditAction,
           tenantId: access.claims.tenantId,
           payload: {
             grantId,

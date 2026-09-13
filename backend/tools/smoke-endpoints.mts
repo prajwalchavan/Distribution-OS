@@ -80,8 +80,17 @@ const RUN_SCOPED_OPS = new Set(['orders.create', 'orders.repeatLast'])
  * Scoping their key to the RUN (not the day) makes the pair honest — the suspend suspends and the
  * reactivate reactivates, on run one and on run fifty. `pnpm db:seed` re-activates a demo tenant as
  * well (`restoreDemoAccess` in `seed-demo/index.ts`), which is the belt to this brace.
+ *
+ * `admin.users.disable` and `admin.users.enable` (DOS-107) are the same kind of pair: the lock and its
+ * undo, both aimed at the harness's own identity (`disposableIdentity`), so both are keyed per run and
+ * never per day — a replayed unlock would answer `"status":"active"` over a login that is still locked.
  */
-const STATE_TOGGLE_OPS = new Set(['admin.tenants.suspend', 'admin.tenants.reactivate'])
+const STATE_TOGGLE_OPS = new Set([
+  'admin.tenants.suspend',
+  'admin.tenants.reactivate',
+  'admin.users.disable',
+  'admin.users.enable',
+])
 
 function out(line = ''): void {
   process.stdout.write(`${line}\n`)
@@ -804,6 +813,20 @@ class Fixtures {
         order by approved_at nulls first, requested_at limit 1`,
       [this.tenantId],
     )
+
+  /**
+   * The identity `admin.users.disable` locks and `admin.users.enable` unlocks (DOS-107): username-less,
+   * so no sign-in anywhere depends on it, and never a console account. Cached for the run, so the undo
+   * addresses the very identity the lock did even after the lock flipped its status. Deliberately NOT
+   * filtered by status: the same identity is picked again whatever state an interrupted run left it in,
+   * and the next run's unlock puts it back.
+   */
+  disposableIdentity = () =>
+    this.scalar(
+      'disposable-identity',
+      `select id from users where username is null and id not in (select user_id from platform_admins)
+        order by created_at desc, id desc limit 1`,
+    )
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -1411,6 +1434,18 @@ async function planFor(
     case 'tenancy.support.revoke': {
       const id = await fx.revocableSupportGrant()
       return id ? { pathParams: { id } } : { skip: 'no support grant is still open' }
+    }
+
+    // --- platform user lock and its undo: ONE run-scoped identity, in the path AND in the body ------
+    // The handler acts on the BODY id (DOS-112) and a contract example body is spread with `pinned`, so
+    // the path alone would leave the body on the docs' own pick: the pair could lock one identity and
+    // "unlock" another, or answer 404 on the sampler's uuid.
+    case 'admin.users.disable':
+    case 'admin.users.enable': {
+      const id = await fx.disposableIdentity()
+      return id
+        ? { pathParams: { id }, pinned: { id } }
+        : { skip: 'no username-less, non-console identity to lock and unlock in this database' }
     }
 
     // --- approvals / bargains: only a pending row can be decided --------------------------------

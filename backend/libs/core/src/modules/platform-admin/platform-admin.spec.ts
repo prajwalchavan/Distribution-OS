@@ -1,8 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { allProcedures, contract } from '@dos/contracts'
+import { PLATFORM_AUDIT_ACTIONS, allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
+  authSessions,
   createDb,
   createPool,
   hashPassword,
@@ -76,6 +77,15 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
   const lvlTenantId = uuidv7()
   const lvlSubscriptionId = uuidv7()
   const demotedGrantId = uuidv7()
+
+  // DOS-107 — unlocking a login. Its cases act on their own two distributorships, a member of both, a
+  // console account with none and a victim, under `u${run}.` usernames and `+916${run}N` phones, so
+  // neither the `p${run}.` nor the `l${run}.` search above ever finds them.
+  const unlockTenantOneId = uuidv7()
+  const unlockTenantTwoId = uuidv7()
+  const unlockMemberId = uuidv7()
+  const unlockConsoleId = uuidv7()
+  const unlockVictimId = uuidv7()
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -235,6 +245,65 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
       expiresAt: new Date(Date.now() + 4 * HOUR_MS),
       scope: 'read',
     })
+
+    // DOS-107 fixtures, on the owner connection like the rows above.
+    await db.insert(tenants).values([
+      {
+        id: unlockTenantOneId,
+        slug: `ul-${run}`,
+        legalName: 'Unlock fixture one',
+        stateCode: '27',
+      },
+      {
+        id: unlockTenantTwoId,
+        slug: `um-${run}`,
+        legalName: 'Unlock fixture two',
+        stateCode: '27',
+      },
+    ])
+    await db.insert(users).values([
+      {
+        id: unlockMemberId,
+        phone: `+916${run}1`,
+        name: 'Unlock member',
+        username: `u${run}.mem`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      {
+        id: unlockConsoleId,
+        phone: `+916${run}2`,
+        name: 'Unlock console account',
+        username: `u${run}.con`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+      {
+        id: unlockVictimId,
+        phone: `+916${run}3`,
+        name: 'Unlock victim',
+        username: `u${run}.vic`,
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+    ])
+    await db
+      .insert(platformAdmins)
+      .values({ id: uuidv7(), userId: unlockConsoleId, role: 'support' })
+    // One statement each, so the owner membership is the member's first by `created_at`: the lock and
+    // the unlock are both filed against distributorship one.
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: unlockTenantOneId, userId: unlockMemberId, role: 'owner' })
+    await db.insert(memberships).values({
+      id: uuidv7(),
+      tenantId: unlockTenantTwoId,
+      userId: unlockMemberId,
+      role: 'manager',
+    })
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: unlockTenantOneId, userId: unlockVictimId, role: 'owner' })
 
     app = await bootTestApp([AuthModule, TenancyModule, PlatformAdminModule, RetailersModule])
     // A REAL console session, not a synthetic token: `auth.supportPass` reads the session row back
@@ -805,6 +874,185 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     expect(res.json<{ message: string }>().message).toContain('no longer active')
   })
 
+  // ---------------------------------------------------------------- DOS-109: who, where, why, what changed
+
+  it('DOS-109: the audit trail names the staff member who acted and the distributorship, keeps the reason and the from/to in the row, and narrows by distributorship, action and staff member', async () => {
+    // Its own distributorship, so the trail it reads holds exactly the five rows written below. The
+    // colleague acts under the DOS-106 helpers: a support-level account may only ask for a window.
+    const audTenantId = uuidv7()
+    await db.insert(tenants).values({
+      id: audTenantId,
+      slug: `aud-${run}`,
+      legalName: 'DOS-109 audit fixture',
+      stateCode: '27',
+    })
+    const colleague = await consoleHeaders(otherAdminUserId)
+    const reason = 'DOS-109: subscription unpaid for 45 days.'
+
+    const suspended = await consoleCall('POST', `/admin/tenants/${audTenantId}/suspend`, {
+      idempotencyKey: `aud-suspend-${run}`,
+      id: audTenantId,
+      reason,
+    })
+    expect(suspended.status, JSON.stringify(suspended.body)).toBe(200)
+    const back = await consoleCall('POST', `/admin/tenants/${audTenantId}/reactivate`, {
+      idempotencyKey: `aud-reactivate-${run}`,
+      id: audTenantId,
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    const plan = {
+      id: uuidv7(),
+      tenantId: audTenantId,
+      plan: 'pro',
+      billingInterval: 'monthly',
+      currentPeriodStart: '2026-09-01',
+      currentPeriodEnd: '2026-10-01',
+    }
+    const created = await consoleCall('POST', '/admin/subscriptions', {
+      ...plan,
+      idempotencyKey: `aud-sub-create-${run}`,
+      status: 'trialing',
+      trialEndDate: '2026-10-01',
+      amountPaise: 199_900,
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const changed = await consoleCall('POST', '/admin/subscriptions', {
+      ...plan,
+      idempotencyKey: `aud-sub-change-${run}`,
+      status: 'active',
+      amountPaise: 499_900,
+    })
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200)
+    const asked = await asConsole(colleague, 'POST', '/admin/support-grants', {
+      idempotencyKey: `aud-ask-${run}`,
+      id: uuidv7(),
+      tenantId: audTenantId,
+      reason: 'DOS-109: one shop’s outstanding differs from its statement.',
+      scope: 'read_only',
+      hours: 4,
+    })
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+
+    type Row = {
+      id: string
+      action: string
+      actorId: string
+      actorName: string | null
+      tenantId: string | null
+      tenantName: string | null
+      after: Record<string, unknown> | null
+    }
+    const trail = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+    })
+    expect(trail.status, JSON.stringify(trail.body)).toBe(200)
+    const items = trail.body.items
+    expect(items.map((i) => i.action).sort()).toEqual([
+      'subscription.created',
+      'subscription.updated',
+      'support.requested',
+      'tenant.reactivated',
+      'tenant.suspended',
+    ])
+    // The distributorship by its legal name, on every row.
+    expect(items.map((i) => i.tenantName)).toEqual(items.map(() => 'DOS-109 audit fixture'))
+    const row = (action: string): Row => {
+      const found = items.find((i) => i.action === action)
+      expect(found, action).toBeDefined()
+      return found as Row
+    }
+
+    // WHO: the person, not "Distribution OS staff" — the super on its own rows, the colleague on theirs.
+    const suspension = row('tenant.suspended')
+    expect(suspension.actorId).toBe(adminUserId)
+    expect(suspension.actorName).toBe('Console super')
+    expect(row('support.requested').actorId).toBe(otherAdminUserId)
+    expect(row('support.requested').actorName).toBe('Console colleague')
+
+    // WHY and WHAT CHANGED stay in the row the writer recorded.
+    expect(suspension.after).toMatchObject({ from: 'active', to: 'suspended', reason })
+    expect(row('tenant.reactivated').after).toMatchObject({
+      from: 'suspended',
+      to: 'active',
+      reason: null,
+    })
+    // Amendment (a): the plan change records the state it came FROM in the wire's own word, exactly
+    // like the state it went to — `trialing`, never the column's `trial`.
+    expect(row('subscription.updated').after).toMatchObject({
+      plan: 'pro',
+      status: 'active',
+      amountPaise: 499_900,
+      from: { plan: 'pro', status: 'trialing', amountPaise: 199_900 },
+    })
+
+    // Every action a production writer used is in the vocabulary the console's chips come from.
+    for (const item of items) {
+      expect(PLATFORM_AUDIT_ACTIONS as readonly string[], item.action).toContain(item.action)
+    }
+
+    // The filters the screen now sends narrow on the server.
+    const theirs = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+      actorId: otherAdminUserId,
+    })
+    expect(theirs.status, JSON.stringify(theirs.body)).toBe(200)
+    expect(theirs.body.items.map((i) => [i.action, i.actorId])).toEqual([
+      ['support.requested', otherAdminUserId],
+    ])
+    const suspensions = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+      action: 'tenant.suspended',
+    })
+    expect(suspensions.status, JSON.stringify(suspensions.body)).toBe(200)
+    expect(suspensions.body.items.map((i) => i.id)).toEqual([suspension.id])
+  })
+
+  it('DOS-109: a distributorship’s detail names the staff member who asked for each support window, exactly as the support register does', async () => {
+    const adtTenantId = uuidv7()
+    await db.insert(tenants).values({
+      id: adtTenantId,
+      slug: `adt-${run}`,
+      legalName: 'DOS-109 detail fixture',
+      stateCode: '27',
+    })
+    const grantId = uuidv7()
+    const asked = await asConsole(
+      await consoleHeaders(otherAdminUserId),
+      'POST',
+      '/admin/support-grants',
+      {
+        idempotencyKey: `adt-ask-${run}`,
+        id: grantId,
+        tenantId: adtTenantId,
+        reason: 'DOS-109: the detail page and the register must agree.',
+        scope: 'read_only',
+        hours: 4,
+      },
+    )
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+
+    type GrantName = { id: string; requestedBy: string; requestedByName: string }
+    const detail = await consoleCall<{ item: { supportGrants: GrantName[] } }>(
+      'GET',
+      `/admin/tenants/${adtTenantId}`,
+    )
+    expect(detail.status, JSON.stringify(detail.body)).toBe(200)
+    const register = await consoleCall<{ items: GrantName[] }>('GET', '/admin/support-grants', {
+      tenantId: adtTenantId,
+    })
+    expect(register.status, JSON.stringify(register.body)).toBe(200)
+
+    expect(register.body.items.map((g) => [g.id, g.requestedByName])).toEqual([
+      [grantId, 'Console colleague'],
+    ])
+    expect(
+      detail.body.item.supportGrants.map((g) => [g.id, g.requestedBy, g.requestedByName]),
+    ).toEqual([[grantId, otherAdminUserId, 'Console colleague']])
+    expect(detail.body.item.supportGrants[0]?.requestedByName).toBe(
+      register.body.items[0]?.requestedByName,
+    )
+  })
+
   // ---------------------------------------------------------------- DOS-106: the console level
 
   type Reply = {
@@ -957,6 +1205,11 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
       method: 'POST',
       url: `/admin/users/${victimId}/disable`,
       payload: { idempotencyKey: `lvl-disable-${tag}-${run}`, id: victimId, reason: 'Probe.' },
+    },
+    'admin.users.enable': {
+      method: 'POST',
+      url: `/admin/users/${victimId}/enable`,
+      payload: { idempotencyKey: `lvl-enable-${tag}-${run}`, id: victimId, reason: 'Probe.' },
     },
     'admin.metrics.overview': { method: 'GET', url: '/admin/metrics', payload: { days: 7 } },
     'admin.audit.list': { method: 'GET', url: '/admin/audit', payload: { tenantId: lvlTenantId } },
@@ -1317,7 +1570,7 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     expect(stillReads.status, JSON.stringify(stillReads.body)).toBe(200)
 
     // The login is locked (`users.status`), the console row untouched, the same token in hand:
-    // every one of the fifteen console procedures refuses, the reads as well as the writes.
+    // every one of the sixteen console procedures refuses, the reads as well as the writes.
     await db.update(users).set({ status: 'disabled' }).where(eq(users.id, demotedId))
     const table = probes('locked', '2')
     expect(Object.keys(table).sort()).toEqual(
@@ -1345,6 +1598,286 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     })
     expect(closed.status, JSON.stringify(closed.body)).toBe(403)
     expect(closed.body.message).toBe('This console account is no longer active')
+  })
+
+  // ---------------------------------------------------------------- DOS-107: a lock has an undo
+
+  /** A distributor sign-in at `/auth/login`, into one named distributorship. */
+  const tenantSignIn = async (
+    username: string,
+    tenant: string,
+  ): Promise<{ status: number; deviceId: string; body: Record<string, unknown> }> => {
+    const deviceId = uuidv7()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ username, password: PASSWORD, deviceId, tenantId: tenant }),
+    })
+    return { status: res.statusCode, deviceId, body: res.json<Record<string, unknown>>() }
+  }
+
+  /** How many `user.enabled` rows the console's trail holds for one identity. */
+  const unlocksOf = async (userId: string): Promise<number> =>
+    Number(
+      (
+        await db.execute<{ n: string }>(
+          sql`select count(*)::text as n from platform_audit
+              where action = 'user.enabled' and payload->>'userId' = ${userId}`,
+        )
+      ).rows[0]?.n,
+    )
+
+  type UnlockItem = {
+    item: {
+      id: string
+      status: string
+      platformRole: string | null
+      memberships: { tenantId: string; role: string; status: string }[]
+    }
+  }
+
+  it('DOS-107: a super unlocks a locked distributor login — it signs in again, the sessions the lock ended stay ended, both memberships are untouched, the trail names who unlocked it and why, and repeating the unlock writes no second audit row', async () => {
+    const username = `u${run}.mem`
+    // A live session in distributorship one, open when the lock lands.
+    const live = await tenantSignIn(username, unlockTenantOneId)
+    expect(live.status, JSON.stringify(live.body)).toBe(200)
+    const [beforeLock] = await db.select().from(users).where(eq(users.id, unlockMemberId))
+
+    const locked = await consoleCall<UnlockItem>('POST', `/admin/users/${unlockMemberId}/disable`, {
+      idempotencyKey: `ul-lock-${run}`,
+      id: unlockMemberId,
+      reason: 'DOS-107: the wrong person was locked.',
+    })
+    expect(locked.status, JSON.stringify(locked.body)).toBe(200)
+    expect(locked.body.item.status).toBe('disabled')
+    expect((await tenantSignIn(username, unlockTenantOneId)).status).toBe(403)
+
+    const reason = 'DOS-107: locked by mistake; the distributor confirmed it is the right person.'
+    const unlockBody = { idempotencyKey: `ul-unlock-${run}`, id: unlockMemberId, reason }
+    const unlocked = await consoleCall<UnlockItem>(
+      'POST',
+      `/admin/users/${unlockMemberId}/enable`,
+      unlockBody,
+    )
+    expect(unlocked.status, JSON.stringify(unlocked.body)).toBe(200)
+    expect(unlocked.body.item.status).toBe('active')
+    const bothMemberships = [
+      { tenantId: unlockTenantOneId, role: 'owner', status: 'active' },
+      { tenantId: unlockTenantTwoId, role: 'manager', status: 'active' },
+    ]
+    expect(
+      unlocked.body.item.memberships.map((m) => ({
+        tenantId: m.tenantId,
+        role: m.role,
+        status: m.status,
+      })),
+    ).toEqual(bothMemberships)
+
+    // Only `users.status` moved: the password-failure lock belongs to the auth service and stays.
+    const [afterUnlock] = await db.select().from(users).where(eq(users.id, unlockMemberId))
+    expect(afterUnlock?.status).toBe('active')
+    expect(afterUnlock?.failedLoginCount).toBe(beforeLock?.failedLoginCount)
+    expect(afterUnlock?.lockedUntil).toEqual(beforeLock?.lockedUntil)
+
+    // The session the lock ended stays ended: its refresh token buys nothing, and every session the
+    // lock revoked is still revoked.
+    const refreshed = await app.inject({
+      method: 'POST',
+      url: '/auth/refresh',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ refreshToken: live.body.refreshToken, deviceId: live.deviceId }),
+    })
+    expect(refreshed.statusCode, refreshed.body).not.toBe(200)
+    const endedByLock = await db
+      .select({ revokedAt: authSessions.revokedAt })
+      .from(authSessions)
+      .where(
+        and(
+          eq(authSessions.userId, unlockMemberId),
+          eq(authSessions.revokedReason, 'platform_disabled'),
+        ),
+      )
+    expect(endedByLock.length).toBeGreaterThan(0)
+    expect(endedByLock.every((s) => s.revokedAt !== null)).toBe(true)
+
+    // It signs in again from its next attempt, in BOTH distributorships, with both memberships as
+    // they were.
+    const again = await tenantSignIn(username, unlockTenantOneId)
+    expect(again.status, JSON.stringify(again.body)).toBe(200)
+    const other = await tenantSignIn(username, unlockTenantTwoId)
+    expect(other.status, JSON.stringify(other.body)).toBe(200)
+    const links = await db
+      .select({
+        tenantId: memberships.tenantId,
+        role: memberships.role,
+        status: memberships.status,
+      })
+      .from(memberships)
+      .where(eq(memberships.userId, unlockMemberId))
+      .orderBy(memberships.createdAt)
+    expect(links).toEqual(bothMemberships)
+
+    // The trail: one `user.enabled` row, by the super, with the reason, filed like the lock.
+    type AuditRow = {
+      action: string
+      actorId: string
+      actorName: string | null
+      tenantId: string | null
+      after: Record<string, unknown> | null
+    }
+    const trail = await consoleCall<{ items: AuditRow[] }>('GET', '/admin/audit', {
+      actorId: adminUserId,
+      action: 'user.enabled',
+    })
+    expect(trail.status, JSON.stringify(trail.body)).toBe(200)
+    const unlockRows = trail.body.items.filter((i) => i.after?.userId === unlockMemberId)
+    expect(unlockRows).toHaveLength(1)
+    expect(unlockRows[0]).toMatchObject({
+      action: 'user.enabled',
+      actorId: adminUserId,
+      actorName: 'Console super',
+      tenantId: unlockTenantOneId,
+      after: { userId: unlockMemberId, username, reason },
+    })
+    expect(PLATFORM_AUDIT_ACTIONS as readonly string[]).toContain('user.enabled')
+
+    // Pressed again: the same key and body replay the stored reply; a new key finds the login already
+    // active and changes nothing — no UPDATE, no second row.
+    const [settled] = await db.select().from(users).where(eq(users.id, unlockMemberId))
+    const replay = await consoleCall<UnlockItem>(
+      'POST',
+      `/admin/users/${unlockMemberId}/enable`,
+      unlockBody,
+    )
+    expect(replay.status, JSON.stringify(replay.body)).toBe(200)
+    expect(replay.body.item.status).toBe('active')
+    const repeat = await consoleCall<UnlockItem>('POST', `/admin/users/${unlockMemberId}/enable`, {
+      ...unlockBody,
+      idempotencyKey: `ul-unlock-again-${run}`,
+    })
+    expect(repeat.status, JSON.stringify(repeat.body)).toBe(200)
+    expect(repeat.body.item.status).toBe('active')
+    const [untouched] = await db.select().from(users).where(eq(users.id, unlockMemberId))
+    expect(untouched?.updatedAt).toEqual(settled?.updatedAt)
+    expect(await unlocksOf(unlockMemberId)).toBe(1)
+  })
+
+  it('DOS-107: a locked console account with no distributorship is unlocked by a super and signs in at the console again; a second unlock changes nothing and writes no second audit row', async () => {
+    const username = `u${run}.con`
+    const first = await platformSignIn(username)
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+
+    const locked = await consoleCall<UnlockItem>(
+      'POST',
+      `/admin/users/${unlockConsoleId}/disable`,
+      {
+        idempotencyKey: `uc-lock-${run}`,
+        id: unlockConsoleId,
+        reason: 'DOS-107: a colleague was locked by mistake.',
+      },
+    )
+    expect(locked.status, JSON.stringify(locked.body)).toBe(200)
+    expect(locked.body.item.status).toBe('disabled')
+    expect((await platformSignIn(username)).status).toBe(403)
+
+    const reason = 'DOS-107: the colleague is back from leave.'
+    const unlocked = await consoleCall<UnlockItem>(
+      'POST',
+      `/admin/users/${unlockConsoleId}/enable`,
+      {
+        idempotencyKey: `uc-unlock-${run}`,
+        id: unlockConsoleId,
+        reason,
+      },
+    )
+    expect(unlocked.status, JSON.stringify(unlocked.body)).toBe(200)
+    expect(unlocked.body.item).toMatchObject({
+      status: 'active',
+      platformRole: 'platform_admin',
+      memberships: [],
+    })
+
+    const signIn = await platformSignIn(username)
+    expect(signIn.status, JSON.stringify(signIn.body)).toBe(200)
+    expect(signIn.body.level).toBe('support')
+    // An unlock restores the login, never a closed console row: `platform_admins` is as it was.
+    const [consoleRow] = await db
+      .select()
+      .from(platformAdmins)
+      .where(eq(platformAdmins.userId, unlockConsoleId))
+    expect(consoleRow?.disabledAt).toBeNull()
+    expect(consoleRow?.role).toBe('support')
+
+    const trailRows = (
+      await db.execute<{
+        tenant_id: string | null
+        admin_user_id: string
+        payload: Record<string, unknown>
+      }>(sql`select tenant_id, admin_user_id, payload from platform_audit
+             where action = 'user.enabled' and payload->>'userId' = ${unlockConsoleId}`)
+    ).rows
+    expect(trailRows).toHaveLength(1)
+    expect(trailRows[0]).toMatchObject({
+      tenant_id: null,
+      admin_user_id: adminUserId,
+      payload: { userId: unlockConsoleId, username, reason },
+    })
+
+    // No distributorship means no idempotency row: the row lock and the state guard are what make a
+    // second press — with the same key or a new one — change nothing.
+    const [settled] = await db.select().from(users).where(eq(users.id, unlockConsoleId))
+    for (const key of [`uc-unlock-${run}`, `uc-unlock-again-${run}`]) {
+      const again = await consoleCall<UnlockItem>(
+        'POST',
+        `/admin/users/${unlockConsoleId}/enable`,
+        {
+          idempotencyKey: key,
+          id: unlockConsoleId,
+          reason,
+        },
+      )
+      expect(again.status, `${key}: ${JSON.stringify(again.body)}`).toBe(200)
+      expect(again.body.item.status).toBe('active')
+    }
+    const [untouched] = await db.select().from(users).where(eq(users.id, unlockConsoleId))
+    expect(untouched?.updatedAt).toEqual(settled?.updatedAt)
+    expect(await unlocksOf(unlockConsoleId)).toBe(1)
+  })
+
+  it('DOS-107: a support or billing console account is refused unlocking a login, and the login stays locked', async () => {
+    const locked = await consoleCall<UnlockItem>('POST', `/admin/users/${unlockVictimId}/disable`, {
+      idempotencyKey: `uv-lock-${run}`,
+      id: unlockVictimId,
+      reason: 'DOS-107: locked for the refusal case.',
+    })
+    expect(locked.status, JSON.stringify(locked.body)).toBe(200)
+    expect(locked.body.item.status).toBe('disabled')
+
+    for (const [level, actorId] of [
+      ['support', otherAdminUserId],
+      ['billing', billingId],
+    ] as const) {
+      expectLevelRefusal(
+        await asConsole(
+          await consoleHeaders(actorId),
+          'POST',
+          `/admin/users/${unlockVictimId}/enable`,
+          {
+            idempotencyKey: `uv-unlock-${level}-${run}`,
+            id: unlockVictimId,
+            reason: `DOS-107: a ${level} account tries to unlock a login.`,
+          },
+        ),
+        level,
+        'admin.users.enable',
+      )
+    }
+
+    const [victim] = await db.select().from(users).where(eq(users.id, unlockVictimId))
+    expect(victim?.status).toBe('disabled')
+    expect(await unlocksOf(unlockVictimId)).toBe(0)
+    expect((await tenantSignIn(`u${run}.vic`, unlockTenantOneId)).status).toBe(403)
   })
 })
 

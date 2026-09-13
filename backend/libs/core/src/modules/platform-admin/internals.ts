@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import {
   platformAdmins,
@@ -13,6 +13,7 @@ import { businessDate, uuidv7 } from '@dos/domain'
 import {
   levelAllows,
   type AdminProcedurePath,
+  type PlatformAuditAction,
   type Subscription,
   type SubscriptionStatus,
 } from '@dos/contracts'
@@ -31,13 +32,14 @@ import { PLATFORM_SCOPE } from '../tenancy/index.js'
  * that strays into a business table reads ZERO rows rather than somebody's — the guarantee is the
  * policy, not this code.
  *
- * `withSystem()` — `app_worker`, BYPASSRLS. Used by exactly two procedures, each with a comment at the
- * call site saying why: `admin.tenants.create` (which writes `users`, `memberships` and the tenant's
- * chart of accounts through `bootstrapTenant`) and `admin.users.disable` (which writes `users` and
- * `auth_sessions`). Those tables deliberately have NO platform policy: a platform administrator who
- * could mint a membership would not need an owner-approved support grant, and the whole founder rule
- * would be theatre. Onboarding is the one moment the console legitimately creates a distributor's
- * first login, so it is the one place that reaches past RLS, under a named function, audited.
+ * `withSystem()` — `app_worker`, BYPASSRLS. Used by exactly three procedures, each with a comment at
+ * the call site saying why: `admin.tenants.create` (which writes `users`, `memberships` and the
+ * tenant's chart of accounts through `bootstrapTenant`), `admin.users.disable` (which writes `users`
+ * and `auth_sessions`) and its undo `admin.users.enable` (which writes `users`). Those tables
+ * deliberately have NO platform policy: a platform administrator who could mint a membership would
+ * not need an owner-approved support grant, and the whole founder rule would be theatre. Onboarding
+ * is the one moment the console legitimately creates a distributor's first login, so it is the one
+ * place that reaches past RLS, under a named function, audited.
  *
  * Cross-tenant COUNTS (`admin.metrics.overview`, the sizes on `admin.tenants.list/get`) also run under
  * `withSystem` — see `counts.ts`, where every query is a COUNT or a MAX and no row of a distributor's
@@ -70,7 +72,11 @@ export function platformActorId(): string {
  */
 export async function writePlatformAudit(
   tx: Db,
-  entry: { action: string; tenantId?: string | null; payload?: Record<string, unknown> },
+  entry: {
+    action: PlatformAuditAction
+    tenantId?: string | null
+    payload?: Record<string, unknown>
+  },
 ): Promise<void> {
   await tx.insert(platformAudit).values({
     id: uuidv7(),
@@ -79,6 +85,31 @@ export async function writePlatformAudit(
     tenantId: entry.tenantId ?? null,
     payload: entry.payload ?? {},
   })
+}
+
+/**
+ * The display names of platform administrators, by user id: the names on the console's own cards and on
+ * its audit trail. `users_visible` — "yourself, or somebody in your tenant" — hides every other
+ * administrator from a console session, which holds no membership anywhere; the SECURITY DEFINER
+ * function `dos_support_requester_names()` (migration 0037) answers a display name for PLATFORM
+ * ADMINISTRATORS ONLY, and the join to `platform_admins` lives inside it where no caller can drop it.
+ * Widening `users_visible` to get a name on a card would have opened the whole users table to a
+ * predicate about support.
+ *
+ * The map holds only what the function answered: an id it does not know is absent, and the caller
+ * chooses what to show instead — never a guessed name. Await it on `tx` sequentially, never inside a
+ * `Promise.all` (one client, one query at a time).
+ */
+export async function platformAdminNames(
+  tx: Db,
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, string>> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return new Map()
+  const found = await tx.execute<{ user_id: string; display_name: string }>(
+    sql`select user_id, display_name from dos_support_requester_names(${sql.param(unique)}::text[])`,
+  )
+  return new Map(found.rows.map((row) => [row.user_id, row.display_name]))
 }
 
 /**
