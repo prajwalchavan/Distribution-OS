@@ -899,6 +899,163 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(await journalSum('credit_note', financial)).toBe(0)
   })
 
+  type RefusalBody = {
+    message?: string
+    data?: { code?: string; invoiceLineId?: string; reason?: string }
+  }
+
+  /** A fresh one-case bill (12 pcs) of its own, so no other note on the tests' shared bill counts against it. */
+  async function freshBill(tag: string): Promise<{ invoiceId: string; lineId: string }> {
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], tag)
+    const { invoiceId, res } = await issueFor(orderId, tag)
+    expect(res.status, tag).toBe(200)
+    const lineId = res.body.item.lines[0]?.id ?? ''
+    expect(lineId, tag).not.toBe('')
+    return { invoiceId, lineId }
+  }
+
+  it('DOS-116: a desk return_damaged credit note whose lines omit saleable books them unsaleable and restocks the damaged bin, not the godown (autoIssue, and draft then issue)', async () => {
+    const bill = await freshBill('dos116-omit')
+
+    // (a) one tap: drafted and issued in the same call, the flag left out as the contract allows
+    const autoNote = uuidv7()
+    const auto = await call<{ item: CreditNoteDetailBody }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `cn-dos116-omit-auto-${run}`,
+      id: autoNote,
+      invoiceId: bill.invoiceId,
+      reason: 'return_damaged',
+      autoIssue: true,
+      lines: [{ id: uuidv7(), invoiceLineId: bill.lineId, qtyPcs: 2 }],
+    })
+    expect(auto.status).toBe(200)
+    expect(auto.body.item.state).toBe('issued')
+    expect(auto.body.item.lines[0]?.saleable).toBe(false)
+    const autoRows = await ledgerFor(autoNote)
+    expect(autoRows).toHaveLength(1)
+    expect(autoRows[0]).toMatchObject({
+      reason: 'sale_return_damaged',
+      qty_delta: 2,
+      location_id: damaged,
+    })
+
+    // (b) the desk's two steps on the same bill: a draft, then issue from the register
+    const draftNote = uuidv7()
+    const drafted = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      manager,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `cn-dos116-omit-draft-${run}`,
+        id: draftNote,
+        invoiceId: bill.invoiceId,
+        reason: 'return_damaged',
+        lines: [{ id: uuidv7(), invoiceLineId: bill.lineId, qtyPcs: 2 }],
+      },
+    )
+    expect(drafted.status).toBe(200)
+    expect(drafted.body.item.state).toBe('draft')
+    expect(drafted.body.item.lines[0]?.saleable).toBe(false)
+    expect(await ledgerFor(draftNote)).toHaveLength(0)
+
+    const issued = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      manager,
+      'POST',
+      `/credit-notes/${draftNote}/issue`,
+      { idempotencyKey: `cn-dos116-omit-issue-${run}` },
+    )
+    expect(issued.status).toBe(200)
+    expect(issued.body.item.state).toBe('issued')
+    const draftRows = await ledgerFor(draftNote)
+    expect(draftRows).toHaveLength(1)
+    expect(draftRows[0]).toMatchObject({
+      reason: 'sale_return_damaged',
+      qty_delta: 2,
+      location_id: damaged,
+    })
+  })
+
+  it('DOS-116: a desk return_damaged line marked saleable:true is refused with 400 return_not_saleable, as a draft and with autoIssue, and writes no note, line, stock row or idempotency row', async () => {
+    const bill = await freshBill('dos116-refuse')
+
+    for (const autoIssue of [true, false]) {
+      const label = `autoIssue ${String(autoIssue)}`
+      const noteId = uuidv7()
+      const lineId = uuidv7()
+      const idempotencyKey = `cn-dos116-refuse-${String(autoIssue)}-${run}`
+      const refused = await call<RefusalBody>(app, manager, 'POST', '/credit-notes', {
+        idempotencyKey,
+        id: noteId,
+        invoiceId: bill.invoiceId,
+        reason: 'return_damaged',
+        autoIssue,
+        lines: [{ id: lineId, invoiceLineId: bill.lineId, qtyPcs: 2, saleable: true }],
+      })
+      expect(refused.status, label).toBe(400)
+      expect(refused.body.data?.code, label).toBe('return_not_saleable')
+      expect(refused.body.data?.invoiceLineId, label).toBe(bill.lineId)
+      expect(refused.body.data?.reason, label).toBe('return_damaged')
+      expect(refused.body.message, label).toMatch(/damaged bin/)
+
+      const notes = (
+        await db.execute(
+          sql`select count(*)::int as n from credit_notes where tenant_id = ${tenantId} and id = ${noteId}`,
+        )
+      ).rows as { n: number }[]
+      expect(notes[0]?.n, label).toBe(0)
+      const lines = (
+        await db.execute(
+          sql`select count(*)::int as n from credit_note_lines
+               where tenant_id = ${tenantId} and credit_note_id = ${noteId}`,
+        )
+      ).rows as { n: number }[]
+      expect(lines[0]?.n, label).toBe(0)
+      expect(await ledgerFor(noteId), label).toHaveLength(0)
+
+      // the refusal rolled back its idempotency row too: the same key and id, now unsaleable, are accepted
+      const resent = await call<{ item: CreditNoteDetailBody }>(
+        app,
+        manager,
+        'POST',
+        '/credit-notes',
+        {
+          idempotencyKey,
+          id: noteId,
+          invoiceId: bill.invoiceId,
+          reason: 'return_damaged',
+          autoIssue,
+          lines: [{ id: lineId, invoiceLineId: bill.lineId, qtyPcs: 2, saleable: false }],
+        },
+      )
+      expect(resent.status, label).toBe(200)
+      expect(resent.body.item.lines[0]?.saleable, label).toBe(false)
+    }
+  })
+
+  it('DOS-116 guard: a return_saleable credit note whose lines omit saleable still restocks the godown as sale_return_saleable', async () => {
+    const bill = await freshBill('dos116-guard')
+
+    const noteId = uuidv7()
+    const res = await call<{ item: CreditNoteDetailBody }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `cn-dos116-guard-${run}`,
+      id: noteId,
+      invoiceId: bill.invoiceId,
+      reason: 'return_saleable',
+      autoIssue: true,
+      lines: [{ id: uuidv7(), invoiceLineId: bill.lineId, qtyPcs: 1 }],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.item.lines[0]?.saleable).toBe(true)
+    const rows = await ledgerFor(noteId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      reason: 'sale_return_saleable',
+      qty_delta: 1,
+      location_id: godown,
+    })
+  })
+
   // ---------------------------------------------------------------------------------------------------------------
   // the other two sources of a bill
 
