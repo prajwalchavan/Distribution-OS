@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createPublicKey, verify as verifySignature, type KeyObject } from 'node:crypto'
 import {
+  BadRequestException,
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
@@ -146,6 +147,7 @@ export class TenantGuard implements CanActivate, OnModuleInit {
       throw new ServiceUnavailableException('auth keys not loaded yet')
     }
     const req = context.switchToHttp().getRequest<SupportAwareRequest>()
+    assertPathMatchesBody(req, route)
     const token = bearerToken(req)
     if (!token) throw new UnauthorizedException('sign in required')
     const claims = this.verifier.verify(token)
@@ -302,6 +304,51 @@ function routeOf(handler: object): string {
 export interface SupportAwareRequest {
   headers: Record<string, string | string[] | undefined>
   supportAccess?: SupportAccessRecord
+  params?: Record<string, string>
+  body?: unknown
+}
+
+/**
+ * oRPC's compact codec decodes a per-record route's input as `{...pathParams, ...body}` — the body wins on
+ * every shared key — so a client that follows the generated README ("the path names the record; every
+ * write carries a client-generated id") and sends a DIFFERENT id in each place has the path silently
+ * ignored (DOS-112): the handler acts on whatever the body said, and a path built from one record with a
+ * body meant for another reads as if the URL had never been consulted. Every per-record route in this
+ * contract names its path segment(s) with the exact field name the input schema also carries (`{id}` and
+ * `IdSchema`'s `id`, `{lineId}` and `AdjustClaimLineInput`'s `lineId`, and so on: `grep`-verified across
+ * every module) EXCEPT the one route in `PATH_FIELD_REDIRECTS` below, so comparing the raw Fastify route
+ * params against the same-named field of the raw body — BEFORE oRPC ever merges them — catches every such
+ * route with one check. A route whose body happens not to carry a field with that name is untouched; a
+ * GET has no body to disagree with its path in the first place.
+ */
+function assertPathMatchesBody(req: SupportAwareRequest, route: string): void {
+  const params = req.params
+  const body = req.body
+  if (!params || typeof body !== 'object' || body === null) return
+  const redirects = PATH_FIELD_REDIRECTS[route]
+  for (const [key, pathValue] of Object.entries(params)) {
+    const bodyKey = redirects?.[key] ?? key
+    if (!(bodyKey in body)) continue
+    const bodyValue = (body as Record<string, unknown>)[bodyKey]
+    if (typeof bodyValue === 'string' && bodyValue !== pathValue) {
+      throw new BadRequestException(
+        `the ${key} in the URL ("${pathValue}") does not match the ${bodyKey} in the body ("${bodyValue}")`,
+      )
+    }
+  }
+}
+
+/**
+ * The one exception to "the path segment and the same-named body field name the same record" (merge-review
+ * on DOS-112): `POST /delivery/trips/:id/settle` creates a NEW `trip_settlements` row, so its body's OWN
+ * `id` is that new row's client-generated id (every mutation carries one) — not the trip the path names.
+ * The trip is separately named in the body as `tripId`, which is the field that actually has to agree with
+ * the path. Without this redirect the centralized guard would either compare the wrong field (and 400 on
+ * every real call, since a fresh settlement id essentially never equals the trip id) or, if simply skipped,
+ * leave this one route unchecked — so it redirects the comparison instead of disabling it.
+ */
+const PATH_FIELD_REDIRECTS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'POST /delivery/trips/:id/settle': { id: 'tripId' },
 }
 
 function bearerToken(req: SupportAwareRequest): string | null {

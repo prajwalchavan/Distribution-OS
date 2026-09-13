@@ -42,6 +42,7 @@ import {
   requireDb,
   requireRole,
   STAFF,
+  writeAudit,
 } from '../../platform/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
@@ -426,6 +427,17 @@ export class OrdersService {
     const next = confirmed ?? order
     await recordTransition(tx, next, order.state, to, 'confirm', deviceId, null)
     await emitOrderEvent(tx, next, 'OrderConfirmed')
+    // `order_state_transitions` already has this move; `audit_log` is what owner Settings > Audit reads, and a
+    // confirm can release a credit-stopped shop or a below-floor sale, implicitly (the last approval decided) or
+    // directly, so it belongs there too (DOS-028).
+    await writeAudit(tx, {
+      action: 'order.confirm',
+      entityType: 'sales_order',
+      entityId: next.id,
+      before: { state: order.state },
+      after: { state: to, totalPaise: next.totalPaise },
+      deviceId,
+    })
     return { item: await this.detail(tx, next), shortages }
   }
 
@@ -479,10 +491,15 @@ export class OrdersService {
       .from(salesOrderLines)
       .where(eq(salesOrderLines.orderId, order.id))
     for (const line of lines) await this.inventory.releaseReservation(tx, line.id)
-    await tx
-      .update(approvals)
-      .set({ status: 'expired', decisionNote: reason, decidedAt: now, updatedAt: now })
-      .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending')))
+    // `approvals_read` hides the queue from the retailer role (owner/manager decide it, never the shop), so a
+    // shop's own cancel — a legal write under `approvals_update` — still needs `system` visibility to find the
+    // rows it must expire (DOS-127); without it the UPDATE matches nothing and the gate is stuck pending forever.
+    await asSystem(tx, () =>
+      tx
+        .update(approvals)
+        .set({ status: 'expired', decisionNote: reason, decidedAt: now, updatedAt: now })
+        .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending'))),
+    )
     const [cancelled] = await tx
       .update(salesOrders)
       .set({ state: to, cancelledAt: now, cancelReason: reason, updatedAt: now })
