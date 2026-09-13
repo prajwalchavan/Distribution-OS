@@ -300,3 +300,13 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **NOT TESTED (goes to the A.12 regression):** every walk the builders listed — W5 Short sheet (Android), credit-note Sheet with Gboard (Android) and a Sheet with a text field (iOS), Load-out chip plus two chip registers (Android), print cancel (iOS and Android), refused-write button label (Android), sales order entry phone footer and pieces pad (web phone, Android, iOS), the QtyStepper confirm on delivery D4 / van sale and manager M20, Print the challan (web, Android, iOS).
 - **New suspects:** S-102..S-109 in `QA/findings/12` (money: S-106, the parked-pack double count in 'left to bill').
 - **Wave 2 started:** lean-retailer-shop (DOS-101, 123, 124, 154, 105, 143, 144) and lean-backend-platform (DOS-127, 160, 028, 112, 151); worktrees from main `663c6f3`, DBs `dos_test_b2_lr` and `dos_test_b2_lb`.
+
+### Batch 2 — DOS-167 answer (founder, 2026-09-13 20:21 IST: "DOS-167 — A")
+
+- **Rule:** when someone signs out with changes not yet sent, the changes stay on that phone for that person only. They go first the next time that person signs in there. The sign-out sheet names the count, offers "Send now" when there is signal, and offers "Sign out, keep them here". Nothing is thrown away at sign-out, and nobody else who signs in can see or send them.
+- **docs/22:** §7 diagram note, §8 row and §11 change log, committed as `0f5a9b5`; the source-of-truth artifact is republished.
+- **Run `wf_74bd442f-12c` started:**
+  - Build: a libs slice, then an apps slice. Each gets an Opus build, an adversarial verify and one repair round.
+  - Review: two Fable merge reviews, one for leaks and one for loss and platform.
+  - Merge: Opus integration with one repair round, then merge and push.
+  - Proof: web (persistent store), Android sales, Android delivery and warehouse, and iOS, then a Fable judge per platform.
