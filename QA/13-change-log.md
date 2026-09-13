@@ -235,3 +235,7 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
   - stale proof-of-delivery prose in contracts/delivery.ts and docs/20 rule 15.
 - Suspected defects S-73..S-91, not tested.
 - Tooling note: `pnpm --filter <pkg> test -- <file>` runs the whole vitest suite; use `pnpm --filter <pkg> exec vitest run <file>` for a single file.
+
+**h5-orders slice 3** (DOS-098, DOS-126) merged as `43824b0` at 16:25 (run `wf_64118f05-f5b`). The integrator resolved its one textual conflict, the drizzle import in orders.service.ts, as the review said. The verifier passed it; its only minor was that main had moved on by two QA-only commits. The READMEs gain `GET /orders/last-placed`. The lane DB was recreated and migrated to 0047. Batch 2 now has 13 approved findings on main (3 P0, 10 P1).
+
+**dos_qa rebuilt** on merged main at 16:11: 48 migrations, verify-seed 206/206, no duplicate receipt numbers. The services and the worker were restarted on it.
