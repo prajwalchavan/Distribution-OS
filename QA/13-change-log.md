@@ -440,5 +440,5 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **Android sales proof: PASS** (`QA/evidence/batch2/dos-167/android/`). Files are keyed per person, sign-out removes them, and the next person sees no markers. A kept order is kept and sent at the next sign-in. The same P3 "2 changes" count appears here.
 - **Still running:** Android delivery and warehouse, iOS, and the Fable judge. DOS-167 stays open.
 - **Repair:** Fable ruling 2 covers the store name, the silent fallback, the count, and the order-enqueue gap between the header and its lines. Then build, verify, review, merge, and re-run the proof.
-- **New suspects:** S-116..S-0 — see QA/findings/12. They are the ruling-1 out-of-scope items, the verifier minor and the proof defects.
+- **New suspects:** S-116..S-123 — see QA/findings/12. They are the ruling-1 out-of-scope items, the verifier minor and the proof defects.
 - **Lean wave 3 is on HOLD** until the proofs finish and the store-name repair merges.
