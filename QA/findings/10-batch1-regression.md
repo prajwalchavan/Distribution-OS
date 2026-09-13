@@ -1017,3 +1017,101 @@ Suggested fix: return stored replies without output re-validation (mark them as 
 ```
 
 Found by: architect review of the DOS-003 plan (Fable, 2026-09-13). Not executed against a running service.
+
+### DOS-161 — iOS sales order entry: the fixed header and footer leave a 267-pt scroll window, so the catalog shows about one row and a line's stepper slides under the footer
+Category: ux | Priority: P2 | Role: Sales Rep | Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+
+```
+User: Sales Rep
+Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+Environment: local dev, merged main (manager app: DOS-029 + DOS-135 build on :5274), dos_qa, iPhone 16 Pro simulator iOS 18.0, Expo Go, 2026-09-13
+Steps:
+  1. rahul.deshmukh → Beat → Shree Ganesh Kirana → Take order. 2. Read the order screen's scroll bar rect and scroll to 'Add items'. 3. Add 'Annapurna Sunflower Refined Oil 1 L pouch', open the line and tap 'One case more' 19 times at the button's position.
+Expected: On a 874-pt phone the catalog and the line being edited get most of the screen; the stepper stays tappable above the order footer.
+Actual: The scroll area is only y 279–546 (267 pt, ~30% of the screen): the app header, connection strip and 'Order · Items' title sit above it, and the sticky footer (Items · ₹ · before GST · Place order · hint) takes y 546–771. Only one catalog row is visible at a time (sales-077-03). Once the line card grew to show '₹119.74/pc · 12 pc case', its − / + / Pieces buttons moved under the footer, showing only their top edges. 19 taps on 'One case more' produced 7 cs because the rest landed on the footer (sales-075-03). The line had to be scrolled up before every few taps.
+Business impact: A rep building a 15–20 line order on an iPhone scrolls one item at a time and mis-taps quantities into the footer; slower order entry at every shop and wrong case counts that are only noticed on 'This order'.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/ios/sales-077-02-order-entry-rows.png; QA/evidence/batch1/regression/ios/sales-077-03-first-row.png; QA/evidence/batch1/regression/ios/sales-075-03-20cs-scheme.png
+Suggested fix: In frontend/sales-app/app/orders/new.tsx make the phone footer compact (one line: Items · ₹ total · Place order) or let it collapse while scrolling, and keep the screen title in the scroll content, not pinned; ensure the scroll content is inset by the footer height so the last control is never laid out behind it (same pattern as DOS-152's Sheet fix).
+```
+
+Found by: batch 1 regression, iOS pass (sales-delivery-retailer).
+
+### DOS-162 — Cancelling the iOS print dialog raises an uncaught PrintIncompleteException (delivery papers and retailer bill)
+Category: bug | Priority: P3 | Role: Delivery / Retailer | Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+
+```
+User: Delivery / Retailer
+Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+Environment: local dev, merged main (manager app: DOS-029 + DOS-135 build on :5274), dos_qa, iPhone 16 Pro simulator iOS 18.0, Expo Go, 2026-09-13
+Steps:
+  1. Delivery: ganesh.more → TRIP-ACTIVE stop 5 Joshi Kirana Stores → INV/0826 → Send the papers → Print → Cancel on 'Options'. 2. Retailer: ramesh.gupta → My bills → INV/0753 → Print → Cancel.
+Expected: Cancelling print is a normal choice: the screen returns quietly (or says 'Not printed').
+Actual: Both apps show a red 'Uncaught (in promise, id: 0) Error: PrintIncompleteException: Printing did not complete (at ExpoPrint/ExpoPrintWithPrinter.swift:94)' toast at the bottom, covering the sheet's lower button until dismissed. The buttons call `void documents.print(url, { filename })` with no catch (delivery-app/app/share/[invoiceId].tsx; retailer bill screen), and documents.native.ts passes through the rejection of Print.printAsync.
+Business impact: Low: an unhandled promise rejection on a routine cancel; in the dev build the toast covers the bottom action; in a release build the rejection goes unreported and the app gives no feedback.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/ios/delivery-057-05-cn-sheet.png; QA/evidence/batch1/regression/ios/retailer-099-05-after-print-cancel.png
+Suggested fix: In frontend/libs/ui/src/platform/documents.native.ts wrap Print.printAsync and resolve (return false) on PrintIncompleteException; or add a .catch on the print buttons as the share button already does (`.then(onSent, () => onSent(false))`).
+```
+
+Found by: batch 1 regression, iOS pass (sales-delivery-retailer).
+
+### DOS-163 — iOS delivery return reasons: the three-segment control overflows the line card and 'Past its date' is clipped at the screen edge
+Category: ux | Priority: P3 | Role: Delivery | Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+
+```
+User: Delivery
+Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+Environment: local dev, merged main (manager app: DOS-029 + DOS-135 build on :5274), dos_qa, iPhone 16 Pro simulator iOS 18.0, Expo Go, 2026-09-13
+Steps:
+  1. ganesh.more → TRIP-NEXT stop 4 Rameshwar General Store → I am at the shop → Deliver this bill. 2. Campa Cola 750 ml → 'One case less'. 3. Look at the reason row under 'Taken back · 24 pc'.
+Expected: All three reasons (Shop refused it / Damaged / Past its date) fit inside the card and read in full.
+Actual: The segmented row [Shop refused it | Damaged | Past its date] is wider than the card: 'Past its date' is laid out at x 294–423 on a 402-pt screen; its label runs past the grey segment and is cut at the screen edge ('Past its dat'). The control still works (tap at x≈348 selects it and the caption flips to 'Into the damaged / expiry bin').
+Business impact: The expiry option — the one that must route stock to the damaged/expiry bin — is the one a driver sees half-cut; small risk they pick 'Damaged' or miss it on smaller iPhones.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/ios/delivery-058-04-one-case-back.png; QA/evidence/batch1/regression/ios/delivery-058-06-damaged.png
+Suggested fix: In frontend/delivery-app/app/stop/[id]/deliver.tsx let the Segments wrap to two rows or render the three reasons as stacked chips below 400 pt; or shorten the labels ('Refused', 'Damaged', 'Expired') on phone widths.
+```
+
+Found by: batch 1 regression, iOS pass (sales-delivery-retailer).
+
+### DOS-164 — iOS: a Dialog opened while a Sheet is open never appears (UIKit refuses the second modal) and every later dialog on that screen stays dead until the app is relaunched — the manager cannot decide an order's approvals from its panel, and the accountant cannot bank or bounce a receipt from its panel
+Category: bug | Priority: P1 | Role: Manager, Accountant (Owner order panel uses the same pattern) | Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go); manager build :5274 (d600ab8 + 8161f21) on dos_qa
+
+```
+User: Manager, Accountant (Owner order panel uses the same pattern)
+Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go); manager build :5274 (d600ab8 + 8161f21) on dos_qa
+Environment: local dev, merged main (manager app: DOS-029 + DOS-135 build on :5274), dos_qa, iPhone 16 Pro simulator iOS 18.0, Expo Go, 2026-09-13
+Steps:
+  1. Sign in as vikas.kadam. Orders -> SO-0915 (gates credit_limit + bargain) -> order Sheet. 2. Press Approve under 'Over credit limit'. 3. Wait 6 s; press Close. 4. Scroll to 'Waiting for a decision' and press Approve on the SO-0915 card. 5. As meena.joshi: Money -> Receipts -> RCPT-0688 (office cash) -> Bank it. Relaunch; RCPT-CHQ-0002 (cheque) -> Mark bounced. 6. Read `xcrun simctl spawn booted log show` for Expo Go.
+Expected: The decision / 'Bank the day' / 'Cheque returned' dialog opens over the panel, as it does on web and Android, and the write goes through.
+Actual: Nothing appears and no request is sent. iOS logs '[com.apple.UIKit:Presentation] Attempt to present <RCTFabricModalHostViewController> on <EXRootViewController> … which is already presenting <RCTFabricModalHostViewController>' at 07:48:44.919 (order Sheet), 08:30:51.289 (Bank it) and 08:34:56.249 (Mark bounced). Closing the Sheet does not show the dialog. After one refusal even page-level dialogs on that screen stay dead: the queue-card Approve opened nothing and sent 0 POST until Expo Go was relaunched. After relaunch the card dialogs worked (SO-0915 approved and confirmed that way), and Day-end's 'Bank this batch' and cheque-card dialogs work (RCPT-0688 banked). The kit Dialog (libs/ui/src/native/feedback.tsx:226) is a second <Modal visible> rendered as a sibling of the open Sheet <Modal> (:139).
+Business impact: On an iPhone a manager cannot approve or reject a held order, confirm, cancel or free stock from the order panel. They also cannot start or cancel a picking sheet, approve or cancel a load sheet, book or reject a document, or issue or cancel a credit note from its panel. An accountant cannot bank, bounce or reverse a single receipt. Each tap looks dead, and after one attempt every other decision on that screen stops working until the app is killed — the desk will assume the app is broken. The only paths that still work are the Orders queue cards (approvals) and Day-end (banking, cheque bounce).
+Severity: P1
+Evidence: QA/evidence/batch1/regression/ios/manager-020-06-sheet-reopened-top.png; QA/evidence/batch1/regression/ios/manager-020-07-decision-dialog-over-sheet.png; QA/evidence/batch1/regression/ios/manager-020-09-after-closing-sheet.png; QA/evidence/batch1/regression/ios/manager-020-ios-log-nested-modal.txt; QA/evidence/batch1/regression/ios/manager-020-12-card-approve-dialog.png; QA/evidence/batch1/regression/ios/manager-020-stuck-after-refused-dialog.txt; QA/evidence/batch1/regression/ios/manager-020-13-after-relaunch-card-approve.png; QA/evidence/batch1/regression/ios/manager-034-06-bank-it-pressed-in-sheet.png; QA/evidence/batch1/regression/ios/manager-034-bank-it-in-sheet-evidence.txt; QA/evidence/batch1/regression/ios/manager-034-10-mark-bounced-pressed-in-sheet.png; QA/evidence/batch1/regression/ios/manager-034-mark-bounced-in-sheet-evidence.txt; QA/evidence/batch1/regression/ios/manager-034-13-day-end-cheque-card-dialog.png; QA/evidence/batch1/regression/ios/manager-034-db-day-end-deposit.txt
+Suggested fix: In the kit, render a Dialog opened from a Sheet inside the Sheet's own Modal (one modal host that stacks), or close the Sheet before setting the Dialog visible and reopen it afterwards (as owner-app approvals.tsx already does). Also make Dialog re-present when its content changes after a refused presentation, instead of staying 'visible' but never shown. Call sites: manager-app orders/index.tsx (Sheet :496, Dialogs :676/:731); money/index.tsx (Sheet :268, Dialogs :469/:504/:538); fulfilment/index.tsx (:304/:384); fulfilment/load-out.tsx (:291/:407/:441); inbound/documents.tsx (:324/:568); billing/credit-notes.tsx (:309/:506); owner-app orders/index.tsx (:273/:377). Add an iOS device check for one Sheet+Dialog flow.
+```
+
+Regression status: **pre-existing in the @dos/ui native kit, now blocking two approved fixes on iOS.** The kit's native Sheet and Dialog are both React Native Modals; iOS (UIKit) refuses to present a second modal over one already presented. The DOS-020 and DOS-034 verifiers named this iOS risk and noted the pre-fix screens already opened a Dialog from inside a Sheet (Confirm, Reverse) — see QA/evidence/batch1/implement-followups.md. Batch 1's new Approve/Reject (DOS-020) and Bank it / Mark bounced (DOS-034) buttons sit inside Sheets and so do nothing on iOS; page-level dialogs work. The fix is a kit design change (one modal host that stacks Sheet and Dialog in a single native Modal, or a portal host inside the open Sheet) → needs a short Fable design.
+
+Found by: batch 1 regression, iOS pass (warehouse-owner-manager).
+
+### DOS-165 — iOS W5 Short sheet: the third reason chip is clipped to 'Batcl' at iPhone width and half of it lies off-screen, so a tap there misses and the default 'Not on the rack' is what gets saved
+Category: ux | Priority: P3 | Role: Warehouse | Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+
+```
+User: Warehouse
+Platform: iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)
+Environment: local dev, merged main (manager app: DOS-029 + DOS-135 build on :5274), dos_qa, iPhone 16 Pro simulator iOS 18.0, Expo Go, 2026-09-13
+Steps:
+  1. Sign in as dinesh.patil; open a started wave (PICK-0091). 2. Press Short on a lot row (AN20260613). 3. Look at the reason chips; tap 'Batch held back' near the middle of its chip.
+Expected: All three reasons are fully readable and tappable (the row wraps or scrolls).
+Actual: The row shows 'Not on the rack', 'Damaged carton' and 'Batcl', cut at the right edge. The chip spans x 331–487 on a 402-pt screen and its row does not scroll ('Horizontal scroll bar, 1 page'). A tap at the chip's centre (x=409) did nothing and 'Not on the rack' stayed selected (the silent default, DOS-051). Only a tap on the visible sliver (x=372) selected it.
+Business impact: A picker on an iPhone can record 'Not on the rack' when the batch was held back, which misdirects the follow-up (supplier claim or quality hold). Minor, because the picker can see the selection if they look.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/ios/warehouse-042-03-reason-chips.png; QA/evidence/batch1/regression/ios/warehouse-042-04-batch-held-back-selected.png
+Suggested fix: In frontend/warehouse-app/app/pick/[id].tsx render the short reasons as wrapping Chips (as the credit-note sheet does) instead of a fixed-width segmented row, or shorten the labels; never rely on a pre-selected reason (see DOS-051).
+```
+
+Found by: batch 1 regression, iOS pass (warehouse-owner-manager).
+

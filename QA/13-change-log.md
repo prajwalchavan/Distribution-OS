@@ -132,3 +132,10 @@ never 413; DOS-156 folds in. DOS-106 — one in-transaction level+status check o
 load-sheet gate also matches sheets by the trip's stop orders (DOS-137 makes `trip_id` unreliable). DOS-074+097 — `reservableLocationId()`
 exported from inventory, used by orders and warehouse too. DOS-003 — name lookup exported by tenant-catalog; replay 500 logged as DOS-160.
 Designs for the new P0/P1 (DOS-115, 131, 126, 117, 132, 133, 116, 146) are in the same file for the approval gate.
+
+### Batch 1 — merged and regression-tested (2026-09-13 08:47 IST)
+
+DOS-029 + DOS-135 merged into main as d8ae49e (pushed). Final per-fix status across platforms is the matrix in QA/14 §3 and
+QA/findings/11-batch1-outcome-gate.md. Short form: every merged fix PASSES on web and Android; on iOS every fix walked passes except the
+in-Sheet dialogs of DOS-020 (manager) and DOS-034 (DOS-164, pre-existing kit defect); DOS-029's no-connection sentence fails on Android
+(DOS-156, folded into DOS-056); DOS-135 not testable on iOS. Regression added 51 findings (DOS-115..DOS-165), none of the P0/P1 caused by batch 1.

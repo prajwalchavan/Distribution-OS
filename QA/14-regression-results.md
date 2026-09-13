@@ -235,7 +235,79 @@ Every merged fix outside the manager app holds on Android: 16 of 16. The emulato
 - **DOS-135 PASS on Android, with a provenance caveat:** the :5274 Metro had been started at 02:14 on d600ab8 in CI mode, and its Android bundle was first built during this walk, after 8161f21 was committed; which of the two the Android bundle carried cannot be proven afterwards. The DOS-135 repair itself is proven by the unit spec and the web before/after; iOS walks it on the :5274 server restarted on 8161f21 (served bundle verified to contain the repaired rule).
 - Nested dialogs open from inside Sheets render on Android (DOS-020 decision dialog, DOS-034 Bank it / Mark bounced).
 
-**iOS (all apps):** running next, manager app from the :5274 server restarted on 8161f21; then the DOS-029 branch is merged into main.
+**iOS — iPhone 16 Pro simulator (iOS 18.0), Expo Go, Appium/XCUITest, 2026-09-13 05:35–08:05 IST.** Main app servers for sales, delivery, retailer, warehouse and owner; the manager app from the DOS-029 + DOS-135 build on :5274. Results: `QA/evidence/batch1/regression/ios-results.json`; screenshots `QA/evidence/batch1/regression/ios/`.
+
+Sales, delivery, retailer — 9 PASS · 1 BLOCKED:
+
+| Check | Status | What was seen | First evidence |
+|---|---|---|---|
+| DOS-077 | **PASS** | Rows are no longer blank. Page source lists every row with a name, pack and chip: e.g. 'Campa Cola 1 L' [29,496], '18 cs available' [103,497], 'Campa … | `QA/evidence/batch1/regression/ios/sales-077-01-home.png` |
+| DOS-075 | **PASS** | Device: header chip 'Schemes ₹574.75', line ₹28,162.85 with '−₹574.75' at ₹119.74/pc, '20 cs = 240 pc · 19 cs available', group footer 'Schemes on … | `QA/evidence/batch1/regression/ios/sales-075-04-20cs.png` |
+| DOS-073 | **PASS** | The iOS 'All' list rendered 97 distinct orders (SO-0912 … SO-0740, SO-9001). SQL: all 97 belong to rahul.deshmukh; 97 of 97 of Rahul's numbered … | `QA/evidence/batch1/regression/ios/sales-073-01-orders-list.png` |
+| DOS-060 | **PASS** | Keypad (1–9 / . 0 back / Clear Done) preview: 4756 → '₹4,756' ('4756 rupees'); Clear → ₹0; '. 5 0' → '₹4,756.50'; the extra 5 is ignored; back ×3 → … | `QA/evidence/batch1/regression/ios/delivery-060-01-take-money.png` |
+| DOS-061 | **PASS** | Home: 'TRIP-ACTIVE · 12 Sep 2026 · Today's trip · On the road · 10 of 10 stops done', still to collect ₹0, collected today ₹20,211, float ₹5,000; … | `QA/evidence/batch1/regression/ios/delivery-061-01-home.png` |
+| DOS-058 | **BLOCKED** | UI half PASSES on iOS: after '−' the line reads '3 cs + 4 pc = 76 pc · Taken back · 24 pc', 'Will be recorded as Part delivered · 24 pc short', and … | `QA/evidence/batch1/regression/ios/delivery-058-02-arrived.png` |
+| DOS-057 | **PASS** | Open → iOS share sheet 'INV-0826 · PDF Document · 22 KB' (Copy, Markup, Print, Save to Files); log GET /storage/…/documents/invoice/89e7513d….pdf 200 … | `QA/evidence/batch1/regression/ios/delivery-057-01-send-the-papers.png` |
+| DOS-094 | **PASS** | Pay everything: 'Paying Tarsun Enterprise ₹35,843.00', string … | `QA/evidence/batch1/regression/ios/retailer-094-03-money-due.png` |
+| DOS-099 | **PASS** | 'Open the bill' → iOS sheet 'INV-0753 · PDF Document · 21 KB' (Copy, Markup, Print, Save to Files); retailer-service GET … | `QA/evidence/batch1/regression/ios/retailer-099-01-my-bills.png` |
+| DOS-095 | **PASS** | Opening balance ₹5,242. 53 entries on iOS in exactly the API's order, 53 of 53 running balances equal the API's balancePaise (first INV/0034 ₹17,205 … | `QA/evidence/batch1/regression/ios/retailer-095-01-statement-top.png` |
+
+Warehouse, owner, manager — 11 PASS · 2 FAIL · 1 NOT TESTED · 1 BLOCKED:
+
+| Check | Status | What was seen | First evidence |
+|---|---|---|---|
+| DOS-040 | **PASS** | Right after Make a wave the screen showed 'Nothing here yet · 0 of 0 picked' with Scan and an enabled 'Take it to packing' for ~25 s (DOS-119, … | `QA/evidence/batch1/regression/ios/warehouse-db-00-fixture-SO-0913.txt` |
+| DOS-041 | **PASS** | Sheet 'Requested 3 pc', pad 4; after scrolling, red line 'This batch asks for 3 pc. Count again — more cannot be saved on this line.' directly under … | `QA/evidence/batch1/regression/ios/warehouse-041-01-short-sheet.png` |
+| DOS-042 | **PASS** | At 4 of 5: chip 'picking', header '4 of 5 picked', 'Take it to packing' disabled with '1 line not yet picked'. After the last Short 0/'Batch held … | `QA/evidence/batch1/regression/ios/warehouse-042-01-four-of-five-picking.png` |
+| DOS-001 | **PASS** | Today: 0–7 22,76,528.00 · 8–15 6,86,008.50 · 16–30 8,41,479.50 · 31–60 5,00,785.00 · 61–90 90,203.00 · 90+ 25,962.00. Money -> Outstanding shows the … | `QA/evidence/batch1/regression/ios/owner-001-01-today-top.png` |
+| DOS-005 | **PASS** | SO-0914 'Bargain ₹9.99' appears exactly once in All, once in Order approvals and once in Rate requests; no unnamed bargain_request rows (All: Om Sai … | `QA/evidence/batch1/regression/ios/owner-005-020-fixture-api-log.json` |
+| DOS-020-owner | **PASS** | Panel: State Submitted, Stock held 0, 'Confirm order' disabled with 'Waiting on Bargain. Decide it on Approvals; the last approval confirms the … | `QA/evidence/batch1/regression/ios/owner-020-01-SO-0914-panel.png` |
+| DOS-020-manager | **FAIL** | Sheet: 'Waiting on: Over credit limit [Approve][Reject] · Bargain [Approve][Reject]', 'Confirm order' disabled with 'Waiting on Over credit limit · … | `QA/evidence/batch1/regression/ios/manager-020-db-before-SO-0915.txt` |
+| DOS-021 | **PASS** | Lines: Sunbake 40 pc · '40 pc left to credit'; Campa Lemon 750 ml '2 cs · 48 pc · 2 pc free' · 50 left; Godavari Cow Ghee 20 left; Konkan Farsan Mix … | `QA/evidence/batch1/regression/ios/manager-021-01-credit-notes.png` |
+| DOS-023 | **PASS** | POST /warehouse/picklists 200 -> PICK-0092. 'Picking sheets' row 1 PICK-0092, row 2 PICK-0091. Tap -> 'Sheet PICK-0092 · State Open · Where Godown · … | `QA/evidence/batch1/regression/ios/manager-023-db-before.txt` |
+| DOS-025 | **PASS** | Under 'Your approval IS the PIN…' the first panel is 'Not out of the godown yet' with one row '13 Sep · Approved · the godown may c… · 1,375.00' … | `QA/evidence/batch1/regression/ios/manager-025-db-before.txt` |
+| DOS-041-manager | **PASS** | Dialog stayed open with red 'batch B20260902 on PICK-0092 asks for 24 pcs; 48 were picked' above the button; background stepper '2 cs = 48 pc'. | `QA/evidence/batch1/regression/ios/manager-041-api-start-PICK-0092.txt` |
+| DOS-029a | **PASS** | Dialog stayed open with red 'only a confirmed order can be waved; SO-0850 is packed' above the button. Reopened dialog frames at +128, +283 and +514 … | `QA/evidence/batch1/regression/ios/manager-029-02-SO-0850-ticked.png` |
+| DOS-029c | **BLOCKED** | The panel opened (title FA/TY/26-27/1187; label lists Start reviewing, Match the items again, Book it as a supplier bill, Reject the document) but … | `QA/evidence/batch1/regression/ios/manager-135-029c-db-before.txt` |
+| DOS-135 | **NOT TESTED** | Control only: the 409 sentence 'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)' appeared in red directly above Start … | `QA/evidence/batch1/regression/ios/manager-135-02-documents.png` |
+| DOS-034 | **FAIL** | RCPT-0688 Sheet: State Collected, 'Bank it' enabled, 'Mark bounced' with 'Only a cheque in hand or banked can bounce'. Bank it pressed -> no dialog, … | `QA/evidence/batch1/regression/ios/manager-034-db-before.txt` |
+
+- **iOS FAIL on DOS-020 (manager half) and DOS-034 (in-Sheet dialogs):** UIKit refuses to present a Dialog while a Sheet is open ("Attempt to present RCTFabricModalHostViewController … which is already presenting"), and every later dialog on that screen stays dead until relaunch → **DOS-164 (P1)**, a pre-existing @dos/ui native kit defect that the new buttons of both fixes rely on. The owner's decision dialog (page-level) and the Day-end cheque card's dialog work on iOS.
+- DOS-135 NOT TESTED on iOS: the overlap cannot be staged (Expo Go reaches the services directly; the app's API URL is fixed at bundle time; Appium taps are ~1 s apart). The repair is proven by the unit spec and the web before/after.
+- DOS-029c and DOS-058 (recorded return) BLOCKED by the harness, not by the product: synthesized drags do not scroll that Sheet body; the DOS-058 screen itself passed.
+- The own-order cancel positive control of DOS-073 was not run on iOS (the tool refused the tap chain); web and Android ran it.
+
+**Fix × platform (all regression passes; details in the rows above and in §1/§2):**
+
+| Fix | Web | Android | iOS | API |
+|---|---|---|---|---|
+| DOS-039 | PASS desk; phone NOT TESTED (one sheet) | not walked (server-side; one real sheet only) | not walked (same) | — (reconciliation + chain confirm stock moves once) |
+| DOS-040 | PASS | PASS | PASS | PASS |
+| DOS-041 | PASS | PASS | PASS | PASS |
+| DOS-042 | PASS | PASS | PASS | — |
+| DOS-023 | PASS | PASS | PASS | — |
+| DOS-025 | PASS | PASS | PASS | — |
+| DOS-058 | PASS | PASS | screen PASS; recorded return BLOCKED (harness) | PASS (residual desk path → DOS-116) |
+| DOS-060 | PASS | PASS | PASS | — |
+| DOS-057 | PASS | PASS | PASS | — |
+| DOS-099 | PASS | PASS | PASS | — |
+| DOS-061 | PASS | PASS | PASS | — |
+| DOS-094 | PASS | PASS | PASS | PASS |
+| DOS-095 | PASS | PASS | PASS | — |
+| DOS-021 | PASS | PASS | PASS | — |
+| DOS-034 | PASS (scope) — trip cash = DOS-132 | PASS | page-level PASS; in-Sheet dialogs FAIL → DOS-164 | PASS |
+| DOS-073 | PASS | PASS | PASS | PASS (residual warehouse/delivery → DOS-115) |
+| DOS-075 | PASS | PASS | PASS | PASS |
+| DOS-076 | PASS | not walked (server quote; device pricing covered by DOS-075) | not walked (same) | PASS |
+| DOS-020 | PASS | PASS | owner PASS; manager FAIL → DOS-164 | PASS |
+| DOS-005 | PASS | PASS | PASS | — |
+| DOS-077 | PASS desk; phone clipping pre-existing (DOS-128) | PASS | PASS | — |
+| DOS-001 | PASS* | PASS | PASS | — |
+| DOS-029 | PASS (a–d); e → DOS-135 | PASS* a–c; d FAIL → DOS-156 (held DOS-056) | PASS* | — |
+| DOS-135 | PASS (live before/after, desk + phone; unit red→green) | PASS (bundle provenance uncertain) | NOT TESTED (overlap cannot be staged) | — |
+
+`*` = at least one related check was NOT TESTED or BLOCKED on that platform. API = the security probes of §5.
+
 
 ### 4. Business regression — orders, inventory, payments, outstanding, delivery and reports reconcile
 

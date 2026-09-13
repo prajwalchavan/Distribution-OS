@@ -1,0 +1,632 @@
+{
+ "walks": [
+  {
+   "group": "ios-sales-delivery-retailer",
+   "checks": [
+    {
+     "id": "DOS-077",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Sales Rep rahul.deshmukh (tarsun)",
+     "steps": "1. node ios-login.mjs 5175 rahul.deshmukh sales (Metro :5175 started 00:57:56, after the last lane merge 2abb27e at 00:51:23). 2. Beat Station Road \u2192 Shree Ganesh Kirana \u2192 Take order. 3. Drag inside the order screen's scroll window (y 279\u2013546) down to 'Add items / On this phone: 171 items'; xcrun simctl screenshot; dump page source for every catalog row's labels and rects. 4. Search field (XCUIElementTypeSearchField) \u2192 'Sunflower' \u2192 read rows \u2192 tap 'Add a case' on 'Annapurna Sunflower Refined Oil 1 L pouch' \u2192 the line appears under 'This order'.",
+     "expected": "Each catalog row shows item name, 'brand \u00b7 N pc case' and the stock chip, next to a label-width 'Add a case' (not a full-width anonymous button).",
+     "actual": "Rows are no longer blank. Page source lists every row with a name, pack and chip: e.g. 'Campa Cola 1 L' [29,496], '18 cs available' [103,497], 'Campa \u00b7 24 pc case' [29,544], and 'Add a case' as a 118-pt-wide Button at x 255\u2013373 inside a 370-pt card. The pre-fix full-width button is gone. The search returned 'Annapurna Sunflower Refined Oil 1 L pouch \u00b7 19 cs available \u00b7 Annapurna \u00b7 12 pc case'. 'Add a case' made 'Items: 1' and put the named line under 'This order' at \u20b91,436.88. Residual: on iOS the name column gets only 54\u201367 pt when the chip is shown, so it reads 'Campa Cola...' and the pack line 'Camp...'. Campa Cola 1 L and 2 L look identical before adding. That is DOS-147 (logged on Android), reproduced on iOS, not re-logged.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/sales-077-01-home.png",
+      "QA/evidence/batch1/regression/ios/sales-077-02-order-entry-rows.png",
+      "QA/evidence/batch1/regression/ios/sales-077-03-first-row.png",
+      "QA/evidence/batch1/regression/ios/sales-077-04-row-with-pack.png",
+      "QA/evidence/batch1/regression/ios/sales-077-05-search-sunflower.png",
+      "QA/evidence/batch1/regression/ios/sales-075-01-line-added.png"
+     ],
+     "dbOrApi": "Page source (Appium /source) row labels with rects, recorded in the steps; the new line's variant is verified in the DOS-075 SELECT (SO-0912 line variant 934dd63c Annapurna Sunflower Refined Oil 1 L pouch).",
+     "note": "The offline half (rows named with no chip) was not run on iOS: Expo Go on the simulator reaches the host services directly and the app cannot be pointed at a forwarder. Visual residual = DOS-147 on iOS. See new finding on the order screen's 267-pt scroll window."
+    },
+    {
+     "id": "DOS-075",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Sales Rep rahul.deshmukh (tarsun), shop Shree Ganesh Kirana R-0001 (tier C)",
+     "steps": "1. Server quote as Rahul: POST :3003/pricing/quote retailer 34191c43, variant 934dd63c (Annapurna Sunflower Refined Oil 1 L pouch), pricingDate 2026-09-13, qtyPcs 240 and control 204. 2. iOS order screen: add the pouch, open the line, 'One case more' with guarded taps to 20 cs (240 pc). 3. Read header chip, line and group footer; screenshot. 4. Place order (06:33:43). 5. SELECT sales_orders, sales_order_lines, approvals, transitions; GET :3003/orders/{id} as Rahul.",
+     "expected": "Order over \u20b925,000 shows the 2% order-value scheme (\u20b9574.75) on the device and the server stores the same order_pct share.",
+     "actual": "Device: header chip 'Schemes \u20b9574.75', line \u20b928,162.85 with '\u2212\u20b9574.75' at \u20b9119.74/pc, '20 cs = 240 pc \u00b7 19 cs available', group footer 'Schemes on this order \u2212\u20b9574.75', bottom bar '\u20b928,162.85 before GST'. Placed as SO-0912 (button turned 'Order placed'). Quote 240 pc: grossPaise 2873760, discountPaise 57475, netPaise 2816285, orderRules [{ruleId 6ac23a1a\u2026, rewardKind order_pct, amountPaise 57475}], same share in lines[0].appliedRules. Control 204 pc: gross 2442696, orderRules []. DB: SO-0912 submitted, subtotal 2873760, discount 57475, tax 140814, total 2957100; line 20 case / 240 pc, discount_bps 200, discount_paise 57475, applied_rules [{kind scheme, ruleId 6ac23a1a-ce35-76d2-a002-3a7888fc1c65, version 1, rewardKind order_pct, amountPaise 57475}]; credit_limit approval pending. API GET item shows the same totals and appliedRules.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/sales-075-04-20cs.png",
+      "QA/evidence/batch1/regression/ios/sales-075-06-schemes-on-this-order.png",
+      "QA/evidence/batch1/regression/ios/sales-075-07-order-placed.png",
+      "QA/evidence/batch1/regression/ios/sales-075-api-quote.txt",
+      "QA/evidence/batch1/regression/ios/sales-075-db-new-order.txt"
+     ],
+     "dbOrApi": "POST :3003/pricing/quote 240 pc \u2192 orderRules order_pct 57475; 204 pc \u2192 []. SELECT sales_orders/sales_order_lines/approvals/order_state_transitions for SO-0912 (01a09843-cca1-72f1-a378-153813bd9ff0); GET :3003/orders/{id} 200 with the same totals.",
+     "note": "The first 19 plain taps on 'One case more' reached only 7 cs: once the line card grew, its stepper sat under the fixed footer and the taps landed on the footer (see new finding). A guarded script reached 20 cs. SO-0912 was left submitted with a pending credit_limit approval."
+    },
+    {
+     "id": "DOS-073",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Sales Rep rahul.deshmukh (tarsun)",
+     "steps": "1. Orders tab \u2192 'All' filter; a script scrolled the list and collected every order row the phone rendered. 2. SELECT the salesperson of every listed number; count Rahul's and Amit's orders in the same window. 3. Deep link exp://127.0.0.1:5175/--/orders/01a097dc\u2026 (Amit's confirmed SO-0910). 4. API as Rahul: GET :3003/orders/<SO-0910>, GET /orders?limit=50, GET /orders?salespersonId=<Amit>&limit=50. 5. Positive control: open own SO-0912 detail on the phone.",
+     "expected": "Only Rahul's orders in the list and detail; another rep's order is not readable.",
+     "actual": "The iOS 'All' list rendered 97 distinct orders (SO-0912 \u2026 SO-0740, SO-9001). SQL: all 97 belong to rahul.deshmukh; 97 of 97 of Rahul's numbered orders in that window are listed; Amit has 63 orders in the window and 0 are listed. Deep link to Amit's SO-0910 shows 'That order is not on this phone'. API: GET /orders/<SO-0910> 404 'order \u2026 not found'; both list calls 200 with 50 items all salespersonId 8760e17e (Rahul), the salespersonId=Amit filter ignored. SO-0910 still confirmed, untouched. Own SO-0912 detail loads (Submitted, Credit limit \u00b7 Nobody has decided yet, line and total \u20b929,571, 'Cancel this order').",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/sales-073-01-orders-list.png",
+      "QA/evidence/batch1/regression/ios/sales-073-02-all-list-end.png",
+      "QA/evidence/batch1/regression/ios/sales-073-02-all-orders-on-phone.txt",
+      "QA/evidence/batch1/regression/ios/sales-073-03-deeplink-amit-SO-0910.png",
+      "QA/evidence/batch1/regression/ios/sales-073-04-own-SO-0912-detail.png",
+      "QA/evidence/batch1/regression/ios/sales-073-db-owners.txt",
+      "QA/evidence/batch1/regression/ios/sales-073-api-probes.txt",
+      "QA/evidence/batch1/regression/ios/sales-073-db.txt"
+     ],
+     "dbOrApi": "SELECT owners of the 97 listed order numbers (rahul.deshmukh 97); Amit's orders in the window 63, listed 0. API with Rahul's token: GET /orders/01a097dc-4e58-792e-9a5e-c4b5965a4b45 \u2192 404; GET /orders?limit=50 and ?salespersonId=efde1e76\u2026 \u2192 200, 50 items all Rahul's.",
+     "note": "The own-order cancel positive control was NOT executed on iOS: the Claude Code auto-mode classifier refused the tap chain on 'Cancel this order', and it was not retried. Web and Android already exercised own-order cancel."
+    },
+    {
+     "id": "DOS-060",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Delivery ganesh.more (tarsun)",
+     "steps": "1. node ios-login.mjs 5177 ganesh.more delivery. 2. TRIP-ACTIVE stop 7 Nakshatra Kirana \u2192 Take money (Cash selected) \u2192 tap the 'Amount taken' field \u2192 full-screen keypad. 3. 4 7 5 6 (read the preview label); Clear; 4 7 5 6; . 5 0; an extra 5; back \u00d73; Clear; 4 7 5 6; Done. 4. Record the payment (06:44:29). 5. SELECT receipts, collections, outstanding summary, outbox; re-read the stop screen ~1 min later.",
+     "expected": "Typing 4-7-5-6 enters \u20b94,756 (rupees, paise only after '.'); the stored collection is 475600 paise.",
+     "actual": "Keypad (1\u20139 / . 0 back / Clear Done) preview: 4756 \u2192 '\u20b94,756' ('4756 rupees'); Clear \u2192 \u20b90; '. 5 0' \u2192 '\u20b94,756.50'; the extra 5 is ignored; back \u00d73 \u2192 \u20b94,756; Done \u2192 field '\u20b94,756.00' and 'Record the payment' enabled. Recorded RCPT-0706: cash, amount_paise 475600, collected, trip TRIP-ACTIVE, received_by ganesh.more, device 01a0984f\u2026; collections row cash 475600 on stop 18ac4301; outbox ReceiptRecorded, CollectionRecorded, DocumentRenderRequested; Nakshatra outstanding 1631300 \u2192 1155700. The stop screen still showed 'Owes \u20b916,313.00' right after the tap and '\u20b911,557.00' by 06:45:37. That stale refresh is DOS-149, not re-logged.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-060-01-take-money.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-03-keypad-4756.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-06-recheck-4756-50.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-07-recheck-back3.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-05-field-after-done.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-08-after-record.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-09-stop-40s-later.png",
+      "QA/evidence/batch1/regression/ios/delivery-060-db-before.txt",
+      "QA/evidence/batch1/regression/ios/delivery-060-db-after-record.txt"
+     ],
+     "dbOrApi": "SELECT receipts (RCPT-0706 cash 475600 collected, TRIP-ACTIVE), collections (cash 475600, stop 18ac4301), retailer_outstanding_summary (1631300 \u2192 1155700), outbox_events; delivery-service log POST /delivery/collections.",
+     "note": "The keypad title 'Amount taken' still overlaps the status-bar clock on iOS: that is DOS-069 (not in batch 1), not re-logged. The first edge-case readings came from the wrong label and were discarded; the recheck read the preview label directly."
+    },
+    {
+     "id": "DOS-061",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Delivery ganesh.more (tarsun)",
+     "steps": "1. Sign in; read the home. 2. Scroll to 'Load on board' and 'Your other trips'; tap TRIP-NEXT. 3. Deep link exp://127.0.0.1:5177/--/trip/start?tripId=dda35990\u2026 (TRIP-ACTIVE); count TextFields; tap 'This trip has already left \u2014 open its stops'. 4. Deep link /trip/start with no param. 5. SELECT ganesh's trips, load sheets, stops and TRIP-ACTIVE money by mode.",
+     "expected": "Today's trip on the home is the trip being driven (TRIP-ACTIVE, 12 Sep); an on-the-road trip never lands on a usable Start form.",
+     "actual": "Home: 'TRIP-ACTIVE \u00b7 12 Sep 2026 \u00b7 Today's trip \u00b7 On the road \u00b7 10 of 10 stops done', still to collect \u20b90, collected today \u20b920,211, float \u20b95,000; 'Load on board \u00b7 Godown confirmed the load 11 Sep, 12:15 pm \u00b7 DC-0081, 64 cartons on board, Confirmed'; 'Your other trips: TRIP-NEXT, Planned for 14 Sep 2026, On the road'. Tapping TRIP-NEXT opened 'TRIP-NEXT \u00b7 14 Sep 2026 \u00b7 End of day \u00b7 1 of 5 stops done', not Start. Start link for TRIP-ACTIVE: 'Start the trip \u00b7 Trip is On the road', only the location consent panel, 0 TextFields, and the footer button 'This trip has already left \u2014 open its stops', which opened 'TRIP-ACTIVE \u00b7 End of day \u00b7 10 of 10 stops done'. Start link with no param showed the same TRIP-ACTIVE screen and button. End-of-day split cash \u20b915,455 / UPI \u20b94,756 matches the receipts (3 cash = 1545500, RCPT-0699 upi 475600).",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-061-01-home.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-02-other-trips.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-03-load-panel.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-04-tap-trip-next.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-05-start-link-trip-active.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-06-open-its-stops.png",
+      "QA/evidence/batch1/regression/ios/delivery-061-07-start-link-no-param.png",
+      "QA/evidence/batch1/regression/ios/delivery-db-baseline-2.txt",
+      "QA/evidence/batch1/regression/ios/delivery-061-db-trip-active-money.txt"
+     ],
+     "dbOrApi": "SELECT trips for ganesh.more (TRIP-ACTIVE 2026-09-12 active 10/10; TRIP-NEXT 2026-09-14 active 1 of 5), load_sheets (DC-0081 confirmed on TRIP-ACTIVE, DC-0083 confirmed on TRIP-NEXT), receipts/collections by mode on TRIP-ACTIVE.",
+     "note": "The offline half (trips on the phone with no signal) was not run on iOS: the network cannot be cut for Expo Go on the simulator."
+    },
+    {
+     "id": "DOS-058",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "BLOCKED",
+     "user": "Delivery ganesh.more (tarsun)",
+     "steps": "1. xcrun simctl location set 19.246018,73.136196 (Rameshwar General Store). 2. TRIP-NEXT stop 4 Rameshwar General Store (INV/0839, SO-0876 dispatched) \u2192 I am at the shop (06:53:21) \u2192 Deliver this bill. 3. Campa Cola 750 ml (100 pc) \u2192 'One case less' \u2192 read the return controls; tap Past its date, Damaged, Shop refused it, Damaged; read the disposition caption each time. 4. Proof panel \u2192 'Photograph the signed bill'. 5. SELECT deliveries, delivery_lines, credit_notes, stock_ledger since T0 06:52:33.",
+     "expected": "One reason control; Damaged / Past its date send the pieces to the damaged bin (caption on the device, return_damaged credit note and damaged-bin ledger row in the DB).",
+     "actual": "UI half PASSES on iOS: after '\u2212' the line reads '3 cs + 4 pc = 76 pc \u00b7 Taken back \u00b7 24 pc', 'Will be recorded as Part delivered \u00b7 24 pc short', and ONE segmented control [Shop refused it | Damaged | Past its date] (page source: exactly one 'Damaged' and one 'Shop refused it' radio). Past its date \u2192 'Into the damaged / expiry bin'; Damaged \u2192 'Into the damaged / expiry bin'; Shop refused it \u2192 'Can be sold again'; Damaged again \u2192 damaged bin. Data half BLOCKED: the shop is on credit (POST_FULFILLMENT, tenant delivery.pod_required = credit_only), so 'This shop is on credit \u2014 a photo is required before you can record it'; the simulator camera screen has 'Take Picture' disabled (no camera feed), so no delivery could be recorded. Every other open TRIP-NEXT stop is also a credit shop. DB after the walk: no delivery outcome, 0 delivery_lines, 0 credit notes, 0 sale_return stock rows since T0; stop 4 is 'arrived' 06:53:22.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-058-02-arrived.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-04-one-case-back.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-05-past-its-date.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-06-damaged.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-07-shop-refused.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-08-photo-button.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-10-simulator-camera-take-picture-disabled.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-11-after-camera-cancel.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-db-before.txt"
+     ],
+     "dbOrApi": "SELECT trip_stops (stop 4 arrived 06:53:22, no coordinates), deliveries (only the plan: row for INV/0839), delivery_lines/credit_notes/stock_ledger since 06:52:33 (all 0); tenant_settings delivery.pod_required = credit_only; retailers payment_terms POST_FULFILLMENT for all TRIP-NEXT shops.",
+     "note": "BLOCKED reason: recording needs a proof photo at a credit shop and the iOS simulator has no camera. The damaged-bin ledger/credit-note outcome was not produced on iOS; it is not inferred from Android. New P3 on this screen: the three segments overflow the card and 'Past its date' is clipped at the screen edge."
+    },
+    {
+     "id": "DOS-057",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Delivery ganesh.more (tarsun)",
+     "steps": "1. TRIP-ACTIVE stop 5 Joshi Kirana Stores \u2192 bill row INV/0826 \u2192 Send the papers. 2. Open \u2192 screenshot the iOS sheet \u2192 Close (nothing sent). 3. Send on WhatsApp \u2192 sheet \u2192 Close. 4. Print \u2192 iOS print Options \u2192 Cancel. 5. CN/9003 row \u2192 paper sheet (an RN Modal) \u2192 Open \u2192 share sheet \u2192 Close both. 6. Stop 7 Nakshatra \u2192 INV/0829 \u2192 Send the papers \u2192 RCPT-0706 (recorded on this phone at 06:44) \u2192 Open \u2192 sheet \u2192 Close. 7. delivery-service log request/response per tap; SELECT pdf_object_key.",
+     "expected": "Papers open, 'Send' brings up the iOS share sheet with the PDF file (not a relative link), print works; the credit note and a freshly recorded receipt are shareable too.",
+     "actual": "Open \u2192 iOS share sheet 'INV-0826 \u00b7 PDF Document \u00b7 22 KB' (Copy, Markup, Print, Save to Files); log GET /storage/\u2026/documents/invoice/89e7513d\u2026.pdf 200 (count 69 \u2192 70). Send on WhatsApp \u2192 the same sheet with the PDF file, no link text. Print \u2192 iOS 'Options' with 'No Printer Selected', A4, 'Page 1 of 1' preview of the real TAX INVOICE INV/0826. The share sheet opened from inside the CN/9003 paper sheet: 'CN-9003 \u00b7 PDF Document \u00b7 21 KB', credit-note PDF GET 200 (5 \u2192 6). RCPT-0706 got pdf_object_key at 06:45:23 (53 s after recording); its sheet opened on first tap and Open showed 'RCPT-0706 \u00b7 PDF Document \u00b7 20 KB', receipt PDF GET 200. Every sheet was closed without choosing a target. Residual: pressing Cancel on the print Options raised an uncaught 'PrintIncompleteException: Printing did not complete' (red dev toast), logged as a new P3.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-057-01-send-the-papers.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-02-open-share-sheet.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-03-send-share-sheet.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-04-print-options.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-05-cn-sheet.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-07-cn-open-share-sheet.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-10-receipt-list-top.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-12-receipt-open-share-sheet.png",
+      "QA/evidence/batch1/regression/ios/delivery-057-log-open.txt"
+     ],
+     "dbOrApi": "delivery-service log: GET /storage/\u2026/invoice/89e7513d\u2026.pdf 200 (req-6hi), credit_note/01a09532\u2026.pdf 200 (req-6hw), receipt/01a09854\u2026.pdf 200 (req-6i8). SELECT invoices/credit_notes/receipts pdf_object_key (INV/0826 t, CN/9003 t, RCPT-0706 rendered 06:45:23); outbox DocumentRenderRequested published 06:45:23.",
+     "note": "Verifier's iOS risk (a native modal opened from inside a Sheet Modal) did not materialise for the share sheet. The sheet's buttons are exposed to XCUITest only as one grouped element, so they were tapped by screen position from screenshots."
+    },
+    {
+     "id": "DOS-094",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun, Shree Ganesh Kirana R-0001)",
+     "steps": "1. node ios-login.mjs 5178 ramesh.gupta retailer. 2. \u22ef \u2192 Money due (You owe \u20b935,843) \u2192 Pay everything \u2192 Start the payment (07:00:01). 3. Read the intent string and reference; tap 'Open a UPI app' (no UPI app on the simulator). 4. Money due \u2192 Pay everything \u2192 tick only INV/0433 (\u20b94,561 left) \u2192 bottom reads \u20b94,561 \u2192 Start the payment (07:02:04). 5. SELECT outbox PaymentIntentCreated, receipts, outstanding; retailer-service log for /receivables/payments/initiate.",
+     "expected": "One upi://pay? intent for the chosen amount with the PAY reference in tr/tn; with no UPI app the phone says so.",
+     "actual": "Pay everything: 'Paying Tarsun Enterprise \u20b935,843.00', string 'upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=35843.00&tr=PAY-ee49e5da84c1&tn=PAY-ee49e5da84c1&cu=INR' (single prefix), 'Quote this reference: PAY-ee49e5da84c1', 'Good until 13 Sep, 7:30 am'. Open a UPI app \u2192 no system alert; the screen shows 'No UPI app opened on this phone. Pay tarsun@okhdfcbank from any UPI app and quote the reference below.' One bill: 'Paying Tarsun Enterprise \u20b94,561.00', am=4561.00, tr=tn=PAY-8e8b11f908a4. DB: PaymentIntentCreated PAY-ee49e5da84c1 amountPaise 3584300 with 6 invoiceIds; PAY-8e8b11f908a4 amountPaise 456100 with invoiceIds [ca0bcd44 = INV/0433]; 0 receipts; outstanding unchanged 3584300. A second Start press on the unchanged \u20b935,843 form (07:01:02 initiate call) created no new intent (idempotent replay).",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/retailer-094-03-money-due.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-04-pay-screen.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-05-payment-started.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-06-open-upi-no-app.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-07-one-bill-ticked.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-08-one-bill-intent.png",
+      "QA/evidence/batch1/regression/ios/retailer-094-db-intent.txt",
+      "QA/evidence/batch1/regression/ios/retailer-db-baseline.txt"
+     ],
+     "dbOrApi": "SELECT outbox_events PaymentIntentCreated since T0 06:58:59 (PAY-ee49e5da84c1 3584300, PAY-8e8b11f908a4 456100 INV/0433 only), receipts for R-0001 (0), retailer_outstanding_summary (3584300); GET :3006/receivables/outstanding with the shop's token (6 bills, \u20b935,843).",
+     "note": "While INV/0433 is ticked, the greyed-out amount field still shows \u20b935,843. That is DOS-154, not re-logged. The \u22ef sheet exposes its items only as one grouped element, so 'Money due' was tapped by screen position."
+    },
+    {
+     "id": "DOS-099",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun)",
+     "steps": "1. My bills \u2192 INV/0753 (\u20b95,472, To pay) \u2192 Bill INV/0753. 2. Open the bill (07:03:27) \u2192 screenshot the iOS sheet \u2192 Close. 3. Print \u2192 iOS print Options \u2192 Cancel. 4. retailer-service log for the PDF GET.",
+     "expected": "The bill PDF opens (iOS share/preview sheet with INV-0753.pdf), no relative-URL failure.",
+     "actual": "'Open the bill' \u2192 iOS sheet 'INV-0753 \u00b7 PDF Document \u00b7 21 KB' (Copy, Markup, Print, Save to Files); retailer-service GET /storage/\u2026/documents/invoice/a924ae38\u2026.pdf 200 (count 10 \u2192 11, req-a5). Print \u2192 'Options \u00b7 No Printer Selected \u00b7 A4'. Cancel returned to the bill with the uncaught 'PrintIncompleteException' red dev toast (same new P3 as delivery).",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/retailer-099-01-my-bills.png",
+      "QA/evidence/batch1/regression/ios/retailer-099-02-bill-inv0753.png",
+      "QA/evidence/batch1/regression/ios/retailer-099-03-open-the-bill-share-sheet.png",
+      "QA/evidence/batch1/regression/ios/retailer-099-04-print-options.png",
+      "QA/evidence/batch1/regression/ios/retailer-099-05-after-print-cancel.png"
+     ],
+     "dbOrApi": "retailer-service log GET /storage/tenant/01a0947d\u2026/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf \u2192 200; SELECT invoices INV/0753 pdf_object_key present.",
+     "note": "Closed without choosing a share target; nothing printed."
+    },
+    {
+     "id": "DOS-095",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Retailer ramesh.gupta (Tarsun)",
+     "steps": "1. Money \u2192 Statement (default 'Last 90 days', 16 Jun 2026 \u2014 13 Sep 2026). 2. A script paired every entry's reference with its Balance amount from the page source, then compared row by row with GET :3006/receivables/ledger/34191c43\u2026?from=2026-06-16&to=2026-09-13&limit=200 (shop's token). 3. Scroll to the bottom; screenshot the last entries and the closing line.",
+     "expected": "All 53 entries listed, running balance ends on a consistent closing balance, no partial note.",
+     "actual": "Opening balance \u20b95,242. 53 entries on iOS in exactly the API's order, 53 of 53 running balances equal the API's balancePaise (first INV/0034 \u20b917,205 \u2026 INV/0817 \u20b965,344 \u2192 RCPT-0659 \u20b963,535 \u2192 RCPT-0668 \u20b951,355 \u2192 RCPT-0672 \u20b945,797 \u2192 RCPT-0693 \u20b940,286 \u2192 RCPT-0687 \u20b935,843), then 'Closing balance \u20b935,843.00' and 'A plus balance is money you still owe\u2026'; no 'more entries than one statement can show' note. API: 53 items, nextCursor null, last balance 3584300.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/retailer-095-01-statement-top.png",
+      "QA/evidence/batch1/regression/ios/retailer-095-03-statement-closing.png",
+      "QA/evidence/batch1/regression/ios/retailer-095-04-closing-line.png",
+      "QA/evidence/batch1/regression/ios/retailer-095-ios-statement-vs-api.txt",
+      "QA/evidence/batch1/regression/ios/retailer-095-api-ledger.txt"
+     ],
+     "dbOrApi": "GET :3006/receivables/ledger/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?from=2026-06-16&to=2026-09-13&limit=200 \u2192 53 items, nextCursor null, closing 3584300; retailer_outstanding_summary 3584300.",
+     "note": "The row pairing used the page source (RN renders all rows); the visual bottom of the list was confirmed separately by scrolling and screenshot."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "iOS sales order entry: the fixed header and footer leave a 267-pt scroll window, so the catalog shows about one row and a line's stepper slides under the footer",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Sales Rep",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "steps": "1. rahul.deshmukh \u2192 Beat \u2192 Shree Ganesh Kirana \u2192 Take order. 2. Read the order screen's scroll bar rect and scroll to 'Add items'. 3. Add 'Annapurna Sunflower Refined Oil 1 L pouch', open the line and tap 'One case more' 19 times at the button's position.",
+     "expected": "On a 874-pt phone the catalog and the line being edited get most of the screen; the stepper stays tappable above the order footer.",
+     "actual": "The scroll area is only y 279\u2013546 (267 pt, ~30% of the screen): the app header, connection strip and 'Order \u00b7 Items' title sit above it, and the sticky footer (Items \u00b7 \u20b9 \u00b7 before GST \u00b7 Place order \u00b7 hint) takes y 546\u2013771. Only one catalog row is visible at a time (sales-077-03). Once the line card grew to show '\u20b9119.74/pc \u00b7 12 pc case', its \u2212 / + / Pieces buttons moved under the footer, showing only their top edges. 19 taps on 'One case more' produced 7 cs because the rest landed on the footer (sales-075-03). The line had to be scrolled up before every few taps.",
+     "businessImpact": "A rep building a 15\u201320 line order on an iPhone scrolls one item at a time and mis-taps quantities into the footer; slower order entry at every shop and wrong case counts that are only noticed on 'This order'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/sales-077-02-order-entry-rows.png",
+      "QA/evidence/batch1/regression/ios/sales-077-03-first-row.png",
+      "QA/evidence/batch1/regression/ios/sales-075-03-20cs-scheme.png"
+     ],
+     "suggestedFix": "In frontend/sales-app/app/orders/new.tsx make the phone footer compact (one line: Items \u00b7 \u20b9 total \u00b7 Place order) or let it collapse while scrolling, and keep the screen title in the scroll content, not pinned; ensure the scroll content is inset by the footer height so the last control is never laid out behind it (same pattern as DOS-152's Sheet fix)."
+    },
+    {
+     "title": "Cancelling the iOS print dialog raises an uncaught PrintIncompleteException (delivery papers and retailer bill)",
+     "category": "bug",
+     "priority": "P3",
+     "role": "Delivery / Retailer",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "steps": "1. Delivery: ganesh.more \u2192 TRIP-ACTIVE stop 5 Joshi Kirana Stores \u2192 INV/0826 \u2192 Send the papers \u2192 Print \u2192 Cancel on 'Options'. 2. Retailer: ramesh.gupta \u2192 My bills \u2192 INV/0753 \u2192 Print \u2192 Cancel.",
+     "expected": "Cancelling print is a normal choice: the screen returns quietly (or says 'Not printed').",
+     "actual": "Both apps show a red 'Uncaught (in promise, id: 0) Error: PrintIncompleteException: Printing did not complete (at ExpoPrint/ExpoPrintWithPrinter.swift:94)' toast at the bottom, covering the sheet's lower button until dismissed. The buttons call `void documents.print(url, { filename })` with no catch (delivery-app/app/share/[invoiceId].tsx; retailer bill screen), and documents.native.ts passes through the rejection of Print.printAsync.",
+     "businessImpact": "Low: an unhandled promise rejection on a routine cancel; in the dev build the toast covers the bottom action; in a release build the rejection goes unreported and the app gives no feedback.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-057-05-cn-sheet.png",
+      "QA/evidence/batch1/regression/ios/retailer-099-05-after-print-cancel.png"
+     ],
+     "suggestedFix": "In frontend/libs/ui/src/platform/documents.native.ts wrap Print.printAsync and resolve (return false) on PrintIncompleteException; or add a .catch on the print buttons as the share button already does (`.then(onSent, () => onSent(false))`)."
+    },
+    {
+     "title": "iOS delivery return reasons: the three-segment control overflows the line card and 'Past its date' is clipped at the screen edge",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Delivery",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "steps": "1. ganesh.more \u2192 TRIP-NEXT stop 4 Rameshwar General Store \u2192 I am at the shop \u2192 Deliver this bill. 2. Campa Cola 750 ml \u2192 'One case less'. 3. Look at the reason row under 'Taken back \u00b7 24 pc'.",
+     "expected": "All three reasons (Shop refused it / Damaged / Past its date) fit inside the card and read in full.",
+     "actual": "The segmented row [Shop refused it | Damaged | Past its date] is wider than the card: 'Past its date' is laid out at x 294\u2013423 on a 402-pt screen; its label runs past the grey segment and is cut at the screen edge ('Past its dat'). The control still works (tap at x\u2248348 selects it and the caption flips to 'Into the damaged / expiry bin').",
+     "businessImpact": "The expiry option \u2014 the one that must route stock to the damaged/expiry bin \u2014 is the one a driver sees half-cut; small risk they pick 'Damaged' or miss it on smaller iPhones.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/delivery-058-04-one-case-back.png",
+      "QA/evidence/batch1/regression/ios/delivery-058-06-damaged.png"
+     ],
+     "suggestedFix": "In frontend/delivery-app/app/stop/[id]/deliver.tsx let the Segments wrap to two rows or render the three reasons as stacked chips below 400 pt; or shorten the labels ('Refused', 'Damaged', 'Expired') on phone widths."
+    }
+   ],
+   "dataTouched": "All data changes went through the iOS apps (or read-only API/SQL); no SQL writes and no code, test, schema, seed or config changes. SALES (rahul.deshmukh, tarsun): SO-0912 placed from iOS at 06:33:43 for Shree Ganesh Kirana: 20 cs Annapurna Sunflower Refined Oil 1 L pouch, total \u20b929,571, 2% order_pct \u20b9574.75. It is left SUBMITTED with a PENDING credit_limit approval, because the own-order cancel was refused by the auto-mode classifier. DELIVERY (ganesh.more, tarsun): RCPT-0706 \u20b94,756.00 cash at TRIP-ACTIVE stop 7 Nakshatra Kirana (06:44:30), allocated, PDF rendered, outstanding 1631300 \u2192 1155700 paise. TRIP-NEXT stop 4 Rameshwar General Store marked ARRIVED 06:53:22 (no coordinates); the deliver screen was filled (1 case back, reasons toggled) but NOT recorded: 0 deliveries, 0 credit notes, 0 stock rows. PDFs of INV/0826, CN/9003 and RCPT-0706 downloaded into the Expo Go cache; share sheets and print dialogs all closed or cancelled, nothing sent or printed. RETAILER (ramesh.gupta, tarsun R-0001): two unpaid payment intents, PAY-ee49e5da84c1 (\u20b935,843, 6 bills) and PAY-8e8b11f908a4 (\u20b94,561, INV/0433); a repeated Start on the first form was an idempotent replay. INV-0753.pdf downloaded to the Expo Go cache; print cancelled. AUTH: new auth_sessions since 06:20: rahul.deshmukh 3, ganesh.more 2, ramesh.gupta 2 (app sign-ins plus API logins for quote/probe/baseline). SIMULATOR: the keychain was reset 3\u00d7 by ios-login.mjs. Location set to 19.246018,73.136196 and left. Expo Go camera permission is now GRANTED (unintended, see environmentProblems). QA TOOLING: new QA/tools/ios-drive.mjs (one-command Appium driver: labels/src/tap/tapc/tapxy/drag/setclass/type/swipe/url/alert/shot/new/end). Scratch scripts step-cases.mjs, collect-orders.mjs and collect-statement.mjs are in the session scratchpad. ios-login.mjs overwrote its sign-in screenshots in QA/evidence/phase0/ios/ for sales, delivery and retailer. The Appium session was ended; Expo Go is left on the retailer Statement.",
+   "environmentProblems": "1. Auto-mode classifier: the tap chain on 'Cancel this order' (own SO-0912, DOS-073 positive control) was refused and not retried, so SO-0912 remains submitted with a pending credit_limit approval. 2. Camera permission mistake: the iOS prompt's button is 'Don\u2019t Allow' with a curly apostrophe. My alert command did not match it, and its accept fallback pressed the default, so Expo Go on simulator DBCB09C3 now has camera access. It was not reverted, because `xcrun simctl privacy \u2026 reset` changes simulator settings. 3. The iOS simulator has no camera ('Take Picture' disabled), and every open TRIP-NEXT stop is a credit shop under delivery.pod_required=credit_only. So no delivery can be recorded on iOS, and DOS-058's damaged-bin data half is BLOCKED. 4. Offline halves (DOS-077 offline rows, DOS-061 offline trips) are not testable: Expo Go on the simulator reaches 127.0.0.1 services directly, and the app cannot be pointed at a forwarder. 5. RN Modal sheets (\u22ef menu, papers sheet) expose their children to XCUITest only as one grouped accessibility element with sheet-local hidden rects, so those taps used screen coordinates from screenshots. 6. The sales order screen's small scroll window made plain label taps miss (hit the footer); a guarded tap script was needed (see new P2 finding). 7. Metro provenance: :5175/:5177/:5178 were started at 00:57:56, after the last lane merge 2abb27e (00:51:23), in CI mode (no reload). 8. Dev-build red toasts (uncaught print rejection) covered bottom controls until dismissed with \u00d7 at (369,811)."
+  },
+  {
+   "group": "ios-warehouse-owner-manager",
+   "checks": [
+    {
+     "id": "DOS-040",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (tarsun); fixture order by rahul.deshmukh via sales API",
+     "steps": "1. Fixture of my own: POST :3003/orders + /submit as rahul.deshmukh -> SO-0913 (R-0042 Vaibhav Kirana Mart, indicate mode), 1 cs Annapurna Thick Poha 1 kg (reserved 3@AN20260606, 3@AN20260613, 6@B20260729) + 1 cs Campa Cola 500 ml (6@RCP20260814, 18@B20260902); auto-confirmed. 2. node ios-login.mjs 5176 dinesh.patil warehouse. 3. Pick tab -> tick SO-0913 -> Make a wave. 4. Waited for the pull; scrolled the sheet. 5. API probe: POST :3004/warehouse/picklists/{PICK-0091}/pick as dinesh.patil on the open wave. 6. Tapped Start picking. 7. SELECT picklists, sales_orders, order_state_transitions.",
+     "expected": "An open sheet shows 'This sheet has not been started', rows without Picked/Short, only 'Start picking' in the bottom bar; a pick on it is refused; after Start the chip is picking, Picked/Short/Scan/Take it to packing appear and the DB shows picking + start_picking.",
+     "actual": "Right after Make a wave the screen showed 'Nothing here yet \u00b7 0 of 0 picked' with Scan and an enabled 'Take it to packing' for ~25 s (DOS-119, known). Then PICK-0091 opened with chip 'open', 'This sheet has not been started', rows item/batch/expiry/MRP/pieces and no Picked/Short buttons (also on the rows further down after scrolling), bottom bar only 'Start picking'. API pick on the open wave -> 409 'picklist PICK-0091 is open; start it before picking'. After Start picking: chip 'picking', Picked + Short on every row, Scan and 'Take it to packing' (disabled, '5 lines not yet picked').",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/warehouse-db-00-fixture-SO-0913.txt",
+      "QA/evidence/batch1/regression/ios/warehouse-040-01-home.png",
+      "QA/evidence/batch1/regression/ios/warehouse-040-03-make-a-wave.png",
+      "QA/evidence/batch1/regression/ios/warehouse-040-04-sheet-not-started.png",
+      "QA/evidence/batch1/regression/ios/warehouse-040-api-pick-before-start.txt",
+      "QA/evidence/batch1/regression/ios/warehouse-040-05-after-start.png",
+      "QA/evidence/batch1/regression/ios/warehouse-040-db-after-start.txt"
+     ],
+     "dbOrApi": "API: POST :3004/warehouse/picklists/01a09872-ae42-70b5-99b4-757c72ca6a39/pick (open) -> 409 CONFLICT 'picklist PICK-0091 is open; start it before picking'. DB after Start: PICK-0091|picking|started_at 2026-09-13 07:19:13.675; SO-0913|picking; transitions submit/confirm (rahul.deshmukh 07:16:06) then confirmed->picking start_picking dinesh.patil 07:19:13.643.",
+     "note": "The offline step ('Starting a sheet needs a signal') was NOT TESTED: Expo Go on the simulator reaches the host services directly and the radio cannot be cut. DOS-119 transient empty sheet seen on iOS too (known)."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (tarsun)",
+     "steps": "1. On started PICK-0091 pressed Short on row 'Annapurna Thick Poha 1 kg \u00b7 Batch AN20260606 \u00b7 3 pc'. 2. Chose 'Damaged carton', keyed 4. 3. Scrolled the Short sheet (the pad's last row, Short and the refusal line are below the fold). 4. Pressed Short. 5. SELECT pick_lines/sync_ops, grep warehouse-service.log for POST /sync/upload. 6. Clear, 2, Short. 7. SELECT again.",
+     "expected": "With 4 on a row asking 3 the sheet shows 'This batch asks for 3 pc\u2026', Short saves nothing; with 2 the line disappears and Short saves.",
+     "actual": "Sheet 'Requested 3 pc', pad 4; after scrolling, red line 'This batch asks for 3 pc. Count again \u2014 more cannot be saved on this line.' directly under the Short button. Pressing Short kept the sheet open; no upload was sent and the row stayed 3/0/NULL. Clear + 2: the line disappeared (not in the tree), Short saved, sheet closed, header '1 of 5 picked', row left To pick.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/warehouse-041-01-short-sheet.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-02-over-ask-4.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-03-over-ask-sentence.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-04-after-refused-short.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-db-after-refused.txt",
+      "QA/evidence/batch1/regression/ios/warehouse-041-05-valid-2.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-06-short-2-saved.png",
+      "QA/evidence/batch1/regression/ios/warehouse-041-db-after-short-2.txt"
+     ],
+     "dbOrApi": "After refused 4: pick_lines AN20260606 3|0|NULL|NULL, 0 sync_ops in the last 10 min, last POST /sync/upload in warehouse-service.log ~2.9 h earlier. After Short 2: AN20260606|3|2|Damaged carton|dinesh.patil|07:21:48.175; one sync_op 01a09876-a765 {ok:true}.",
+     "note": "On first open the refusal line and the Short (save) button sit below the phone viewport; one scroll brings them in \u2014 same layout class as DOS-118 (web phone) / DOS-152 (Android), not re-logged. The third reason chip is clipped on iPhone width (new P3 below)."
+    },
+    {
+     "id": "DOS-042",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Warehouse dinesh.patil (tarsun)",
+     "steps": "1. PICK-0091 line 1 (Thick Poha) sits on 3 lot rows: AN20260606 3 pc (already short 2, Damaged carton), AN20260613 3 pc, B20260729 6 pc; line 2 on RCP20260814 6 pc + B20260902 18 pc. 2. Picked on B20260729, RCP20260814, B20260902; left AN20260613 untouched. 3. SELECT + read screen. 4. Short AN20260613 with 0 and 'Batch held back'. 5. SELECT + read screen.",
+     "expected": "While a lot row of the shorted line is unrecorded the wave stays picking (completed_at NULL), 'Take it to packing' disabled; recording the last row closes it as picked.",
+     "actual": "At 4 of 5: chip 'picking', header '4 of 5 picked', 'Take it to packing' disabled with '1 line not yet picked'. After the last Short 0/'Batch held back': '5 of 5 picked', 'Take it to packing' enabled.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/warehouse-042-01-four-of-five-picking.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-db-four-of-five.txt",
+      "QA/evidence/batch1/regression/ios/warehouse-042-03-reason-chips.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-04-batch-held-back-selected.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-02-last-row-short-0-held-back.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-05-after-last-short-picked.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-db-after-last-short.txt"
+     ],
+     "dbOrApi": "At 4/5: PICK-0091|picking|completed_at NULL; AN20260613 3|0|NULL|NULL; 4 sync_ops ok; 0 sync_errors. After last short: PICK-0091|picked|completed_at 2026-09-13 07:26:08.217; AN20260613|3|0|Batch held back|dinesh.patil|07:26:08.204; line totals 12 asked/8 picked and 24/24; 5 sync_ops ok, 0 sync_errors.",
+     "note": "After completion the chip still read 'picking' next to 5 of 5 (DOS-120, known). My first tap on 'Batch held back' hit the off-screen half of the clipped chip and the default 'Not on the rack' stayed selected; re-tapped the visible part before saving (new P3 below). Two-device rejected-op probe not run on iOS. SO-0913 left in picking, not packed."
+    },
+    {
+     "id": "DOS-001",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun (tarsun)",
+     "steps": "1. node ios-login.mjs 5173 sunil.tarsun owner. 2. Today -> scrolled to 'Money owed, by age'. 3. Money -> Outstanding 'Money owed, by age'. 4. GET :3001/reporting/dashboard/owner as sunil.tarsun. 5. SELECT bucket sums from retailer_outstanding_summary and owner_summary.detail keys, before and right after the screenshots.",
+     "expected": "Today's six rungs equal Money -> Outstanding and the live sums; 90+ non-zero.",
+     "actual": "Today: 0\u20137 22,76,528.00 \u00b7 8\u201315 6,86,008.50 \u00b7 16\u201330 8,41,479.50 \u00b7 31\u201360 5,00,785.00 \u00b7 61\u201390 90,203.00 \u00b7 90+ 25,962.00. Money -> Outstanding shows the identical six. Today also shows OUTSTANDING 4420966 rupees = live total.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/owner-001-01-today-top.png",
+      "QA/evidence/batch1/regression/ios/owner-001-02-today-money-owed-by-age.png",
+      "QA/evidence/batch1/regression/ios/owner-001-03-money-outstanding-by-age.png",
+      "QA/evidence/batch1/regression/ios/owner-001-api-dashboard.txt",
+      "QA/evidence/batch1/regression/ios/owner-001-db-before.txt"
+     ],
+     "dbOrApi": "API ageing {b0_7 227652800, b8_15 68600850, b16_30 84147950, b31_60 50078500, b61_90 9020300, b90plus 2596200}; detail.ageingB90plus 2596200. SQL tarsun 227652800|68600850|84147950|50078500|9020300|2596200 at 07:27:35 and again at 07:29:34; owner_summary as_of 07:15:27, stray ageingB90Plus = f for every tenant.",
+     "note": ""
+    },
+    {
+     "id": "DOS-005",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun; fixture order by rahul.deshmukh via sales API",
+     "steps": "1. Fixture: POST :3003/orders (R-0020 Joshi Kirana Stores, indicate, 1 cs Campa Cola 500 ml) -> POST /pricing/bargains asked 999 vs list 1129 with orderId -> /submit -> SO-0914 submitted, approvalFlags [bargain]. 2. Owner app -> Today -> Approvals: walked All, Order approvals, Rate requests from the top. 3. Opened SO-0914, typed a note, Approve -> decision dialog -> Approve. 4. SELECT approvals, bargain_requests; re-read the three segments.",
+     "expected": "One named row per bargain in every segment; one decision decides both the gate and the bargain request.",
+     "actual": "SO-0914 'Bargain \u20b99.99' appears exactly once in All, once in Order approvals and once in Rate requests; no unnamed bargain_request rows (All: Om Sai \u20b939.58, SO-0914, SO-0912, SO-0898, SO-0887/0886/0885/0882/0879 credit, Shree Ganesh \u20b913, Mahalaxmi \u20b922.28). Panel: Kind Bargain, Person Rahul Deshmukh, List rate \u20b911.29, Asked rate \u20b99.99. One Approve decided both; SO-0914 then gone from all three segments.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/owner-005-020-fixture-api-log.json",
+      "QA/evidence/batch1/regression/ios/owner-005-020-db-before.txt",
+      "QA/evidence/batch1/regression/ios/owner-005-01-approvals-all-top.png",
+      "QA/evidence/batch1/regression/ios/owner-005-05-order-approvals-top.png",
+      "QA/evidence/batch1/regression/ios/owner-005-04-rate-requests.png",
+      "QA/evidence/batch1/regression/ios/owner-005-06-SO-0914-approval-sheet.png",
+      "QA/evidence/batch1/regression/ios/owner-020-08-decision-dialog.png",
+      "QA/evidence/batch1/regression/ios/owner-005-020-db-after-approve.txt",
+      "QA/evidence/batch1/regression/ios/owner-005-11-rate-requests-after-approve.png"
+     ],
+     "dbOrApi": "owner-service.log after line 1174: exactly one POST /approvals/01a0987b-d316-773d-ad3f-103c367f19aa/decide -> 200. approvals 01a0987b-d316 bargain|bargain_request|approved|sunil.tarsun|07:41:52.688|note. bargain_requests 01a0987b-d16c approved|1129|999|999|sunil.tarsun|07:41:52.695|same note.",
+     "note": "A first 'Order approvals' capture looked short (SO-0914/SO-0912 missing) because the list kept its scroll offset; re-read from the top it lists both. While typing the note the keyboard covers Approve/Reject in the owner Approvals Sheet (no keyboard avoidance) \u2014 dismissed with return; same kit cause as DOS-159, not re-logged. Pending gates of cancelled orders still listed (DOS-127)."
+    },
+    {
+     "id": "DOS-020-owner",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Owner sunil.tarsun (tarsun)",
+     "steps": "1. Orders -> Submitted -> SO-0914 panel -> fast flick to the buttons. 2. Tapped the disabled Confirm order. 3. SELECT order/reservations/approvals; owner-service POSTs. 4. Approvals -> SO-0914 -> note -> Approve -> decision dialog -> Approve (DOS-005 step). 5. SELECT order, transitions, reservations.",
+     "expected": "Confirm disabled with 'Waiting on Bargain. Decide it on Approvals; the last approval confirms the order.'; the owner decision dialog appears on iOS; deciding the last approval confirms the order.",
+     "actual": "Panel: State Submitted, Stock held 0, 'Confirm order' disabled with 'Waiting on Bargain. Decide it on Approvals; the last approval confirms the order.' underneath, Release stock and Cancel order below. Tap on Confirm -> no dialog, no request, order still submitted. The Approvals decision dialog appeared on iOS ('Approve SO-0914 \u00b7 Bargain \u00b7 \u20b99.99 \u00b7 QA iOS DOS-005 020 approve fixture bargain \u00b7 Approve / Cancel'; the Approvals Sheet closes before it opens). After Approve SO-0914 went submitted -> confirmed by sunil.tarsun in the same second and 24 pc were reserved.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/owner-020-01-SO-0914-panel.png",
+      "QA/evidence/batch1/regression/ios/owner-020-05-SO-0914-sheet-after-fast-fling.png",
+      "QA/evidence/batch1/regression/ios/owner-020-02-sheet-accessibility-label.txt",
+      "QA/evidence/batch1/regression/ios/owner-020-07-after-tapping-disabled-confirm.png",
+      "QA/evidence/batch1/regression/ios/owner-020-db-after-disabled-confirm.txt",
+      "QA/evidence/batch1/regression/ios/owner-020-08-decision-dialog.png",
+      "QA/evidence/batch1/regression/ios/owner-020-09-after-approve.png",
+      "QA/evidence/batch1/regression/ios/owner-005-020-db-after-approve.txt"
+     ],
+     "dbOrApi": "After disabled tap: SO-0914|submitted, 0 reservations, bargain pending, 0 /confirm calls in owner-service.log after line 1146. After Approve: transitions draft->submitted submit rahul.deshmukh 07:27:26; submitted->confirmed confirm sunil.tarsun 07:41:52.670; sales_orders confirmed_at 07:41:52.713; reservation 24@B20260902 pending.",
+     "note": "The owner order Sheet body scrolled only with a very fast 600-pt flick (kit Sheet, DOS-152 class). Dialog does not say it confirms the order (DOS-155, known). Line kept rate 1129 after the 999 approval (DOS-126, known). The owner panel's own Confirm/Release/Cancel dialogs are rendered while that Sheet is open (owner-app orders/index.tsx Sheet :273, Dialog :377) \u2014 not pressed here (Confirm disabled; Release/Cancel would change data); see new P1."
+    },
+    {
+     "id": "DOS-020-manager",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "FAIL",
+     "user": "Manager vikas.kadam on the DOS-029 build exp://127.0.0.1:5274 (8161f21); fixture order by rahul.deshmukh via sales API",
+     "steps": "1. Fixture: sales API order for R-0003 Mahalaxmi General Stores (strict), 1 cs Campa Cola 500 ml, bargain 1004 vs 1134 -> SO-0915 submitted with gates credit_limit + bargain. 2. node ios-login.mjs 5274 vikas.kadam manager -> Orders -> SO-0915 order Sheet. 3. Scrolled to Confirm, tapped it. 4. Back at the top of the Sheet pressed Approve under 'Over credit limit'; waited 6 s; Close. 5. Scrolled to 'Waiting for a decision' and pressed Approve on the SO-0915 card. 6. Read simctl log. 7. Relaunched Expo Go (terminate + openurl; session kept) -> card Approve on the bargain gate -> note -> Approve; then card Approve on the credit gate -> note -> Approve. 8. SELECTs + manager-service.log.",
+     "expected": "Confirm disabled with the waiting reason; the decision dialog opened from inside the order Sheet shows on iOS; deciding the last gate confirms the order.",
+     "actual": "Sheet: 'Waiting on: Over credit limit [Approve][Reject] \u00b7 Bargain [Approve][Reject]', 'Confirm order' disabled with 'Waiting on Over credit limit \u00b7 Bargain. Approve or reject each one first; the last approval confirms the order.'; tapping it opened nothing. Pressing Approve inside the Sheet showed NO dialog (screen unchanged at +3 s and +6 s); iOS logged 'Attempt to present <RCTFabricModalHostViewController> \u2026 which is already presenting <RCTFabricModalHostViewController>'; no request was sent. Closing the Sheet did not bring the dialog; afterwards the queue-card Approve (no Sheet) also opened nothing and sent nothing until the app was relaunched. After relaunch the card dialogs worked: bargain gate approved (order stayed Submitted), then the credit gate approved -> SO-0915 confirmed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-020-db-before-SO-0915.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-01-SO-0915-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-020-03-sheet-scrolled.png",
+      "QA/evidence/batch1/regression/ios/manager-020-04-after-tapping-disabled-confirm.png",
+      "QA/evidence/batch1/regression/ios/manager-020-06-sheet-reopened-top.png",
+      "QA/evidence/batch1/regression/ios/manager-020-07-decision-dialog-over-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-020-08-still-no-dialog-after-6s.png",
+      "QA/evidence/batch1/regression/ios/manager-020-09-after-closing-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-020-ios-log-nested-modal.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-12-card-approve-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-020-stuck-after-refused-dialog.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-13-after-relaunch-card-approve.png",
+      "QA/evidence/batch1/regression/ios/manager-020-db-after-bargain-card.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-19-credit-dialog-ready.png",
+      "QA/evidence/batch1/regression/ios/manager-020-db-after-last-approval.txt"
+     ],
+     "dbOrApi": "Sheet attempt: UIKit log 2026-09-13 07:48:44.919 Expo Go [com.apple.UIKit:Presentation] Attempt to present\u2026already presenting; manager-service after line 5518 GET only, 0 POST; after line 5570 0 POST. Relaunch: POST /approvals/01a0988a-6da2-754d/decide 200 -> bargain approved vikas.kadam 07:56:06.683, bargain_request approved 1004; SO-0915 still submitted, 0 reservations. POST /approvals/01a0988a-6da2-754c/decide 200 -> credit_limit approved 07:57:27.979; SO-0915 submitted->confirmed confirm vikas.kadam 07:57:27.965; reservation 24@B20260902.",
+     "note": "The DOS-020 rule itself holds on iOS (disabled Confirm + reason; last approval confirms). The FAIL is the named iOS risk: a Dialog opened while the order Sheet is open is refused by UIKit, and the screen's later dialogs stay dead until relaunch \u2014 logged as new P1. The queue-card dialog title reads only 'Approve \u00b7 SO-0915' (no gate kind or credit sentence)."
+    },
+    {
+     "id": "DOS-021",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Manager vikas.kadam on build :5274 (plus host API calls as vikas.kadam for the race and cleanup)",
+     "steps": "1. Billing -> Credit notes -> Draft a credit note; typed INV/0634 in the Bill search field; picked 'INV/0634 \u00b7 Sharma Kirana Stores \u00b7 \u20b910,187.00'. 2. Sunbake Glucose 55 g 'Pieces to credit' = 41; dismissed the decimal pad by tapping the item name. 3. Changed to 2. 4. Host race: POST :3002/credit-notes 39 pc on the same line. 5. Scrolled to Draft and pressed it. 6. Cancelled the race draft via API; set 1 pc; Draft. 7. Cancelled the 1-pc draft via API.",
+     "expected": "Pieces per line up to what is left, with helpers; client refusal above left; the server's refusal shown above Draft; a valid part-case draft is created.",
+     "actual": "Lines: Sunbake 40 pc \u00b7 '40 pc left to credit'; Campa Lemon 750 ml '2 cs \u00b7 48 pc \u00b7 2 pc free' \u00b7 50 left; Godavari Cow Ghee 20 left; Konkan Farsan Mix 40 left; Annapurna Basmati 9 left; no 'Not ordered', no 'cs available'. 41 -> red border and 'Only 40 pc left to credit on this line' under the field; Draft 'Fix the pieces marked in red first'; nothing sent. 2 pc after the race -> Draft -> 'only 1 pcs of Sunbake Glucose 55 g are left to credit on INV/0634' in red directly above Draft; sheet stayed open; no row written. 1 pc -> Draft -> sheet closed back to the register; draft created.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-021-01-credit-notes.png",
+      "QA/evidence/batch1/regression/ios/manager-021-04-bill-results-keyboard-closed.png",
+      "QA/evidence/batch1/regression/ios/manager-021-05-INV0634-lines.png",
+      "QA/evidence/batch1/regression/ios/manager-021-05-sheet-accessibility-label.txt",
+      "QA/evidence/batch1/regression/ios/manager-021-06-typed-41-keypad-up.png",
+      "QA/evidence/batch1/regression/ios/manager-021-08-after-dismiss-tap.png",
+      "QA/evidence/batch1/regression/ios/manager-021-12-draft-2pc-refused-400.png",
+      "QA/evidence/batch1/regression/ios/manager-021-15-draft-reach-attempt.png",
+      "QA/evidence/batch1/regression/ios/manager-021-db-after-refused-draft.txt",
+      "QA/evidence/batch1/regression/ios/manager-021-16-after-draft-1pc.png",
+      "QA/evidence/batch1/regression/ios/manager-021-db-after-1pc-draft.txt"
+     ],
+     "dbOrApi": "41: 0 POST /credit-notes after line 5722. Race: POST /credit-notes 200 draft 01a098a4 (39 pc). iOS 2 pc: req-1rt POST /credit-notes 400 in 66 ms; live notes on INV/0634 = only 01a098a4. Cleanup: POST /credit-notes/01a098a4/cancel 200. iOS 1 pc: req-1rv POST /credit-notes 200 -> 01a098a9 draft return_saleable 1 pc rate 748 total 900; cancelled via API 200. INV/0634 has 0 live notes afterwards.",
+     "note": "This refusal is also the DOS-029b case (400 shown above Draft) on iOS. The native Sheet has no keyboard avoidance and the pinned Close covers Draft once the refusal line appears (DOS-152 class); reaching Draft needed an XCUITest click on the last field to auto-scroll. Appium hide_keyboard cannot close the decimal pad; tapping a plain label does."
+    },
+    {
+     "id": "DOS-023",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Manager vikas.kadam on build :5274",
+     "steps": "1. SELECT picklists baseline (91, newest PICK-0091). 2. Fulfilment -> Waves: ticked my confirmed SO-0914 -> Make a picking sheet -> dialog '1 orders \u00b7 24 pc' -> confirm. 3. Scrolled to 'Picking sheets'. 4. Tapped the top row. 5. Closed the panel without acting.",
+     "expected": "The new sheet is row 1 of Picking sheets; tapping it opens its panel with orders, lines, Start picking and Cancel the sheet.",
+     "actual": "POST /warehouse/picklists 200 -> PICK-0092. 'Picking sheets' row 1 PICK-0092, row 2 PICK-0091. Tap -> 'Sheet PICK-0092 \u00b7 State Open \u00b7 Where Godown \u00b7 Picker \u2014 \u00b7 Pick date 13 Sep \u00b7 SO-0914 \u00b7 Joshi Kirana Stores \u00b7 Confirmed \u00b7 Campa Cola 500 ml \u00b7 B20260902 \u00b7 0 / 24 pc \u00b7 Start picking \u00b7 Cancel the sheet' (no disabled reasons).",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-023-db-before.txt",
+      "QA/evidence/batch1/regression/ios/manager-023-01-SO-0914-ticked.png",
+      "QA/evidence/batch1/regression/ios/manager-023-02-wave-dialog-SO-0914.png",
+      "QA/evidence/batch1/regression/ios/manager-023-db-after-make-sheet.txt",
+      "QA/evidence/batch1/regression/ios/manager-023-04-picking-sheets-top.png",
+      "QA/evidence/batch1/regression/ios/manager-023-05-PICK-0092-panel.png",
+      "QA/evidence/batch1/regression/ios/manager-023-05-panel-accessibility-label.txt"
+     ],
+     "dbOrApi": "manager-service req-1r1 POST /warehouse/picklists 200; picklists 91 -> 92; PICK-0092|01a0989b-c9d4|open|08:02:21.869|assigned null|order_ids [SO-0914]. Row tap: 1 GET /warehouse/picklists/01a0989b-c9d4-7556-91eb-4c828d3cb7c1.",
+     "note": "Start picking / Cancel the sheet were not pressed: they open a Dialog while that Sheet is open, the pattern iOS refuses (new P1). PICK-0092 was started afterwards through the warehouse API as dinesh.patil for the DOS-041 M20 check."
+    },
+    {
+     "id": "DOS-025",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Manager vikas.kadam on build :5274",
+     "steps": "1. SELECT load_sheets (1 draft 01a0976e already approved by vikas.kadam, 84 confirmed). 2. Fulfilment -> Load-out. 3. Tapped the row in the first panel. 4. Closed without approving or cancelling.",
+     "expected": "'Not out of the godown yet' is the first panel under the PIN hint and lists the draft with its status; its panel opens with Approve/Cancel and the right disabled reason.",
+     "actual": "Under 'Your approval IS the PIN\u2026' the first panel is 'Not out of the godown yet' with one row '13 Sep \u00b7 Approved \u00b7 the godown may c\u2026 \u00b7 1,375.00' (status chip visible, truncated) and footer 1; below it 'Checked out and cancelled' with Confirmed rows. The row opened 'Load sheet \u00b7 MH-05-CD-5678 \u00b7 State Approved \u00b7 the godown may check it out \u00b7 Packages 1 \u00b7 Orders 1 \u00b7 On board \u20b91,375 \u00b7 Approved by Vikas Kadam \u00b7 SO-0899 \u00b7 INV/9009 \u00b7 Approve the load-out (This sheet is already approved) \u00b7 Cancel the sheet'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-025-db-before.txt",
+      "QA/evidence/batch1/regression/ios/manager-025-01-load-out.png",
+      "QA/evidence/batch1/regression/ios/manager-025-02-draft-sheet-panel.png",
+      "QA/evidence/batch1/regression/ios/manager-025-02-panel-accessibility-label.txt"
+     ],
+     "dbOrApi": "load_sheets tarsun: draft 1 (01a0976e, approved_by vikas.kadam 02:35:01, order SO-0899), confirmed 84. Row tap: 1 GET /warehouse/load-sheets/01a0976e-bbaf-7dbe-9bb3-f6ed587bd574. Unchanged after the walk.",
+     "note": "Unlike Android (DOS-157) the chip label renders on iOS. History panel not newest-first (28 Jul first; verifier note). No unapproved draft exists, and Approve/Cancel open a Dialog inside the Sheet (new P1), so nothing was pressed."
+    },
+    {
+     "id": "DOS-041-manager",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Manager vikas.kadam on build :5274 (sheet started via warehouse API as dinesh.patil)",
+     "steps": "1. POST :3004/warehouse/picklists/{PICK-0092}/start as dinesh.patil. 2. Fulfilment -> Pick & pack -> PICK-0092 -> row 'Campa Cola 500 ml \u00b7 Batch B20260902 \u00b7 Asked 24' (case 24). 3. One case more until the stepper read 2 cs = 48 pc. 4. Record what was picked -> dialog '1 rows' -> confirm. 5. SELECT pick_lines; manager-service log.",
+     "expected": "The over-ask is refused with the sentence visible in the open dialog and the row unchanged.",
+     "actual": "Dialog stayed open with red 'batch B20260902 on PICK-0092 asks for 24 pcs; 48 were picked' above the button; background stepper '2 cs = 48 pc'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-041-api-start-PICK-0092.txt",
+      "QA/evidence/batch1/regression/ios/manager-041-01-pick-and-pack.png",
+      "QA/evidence/batch1/regression/ios/manager-041-03-PICK-0092-lines.png",
+      "QA/evidence/batch1/regression/ios/manager-041-06-stepper-2cs.png",
+      "QA/evidence/batch1/regression/ios/manager-041-07-over-ask-400-in-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-041-db-after-over-ask.txt"
+     ],
+     "dbOrApi": "Start: 200, PICK-0092 picking 08:03:45.009, SO-0914 picking. req-1rh POST /warehouse/picklists/01a0989b-c9d4-7556-91eb-4c828d3cb7c1/pick 400 in 39 ms. pick_lines after: 1 row 01a0989b-ca9d 24|0|picked_by NULL|picked_at NULL; PICK-0092 still picking.",
+     "note": "A first attempt misfired: after the first 'One case more' the bottom bar appeared under the stepper and my second tap opened the Record dialog at 1 cs; cancelled with 0 POST. The stepper counts whole cases only (DOS-134) and prints 'Not ordered' under a pick row (order-entry copy)."
+    },
+    {
+     "id": "DOS-029a",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "PASS",
+     "user": "Manager vikas.kadam on build :5274",
+     "steps": "1. Fulfilment -> Waves: ticked packed SO-0850 -> Make a picking sheet -> dialog '1 orders \u00b7 390 pc' -> confirm. 2. One script: Cancel, then 150 ms later Make a picking sheet again, capturing Appium frames every ~80 ms; accessibility check for the old sentence. 3. Cancel, untick.",
+     "expected": "The 409 sentence shows in the still-open dialog; a fast close/reopen does not flash it.",
+     "actual": "Dialog stayed open with red 'only a confirmed order can be waved; SO-0850 is packed' above the button. Reopened dialog frames at +128, +283 and +514 ms after the reopen tap show '1 orders \u00b7 390 pc', the body text and the buttons with no red line; the tree has no 'confirmed order' text.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-029-02-SO-0850-ticked.png",
+      "QA/evidence/batch1/regression/ios/manager-029-03-wave-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-029-04-wave-409-sentence.png",
+      "QA/evidence/batch1/regression/ios/manager-029-05-fast-reopen-00-t1959ms.png",
+      "QA/evidence/batch1/regression/ios/manager-029-05-fast-reopen-02-t2114ms.png",
+      "QA/evidence/batch1/regression/ios/manager-029-05-fast-reopen-05-t2345ms.png",
+      "QA/evidence/batch1/regression/ios/manager-029-api-db-wave-409.txt"
+     ],
+     "dbOrApi": "manager-service req-1r0 POST /warehouse/picklists 409 in 60 ms; picklists stayed 91 (newest PICK-0091); SO-0850 still packed.",
+     "note": "Caveat: Appium put ~966 ms between the Cancel and reopen taps (Cancel at +865 ms, reopen at +1831 ms), slower than a thumb; no flash seen at that speed. The 400 case (DOS-029b) passed inside DOS-021 above; the 501 brand-DMS case is DOS-029c."
+    },
+    {
+     "id": "DOS-029c",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "BLOCKED",
+     "user": "Manager vikas.kadam on build :5274",
+     "steps": "1. More -> Inbound -> Documents -> 'Guiltfree Industries \u2014 Gurugram \u00b7 \u20b99,854' (FA/TY/26-27/1187, document 0400aea1). 2. Tried to scroll the panel to 'Book it as a supplier bill' with 14 glides/flicks (x 30/60/120/200/380, start y 560\u2013760, 80\u2013150 ms) and pixel-diffed each frame.",
+     "expected": "Book it as a supplier bill -> confirm -> 501 'a brand-DMS bill is committed through billing.invoices.importBrandDms\u2026' shown in the open dialog.",
+     "actual": "The panel opened (title FA/TY/26-27/1187; label lists Start reviewing, Match the items again, Book it as a supplier bill, Reject the document) but its body never scrolled (0 pixel rows changed); one x=380 start dragged Expo Go's floating gear instead. The button was never on screen and was not pressed.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-135-029c-db-before.txt",
+      "QA/evidence/batch1/regression/ios/manager-029c-01-brand-dms-panel-actions.png",
+      "QA/evidence/batch1/regression/ios/manager-029c-01-panel-accessibility-label.txt",
+      "QA/evidence/batch1/regression/ios/manager-029c-02-brand-dms-actions-in-view.png",
+      "QA/evidence/batch1/regression/ios/manager-029c-03-brand-dms-after-flicks.png",
+      "QA/evidence/batch1/regression/ios/manager-135-overlap-and-029c-not-reachable.txt"
+     ],
+     "dbOrApi": "documents 0400aea1 brand_dms_invoice needs_review, committed_entity_id NULL, updated 2026-09-12 14:12:17 (unchanged); no POST /docint/documents/0400aea1\u2026/approve in manager-service.log; 0 supplier_invoices in the last hour.",
+     "note": "Blocked by the harness (synthesized scroll never moved this panel). Not inferred: even if reached, that confirm is a Dialog rendered while the document Sheet is open (inbound/documents.tsx Sheet :324, Dialog :568), the pattern iOS refused elsewhere in this walk (new P1)."
+    },
+    {
+     "id": "DOS-135",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "NOT TESTED",
+     "user": "Manager vikas.kadam on build :5274",
+     "steps": "1. More -> Inbound -> Documents -> 'Alan's Food Products \u2014 Bhiwandi' (ALA/26-27/00491, document 2254e884, locked by Sunil Tarsun until 2026-10-12). 2. Scrolled to the actions. 3. Control: pressed Start reviewing alone. 4. Overlap (Match the items again pending while Start reviewing returns 409) not attempted.",
+     "expected": "A refused Start reviewing that returns while another write on the same panel is pending shows its sentence once the other settles.",
+     "actual": "Control only: the 409 sentence 'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)' appeared in red directly above Start reviewing. The overlap could not be staged on iOS: Expo Go on the simulator reaches 127.0.0.1:3002 directly and the app's API URL is fixed at bundle time, so no request can be held without changing config/ports; Appium taps land ~0.97 s apart while an unheld rematch round-trip is ~150 ms, so the refusal can never arrive while the rematch is pending.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-135-02-documents.png",
+      "QA/evidence/batch1/regression/ios/manager-135-03-ALA-00491-panel.png",
+      "QA/evidence/batch1/regression/ios/manager-135-04-panel-scrolled-to-actions.png",
+      "QA/evidence/batch1/regression/ios/manager-135-05-start-review-409-control.png",
+      "QA/evidence/batch1/regression/ios/manager-135-db-after-control.txt",
+      "QA/evidence/batch1/regression/ios/manager-135-overlap-and-029c-not-reachable.txt"
+     ],
+     "dbOrApi": "req-1sj POST /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b/review 409 in 53 ms. review_sessions 89f90df9 sunil.tarsun open until 2026-10-12 05:30 IST unchanged; document needs_review, updated_at unchanged.",
+     "note": "Control PASS on iOS; the overlap part stays NOT TESTED (reason above). The sentence still prints a UTC ISO time (DOS-141, known)."
+    },
+    {
+     "id": "DOS-034",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "status": "FAIL",
+     "user": "Accountant meena.joshi on build :5274",
+     "steps": "1. node ios-login.mjs 5274 meena.joshi manager (shell role accountant). 2. More -> Money -> Receipts -> RCPT-0688 (office cash \u20b94,914, trip null) -> receipt Sheet -> Bank it. 3. Close; SELECT; simctl log. 4. Relaunched Expo Go; Receipts -> RCPT-CHQ-0002 (cheque \u20b929,456, trip null) -> scrolled Sheet -> Mark bounced. 5. Close; SELECT; log. 6. Relaunched; Day-end: tapped cheque card RCPT-CHQ-0001 -> 'Cheque returned' dialog -> Cancel. 7. Ticked RCPT-0688 in 'Cash and cheques in hand' -> Bank this batch -> slip DEP-QA-IOS-034 -> confirm. 8. SELECT receipts, journal_entries/lines.",
+     "expected": "Bank it and Mark bounced dialogs opened from inside the receipt Sheet show on iOS and work on an office cash / cheque receipt.",
+     "actual": "RCPT-0688 Sheet: State Collected, 'Bank it' enabled, 'Mark bounced' with 'Only a cheque in hand or banked can bounce'. Bank it pressed -> no dialog, no slip field; UIKit refused the modal; nothing sent; closing the Sheet did not show it. RCPT-CHQ-0002 Sheet: both enabled; Mark bounced pressed -> no 'Cheque returned' dialog; UIKit refused again; nothing sent. The page-level paths work on iOS: the Day-end cheque card opened 'Cheque returned \u00b7 What did the bank say? \u00b7 Bank charges \u00b7 Return a bounced cheque / Cancel' (cancelled), and Day-end 'Bank this batch' opened 'Bank the day \u00b7 1 receipts \u00b7 \u20b94,914.00 \u00b7 Bank slip number' and banked RCPT-0688.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-034-db-before.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-05-RCPT-0688-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-05-sheet-accessibility-label.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-06-bank-it-pressed-in-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-07-after-closing-receipt-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-bank-it-in-sheet-evidence.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-09-cheque-sheet-scrolled.png",
+      "QA/evidence/batch1/regression/ios/manager-034-10-mark-bounced-pressed-in-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-mark-bounced-in-sheet-evidence.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-12-day-end.png",
+      "QA/evidence/batch1/regression/ios/manager-034-13-day-end-cheque-card-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-034-15-bank-the-day-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-034-17-after-bank-this-batch.png",
+      "QA/evidence/batch1/regression/ios/manager-034-db-day-end-deposit.txt"
+     ],
+     "dbOrApi": "Bank it: UIKit 2026-09-13 08:30:51.289 'Attempt to present <RCTFabricModalHostViewController>\u2026 already presenting'; 0 POST after line 5838; RCPT-0688 collected; deposits 74. Mark bounced: UIKit 08:34:56.249 same; 0 POST; RCPT-CHQ-0002 collected; reversals 2. Day-end workaround: req-1u7 POST /receipts/deposit 200; RCPT-0688 deposited 08:39:13.699 ref DEP-QA-IOS-034 (trip null); deposit entry 01a098bd-8bd2 posted_by meena.joshi 08:39:14: BANK +491400 / CASH -491400; deposits 74 -> 75.",
+     "note": "DOS-034's buttons and reasons are right on iOS, but both Sheet dialogs are refused by UIKit (new P1; the pre-existing Reverse dialog uses the same pattern). Workaround on iPhone: Day-end cheque cards and 'Bank this batch'. 'Bank it' sits half under the pinned Close (DOS-152 class). 'Put against' shows the invoice UUID (already logged, 02-walkthrough-manager.md:288). No trip cash touched (DOS-132)."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "iOS: a Dialog opened while a Sheet is open never appears (UIKit refuses the second modal) and every later dialog on that screen stays dead until the app is relaunched \u2014 the manager cannot decide an order's approvals from its panel, and the accountant cannot bank or bounce a receipt from its panel",
+     "category": "bug",
+     "priority": "P1",
+     "role": "Manager, Accountant (Owner order panel uses the same pattern)",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go); manager build :5274 (d600ab8 + 8161f21) on dos_qa",
+     "steps": "1. Sign in as vikas.kadam. Orders -> SO-0915 (gates credit_limit + bargain) -> order Sheet. 2. Press Approve under 'Over credit limit'. 3. Wait 6 s; press Close. 4. Scroll to 'Waiting for a decision' and press Approve on the SO-0915 card. 5. As meena.joshi: Money -> Receipts -> RCPT-0688 (office cash) -> Bank it. Relaunch; RCPT-CHQ-0002 (cheque) -> Mark bounced. 6. Read `xcrun simctl spawn booted log show` for Expo Go.",
+     "expected": "The decision / 'Bank the day' / 'Cheque returned' dialog opens over the panel, as it does on web and Android, and the write goes through.",
+     "actual": "Nothing appears and no request is sent. iOS logs '[com.apple.UIKit:Presentation] Attempt to present <RCTFabricModalHostViewController> on <EXRootViewController> \u2026 which is already presenting <RCTFabricModalHostViewController>' at 07:48:44.919 (order Sheet), 08:30:51.289 (Bank it) and 08:34:56.249 (Mark bounced). Closing the Sheet does not show the dialog. After one refusal even page-level dialogs on that screen stay dead: the queue-card Approve opened nothing and sent 0 POST until Expo Go was relaunched. After relaunch the card dialogs worked (SO-0915 approved and confirmed that way), and Day-end's 'Bank this batch' and cheque-card dialogs work (RCPT-0688 banked). The kit Dialog (libs/ui/src/native/feedback.tsx:226) is a second <Modal visible> rendered as a sibling of the open Sheet <Modal> (:139).",
+     "businessImpact": "On an iPhone a manager cannot approve or reject a held order, confirm, cancel or free stock from the order panel. They also cannot start or cancel a picking sheet, approve or cancel a load sheet, book or reject a document, or issue or cancel a credit note from its panel. An accountant cannot bank, bounce or reverse a single receipt. Each tap looks dead, and after one attempt every other decision on that screen stops working until the app is killed \u2014 the desk will assume the app is broken. The only paths that still work are the Orders queue cards (approvals) and Day-end (banking, cheque bounce).",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/manager-020-06-sheet-reopened-top.png",
+      "QA/evidence/batch1/regression/ios/manager-020-07-decision-dialog-over-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-020-09-after-closing-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-020-ios-log-nested-modal.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-12-card-approve-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-020-stuck-after-refused-dialog.txt",
+      "QA/evidence/batch1/regression/ios/manager-020-13-after-relaunch-card-approve.png",
+      "QA/evidence/batch1/regression/ios/manager-034-06-bank-it-pressed-in-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-bank-it-in-sheet-evidence.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-10-mark-bounced-pressed-in-sheet.png",
+      "QA/evidence/batch1/regression/ios/manager-034-mark-bounced-in-sheet-evidence.txt",
+      "QA/evidence/batch1/regression/ios/manager-034-13-day-end-cheque-card-dialog.png",
+      "QA/evidence/batch1/regression/ios/manager-034-db-day-end-deposit.txt"
+     ],
+     "suggestedFix": "In the kit, render a Dialog opened from a Sheet inside the Sheet's own Modal (one modal host that stacks), or close the Sheet before setting the Dialog visible and reopen it afterwards (as owner-app approvals.tsx already does). Also make Dialog re-present when its content changes after a refused presentation, instead of staying 'visible' but never shown. Call sites: manager-app orders/index.tsx (Sheet :496, Dialogs :676/:731); money/index.tsx (Sheet :268, Dialogs :469/:504/:538); fulfilment/index.tsx (:304/:384); fulfilment/load-out.tsx (:291/:407/:441); inbound/documents.tsx (:324/:568); billing/credit-notes.tsx (:309/:506); owner-app orders/index.tsx (:273/:377). Add an iOS device check for one Sheet+Dialog flow."
+    },
+    {
+     "title": "iOS W5 Short sheet: the third reason chip is clipped to 'Batcl' at iPhone width and half of it lies off-screen, so a tap there misses and the default 'Not on the rack' is what gets saved",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Warehouse",
+     "platform": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go)",
+     "steps": "1. Sign in as dinesh.patil; open a started wave (PICK-0091). 2. Press Short on a lot row (AN20260613). 3. Look at the reason chips; tap 'Batch held back' near the middle of its chip.",
+     "expected": "All three reasons are fully readable and tappable (the row wraps or scrolls).",
+     "actual": "The row shows 'Not on the rack', 'Damaged carton' and 'Batcl', cut at the right edge. The chip spans x 331\u2013487 on a 402-pt screen and its row does not scroll ('Horizontal scroll bar, 1 page'). A tap at the chip's centre (x=409) did nothing and 'Not on the rack' stayed selected (the silent default, DOS-051). Only a tap on the visible sliver (x=372) selected it.",
+     "businessImpact": "A picker on an iPhone can record 'Not on the rack' when the batch was held back, which misdirects the follow-up (supplier claim or quality hold). Minor, because the picker can see the selection if they look.",
+     "evidence": [
+      "QA/evidence/batch1/regression/ios/warehouse-042-03-reason-chips.png",
+      "QA/evidence/batch1/regression/ios/warehouse-042-04-batch-held-back-selected.png"
+     ],
+     "suggestedFix": "In frontend/warehouse-app/app/pick/[id].tsx render the short reasons as wrapping Chips (as the credit-note sheet does) instead of a fixed-width segmented row, or shorten the labels; never rely on a pre-selected reason (see DOS-051)."
+    }
+   ],
+   "dataTouched": "All in dos_qa, tenant tarsun, through the apps or their APIs (no SQL writes).\n\nOrders:\n- SO-0913 (R-0042 Vaibhav Kirana Mart): created and submitted via the sales API as rahul.deshmukh, auto-confirmed. Waved on iOS as PICK-0091 and started by dinesh.patil.\n  - Recorded: AN20260606 2 of 3 short 'Damaged carton', AN20260613 0 of 3 short 'Batch held back', the other three rows picked in full.\n  - PICK-0091 is now picked; SO-0913 is left in picking (not packed), with its reservations held.\n- SO-0914 (R-0020 Joshi Kirana Stores): created via the sales API with bargain 01a0987b-d16c at 999 against list 1129.\n  - Approved on iOS by sunil.tarsun: bargain approved, order confirmed, 24 pc reserved on B20260902.\n  - Waved on iOS by vikas.kadam as PICK-0092 and started via the warehouse API as dinesh.patil.\n  - A refused over-pick left its row at 24 asked, 0 picked. SO-0914 and PICK-0092 are now picking.\n- SO-0915 (R-0003 Mahalaxmi General Stores): created via the sales API with bargain 01a0988a-6d61 at 1004 against 1134.\n  - Both gates were approved on iOS from the queue cards by vikas.kadam, and the order confirmed with 24 pc reserved on B20260902.\n\nCredit notes on INV/0634:\n- 01a098a4 (39 pc, host API race draft) and 01a098a9 (1 pc, drafted on iOS) were both cancelled via the API. No live notes are left.\n\nReceipts:\n- RCPT-0688 (office cash \u20b94,914) was deposited on iOS Day-end by meena.joshi with slip DEP-QA-IOS-034. Journal 01a098bd: BANK +4,914 / CASH \u22124,914.\n- RCPT-CHQ-0001 and RCPT-CHQ-0002 are unchanged (collected).\n\nUntouched:\n- documents 2254e884 and 0400aea1\n- load sheet 01a0976e\n- SO-0850\n- PICK-0090\n\nSessions and simulator:\n- API logins: rahul.deshmukh \u00d73, sunil.tarsun \u00d71, dinesh.patil \u00d72, vikas.kadam \u00d73.\n- iOS sign-ins: dinesh.patil, sunil.tarsun, vikas.kadam, meena.joshi.\n- ios-login reset the simulator keychain between apps, and Expo Go was terminated and relaunched four times.\n- Expo Go's floating gear was moved back to the bottom-right.\n\nSummary of the final DB state: QA/evidence/batch1/regression/ios/data-touched-ios-warehouse-owner-manager.txt.",
+   "environmentProblems": "1. XCUITest shows each open native Modal (kit Sheet or Dialog) as one flattened element, so the buttons inside cannot be found. I tapped by coordinates from simctl screenshots and read the flattened label for the text; TextField and SearchField stay addressable.\n2. Synthesized drags scroll a kit Sheet body only sometimes, depending on start point and speed. The FA/TY/26-27/1187 document panel never scrolled in 14 attempts, which blocked DOS-029c. An XCUITest element click on an off-screen TextField does auto-scroll a Sheet. Whether a real finger has the same trouble was not established, so it is not logged as a finding.\n3. Appium hide_keyboard cannot dismiss the iOS decimal pad ('Did not know how to dismiss the keyboard'); tapping a plain label in the Sheet does.\n4. Glides started near x\u2248344\u2013370 grab Expo Go's floating gear. One drag parked it on the manager 'More' button, and the next 'More' tap opened Expo's developer menu. I closed the menu and moved the gear back; start gestures away from it.\n5. After UIKit refuses a nested modal, that app screen stays dead. Recovery is `xcrun simctl terminate booted host.exp.Exponent` then `openurl exp://127.0.0.1:5274`; the session survives.\n6. Appium actions take about 0.9\u20131 s each, so a fast reopen could only be staged at about 966 ms, and request overlaps (DOS-135) cannot be staged at all.\n7. Expo Go on the simulator reaches the services on 127.0.0.1 directly, so no offline or no-connection check and no held request are possible without config changes."
+  }
+ ]
+}
