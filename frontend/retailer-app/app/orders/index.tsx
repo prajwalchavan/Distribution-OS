@@ -14,7 +14,7 @@ import { Group, ListRow, Screen, Segments, Stack, StatusChip, useStrings } from 
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { longDate } from '../../src/lib/dates'
+import { longInstant } from '../../src/lib/dates'
 import { Async, Panel, orderFamily } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
 
@@ -76,7 +76,8 @@ export default function MyOrders(): React.JSX.Element {
                     order.orderNo === null ? t('r8.draft') : t('r8.orderNo', { no: order.orderNo })
                   }
                   secondary={`${t(order.submittedAt === null ? 'r8.startedOn' : 'r8.placedOn', {
-                    date: longDate((order.submittedAt ?? order.createdAt).slice(0, 10)),
+                    // DOS-143: an INSTANT reads its IST business date, never a UTC slice of itself.
+                    date: longInstant(order.submittedAt ?? order.createdAt),
                   })} · ${word(order.source)}`}
                   trailingMoney={order.totalPaise}
                   trailing={
