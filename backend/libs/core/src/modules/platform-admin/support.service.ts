@@ -13,7 +13,12 @@ import type { z } from 'zod'
 import { supportGrants, tenants, type Db } from '@dos/db'
 import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
 import { statusOf, toSupportGrant } from './support-grants.js'
-import { requireActiveAdmin, withPlatform, writePlatformAudit } from './internals.js'
+import {
+  platformActorId,
+  requireActiveAdminLevel,
+  withPlatform,
+  writePlatformAudit,
+} from './internals.js'
 
 type ListIn = z.infer<typeof AdminSupportListInput>
 type GrantRow = typeof supportGrants.$inferSelect
@@ -48,9 +53,12 @@ export class PlatformSupportService {
    */
   async request(input: SupportRequestIn): Promise<{ item: AdminSupportGrant }> {
     const db = requireDb(this.db)
-    return withPlatform(db, (tx) =>
-      platformIdempotent(tx, input.tenantId, input.idempotencyKey, input, async () => {
-        const actorId = await requireActiveAdmin(tx)
+    const actorId = platformActorId()
+    return withPlatform(db, async (tx) => {
+      // The level and the login BEFORE the key: a stored reply is handed back without running anything,
+      // so a billing account replaying a support ask with the identical body must be refused here.
+      await requireActiveAdminLevel(tx, actorId, 'admin.support.request')
+      return platformIdempotent(tx, input.tenantId, input.idempotencyKey, input, async () => {
         const [tenant] = await tx
           .select()
           .from(tenants)
@@ -87,14 +95,15 @@ export class PlatformSupportService {
           },
         })
         return { item: await this.decorate(tx, row) }
-      }),
-    )
+      })
+    })
   }
 
   /** Every request and window across every distributor, newest first. */
   async list(input: ListIn): Promise<AdminSupportList> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.support.list')
       const rows = await tx
         .select({ grant: supportGrants, tenant: tenants })
         .from(supportGrants)
@@ -134,7 +143,10 @@ export class PlatformSupportService {
    */
   async revoke(input: AdminSupportRevokeIn): Promise<{ item: AdminSupportGrant }> {
     const db = requireDb(this.db)
+    const actorId = platformActorId()
     return withPlatform(db, async (tx) => {
+      // The level and the login first: before the grant is looked up, and before the key.
+      await requireActiveAdminLevel(tx, actorId, 'admin.support.revoke')
       const [found] = await tx
         .select()
         .from(supportGrants)
@@ -142,7 +154,6 @@ export class PlatformSupportService {
         .limit(1)
       if (!found) throw new ORPCError('NOT_FOUND', { message: `no support request ${input.id}` })
       return platformIdempotent(tx, found.tenantId, input.idempotencyKey, input, async () => {
-        const actorId = await requireActiveAdmin(tx)
         const [grant] = await tx
           .select()
           .from(supportGrants)

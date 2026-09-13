@@ -1,0 +1,224 @@
+{
+ "id": "DOS-166",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-166",
+   "status": "fixed",
+   "commits": [
+    "25a3329 fix(DOS-166): the offline upload checks the permission matrix for every synced table",
+    "eb33170 fix(DOS-166): the receipts INSERT policy admits only the money collectors"
+   ],
+   "failBefore": "All captured on this branch before any implementation, against dos_test_b2_h7.\n(a) sync.coverage.spec.ts › 'DOS-166: refuses a salesperson receipt through the upload as role_not_allowed and writes nothing': `AssertionError: rep: expected 1 to be +0` at :763. The rep's receipt was accepted. Only the rep half was seen red: the loop stops at the first failing assertion, so the warehouse half never ran.\n(c) sync.coverage.spec.ts › 'DOS-166: every upload table stands for a declared procedure and is never wider than it': `TypeError: registry.uploadTables is not a function` at :828.\n(d) sync.coverage.spec.ts › 'never offers a shop a write queue, while the desk keeps its writable tables': `expected [ true, true ] to deeply equal [ true, false ]` at :463. The accountant's manifest marked trip_stops writable.\n(e) sync.spec.ts › 'DOS-166: answers a row policy refusal (42501) inside a handler as a not_permitted rejection, never a 500': `expected 500 to be 200` at :355.\n(f) rls.test.ts › 'DOS-166: refuses a receipt INSERT from a salesperson and from the warehouse…': `promise resolved \"Result{ command: 'INSERT', …(9) }\" instead of rejecting` at :2077. The salesperson's insert went through.\nTotals: coverage spec 3 failed / 18 passed; rls.test.ts filtered to DOS-166, 1 failed.",
+   "passAfter": "Each spec file was run alone.\n- sync.coverage.spec.ts: 21/21 (a, b, c, d).\n- sync.spec.ts: 8/8 (e).\n- After `pnpm db:migrate` applied 0045/0046 (47 migrations): the whole rls.test.ts 94/94 (f).\n- receivables.spec.ts: 37/37, both before and after the migration.\n- delivery.spec.ts: 25/25, both before and after the migration.\n- orders.spec.ts 28/28; warehouse.spec.ts 41/41.\n- After rebuilding contracts, db and core dist, @dos/delivery-service spec 259/259, including describePermissionMatrix with the real registrations booted.\n- `turbo run typecheck lint` green for @dos/contracts, @dos/core and @dos/db (lint shows only the boundaries plugin's existing deprecation warnings).\n- Re-running drizzle-kit generate: 'No schema changes, nothing to migrate'.\n- `pnpm docs:readme:check`: exit 0, no README drift.\n- 0046's DO block, run in rolled-back psql transactions on dos_test_b2_h7: it refuses the old `<> 'retailer'` predicate and an allow-list that admits salesperson; it passes the migrated state. The policy was intact after rollback.\n- pg_policies shows receipts_write_insert = `actor_role = ANY (ARRAY['owner','manager','accountant','delivery','system'])`, with update and delete still staff-wide.\n- A script over the built dist found no writable flag change for salesperson, warehouse, delivery, owner or manager. Only the accountant's manifest changes (trip_stops, deliveries, pod_evidence and pick_lines become not writable), which matches the design.\n- git status is clean.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-166: refuses a salesperson receipt through the upload as role_not_allowed and writes nothing"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-166: every upload table stands for a declared procedure and is never wider than it"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "never offers a shop a write queue, while the desk keeps its writable tables (two DOS-166 manifest asserts added: crew receipts/trip_stops/deliveries writable; accountant receipts writable, trip_stops not)"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.spec.ts",
+     "name": "DOS-166: answers a row policy refusal (42501) inside a handler as a not_permitted rejection, never a 500"
+    },
+    {
+     "file": "backend/libs/database/src/rls.test.ts",
+     "name": "DOS-166: refuses a receipt INSERT from a salesperson and from the warehouse, and still takes one from the crew and the money desk"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/sync.ts",
+    "backend/libs/core/src/modules/sync/sync.registry.ts",
+    "backend/libs/core/src/modules/sync/sync.service.ts",
+    "backend/libs/core/src/modules/receivables/receivables.module.ts",
+    "backend/libs/core/src/modules/orders/orders.module.ts",
+    "backend/libs/core/src/modules/delivery/delivery.module.ts",
+    "backend/libs/core/src/modules/warehouse/warehouse.module.ts",
+    "backend/libs/core/src/modules/docint/docint.module.ts",
+    "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+    "backend/libs/core/src/modules/sync/sync.spec.ts",
+    "backend/libs/database/src/schema/columns.ts",
+    "backend/libs/database/src/schema/receivables.ts",
+    "backend/libs/database/migrations/0045_receipts_insert_roles_expand.sql",
+    "backend/libs/database/migrations/0046_receipts_insert_roles_guarantees.sql",
+    "backend/libs/database/migrations/meta/0045_snapshot.json",
+    "backend/libs/database/migrations/meta/_journal.json",
+    "backend/libs/database/src/rls.test.ts",
+    "docs/27-offline-sync-client.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "Design table: registered upload tables mapped to procedures and roles",
+     "done": true,
+     "how": "All twelve register calls carry standsFor exactly as tabled: receipts, allocations, sales_orders, sales_order_lines, trip_stops (start+arrive+fail), deliveries, pod_evidence, collections, trip_expenses, pick_lines, documents, document_pages. The two spec fakes stand for retailers.visits.record. Test (c) pins all thirteen and checks mayUploadTable against isAllowed for every role in ALL_ROLES."
+    },
+    {
+     "amendment": "Design (1): contracts SYNC_REJECTION_CODES.roleNotAllowed plus one doc sentence",
+     "done": true,
+     "how": "Added `roleNotAllowed: 'role_not_allowed'` to backend/libs/contracts/src/sync.ts with its sentence in the doc comment. No route or shape changed (docs:readme:check exit 0). Contracts rebuilt."
+    },
+    {
+     "amendment": "Design (2): registry register() requires standsFor, fails at registration, mayUploadTable, uploadTables, role-aware manifest writable",
+     "done": true,
+     "how": "`register(table, handler, spec: UploadSpec)` makes the option a compile error to omit. It throws when an entry has no declared permission (permissionFor undefined) or when the list is empty. `mayUploadTable` returns true for system and false for unregistered tables and non-membership roles; otherwise every listed procedure must allow the role (isAllowed). `uploadTables()` feeds the pin. manifest writable = mayUpload(role) && handlers.has(table) && mayUploadTable(table, role)."
+    },
+    {
+     "amendment": "Design (3): sync.service.ts role branch after unknown_table, outside the savepoint, durable, HTTP 200",
+     "done": true,
+     "how": "`else if (!this.registry.mayUploadTable(op.table, ctx.actorRole))` rejects with the design's English and Hindi sentences before the savepoint and vetoIfStale. It falls through to the sync_errors and sync_ops inserts. Test (a) proves 200, no receipt, journal, allocation or ReceiptRecorded row, the tray row, sync_ops ok:false and replay. Only the upload half of sync.service.ts changed."
+    },
+    {
+     "amendment": "Design (4): five module files plus the two spec fakes gain standsFor; receivables.sync.ts, delivery.sync.ts and orders.sync.ts untouched",
+     "done": true,
+     "how": "Edited receivables, orders, delivery, warehouse and docint module files, plus the fakes in sync.spec.ts and sync.coverage.spec.ts. No *.sync.ts file changed, which keeps clear of lanes h1, h3 and h5."
+    },
+    {
+     "amendment": "Design (5): no new per-handler checks; DOS-115 requirePlacer stays as defence in depth",
+     "done": true,
+     "how": "No requireRole was added to any handler, and orders.sync.ts is untouched."
+    },
+    {
+     "amendment": "Design, client: no @dos/offline change",
+     "done": true,
+     "how": "No frontend file was edited. The dist script confirmed no field role's manifest writable flag changes; only the accountant's moves."
+    },
+    {
+     "amendment": "Warehouse 500: a 42501 inside a handler becomes a not_permitted rejection",
+     "done": true,
+     "how": "In the handler catch, `else if (isPrivilegeViolation(error))` returns reject(op, 'not_permitted', pgMessage(error), pgMessage(error)) using platform/pg-errors helpers. Test (e) proves 200, not_permitted, the sync_ops and sync_errors rows, and replay."
+    },
+    {
+     "amendment": "Database defence in depth: MONEY_COLLECTOR_ROLES, staffWritePolicy insert option, receipts policy, migrations 0045/0046 (prevId 71fb2489…, when after 1789273155181)",
+     "done": true,
+     "how": "columns.ts gained MONEY_COLLECTOR_ROLES and `staffWritePolicy(name, { insert? })`, which narrows only the insert WITH CHECK via the existing tenantAndRoles helper. schema/receivables.ts uses `{ insert: MONEY_COLLECTOR_ROLES }`. drizzle-kit generate ran with its own timeout and did not prompt, writing 0045 (one ALTER POLICY receipts_write_insert) and 0045_snapshot.json (prevId 71fb2489-2081-4833-b5db-b2607fc2c7da, when 1789285591648). 0046 is hand-written, journal when 1789285591649, and ends in a DO block asserting FORCE RLS, no FOR ALL policy, and an insert allow-list naming neither salesperson nor warehouse. SELECT, UPDATE and DELETE are unchanged. Test (f) is green."
+    },
+    {
+     "amendment": "Tests (a)-(f) and the service-spec matrix",
+     "done": true,
+     "how": "I checked the previous implementer's uncommitted tests against (a)-(f) and kept all of them. They match the design; (a) additionally counts journal_entries. DocintModule in the coverage boot list is needed, and the pin passed with both docint tables. Each test was run red, then green. The delivery-service describePermissionMatrix is unchanged and green."
+    },
+    {
+     "amendment": "Files and sequencing: design order in two commits; step (7) docs/27 only; format; docs:readme:check",
+     "done": true,
+     "how": "Commit 1 covers steps 1-5 with tests a, c, d and e. Commit 2 covers step 6 with test f and 0045/0046, plus docs/27 line 103, which now names role_not_allowed and not_permitted. pnpm format ran; docs:readme:check exit 0. docs/22 and QA/13 are left to the main session (followUps)."
+    },
+    {
+     "amendment": "Regression proof: probe.mjs 01-06 on dos_qa after merge, manifests, apps, psql",
+     "done": false,
+     "how": "This is post-merge work on dos_qa with running services and apps, which this lane forbids (no dev servers, no dos_qa). Listed in followUps. The psql half was approximated on dos_test_b2_h7 via rls test (f) and pg_policies."
+    },
+    {
+     "amendment": "Founder defaults 1-3",
+     "done": true,
+     "how": "(1) allocations stands for receivables.allocations.create (MONEY_DESK). (2) The receipts INSERT policy is owner, manager, accountant, delivery and system. (3) Nothing else is widened or narrowed."
+    }
+   ],
+   "deviations": "- `register` also throws on an empty `standsFor`. An empty list would make `every` true for every role, i.e. an open door. The design says the option is required, and the inherited test (c) pins this throw.\n- `mayUploadTable` returns false for any role outside the seven membership roles (curator, support, platform_admin) before calling `isAllowed`. `isAllowed` takes a PermissionRole, so this is needed for typing, and it matches the design's \"a non-membership role such as curator fails closed\". For every role in ALL_ROLES the result equals the design's formula (pinned).\n- 0046 additionally requires the insert WITH CHECK to be an allow-list (names 'delivery', no `<>`). The design's check alone (\"names neither salesperson nor warehouse\") also passes the OLD `<> 'retailer'` predicate, so it could not detect a regression. Rolled-back negative runs prove both refusals.\n- `role_not_allowed` uses the new contract constant; `not_permitted` is a string literal, because the design adds only roleNotAllowed to the contract.\n- The docs/27 edit went into commit 2, following the design's order (step 7 after step 6).\n- Environment: `pnpm --filter @dos/core test -- <file> -t <name>` dropped the file filter and ran 36 core spec files once, against dos_test_b2_h7 only. Every later run used `pnpm --filter @dos/core exec vitest run <file>`.\n- `pnpm format` also reformats backend/libs/core/src/modules/pricing/pricing.spec.ts, which is unformatted on main. I restored it both times and did not commit it.",
+   "followUps": "- docs/22 (main session): §8 register row for DOS-166 (the upload checks PERMISSIONS per synced table via standsFor; role_not_allowed and not_permitted rejections; receipts INSERT policy limited to money collectors plus system). §9 never-list #2 becomes \"…never records a receipt — database policy plus the upload door\". Add the §11 change-log row, re-render the HTML and republish the artifact.\n- QA/13 row for DOS-166 in its own commit (CHARTER A.14).\n- Regression proof after merge (design section): re-run probe.mjs 01-06 on dos_qa with fresh device ids into QA/evidence/batch2/sync-role-probe/after/. Expected: 02 and 03 give 200 role_not_allowed with no RCPT drawn, and 03 now has a sync_ops row; 06 gives role_not_allowed. Also check GET /sync/manifest as ganesh.more (receipts, trip_stops, deliveries writable) and as amol.vaidya (trip_stops not writable). Delivery, sales and warehouse apps each sync offline accepted. psql as app_rw: salesperson INSERT into receipts gives 42501, delivery succeeds. Reversing RCPT-0708 stays the founder's call.\n- Merge notes: lane h3 (DOS-056, row_too_large) edits the same upload loop in sync.service.ts, so expect adjacency with the new role and 42501 branches; keep both. DOS-115's requirePlacer (h5) is independent. DOS-080 touches only the pull half.\n- If another lane merges a migration 0045+ first, regenerate this lane's policy migration against the new head snapshot, renumber 0046, and re-append the journal (0046 has no snapshot).\n- After merge, run `pnpm db:migrate` on dos_qa and dos. Only the accountant's device manifest hash moves; no desk app mounts OfflineProvider.\n- Tidy: backend/libs/core/src/modules/pricing/pricing.spec.ts on main fails prettier, so `format:check` would flag it.\n- Orchestrator brief: `pnpm --filter @dos/core test -- <file> -t <name>` runs the whole core suite; use `pnpm --filter @dos/core exec vitest run <file> -t <name>` instead.",
+   "platformCheck": "Backend and database only; no frontend, app or device code changed, and no dev server, emulator or simulator was started per the lane rules. Proven on dos_test_b2_h7:\n- core specs through the Nest and Fastify harness;\n- the delivery-service spec on rebuilt dist (259 green);\n- rls.test.ts after applying 0045/0046;\n- rolled-back psql runs of the 0046 assertion;\n- a dist script showing no field role's manifest writable flag changes, so the sales, warehouse and delivery apps' device schema stays the same.\nThe web, Android and iOS app behaviour (offline receipt, order and pick syncs accepted) is left to the post-merge regression walk in followUps."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-166",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "Design table: the twelve registered upload tables map to their procedures and roles",
+     "satisfied": true,
+     "detail": "Every register call in receivables/orders/delivery/warehouse/docint .module.ts carries standsFor exactly as tabled (trip_stops = start+arrive+fail). The two spec fakes stand for retailers.visits.record. Test (c) pins all 13 entries and compares mayUploadTable with isAllowed for every role in ALL_ROLES. PERMISSIONS rows were checked at permissions.ts:442-710 and match the design's role groups."
+    },
+    {
+     "amendment": "Design (1): contracts SYNC_REJECTION_CODES.roleNotAllowed plus a doc sentence, no route or shape change",
+     "satisfied": true,
+     "detail": "backend/libs/contracts/src/sync.ts adds roleNotAllowed: 'role_not_allowed' and its doc sentence; nothing else in contracts changed. No frontend code switches on these codes (grep)."
+    },
+    {
+     "amendment": "Design (2): register() requires standsFor and fails at registration; mayUploadTable, uploadTables and a role-aware manifest writable",
+     "satisfied": true,
+     "detail": "sync.registry.ts: register(table, handler, spec: UploadSpec) makes the option a compile error to omit. It throws on an undeclared procedure and on an empty list; the empty-list throw is a code-proven deviation, since every() over [] opens the door. mayUploadTable: system is true, a non-membership role is false, otherwise every procedure must be allowed. manifest.writable = mayUpload && handlers.has && mayUploadTable. Test (c) exercises both throws."
+    },
+    {
+     "amendment": "Design (3): role branch in sync.service.ts after unknown_table, before the savepoint and vetoIfStale, durable, HTTP 200",
+     "satisfied": true,
+     "detail": "The else-if !mayUploadTable branch sits between unknown_table and the try/savepoint. It falls through to the sync_errors and sync_ops inserts. Only the upload half changed; pull code is untouched. Test (a) proves 200, the tray row, sync_ops ok:false, replay, and no receipts/journal/allocations/ReceiptRecorded."
+    },
+    {
+     "amendment": "Design (4): five module files plus the two spec fakes gain standsFor; receivables/delivery/orders .sync.ts untouched",
+     "satisfied": true,
+     "detail": "git show --stat for both commits: no *.sync.ts, no frontend, no README, no QA/, no docs/22."
+    },
+    {
+     "amendment": "Design (5): no new per-handler checks; DOS-115 requirePlacer left to lane h5",
+     "satisfied": true,
+     "detail": "The diff adds no requireRole to any handler, and orders.sync.ts is untouched."
+    },
+    {
+     "amendment": "Design, client: no @dos/offline change; no field device's writable flags move",
+     "satisfied": true,
+     "detail": "No frontend file changed. Code reading of pullRolesFor (DESK_DEVICE_ROLES plus sync-tables roles) against PERMISSIONS shows no change for any field role. Salesperson keeps sales_orders/lines (ANY_MEMBER), warehouse keeps pick_lines (STOCK_KEEPERS), delivery keeps receipts/trip_stops/deliveries. Only the accountant loses trip_stops, deliveries and pick_lines. Test (d) pins the crew and accountant cases."
+    },
+    {
+     "amendment": "Warehouse 500: a 42501 inside a handler becomes a not_permitted rejection",
+     "satisfied": true,
+     "detail": "The handler catch gains isPrivilegeViolation(error), which rejects with 'not_permitted' and pgMessage, using the existing platform/pg-errors helpers. Test (e) was red at 500 without the fix and gives 200 with the rejection, sync_ops and sync_errors rows, and replay with it."
+    },
+    {
+     "amendment": "Database defence in depth: MONEY_COLLECTOR_ROLES, staffWritePolicy insert option, receipts schema line, 0045 generated plus 0046 hand-written, prevId 71fb2489, journal when after 1789273155181",
+     "satisfied": true,
+     "detail": "The 0045_snapshot prevId is 71fb2489-2081-4833-b5db-b2607fc2c7da. The 0044-to-0045 snapshot diff is only the receipts_write_insert withCheck. Journal when values are 1789285591648 and 1789285591649. drizzle-kit generate re-run: 'No schema changes'. pg_policies: insert is the allow-list (owner, manager, accountant, delivery, system); select, update and delete are unchanged. 0046's DO block ran in rolled-back transactions and refused three regressions: the old '<> retailer' predicate, an allow-list including salesperson, and NO FORCE RLS. It passed the migrated state. The extra allow-list assertion is a code-proven deviation, since the old predicate names neither role."
+    },
+    {
+     "amendment": "Tests (a)-(f) and the service-spec permission matrix",
+     "satisfied": true,
+     "detail": "(a) and (c)-(f) were each red before and green after. (b), the crew replay control, passed both before and after. The delivery-service spec, with describePermissionMatrix and the real registrations booted, passed 259/259."
+    },
+    {
+     "amendment": "Files and sequencing: two commits in design order, docs/27 edited, docs/22 and QA/13 left to the main session",
+     "satisfied": true,
+     "detail": "Commit 1 is steps 1-5 with tests a, c, d and e. Commit 2 is step 6 with test f plus docs/27 line 103. Prettier --check is clean on all touched files."
+    },
+    {
+     "amendment": "Regression proof: probe 01-06 on dos_qa after merge, manifests, apps, psql",
+     "satisfied": true,
+     "detail": "The design places this AFTER MERGE on dos_qa with running services and apps, which both the lane and the verifier environment forbid. It is not executable pre-merge and is correctly carried into followUps. It is still owed (see the minor problem). Its psql half was proven here on scratch and lane databases (rls test f, pg_policies)."
+    },
+    {
+     "amendment": "Founder defaults 1-3",
+     "satisfied": true,
+     "detail": "(1) allocations stands for receivables.allocations.create (MONEY_DESK). (2) MONEY_COLLECTOR_ROLES = owner, manager, accountant, delivery, system. (3) No other permission, policy or matrix row changed."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "QA/evidence/batch2/sync-role-probe/",
+     "detail": "The design's post-merge regression proof has not been executed by anyone yet. It covers: probe.mjs 01-06 on dos_qa with fresh device ids; GET /sync/manifest as ganesh.more and as amol.vaidya; the delivery, sales and warehouse apps syncing offline; psql as app_rw. It is out of lane scope and listed in followUps, but must run after merge."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "detail": "In test (a) the warehouse ('store') half was never observed red: the loop stops at the rep's failing assertion (expected 1 to be 0). The warehouse 500 mechanism is covered separately by test (e) and by probe 03, so this is a coverage note, not a defect."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.registry.ts",
+     "detail": "Report inaccuracy only: the implementer said the accountant's manifest also loses pod_evidence. pod_evidence has no registered pull, so it is in no manifest; only trip_stops, deliveries and pick_lines flip for the accountant. Code behaviour matches the design."
+    }
+   ],
+   "evidence": "Worktree .claude/worktrees/b2-h7-syncdoor, commits 25a3329 and eb33170. Scope from git show --stat: 18 files, all named by the design, none of them *.sync.ts, frontend, README, QA/ or docs/22.\n\nFAIL BEFORE. Both commits' non-test changes were reversed with `git diff C^ C -- . ':(exclude)**/*.spec.ts' … | git apply -R`, and contracts/domain/db/core rebuilt. Scratch DB dos_test_b2_h7_v166 was created and migrated at the reversed state: 45 migrations, receipts_write_insert = `<> 'retailer'`, the finding's state.\n- sync.coverage.spec.ts: 3 failed / 18 passed.\n  - (d) `expected [ true, true ] to deeply equal [ true, false ]` :463\n  - (a) `rep: expected 1 to be +0` :763, i.e. the rep's receipt was ACCEPTED, as in the probe\n  - (c) `registry.uploadTables is not a function` :828\n  - The crew replay control passed.\n- sync.spec.ts: 1 failed / 7 passed; (e) `expected 500 to be 200` :355.\n- rls.test.ts -t DOS-166: (f) `promise resolved \"Result{ command: 'INSERT' …}\" instead of rejecting` :2077.\n\nPER-COMMIT INDEPENDENCE. Commit 1 re-applied alone (commit 2 still reversed, DB still at 0044), core rebuilt:\n- sync.coverage.spec 21/21 and sync.spec 8/8, so the upload door is closed without the DB policy;\n- rls (f) still fails, so commit 2 is independently needed.\n\nRESTORE AND DATABASE GUARANTEE. `git checkout -- .` gave a clean status (0 entries, untracked included); rebuilt.\n- Forward migration of the same scratch DB to 47: pg_policies shows insert = `= ANY (ARRAY['owner','manager','accountant','delivery','system'])`, with read/update/delete unchanged. rls (f) passed.\n- 0046 DO block in rolled-back psql transactions: it RAISED on the old deny-list (\"must be an allow-list…\"), on an allow-list including salesperson (\"must not admit a salesperson or the warehouse\"), and on NO FORCE RLS (\"must keep FORCE ROW LEVEL SECURITY\"). It passed on the migrated state; the policy and FORCE RLS were intact afterwards.\n- Scratch dropped and recreated, migrated from zero to 47, rls (f) passed, then dropped. Only dos_test_b2_h7 remains.\n\nPASS AFTER, on the lane DB dos_test_b2_h7, one file per command:\n\n| Run | Result |\n|---|---|\n| sync.coverage.spec.ts | 21/21 |\n| sync.spec.ts | 8/8 |\n| rls.test.ts (whole) | 94/94 |\n| receivables.spec.ts | 37/37 |\n| delivery.spec.ts | 25/25 |\n| warehouse.spec.ts | 41/41 |\n| orders.spec.ts | 28/28 |\n| docint.spec.ts | 13/13 |\n| @dos/delivery-service (incl. describePermissionMatrix, real registrations booted) | 259/259 |\n| turbo typecheck+lint for @dos/contracts, @dos/core, @dos/db | 9/9 tasks successful |\n| drizzle-kit generate | 'No schema changes, nothing to migrate' |\n| prettier --check on all touched files | clean |\n\nDIFF AUDIT.\n- No assertion weakened or deleted; the spec fakes were only restructured to pass standsFor. testsCorrected is empty and correct.\n- Contract change is limited to SYNC_REJECTION_CODES.roleNotAllowed. No PERMISSIONS change. Schema change is limited to receipts_write_insert.\n- No module-boundary violation (the registry imports @dos/contracts only), no RLS bypass, no frontend change, no leftover files.\n- Every receipts INSERT path was checked against the new policy: createReceipt (MONEY_COLLECTORS), collections.service:124/127 (MONEY_COLLECTORS) and the sync handler (now gated) go through recordReceipt→insertNumberedReceipt. Reverse and bounce draw no number. All sit inside MONEY_COLLECTOR_ROLES, and receivables/delivery specs are green under 0046.\n- Deviations (empty-list throw, non-membership roles fail closed, 0046 allow-list assertion, not_permitted as a literal) are code-proven and within the design.\n\nFinal git status clean at eb33170."
+  }
+ ]
+}

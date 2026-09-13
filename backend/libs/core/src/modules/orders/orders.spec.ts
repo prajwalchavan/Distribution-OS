@@ -1,5 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import { ORPCError } from '@orpc/server'
+import { permissionFor, SYNC_REJECTION_CODES, type Quote } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
@@ -29,15 +31,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
-import { SyncModule } from '../sync/index.js'
+import { SyncModule, SyncRejection } from '../sync/index.js'
 import { OrdersModule, OrdersService } from './index.js'
+import { ORDER_PLACERS } from './orders.internals.js'
+import { requirePlacer } from './orders.sync.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
 type Line = {
   id: string
+  lineNo: number
   variantId: string
+  variantName: string
   enteredQty: number
   enteredUnit: string
   packSizeAtEntry: number
@@ -102,6 +108,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const lineOne = uuidv7()
   const repeatOrder = uuidv7()
   const strictOrder = uuidv7()
+  const strictOrderDos004 = uuidv7() // DOS-004: a second over-limit order for Shop B, left pending
+  const tripApprovalDos004 = uuidv7() // DOS-004: an approval with no order behind it
   const shopOrder = uuidv7()
   const syncOrder = uuidv7()
   let godown = ''
@@ -115,7 +123,8 @@ describeDb('orders (DATABASE_URL)', () => {
       { id: ownerId, phone: `+91904${run}1`, name: 'Owner' },
       { id: repId, phone: `+91904${run}2`, name: 'Rep' },
       { id: shopUserId, phone: `+91904${run}3`, name: 'Shopkeeper' },
-      // `+91904${run}4` is the DOS-073 block's second rep; phones are unique platform-wide
+      // `+91904${run}4` is the DOS-073 block's second rep, `6` and `7` the DOS-115 block's godown and crew;
+      // phones are unique platform-wide
       { id: managerId, phone: `+91904${run}5`, name: 'Manager' },
     ])
     await db.insert(memberships).values([
@@ -423,6 +432,115 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { n: number }[]
     expect(held[0]?.n).toBe(0)
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-004: the approvals queue names the shop, the order number and the order total, read from the
+  // approval's own order when the list is asked, never from its payload (the demo seed and older rows shape
+  // the payload differently). An approval with no order behind it lists with all four fields null.
+
+  type QueueItem = {
+    id: string
+    kind: string
+    orderId: string | null
+    payload: Record<string, unknown>
+    orderNo: string | null
+    orderTotalPaise: number | null
+    retailerId: string | null
+    retailerName: string | null
+  }
+
+  it('DOS-004: the approvals queue names the shop, the order number and the total of an order approval', async () => {
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos004-${run}`,
+      id: strictOrderDos004,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    expect(drafted.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos004}/submit`,
+      { idempotencyKey: `submit-dos004-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+    expect(submitted.body.item.orderNo).toMatch(/^SO-/)
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.orderId === strictOrderDos004)
+    expect(item).toMatchObject({
+      kind: 'credit_limit',
+      orderNo: submitted.body.item.orderNo,
+      orderTotalPaise: submitted.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval whose payload carries no order number still names the order and shop from its order', async () => {
+    const order = await call<{ item: Detail }>(app, owner, 'GET', `/orders/${strictOrderDos004}`)
+    expect(order.status).toBe(200)
+    expect(order.body.item.orderNo).toMatch(/^SO-/)
+    // the demo seed's shape: a retailer entity asking for a limit, with no orderNo or totalPaise in the payload
+    const seedShaped = uuidv7()
+    await db.insert(approvals).values({
+      id: seedShaped,
+      tenantId,
+      kind: 'credit_limit',
+      orderId: strictOrderDos004,
+      entityType: 'retailer',
+      entityId: retailerB,
+      requestedBy: repId,
+      status: 'pending',
+      payload: { currentLimitPaise: 1000, requestedLimitPaise: 3000, reason: 'DOS-004 seed shape' },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      kind: 'credit_limit',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === seedShaped)
+    expect(item?.payload.orderNo).toBeUndefined()
+    expect(item).toMatchObject({
+      orderNo: order.body.item.orderNo,
+      orderTotalPaise: order.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval that is not on an order lists with null shop and order fields', async () => {
+    await db.insert(approvals).values({
+      id: tripApprovalDos004,
+      tenantId,
+      kind: 'trip_settlement',
+      orderId: null,
+      entityType: 'trip',
+      entityId: uuidv7(),
+      requestedBy: ownerId,
+      status: 'pending',
+      payload: { cashVariancePaise: -500 },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      kind: 'trip_settlement',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === tripApprovalDos004)
+    expect(item).toBeDefined()
+    expect(item?.orderNo).toBeNull()
+    expect(item?.orderTotalPaise).toBeNull()
+    expect(item?.retailerId).toBeNull()
+    expect(item?.retailerName).toBeNull()
   })
 
   it('lets the rep cancel a draft', async () => {
@@ -1014,6 +1132,56 @@ describeDb('orders (DATABASE_URL)', () => {
       },
     ])
     expect(await asOwner((tx) => orders.fulfilmentLines(tx, []))).toEqual([])
+  })
+
+  it('DOS-096: what the shop is quoted is what its placed order carries — GST per line, rounding and total', async () => {
+    const la = uuidv7()
+    const lb = uuidv7()
+    // The retailer app prices its basket through pricing.quote before "Place order" (R7).
+    const quote = await call<Quote>(app, shop, 'POST', '/pricing/quote', {
+      retailerId: retailerA,
+      lines: [
+        { lineId: la, variantId: variantA, qtyPcs: 24 },
+        { lineId: lb, variantId: variantB, qtyPcs: 7 },
+      ],
+    })
+    expect(quote.status).toBe(200)
+    // 24 × ₹10 + 7 × ₹25 = ₹415.00; 12% GST ₹28.80 + ₹21.00 = ₹49.80; ₹464.80 rounds to ₹465 with +20 paise
+    expect(quote.body.totals).toMatchObject({
+      grossPaise: 41_500,
+      netPaise: 41_500,
+      taxPaise: 4_980,
+      roundOffPaise: 20,
+      totalPaise: 46_500,
+    })
+
+    const placed = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `create-dos096-${run}`,
+      id: uuidv7(),
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [
+        { id: la, variantId: variantA, enteredQty: 2, enteredUnit: 'case' },
+        { id: lb, variantId: variantB, enteredQty: 7, enteredUnit: 'piece' },
+      ],
+    })
+    expect(placed.status).toBe(200)
+    const order = placed.body.item
+    expect(order).toMatchObject({
+      subtotalPaise: quote.body.totals.grossPaise,
+      taxPaise: quote.body.totals.taxPaise,
+      roundOffPaise: quote.body.totals.roundOffPaise,
+      totalPaise: quote.body.totals.totalPaise,
+    })
+    const byId = new Map(order.lines.map((line) => [line.id, line]))
+    for (const quoted of quote.body.lines)
+      expect(byId.get(quoted.lineId)).toMatchObject({
+        gstBps: quoted.gstBps,
+        taxPaise: quoted.taxPaise,
+        lineTotalPaise: quoted.lineTotalPaise,
+      })
+    expect(byId.get(la)).toMatchObject({ gstBps: 1_200, taxPaise: 2_880, lineTotalPaise: 26_880 })
+    expect(byId.get(lb)).toMatchObject({ gstBps: 1_200, taxPaise: 2_100, lineTotalPaise: 19_600 })
   })
 
   const countRows = async (orderId: string) => {
@@ -1617,5 +1785,463 @@ describeDb('orders (DATABASE_URL)', () => {
         reason: 'test cleanup',
       })
     }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-003: an order line names its item the way the bill line does — the tenant's alias first, the global
+  // variant name otherwise — read when the order is fetched, so an item delisted after ordering keeps its name.
+  // Its own variants and listings, and last in the file, so no other test sees a listing switched off.
+
+  it('DOS-003: order lines carry variantName — tenant alias first, global name otherwise, and an item delisted after ordering is still named (create reply, owner GET, retailer GET)', async () => {
+    const manufacturerId = uuidv7()
+    const productId = uuidv7()
+    const aliased = uuidv7()
+    const plain = uuidv7()
+    const plainListing = uuidv7()
+    const orderId = uuidv7()
+    await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker dos003 ${run}` })
+    await db
+      .insert(products)
+      .values({ id: productId, manufacturerId, name: 'Snacks', category: 'snacks' })
+    await db.insert(productVariants).values([
+      {
+        id: aliased,
+        productId,
+        name: 'Kurkure Masala Munch 90 g',
+        netQty: 90,
+        netUnit: 'g',
+        defaultCaseSize: 60,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+      {
+        id: plain,
+        productId,
+        name: 'Lays Classic 52 g',
+        netQty: 52,
+        netUnit: 'g',
+        defaultCaseSize: 48,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+    ])
+    await db.insert(tenantProducts).values([
+      { id: uuidv7(), tenantId, variantId: aliased, localAlias: 'Kurkure 90' },
+      { id: plainListing, tenantId, variantId: plain },
+    ])
+    // `priceListId` is local to beforeAll; bootstrapTenant creates no price list, so the spec's is the only one
+    const [priceList] = await db
+      .select()
+      .from(priceLists)
+      .where(sql`${priceLists.tenantId} = ${tenantId}`)
+    expect(priceList).toBeDefined()
+    await db.insert(priceListItems).values([
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: aliased,
+        ratePaise: 1800,
+      },
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: plain,
+        ratePaise: 1800,
+      },
+    ])
+    const expected = [
+      [1, aliased, 'Kurkure 90'],
+      [2, plain, 'Lays Classic 52 g'],
+    ]
+    const named = (lines: Line[]) => lines.map((l) => [l.lineNo, l.variantId, l.variantName])
+
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos003-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: aliased, enteredQty: 1, enteredUnit: 'piece' },
+        { id: uuidv7(), variantId: plain, enteredQty: 1, enteredUnit: 'piece' },
+      ],
+    })
+    expect(created.status).toBe(200)
+    expect(named(created.body.item.lines)).toEqual(expected)
+
+    // the Lays listing is switched off after the order was taken (the owner pool bypasses RLS)
+    await db
+      .update(tenantProducts)
+      .set({ listed: false })
+      .where(eq(tenantProducts.id, plainListing))
+
+    for (const actor of [owner, shop]) {
+      const got = await call<{ item: Detail }>(app, actor, 'GET', `/orders/${orderId}`)
+      expect(got.status).toBe(200)
+      expect(named(got.body.item.lines)).toEqual(expected)
+    }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-115: an order is placed, re-lined, repeated, submitted and cancelled by the owner, the manager, the rep
+  // and the shop (ORDER_PLACERS). The godown and the crew take no order — the crew sells from the van through
+  // `delivery.vanSales.create` — so the gate refuses them the five procedures, the handler refuses them again in
+  // process, the upload door answers them 2xx `role_not_allowed` (DOS-166) before any handler, and the handlers'
+  // `requirePlacer` stays behind it as defence in depth (`forbidden`). Both still read orders. Last in the file:
+  // its own opening stock cannot move an earlier test's reservation or shortage arithmetic.
+
+  describe('DOS-115 the godown and the crew take no order', () => {
+    const storeId = uuidv7()
+    const crewId = uuidv7()
+    const store: Actor = { tenantId, actorId: storeId, role: 'warehouse' }
+    const crew: Actor = { tenantId, actorId: crewId, role: 'delivery' }
+    const confirmed = uuidv7() // the rep's order on Shop A, submitted and confirmed, one piece held
+    const confirmedLine = uuidv7()
+    const linesDraft = uuidv7() // the rep's three drafts the intruders try to re-line, submit and cancel
+    const submitDraft = uuidv7()
+    const cancelDraft = uuidv7()
+    const intruders = [store, crew].map((actor) => ({
+      actor,
+      tag: `${actor.role}-${run}`,
+      created: uuidv7(), // what a refused POST /orders would have drafted
+      repeated: uuidv7(), // what a refused POST /orders/repeat-last would have drafted
+      uploaded: uuidv7(), // what a refused sales_orders PUT would have drafted
+    }))
+    const attempted = intruders.flatMap((i) => [i.created, i.repeated, i.uploaded])
+    const orderIds = [confirmed, linesDraft, submitDraft, cancelDraft, ...attempted]
+
+    beforeAll(async () => {
+      await db.insert(users).values([
+        { id: storeId, phone: `+91904${run}6`, name: 'Godown' },
+        { id: crewId, phone: `+91904${run}7`, name: 'Van driver' },
+      ])
+      await db.insert(memberships).values([
+        { id: uuidv7(), tenantId, userId: storeId, role: 'warehouse' },
+        { id: uuidv7(), tenantId, userId: crewId, role: 'delivery' },
+      ])
+      // Five pieces of its own, so the confirmed order's held piece exists whatever the earlier tests hold.
+      const inventory = app.get(InventoryService)
+      await asOwner(async (tx) => {
+        const { lot } = await inventory.findOrCreateLot(tx, {
+          variantId: variantA,
+          batchNo: `DOS115-${run}`,
+          mrpPaise: 4000,
+        })
+        await inventory.post(tx, [
+          {
+            lotId: lot.id,
+            locationId: godown,
+            qtyDelta: 5,
+            reason: 'opening',
+            idempotencyKey: `open-${run}-dos115`,
+          },
+        ])
+      })
+      // the rep's confirmed order (Shop A is `indicate`, so submit confirms it and holds the piece)…
+      const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos115-create-confirmed-${run}`,
+        id: confirmed,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: confirmedLine, variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+      })
+      expect(drafted.status).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${confirmed}/submit`,
+        { idempotencyKey: `dos115-submit-confirmed-${run}` },
+      )
+      expect(submitted.body.item.state).toBe('confirmed')
+      // …and three one-line drafts, so a wrongful re-line, submit or cancel would be a real write
+      for (const id of [linesDraft, submitDraft, cancelDraft]) {
+        const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+          idempotencyKey: `dos115-create-draft-${id}`,
+          id,
+          retailerId: retailerA,
+          source: 'salesperson',
+          lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+        })
+        expect(draft.body.item.state).toBe('draft')
+      }
+    })
+
+    /** Everything a wrongful create, re-line, repeat, submit, cancel or upload would change or add. */
+    const snapshot = async () => {
+      const orders = (
+        await db.execute(
+          sql`select id, state, order_no, cancelled_at, cancel_reason, note, total_paise, updated_at
+                from sales_orders where id in ${orderIds} order by id`,
+        )
+      ).rows as { id: string; state: string; cancelled_at: unknown }[]
+      const lines = (
+        await db.execute(
+          sql`select id, order_id, qty_pcs from sales_order_lines
+               where order_id in ${orderIds} order by id`,
+        )
+      ).rows as { id: string; order_id: string }[]
+      const held = (
+        await db.execute(
+          sql`select r.order_line_id, r.qty, r.state from reservations r
+                join sales_order_lines l on l.id = r.order_line_id
+               where l.order_id in ${orderIds} order by r.id`,
+        )
+      ).rows as { order_line_id: string; qty: number; state: string }[]
+      const transitions = (
+        await db.execute(
+          sql`select order_id, event, actor_id from order_state_transitions
+               where order_id in ${orderIds} order by id`,
+        )
+      ).rows as { order_id: string; event: string; actor_id: string }[]
+      const events = (
+        await db.execute(
+          sql`select aggregate_id, event_type from outbox_events
+               where aggregate_id in ${orderIds} order by id`,
+        )
+      ).rows as { aggregate_id: string; event_type: string }[]
+      return { orders, lines, held, transitions, events }
+    }
+
+    it('DOS-115: a warehouse or delivery login cannot create, re-line, repeat, submit or cancel an order — 403 at the gate, refused in the handler, nothing written', async () => {
+      const before = await snapshot()
+      const oneLine = () => [
+        { id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' },
+      ]
+
+      // every write path, for both roles, on the rep's confirmed order and on its drafts; the gate names the
+      // route by its Nest pattern (`POST /orders/:id/cancel`)
+      const answers: { call: string; status: number; message: string | null; gate: string }[] = []
+      for (const { actor, tag, created, repeated } of intruders) {
+        const probes: [url: string, route: string, body: Record<string, unknown>][] = [
+          [
+            '/orders',
+            '/orders',
+            {
+              idempotencyKey: `dos115-create-${tag}`,
+              id: created,
+              retailerId: retailerA,
+              source: 'salesperson',
+              lines: oneLine(),
+            },
+          ],
+          [
+            `/orders/${linesDraft}/lines`,
+            '/orders/:id/lines',
+            { idempotencyKey: `dos115-lines-${tag}`, lines: oneLine() },
+          ],
+          [
+            '/orders/repeat-last',
+            '/orders/repeat-last',
+            {
+              idempotencyKey: `dos115-repeat-${tag}`,
+              id: repeated,
+              retailerId: retailerA,
+              source: 'salesperson',
+            },
+          ],
+          [
+            `/orders/${submitDraft}/submit`,
+            '/orders/:id/submit',
+            { idempotencyKey: `dos115-submit-${tag}` },
+          ],
+          [
+            `/orders/${confirmed}/cancel`,
+            '/orders/:id/cancel',
+            {
+              idempotencyKey: `dos115-cancel-confirmed-${tag}`,
+              reason: 'DOS-115 probe: cancelling a rep’s confirmed order',
+            },
+          ],
+          [
+            `/orders/${cancelDraft}/cancel`,
+            '/orders/:id/cancel',
+            {
+              idempotencyKey: `dos115-cancel-draft-${tag}`,
+              reason: 'DOS-115 probe: cancelling a rep’s draft',
+            },
+          ],
+        ]
+        for (const [url, route, body] of probes) {
+          const res = await call<{ message?: string }>(app, actor, 'POST', url, body)
+          answers.push({
+            call: `${actor.role} POST ${url}`,
+            status: res.status,
+            message: res.body.message ?? null,
+            gate: `the ${actor.role} role may not call POST ${route}`,
+          })
+        }
+      }
+      expect(answers).toHaveLength(12)
+      expect(answers.map(({ call: c, status, message }) => ({ call: c, status, message }))).toEqual(
+        answers.map(({ call: c, gate }) => ({ call: c, status: 403, message: gate })),
+      )
+
+      // nothing written: no order under an attempted id, the drafts and the confirmed order as they were
+      const after = await snapshot()
+      expect(after).toEqual(before)
+      for (const id of attempted)
+        expect(
+          after.orders.find((o) => o.id === id),
+          id,
+        ).toBeUndefined()
+      const row = (id: string) => after.orders.find((o) => o.id === id)
+      expect(row(confirmed)).toMatchObject({ state: 'confirmed', cancelled_at: null })
+      for (const id of [linesDraft, submitDraft, cancelDraft])
+        expect(row(id), id).toMatchObject({ state: 'draft', cancelled_at: null })
+      expect(after.held).toEqual([{ order_line_id: confirmedLine, qty: 1, state: 'pending' }])
+      expect(after.transitions.filter((t) => [storeId, crewId].includes(t.actor_id))).toEqual([])
+      expect(after.events.map((e) => e.event_type)).not.toContain('OrderCancelled')
+
+      // The handler refuses too (over HTTP the gate answers first): `cancel` called in process under a
+      // warehouse context is FORBIDDEN, and still nothing is written.
+      const orders = app.get(OrdersService)
+      const storeCtx: TenantContext = { tenantId, actorId: storeId, actorRole: 'warehouse' }
+      const refused = await tenantStorage
+        .run(storeCtx, () =>
+          orders.cancel({
+            id: cancelDraft,
+            idempotencyKey: `dos115-cancel-in-process-${run}`,
+            reason: 'DOS-115 probe: in process, past the gate',
+          }),
+        )
+        .then(
+          () => null,
+          (error: unknown) => error,
+        )
+      expect(refused).toBeInstanceOf(ORPCError)
+      expect(refused).toMatchObject({ code: 'FORBIDDEN' })
+      expect(await snapshot()).toEqual(before)
+    })
+
+    it('DOS-115: a warehouse or delivery device upload cannot draft or re-line an order — rejected forbidden, nothing written', async () => {
+      const before = await snapshot()
+      type Uploaded = {
+        accepted: number
+        replayed: number
+        rejected: { opId: string; code: string }[]
+      }
+      for (const { actor, tag, uploaded } of intruders) {
+        // No baseUpdatedAt: `vetoIfStale` runs before the handler and would answer `stale` first.
+        const res = await call<Uploaded>(app, actor, 'POST', '/sync/upload', {
+          protocol: 1,
+          deviceId: `dos115-device-${tag}`,
+          ops: [
+            {
+              opId: `dos115-so-${tag}`,
+              op: 'PUT',
+              table: 'sales_orders',
+              id: uploaded,
+              data: { retailer_id: retailerA, state: 'draft', note: 'DOS-115 device draft' },
+            },
+            {
+              opId: `dos115-sol-${tag}`,
+              op: 'PUT',
+              table: 'sales_order_lines',
+              id: uuidv7(),
+              data: {
+                order_id: linesDraft,
+                variant_id: variantA,
+                entered_qty: 2,
+                entered_unit: 'piece',
+              },
+            },
+          ],
+        })
+        expect(res.status, actor.role).toBe(200)
+        // The upload door (DOS-166, `SyncRegistry.mayUploadTable`) refuses a non-placer before the savepoint,
+        // so over upload the handlers' `requirePlacer` is never reached; it is pinned directly below.
+        expect(
+          {
+            accepted: res.body.accepted,
+            rejected: res.body.rejected.map((r) => [r.opId, r.code]),
+          },
+          actor.role,
+        ).toEqual({
+          accepted: 0,
+          rejected: [
+            [`dos115-so-${tag}`, SYNC_REJECTION_CODES.roleNotAllowed],
+            [`dos115-sol-${tag}`, SYNC_REJECTION_CODES.roleNotAllowed],
+          ],
+        })
+      }
+
+      const after = await snapshot()
+      expect(after).toEqual(before)
+      for (const { uploaded } of intruders)
+        expect(
+          after.orders.find((o) => o.id === uploaded),
+          uploaded,
+        ).toBeUndefined()
+      // the device's "needs attention" tray holds the four refusals
+      const trays = intruders.map((i) => `dos115-device-${i.tag}`)
+      const errors = (
+        await db.execute(
+          sql`select device_id, table_name, code from sync_errors
+               where tenant_id = ${tenantId} and device_id in ${trays}`,
+        )
+      ).rows as { device_id: string; table_name: string; code: string }[]
+      expect(errors.map((e) => `${e.device_id} ${e.table_name} ${e.code}`).sort()).toEqual(
+        trays
+          .flatMap((t) => [
+            `${t} sales_order_lines ${SYNC_REJECTION_CODES.roleNotAllowed}`,
+            `${t} sales_orders ${SYNC_REJECTION_CODES.roleNotAllowed}`,
+          ])
+          .sort(),
+      )
+
+      // Defence in depth: the handlers' own rule still refuses the godown `forbidden` and lets a rep through.
+      const storeCtx: TenantContext = { tenantId, actorId: storeId, actorRole: 'warehouse' }
+      const thrown = (() => {
+        try {
+          tenantStorage.run(storeCtx, () => requirePlacer())
+          return null
+        } catch (error: unknown) {
+          return error
+        }
+      })()
+      expect(thrown).toBeInstanceOf(SyncRejection)
+      expect(thrown).toMatchObject({ code: 'forbidden' })
+      expect(() =>
+        tenantStorage.run({ ...storeCtx, actorRole: 'salesperson' }, () => requirePlacer()),
+      ).not.toThrow()
+    })
+
+    it('DOS-115: the godown and the crew still read an order, a rep still cancels its own draft, and ORDER_PLACERS equals the matrix plus system', async () => {
+      for (const actor of [store, crew]) {
+        const got = await call<{ item: Detail }>(app, actor, 'GET', `/orders/${confirmed}`)
+        expect(got.status, actor.role).toBe(200)
+        expect(
+          got.body.item.lines.map((l) => l.id),
+          actor.role,
+        ).toEqual([confirmedLine])
+        const listed = await call<{ items: { id: string }[] }>(app, actor, 'GET', '/orders', {
+          retailerId: retailerA,
+          limit: 200,
+        })
+        expect(listed.status, actor.role).toBe(200)
+      }
+
+      // the rep the drafts belong to still cancels one
+      const own = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${cancelDraft}/cancel`, {
+        idempotencyKey: `dos115-cancel-own-${run}`,
+        reason: 'shop changed its mind',
+      })
+      expect(own.status).toBe(200)
+      expect(own.body.item.state).toBe('cancelled')
+
+      // one core tuple for the five procedures and the device doors, pinned to the matrix the gate enforces
+      expect(ORDER_PLACERS).toContain('system')
+      const placers = ORDER_PLACERS.filter((role) => role !== 'system')
+      for (const path of [
+        'orders.create',
+        'orders.setLines',
+        'orders.repeatLast',
+        'orders.submit',
+        'orders.cancel',
+      ])
+        expect(permissionFor(path), path).toEqual(placers)
+    })
   })
 })

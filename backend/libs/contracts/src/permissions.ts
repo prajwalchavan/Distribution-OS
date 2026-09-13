@@ -1,4 +1,4 @@
-import type { MembershipRole, PlatformRole } from './common.js'
+import type { MembershipRole, PlatformAdminLevel, PlatformRole } from './common.js'
 import { contract, type AppContract } from './contract.js'
 
 /**
@@ -284,14 +284,32 @@ const INCENTIVE_READERS = [
 ] as const satisfies readonly MembershipRole[]
 
 /**
+ * Who places an order: creates one (repeating a shop's last order included), re-lines a draft, submits
+ * it and cancels one (docs/22 §8, founder decision 2026-09-13, QA DOS-115). The desk that runs the
+ * distributorship, the rep — whose order procedures reach only the orders credited to it (DOS-073) — and
+ * the shop, forced to its own. The godown and the crew take no order: the crew's van sale goes through
+ * `delivery.vanSales.create` (DOORSTEP), which drafts, prices and confirms server-side. The accountant
+ * takes none either — its write scope is the money desk (docs/22 §8, 2026-09-05) — the architect's
+ * default, which the founder may reverse by adding that one role here. `orders.get/list` stay
+ * ANY_MEMBER. The device-upload doors on `sales_orders` / `sales_order_lines` follow the same rule
+ * (orders.sync.ts), and the core copy in orders.internals.ts is pinned to this tuple by orders.spec.ts.
+ */
+const ORDER_PLACERS = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+] as const satisfies readonly MembershipRole[]
+
+/**
  * Who may turn a message or a voice note into a DRAFT order and confirm one into a real order (docs/22
  * §8, 2026-09-05: the AI features are all in v1). The desk that runs the distributorship, the rep whose
  * shops they are — narrowed by the handler to the shops on its own beats — and the shop itself, forced
- * to its own `retailerId`. The four roles that already reach `orders.create` in practice, and no wider:
- * confirming a draft creates the order through `orders.create/setLines/submit`, so this tuple can only
- * ever be a NARROWING of `orders.*` (ANY_MEMBER), never a second, softer way in. The accountant is
- * absent — a draft order is not a money-desk write (docs/22 §8, 2026-09-05: no prices, no approvals) —
- * and so are the godown and the crew, neither of which takes an order.
+ * to its own `retailerId`. The same four roles as ORDER_PLACERS today, and never wider: confirming a
+ * draft creates the order through `orders.create/setLines/submit`, so this tuple can only ever be a
+ * NARROWING of ORDER_PLACERS, never a second, softer way in. Declared apart on purpose: the two will
+ * drift. The accountant is absent — a draft order is not a money-desk write (docs/22 §8, 2026-09-05: no
+ * prices, no approvals) — and so are the godown and the crew, neither of which takes an order.
  */
 const DRAFT_ORDER_TAKERS = [
   'owner',
@@ -471,11 +489,13 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'pricing.bounds.set': OWNER_ONLY,
   'pricing.bounds.list': STAFF,
 
-  // Inventory. `sellable` is the only stock surface a rep or a shop ever sees; per-lot balances and
-  // the ledger stay with the people who hold the stock.
+  // Inventory. A rep or a shop sees two stock reads and nothing else: `availability` (one godown total
+  // per item, the order screens' hint) and `sellable` (per lot per location); per-lot balances and the
+  // ledger stay with the people who hold the stock.
   'inventory.locations.list': STAFF,
   'inventory.locations.upsert': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.sellable': ANY_MEMBER,
+  'inventory.stock.availability': ANY_MEMBER,
   'inventory.stock.balances': STOCK_VIEWERS,
   'inventory.stock.adjust': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.transfer': BACK_OFFICE_OR_WAREHOUSE,
@@ -511,16 +531,18 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'procurement.purchaseOrders.upsert': BACK_OFFICE,
   'procurement.purchaseOrders.list': BACK_OFFICE,
 
-  // Orders. A shopkeeper may place, SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the
-  // approvals a submit raises stay invisible to the shop), read and cancel its own; the owner and the
-  // manager confirm (it reserves stock) and decide approvals — an approval is a decision the accountant
-  // does not take (docs/22 2026-09-05); the accountant reads the queue.
-  'orders.create': ANY_MEMBER,
-  'orders.setLines': ANY_MEMBER,
-  'orders.repeatLast': ANY_MEMBER,
-  'orders.submit': ANY_MEMBER,
+  // Orders. Placing, re-lining, repeating, submitting and cancelling are ORDER_PLACERS (DOS-115): the
+  // desk, the rep and the shop — never the godown, the crew or the accountant. A shopkeeper may place,
+  // SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the approvals a submit raises stay
+  // invisible to the shop), read and cancel its own; the owner and the manager confirm (it reserves
+  // stock) and decide approvals — an approval is a decision the accountant does not take (docs/22
+  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`).
+  'orders.create': ORDER_PLACERS,
+  'orders.setLines': ORDER_PLACERS,
+  'orders.repeatLast': ORDER_PLACERS,
+  'orders.submit': ORDER_PLACERS,
   'orders.confirm': MANAGEMENT,
-  'orders.cancel': ANY_MEMBER,
+  'orders.cancel': ORDER_PLACERS,
   'orders.get': ANY_MEMBER,
   'orders.list': ANY_MEMBER,
   'orders.approvals.list': BACK_OFFICE,
@@ -633,9 +655,13 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
   // Five populations, one new tuple:
   //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
-  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, depart, add a stop.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop. The planning board
+  //    (`trips.planning`, QA DOS-131) is read by whoever builds the load — ROLE_GROUPS.STOCK_KEEPERS, the
+  //    same three as `warehouse.loadSheets.create`; the crew plans only its own van day and never reads
+  //    the board, and the accountant does not plan.
   //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
-  //    consent, and the check-in (`trips.return`).
+  //    consent, the departure (`trips.depart`: the crew or the desk, never the godown, QA DOS-043) and
+  //    the check-in (`trips.return`).
   //  * MONEY_COLLECTORS is the field's ONLY money path (docs/17 §D4): `collections.record` wraps
   //    `ReceivablesService.recordReceipt`, so the same four people who may take a receipt take it at
   //    the door — the salesperson is in no row of this block. The same four keep the trip's cash story:
@@ -658,8 +684,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.create': TRIP_PLANNERS,
   'delivery.trips.list': STOCK_VIEWERS,
   'delivery.trips.get': STOCK_VIEWERS,
+  'delivery.trips.planning': ROLE_GROUPS.STOCK_KEEPERS,
   'delivery.trips.startLoading': TRIP_PLANNERS,
-  'delivery.trips.depart': TRIP_PLANNERS,
+  'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,
   'delivery.trips.cancel': PIN_HOLDERS,
   'delivery.trips.settlementPreview': MONEY_COLLECTORS,
@@ -938,8 +965,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // calls `routing.apply`. Three populations:
   //  * DRAFT_ORDER_TAKERS (new) read a message or a voice note into a draft and confirm it: the owner,
   //    the manager, the rep for its own shops and the shop for itself. `drafts.confirm` runs
-  //    `orders.create → setLines → submit`, all ANY_MEMBER, so this tuple is a NARROWING of the ordering
-  //    surface and never a widening. The accountant, the godown and the crew take no orders.
+  //    `orders.create → setLines → submit`, all ORDER_PLACERS (DOS-115), so this tuple is a NARROWING of
+  //    the ordering surface and never a widening. The accountant, the godown and the crew take no orders.
   //  * The buying desk forecasts: `forecast.run` is BACK_OFFICE (it enqueues a worker pass over the
   //    tenant's history), `forecast.list` is BACK_OFFICE_OR_WAREHOUSE — the godown reads what is about to
   //    run out where it stands. The suggestion carries pieces, days of cover and a supplier and NO
@@ -990,6 +1017,63 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'admin.users.disable': PLATFORM,
   'admin.metrics.overview': PLATFORM,
   'admin.audit.list': PLATFORM,
+}
+
+/** Dotted path of a platform-console procedure, e.g. 'admin.tenants.suspend'. */
+export type AdminProcedurePath = Extract<ProcedurePath, `admin.${string}`>
+
+const CONSOLE_SUPER = ['super'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_SUPPORT_DESK = ['super', 'support'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_BILLING_DESK = ['super', 'billing'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_EVERY_LEVEL = [
+  'super',
+  'support',
+  'billing',
+] as const satisfies readonly PlatformAdminLevel[]
+
+/**
+ * CONSOLE LEVELS (DOS-106). `PERMISSIONS` above lets `platform_admin` — the one role Distribution OS's
+ * own staff sign in as — reach every `admin.*` row; this table narrows that role by the LEVEL of the
+ * account, `platform_admins.role` (the database enum `platform_admin_role`). The job split is the
+ * schema's own comment and docs/18's: a `super` onboards distributors, sets plans, suspends them and
+ * locks logins; `support` reads every register and ASKS a distributor's owner for a support window
+ * (and withdraws its own ask); `billing` reads every register and keeps what a distributor pays us.
+ *
+ * ONE table for both sides. admin-service enforces it in every `admin.*` handler, inside that handler's
+ * own transaction, against the level and the login as the database holds them at that moment
+ * (`requireActiveAdminLevel` in module 13) — so a lock or a demotion bites on the next request. The
+ * console reads it through `useCan()` to hide what the level cannot use. It is deliberately NOT a token
+ * claim, and `PERMISSIONS`, `PLATFORM_ROLES` and `isAllowed` do not change. Keyed by the contract's own
+ * paths: a new `admin.*` procedure without a level here does not compile.
+ */
+export const ADMIN_LEVELS: Record<AdminProcedurePath, readonly PlatformAdminLevel[]> = {
+  'admin.tenants.create': CONSOLE_SUPER,
+  'admin.tenants.list': CONSOLE_EVERY_LEVEL,
+  'admin.tenants.get': CONSOLE_EVERY_LEVEL,
+  'admin.tenants.suspend': CONSOLE_SUPER,
+  'admin.tenants.reactivate': CONSOLE_SUPER,
+  'admin.subscriptions.upsert': CONSOLE_BILLING_DESK,
+  'admin.subscriptions.list': CONSOLE_EVERY_LEVEL,
+  'admin.subscriptions.get': CONSOLE_EVERY_LEVEL,
+  'admin.support.request': CONSOLE_SUPPORT_DESK,
+  'admin.support.list': CONSOLE_EVERY_LEVEL,
+  'admin.support.revoke': CONSOLE_SUPPORT_DESK,
+  'admin.users.list': CONSOLE_EVERY_LEVEL,
+  'admin.users.disable': CONSOLE_SUPER,
+  'admin.metrics.overview': CONSOLE_EVERY_LEVEL,
+  'admin.audit.list': CONSOLE_EVERY_LEVEL,
+}
+
+/**
+ * May a console account at `level` call `path`? Anything outside `admin.*` is not narrowed by a level
+ * (true). An `admin.*` path with no row, or a caller with no level (a session saved before the level
+ * existed, or no session at all), is a refusal: fail closed, like `isAllowed`.
+ */
+export function levelAllows(path: string, level: PlatformAdminLevel | null): boolean {
+  if (!path.startsWith('admin.')) return true
+  const levels = (ADMIN_LEVELS as Record<string, readonly PlatformAdminLevel[] | undefined>)[path]
+  if (levels === undefined || level === null) return false
+  return levels.includes(level)
 }
 
 /**

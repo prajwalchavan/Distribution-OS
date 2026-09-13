@@ -126,6 +126,17 @@ export const strings = {
   'o3.confirmApprove': 'Approve {what}',
   'o3.confirmReject': 'Reject {what}',
   'o3.decided': 'Decision recorded',
+  'o3.order': 'Order',
+  'o3.openOrder': 'Open the order',
+  'o3.reason': 'Reason',
+  'o3.credit': 'Credit',
+  'o3.creditLine': 'Owes {owed} · limit {limit}',
+  'o3.creditStop': 'Shop is on credit stop',
+  'o3.creditOver': 'This order takes it {over} over the limit',
+  'o3.creditOverdue': 'Oldest bill {days} days past due · terms {terms} days',
+  'o3.creditBills': '{count} bills open · limit {limit}',
+  'o3.creditClear': 'Within terms',
+  'o3.creditUnknown': 'Credit not checked',
 
   // --- O4 Live map ---------------------------------------------------------------------------------
   'o4.tab': 'Live map',

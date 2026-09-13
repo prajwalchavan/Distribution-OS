@@ -87,7 +87,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
-| GET | `/inventory/sellable` | Available-to-promise stock (the only stock surface for reps and retailers) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
@@ -98,12 +99,12 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
-| POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
+| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
-| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -160,9 +161,10 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
-| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (needs the driver's location consent) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
@@ -5987,7 +5989,10 @@ request.json
           "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
         }
       ],
-      "lineNetPaise": 2680000
+      "lineNetPaise": 2680000,
+      "gstBps": 500,
+      "taxPaise": 12000,
+      "lineTotalPaise": 2680000
     }
   ],
   "orderRules": [
@@ -6007,7 +6012,10 @@ request.json
     "grossPaise": 2680000,
     "discountPaise": 12000,
     "bargainPaise": 4000,
-    "netPaise": 2680000
+    "netPaise": 2680000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000
   }
 }
 ```
@@ -6825,7 +6833,7 @@ request.json
 
 ### GET `/inventory/sellable`
 
-Available-to-promise stock (the only stock surface for reps and retailers) · contract `inventory.stock.sellable`
+Available-to-promise stock per lot per location · contract `inventory.stock.sellable`
 
 **Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
 
@@ -6862,6 +6870,91 @@ curl "http://localhost:3006/inventory/sellable?variantId=01a06df0-2faf-79a2-8456
       "variantName": "Campa Cola 750 ml",
       "productName": "Campa Cola 750 ml",
       "brandName": "Campa Cola 750 ml"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "retailer-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/inventory/availability`
+
+Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) · contract `inventory.stock.availability`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `variantId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | uuid | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/inventory/availability?variantId=01a06df0-2faf-79a2-8456-92042e49f147&limit=500" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "available": 1
     }
   ],
   "nextCursor": null
@@ -8115,7 +8208,7 @@ curl "http://localhost:3006/inventory/cycle-counts/01a06d17-0be7-794a-8dab-9b14c
 
 Create a priced draft order · contract `orders.create`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -8202,6 +8295,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -8330,7 +8424,7 @@ request.json
 
 Replace the lines of a draft and re-price it · contract `orders.setLines`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -8403,6 +8497,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -8541,7 +8636,7 @@ request.json
 
 Draft a repeat of the retailer's last order, re-priced today · contract `orders.repeatLast`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -8611,6 +8706,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -8739,7 +8835,7 @@ request.json
 
 Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) · contract `orders.submit`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -8803,6 +8899,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9005,6 +9102,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9152,7 +9250,7 @@ request.json
 
 Cancel an order and release its reservations · contract `orders.cancel`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -9218,6 +9316,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9407,6 +9506,7 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -9691,7 +9791,11 @@ curl "http://localhost:3006/approvals?status=pending&orderId=01a06d67-52a6-70c4-
       "decidedBy": null,
       "decidedAt": null,
       "decisionNote": "Confirmed on phone with the shopkeeper",
-      "createdAt": "2026-09-04T10:30:00.000Z"
+      "createdAt": "2026-09-04T10:30:00.000Z",
+      "orderNo": "SO-0042",
+      "orderTotalPaise": 2680000,
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text"
     }
   ],
   "nextCursor": null
@@ -9838,6 +9942,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -17106,6 +17211,108 @@ curl "http://localhost:3006/delivery/trips?state=planned&vehicleId=01a06d9c-98d8
 }
 ```
 
+### GET `/delivery/trip-planning`
+
+Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) · contract `delivery.trips.planning`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `date` | date | no |
+| `beatId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/delivery/trip-planning?date=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "date": "2026-09-04",
+  "crew": [
+    {
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "name": "Sharma Kirana Store",
+      "onTripId": "01a06d13-8baf-7d7e-83a4-bcfc01d0fd27",
+      "onTripNo": "SO-0042"
+    }
+  ],
+  "bills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /delivery/trip-planning",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/delivery/trips/{id}`
 
 One trip with stops, collections, expenses, settlement and the tenant's policy · contract `delivery.trips.get`
@@ -17537,9 +17744,9 @@ request.json
 
 ### POST `/delivery/trips/{id}/depart`
 
-Start the trip: loading → active (needs the driver's location consent) · contract `delivery.trips.depart`
+Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) · contract `delivery.trips.depart`
 
-**Roles:** owner, manager, warehouse, delivery
+**Roles:** owner, manager, delivery
 
 **Request body**
 
@@ -20726,6 +20933,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -23832,6 +24040,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "lineNo": 1,
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "enteredQty": 24,
         "enteredUnit": "piece",
         "packSizeAtEntry": 24,
@@ -24843,6 +25052,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `inventory.locations.list` | – | – | – | – | – | – | – |
 | `inventory.locations.upsert` | – | – | – | – | – | – | – |
 | `inventory.stock.sellable` | – | – | – | – | – | – | ✓ |
+| `inventory.stock.availability` | – | – | – | – | – | – | ✓ |
 | `inventory.stock.balances` | – | – | – | – | – | – | – |
 | `inventory.stock.adjust` | – | – | – | – | – | – | – |
 | `inventory.stock.transfer` | – | – | – | – | – | – | – |
@@ -24915,6 +25125,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.consents.get` | – | – | – | – | – | – | – |
 | `delivery.trips.create` | – | – | – | – | – | – | – |
 | `delivery.trips.list` | – | – | – | – | – | – | – |
+| `delivery.trips.planning` | – | – | – | – | – | – | – |
 | `delivery.trips.get` | – | – | – | – | – | – | – |
 | `delivery.trips.startLoading` | – | – | – | – | – | – | – |
 | `delivery.trips.depart` | – | – | – | – | – | – | – |

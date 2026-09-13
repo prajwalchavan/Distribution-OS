@@ -2,19 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { contract } from './contract.js'
 import {
   MembershipRoleSchema,
+  PlatformAdminLevelSchema,
   PlatformRoleSchema,
   type MembershipRole,
   type PlatformRole,
 } from './common.js'
 import {
+  ADMIN_LEVELS,
   ALL_ROLES,
   allProcedures,
   isAllowed,
+  levelAllows,
   listProcedures,
   PERMISSIONS,
   permissionFor,
   PLATFORM_ROLES,
   ROLE_GROUPS,
+  type AdminProcedurePath,
 } from './permissions.js'
 
 /** Walks the contract the way the guard and the README renderer do: a leaf is anything with a route. */
@@ -318,6 +322,31 @@ describe('permission matrix', () => {
     expect(permissionFor('retailers.updateOwn')).toEqual(['retailer'])
   })
 
+  it('DOS-115: the godown and the crew place, re-line, repeat, submit or cancel no order, and still read one', () => {
+    // An order is placed by the desk that runs the distributorship, the rep and the shop (docs/22 §8, QA
+    // DOS-115). The godown and the crew take none — the crew's van sale is `delivery.vanSales.create`,
+    // DOORSTEP — and nor does the accountant, whose write scope is the money desk (docs/22 §8, 2026-09-05).
+    for (const path of [
+      'orders.create',
+      'orders.setLines',
+      'orders.repeatLast',
+      'orders.submit',
+      'orders.cancel',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'salesperson', 'retailer'])
+      for (const role of ['warehouse', 'delivery', 'accountant'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Reads stay with every member: the Pack screen opens an order, the crew reads the one at its stop.
+    for (const path of ['orders.get', 'orders.list'] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.ANY_MEMBER)
+      for (const role of ['warehouse', 'delivery', 'accountant'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
+  })
+
   it('gives every app the offline reads and keeps the write queue with the staff (sync)', () => {
     // docs/22 2026-09-05: the offline protocol is ours. The manifest and the delta download are the
     // read half, and the shop's app is offline-capable for its own rows, so both are ANY_MEMBER.
@@ -567,9 +596,40 @@ describe('permission matrix', () => {
     expect(isAllowed(permissionFor('delivery.trips.settle'), 'warehouse')).toBe(false)
   })
 
+  it("DOS-043: departing a trip is the crew's and the desk's, never the godown's (delivery)", () => {
+    expect(permissionFor('delivery.trips.depart')).toEqual(['owner', 'manager', 'delivery'])
+    // The departure and the check-in are the same people: the crew, or the desk from the office.
+    expect(permissionFor('delivery.trips.depart')).toEqual(permissionFor('delivery.trips.return'))
+    expect(isAllowed(permissionFor('delivery.trips.depart'), 'warehouse')).toBe(false)
+    // The godown still plans and loads the trip (docs/23 W10).
+    for (const path of [
+      'delivery.trips.create',
+      'delivery.trips.startLoading',
+      'delivery.stops.add',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+  })
+
+  it("DOS-131: the trip planning board is the desk's and the godown's, never the crew's, the accountant's, a rep's or a shop's (delivery)", () => {
+    // Whoever builds the load reads the board: the same three as `warehouse.loadSheets.create`.
+    expect(permissionFor('delivery.trips.planning')).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+    expect(permissionFor('delivery.trips.planning')).toEqual(['owner', 'manager', 'warehouse'])
+    expect(permissionFor('delivery.trips.planning')).toEqual(
+      permissionFor('warehouse.loadSheets.create'),
+    )
+    for (const role of ['delivery', 'accountant', 'salesperson', 'retailer'] as const) {
+      expect(
+        isAllowed(permissionFor('delivery.trips.planning'), role),
+        `delivery.trips.planning must refuse ${role}`,
+      ).toBe(false)
+    }
+  })
+
   it('lets the crew work the door and the godown only plan the trip (delivery)', () => {
     // Doorstep writes: the crew, with the owner and the manager able to do the same from the office.
     for (const path of [
+      'delivery.trips.depart',
       'delivery.trips.return',
       'delivery.stops.reorder',
       'delivery.stops.start',
@@ -591,7 +651,6 @@ describe('permission matrix', () => {
     for (const path of [
       'delivery.trips.create',
       'delivery.trips.startLoading',
-      'delivery.trips.depart',
       'delivery.stops.add',
     ] as const) {
       expect(permissionFor(path), path).toEqual(['owner', 'manager', 'warehouse', 'delivery'])
@@ -602,8 +661,8 @@ describe('permission matrix', () => {
       'delivery.trips.create',
       'delivery.trips.list',
       'delivery.trips.get',
+      'delivery.trips.planning',
       'delivery.trips.startLoading',
-      'delivery.trips.depart',
       'delivery.stops.list',
       'delivery.stops.next',
       'delivery.stops.add',
@@ -1199,7 +1258,7 @@ describe('permission matrix', () => {
     }
     // Intake and drafts: the desk, the rep for its own shops, the shop for itself. Never the accountant,
     // the godown or the crew. `confirm` creates the order through orders.create/setLines/submit, all of
-    // which are ANY_MEMBER, so this tuple can only narrow the ordering surface.
+    // which are ORDER_PLACERS (DOS-115), so this tuple can only narrow the ordering surface.
     const draftPaths = aiPaths.filter(
       (p) => p.startsWith('ai.intake.') || p.startsWith('ai.drafts.'),
     )
@@ -1575,5 +1634,79 @@ describe('listProcedures', () => {
   it('is empty for something that is not a router', () => {
     expect(listProcedures(null)).toEqual([])
     expect(listProcedures('nope')).toEqual([])
+  })
+})
+
+/**
+ * DOS-106. Inside the one platform role there are three LEVELS (`platform_admins.role`), and the job
+ * split is the schema's own (`platform_admin_role`) and docs/18's: a super onboards, sets plans,
+ * suspends and locks; support reads and ASKS; billing reads and keeps what a distributor pays us.
+ * `ADMIN_LEVELS` is the single table the server enforces and the console hides buttons by.
+ */
+describe('console levels (DOS-106)', () => {
+  it('DOS-106: declares a console level for every admin.* procedure — super does everything, support only reads and asks or withdraws, billing only reads and sets a subscription', () => {
+    // The database enum, value for value and in its on-disk order.
+    expect(PlatformAdminLevelSchema.options).toEqual(['super', 'support', 'billing'])
+
+    const adminPaths = allProcedures()
+      .map((row) => row.path)
+      .filter((path): path is AdminProcedurePath => path.startsWith('admin.'))
+    expect(adminPaths).toHaveLength(15)
+    // Exactly one row per console procedure: a new `admin.*` procedure without a level fails here
+    // (and fails to compile, because the table is keyed by the contract's own paths).
+    expect(Object.keys(ADMIN_LEVELS).sort()).toEqual([...adminPaths].sort())
+    for (const path of adminPaths) expect(ADMIN_LEVELS[path], path).toContain('super')
+
+    const reads: readonly AdminProcedurePath[] = [
+      'admin.tenants.list',
+      'admin.tenants.get',
+      'admin.subscriptions.list',
+      'admin.subscriptions.get',
+      'admin.support.list',
+      'admin.users.list',
+      'admin.metrics.overview',
+      'admin.audit.list',
+    ]
+    const superOnly: readonly AdminProcedurePath[] = [
+      'admin.tenants.create',
+      'admin.tenants.suspend',
+      'admin.tenants.reactivate',
+      'admin.users.disable',
+    ]
+    for (const path of superOnly) expect(ADMIN_LEVELS[path], path).toEqual(['super'])
+    for (const path of reads) {
+      expect(ADMIN_LEVELS[path], path).toEqual(['super', 'support', 'billing'])
+    }
+
+    // support: the reads, and its own ask and withdrawal — never a plan, a suspension or a lock.
+    for (const path of [...reads, 'admin.support.request', 'admin.support.revoke'] as const) {
+      expect(levelAllows(path, 'support'), `support may call ${path}`).toBe(true)
+    }
+    for (const path of [...superOnly, 'admin.subscriptions.upsert'] as const) {
+      expect(levelAllows(path, 'support'), `support must not call ${path}`).toBe(false)
+    }
+    // billing: the reads and what a distributor pays us — never an ask, a suspension or a lock.
+    for (const path of [...reads, 'admin.subscriptions.upsert'] as const) {
+      expect(levelAllows(path, 'billing'), `billing may call ${path}`).toBe(true)
+    }
+    for (const path of [...superOnly, 'admin.support.request', 'admin.support.revoke'] as const) {
+      expect(levelAllows(path, 'billing'), `billing must not call ${path}`).toBe(false)
+    }
+    for (const path of adminPaths) expect(levelAllows(path, 'super'), path).toBe(true)
+
+    // Fail closed: no level, or a console path nobody declared, is a refusal.
+    for (const path of adminPaths) expect(levelAllows(path, null), path).toBe(false)
+    expect(levelAllows('admin.tenants.thisDoesNotExist', 'super')).toBe(false)
+    // Outside `admin.*` the level narrows nothing: the console's own auth procedures stay role-gated.
+    expect(levelAllows('auth.platformMe', null)).toBe(true)
+    expect(levelAllows('auth.supportPass', null)).toBe(true)
+
+    // The generated README and OpenAPI render `x-roles: platform_admin` for every console route, so
+    // each route's summary names the levels that may call it, from this same table.
+    for (const row of allProcedures().filter((r) => r.path.startsWith('admin.'))) {
+      const levels = ADMIN_LEVELS[row.path as AdminProcedurePath]
+      const note = `${levels.length === 1 ? 'console level' : 'console levels'}: ${levels.join(', ')}`
+      expect(row.summary.endsWith(` · ${note}`), `${row.path}: "${row.summary}"`).toBe(true)
+    }
   })
 })

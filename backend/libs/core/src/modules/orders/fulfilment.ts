@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lt, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { OrderState } from '@dos/domain'
 import {
   beats,
@@ -124,6 +124,21 @@ export async function fulfilmentOrders(
       message: `at most ${MAX_FULFILMENT_ORDERS} orders per call, got ${orderIds.length}`,
     })
   return queueRows(tx, [inArray(salesOrders.id, [...orderIds])], orderIds.length)
+}
+
+/**
+ * THE ONE SANCTIONED CROSS-MODULE PREDICATE (DOS-133): "the order `orderId` points at is in `state`", as
+ * a correlated `exists` the caller embeds in its OWN query — not a query of its own. No module outside
+ * orders may name `sales_orders`; a list that needs an order's state takes this fragment, passes only its
+ * own column, and the SQL that names the table stays in this file.
+ *
+ * It runs inside the caller's `withTenant` transaction, so the `sales_orders_read` policy scopes it; the
+ * literal tenant fence is what lets the planner start from `sales_orders_state_idx (tenant_id, state,
+ * created_at)` under `app_rw`. `state` is bound as a parameter, never spliced.
+ */
+export function orderInState(orderId: SQLWrapper, state: OrderState): SQL {
+  const { tenantId } = currentTenant()
+  return sql`exists (select 1 from ${salesOrders} so where so.tenant_id = ${tenantId} and so.id = ${orderId} and so.state = ${state})`
 }
 
 /**

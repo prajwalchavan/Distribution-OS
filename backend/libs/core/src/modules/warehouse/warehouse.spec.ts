@@ -32,7 +32,7 @@ import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
-import { OrdersModule } from '../orders/index.js'
+import { OrdersModule, OrdersService } from '../orders/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
 import { SyncModule } from '../sync/index.js'
 import { WarehouseModule } from './index.js'
@@ -1906,6 +1906,256 @@ describeDb('warehouse (DATABASE_URL)', () => {
       404,
     )
     expect((await call(app, owner, 'GET', `/warehouse/picklists/${picklistId}`)).status).toBe(200)
+  })
+
+  // DOS-133: W7's 'Packed orders' panel reads packs.list with status=awaiting_load, which must be exactly
+  // the set loadSheets.create accepts — the order is `packed`, it has a pack confirmation, and it is on no
+  // draft or confirmed sheet — newest pack first by server time. Every order here is one case of
+  // variantB: lotB opened with 50 000 pieces, and FEFO has no earlier variantB lot with stock left until
+  // the DOS-039 test below makes SOLDOUT. Neither test reads a lot, so both sit before that one.
+  interface PackPage {
+    items: { id: string; orderId: string; invoiceId: string | null }[]
+    nextCursor: string | null
+  }
+
+  /** Follows `nextCursor` to the end and returns every pack in the order the pages gave them. */
+  async function walkPacks(
+    actor: Actor,
+    filter: { status?: string; invoiced?: boolean },
+    limit: number,
+  ): Promise<PackPage['items']> {
+    const seen: PackPage['items'] = []
+    let cursor: string | undefined
+    for (let pages = 0; pages < 1000; pages += 1) {
+      const page = await call<PackPage>(app, actor, 'GET', '/warehouse/packs', {
+        ...filter,
+        limit,
+        cursor,
+      })
+      expect(page.status, JSON.stringify(page.body)).toBe(200)
+      seen.push(...page.body.items)
+      if (page.body.nextCursor === null) return seen
+      cursor = page.body.nextCursor
+    }
+    throw new Error('packs.list never ended its cursor walk')
+  }
+
+  /**
+   * A real pack, then back-dated a day on the owner connection. Its id is shaped like the demo seed's
+   * hashes and sorts above every real UUIDv7; version 7 and variant b keep it a valid `IdSchema`.
+   */
+  async function packBackDated(tag: string, packId: string): Promise<string> {
+    const orderId = await placeOrder([{ variantId: variantB, cases: 1 }], tag)
+    const res = await call<PackBody>(app, packer, 'POST', `/warehouse/orders/${orderId}/pack`, {
+      idempotencyKey: `pack-${tag}-${run}`,
+      id: packId,
+      packages: 1,
+    })
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    await db.execute(
+      sql`update pack_confirmations
+             set created_at = now() - interval '1 day', packed_at = now() - interval '1 day'
+           where id = ${packId}`,
+    )
+    return orderId
+  }
+
+  it('DOS-133: packs.list status=awaiting_load offers exactly the packed orders on no draft or confirmed load sheet, newest pack first by server time — a pack made now tops an older pack whose id sorts higher; an order on a draft sheet, one dispatched with no sheet and one returned onto a confirmed sheet are left out; loadSheets.create accepts every row offered and cancelling that sheet gives them back; the cursor walks each once', async () => {
+    const orders = app.get(OrdersService)
+    const asManager = <T>(fn: (tx: Db) => Promise<T>) => as(ctxOf(managerId, 'manager'), fn)
+
+    // (a) an older pack whose id sorts above every UUIDv7
+    const olderPack = `ffffffff-ffff-7fff-bfff-1330${run}`
+    await packBackDated('dos133-older', olderPack)
+
+    // (b) the newest pack still waiting for a vehicle
+    const newestOrder = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos133-newest')
+    const { id: newest, res: newestRes } = await packOrder(newestOrder, 'dos133-newest', packer, 1)
+    expect(newestRes.status, JSON.stringify(newestRes.body)).toBe(200)
+
+    // (c) packed and already on a DRAFT sheet
+    const onDraft = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos133-draft')
+    expect((await packOrder(onDraft, 'dos133-draft', packer, 1)).res.status).toBe(200)
+    const draft = await call<{ item: LoadSheetBody }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `sheet-dos133-draft-${run}`,
+        id: uuidv7(),
+        toLocationId: van,
+        orderIds: [onDraft],
+      },
+    )
+    expect(draft.status, JSON.stringify(draft.body)).toBe(200)
+    expect(draft.body.item.status).toBe('draft')
+
+    // (d) packed, then dispatched with no sheet at all (trips.depart's dispatchIfPacked)
+    const noSheet = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos133-nosheet')
+    expect((await packOrder(noSheet, 'dos133-nosheet', packer, 1)).res.status).toBe(200)
+    await asManager((tx) =>
+      orders.applyFulfilmentEvent(tx, noSheet, 'dispatch', null, 'DOS-133 spec'),
+    )
+    expect(await orderState(noSheet)).toBe('dispatched')
+
+    // (e) returned undelivered while its CONFIRMED sheet still lists it: `packed` again, yet create
+    // refuses it — so the list must leave it out too
+    const returned = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos133-returned')
+    expect((await packOrder(returned, 'dos133-returned', packer, 1)).res.status).toBe(200)
+    const returnedSheet = uuidv7()
+    const built = await call<{ item: LoadSheetBody }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `sheet-dos133-returned-${run}`,
+        id: returnedSheet,
+        toLocationId: van,
+        orderIds: [returned],
+      },
+    )
+    expect(built.status, JSON.stringify(built.body)).toBe(200)
+    const approved = await call(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${returnedSheet}/approve`,
+      { idempotencyKey: `approve-dos133-${run}` },
+    )
+    expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+    const confirmed = await call<{ item: LoadSheetBody; dispatched: string[] }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/load-sheets/${returnedSheet}/confirm`,
+      { idempotencyKey: `confirm-dos133-${run}`, countedPackages: 1, challanId: uuidv7() },
+    )
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
+    expect(confirmed.body.item.status).toBe('confirmed')
+    expect(confirmed.body.dispatched).toEqual([returned])
+    await asManager((tx) =>
+      orders.applyFulfilmentEvent(tx, returned, 'return_undelivered', null, 'DOS-133 spec'),
+    )
+    expect(await orderState(returned)).toBe('packed')
+    const refused = await call<{ message: string }>(app, packer, 'POST', '/warehouse/load-sheets', {
+      idempotencyKey: `sheet-dos133-returned-again-${run}`,
+      id: uuidv7(),
+      toLocationId: van,
+      orderIds: [returned],
+    })
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toMatch(/already on load sheet/)
+
+    /** loadSheets.create's own acceptance rule, in its own `jsonb_array_elements_text` form. */
+    const oracle = async (): Promise<string[]> =>
+      (
+        (
+          await db.execute(sql`
+            select pc.id from pack_confirmations pc
+              join sales_orders so on so.id = pc.order_id
+             where pc.tenant_id = ${tenantId} and so.state = 'packed'
+               and not exists (
+                 select 1 from load_sheets ls, jsonb_array_elements_text(ls.order_ids) o
+                  where ls.tenant_id = pc.tenant_id and ls.status <> 'cancelled'
+                    and o.value = pc.order_id)
+             order by pc.created_at desc, pc.id desc`)
+        ).rows as { id: string }[]
+      ).map((r) => r.id)
+
+    // (f) the W7 read, one pack per page
+    const offered = await walkPacks(packer, { status: 'awaiting_load' }, 1)
+    const offeredIds = offered.map((p) => p.id)
+    expect(offeredIds[0], 'the pack made now tops the older pack whose id sorts higher').toBe(
+      newest,
+    )
+    expect(new Set(offeredIds).size, 'no pack comes back twice').toBe(offeredIds.length)
+    expect(offeredIds).toEqual(await oracle())
+    expect(offeredIds.indexOf(olderPack)).toBeGreaterThan(0)
+    const offeredOrders = offered.map((p) => p.orderId)
+    expect(offeredOrders).not.toContain(onDraft)
+    expect(offeredOrders).not.toContain(noSheet)
+    expect(offeredOrders).not.toContain(returned)
+
+    // (g) every row offered is one loadSheets.create accepts, and a row on a sheet is offered no more
+    const allSheet = uuidv7()
+    const loaded = await call<{ item: LoadSheetBody }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `sheet-dos133-all-${run}`,
+        id: allSheet,
+        toLocationId: van,
+        orderIds: offeredOrders,
+      },
+    )
+    expect(loaded.status, JSON.stringify(loaded.body)).toBe(200)
+    const afterBuild = await walkPacks(packer, { status: 'awaiting_load' }, 1)
+    expect(afterBuild.filter((p) => offeredOrders.includes(p.orderId))).toEqual([])
+    expect(afterBuild.map((p) => p.id)).toEqual(await oracle())
+
+    // (h) cancelling that sheet gives every one of them back, in the same order
+    const cancelled = await call(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${allSheet}/cancel`,
+      { idempotencyKey: `cancel-dos133-${run}`, reason: 'DOS-133 spec' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    const afterCancel = await walkPacks(packer, { status: 'awaiting_load' }, 1)
+    expect(afterCancel.map((p) => p.id)).toEqual(offeredIds)
+
+    // (i) only now: a status the contract does not know is a 400, never a silently unfiltered page
+    expect((await call(app, packer, 'GET', '/warehouse/packs', { status: 'bogus' })).status).toBe(
+      400,
+    )
+  })
+
+  it('DOS-133: packs.list with no status is newest first by creation time — a pack made now tops a pack whose id sorts higher, and the cursor walks every pack of the tenant once in (created_at, id) order, with and without the invoiced filter', async () => {
+    const olderPack = `ffffffff-ffff-7fff-bfff-1331${run}`
+    await packBackDated('dos133-older-all', olderPack)
+    const freshOrder = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos133-fresh')
+    const { id: fresh, res } = await packOrder(freshOrder, 'dos133-fresh', packer, 1)
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    const first = await call<PackPage>(app, manager, 'GET', '/warehouse/packs', { limit: 1 })
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    expect(
+      first.body.items[0]?.id,
+      'the pack made now tops the older pack whose id sorts higher',
+    ).toBe(fresh)
+
+    // Compared with SQL order, never with packedAt: packedAt comes from the Node clock
+    // (PackingService.insertPack), created_at from the Postgres clock.
+    const oracle = async (invoiced: boolean): Promise<string[]> =>
+      (
+        (
+          await db.execute(
+            invoiced
+              ? sql`select id from pack_confirmations
+                     where tenant_id = ${tenantId} and invoice_id is not null
+                     order by created_at desc, id desc`
+              : sql`select id from pack_confirmations
+                     where tenant_id = ${tenantId}
+                     order by created_at desc, id desc`,
+          )
+        ).rows as { id: string }[]
+      ).map((r) => r.id)
+
+    const all = (await walkPacks(manager, {}, 2)).map((p) => p.id)
+    expect(new Set(all).size, 'no pack comes back twice').toBe(all.length)
+    expect(all).toEqual(await oracle(false))
+    expect(all.indexOf(olderPack)).toBeGreaterThan(0)
+
+    const invoiced = await walkPacks(manager, { invoiced: true }, 2)
+    const invoicedIds = invoiced.map((p) => p.id)
+    expect(invoiced.every((p) => p.invoiceId !== null)).toBe(true)
+    expect(new Set(invoicedIds).size, 'no pack comes back twice').toBe(invoicedIds.length)
+    expect(invoicedIds).toEqual(await oracle(true))
   })
 
   // KEEP THIS AFTER EVERY TEST THAT READS LOTS: if it failed mid-way it would leave 12 available

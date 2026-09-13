@@ -13,7 +13,8 @@ import { businessDate } from '@dos/domain'
 import { DB, platformIdempotent, isUniqueViolation, requireDb } from '../../platform/index.js'
 import {
   addDays,
-  requireActiveAdmin,
+  platformActorId,
+  requireActiveAdminLevel,
   statusToColumn,
   toSubscription,
   trialEndToColumn,
@@ -44,6 +45,7 @@ export class PlatformSubscriptionsService {
   async list(input: ListIn): Promise<SubscriptionsList> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.subscriptions.list')
       // "Needs attention": trials and periods that run out inside the window the console asked for.
       const endingBy = input.endingWithinDays
         ? addDays(businessDate().date, input.endingWithinDays)
@@ -77,6 +79,7 @@ export class PlatformSubscriptionsService {
   async get(input: { id: string }): Promise<SubscriptionItem> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.subscriptions.get')
       const [row] = await tx
         .select()
         .from(subscriptions)
@@ -100,9 +103,12 @@ export class PlatformSubscriptionsService {
    */
   async upsert(input: SubscriptionUpsertIn): Promise<SubscriptionItem> {
     const db = requireDb(this.db)
-    return withPlatform(db, (tx) =>
-      platformIdempotent(tx, input.tenantId, input.idempotencyKey, input, async () => {
-        const actorId = await requireActiveAdmin(tx)
+    const actorId = platformActorId()
+    return withPlatform(db, async (tx) => {
+      // The level and the login BEFORE the key: a stored reply is handed back without running anything,
+      // so a support account replaying a super's plan change with the identical body must stop here.
+      await requireActiveAdminLevel(tx, actorId, 'admin.subscriptions.upsert')
+      return platformIdempotent(tx, input.tenantId, input.idempotencyKey, input, async () => {
         const [tenant] = await tx
           .select()
           .from(tenants)
@@ -191,7 +197,7 @@ export class PlatformSubscriptionsService {
           },
         })
         return { item: toSubscription(row) }
-      }),
-    )
+      })
+    })
   }
 }

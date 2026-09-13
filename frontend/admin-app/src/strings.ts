@@ -162,6 +162,9 @@ export const strings = {
   'p3.doneOpen': 'Open the distributorship',
   'p3.doneAnother': 'Onboard another',
   'p3.failed': 'Could not onboard this distributor',
+  'p3.superOnly':
+    'Onboarding a distributor needs a super administrator. Your console level reads the distributors; ask a super administrator to onboard this one.',
+  'p3.superOnlyBack': 'Back to distributors',
 
   // --- P4 one distributor --------------------------------------------------
   'p4.size': 'How big they are',
@@ -389,6 +392,7 @@ export const strings = {
   'word.ios': 'iPhone',
   'word.super': 'Super',
   'word.support': 'Support',
+  'word.billing': 'Billing',
   'word.tenant.created': 'Distributorship created',
   'word.tenant.suspended': 'Distributorship suspended',
   'word.tenant.reactivated': 'Distributorship reactivated',

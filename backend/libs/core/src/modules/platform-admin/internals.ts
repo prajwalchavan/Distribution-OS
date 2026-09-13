@@ -1,15 +1,21 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import {
   platformAdmins,
   platformAudit,
+  users,
   withTenant,
   type Db,
   type subscriptionStatus,
   type TenantContext,
 } from '@dos/db'
 import { businessDate, uuidv7 } from '@dos/domain'
-import type { Subscription, SubscriptionStatus } from '@dos/contracts'
+import {
+  levelAllows,
+  type AdminProcedurePath,
+  type Subscription,
+  type SubscriptionStatus,
+} from '@dos/contracts'
 import { currentTenant } from '../../platform/index.js'
 import { PLATFORM_SCOPE } from '../tenancy/index.js'
 
@@ -76,22 +82,44 @@ export async function writePlatformAudit(
 }
 
 /**
- * The person acting must still be an administrator here and now. The token says `platform_admin` and
- * was signed at most fifteen minutes ago; this is the row that says the account was not closed since.
- * Cheap (one indexed lookup on a table with a handful of rows) and worth it: it is the difference
- * between "we disabled them" and "we disabled them and their last token still works".
+ * THE ONE CHECK every `admin.*` handler makes, as the first statement of its own transaction (DOS-106).
+ *
+ * The token says `platform_admin` and was signed at most fifteen minutes ago. What it cannot say is
+ * whether, since then, this person's console row was closed (`platform_admins.disabled_at`), their
+ * login was locked (`users.status`, which `admin.users.disable` sets), or their LEVEL changed
+ * (`platform_admins.role`). So the level and the login are read HERE, from the database, on every
+ * console call — the reads as well as the writes — and a lock or a demotion bites on the next request
+ * instead of fifteen minutes later. The token stays role-only.
+ *
+ * The level is checked against `ADMIN_LEVELS` in the contract, the same table the console hides its
+ * buttons by: a `super` does everything, `support` reads and asks for (or withdraws) a support window,
+ * `billing` reads and keeps what a distributor pays us. Handlers call this BEFORE `platformIdempotent`:
+ * a stored reply is returned without running anything, so a lower level replaying a super's key with
+ * the identical body would otherwise be handed the super's answer.
+ *
+ * One indexed row. It reads correctly on both paths: under `withPlatform` the actor sees their own
+ * `platform_admins` row (the console's read policy) and their own `users` row (`users_visible` admits
+ * `id = app.actor_id`); under `withSystem` RLS is bypassed.
  */
-export async function requireActiveAdmin(tx: Db): Promise<string> {
-  const actorId = platformActorId()
+export async function requireActiveAdminLevel(
+  tx: Db,
+  actorId: string,
+  procedure: AdminProcedurePath,
+): Promise<void> {
   const [row] = await tx
-    .select({ id: platformAdmins.id, disabledAt: platformAdmins.disabledAt })
+    .select({ level: platformAdmins.role, loginStatus: users.status })
     .from(platformAdmins)
-    .where(eq(platformAdmins.userId, actorId))
+    .innerJoin(users, eq(users.id, platformAdmins.userId))
+    .where(and(eq(platformAdmins.userId, actorId), isNull(platformAdmins.disabledAt)))
     .limit(1)
-  if (!row || row.disabledAt) {
+  if (!row || row.loginStatus !== 'active') {
     throw new ORPCError('FORBIDDEN', { message: 'This console account is no longer active' })
   }
-  return actorId
+  if (!levelAllows(procedure, row.level)) {
+    throw new ORPCError('FORBIDDEN', {
+      message: `a ${row.level} console account may not call ${procedure}; ask a super administrator`,
+    })
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -29,21 +29,24 @@ import { AddressSchema, PaymentTermsSchema } from './retailers.js'
  * through `InventoryService`, every order state through `OrdersService`, the van-sale bill through
  * `BillingService.issueFromLocation` and the doorstep credit note through
  * `CreditNotesService.raiseForDelivery` (coordination §4). It never reads `load_sheets`: "is the load
- * out of the godown" is `LoadSheetsService.confirmedForTrip`.
+ * out of the godown" is `LoadSheetsService.confirmedForTrip`, and "does a load sheet still hold this
+ * trip back" is `LoadSheetsService.draftsForTrip`.
  *
  * WHICH SERVICES MOUNT `delivery` (docs/plans/00-coordination.md §6 table):
  *
  *   owner :3001      YES — the whole surface: trips, vehicles, the live map and the trip trace (both
  *                    DPDP-audited reads), the settlement with `acceptVariance` for a red check-in
- *   manager :3002    YES — manager + accountant: plan and cancel trips, the day-end desk
+ *   manager :3002    YES — manager + accountant: plan and cancel trips, the trip planning board
+ *                    (`trips.planning`, the manager only, QA DOS-131), the day-end desk
  *                    (`trips.settlementPreview`, `trips.settle`, `collections.list`, `expenses.list`).
  *                    The accountant settles WITHIN tolerance and reads the trip's money; it never
  *                    writes a stop, a delivery or a POD, never sees the live map or a trace
  *   sales :3003      NO  — a rep is never on a trip and NEVER collects (docs/17 §D4). A shop's delivery
  *                    status reaches the rep through `orders.get`, never through this key
- *   warehouse :3004  YES — trip PLANNING only (TRIP_PLANNERS / STOCK_VIEWERS): `trips.create`,
- *                    `trips.startLoading`, `stops.add`, `vehicles.list`, `trips.list/get`, `stops.list/
- *                    next`. Never money, never a doorstep write, never a settlement
+ *   warehouse :3004  YES — trip PLANNING only (TRIP_PLANNERS / STOCK_VIEWERS / STOCK_KEEPERS):
+ *                    `trips.create`, `trips.planning`, `trips.startLoading`, `stops.add`,
+ *                    `vehicles.list`, `trips.list/get`, `stops.list/next`. Never money, never a doorstep
+ *                    write, never a settlement
  *   delivery :3005   YES — the primary app: DOORSTEP writes, MONEY_COLLECTORS at the shop door,
  *                    `gps.points`, its own consent. RLS plus the handler scope the crew to the trips it
  *                    is driver or helper on; `trips.list` is forced to `mine`
@@ -693,6 +696,53 @@ export const CreateTripInput = MutationBase.extend({
 })
 export const CreateTripOutput = TripItemOutput
 
+/**
+ * The trip planning board (QA DOS-131): who can drive on `date`, and the packed bills no open trip
+ * carries yet. W10 (the godown) and M7 (the desk) plan a trip from it; W7 narrows a load to its trip
+ * with it.
+ *
+ *  - `crew` is every ACTIVE `delivery` member of the distributor, name-ordered — no phone, no username.
+ *    `onTripId` / `onTripNo` name the trip the member is driver or helper of on `date` whose state is
+ *    not settled, settled with variance or cancelled: `trips.create`'s own busy rule.
+ *  - `bills` are orders in `packed` with a live bill (not draft, not cancelled) that no outcome-null
+ *    delivery of such a trip carries — exactly the bills `trips.create` and `stops.add` accept rather
+ *    than refuse 409. Sale values only.
+ *  - It pages packed orders newest first. `nextCursor` is the last order id scanned while more packed
+ *    orders exist, so a page may hold fewer than `limit` bills, or none, while `nextCursor` is set.
+ */
+export const TripPlanningInput = z.object({
+  /** IST business date the trip is for; defaults to today. Only `crew[].onTrip*` depends on it. */
+  date: IsoDateSchema.optional(),
+  beatId: IdSchema.optional(),
+  ...CursorInput,
+})
+export const PlanningCrewSchema = z.object({
+  userId: IdSchema,
+  name: z.string(),
+  onTripId: IdSchema.nullable(),
+  onTripNo: z.string().nullable(),
+})
+export type PlanningCrew = z.infer<typeof PlanningCrewSchema>
+export const PlanningBillSchema = z.object({
+  invoiceId: IdSchema,
+  invoiceNo: z.string().nullable(),
+  invoiceTotalPaise: PaiseSchema,
+  orderId: IdSchema,
+  orderNo: z.string().nullable(),
+  retailerId: IdSchema,
+  retailerName: z.string(),
+  beatId: IdSchema.nullable(),
+  beatName: z.string().nullable(),
+})
+export type PlanningBill = z.infer<typeof PlanningBillSchema>
+export const TripPlanningOutput = z.object({
+  /** The IST business date `crew[].onTrip*` was answered for. */
+  date: z.string(),
+  crew: z.array(PlanningCrewSchema).max(200),
+  bills: z.array(PlanningBillSchema).max(200),
+  nextCursor: z.string().nullable(),
+})
+
 export const TripsListInput = z.object({
   state: TripStateSchema.optional(),
   /** Several states in one call (bracket notation on the query string). */
@@ -722,11 +772,13 @@ export const StartLoadingInput = MutationBase.extend({
 export const StartLoadingOutput = TripItemOutput
 
 /**
- * `tripMachine.next(state, 'depart')` → `active`. Needs a granted `location_consents` row for the driver
- * (403 `gps_consent_missing`); a denied OS permission on the phone never blocks it. 409 when the trip has
- * no stops and van sales are off. Orders on the trip that the godown has NOT dispatched through a
- * confirmed load sheet are dispatched here; an already-dispatched order is a no-op (coordination §4
- * item 4).
+ * `tripMachine.next(state, 'depart')` → `active`. The crew and the desk depart, never the godown (QA
+ * DOS-043). Needs a granted `location_consents` row for the driver (403 `gps_consent_missing`); a denied
+ * OS permission on the phone never blocks it. 409 when the trip has no stops and van sales are off. 409
+ * `load_sheet_not_confirmed` (`data.loadSheetIds`) while any load sheet of the trip is still a draft: one
+ * linked to the trip, or one carrying a bill planned on one of its stops; a trip with no load sheet
+ * departs. Orders on the trip that the godown has NOT dispatched through a confirmed load sheet are
+ * dispatched here; an already-dispatched order is a no-op (coordination §4 item 4).
  */
 export const DepartTripInput = MutationBase.extend({
   id: IdSchema,
@@ -1313,6 +1365,16 @@ export const deliveryContract = {
       })
       .input(TripsListInput)
       .output(TripsListOutput),
+    // Not under `/delivery/trips/`: `GET /delivery/trips/{id}` would take the word for an id.
+    planning: oc
+      .route({
+        method: 'GET',
+        path: '/delivery/trip-planning',
+        summary:
+          'Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk)',
+      })
+      .input(TripPlanningInput)
+      .output(TripPlanningOutput),
     get: oc
       .route({
         method: 'GET',
@@ -1333,7 +1395,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/depart',
-        summary: "Start the trip: loading → active (needs the driver's location consent)",
+        summary:
+          "Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet)",
       })
       .input(DepartTripInput)
       .output(DepartTripOutput),

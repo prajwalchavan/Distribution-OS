@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -15,8 +15,9 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { locations, orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
+import { orderStateTransitions, outboxEvents, salesOrders, type ActorRole, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
 import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
@@ -150,26 +151,9 @@ export async function availablePcs(tx: Db, variantId: string, locationId: string
   return Number(row?.available ?? 0)
 }
 
-/** Where an order ships from when it names no location of its own. */
+/** Where an order ships from when it names no location of its own: inventory's one godown rule (DOS-074). */
 export async function warehouseLocation(tx: Db): Promise<string> {
-  const { tenantId } = currentTenant()
-  const [location] = await tx
-    .select({ id: locations.id })
-    .from(locations)
-    .where(
-      and(
-        eq(locations.tenantId, tenantId),
-        eq(locations.kind, 'warehouse'),
-        eq(locations.active, true),
-      ),
-    )
-    .orderBy(asc(locations.id))
-    .limit(1)
-  if (!location)
-    throw new ORPCError('BAD_REQUEST', {
-      message: 'this tenant has no active warehouse location (bootstrap it first)',
-    })
-  return location.id
+  return reservableLocationId(tx)
 }
 
 /**
@@ -286,6 +270,22 @@ export function callerReaches(order: Pick<OrderRow, 'salespersonId'>): boolean {
   const ctx = currentTenant()
   return ctx.actorRole !== 'salesperson' || order.salespersonId === ctx.actorId
 }
+
+/**
+ * Who places, re-lines, repeats, submits and cancels an order through the five order procedures and the
+ * device-upload doors (DOS-115): the owner, the manager, the rep and the shop, plus `system` for the worker
+ * and the escalation pattern. The godown and the crew take no order — the crew's van sale drafts through
+ * `insertDraft` under `delivery.vanSales.create` (DOORSTEP) — and neither does the accountant. It mirrors
+ * `ORDER_PLACERS` in `@dos/contracts` permissions.ts, the tuple the gate enforces first; the DOS-115 block
+ * of orders.spec.ts pins the two together. Reads (`get`, `list`) stay with every member.
+ */
+export const ORDER_PLACERS: readonly ActorRole[] = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+  'system',
+]
 
 /**
  * A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query.

@@ -183,6 +183,10 @@ export default function OrderDetail(): React.JSX.Element {
                       primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
                       secondary={`${billLineQty(line, t)} · ${formatMoney(line.ratePaise)}${
                         line.discountPaise > 0 ? ` · −${formatMoney(line.discountPaise)}` : ''
+                      }${
+                        line.taxPaise > 0
+                          ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
+                          : ''
                       }`}
                       trailingMoney={line.lineTotalPaise}
                     />

@@ -8,7 +8,9 @@
  *
  * FOR SERVER-BOUNDED WINDOWS ONLY. Scale rule 3 (docs/20) says no endpoint hands out an unbounded list,
  * and this helper is not a way round it: use it where the service already caps the window (the ledger's
- * 400 days), never to drain a register that grows with the business. Every caller names its own
+ * 400 days; `inventory.stock.availability`'s one row per item stocked at the godown, the order screens'
+ * stock hint in DOS-074, whose size is the distributor's range and not its history), never to drain a
+ * register that grows with the business. Every caller names its own
  * `maxPages` — there is deliberately no default — and a read that outgrows it says so with
  * `complete: false` instead of silently cutting the list short or looping.
  *

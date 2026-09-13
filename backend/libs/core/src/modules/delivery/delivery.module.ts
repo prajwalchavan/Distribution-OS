@@ -78,11 +78,28 @@ export class DeliveryModule implements OnModuleInit {
     // needs receivables to know which trips have handed their cash over (DOS-132).
     this.receivables.registerTripSettled(tripSettledSql)
     if (!this.registry) return
-    this.registry.register('trip_stops', (tx, op) => applyStopSync(tx, op, this.trips))
-    this.registry.register('deliveries', (tx, op) => applyDeliverySync(tx, op, this.deliveries))
-    this.registry.register('pod_evidence', (tx, op) => applyPodSync(tx, op, this.deliveries))
-    this.registry.register('collections', (tx, op) => applyCollectionSync(tx, op, this.collections))
-    this.registry.register('trip_expenses', (tx, op) => applyExpenseSync(tx, op, this.collections))
+    // Each upload table names the online procedure(s) it stands for, and the uploader asks PERMISSIONS
+    // about every one of them before a handler runs (DOS-166). A stop op moves the stop through start,
+    // arrive and fail, so it needs all three rows; the money tables need the money collectors' rows.
+    this.registry.register('trip_stops', (tx, op) => applyStopSync(tx, op, this.trips), {
+      standsFor: ['delivery.stops.start', 'delivery.stops.arrive', 'delivery.stops.fail'],
+    })
+    this.registry.register('deliveries', (tx, op) => applyDeliverySync(tx, op, this.deliveries), {
+      standsFor: ['delivery.deliveries.record'],
+    })
+    this.registry.register('pod_evidence', (tx, op) => applyPodSync(tx, op, this.deliveries), {
+      standsFor: ['delivery.deliveries.addPod'],
+    })
+    this.registry.register(
+      'collections',
+      (tx, op) => applyCollectionSync(tx, op, this.collections),
+      { standsFor: ['delivery.collections.record'] },
+    )
+    this.registry.register(
+      'trip_expenses',
+      (tx, op) => applyExpenseSync(tx, op, this.collections),
+      { standsFor: ['delivery.expenses.record'] },
+    )
     // THE PULL SIDE — the road as the crew's phone holds it. `trips_read` already narrows a delivery
     // actor to the trips it is crew on, so the predicate here only bounds the AGE: a fortnight, which
     // covers today's run and the week of settlements behind it without pulling a year of history onto

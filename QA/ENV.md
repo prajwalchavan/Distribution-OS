@@ -232,3 +232,15 @@ Notes from the Admin walk (2026-09-12):
 - **Metro with `CI=1` never reloads (2026-09-13):** `expo start` under `CI=1` logs 'Metro is running in CI mode, reloads are disabled' and does not watch files, so a merge or commit changes nothing the apps receive until that Metro is restarted (use `--clear` after library rebuilds). Upside: a merge does not reload apps under a running walker. Always check which commit a Metro was started on before walking a fix.
 
 - **macOS `/bin/bash` is 3.2 (2026-09-13):** `declare -A` (associative arrays) is not supported, so a `#!/bin/bash` script using it stops at that line; with a trailing `; cat summary.txt` the Bash tool still reports exit 0. The batch-1 merge script started the Metro servers and then silently skipped its bundle checks and teardown — they were done by hand. Use plain arrays or `#!/opt/homebrew/bin/bash`, and end wrapper commands with the script's own exit code.
+
+- **This Mac has 8 GiB RAM and 8 CPUs (2026-09-13):** batch 2 runs at most three implementation lanes at once and stops the seven Metros
+  (:5173–:5179) while lanes build and test. Restart them with `QA/tools/start-all.sh` before any walk (check `pgrep -fl "@dos/worker"` first,
+  so the script does not start a second worker).
+
+- **Batch 2 test databases (2026-09-13):** `dos_test_batch2_template` was built from b59bbf0 (createdb → `pnpm db:migrate` → `pnpm db:seed`
+  → `QA/tools/seed/verify-seed.sh` 206/206, log `~/.dos-qa-logs/logs/batch2-template.log`). Each lane gets `createdb -T dos_test_batch2_template
+  dos_test_b2_<lane>` and a worktree `.claude/worktrees/b2-<lane>` on branch `qa/b2-<lane>` whose `backend/.env` points at that copy.
+  Every QA-created database name carries `test` (Charter A.3).
+
+- **`QA/tools/seed/verify-seed.sh` ignores its argument (2026-09-13):** it reads `DATABASE_URL`, and falls back to the founder's `dos`. `verify-seed.sh dos_test_x` without exporting `DATABASE_URL` silently checks `dos` (batch-2 template build: 93 pass / 108 fail against `dos`, 206/206 against the template once exported). It writes only with `RESEED=1`. Always run `DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/<db> QA/tools/seed/verify-seed.sh`.
+- **Batch 2 template after DOS-032+059 (2026-09-13):** `dos_test_batch2b_template` = main 5499c86, 45 migrations, fixed seed (no duplicate receipt numbers). Lanes that merge main must recreate their DB from it (`dropdb --force dos_test_b2_<lane>; createdb -T dos_test_batch2b_template dos_test_b2_<lane>`), because migration 0044 refuses a database seeded by the old code.

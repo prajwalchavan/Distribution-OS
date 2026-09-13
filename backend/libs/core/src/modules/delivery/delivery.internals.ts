@@ -16,6 +16,7 @@ import {
   DEFAULT_GPS_RETENTION_DAYS,
   DEFAULT_POD_REQUIRED,
   DEFAULT_SETTLEMENT_TOLERANCE_PAISE,
+  deliveries,
   featureFlags,
   fileObjects,
   locationConsents,
@@ -64,6 +65,12 @@ export const TRIP_PLANNERS: readonly ActorRole[] = [
   'delivery',
   'system',
 ]
+/**
+ * Who reads the trip planning board (`trips.planning`, QA DOS-131): whoever builds the load — the desk
+ * and the godown, the same three as `warehouse.loadSheets.create` (STOCK_KEEPERS). The crew plans only
+ * its own van day and never reads the board; the accountant does not plan.
+ */
+export const TRIP_BOARD: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
 /** Everyone who holds stock somewhere or is handed the paperwork for it (a van counts). */
 export const STOCK_VIEWERS: readonly ActorRole[] = [
   'owner',
@@ -340,13 +347,15 @@ export function casesAndLoose(
 /**
  * Run `fn` with `app.actor_role = 'system'` for the statements inside it, restoring the caller's role
  * afterwards inside the same transaction — the escalation pattern `modules/orders`' `recordTransition`
- * established, used here for exactly three DERIVED writes and reads whose policies are narrower than
+ * established, used here for exactly four DERIVED writes and reads whose policies are narrower than
  * the procedure's own role: the planned `deliveries` rows a WAREHOUSE planner's stop creates (the
  * doorstep write policy is the crew's and the desk's), the driver's consent a HELPER reads at depart
- * (a consent row is its owner's), and the crew's own GPS batch (`trip_points` is readable by the
- * owner and the manager only, and PostgreSQL applies the SELECT policy to the rows an
- * `INSERT … ON CONFLICT … RETURNING` proposes). `actor_id` never changes, so every row still records
- * who did it; nothing is widened beyond the statement.
+ * (a consent row is its owner's), the crew's own GPS batch (`trip_points` is readable by the owner and
+ * the manager only, and PostgreSQL applies the SELECT policy to the rows an
+ * `INSERT … ON CONFLICT … RETURNING` proposes), and which bills already ride on an open trip, for a
+ * planner whose `deliveries_read` policy hides them (`plannedOnOpenTrips` below: the double-plan guard
+ * and the trip planning board, QA DOS-131; ids only). `actor_id` never changes, so every row still
+ * records who did it; nothing is widened beyond the statement.
  */
 export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
   const ctx = currentTenant()
@@ -359,6 +368,44 @@ export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> 
       .execute(sql`select set_config('app.actor_role', ${ctx.actorRole}, true)`)
       .catch(() => undefined)
   }
+}
+
+/**
+ * Which of `invoiceIds` already ride on an OPEN trip — an outcome-null `deliveries` row of a trip that
+ * is not settled, settled with variance or cancelled — as invoice id → trip id. ONE predicate for the
+ * double-plan guard in `insertStop` (409) and the trip planning board (`trips.planning`), so the board
+ * never offers a bill the guard would refuse (QA DOS-131).
+ *
+ * The select runs as `system`: `deliveries_read` admits the desk, the trip's own crew and the shop,
+ * never the godown, so under a warehouse planner's role — or another crew's — the planned row was
+ * invisible and the guard passed silently. It answers ids only, never a doorstep row, behind a literal
+ * tenant fence (`deliveries_invoice_idx`). A cancelled trip's outcome-null rows block nothing, which is
+ * why no partial unique index can say this.
+ */
+export async function plannedOnOpenTrips(
+  tx: Db,
+  invoiceIds: readonly string[],
+): Promise<Map<string, string>> {
+  const wanted = [...new Set(invoiceIds)]
+  if (wanted.length === 0) return new Map()
+  const { tenantId } = currentTenant()
+  const rows = await asSystemRole(tx, () =>
+    tx
+      .select({ invoiceId: deliveries.invoiceId, tripId: deliveries.tripId })
+      .from(deliveries)
+      .innerJoin(trips, eq(trips.id, deliveries.tripId))
+      .where(
+        and(
+          eq(deliveries.tenantId, tenantId),
+          inArray(deliveries.invoiceId, wanted),
+          sql`${deliveries.outcome} is null`,
+          sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
+        ),
+      ),
+  )
+  const planned = new Map<string, string>()
+  for (const row of rows) if (!planned.has(row.invoiceId)) planned.set(row.invoiceId, row.tripId)
+  return planned
 }
 
 // ---------------------------------------------------------------------------------------------------------------
