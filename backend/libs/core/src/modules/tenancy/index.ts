@@ -13,3 +13,8 @@ export { TenantGuard, PLATFORM_SCOPE, type SupportAwareRequest } from './tenant.
 export { sellerBranding, loadSettings, signedObjectUrl, LOGO_URL_TTL_SECONDS } from './branding.js'
 /** User id → name, scoped to the current tenant's roster (reporting, coordination §4). Plain function. */
 export { userLabels } from './user-labels.js'
+/**
+ * Active members of one role, name-ordered and bounded — delivery's trip planning board (QA DOS-131,
+ * coordination §4). Plain function.
+ */
+export { activeMembersWithRole } from './user-labels.js'

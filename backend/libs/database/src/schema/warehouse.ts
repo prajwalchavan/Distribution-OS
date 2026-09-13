@@ -168,6 +168,11 @@ export const packConfirmations = pgTable(
   (t) => [
     /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
     index('pack_confirmations_updated_idx').on(t.tenantId, t.updatedAt),
+    /**
+     * `packs.list` reads newest first by server time (DOS-133). Led by tenant_id (docs/20 rule 8), so a
+     * page is an index walk instead of a sort of the tenant's whole pack history.
+     */
+    index('pack_confirmations_created_idx').on(t.tenantId, t.createdAt, t.id),
     // ONE pack confirmation per order for all time — this is what makes "the invoice is issued once" a
     // database guarantee rather than a code convention. It subsumes the plain `pack_confirmations_order_idx`
     // that 0002 created, which 0010 drops in the same migration (coordination §5.4).

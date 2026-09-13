@@ -611,6 +611,21 @@ describe('permission matrix', () => {
     }
   })
 
+  it("DOS-131: the trip planning board is the desk's and the godown's, never the crew's, the accountant's, a rep's or a shop's (delivery)", () => {
+    // Whoever builds the load reads the board: the same three as `warehouse.loadSheets.create`.
+    expect(permissionFor('delivery.trips.planning')).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+    expect(permissionFor('delivery.trips.planning')).toEqual(['owner', 'manager', 'warehouse'])
+    expect(permissionFor('delivery.trips.planning')).toEqual(
+      permissionFor('warehouse.loadSheets.create'),
+    )
+    for (const role of ['delivery', 'accountant', 'salesperson', 'retailer'] as const) {
+      expect(
+        isAllowed(permissionFor('delivery.trips.planning'), role),
+        `delivery.trips.planning must refuse ${role}`,
+      ).toBe(false)
+    }
+  })
+
   it('lets the crew work the door and the godown only plan the trip (delivery)', () => {
     // Doorstep writes: the crew, with the owner and the manager able to do the same from the office.
     for (const path of [
@@ -646,6 +661,7 @@ describe('permission matrix', () => {
       'delivery.trips.create',
       'delivery.trips.list',
       'delivery.trips.get',
+      'delivery.trips.planning',
       'delivery.trips.startLoading',
       'delivery.stops.list',
       'delivery.stops.next',

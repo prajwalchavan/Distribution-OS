@@ -655,7 +655,10 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
   // Five populations, one new tuple:
   //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
-  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop. The planning board
+  //    (`trips.planning`, QA DOS-131) is read by whoever builds the load — ROLE_GROUPS.STOCK_KEEPERS, the
+  //    same three as `warehouse.loadSheets.create`; the crew plans only its own van day and never reads
+  //    the board, and the accountant does not plan.
   //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
   //    consent, the departure (`trips.depart`: the crew or the desk, never the godown, QA DOS-043) and
   //    the check-in (`trips.return`).
@@ -681,6 +684,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.create': TRIP_PLANNERS,
   'delivery.trips.list': STOCK_VIEWERS,
   'delivery.trips.get': STOCK_VIEWERS,
+  'delivery.trips.planning': ROLE_GROUPS.STOCK_KEEPERS,
   'delivery.trips.startLoading': TRIP_PLANNERS,
   'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,

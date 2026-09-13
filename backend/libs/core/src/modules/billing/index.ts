@@ -10,6 +10,8 @@
  *                    `BillingService.invoiceForDelivery` — the bill and its lines as the doorstep
  *                                                          sees them (quantities, never a rate)
  *                    `CreditNotesService.raiseForDelivery` — the doorstep short delivery, in one tap
+ *                    `BillingService.liveInvoicesForOrders` — the live bill of each packed order on the
+ *                                                          trip planning board (QA DOS-131)
  *   integrations (6) `BillingService.importBrandDms`    — a brand DMS's own bill, stored verbatim
  *                    `BillingService.recordOpeningInvoice` — a bill carried over from the old software
  *                    `RegistersService.salesRegister`   — the Tally sales voucher, same arithmetic

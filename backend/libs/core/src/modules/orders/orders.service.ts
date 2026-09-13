@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -63,6 +63,7 @@ import {
   fulfilmentLines,
   fulfilmentOrders,
   fulfilmentQueue,
+  orderInState,
   orderLineOwners,
   recordDelivered,
   recordPick,
@@ -510,6 +511,15 @@ export class OrdersService {
   /** The same queue row by id, for orders a warehouse screen still names after they left the godown. */
   fulfilmentOrders(tx: Db, orderIds: readonly string[]): Promise<FulfilmentOrder[]> {
     return fulfilmentOrders(tx, orderIds)
+  }
+
+  /**
+   * "The order this row points at is in `state`", as a correlated predicate for the caller's OWN query —
+   * the one sanctioned cross-module predicate (DOS-133, see `orderInState` in fulfilment.ts). The caller
+   * passes only its own column; the SQL that names `sales_orders` stays in the orders module.
+   */
+  orderInState(orderId: SQLWrapper, state: OrderState): SQL {
+    return orderInState(orderId, state)
   }
 
   /** Which order each line belongs to — the holds screen has a line id and needs the order. */
