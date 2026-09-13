@@ -176,7 +176,10 @@ export const PicklistSummarySchema = z.object({
   locationId: IdSchema,
   /** IST business date the wave is picked for. */
   pickDate: z.string(),
-  /** Plain labels: delivery is downstream, so warehouse never joins a trip or reads its stops. */
+  /**
+   * Plain labels, stored as the caller named them at create and never validated or attached later:
+   * warehouse is upstream of delivery, so it never joins a trip or reads its stops.
+   */
   tripId: IdSchema.nullable(),
   beatId: IdSchema.nullable(),
   note: z.string().nullable(),
@@ -354,7 +357,11 @@ export const LoadSheetSummarySchema = z.object({
   status: LoadSheetStatusSchema,
   /** IST business date of the load-out. */
   sheetDate: z.string(),
-  /** Plain label; delivery attaches the real trip. Null until it does. */
+  /**
+   * The trip the sheet was built for, as the caller named it at create — W7 always names one (QA DOS-137).
+   * A plain label: the server stores it and never validates it or attaches one later (warehouse is
+   * upstream of delivery). Null for a sheet built without a trip (the seed, a direct API call).
+   */
   tripId: IdSchema.nullable(),
   fromLocationId: IdSchema,
   toLocationId: IdSchema,

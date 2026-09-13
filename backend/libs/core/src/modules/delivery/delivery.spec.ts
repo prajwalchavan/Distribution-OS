@@ -115,6 +115,22 @@ interface SettlementBody {
   approvedBy: string | null
   stockVariance: { lotId: string; expectedPcs: number; countedPcs: number; deltaPcs: number }[]
 }
+interface PlanningBody {
+  date: string
+  crew: { userId: string; name: string; onTripId: string | null; onTripNo: string | null }[]
+  bills: {
+    invoiceId: string
+    invoiceNo: string | null
+    invoiceTotalPaise: number
+    orderId: string
+    orderNo: string | null
+    retailerId: string
+    retailerName: string
+    beatId: string | null
+    beatName: string | null
+  }[]
+  nextCursor: string | null
+}
 type LedgerRow = { reason: string; qty_delta: number; lot_id: string; location_id: string }
 
 describeDb('delivery (DATABASE_URL)', () => {
@@ -2200,5 +2216,285 @@ describeDb('delivery (DATABASE_URL)', () => {
         r.after.startOdometerKm,
       ]),
     ).toEqual([[driverId, 'delivery', 'active', 41_900]])
+  }, 180_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-131: the godown and the desk plan a trip from one planning board, and the double-plan guard is role-proof
+
+  /** Five days out and beyond, so no other test's trip shares the crew's day (the busy check is per trip date). */
+  const planDay = (offset: number): string =>
+    new Date(Date.parse(today) + (5 + offset) * 86_400_000).toISOString().slice(0, 10)
+  const tripP = uuidv7()
+  let p1: Awaited<ReturnType<typeof billedOrder>>
+  let p2: Awaited<ReturnType<typeof billedOrder>>
+  /** Planned rows of one bill, whatever trip they are on (the owner connection reads through RLS). */
+  const outcomeNullRows = async (invoiceId: string): Promise<number> =>
+    (
+      (
+        await db.execute(
+          sql`select count(*)::int as n from deliveries
+               where tenant_id = ${tenantId} and invoice_id = ${invoiceId} and outcome is null`,
+        )
+      ).rows[0] as { n: number }
+    ).n
+
+  it('DOS-131: the planning board names the crew and who is on a trip that day, and lists only packed bills not yet on an open trip, for the godown and the desk, never the crew, the accountant, a rep or a shop', async () => {
+    // Packed inside the test, not in a hook, so no earlier test sees two more open bills.
+    p1 = await billedOrder(retailerA, variantA, 'dos131-p1')
+    p2 = await billedOrder(retailerB, variantB, 'dos131-p2')
+    const day = planDay(0)
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-trip-${run}`,
+      id: tripP,
+      tripDate: day,
+      vehicleId,
+      driverId: otherDriverId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(planned.status).toBe(200)
+    const tripNo = planned.body.item.tripNo
+    expect(tripNo).not.toBeNull()
+
+    // The godown reads the board: every active member of the crew, and who is already on a trip that day.
+    const board = await call<PlanningBody>(app, packer, 'GET', '/delivery/trip-planning', {
+      date: day,
+      limit: 200,
+    })
+    expect(board.status).toBe(200)
+    expect(board.body.date).toBe(day)
+    const crew = new Map(board.body.crew.map((member) => [member.userId, member]))
+    expect(crew.get(otherDriverId)).toEqual({
+      userId: otherDriverId,
+      name: 'Other driver',
+      onTripId: tripP,
+      onTripNo: tripNo,
+    })
+    expect(crew.get(driverId)).toEqual({
+      userId: driverId,
+      name: 'Driver',
+      onTripId: null,
+      onTripNo: null,
+    })
+    expect([...crew.keys()].sort()).toEqual([driverId, helperId, otherDriverId].sort())
+    for (const person of [ownerId, managerId, accountantId, packerId, repId, shopUserA, shopUserB])
+      expect(crew.has(person), person).toBe(false)
+    // No phone and no username leave through the board.
+    for (const member of board.body.crew)
+      expect(Object.keys(member).sort()).toEqual(['name', 'onTripId', 'onTripNo', 'userId'])
+
+    // The bills: packed, a live bill, and on no open trip. Sale values only.
+    const bill = board.body.bills.find((b) => b.invoiceId === p2.invoiceId)
+    expect(bill).toMatchObject({
+      invoiceId: p2.invoiceId,
+      orderId: p2.orderId,
+      retailerId: retailerB,
+      retailerName: `Van Shop B ${run}`,
+      invoiceTotalPaise: p2.totalPaise,
+    })
+    expect(bill?.invoiceNo).not.toBeNull()
+    for (const item of board.body.bills)
+      expect(Object.keys(item).sort()).toEqual([
+        'beatId',
+        'beatName',
+        'invoiceId',
+        'invoiceNo',
+        'invoiceTotalPaise',
+        'orderId',
+        'orderNo',
+        'retailerId',
+        'retailerName',
+      ])
+    const billIds = board.body.bills.map((b) => b.invoiceId)
+    // Planned on tripP a moment ago, and delivered earlier in this file.
+    expect(billIds).not.toContain(p1.invoiceId)
+    expect(billIds).not.toContain(billA1.invoiceId)
+    expect(board.body.nextCursor).toBeNull()
+
+    // The desk reads the same board.
+    const desk = await call<PlanningBody>(app, manager, 'GET', '/delivery/trip-planning', {
+      date: day,
+      limit: 200,
+    })
+    expect(desk.status).toBe(200)
+    expect(desk.body.bills.map((b) => b.invoiceId)).toEqual(billIds)
+
+    // The crew, the accountant, a rep and a shop never read it.
+    for (const actor of [driver, accountant, rep, shopA])
+      expect(
+        (await call(app, actor, 'GET', '/delivery/trip-planning', { date: day })).status,
+        actor.role,
+      ).toBe(403)
+
+    // No widening: the godown still reads no doorstep row of the trip it planned.
+    const packerView = await call<{ item: TripBody }>(
+      app,
+      packer,
+      'GET',
+      `/delivery/trips/${tripP}`,
+    )
+    expect(packerView.status).toBe(200)
+    expect(packerView.body.item.stops[0]?.deliveries).toEqual([])
+  }, 180_000)
+
+  it('DOS-131: the godown plans a trip and adds a late bill, and a bill already riding on an open trip, or carried twice in one plan, is refused 409 for the godown as for the desk', async () => {
+    // A bill riding on tripP, planned again by the godown (whose RLS hides the planned row): 409.
+    const again = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(again.status).toBe(409)
+    expect(again.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p1.invoiceId)).toBe(1)
+
+    // One plan carrying the same bill on two stops: 409, and nothing of it is left behind.
+    const twice = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-twice-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(2),
+      vehicleId,
+      driverId: helperId,
+      stops: [
+        { id: uuidv7(), sequence: 1, retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+        { id: uuidv7(), sequence: 2, retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      ],
+    })
+    expect(twice.status).toBe(409)
+    expect(twice.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(0)
+
+    // The desk is refused the same way.
+    const deskAgain = await call<{ message?: string }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-desk-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(deskAgain.status).toBe(409)
+    expect(deskAgain.body.message).toContain('already planned on trip')
+
+    // The godown adds the late bill to the planned trip.
+    const late = await call<{ item: TripBody }>(
+      app,
+      packer,
+      'POST',
+      `/delivery/trips/${tripP}/stops`,
+      {
+        idempotencyKey: `dos131-late-${run}`,
+        id: tripP,
+        stop: { id: uuidv7(), retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      },
+    )
+    expect(late.status).toBe(200)
+    expect(late.body.item.plannedStops).toBe(2)
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(1)
+
+    // ...and cannot plan it a second time on another trip.
+    const lateAgain = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-late-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerB, invoiceIds: [p2.invoiceId] }],
+    })
+    expect(lateAgain.status).toBe(409)
+    expect(lateAgain.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(1)
+
+    // A cancelled trip keeps its outcome-null rows and blocks nothing: the board offers both bills
+    // again, its driver is free, and a fresh plan takes the bill (why no partial unique index exists).
+    const cancelled = await call<{ item: TripBody }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/trips/${tripP}/cancel`,
+      { idempotencyKey: `dos131-cancel-${run}`, id: tripP, reason: 'DOS-131' },
+    )
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+    const reopened = await call<PlanningBody>(app, packer, 'GET', '/delivery/trip-planning', {
+      date: planDay(0),
+      limit: 200,
+    })
+    expect(reopened.status).toBe(200)
+    expect(reopened.body.bills.map((b) => b.invoiceId)).toEqual(
+      expect.arrayContaining([p1.invoiceId, p2.invoiceId]),
+    )
+    expect(
+      reopened.body.crew.find((member) => member.userId === otherDriverId)?.onTripId,
+    ).toBeNull()
+    const replan = uuidv7()
+    const replanned = await call<{ item: TripBody }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-replan-${run}`,
+      id: replan,
+      tripDate: planDay(3),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(replanned.status).toBe(200)
+    expect(await outcomeNullRows(p1.invoiceId)).toBe(2)
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${replan}/cancel`, {
+          idempotencyKey: `dos131-replan-cancel-${run}`,
+          id: replan,
+          reason: 'DOS-131',
+        })
+      ).status,
+    ).toBe(200)
+  }, 180_000)
+
+  it('DOS-131: two planners adding the same bill to two trips at the same instant take turns on the bill: one stop lands, the other is refused 409', async () => {
+    const tripX = uuidv7()
+    const tripY = uuidv7()
+    for (const [id, driverOfTrip] of [
+      [tripX, driverId],
+      [tripY, otherDriverId],
+    ] as const)
+      expect(
+        (
+          await call(app, manager, 'POST', '/delivery/trips', {
+            idempotencyKey: `dos131-race-${id}`,
+            id,
+            tripDate: planDay(4),
+            vehicleId,
+            driverId: driverOfTrip,
+            vanSalesEnabled: true,
+            stops: [],
+          })
+        ).status,
+      ).toBe(200)
+    const add = (tripOf: string) =>
+      call<{ message?: string }>(app, packer, 'POST', `/delivery/trips/${tripOf}/stops`, {
+        idempotencyKey: `dos131-race-add-${tripOf}`,
+        id: tripOf,
+        stop: { id: uuidv7(), retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      })
+    const results = await Promise.all([add(tripX), add(tripY)])
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409])
+    expect(results.find((r) => r.status === 409)?.body.message).toContain('already planned on trip')
+    const onOpenTrips = await db.execute(
+      sql`select count(*)::int as n from deliveries d join trips t on t.id = d.trip_id
+           where d.tenant_id = ${tenantId} and d.invoice_id = ${p2.invoiceId} and d.outcome is null
+             and t.state not in ('settled', 'settled_with_variance', 'cancelled')`,
+    )
+    expect(onOpenTrips.rows[0]).toEqual({ n: 1 })
+    for (const id of [tripX, tripY])
+      expect(
+        (
+          await call(app, manager, 'POST', `/delivery/trips/${id}/cancel`, {
+            idempotencyKey: `dos131-race-cancel-${id}`,
+            id,
+            reason: 'DOS-131',
+          })
+        ).status,
+      ).toBe(200)
   }, 180_000)
 })
