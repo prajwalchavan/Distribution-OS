@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
+import { and, asc, eq, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -10,6 +10,8 @@ import type {
   ConfirmOrderOutput,
   CreateOrderInput,
   CreateOrderOutput,
+  LastPlacedOrderInput,
+  LastPlacedOrderOutput,
   OrderDetail,
   OrderGetInput,
   OrderGetOutput,
@@ -51,6 +53,7 @@ import {
   createDraft,
   emitOrderEvent,
   isUniqueViolation,
+  lastPlacedOrder,
   listOrders,
   ORDER_PLACERS,
   recordTransition,
@@ -81,7 +84,12 @@ import {
   type FillRateLineRow,
 } from './fill-rate.js'
 import { loadDetail, type OrderRow } from './orders.mappers.js'
-import { priceOrderLines, type EnteredLine } from './pricing-lines.js'
+import {
+  priceOrderLines,
+  repriceApprovedBargains,
+  type EnteredLine,
+  type RepricedLines,
+} from './pricing-lines.js'
 
 type CreateIn = z.infer<typeof CreateOrderInput>
 type CreateOut = z.infer<typeof CreateOrderOutput>
@@ -99,8 +107,10 @@ type GetIn = z.infer<typeof OrderGetInput>
 type GetOut = z.infer<typeof OrderGetOutput>
 type ListIn = z.infer<typeof OrdersListInput>
 type ListOut = z.infer<typeof OrdersListOutput>
+type LastPlacedIn = z.infer<typeof LastPlacedOrderInput>
+type LastPlacedOut = z.infer<typeof LastPlacedOrderOutput>
 
-/** Who reads an order (`get`, `list`): every member. The five writes are ORDER_PLACERS (DOS-115). */
+/** Who reads an order (`get`, `list`, `lastPlaced`): every member. The five writes are ORDER_PLACERS (DOS-115). */
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
 
@@ -172,7 +182,10 @@ export class OrdersService {
     )
   }
 
-  /** A repeat order is the retailer's last non-cancelled order, re-priced today (docs/06 "Reorder last order"). */
+  /**
+   * A repeat order copies the retailer's most recently PLACED order, by when it was placed and never a draft
+   * (`lastPlacedOrder`, DOS-098), re-priced today (docs/06 "Reorder last order").
+   */
   async repeatLast(input: RepeatIn): Promise<RepeatOut> {
     requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
@@ -180,17 +193,7 @@ export class OrdersService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.quotes.loadRetailer(tx, ctx, input.retailerId)
-        const [previous] = await tx
-          .select({ id: salesOrders.id })
-          .from(salesOrders)
-          .where(
-            and(
-              eq(salesOrders.retailerId, input.retailerId),
-              sql`${salesOrders.state} <> 'cancelled'`,
-            ),
-          )
-          .orderBy(desc(salesOrders.id))
-          .limit(1)
+        const previous = await lastPlacedOrder(tx, input.retailerId)
         if (!previous)
           throw new ORPCError('NOT_FOUND', {
             message: `retailer ${input.retailerId} has no order to repeat`,
@@ -333,9 +336,14 @@ export class OrdersService {
    * Confirm. It never decides an approval: while any approval on the order is still pending it is refused with
    * 409 `approval_required` naming each one, because an approval is decided only through
    * `ApprovalsService.decide` (DOS-020). The gate reads the `approvals` rows, not `approval_flags`, and lives
-   * here rather than in `confirm()` so no caller can bring back a silent decision. Then the authoritative stock
-   * check runs (the ATP the rep saw was only a hint). A line the location cannot cover is reserved short and
-   * reported — never refused, because the warehouse decides what to do with a shortage, not the API.
+   * here rather than in `confirm()` so no caller can bring back a silent decision.
+   *
+   * Then the rate the shop was granted is charged (DOS-126): a rate approved after the draft — on Approvals, on
+   * Rate requests, before submit, or by the very decision that confirms — re-prices the line it prices, through the
+   * engine on this transaction, and the header totals follow. The drafted prices plus that rate, and nothing else
+   * (`repriceApprovedBargains`). Then the authoritative stock check runs on those lines (the ATP the rep saw was
+   * only a hint). A line the location cannot cover is reserved short and reported — never refused, because the
+   * warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
     if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
@@ -353,12 +361,33 @@ export class OrdersService {
       })
     }
     const now = new Date()
-    const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
-    const lines = await tx
+    const stored = await tx
       .select()
       .from(salesOrderLines)
       .where(eq(salesOrderLines.orderId, order.id))
       .orderBy(asc(salesOrderLines.lineNo))
+    // Only a line an approved rate now prices lower is written, in place: its id stays, so the reservation below
+    // follows it, and the 0040 touch trigger moves `updated_at`, so the rep's and the shop's devices pull it.
+    const repriced = await this.chargeApprovedRates(tx, order, stored)
+    for (const line of repriced?.changed ?? [])
+      await tx
+        .update(salesOrderLines)
+        .set({
+          listRatePaise: line.listRatePaise,
+          ratePaise: line.ratePaise,
+          discountBps: line.discountBps,
+          discountPaise: line.discountPaise,
+          gstBps: line.gstBps,
+          taxPaise: line.taxPaise,
+          lineTotalPaise: line.lineTotalPaise,
+          freeQtyPcs: line.freeQtyPcs,
+          appliedRules: line.appliedRules,
+          priceLocked: line.priceLocked,
+          updatedAt: now,
+        })
+        .where(eq(salesOrderLines.id, line.id))
+    const lines = repriced?.lines ?? stored
+    const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
     const shortages: Shortage[] = []
     for (const line of lines) {
       // Free pieces of the same variant ship with the order, so they are held too.
@@ -384,13 +413,43 @@ export class OrdersService {
     }
     const [confirmed] = await tx
       .update(salesOrders)
-      .set({ state: to, fulfilFromLocationId: locationId, confirmedAt: now, updatedAt: now })
+      .set({
+        ...(repriced?.totals ?? {}),
+        state: to,
+        fulfilFromLocationId: locationId,
+        confirmedAt: now,
+        updatedAt: now,
+      })
       .where(eq(salesOrders.id, order.id))
       .returning()
+    // the row WITH the charged totals: the transition, `OrderConfirmed` and the reply all carry them
     const next = confirmed ?? order
     await recordTransition(tx, next, order.state, to, 'confirm', deviceId, null)
     await emitOrderEvent(tx, next, 'OrderConfirmed')
     return { item: await this.detail(tx, next), shortages }
+  }
+
+  /**
+   * `repriceApprovedBargains` for confirm, with the engine's refusal said so the desk can act on it (DOS-126): an
+   * approved rate that cannot be priced (the draft's price list switched off, the item's price or GST rate gone)
+   * rolls the decision back with a sentence naming the order, and never confirms at the wrong rate.
+   */
+  private async chargeApprovedRates(
+    tx: Db,
+    order: OrderRow,
+    lines: readonly (typeof salesOrderLines.$inferSelect)[],
+  ): Promise<RepricedLines | null> {
+    try {
+      return await repriceApprovedBargains(tx, this.quotes, { order, lines })
+    } catch (err) {
+      if (err instanceof ORPCError && err.code === 'BAD_REQUEST')
+        throw new ORPCError('BAD_REQUEST', {
+          message: `${order.orderNo ?? order.id} holds an approved rate that cannot be priced today (${err.message}); fix the price list or reject the rate request`,
+          data: { code: 'reprice_failed' },
+          cause: err,
+        })
+      throw err
+    }
   }
 
   async cancel(input: CancelIn): Promise<CancelOut> {
@@ -565,6 +624,26 @@ export class OrdersService {
     requireRole(ORDER_ROLES)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), (tx) => listOrders(tx, input))
+  }
+
+  /**
+   * The shop's most recently placed order with its lines — what "Order again" repeats — and nothing is written
+   * (DOS-098, `lastPlacedOrder`). A retailer reads only a shop linked to its login and an unknown shop is a 404
+   * (`loadRetailer`, as for `repeatLast`); a salesperson reads only an order credited to it (DOS-073), else null.
+   */
+  async lastPlaced(input: LastPlacedIn): Promise<LastPlacedOut> {
+    requireRole(ORDER_ROLES)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      await this.quotes.loadRetailer(tx, ctx, input.retailerId)
+      const row = await lastPlacedOrder(
+        tx,
+        input.retailerId,
+        ctx.actorRole === 'salesperson' ? ctx.actorId : undefined,
+      )
+      return { item: row ? await this.detail(tx, row) : null }
+    })
   }
 
   // -------------------------------------------------------------------------------------------------------------

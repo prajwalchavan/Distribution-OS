@@ -1419,7 +1419,9 @@ export class BillingService {
    * One order line becomes one invoice line PER LOT the pieces left from, with the batch, expiry and
    * MRP frozen from that lot. The order line's discount scales with what was actually packed
    * (`allocate`, largest remainder, no paisa lost) and is then split across the lots the same way, so
-   * the header is a plain sum of its lines.
+   * the header is a plain sum of its lines. The line's own taxable decides what comes off its charged
+   * rate (DOS-126): rate × qty − (line_total − tax), because a line priced with an approved rate stores
+   * that rate AND a discount that already holds the bargain, which would take the bargain off twice.
    */
   private priceOrderLineGroup(i: {
     invoiceId: string
@@ -1437,12 +1439,21 @@ export class BillingService {
     const packedPaid = paidQtys.reduce((s, q) => s + q, 0)
     const ordered = i.orderLine.qtyPcs
     const shortfall = Math.max(0, ordered - packedPaid)
+    // The stored taxable is the one invariant both stored conventions keep (an API-priced line folds a bargain
+    // into its rate and its discount; a seed-priced line only into its rate). An issued bill is immutable, so a
+    // line whose stored money does not add up is refused, never clamped and never billed.
+    const charged = i.orderLine.ratePaise * ordered
+    const lineDiscount = charged - (i.orderLine.lineTotalPaise - i.orderLine.taxPaise)
+    if (lineDiscount < 0 || lineDiscount > charged)
+      throw new ORPCError('CONFLICT', {
+        message: `order line ${i.orderLine.id} (line ${String(i.orderLine.lineNo)}): stored line money is inconsistent; not billable`,
+      })
     const groupDiscount =
-      i.orderLine.discountPaise === 0 || packedPaid === 0
+      lineDiscount === 0 || packedPaid === 0
         ? 0
         : shortfall === 0
-          ? i.orderLine.discountPaise
-          : (allocate(paise(i.orderLine.discountPaise), [packedPaid, shortfall])[0] ?? 0)
+          ? lineDiscount
+          : (allocate(paise(lineDiscount), [packedPaid, shortfall])[0] ?? 0)
     const weights = packedPaid > 0 ? paidQtys : i.group.map((g) => g.freeQtyPcs)
     const perLot =
       groupDiscount === 0 || weights.every((w) => w === 0)

@@ -536,7 +536,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the approvals a submit raises stay
   // invisible to the shop), read and cancel its own; the owner and the manager confirm (it reserves
   // stock) and decide approvals — an approval is a decision the accountant does not take (docs/22
-  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`).
+  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`, and
+  // `lastPlaced`, the shop's newest placed order that "Order again" repeats — DOS-098).
   'orders.create': ORDER_PLACERS,
   'orders.setLines': ORDER_PLACERS,
   'orders.repeatLast': ORDER_PLACERS,
@@ -545,6 +546,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'orders.cancel': ORDER_PLACERS,
   'orders.get': ANY_MEMBER,
   'orders.list': ANY_MEMBER,
+  'orders.lastPlaced': ANY_MEMBER,
   'orders.approvals.list': BACK_OFFICE,
   'orders.approvals.decide': MANAGEMENT,
 

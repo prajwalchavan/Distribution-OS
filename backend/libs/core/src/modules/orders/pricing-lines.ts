@@ -5,7 +5,8 @@ import { paise, roundToRupee } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
 import { productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import type { QuoteService } from '../pricing/index.js'
+import { approvedBargainsFor, todayIst, type QuoteService } from '../pricing/index.js'
+import type { OrderRow } from './orders.mappers.js'
 
 /**
  * Turns what a rep or retailer typed into priced `sales_order_lines` rows.
@@ -19,6 +20,9 @@ import type { QuoteService } from '../pricing/index.js'
  */
 
 export type EnteredUnit = 'piece' | 'inner' | 'case'
+
+type OrderLineRow = typeof salesOrderLines.$inferSelect
+type QuotedLine = Quote['lines'][number]
 
 export interface EnteredLine {
   id: string
@@ -102,6 +106,70 @@ export interface PriceLinesArgs {
   deliveryDate?: string | null
 }
 
+/** The money columns of an order line, as one engine result prices them. */
+export type PricedLineFields = Pick<
+  OrderLineRow,
+  | 'freeQtyPcs'
+  | 'listRatePaise'
+  | 'ratePaise'
+  | 'discountBps'
+  | 'discountPaise'
+  | 'gstBps'
+  | 'taxPaise'
+  | 'lineTotalPaise'
+  | 'appliedRules'
+  | 'priceLocked'
+>
+
+/**
+ * What one quoted line puts on an order line: the one copy of this arithmetic, shared by drafting
+ * (`priceOrderLines`) and confirm (`repriceApprovedBargains`), so a re-priced line is stored exactly as a drafted one.
+ */
+export function pricedLineFields(q: QuotedLine): PricedLineFields {
+  // A bargain is a discount from the retailer's point of view, so both land in `discount_paise`.
+  const discountPaise = q.discountPaise + q.bargainPaise
+  return {
+    freeQtyPcs: q.freeQtyPcs,
+    listRatePaise: q.listRatePaise,
+    ratePaise: q.ratePaise,
+    discountBps: q.grossPaise > 0 ? Math.round((discountPaise * 10_000) / q.grossPaise) : 0,
+    discountPaise,
+    gstBps: q.gstBps,
+    taxPaise: q.taxPaise,
+    lineTotalPaise: q.lineTotalPaise,
+    appliedRules: toStoredRules(q.appliedRules),
+    // A negotiated or overridden rate must survive re-pricing at delivery (§4.4).
+    priceLocked: q.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
+  }
+}
+
+/**
+ * The header from its lines. A line's taxable (`line_total − tax`) plus what came off it is its gross, so the
+ * subtotal is the order's gross and the header is a plain sum of its lines. s.170: the bill total is rounded to the
+ * rupee and the residue is posted to Round Off, with the same `roundToRupee` billing issues the invoice with; for a
+ * freshly quoted order this equals the quote's own `totals.totalPaise` / `roundOffPaise`.
+ */
+export function orderTotals(
+  lines: readonly Pick<OrderLineRow, 'discountPaise' | 'taxPaise' | 'lineTotalPaise'>[],
+): OrderTotals {
+  let subtotal = 0
+  let discount = 0
+  let tax = 0
+  for (const line of lines) {
+    subtotal += line.lineTotalPaise - line.taxPaise + line.discountPaise
+    discount += line.discountPaise
+    tax += line.taxPaise
+  }
+  const { rounded, roundOff } = roundToRupee(paise(subtotal - discount + tax))
+  return {
+    subtotalPaise: subtotal,
+    discountPaise: discount,
+    taxPaise: tax,
+    roundOffPaise: roundOff,
+    totalPaise: rounded,
+  }
+}
+
 export async function priceOrderLines(
   tx: Db,
   quotes: QuoteService,
@@ -129,19 +197,9 @@ export async function priceOrderLines(
   })
   const quoted = new Map(quote.lines.map((l) => [l.lineId, l]))
 
-  let subtotal = 0
-  let discount = 0
-  let tax = 0
   const lines = entered.map((line, index) => {
     const q = quoted.get(line.id)
     if (!q) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `quote lost line ${line.id}` })
-    const gstBps = q.gstBps
-    // A bargain is a discount from the retailer's point of view, so both land in `discount_paise`.
-    const lineDiscount = q.discountPaise + q.bargainPaise
-    const taxPaise = q.taxPaise
-    subtotal += q.grossPaise
-    discount += lineDiscount
-    tax += taxPaise
     return {
       id: line.id,
       tenantId,
@@ -152,34 +210,100 @@ export async function priceOrderLines(
       enteredUnit: line.enteredUnit,
       packSizeAtEntry: line.packSize,
       qtyPcs: q.qtyPcs,
-      freeQtyPcs: q.freeQtyPcs,
-      listRatePaise: q.listRatePaise,
-      ratePaise: q.ratePaise,
-      discountBps: q.grossPaise > 0 ? Math.round((lineDiscount * 10_000) / q.grossPaise) : 0,
-      discountPaise: lineDiscount,
-      gstBps,
-      taxPaise,
-      lineTotalPaise: q.lineTotalPaise,
-      appliedRules: toStoredRules(q.appliedRules),
-      // A negotiated or overridden rate must survive re-pricing at delivery (§4.4).
-      priceLocked: q.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
+      ...pricedLineFields(q),
     } satisfies typeof salesOrderLines.$inferInsert
   })
 
-  // s.170: the bill total is rounded to the rupee and the residue is posted to Round Off. The engine's net is
-  // the sum of its lines, so this equals the quote's own `totals.totalPaise` / `roundOffPaise`.
-  const { rounded, roundOff } = roundToRupee(paise(subtotal - discount + tax))
-  return {
-    lines,
-    totals: {
-      subtotalPaise: subtotal,
-      discountPaise: discount,
-      taxPaise: tax,
-      roundOffPaise: roundOff,
-      totalPaise: rounded,
-    },
-    quote,
-  }
+  return { lines, totals: orderTotals(lines), quote }
+}
+
+/** The approved rate a stored line already carries: the `ruleId` of its `bargain` rule, or null. */
+function storedBargain(line: Pick<OrderLineRow, 'appliedRules'>): string | null {
+  return line.appliedRules.find((r) => r.kind === 'bargain')?.ruleId ?? null
+}
+
+export interface RepricedLines {
+  /** Every line of the order, the changed ones carrying their new money: what confirm reserves. */
+  lines: OrderLineRow[]
+  /** Only the lines whose money changed: what confirm writes. */
+  changed: OrderLineRow[]
+  /** The header from `lines`. */
+  totals: OrderTotals
+}
+
+/**
+ * DOS-126: at confirm, the drafted prices plus any rate approved since the draft, and nothing else.
+ *
+ * Lines are priced only while the order is a draft, so a rate request still waiting then was absent from the quote
+ * and its line was stored at the list rate. A line changes here only when BOTH hold: the engine now prices it with
+ * an approved rate the stored line does not carry, and that lowers its net. Every other line keeps its drafted
+ * money: price-list rates and schemes are edited in place, so a full re-price would move lines to later edits and
+ * could raise a total a credit decision was taken on.
+ *
+ *  - The cheap check first: `approvedBargainsFor` (the rule the quote applies: this order's asks and the shop's
+ *    standalone ones) says whether any line lacks an approved rate for its item; an order with none runs no quote.
+ *  - The quote runs on the CALLER's transaction (`quoteInTx`), because the rate approved by the decision that
+ *    confirms is not committed yet. It prices the stored pieces (never entered × today's case size, docs/17 A3) on
+ *    the draft's date — `writeLines` re-inserts every line in the transaction that quoted them, so the earliest
+ *    `created_at` is that day — and passes the delivery date when the order prices on delivery, as `writeLines` does.
+ *  - Engine and GST errors propagate: an approved rate that cannot be priced never confirms at the wrong rate.
+ *
+ * A changed line takes every priced field of that one engine result, so its rules and free pieces agree, and keeps
+ * its id, quantities and fulfilment counters, so reservations, picks and device rows follow it. Null = no change.
+ */
+export async function repriceApprovedBargains(
+  tx: Db,
+  quotes: QuoteService,
+  args: {
+    order: Pick<OrderRow, 'id' | 'retailerId' | 'pricingDateMode' | 'expectedDeliveryDate'>
+    lines: readonly OrderLineRow[]
+  },
+): Promise<RepricedLines | null> {
+  const { order, lines } = args
+  const ctx = currentTenant()
+  const priced = lines.filter((line) => line.qtyPcs > 0)
+  if (priced.length === 0) return null
+  const approved = await approvedBargainsFor(tx, {
+    tenantId: ctx.tenantId,
+    retailerId: order.retailerId,
+    orderId: order.id,
+    variantIds: [...new Set(priced.map((line) => line.variantId))],
+  })
+  const lacksApprovedRate = priced.some((line) => {
+    const rate = approved.find((b) => b.variantId === line.variantId)
+    return rate !== undefined && rate.id !== storedBargain(line)
+  })
+  if (!lacksApprovedRate) return null
+
+  const draftedAt = new Date(Math.min(...lines.map((line) => line.createdAt.getTime())))
+  const quote = await quotes.quoteInTx(tx, ctx, {
+    retailerId: order.retailerId,
+    orderId: order.id,
+    pricingDate: todayIst(draftedAt),
+    ...(order.pricingDateMode === 'delivery' && order.expectedDeliveryDate
+      ? { deliveryDate: order.expectedDeliveryDate }
+      : {}),
+    lines: lines.map((line) => ({
+      lineId: line.id,
+      variantId: line.variantId,
+      qtyPcs: line.qtyPcs,
+    })),
+  })
+  const quoted = new Map(quote.lines.map((q) => [q.lineId, q]))
+
+  const changed: OrderLineRow[] = []
+  const merged = lines.map((line) => {
+    const q = quoted.get(line.id)
+    if (!q) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `quote lost line ${line.id}` })
+    const stored = storedBargain(line)
+    const newRate = q.appliedRules.some((r) => r.kind === 'bargain' && r.ruleId !== stored)
+    if (!newRate || q.lineNetPaise >= line.lineTotalPaise - line.taxPaise) return line
+    const next: OrderLineRow = { ...line, ...pricedLineFields(q) }
+    changed.push(next)
+    return next
+  })
+  if (changed.length === 0) return null
+  return { lines: merged, changed, totals: orderTotals(merged) }
 }
 
 /**

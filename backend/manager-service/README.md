@@ -120,6 +120,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -11676,6 +11677,176 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/orders/last-placed`
+
+The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) · contract `orders.lastPlaced`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `retailerId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "state": "draft",
+    "source": "salesperson",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "salespersonId": "01a06d29-a152-76c4-87b4-301e496c0602",
+    "pricingDateMode": "order",
+    "paymentTerms": "PRE",
+    "fulfilFromLocationId": "01a06dc8-c767-7943-8fdd-07b3dd890c64",
+    "externalRef": null,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "approvalFlags": [
+      "text"
+    ],
+    "expectedDeliveryDate": "2026-09-04",
+    "note": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "deliveredQtyPcs": 24,
+        "listRatePaise": 4000,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ],
+        "priceLocked": true
+      }
+    ],
+    "transitions": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "fromState": "draft",
+        "toState": "draft",
+        "event": "submit",
+        "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+        "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+        "reason": null,
+        "occurredAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "approvals": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "kind": "credit_limit",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "entityType": "text",
+        "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+        "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+        "status": "pending",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "decidedBy": null,
+        "decidedAt": null,
+        "decisionNote": "Confirmed on phone with the shopkeeper",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -47240,6 +47411,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `orders.submit` | – | ✓ | – | – | – | – | – |
 | `orders.confirm` | – | ✓ | – | – | – | – | – |
 | `orders.cancel` | – | ✓ | – | – | – | – | – |
+| `orders.lastPlaced` | – | ✓ | ✓ | – | – | – | – |
 | `orders.get` | – | ✓ | ✓ | – | – | – | – |
 | `orders.list` | – | ✓ | ✓ | – | – | – | – |
 | `orders.approvals.list` | – | ✓ | ✓ | – | – | – | – |

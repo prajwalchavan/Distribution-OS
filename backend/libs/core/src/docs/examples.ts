@@ -3623,6 +3623,7 @@ const OVERRIDES: Record<
     reason: 'Shop asked to cancel before dispatch',
   }),
   'orders.get': (ctx) => ({ id: ctx.orderId }),
+  'orders.lastPlaced': (ctx) => ({ retailerId: ctx.retailerId }),
   'orders.approvals.decide': (ctx) => ({
     id: ctx.approvalId,
     decision: 'approve',
@@ -5136,6 +5137,7 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'retailers.list': ['q'],
   'retailers.visits.list': ['retailerId'],
   'orders.list': ['retailerId'],
+  'orders.lastPlaced': ['retailerId'],
   'inventory.stock.sellable': ['variantId'],
   'inventory.stock.balances': ['lotId'],
   'inventory.stock.ledger': ['lotId'],

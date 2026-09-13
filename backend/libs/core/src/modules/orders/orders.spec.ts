@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { ORPCError } from '@orpc/server'
 import { permissionFor, SYNC_REJECTION_CODES, type Quote } from '@dos/contracts'
@@ -20,6 +20,8 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  salesOrderLines,
+  salesOrders,
   tenantProducts,
   tenants,
   users,
@@ -53,7 +55,10 @@ type Line = {
   lineTotalPaise: number
   listRatePaise: number
   ratePaise: number
+  discountBps: number
   discountPaise: number
+  appliedRules: { ruleId: string; kind: string; amountPaise?: number }[]
+  priceLocked: boolean
 }
 type Detail = {
   id: string
@@ -123,8 +128,8 @@ describeDb('orders (DATABASE_URL)', () => {
       { id: ownerId, phone: `+91904${run}1`, name: 'Owner' },
       { id: repId, phone: `+91904${run}2`, name: 'Rep' },
       { id: shopUserId, phone: `+91904${run}3`, name: 'Shopkeeper' },
-      // `+91904${run}4` is the DOS-073 block's second rep, `6` and `7` the DOS-115 block's godown and crew;
-      // phones are unique platform-wide
+      // `+91904${run}4` is the DOS-073 block's second rep, `6` and `7` the DOS-115 block's godown and crew,
+      // `8` the DOS-098 block's rep with no order; phones are unique platform-wide
       { id: managerId, phone: `+91904${run}5`, name: 'Manager' },
     ])
     await db.insert(memberships).values([
@@ -1884,6 +1889,178 @@ describeDb('orders (DATABASE_URL)', () => {
   })
 
   // -----------------------------------------------------------------------------------------------------
+  // DOS-098: "Order again" repeats the shop's most recently PLACED order — by when it was placed
+  // (`coalesce(submitted_at, created_at)`), never a draft, and never an older order whose id happens to sort
+  // higher (a seeded or imported id is not a date). `GET /orders/last-placed` names that order without writing
+  // anything, so the retailer app builds the basket on the device. Stock-neutral: every order placed here is on
+  // variant B (no stock, so nothing is held), and the draft and the hand-written delivered order hold nothing
+  // either, so no later block's reservation or shortage arithmetic moves. No test uses another test's ids.
+
+  describe('DOS-098 Order again repeats the most recently placed order', () => {
+    const pieces = (lines: readonly Line[]) => lines.map((l) => [l.variantId, l.qtyPcs])
+
+    /** Draft and submit a one-line order on Shop A; it leaves draft (Shop A is `indicate`). */
+    const place = async (actor: Actor, tag: string, variantId: string, qty: number) => {
+      const id = uuidv7()
+      const drafted = await call<{ item: Detail }>(app, actor, 'POST', '/orders', {
+        idempotencyKey: `dos098-create-${tag}-${run}`,
+        id,
+        retailerId: retailerA,
+        source: actor.role === 'retailer' ? 'retailer_app' : 'salesperson',
+        lines: [{ id: uuidv7(), variantId, enteredQty: qty, enteredUnit: 'piece' }],
+      })
+      expect(drafted.status, tag).toBe(200)
+      const submitted = await call<{ item: Detail }>(app, actor, 'POST', `/orders/${id}/submit`, {
+        idempotencyKey: `dos098-submit-${tag}-${run}`,
+      })
+      expect(submitted.status, tag).toBe(200)
+      expect(['submitted', 'confirmed'], tag).toContain(submitted.body.item.state)
+      return id
+    }
+
+    it("DOS-098: repeat-last copies the shop's most recently placed order, never a newer draft and never an older order with a higher id", async () => {
+      // (a) the shop's newest PLACED order: 3 pieces of variant B
+      await place(rep, 'placed', variantB, 3)
+
+      // (b) a draft started after it, so the highest id this shop has, that nobody has sent
+      const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos098-draft-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 5, enteredUnit: 'piece' }],
+      })
+      expect(draft.status).toBe(200)
+      expect(draft.body.item.state).toBe('draft')
+
+      // (c) Order again copies the placed order, not the draft
+      const first = await call<{ item: Detail }>(app, rep, 'POST', '/orders/repeat-last', {
+        idempotencyKey: `dos098-repeat-1-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+      })
+      expect(first.status).toBe(200)
+      expect(first.body.item.state).toBe('draft')
+      expect(pieces(first.body.item.lines)).toEqual([[variantB, 3]])
+
+      // (d) a delivered order placed 45 days ago whose id sorts above every real one, as seeded and imported
+      // ids do, written straight to the table (the owner pool bypasses RLS)
+      const oldId = `ffffffff-ffff-7fff-bfff-0000${run}`
+      const placedAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)
+      await db.insert(salesOrders).values({
+        id: oldId,
+        tenantId,
+        orderNo: `SO-D098-${run}`,
+        retailerId: retailerA,
+        state: 'delivered',
+        source: 'salesperson',
+        createdBy: repId,
+        salespersonId: repId,
+        paymentTerms: 'ON',
+        submittedAt: placedAt,
+        createdAt: placedAt,
+      })
+      await db.insert(salesOrderLines).values({
+        id: uuidv7(),
+        tenantId,
+        orderId: oldId,
+        lineNo: 1,
+        variantId: variantA,
+        enteredQty: 40,
+        enteredUnit: 'piece',
+        packSizeAtEntry: 1,
+        qtyPcs: 40,
+        listRatePaise: 1000,
+        ratePaise: 1000,
+        gstBps: 1200,
+      })
+
+      // (e) still the placed order: not the older order with the higher id, and not (c)'s own draft
+      const again = await call<{ item: Detail }>(app, rep, 'POST', '/orders/repeat-last', {
+        idempotencyKey: `dos098-repeat-2-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+      })
+      expect(again.status).toBe(200)
+      expect(pieces(again.body.item.lines)).toEqual([[variantB, 3]])
+    })
+
+    it("DOS-098: GET /orders/last-placed answers the shop's newest placed order with its lines, writes nothing, and keeps a salesperson to its own orders", async () => {
+      // the rep's own order first, then the shop's: the shop's is the newest placed order of Shop A
+      const repPlaced = await place(rep, 'lp-rep', variantB, 1)
+      const shopPlaced = await place(shop, 'lp-shop', variantB, 2)
+
+      // a salesperson with no order on Shop A, and a shop with no order at all
+      const rep3Id = uuidv7()
+      const rep3: Actor = { tenantId, actorId: rep3Id, role: 'salesperson' }
+      await db.insert(users).values({ id: rep3Id, phone: `+91904${run}8`, name: 'Third rep' })
+      await db
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId, userId: rep3Id, role: 'salesperson' })
+      const quiet = uuidv7()
+      await db.insert(retailers).values({
+        id: quiet,
+        tenantId,
+        code: `R9-${run}`,
+        name: `Shop Q ${run}`,
+        phone: `+91905${run}9`,
+        stateCode: '27',
+        tier: 'C',
+        creditMode: 'indicate',
+        creditLimitPaise: 0,
+      })
+
+      const counts = async () =>
+        (
+          await db.execute(
+            sql`select (select count(*) from sales_orders where tenant_id = ${tenantId})::int as orders,
+                       (select count(*) from sales_order_lines where tenant_id = ${tenantId})::int as lines`,
+          )
+        ).rows[0] as { orders: number; lines: number }
+      const before = await counts()
+      const lastPlaced = (actor: Actor, retailerId: string) =>
+        call<{ item: Detail | null }>(app, actor, 'GET', '/orders/last-placed', { retailerId })
+
+      // the shop reads its newest placed order with its lines, and none of the approvals
+      const mine = await lastPlaced(shop, retailerA)
+      expect(mine.status).toBe(200)
+      expect(mine.body.item?.id).toBe(shopPlaced)
+      expect(pieces(mine.body.item?.lines ?? [])).toEqual([[variantB, 2]])
+      expect(mine.body.item?.approvals).toEqual([])
+
+      // the desk reads the same order; a rep reads only an order credited to it (DOS-073), else nothing
+      const desk = await lastPlaced(owner, retailerA)
+      expect(desk.status).toBe(200)
+      expect(desk.body.item?.id).toBe(shopPlaced)
+      const own = await lastPlaced(rep, retailerA)
+      expect(own.status).toBe(200)
+      expect(own.body.item?.id).toBe(repPlaced)
+      expect(pieces(own.body.item?.lines ?? [])).toEqual([[variantB, 1]])
+      const none = await lastPlaced(rep3, retailerA)
+      expect(none.status).toBe(200)
+      expect(none.body).toEqual({ item: null })
+
+      // a shop with no placed order, a shop that does not exist, and a shop not linked to this login
+      const quietShop = await lastPlaced(owner, quiet)
+      expect(quietShop.status).toBe(200)
+      expect(quietShop.body).toEqual({ item: null })
+      expect((await lastPlaced(owner, uuidv7())).status).toBe(404)
+      expect((await lastPlaced(shop, retailerB)).status).toBe(403)
+
+      // the static route did not shadow the param route: GET /orders/{id} still answers the same order
+      const got = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${shopPlaced}`)
+      expect(got.status).toBe(200)
+      expect(got.body.item.id).toBe(shopPlaced)
+      expect(got.body.item).toEqual(mine.body.item)
+
+      // none of those reads wrote an order or a line
+      expect(await counts()).toEqual(before)
+    })
+  })
+
+  // -----------------------------------------------------------------------------------------------------
   // DOS-115: an order is placed, re-lined, repeated, submitted and cancelled by the owner, the manager, the rep
   // and the shop (ORDER_PLACERS). The godown and the crew take no order — the crew sells from the van through
   // `delivery.vanSales.create` — so the gate refuses them the five procedures, the handler refuses them again in
@@ -2242,6 +2419,475 @@ describeDb('orders (DATABASE_URL)', () => {
         'orders.cancel',
       ])
         expect(permissionFor(path), path).toEqual(placers)
+    })
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-126: a rate approved after the draft is charged when the order confirms. A line is priced only while the
+  // order is a draft, so confirm prices the stored lines again through the engine on the caller's transaction (a
+  // rate approved by the very decision that confirms is visible to it), on the draft's date, and changes only a
+  // line that approval prices lower; every other line keeps its drafted money. One case of variant A (12 pcs at
+  // ₹10, GST 12%) asked at ₹9: 10 800 + 1 296 GST = 12 096 and the order ₹121.00 (+4 paise); at list it stays
+  // 12 000 + 1 440 = 13 440 and ₹134.00 (−40). After DOS-115's block, with its own opening stock; every rep ask
+  // names its order, the shop's standalone ask is expired afterwards and every order is cancelled, so nothing
+  // here moves another test's rate, reservation or shortage.
+
+  describe('DOS-126 an approved rate is charged at confirm', () => {
+    type Placed = { orderId: string; lineId: string; bargainId: string }
+    type GateKind = 'bargain' | 'credit_limit'
+    type Refused = { message: string; data?: { code?: string } }
+
+    /** The line and header of 1 cs of variant A charged at the approved ₹9. */
+    const CHARGED_LINE = {
+      qtyPcs: 12,
+      listRatePaise: 1_000,
+      ratePaise: 900,
+      discountPaise: 1_200,
+      discountBps: 1_000,
+      gstBps: 1_200,
+      taxPaise: 1_296,
+      lineTotalPaise: 12_096,
+      priceLocked: true,
+    }
+    const CHARGED_ORDER = {
+      subtotalPaise: 12_000,
+      discountPaise: 1_200,
+      taxPaise: 1_296,
+      roundOffPaise: 4,
+      totalPaise: 12_100,
+    }
+    const bargainRule = (bargainId: string): unknown =>
+      expect.objectContaining({ kind: 'bargain', ruleId: bargainId, amountPaise: 1_200 })
+    const ids = (): Placed => ({ orderId: uuidv7(), lineId: uuidv7(), bargainId: uuidv7() })
+
+    beforeAll(async () => {
+      // The shortage test holds variant A's first 100 pieces: 60 of its own, so every order here holds its 12.
+      const inventory = app.get(InventoryService)
+      await asOwner(async (tx) => {
+        const { lot } = await inventory.findOrCreateLot(tx, {
+          variantId: variantA,
+          batchNo: `DOS126-${run}`,
+          mrpPaise: 4000,
+        })
+        await inventory.post(tx, [
+          {
+            lotId: lot.id,
+            locationId: godown,
+            qtyDelta: 60,
+            reason: 'opening',
+            idempotencyKey: `open-${run}-dos126`,
+          },
+        ])
+      })
+    })
+
+    /**
+     * The sales app's order (DOS-005 network trace): the rep asks ₹9 for 1 cs naming the draft — it has no bound
+     * here, so the desk decides — drafts it (with any `extra` lines), runs `afterCreate`, and submits. The draft is
+     * priced at list, because the ask is still waiting.
+     */
+    const placeHeld = async (
+      tag: string,
+      retailerId: string,
+      p: Placed,
+      opts: {
+        extra?: { id: string; variantId: string; enteredQty: number; enteredUnit: string }[]
+        afterCreate?: () => Promise<void>
+      } = {},
+    ): Promise<Detail> => {
+      const asked = await call<{ item: { status: string } }>(
+        app,
+        rep,
+        'POST',
+        '/pricing/bargains',
+        {
+          idempotencyKey: `dos126-ask-${tag}-${run}`,
+          id: p.bargainId,
+          retailerId,
+          variantId: variantA,
+          askedRatePaise: 900,
+          qtyPcs: 12,
+          orderId: p.orderId,
+        },
+      )
+      expect(asked.status, tag).toBe(200)
+      expect(asked.body.item.status, tag).toBe('requested')
+      const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos126-create-${tag}-${run}`,
+        id: p.orderId,
+        retailerId,
+        source: 'salesperson',
+        lines: [
+          { id: p.lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'case' },
+          ...(opts.extra ?? []),
+        ],
+      })
+      expect(created.status, tag).toBe(200)
+      expect(
+        created.body.item.lines.find((l) => l.id === p.lineId),
+        tag,
+      ).toMatchObject({ qtyPcs: 12, ratePaise: 1_000, lineTotalPaise: 13_440, appliedRules: [] })
+      await opts.afterCreate?.()
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${p.orderId}/submit`,
+        { idempotencyKey: `dos126-submit-${tag}-${run}` },
+      )
+      expect(submitted.status, tag).toBe(200)
+      return submitted.body.item
+    }
+
+    const gate = async (orderId: string, kind: GateKind): Promise<string> => {
+      const rows = await db
+        .select({ id: approvals.id })
+        .from(approvals)
+        .where(
+          and(
+            eq(approvals.orderId, orderId),
+            eq(approvals.kind, kind),
+            eq(approvals.status, 'pending'),
+          ),
+        )
+      expect(rows, `pending ${kind} gate`).toHaveLength(1)
+      return rows[0]?.id ?? ''
+    }
+
+    /** Owner, Approvals tab: approve the order's pending gate of this kind. */
+    const approveGate = async (tag: string, orderId: string, kind: GateKind) =>
+      call<Decided>(app, owner, 'POST', `/approvals/${await gate(orderId, kind)}/decide`, {
+        idempotencyKey: `dos126-gate-${kind}-${tag}-${run}`,
+        decision: 'approve',
+        note: `DOS-126 ${tag}`,
+      })
+
+    /** Owner, Rate requests tab: approve the request at the asked rate. */
+    const approveAsk = async (tag: string, bargainId: string): Promise<void> => {
+      const res = await call<{ item: { status: string; approvedRatePaise: number | null } }>(
+        app,
+        owner,
+        'POST',
+        `/pricing/bargains/${bargainId}/decide`,
+        { idempotencyKey: `dos126-rate-${tag}-${run}`, id: bargainId, decision: 'approve' },
+      )
+      expect(res.status, tag).toBe(200)
+      expect(res.body.item, tag).toMatchObject({ status: 'approved', approvedRatePaise: 900 })
+    }
+
+    const heldOn = async (lineId: string): Promise<number> => {
+      const rows = (
+        await db.execute(
+          sql`select coalesce(sum(qty), 0)::int as held from reservations
+               where tenant_id = ${tenantId} and order_line_id = ${lineId} and state = 'pending'`,
+        )
+      ).rows as { held: number }[]
+      return Number(rows[0]?.held ?? 0)
+    }
+
+    /** `totalPaise` of every `OrderConfirmed` event the order published. */
+    const confirmedTotals = async (orderId: string): Promise<number[]> => {
+      const rows = (
+        await db.execute(
+          sql`select payload->>'totalPaise' as total from outbox_events
+               where tenant_id = ${tenantId} and aggregate_id = ${orderId} and event_type = 'OrderConfirmed'
+               order by id`,
+        )
+      ).rows as { total: string }[]
+      return rows.map((r) => Number(r.total))
+    }
+
+    /** The reply and the database carry the approved rate: the line, the header, the 12 held pieces, the event. */
+    const expectCharged = async (p: Placed, order: Detail | null | undefined): Promise<void> => {
+      expect(order?.state).toBe('confirmed')
+      expect(order).toMatchObject(CHARGED_ORDER)
+      const line = order?.lines.find((l) => l.id === p.lineId)
+      expect(line).toMatchObject(CHARGED_LINE)
+      expect(line?.appliedRules).toContainEqual(bargainRule(p.bargainId))
+      const [stored] = await db
+        .select()
+        .from(salesOrderLines)
+        .where(eq(salesOrderLines.id, p.lineId))
+      expect(stored).toMatchObject({ orderId: p.orderId, ...CHARGED_LINE })
+      expect(stored?.appliedRules).toContainEqual(bargainRule(p.bargainId))
+      const [header] = await db.select().from(salesOrders).where(eq(salesOrders.id, p.orderId))
+      expect(header).toMatchObject({ state: 'confirmed', ...CHARGED_ORDER })
+      expect(await heldOn(p.lineId)).toBe(12)
+      expect(await confirmedTotals(p.orderId)).toEqual([12_100])
+    }
+
+    /** Gives back whatever a confirm held and closes the order, whatever the test reached. */
+    const cancel = (tag: string, orderId: string) =>
+      call(app, owner, 'POST', `/orders/${orderId}/cancel`, {
+        idempotencyKey: `dos126-cleanup-${tag}-${run}`,
+        reason: 'test cleanup',
+      })
+
+    it('DOS-126: bargain gate approved first, credit gate last — the order confirms with the line at the approved rate (the SO-0897 walk)', async () => {
+      const p = ids()
+      try {
+        const submitted = await placeHeld('t1', retailerB, p)
+        expect(submitted.state).toBe('submitted')
+        expect([...submitted.approvalFlags].sort()).toEqual(['bargain', 'credit_limit'])
+        const first = await approveGate('t1', p.orderId, 'bargain')
+        expect(first.status).toBe(200)
+        expect(first.body.order?.state).toBe('submitted')
+        const last = await approveGate('t1', p.orderId, 'credit_limit')
+        expect(last.status).toBe(200)
+        await expectCharged(p, last.body.order)
+      } finally {
+        await cancel('t1', p.orderId)
+      }
+    })
+
+    it("DOS-126: credit gate first, bargain gate last — the confirm inside the bargain decision's transaction charges the rate that decision approved", async () => {
+      const p = ids()
+      try {
+        const submitted = await placeHeld('t2', retailerB, p)
+        expect([...submitted.approvalFlags].sort()).toEqual(['bargain', 'credit_limit'])
+        const first = await approveGate('t2', p.orderId, 'credit_limit')
+        expect(first.status).toBe(200)
+        expect(first.body.order?.state).toBe('submitted')
+        // still `requested`: only the decision below approves it, in the transaction that confirms
+        expect(await bargainRow(p.bargainId)).toMatchObject({
+          status: 'requested',
+          approvedRatePaise: null,
+        })
+        const last = await approveGate('t2', p.orderId, 'bargain')
+        expect(last.status).toBe(200)
+        await expectCharged(p, last.body.order)
+      } finally {
+        await cancel('t2', p.orderId)
+      }
+    })
+
+    it('DOS-126: a rate approved on Rate requests is charged when the Approvals gates later confirm the order', async () => {
+      const p = ids()
+      try {
+        const submitted = await placeHeld('t3', retailerB, p)
+        expect([...submitted.approvalFlags].sort()).toEqual(['bargain', 'credit_limit'])
+        await approveAsk('t3', p.bargainId)
+        // the gate keeps the request's own outcome (DOS-005 `ifStillRequested`); the credit gate still waits
+        const bargainGate = await approveGate('t3', p.orderId, 'bargain')
+        expect(bargainGate.status).toBe(200)
+        expect(bargainGate.body.order?.state).toBe('submitted')
+        const last = await approveGate('t3', p.orderId, 'credit_limit')
+        expect(last.status).toBe(200)
+        await expectCharged(p, last.body.order)
+      } finally {
+        await cancel('t3', p.orderId)
+      }
+    })
+
+    it('DOS-126: a bargain that is the only gate confirms at the approved rate (indicate shop)', async () => {
+      const p = ids()
+      try {
+        const submitted = await placeHeld('t4', retailerA, p)
+        expect(submitted.state).toBe('submitted')
+        expect(submitted.approvalFlags).toEqual(['bargain'])
+        const last = await approveGate('t4', p.orderId, 'bargain')
+        expect(last.status).toBe(200)
+        await expectCharged(p, last.body.order)
+      } finally {
+        await cancel('t4', p.orderId)
+      }
+    })
+
+    it("DOS-126: a rate approved after the draft and before submit is charged at confirm — through the credit gate and through submit's own auto-confirm", async () => {
+      const auto = ids()
+      const held = ids()
+      try {
+        // Shop A (`indicate`): nothing waits once the rate is approved, so submit's own auto-confirm charges it
+        const submittedA = await placeHeld('t5a', retailerA, auto, {
+          afterCreate: () => approveAsk('t5a', auto.bargainId),
+        })
+        expect(submittedA.approvalFlags).toEqual([])
+        await expectCharged(auto, submittedA)
+        // Shop B (`strict`, over its limit): the credit gate's approval confirms and charges it
+        const submittedB = await placeHeld('t5b', retailerB, held, {
+          afterCreate: () => approveAsk('t5b', held.bargainId),
+        })
+        expect(submittedB.state).toBe('submitted')
+        expect(submittedB.approvalFlags).toEqual(['credit_limit'])
+        const last = await approveGate('t5b', held.orderId, 'credit_limit')
+        expect(last.status).toBe(200)
+        await expectCharged(held, last.body.order)
+      } finally {
+        await cancel('t5a', auto.orderId)
+        await cancel('t5b', held.orderId)
+      }
+    })
+
+    it('DOS-126: confirm changes only the line the approval priced — another line keeps its drafted rate and is not rewritten after an office price edit', async () => {
+      const p = ids()
+      const other = uuidv7()
+      const variantBItem = and(
+        eq(priceListItems.tenantId, tenantId),
+        eq(priceListItems.variantId, variantB),
+      )
+      const touchedAt = async (): Promise<string | undefined> =>
+        (
+          (
+            await db.execute(
+              sql`select updated_at::text as at from sales_order_lines where id = ${other}`,
+            )
+          ).rows as { at: string }[]
+        )[0]?.at
+      const untouched = {
+        listRatePaise: 2_500,
+        ratePaise: 2_500,
+        discountPaise: 0,
+        taxPaise: 300,
+        lineTotalPaise: 2_800,
+        appliedRules: [],
+        priceLocked: false,
+      }
+      // 14 500 gross − 1 200 + 1 596 GST = 14 896 → ₹149.00 (at list ₹162.00; a full re-price would say ₹150.00)
+      const totals = {
+        subtotalPaise: 14_500,
+        discountPaise: 1_200,
+        taxPaise: 1_596,
+        roundOffPaise: 4,
+        totalPaise: 14_900,
+      }
+      try {
+        const submitted = await placeHeld('t6', retailerA, p, {
+          extra: [{ id: other, variantId: variantB, enteredQty: 1, enteredUnit: 'piece' }],
+          // the office edits variant B's list rate in place between the draft and the decision
+          afterCreate: async () => {
+            await db.update(priceListItems).set({ ratePaise: 2_600 }).where(variantBItem)
+          },
+        })
+        expect(submitted.approvalFlags).toEqual(['bargain'])
+        expect(submitted.totalPaise).toBe(16_200)
+        const before = await touchedAt()
+        expect(before).toBeDefined()
+
+        const last = await approveGate('t6', p.orderId, 'bargain')
+        expect(last.status).toBe(200)
+        const order = last.body.order
+        expect(order?.state).toBe('confirmed')
+        expect(order?.lines.find((l) => l.id === p.lineId)).toMatchObject(CHARGED_LINE)
+        expect(order?.lines.find((l) => l.id === other)).toMatchObject(untouched)
+        const [stored] = await db
+          .select()
+          .from(salesOrderLines)
+          .where(eq(salesOrderLines.id, other))
+        expect(stored).toMatchObject(untouched)
+        expect(await touchedAt()).toBe(before)
+        expect(order).toMatchObject(totals)
+        const [header] = await db.select().from(salesOrders).where(eq(salesOrders.id, p.orderId))
+        expect(header).toMatchObject(totals)
+        expect(await confirmedTotals(p.orderId)).toEqual([14_900])
+      } finally {
+        await db.update(priceListItems).set({ ratePaise: 2_500 }).where(variantBItem)
+        await cancel('t6', p.orderId)
+      }
+    })
+
+    it("DOS-126: a shop's own order confirms at the rate the office approved on its standalone ask (auto-confirm under the system role)", async () => {
+      const p = ids()
+      try {
+        const drafted = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+          idempotencyKey: `dos126-create-t7-${run}`,
+          id: p.orderId,
+          retailerId: retailerA,
+          source: 'retailer_app',
+          lines: [{ id: p.lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+        })
+        expect(drafted.status).toBe(200)
+        expect(drafted.body.item.lines[0]).toMatchObject({
+          qtyPcs: 12,
+          ratePaise: 1_000,
+          lineTotalPaise: 13_440,
+        })
+        // the retailer app asks with no order id (order.tsx): a standalone ask for the shop and the item
+        const asked = await call<{ item: { status: string; orderId: string | null } }>(
+          app,
+          shop,
+          'POST',
+          '/pricing/bargains',
+          {
+            idempotencyKey: `dos126-ask-t7-${run}`,
+            id: p.bargainId,
+            retailerId: retailerA,
+            variantId: variantA,
+            askedRatePaise: 900,
+            qtyPcs: 12,
+          },
+        )
+        expect(asked.status).toBe(200)
+        expect(asked.body.item).toMatchObject({ status: 'requested', orderId: null })
+        await approveAsk('t7', p.bargainId)
+
+        const submitted = await call<{ item: Detail }>(
+          app,
+          shop,
+          'POST',
+          `/orders/${p.orderId}/submit`,
+          { idempotencyKey: `dos126-submit-t7-${run}` },
+        )
+        expect(submitted.status).toBe(200)
+        expect(submitted.body.item.approvalFlags).toEqual([])
+        await expectCharged(p, submitted.body.item)
+      } finally {
+        // an approved standalone rate would price every later order of Shop A for variant A
+        await db
+          .update(bargainRequests)
+          .set({ status: 'expired', updatedAt: new Date() })
+          .where(eq(bargainRequests.id, p.bargainId))
+        await cancel('t7', p.orderId)
+      }
+    })
+
+    it('DOS-126: an approved rate the engine cannot price on the draft date refuses the approval with reprice_failed — the decision rolls back and the order still waits', async () => {
+      const p = ids()
+      const activeLists = (
+        await db
+          .select({ id: priceLists.id })
+          .from(priceLists)
+          .where(and(eq(priceLists.tenantId, tenantId), eq(priceLists.active, true)))
+      ).map((l) => l.id)
+      expect(activeLists.length).toBeGreaterThan(0)
+      try {
+        const submitted = await placeHeld('te', retailerA, p)
+        expect(submitted.approvalFlags).toEqual(['bargain'])
+        const gateId = await gate(p.orderId, 'bargain')
+        // the office switches the price list off before the decision: the draft's item has no price any more
+        await db
+          .update(priceLists)
+          .set({ active: false })
+          .where(inArray(priceLists.id, activeLists))
+
+        const refused = await call<Refused>(app, owner, 'POST', `/approvals/${gateId}/decide`, {
+          idempotencyKey: `dos126-gate-bargain-te-${run}`,
+          decision: 'approve',
+        })
+        expect(refused.status).toBe(400)
+        expect(refused.body.message).toBe(
+          `${submitted.orderNo ?? ''} holds an approved rate that cannot be priced today (No price for variant ${variantA} (line ${p.lineId})); fix the price list or reject the rate request`,
+        )
+        expect(refused.body.data?.code).toBe('reprice_failed')
+
+        // nothing of the decision stuck: the gate and the request still wait, and the order holds nothing
+        const [stillPending] = await db.select().from(approvals).where(eq(approvals.id, gateId))
+        expect(stillPending?.status).toBe('pending')
+        expect(await bargainRow(p.bargainId)).toMatchObject({
+          status: 'requested',
+          approvedRatePaise: null,
+        })
+        const [header] = await db.select().from(salesOrders).where(eq(salesOrders.id, p.orderId))
+        expect(header).toMatchObject({ state: 'submitted', totalPaise: 13_400 })
+        const [line] = await db
+          .select()
+          .from(salesOrderLines)
+          .where(eq(salesOrderLines.id, p.lineId))
+        expect(line).toMatchObject({ ratePaise: 1_000, lineTotalPaise: 13_440, appliedRules: [] })
+        expect(await heldOn(p.lineId)).toBe(0)
+      } finally {
+        await db.update(priceLists).set({ active: true }).where(inArray(priceLists.id, activeLists))
+        await cancel('te', p.orderId)
+      }
     })
   })
 })
