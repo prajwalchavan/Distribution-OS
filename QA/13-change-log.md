@@ -139,3 +139,16 @@ DOS-029 + DOS-135 merged into main as d8ae49e (pushed). Final per-fix status acr
 QA/findings/11-batch1-outcome-gate.md. Short form: every merged fix PASSES on web and Android; on iOS every fix walked passes except the
 in-Sheet dialogs of DOS-020 (manager) and DOS-034 (DOS-164, pre-existing kit defect); DOS-029's no-connection sentence fails on Android
 (DOS-156, folded into DOS-056); DOS-135 not testable on iOS. Regression added 51 findings (DOS-115..DOS-165), none of the P0/P1 caused by batch 1.
+
+## Batch 2 — approved 2026-09-13 (founder: "I want to fix everything identified" · "Approved all pending items")
+
+Checkpoint: tag `qa/checkpoint-before-batch-2` = `b59bbf0` (pushed). Scope: every open finding. That is the three P0 (DOS-106, 115, 131)
+and every P1: the nine held plans as the architect amended them, the eight Phase 1 P1 left out of batch 1 (DOS-031, 037, 044, 080, 098,
+107, 108, 109) and DOS-116, 117, 126, 132, 133, 146, 164. It also covers every P2 and P3 from Phase 1 and from the batch-1 regression.
+Order: P0 → P1 → P2 → P3 (Charter A.7).
+
+Plan: the inventory workflow `qa-batch2-inventory` (run `wf_05a45daa-9f8`, all agents Opus) lists every open finding with its status, any
+architect design it already has, whether it needs one, its files and its test. Output: `QA/evidence/batch2/inventory.md`, `lanes.md` and
+`fable-brief.md`. Findings that already have an architect design (the nine held plans, and DOS-115, 131, 126, 117, 132, 133, 116, 146 in
+`QA/evidence/batch1/held-review-brief.md`) go to Opus implementation in worktree lanes, test-first with an adversarial verifier. The rest
+wait for the architect (Fable) to answer `fable-brief.md`, DOS-164 first. Then the five A.12 regressions.
