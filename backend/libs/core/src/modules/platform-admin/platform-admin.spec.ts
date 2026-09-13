@@ -295,14 +295,12 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     await db
       .insert(memberships)
       .values({ id: uuidv7(), tenantId: unlockTenantOneId, userId: unlockMemberId, role: 'owner' })
-    await db
-      .insert(memberships)
-      .values({
-        id: uuidv7(),
-        tenantId: unlockTenantTwoId,
-        userId: unlockMemberId,
-        role: 'manager',
-      })
+    await db.insert(memberships).values({
+      id: uuidv7(),
+      tenantId: unlockTenantTwoId,
+      userId: unlockMemberId,
+      role: 'manager',
+    })
     await db
       .insert(memberships)
       .values({ id: uuidv7(), tenantId: unlockTenantOneId, userId: unlockVictimId, role: 'owner' })
