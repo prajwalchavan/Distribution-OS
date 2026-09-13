@@ -42,6 +42,7 @@ import {
   requireDb,
   requireRole,
   STAFF,
+  writeAudit,
 } from '../../platform/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
@@ -426,6 +427,17 @@ export class OrdersService {
     const next = confirmed ?? order
     await recordTransition(tx, next, order.state, to, 'confirm', deviceId, null)
     await emitOrderEvent(tx, next, 'OrderConfirmed')
+    // `order_state_transitions` already has this move; `audit_log` is what owner Settings > Audit reads, and a
+    // confirm can release a credit-stopped shop or a below-floor sale, implicitly (the last approval decided) or
+    // directly, so it belongs there too (DOS-028).
+    await writeAudit(tx, {
+      action: 'order.confirm',
+      entityType: 'sales_order',
+      entityId: next.id,
+      before: { state: order.state },
+      after: { state: to, totalPaise: next.totalPaise },
+      deviceId,
+    })
     return { item: await this.detail(tx, next), shortages }
   }
 

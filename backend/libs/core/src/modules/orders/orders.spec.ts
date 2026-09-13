@@ -5,6 +5,7 @@ import { permissionFor, SYNC_REJECTION_CODES, type Quote } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
+  auditLog,
   bargainRequests,
   bootstrapTenant,
   createDb,
@@ -1818,6 +1819,130 @@ describeDb('orders (DATABASE_URL)', () => {
       // give back the piece a confirm held, so nothing after this spec inherits it
       await call(app, owner, 'POST', `/orders/${orderId}/cancel`, {
         idempotencyKey: `dos005-two-cleanup-${run}`,
+        reason: 'test cleanup',
+      })
+    }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-028: a manager's approval decisions, and the confirm the last one triggers, leave no audit trail today —
+  // only the owner's set-credit and exports write `audit_log`. An owner must later be able to see who released
+  // a credit-stopped shop or approved a below-floor sale.
+
+  it("DOS-028: deciding both approvals of a held order audits each decision and the confirm the last one triggers, with the manager's id", async () => {
+    const orderId = uuidv7()
+    const bargainA = uuidv7()
+    const bargainB = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos028-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' },
+        { id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'piece' },
+      ],
+    })
+    expect(drafted.status).toBe(200)
+
+    try {
+      for (const ask of [
+        { id: bargainA, variantId: variantA, askedRatePaise: 900 },
+        { id: bargainB, variantId: variantB, askedRatePaise: 2_300 },
+      ]) {
+        const asked = await call<{ item: { status: string } }>(
+          app,
+          rep,
+          'POST',
+          '/pricing/bargains',
+          {
+            idempotencyKey: `dos028-ask-${ask.id}`,
+            ...ask,
+            retailerId: retailerA,
+            qtyPcs: 1,
+            orderId,
+          },
+        )
+        expect(asked.status).toBe(200)
+      }
+
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        { idempotencyKey: `dos028-submit-${run}` },
+      )
+      expect(submitted.status).toBe(200)
+      expect(submitted.body.item.approvalFlags).toEqual(['bargain'])
+
+      // red: today, nothing a manager does with an approval reaches audit_log
+      const before = await db
+        .select({ action: auditLog.action })
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, orderId)))
+      expect(before).toEqual([])
+
+      const queue = await call<{ items: Gate[] }>(app, manager, 'GET', '/approvals', {
+        status: 'pending',
+        orderId,
+      })
+      expect(queue.status).toBe(200)
+      expect(queue.body.items).toHaveLength(2)
+
+      const gateIds = queue.body.items.map((g) => g.id)
+      for (const gateId of gateIds) {
+        const decided = await call<Decided>(app, manager, 'POST', `/approvals/${gateId}/decide`, {
+          idempotencyKey: `dos028-decide-${gateId}`,
+          decision: 'approve',
+        })
+        expect(decided.status).toBe(200)
+      }
+
+      // green: one approval.decide row per approval, actor = the manager who decided (scoped to THESE two
+      // gates — other tests in this file decide their own approvals against the same shared tenant)
+      const decisions = await db
+        .select({
+          action: auditLog.action,
+          entityType: auditLog.entityType,
+          actorId: auditLog.actorId,
+        })
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), inArray(auditLog.entityId, gateIds)))
+      expect(decisions).toHaveLength(2)
+      expect(
+        decisions.every(
+          (r) =>
+            r.action === 'approval.decide' &&
+            r.entityType === 'approval' &&
+            r.actorId === managerId,
+        ),
+      ).toBe(true)
+
+      // and one order.confirm row for the confirm the last decision triggered, before/after state included
+      const confirms = await db
+        .select({
+          action: auditLog.action,
+          entityType: auditLog.entityType,
+          entityId: auditLog.entityId,
+          actorId: auditLog.actorId,
+          before: auditLog.before,
+          after: auditLog.after,
+        })
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, orderId)))
+      expect(confirms).toHaveLength(1)
+      expect(confirms[0]).toMatchObject({
+        action: 'order.confirm',
+        entityType: 'sales_order',
+        entityId: orderId,
+        actorId: managerId,
+        before: { state: 'submitted' },
+        after: { state: 'confirmed' },
+      })
+    } finally {
+      await call(app, owner, 'POST', `/orders/${orderId}/cancel`, {
+        idempotencyKey: `dos028-cleanup-${run}`,
         reason: 'test cleanup',
       })
     }

@@ -18,6 +18,7 @@ import {
   idempotent,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import { BargainsService } from '../pricing/index.js'
 import { retailerRefs } from '../retailers/index.js'
@@ -145,6 +146,17 @@ export class ApprovalsService {
           })
           .where(eq(approvals.id, approval.id))
           .returning()
+        // A credit release or a below-floor sale is exactly the kind of decision an owner later needs to trace
+        // to a name (DOS-028); `decided?.status` is the real outcome, `approval.status` only if the row somehow
+        // came back empty.
+        await writeAudit(tx, {
+          action: 'approval.decide',
+          entityType: 'approval',
+          entityId: approval.id,
+          before: { status: 'pending', kind: approval.kind },
+          after: { status: decided?.status ?? approval.status, decision: input.decision },
+          deviceId: input.deviceId ?? null,
+        })
         // The same answer decides the request a bargain gate names, so its Rate requests copy closes with it and
         // the rep and the shop read the outcome (DOS-005). Approve takes the asked rate; a request already
         // decided elsewhere keeps its outcome; a missing one is a 404 that rolls this decision back.
