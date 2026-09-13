@@ -432,7 +432,7 @@ export const strings = {
   'm6.tab': 'Billing desk',
   'm6.title': 'Billing desk',
   'm6.remaining': '{count} left to bill',
-  'm6.queueRows': '{count} confirmed orders',
+  'm6.queueRows': '{count} packed, no bill yet',
   'm6.packRows': '{count} packs already gone out',
   'm6.orderNo': 'Order',
   'm6.shop': 'Shop',

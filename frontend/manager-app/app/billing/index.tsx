@@ -7,7 +7,9 @@
  *
  * There are two things to bill and they are not the same:
  *
- *  - `billing.invoices.queue` — orders that are packed or confirmed and have no bill yet.
+ *  - `billing.invoices.queue` — PACKED orders with no live bill (DOS-022): a bill is issued at pack,
+ *    so a confirmed or picking order is not this desk's problem yet. Selecting a row here looks up
+ *    its pack and bills it the same way as the panel below.
  *  - `warehouse.packs.list { invoiced: false }` — packs confirmed with `issueInvoice: false`, where
  *    THE STOCK HAS ALREADY LEFT. Those are billed with `billing.invoices.issueForPack`, which is why
  *    its dialog says so: nothing is reserved or moved, only the document is made.
@@ -155,6 +157,20 @@ export default function BillingDesk(): React.JSX.Element {
       }),
     { invalidates: [['warehouse'], ['billing'], ['invoices'], ['receivables'], ['reporting']] },
   )
+
+  /*
+   * DOS-022: a queue row IS a packed order with no live bill — the pack itself is still there even
+   * when its earlier bill was cancelled (`pack_confirmations` keeps the cancelled `invoiceId`), so the
+   * row is opened by finding that pack and reusing the same `billPack` dialog the panel below uses.
+   */
+  const openQueueRow = (row: BillingQueueItem): void => {
+    void api.api.warehouse.packs.list({ orderId: row.orderId, limit: 1 }).then((result) => {
+      const pack = result.items[0]
+      if (pack === undefined) return
+      setPackToBill(pack)
+      setDialog('billPack')
+    })
+  }
 
   const queueRows = queue.data?.items ?? []
   const billRows = list.data?.items ?? []
@@ -331,6 +347,7 @@ export default function BillingDesk(): React.JSX.Element {
                 rows={queueRows}
                 rowKey={(row) => row.orderId}
                 frozen="orderNo"
+                onSelect={mayIssueForPack ? openQueueRow : undefined}
                 state="ready"
                 totals={{
                   orderNo: countText(pagedCount(queue), t('app.none')),
