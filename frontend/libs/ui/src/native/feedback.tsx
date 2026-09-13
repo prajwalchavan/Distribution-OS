@@ -3,7 +3,7 @@
  * TenantLogo, EmptyState, ErrorState, Skeleton.
  */
 import { useEffect, useState } from 'react'
-import { Image, Modal, Pressable, ScrollView, View } from 'react-native'
+import { Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { useTheme } from '../theme.js'
@@ -187,69 +187,103 @@ function SheetPanel({
       onPress={onClose}
       accessibilityElementsHidden={covered}
       importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
-      style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop, justifyContent: 'flex-end' }}
+      style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop }}
     >
       {/*
        * A SHEET NEVER REACHES THE NOTCH, AND NEVER RUNS OFF THE BOTTOM.
        *
-       * It is `justifyContent: 'flex-end'`, so a sheet taller than the screen simply grew upward
-       * until its own title sat under the status bar — measured on the iPhone 16 Pro, where the
-       * phone shell's "More" sheet (eleven destinations plus a search box and a Close button)
-       * printed its heading "More" straight through the 8:15 clock, and anything past the bottom
-       * of the screen was unreachable because the body does not scroll. `maxHeight` keeps the top
-       * clear of the inset and the body scrolls inside whatever is left.
+       * The KeyboardAvoidingView between the backdrop and the panel is `justifyContent: 'flex-end'`,
+       * so a sheet taller than the screen simply grew upward until its own title sat under the status
+       * bar — measured on the iPhone 16 Pro, where the phone shell's "More" sheet (eleven destinations
+       * plus a search box and a Close button) printed its heading "More" straight through the 8:15
+       * clock, and anything past the bottom of the screen was unreachable because the body does not
+       * scroll. `maxHeight` keeps the top clear of the inset and the body scrolls inside whatever is
+       * left.
        */}
-      <Pressable
-        onPress={() => undefined}
-        style={[
-          {
-            backgroundColor: theme.colors.bg.surface,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            padding: space[4],
-            paddingBottom: space[8],
-            maxHeight: '86%',
-          },
-          nativeShadow('sheet'),
-        ]}
+      {/*
+       * AND NEVER STAYS UNDER THE KEYBOARD (DOS-159).
+       *
+       * A field inside the sheet's own content (the credit-note Sheet's Bill picker) opens the soft
+       * keyboard, and with nothing avoiding it the sheet stayed anchored to the true bottom of the
+       * screen — measured on the Pixel 7/Gboard: the matching-bill suggestion was laid out at y
+       * 1622-1811 while Gboard covered the lower half, and a tap there hit the keyboard's own
+       * Clipboard panel instead of picking the bill. `behavior="padding"` on both platforms pads the
+       * KeyboardAvoidingView's own bottom by the keyboard height as it opens and closes — Android's
+       * edge-to-edge dialog window never resizes for this surface, so it needs the same padding iOS
+       * does, never `"height"`, which shrinks the view to a fixed pixel count that can reach zero
+       * under a keyboard taller than a short sheet. Its `flex: 1` gives it the screen's own definite
+       * height so the panel's `86%` resolves against the screen (not against the KAV's own shrunk
+       * content size) in both the measure and the final layout pass, and `pointerEvents="box-none"`
+       * keeps a tap on the exposed backdrop closing the sheet.
+       */}
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        pointerEvents="box-none"
       >
-        <View
-          style={{
-            width: 32,
-            height: 4,
-            borderRadius: 2,
-            alignSelf: 'center',
-            backgroundColor: theme.colors.bg.handle,
-            marginBottom: space[3],
-          }}
-        />
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: space[3],
-          }}
+        <Pressable
+          onPress={() => undefined}
+          style={[
+            {
+              backgroundColor: theme.colors.bg.surface,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              padding: space[4],
+              paddingBottom: space[8],
+              maxHeight: '86%',
+            },
+            nativeShadow('sheet'),
+          ]}
         >
-          {title ? (
-            <Txt field="title" desk="section">
-              {title}
-            </Txt>
-          ) : (
-            <View />
-          )}
-        </View>
-        <ScrollView
-          style={{ flexShrink: 1 }}
-          contentContainerStyle={{ flexGrow: 0 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {children}
-        </ScrollView>
-        <View style={{ marginTop: space[4] }}>
-          <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
-        </View>
-      </Pressable>
+          <View
+            style={{
+              width: 32,
+              height: 4,
+              borderRadius: 2,
+              alignSelf: 'center',
+              backgroundColor: theme.colors.bg.handle,
+              marginBottom: space[3],
+            }}
+          />
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: space[3],
+            }}
+          >
+            {title ? (
+              <Txt field="title" desk="section">
+                {title}
+              </Txt>
+            ) : (
+              <View />
+            )}
+          </View>
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ flexGrow: 0 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+            {/*
+             * CLOSE IS THE LAST ROW OF THE SCROLLABLE CONTENT, NEVER A FOOTER PINNED AFTER IT (DOS-152).
+             *
+             * A footer sibling sits outside the ScrollView's own height bookkeeping, so a sheet whose
+             * content is taller than the viewport (the W5 Short sheet's keypad) laid Close out past
+             * where the ScrollView's own bounds ended — measured on the Pixel 7: Close at y 2117-2317
+             * while the ScrollView itself stopped at 2075, so a tap on the CONTENT's own save button
+             * (drawn even further down, at 2293) landed on Close instead and discarded the entry.
+             * Scrolling to the end of the content now always reaches Close, and nothing drawn above it
+             * can ever be laid out behind it.
+             */}
+            <View style={{ marginTop: space[4] }}>
+              <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
+            </View>
+          </ScrollView>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Pressable>
   )
 }

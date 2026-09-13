@@ -17,6 +17,7 @@ const recorded = vi.hoisted(() => ({
   downloads: [] as { url: string; path: string }[],
   shares: [] as { uri: string; options: unknown }[],
   sharingAvailable: true,
+  printError: null as Error | null,
 }))
 
 vi.mock('expo-file-system', () => {
@@ -39,7 +40,10 @@ vi.mock('expo-file-system', () => {
   return { File, Paths: { cache: '/cache' } }
 })
 
-vi.mock('expo-print', () => ({ printAsync: () => Promise.resolve() }))
+vi.mock('expo-print', () => ({
+  printAsync: () =>
+    recorded.printError !== null ? Promise.reject(recorded.printError) : Promise.resolve(),
+}))
 
 vi.mock('expo-sharing', () => ({
   isAvailableAsync: () => Promise.resolve(recorded.sharingAvailable),
@@ -56,6 +60,7 @@ beforeEach(() => {
   recorded.downloads.length = 0
   recorded.shares.length = 0
   recorded.sharingAvailable = true
+  recorded.printError = null
 })
 
 describe('documents.share on a phone', () => {
@@ -95,5 +100,30 @@ describe('documents.share on a phone', () => {
     recorded.sharingAvailable = false
     expect(await documents.share(SIGNED, { filename: 'RCPT-0626.pdf' })).toBe(false)
     expect(recorded.shares).toEqual([])
+  })
+})
+
+/**
+ * DOS-162: cancelling the OS print sheet is a normal choice, not a failure. `expo-print` rejects
+ * `printAsync` with a `PrintIncompleteException` when the reader dismisses "Options"/"Cancel"
+ * (measured on the iOS simulator: delivery's "Send the papers" and the retailer's bill, both left an
+ * uncaught rejection whose red toast covered the sheet's own bottom button). Every one of the seven
+ * callers fires this with `void documents.print(...)`, so nothing else ever sees or reports it.
+ */
+describe('documents.print on a phone (DOS-162)', () => {
+  it('resolves quietly when the reader cancels the print sheet', async () => {
+    recorded.printError = new Error(
+      'PrintIncompleteException: Printing did not complete (at ExpoPrint/ExpoPrintWithPrinter.swift:94)',
+    )
+
+    await expect(documents.print(SIGNED, { filename: 'INV/0826.pdf' })).resolves.toBeUndefined()
+  })
+
+  it('still rejects on a real print failure', async () => {
+    recorded.printError = new Error('Printer offline')
+
+    await expect(documents.print(SIGNED, { filename: 'INV/0826.pdf' })).rejects.toThrow(
+      'Printer offline',
+    )
   })
 })

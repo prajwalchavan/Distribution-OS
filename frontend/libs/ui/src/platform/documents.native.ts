@@ -41,7 +41,20 @@ export const documents: PlatformDocuments = {
   print: async (url, options) => {
     // `printAsync({ uri })` wants a LOCAL file on Android; caching first makes both platforms equal.
     const uri = await cache(url, options?.filename)
-    await Print.printAsync({ uri })
+    try {
+      await Print.printAsync({ uri })
+    } catch (error) {
+      /*
+       * Cancelling the OS print sheet is a normal choice, not a failure (DOS-162): expo-print
+       * rejects with a PrintIncompleteException when the reader dismisses it, on iOS and Android
+       * alike — measured on the iOS simulator, "Options" then Cancel on both the delivery papers
+       * and the retailer bill. Every caller fires this with `void documents.print(...)`, so an
+       * uncaught rejection surfaced as a red toast over the sheet's own bottom button. Any other
+       * failure (a real printer error) still rejects.
+       */
+      if (error instanceof Error && error.message.includes('PrintIncompleteException')) return
+      throw error
+    }
   },
 
   share: async (url, options) => {
