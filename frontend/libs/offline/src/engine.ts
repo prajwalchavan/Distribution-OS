@@ -254,6 +254,17 @@ export class SyncEngine {
     try {
       const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
       unclaimed = store
+      /*
+       * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
+       * changes, and that can land before the open — or the claim below — has finished: `stop()` then had no
+       * store to close, and carrying on attached this file to a stopped engine and ran the handshake and the
+       * tray mirror through the one api client the app keeps, as whoever is signed in by then, into this
+       * file. The file is this call's alone to close. `end()` is not a stop: it waits for the open and counts.
+       */
+      if (this.stoppedWhileOpening()) {
+        await store.close().catch(() => {})
+        return
+      }
       await createSystemTables(store)
       await store.exec(
         `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
@@ -265,6 +276,10 @@ export class SyncEngine {
        * answered, and a colleague at the same distributor was never re-snapshotted at all.
        */
       await this.claimIdentity(store)
+      if (this.stoppedWhileOpening()) {
+        await store.close().catch(() => {})
+        return
+      }
       /*
        * Only now does the engine answer from this file (DOS-167, ruling (o)). `outbox()` and
        * `needsAttention()` have no shape to gate them, and `useOutbox` asks the moment the provider sets the
@@ -314,6 +329,11 @@ export class SyncEngine {
     this.pollTimer = null
     await this.store?.close()
     this.store = null
+  }
+
+  /** `stop()` ran while `start()` was still opening or claiming its file; `end()` does not count. */
+  private stoppedWhileOpening(): boolean {
+    return !this.started && !this.ended
   }
 
   /**
@@ -629,8 +649,9 @@ export class SyncEngine {
   // The manifest handshake and the pull loop (docs/27 §5)
 
   async sync(reason: string): Promise<void> {
-    // Once `end()` has begun nothing new starts: the read set is about to be dropped (DOS-167).
-    if (this.pulling || this.ended) return
+    // Once `end()` has begun nothing new starts: the read set is about to be dropped (DOS-167). Nor once
+    // `stop()` has: a reconnect landing while it closes the file must not run a handshake (merge review).
+    if (this.pulling || this.ended || !this.started) return
     // A timer, a reconnect or the tail of an upload may land after `stop()` closed the database. A
     // pull with nowhere to put its rows is a no-op, never a crash on a screen that is already gone.
     const store = this.store
@@ -721,7 +742,8 @@ export class SyncEngine {
    */
   private async pullErrors(store: SyncStore): Promise<void> {
     const list = this.options.transport.listErrors
-    if (list === undefined || this.errorsDenied) return
+    // A page that was in flight when the engine stopped or began to end does not ask for the tray (DOS-167).
+    if (list === undefined || this.errorsDenied || !this.started) return
     /*
      * BEST EFFORT, ALWAYS. The tray mirror is a convenience; the pull that just committed is the
      * work. `transportFromApi` wires this whenever the oRPC client exposes the procedure — which it

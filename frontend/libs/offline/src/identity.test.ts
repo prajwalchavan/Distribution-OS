@@ -98,6 +98,32 @@ function page(id: string, cursor: string, hasMore: boolean): PullOutput {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** A store whose `close` is counted and may wait, and whose `query` may wait at a door first. */
+function watched(
+  inner: SyncStore,
+  hooks: {
+    closed?: { count: number }
+    closeWaits?: Promise<void>
+    beforeQuery?: (sql: string) => Promise<void>
+  } = {},
+): SyncStore {
+  return {
+    persistent: inner.persistent,
+    kind: inner.kind,
+    exec: (sql, params) => inner.exec(sql, params),
+    async query<T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> {
+      if (hooks.beforeQuery !== undefined) await hooks.beforeQuery(sql)
+      return inner.query<T>(sql, params)
+    },
+    transaction: (fn) => inner.transaction(fn),
+    async close(): Promise<void> {
+      if (hooks.closed !== undefined) hooks.closed.count += 1
+      if (hooks.closeWaits !== undefined) await hooks.closeWaits
+      await inner.close()
+    },
+  }
+}
+
 // 12 -------------------------------------------------------------------------------------------------------------
 
 describe('DOS-167 one file per app, person and distributor', () => {
@@ -396,6 +422,166 @@ describe('DOS-167 one file per app, person and distributor', () => {
       afterClaim: { outbox: [], needsAttention: [] },
     })
     await rahul.stop()
+  })
+
+  it('DOS-167 an engine stopped while its store opens or is claimed closes that store and never attaches it', async () => {
+    /*
+     * Merge review, leak lens, blocker 1. The provider stops an engine the moment the session changes, and that can
+     * land while the file is still opening — a cold start whose refresh token is dead, or the first OPFS open on web.
+     * `stop()` found no store to close, so `start()` carried on: it attached the file to the stopped engine and ran
+     * the handshake and the tray mirror through the one api client the app keeps — as whoever is signed in by then,
+     * into this person's file — and nothing ever closed it (on a phone, a later delete fails "currently open").
+     */
+    const server = new FakeServer(TABLES)
+    let errorsAsked = 0
+    const transport: SyncTransport = {
+      ...server.transport(),
+      listErrors: async () => {
+        errorsAsked += 1
+        return { items: [], nextCursor: null }
+      },
+    }
+    const writeAfterStop = (engine: SyncEngine): Promise<string> =>
+      engine.enqueue({ table: 'sales_orders', id: 'o-after-stop', op: 'PUT', data: {} }).then(
+        () => 'saved',
+        (error: unknown) => (error as Error).message,
+      )
+
+    // Stopped while the claim reads whose file it is.
+    const claimedFile = createMemoryStore()
+    const claimedClosed = { count: 0 }
+    let openDoor = (): void => {}
+    const door = new Promise<void>((resolve) => {
+      openDoor = resolve
+    })
+    let firstStateRead = true
+    const duringClaim = engineAs(
+      RAHUL,
+      watched(claimedFile, {
+        closed: claimedClosed,
+        beforeQuery: async (sql) => {
+          if (!firstStateRead || !sql.includes('_sync_state')) return
+          firstStateRead = false
+          await door
+        },
+      }),
+      transport,
+    )
+    const startingClaim = duringClaim.start()
+    await sleep(0)
+    await duringClaim.stop()
+    openDoor()
+    await startingClaim
+
+    // Stopped while the file itself opens.
+    const openedFile = createMemoryStore()
+    const openedClosed = { count: 0 }
+    let finishOpen = (): void => {}
+    const opening = new Promise<void>((resolve) => {
+      finishOpen = resolve
+    })
+    const duringOpen = engineAs(RAHUL, openedFile, transport, {
+      storeFactory: async () => {
+        await opening
+        return watched(openedFile, { closed: openedClosed })
+      },
+    })
+    const startingOpen = duringOpen.start()
+    await sleep(0)
+    await duringOpen.stop()
+    finishOpen()
+    await startingOpen
+
+    const NOT_STARTED = 'the sync engine has not started yet'
+    expect({
+      claim: {
+        closed: claimedClosed.count,
+        ready: duringClaim.status().ready,
+        write: await writeAfterStop(duringClaim),
+        manifest: await readState(claimedFile, 'manifest'),
+        schemaVersion: await readState(claimedFile, 'schemaVersion'),
+      },
+      open: {
+        closed: openedClosed.count,
+        ready: duringOpen.status().ready,
+        write: await writeAfterStop(duringOpen),
+      },
+      office: {
+        manifest: server.manifestCalls.length,
+        pull: server.pullCalls.length,
+        errors: errorsAsked,
+      },
+    }).toEqual({
+      claim: { closed: 1, ready: false, write: NOT_STARTED, manifest: null, schemaVersion: null },
+      open: { closed: 1, ready: false, write: NOT_STARTED },
+      office: { manifest: 0, pull: 0, errors: 0 },
+    })
+    // Nothing was written into the file that finished opening after the stop.
+    await expect(openedFile.query(`SELECT * FROM ${OUTBOX_TABLE}`)).rejects.toThrow(/no such table/)
+  })
+
+  it('DOS-167 a stopped engine asks the office for nothing more: no tray after a page in flight, no handshake while it closes', async () => {
+    /*
+     * Merge review, leak lens, blocker 1 and the defect folded into it. A pull page in flight when the engine
+     * stopped still came back to `pullErrors`, which asked `sync.errors.list`; a reconnect that landed while
+     * `stop()` was closing the file ran a whole handshake. Both go through the one api client, whoever holds it.
+     */
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const base = server.transport()
+    let errorsAsked = 0
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const transport: SyncTransport = {
+      ...base,
+      pull: async (input) => {
+        if (pullGate !== null) await pullGate
+        return base.pull(input)
+      },
+      listErrors: async () => {
+        errorsAsked += 1
+        return { items: [], nextCursor: null }
+      },
+    }
+
+    // A page in flight when the engine stops.
+    const midPull = engineAs(RAHUL, createMemoryStore(), transport)
+    await midPull.start()
+    const errorsAtStart = errorsAsked
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    server.queuePull({ changes: [], cursor: 'c2' })
+    const pulling = midPull.sync('poll')
+    await sleep(0)
+    await midPull.stop()
+    openPull()
+    await pulling
+    const errorsAfterPage = errorsAsked
+    pullGate = null
+
+    // A reconnect while `stop()` is still closing the file.
+    let releaseClose = (): void => {}
+    const closeWaits = new Promise<void>((resolve) => {
+      releaseClose = resolve
+    })
+    const closing = engineAs(AMIT, watched(createMemoryStore(), { closeWaits }), transport)
+    await closing.start()
+    const handshakes = server.manifestCalls.length
+    const stopping = closing.stop()
+    const reconnect = closing.sync('reconnect')
+    releaseClose()
+    await stopping
+    await reconnect
+
+    expect({
+      errorsAtStart,
+      errorsAfterPage,
+      handshakesWhileClosing: server.manifestCalls.length - handshakes,
+    }).toEqual({ errorsAtStart: 1, errorsAfterPage: 1, handshakesWhileClosing: 0 })
   })
 })
 
