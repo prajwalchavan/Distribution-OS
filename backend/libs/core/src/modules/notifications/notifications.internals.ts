@@ -451,6 +451,31 @@ export function rupees(paise: number): string {
   return `${paise < 0 ? '-' : ''}₹${whole.toLocaleString('en-IN')}.${frac}`
 }
 
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+/**
+ * `2026-08-06` -> `6 Aug 2026`, for a message body (DOS-105). A WhatsApp reminder is read on a phone,
+ * not queried by a database column, so the calendar date it names is said the way every other date in
+ * the product is (`shortDate`/`longDate` in the apps' own `src/lib/dates.ts`), never as raw ISO.
+ */
+export function longIsoDate(isoDate: string): string {
+  const month = MONTHS[Number(isoDate.slice(5, 7)) - 1] ?? ''
+  return `${String(Number(isoDate.slice(8, 10)))} ${month} ${isoDate.slice(0, 4)}`
+}
+
 /**
  * The `upi://pay` intent for a bill, from the distributor's own VPA and name — the shop taps it and
  * pays the distributor, never us. Empty when the tenant has configured no VPA.

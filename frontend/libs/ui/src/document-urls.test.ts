@@ -82,3 +82,49 @@ describe('signed document URLs reach the platform absolute', () => {
     expect(offenders).toEqual([])
   })
 })
+
+/**
+ * DOS-123: the same rule for an `<Img source={…}>` built from a signed `readUrl` — the retailer app's
+ * POD photo was passed straight from `delivery.deliveries.get`'s `readUrl` (service-relative) to
+ * `<Img>`, which a browser resolves against the APP's own origin (its own HTML shell answers, 200
+ * text/html, `naturalWidth` 0) and a phone refuses outright. `source=` has exactly three call sites
+ * across every app today (grepped), so this pins all of them rather than guessing which are signed.
+ */
+function imgSourceSites(): CallSite[] {
+  const sites: CallSite[] = []
+  for (const app of readdirSync(frontend).filter(
+    (name) => name.endsWith('-app') && statSync(join(frontend, name)).isDirectory(),
+  )) {
+    for (const file of sourcesOf(app)) {
+      const source = readFileSync(file, 'utf8')
+      for (const match of source.matchAll(/\bsource=\{([^}]*)\}/g)) {
+        const arg = (match[1] ?? '').trim()
+        const assignedFromAbsoluteUrl =
+          /^[A-Za-z_$][\w$]*$/.test(arg) &&
+          new RegExp(`\\b${escapeRegExp(arg)}\\s*=\\s*absoluteUrl\\(`).test(source)
+        sites.push({
+          file: relative(frontend, file),
+          line: source.slice(0, match.index).split('\n').length,
+          call: `source={${arg}}`,
+          absolutised: arg.startsWith('absoluteUrl(') || assignedFromAbsoluteUrl,
+        })
+      }
+    }
+  }
+  return sites
+}
+
+describe('DOS-123: an <Img> built from a signed readUrl reaches the platform absolute', () => {
+  const sites = imgSourceSites()
+
+  it('finds the call sites it is meant to guard', () => {
+    expect(sites.length).toBeGreaterThan(0)
+  })
+
+  it('every source= an app hands to <Img> is absolutised with absoluteUrl()', () => {
+    const offenders = sites
+      .filter((site) => !site.absolutised)
+      .map((site) => `${site.file}:${String(site.line)} ${site.call}`)
+    expect(offenders).toEqual([])
+  })
+})

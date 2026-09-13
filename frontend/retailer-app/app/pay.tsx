@@ -29,7 +29,8 @@ import {
   useStrings,
 } from '@dos/ui'
 import { links } from '@dos/ui/platform'
-import { useState } from 'react'
+import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 
 import { instantWithClock, longDate } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
@@ -45,8 +46,19 @@ export default function Pay(): React.JSX.Element {
   const my = useMyShop()
   const retailerId = my.retailerId
 
+  /*
+   * DOS-124: "Pay this bill" (dues.tsx's QR sheet, or the bill detail's own Pay button) carries the
+   * bill it was raised for as `?bill=<id>`. Without it this screen used to open with nothing ticked
+   * and the shop's WHOLE dues prefilled — one tap from minting a payment intent for every bill
+   * instead of the one the shop chose.
+   */
+  const params = useLocalSearchParams<{ bill?: string }>()
+  const preselect = typeof params.bill === 'string' && params.bill !== '' ? params.bill : null
+
   const [amount, setAmount] = useState<number | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
+  /** The `bill` param already ticked (or found gone), so a re-render never re-ticks over an untick. */
+  const [seeded, setSeeded] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   /**
    * `links.open` answers false when no app on the phone takes a `upi://` link, and the tap would otherwise
@@ -61,6 +73,16 @@ export default function Pay(): React.JSX.Element {
   )
   const bills = [...(dues.data?.bills ?? [])].sort((a, b) => b.ageDays - a.ageDays)
   const owed = dues.data?.outstandingPaise ?? 0
+
+  // Tick the carried bill once its own row is on the page, so the amount and the "which bills" panel
+  // agree with it from the first paint. Runs once per `preselect` — never fights a later untick.
+  useEffect(() => {
+    if (preselect === null || seeded === preselect || dues.data === undefined) return
+    if (dues.data.bills.some((bill) => bill.id === preselect)) {
+      setChosen((current) => (current.length === 0 ? [preselect] : current))
+    }
+    setSeeded(preselect)
+  }, [preselect, seeded, dues.data])
 
   const initiate = useMutation(
     (input: { amountPaise: number | null; invoiceIds: readonly string[] }, meta) =>
@@ -83,6 +105,12 @@ export default function Pay(): React.JSX.Element {
   const chosenTotal = bills
     .filter((bill) => chosen.includes(bill.id))
     .reduce((sum, bill) => sum + bill.openPaise, 0)
+  /*
+   * DOS-154 (DOS-146 class, architect verdict): `amount` is `null` until the shop TOUCHES the field —
+   * that is what lets `payable` show `owed` untouched and send no `amountPaise` at all. The kit
+   * reports `null` again for an emptied field (web blur, the pad's Clear); the field's own `onChange`
+   * below turns that back into `0` so an emptied field STAYS `0` and never snaps back to `owed`.
+   */
   const payable = chosen.length > 0 ? chosenTotal : (amount ?? owed)
 
   return (
@@ -105,7 +133,15 @@ export default function Pay(): React.JSX.Element {
             disabled={payable <= 0}
             {...(payable <= 0
               ? {
-                  disabledReason: dues.data === undefined ? t('app.noConnection') : t('r3.noBills'),
+                  // DOS-154: three reasons a shop sees no way forward here, and only one of them is
+                  // "nothing is owed" — an amount typed to 0 (or emptied) with dues outstanding is the
+                  // shop still needing to type something, never "you are clear".
+                  disabledReason:
+                    dues.data === undefined
+                      ? t('app.noConnection')
+                      : owed > 0
+                        ? t('r5.enterAmount')
+                        : t('r3.noBills'),
                 }
               : {})}
             onPress={() => {
@@ -138,9 +174,17 @@ export default function Pay(): React.JSX.Element {
               <Stack gap={5}>
                 <RupeeInput
                   label={t('r5.amount')}
-                  value={amount ?? owed}
-                  onChange={setAmount}
-                  helper={t('r5.amountHelper')}
+                  // DOS-154 (DOS-146 class): the field must show what is actually payable, not the
+                  // raw typed amount — `payable` already agrees with the bottom bar and Start.
+                  value={payable}
+                  // `null` (untouched, or a value that failed to parse) is never stored back as-is: an
+                  // emptied field reports `null` from the kit too, and storing that would let `payable`
+                  // fall back to `owed` again — the snap-back the DOS-146 verdict forbids. Once typed,
+                  // an emptied field is `0` and stays `0`.
+                  onChange={(next) => {
+                    setAmount(next ?? 0)
+                  }}
+                  helper={chosen.length > 0 ? t('r5.chosenHelper') : t('r5.amountHelper')}
                   bound={owed}
                   boundMessage={t('r5.overDues')}
                   disabled={chosen.length > 0}

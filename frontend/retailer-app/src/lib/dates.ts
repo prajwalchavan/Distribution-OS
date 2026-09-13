@@ -67,6 +67,21 @@ export function shortInstant(iso: string | null | undefined): string {
   return shortDate(businessDate(ms).date)
 }
 
+/**
+ * An ISO instant → its IST business date, printed long (`13 Sep 2026`). `shortInstant`'s long twin,
+ * for a list like My orders where the year matters.
+ *
+ * DOS-143: `longDate(instant.slice(0, 10))` reads the instant's UTC calendar date — an order placed at
+ * 3:05 am IST on 13 Sep (`createdAt: '2026-09-12T21:35:33Z'`) sliced to `2026-09-12`, the day before.
+ * Every other date in this app goes through `businessDate()`; this is the one that did not.
+ */
+export function longInstant(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return '—'
+  return longDate(businessDate(ms).date)
+}
+
 /** An ISO instant → `6 Sep, 4:45 pm` IST. Used for "as of" and for audit rows. */
 export function instantWithClock(iso: string | null | undefined): string {
   if (!iso) return '—'

@@ -380,9 +380,15 @@ export function RupeeInput({
           onPress={() => {
             setPadOpen(true)
           }}
-          style={frame}
+          style={{
+            ...frame,
+            // DOS-154: a disabled field-density frame read identically to an editable one — the
+            // helper line was the only sign, easy to miss on a phone. Dashed border + secondary tone
+            // is the same convention `native/controls.tsx`'s TextInput already uses for `disabled`.
+            borderStyle: disabled === true ? 'dashed' : 'solid',
+          }}
         >
-          <Money value={value} size="moneyM" />
+          <Money value={value} size="moneyM" tone={disabled === true ? 'secondary' : 'default'} />
         </Pressable>
       ) : (
         <View style={frame}>
