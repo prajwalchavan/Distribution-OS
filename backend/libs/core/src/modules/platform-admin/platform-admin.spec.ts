@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { allProcedures, contract } from '@dos/contracts'
+import { PLATFORM_AUDIT_ACTIONS, allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
@@ -803,6 +803,185 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     const res = await app.inject({ method: 'GET', url: '/admin/metrics', headers })
     expect(res.statusCode).toBe(403)
     expect(res.json<{ message: string }>().message).toContain('no longer active')
+  })
+
+  // ---------------------------------------------------------------- DOS-109: who, where, why, what changed
+
+  it('DOS-109: the audit trail names the staff member who acted and the distributorship, keeps the reason and the from/to in the row, and narrows by distributorship, action and staff member', async () => {
+    // Its own distributorship, so the trail it reads holds exactly the five rows written below. The
+    // colleague acts under the DOS-106 helpers: a support-level account may only ask for a window.
+    const audTenantId = uuidv7()
+    await db.insert(tenants).values({
+      id: audTenantId,
+      slug: `aud-${run}`,
+      legalName: 'DOS-109 audit fixture',
+      stateCode: '27',
+    })
+    const colleague = await consoleHeaders(otherAdminUserId)
+    const reason = 'DOS-109: subscription unpaid for 45 days.'
+
+    const suspended = await consoleCall('POST', `/admin/tenants/${audTenantId}/suspend`, {
+      idempotencyKey: `aud-suspend-${run}`,
+      id: audTenantId,
+      reason,
+    })
+    expect(suspended.status, JSON.stringify(suspended.body)).toBe(200)
+    const back = await consoleCall('POST', `/admin/tenants/${audTenantId}/reactivate`, {
+      idempotencyKey: `aud-reactivate-${run}`,
+      id: audTenantId,
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    const plan = {
+      id: uuidv7(),
+      tenantId: audTenantId,
+      plan: 'pro',
+      billingInterval: 'monthly',
+      currentPeriodStart: '2026-09-01',
+      currentPeriodEnd: '2026-10-01',
+    }
+    const created = await consoleCall('POST', '/admin/subscriptions', {
+      ...plan,
+      idempotencyKey: `aud-sub-create-${run}`,
+      status: 'trialing',
+      trialEndDate: '2026-10-01',
+      amountPaise: 199_900,
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const changed = await consoleCall('POST', '/admin/subscriptions', {
+      ...plan,
+      idempotencyKey: `aud-sub-change-${run}`,
+      status: 'active',
+      amountPaise: 499_900,
+    })
+    expect(changed.status, JSON.stringify(changed.body)).toBe(200)
+    const asked = await asConsole(colleague, 'POST', '/admin/support-grants', {
+      idempotencyKey: `aud-ask-${run}`,
+      id: uuidv7(),
+      tenantId: audTenantId,
+      reason: 'DOS-109: one shop’s outstanding differs from its statement.',
+      scope: 'read_only',
+      hours: 4,
+    })
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+
+    type Row = {
+      id: string
+      action: string
+      actorId: string
+      actorName: string | null
+      tenantId: string | null
+      tenantName: string | null
+      after: Record<string, unknown> | null
+    }
+    const trail = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+    })
+    expect(trail.status, JSON.stringify(trail.body)).toBe(200)
+    const items = trail.body.items
+    expect(items.map((i) => i.action).sort()).toEqual([
+      'subscription.created',
+      'subscription.updated',
+      'support.requested',
+      'tenant.reactivated',
+      'tenant.suspended',
+    ])
+    // The distributorship by its legal name, on every row.
+    expect(items.map((i) => i.tenantName)).toEqual(items.map(() => 'DOS-109 audit fixture'))
+    const row = (action: string): Row => {
+      const found = items.find((i) => i.action === action)
+      expect(found, action).toBeDefined()
+      return found as Row
+    }
+
+    // WHO: the person, not "Distribution OS staff" — the super on its own rows, the colleague on theirs.
+    const suspension = row('tenant.suspended')
+    expect(suspension.actorId).toBe(adminUserId)
+    expect(suspension.actorName).toBe('Console super')
+    expect(row('support.requested').actorId).toBe(otherAdminUserId)
+    expect(row('support.requested').actorName).toBe('Console colleague')
+
+    // WHY and WHAT CHANGED stay in the row the writer recorded.
+    expect(suspension.after).toMatchObject({ from: 'active', to: 'suspended', reason })
+    expect(row('tenant.reactivated').after).toMatchObject({
+      from: 'suspended',
+      to: 'active',
+      reason: null,
+    })
+    // Amendment (a): the plan change records the state it came FROM in the wire's own word, exactly
+    // like the state it went to — `trialing`, never the column's `trial`.
+    expect(row('subscription.updated').after).toMatchObject({
+      plan: 'pro',
+      status: 'active',
+      amountPaise: 499_900,
+      from: { plan: 'pro', status: 'trialing', amountPaise: 199_900 },
+    })
+
+    // Every action a production writer used is in the vocabulary the console's chips come from.
+    for (const item of items) {
+      expect(PLATFORM_AUDIT_ACTIONS as readonly string[], item.action).toContain(item.action)
+    }
+
+    // The filters the screen now sends narrow on the server.
+    const theirs = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+      actorId: otherAdminUserId,
+    })
+    expect(theirs.status, JSON.stringify(theirs.body)).toBe(200)
+    expect(theirs.body.items.map((i) => [i.action, i.actorId])).toEqual([
+      ['support.requested', otherAdminUserId],
+    ])
+    const suspensions = await consoleCall<{ items: Row[] }>('GET', '/admin/audit', {
+      tenantId: audTenantId,
+      action: 'tenant.suspended',
+    })
+    expect(suspensions.status, JSON.stringify(suspensions.body)).toBe(200)
+    expect(suspensions.body.items.map((i) => i.id)).toEqual([suspension.id])
+  })
+
+  it('DOS-109: a distributorship’s detail names the staff member who asked for each support window, exactly as the support register does', async () => {
+    const adtTenantId = uuidv7()
+    await db.insert(tenants).values({
+      id: adtTenantId,
+      slug: `adt-${run}`,
+      legalName: 'DOS-109 detail fixture',
+      stateCode: '27',
+    })
+    const grantId = uuidv7()
+    const asked = await asConsole(
+      await consoleHeaders(otherAdminUserId),
+      'POST',
+      '/admin/support-grants',
+      {
+        idempotencyKey: `adt-ask-${run}`,
+        id: grantId,
+        tenantId: adtTenantId,
+        reason: 'DOS-109: the detail page and the register must agree.',
+        scope: 'read_only',
+        hours: 4,
+      },
+    )
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+
+    type GrantName = { id: string; requestedBy: string; requestedByName: string }
+    const detail = await consoleCall<{ item: { supportGrants: GrantName[] } }>(
+      'GET',
+      `/admin/tenants/${adtTenantId}`,
+    )
+    expect(detail.status, JSON.stringify(detail.body)).toBe(200)
+    const register = await consoleCall<{ items: GrantName[] }>('GET', '/admin/support-grants', {
+      tenantId: adtTenantId,
+    })
+    expect(register.status, JSON.stringify(register.body)).toBe(200)
+
+    expect(register.body.items.map((g) => [g.id, g.requestedByName])).toEqual([
+      [grantId, 'Console colleague'],
+    ])
+    expect(
+      detail.body.item.supportGrants.map((g) => [g.id, g.requestedBy, g.requestedByName]),
+    ).toEqual([[grantId, otherAdminUserId, 'Console colleague']])
+    expect(detail.body.item.supportGrants[0]?.requestedByName).toBe(
+      register.body.items[0]?.requestedByName,
+    )
   })
 
   // ---------------------------------------------------------------- DOS-106: the console level

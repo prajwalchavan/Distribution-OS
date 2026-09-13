@@ -336,6 +336,14 @@ export const strings = {
   'p8.empty': 'Nothing in this window',
   'p8.platformOnly': 'Platform actions only',
   'p8.detail': 'The entry',
+  'p8.change': 'Change',
+  'p8.reason': 'Why',
+  'p8.payload': 'Everything recorded',
+  'p8.onlyPerson': 'Only this person',
+  'p8.onlyTenant': 'Only this distributorship',
+  'p8.emptyFiltered': 'Nothing matches these filters in this window',
+  'p8.hours': '{hours} h',
+  'p8.trialDays': '{days}-day trial',
 
   // --- P9 account ----------------------------------------------------------
   'p9.title': 'Account',
@@ -393,6 +401,12 @@ export const strings = {
   'word.super': 'Super',
   'word.support': 'Support',
   'word.billing': 'Billing',
+  'word.tenant.onboarded': 'Distributorship onboarded',
+  'word.support.withdrawn': 'Support window handed back',
+  // The column value a plan change recorded in `from.status` before DOS-109; `trialing` is the wire word.
+  'word.trial': 'On trial',
+  'word.ok': 'Answered',
+  'word.refused': 'Refused',
   'word.tenant.created': 'Distributorship created',
   'word.tenant.suspended': 'Distributorship suspended',
   'word.tenant.reactivated': 'Distributorship reactivated',

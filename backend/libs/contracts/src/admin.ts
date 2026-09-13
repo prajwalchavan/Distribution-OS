@@ -477,16 +477,50 @@ export type AdminMetrics = z.infer<typeof AdminMetricsOutput>
 // audit — every platform action, across tenants
 
 /**
- * The tenant-side `audit_log` row plus the distributor it happened to. A platform action that belongs
- * to no distributor (creating a tenant, disabling a global user) carries `tenantId: null`. Every
- * mutation in this file writes one of these: onboarding, suspension, reactivation, a subscription
- * change, a support request or withdrawal, a user disable.
+ * The tenant-side `audit_log` row plus the distributor it happened to, and the two names a person reads
+ * it by (DOS-109): who acted and which distributorship. A platform action that belongs to no distributor
+ * (creating a tenant, disabling a global user) carries `tenantId: null`. Every mutation in this file
+ * writes one of these: onboarding, suspension, reactivation, a subscription change, a support request
+ * or withdrawal, a user disable.
  */
 export const PlatformAuditEntrySchema = AuditEntrySchema.extend({
   tenantId: IdSchema.nullable(),
   tenantSlug: z.string().nullable(),
+  /**
+   * The staff member who acted, by display name. Resolved on the server through
+   * `dos_support_requester_names()` (migration 0037), because a console session cannot read a
+   * colleague's `users` row. Null only when `actorId` is not a platform administrator, which
+   * `dos_platform_audit_guard()` already refuses when the row is written.
+   */
+  actorName: z.string().nullable(),
+  /** The distributorship's legal name (`tenants.legal_name`). Null for a platform-wide action. */
+  tenantName: z.string().nullable(),
 })
 export type PlatformAuditEntry = z.infer<typeof PlatformAuditEntrySchema>
+
+/**
+ * THE PLATFORM'S AUDIT VOCABULARY (DOS-109): every `action` a `platform_audit` row is written with, in
+ * one list. Two readers share it — the five writers type their action as `PlatformAuditAction`, so a new
+ * action that is not added here fails typecheck, and the console builds its action filter from it, so the
+ * app never carries a second list.
+ *
+ * No schema validates with it, on purpose. `AdminAuditListInput.action` and the row's `action` stay free
+ * strings: an enum input would answer 400 to a caller still filtering by an older action, and an enum
+ * output would answer 500 for a row already on disk that is not in this list (an rls.test fixture such as
+ * `support.opened`).
+ */
+export const PLATFORM_AUDIT_ACTIONS = [
+  'tenant.onboarded',
+  'tenant.suspended',
+  'tenant.reactivated',
+  'subscription.created',
+  'subscription.updated',
+  'support.requested',
+  'support.withdrawn',
+  'support.read',
+  'user.disabled',
+] as const
+export type PlatformAuditAction = (typeof PLATFORM_AUDIT_ACTIONS)[number]
 
 /** Newest first. The window defaults to the last 30 IST days and is capped at 92 (docs/20 rule 3). */
 export const AdminAuditListInput = z.object({

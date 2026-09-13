@@ -11,6 +11,7 @@ import type {
   AdminUserItem,
   AdminUsersList,
   AdminUsersListInput,
+  PlatformAuditAction,
 } from '@dos/contracts'
 import type { z } from 'zod'
 import {
@@ -28,6 +29,7 @@ import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
 import { platformCounts } from './counts.js'
 import {
   platformActorId,
+  platformAdminNames,
   requireActiveAdminLevel,
   statusToWire,
   withPlatform,
@@ -180,7 +182,7 @@ export class PlatformConsoleService {
           .where(and(eq(authSessions.userId, input.id), isNull(authSessions.revokedAt)))
         await tx.execute(sql`
           insert into platform_audit (id, admin_user_id, action, tenant_id, payload)
-          values (gen_random_uuid()::text, ${actorId}, 'user.disabled', ${firstMembership?.tenantId ?? null},
+          values (gen_random_uuid()::text, ${actorId}, ${'user.disabled' satisfies PlatformAuditAction}, ${firstMembership?.tenantId ?? null},
                   ${JSON.stringify({ userId: input.id, username: target.username, reason: input.reason })}::jsonb)
         `)
         const saved = row ?? target
@@ -259,6 +261,11 @@ export class PlatformConsoleService {
    * the owner app's `tenancy.audit.list` render with the same component. `entityType`/`entityId` come
    * out of the payload where the action put them, because `platform_audit` records an ACTION and its
    * payload rather than a before/after pair — the console changes state, it does not edit rows.
+   *
+   * Each row names the staff member who acted (`actorName`) through `platformAdminNames()` — the 0037
+   * SECURITY DEFINER lookup `admin.support.list` uses, because a console session cannot read a
+   * colleague's `users` row — and the distributorship by its legal name (`tenantName`), from the
+   * `tenants` row this query already joins (DOS-109).
    */
   async audit(input: AuditIn): Promise<AdminAuditList> {
     const db = requireDb(this.db)
@@ -283,6 +290,11 @@ export class PlatformConsoleService {
         .orderBy(desc(platformAudit.createdAt), desc(platformAudit.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
+      // One lookup for the page's few distinct staff, awaited on its own (see `listUsers`).
+      const names = await platformAdminNames(
+        tx,
+        page.map((r) => r.entry.adminUserId),
+      )
       const last = page.at(-1)
       const items = page
         .map((r) => {
@@ -302,6 +314,8 @@ export class PlatformConsoleService {
             occurredAt: r.entry.createdAt.toISOString(),
             tenantId: r.entry.tenantId,
             tenantSlug: r.tenant?.slug ?? null,
+            actorName: names.get(r.entry.adminUserId) ?? null,
+            tenantName: r.tenant?.legalName ?? null,
           }
         })
         .filter(

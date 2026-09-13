@@ -15,6 +15,7 @@ import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
 import { statusOf, toSupportGrant } from './support-grants.js'
 import {
   platformActorId,
+  platformAdminNames,
   requireActiveAdminLevel,
   withPlatform,
   writePlatformAudit,
@@ -119,9 +120,9 @@ export class PlatformSupportService {
         .orderBy(desc(supportGrants.requestedAt), desc(supportGrants.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
-      const names = await this.requesterNames(
+      const names = await platformAdminNames(
         tx,
-        page.map((r) => r.grant),
+        page.map((r) => r.grant.adminUserId),
       )
       const last = page.at(-1)
       return {
@@ -201,33 +202,13 @@ export class PlatformSupportService {
 
   private async decorate(tx: Db, row: GrantRow): Promise<AdminSupportGrant> {
     const [tenant] = await tx.select().from(tenants).where(eq(tenants.id, row.tenantId)).limit(1)
-    const names = await this.requesterNames(tx, [row])
+    const names = await platformAdminNames(tx, [row.adminUserId])
     return {
       ...toSupportGrant(row, names.get(row.adminUserId) ?? 'Distribution OS support'),
       tenantId: row.tenantId,
       tenantSlug: tenant?.slug ?? '',
       tenantName: tenant?.legalName ?? '',
     }
-  }
-
-  /**
-   * The names on the console's own cards. `users_visible` — "yourself, or somebody in your tenant" —
-   * hides every other administrator from a console session, which holds no membership anywhere; the
-   * SECURITY DEFINER function `dos_support_requester_names()` (migration 0037) answers a display name
-   * for PLATFORM ADMINISTRATORS ONLY, and the join to `platform_admins` lives inside it where no
-   * caller can drop it. Widening `users_visible` to get a name on a card would have opened the whole
-   * users table to a predicate about support.
-   */
-  private async requesterNames(
-    tx: Db,
-    rows: readonly GrantRow[],
-  ): Promise<ReadonlyMap<string, string>> {
-    const ids = [...new Set(rows.map((row) => row.adminUserId))]
-    if (ids.length === 0) return new Map()
-    const found = await tx.execute<{ user_id: string; display_name: string }>(
-      sql`select user_id, display_name from dos_support_requester_names(${sql.param(ids)}::text[])`,
-    )
-    return new Map(found.rows.map((row) => [row.user_id, row.display_name]))
   }
 }
 
