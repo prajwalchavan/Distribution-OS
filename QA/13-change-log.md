@@ -272,3 +272,15 @@ Each test failed before the fix and passed after, every amendment was satisfied,
 - **Tests:** four new coverage tests failed before the fix for the storm reasons (25 pages against 9, rows sent twice) and pass after. One pin was added for amendment (a).
 - **Existing tests:** six existing coverage tests now drain the whole pass instead of reading page 1. The plan and amendment (c) require this, and their assertions are unchanged.
 - **Merge review:** the Fable merge review is running.
+
+### Batch 2 — approvals (founder, 2026-09-13 18:10 IST: "Approved")
+
+Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decisions and the P2/P3 setup:
+- **DOS-167 (P0) is added to batch 2 and goes first.** Order: Fable design → Opus build and verify → Fable merge review → proof on Android and iOS as well as web.
+- **All 11 recommended defaults are approved:** DOS-006, 016, 066, 071, 054, 081, 087, 100, 102, 103, 138. Text: `QA/evidence/batch2/lean-founder-questions.md`; designs: `verdicts/lean-<group>.md`. They go into docs/22 §8 on branch `qa/b2-docs22`.
+- **The cheaper P2/P3 setup is approved:**
+  - Sonnet 5 builds, verifies and integrates each lean group.
+  - Fable reviews a group before merge only when it contains a P2.
+  - Phones are walked where a fix changes a phone screen.
+  - Estimate for all remaining work: about $900–1,400 at API list prices.
+- **P2/P3 building started** with the groups that do not touch DOS-167's files: lean-sales-entry, lean-kit-overlays and lean-manager-billing, two at a time.
