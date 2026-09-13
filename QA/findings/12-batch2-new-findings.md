@@ -152,3 +152,5 @@ Raised by the Fable merge reviews (run wf_a8e3a6c2-fdd, 2026-09-13), from code r
 | S-93 | h9-desk | P3 platform/authz.ts:38: requireRole's refusal names the internal 'system' role to a client when the guard passes and the service refuses. | NOT TESTED |
 | S-94 | h9-desk | P3 tech-debt backend/tools/smoke-endpoints.mts (about :2408, :2529): TS2322/TS2345 PermissionRole vs membership roles under tools/tsconfig.json; CI does not typecheck tools. | NOT TESTED |
 | S-95 | h9-desk | P3 docs/23-app-screens-and-api-gaps.md:891 still labels dispute/cancel BACK_OFFICE after DOS-037 (doc miss). | NOT TESTED |
+| S-96 | h8-billing | P3 credit-notes.service.ts:289-294: draft() returns an existing note by id whatever the new payload, so a create with a NEW idempotencyKey and a reused id answers 200 with the earlier note instead of 409 (a convention shared by other modules). | NOT TESTED |
+| S-97 | h12-kit | P3 frontend/libs/ui/README.md:214: the "71 of them" token-test count is stale. (S-70 web useEscape and S-71 native RupeeInput pad are still open after DOS-164.) | NOT TESTED |
