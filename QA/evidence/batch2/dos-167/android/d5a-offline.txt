@@ -1,0 +1,16 @@
+## D5a sachin (Sai) goes offline: per QA/ENV.md airplane mode does not cut adb reverse, so remove reverse tcp:3000 + tcp:3005 and force-stop + relaunch 01:17:36
+outbox before:  Updated just now  
+$ adb reverse --remove tcp:3000; adb reverse --remove tcp:3005
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5175 tcp:5175
+host-16 tcp:3003 tcp:3003
+host-16 tcp:5177 tcp:5177
+
+$ adb shell am force-stop in.distributionos.delivery; am start
+after relaunch 01:17:55: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 1:16 am | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+strip:  Offline since 1:16 am  
+shot d5a-sachin-offline-home.png

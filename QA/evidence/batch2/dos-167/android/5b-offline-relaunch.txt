@@ -1,0 +1,18 @@
+## step5b switch offline method: airplane off, remove reverse tcp:3003, force-stop + relaunch 00:39:50
+after Back: Tarsun Enterprise | salesperson | ⋯ | Updated 1 min ago | Kolsewadi · R-0043 | Anand Bhavan Provision | Owes ₹35,548 | Limit ₹50,000 | Overdue ₹32,705 
+$ adb shell cmd connectivity airplane-mode disable
+airplane: 0
+$ adb reverse --remove tcp:3003
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3005 tcp:3005
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5175 tcp:5175
+
+$ adb shell am force-stop in.distributionos.sales; am start
+after relaunch: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 12:39 am | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | ✓ Godrej Hill | Kolsewadi | Kolsewadi | Birla College Road | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, 394334 rupees, To visit | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | ₹3,94,334.00 | 394334 rupees | To visit | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | ₹8,042.00 | 8042 rupees | To visit | New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, 131361 rupees, To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | ₹1,31,361.00 | 131
+strip: Offline since 12:39 am 
+shot 5b-amit-relaunched-offline.png

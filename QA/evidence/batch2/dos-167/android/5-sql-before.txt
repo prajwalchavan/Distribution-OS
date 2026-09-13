@@ -1,0 +1,8 @@
+## step5 SQL baseline 00:33:17 (dos_qa, read-only)
+now: 2026-09-14 00:33:17.311302+05:30
+c2b2a996-fafc-7904-b44c-2eadf776fccf|SO-0863|delivered|salesperson|efde1e76-9785-7827-aff2-6f56ecd33588|efde1e76-9785-7827-aff2-6f56ecd33588|2026-09-11 09:42:00+05:30
+c260c227-b840-7f22-bb90-7af163f32fa7|SO-0764|delivered|salesperson|efde1e76-9785-7827-aff2-6f56ecd33588|efde1e76-9785-7827-aff2-6f56ecd33588|2026-09-01 09:45:00+05:30
+907ccbd0-3cd1-7ffc-a941-30df153d5e04|SO-0660|delivered|salesperson|efde1e76-9785-7827-aff2-6f56ecd33588|efde1e76-9785-7827-aff2-6f56ecd33588|2026-08-21 09:43:00+05:30
+c83e7035-9265-7a5b-aedf-e152dd7cf60e|SO-0368|partially_delivered|salesperson|efde1e76-9785-7827-aff2-6f56ecd33588|efde1e76-9785-7827-aff2-6f56ecd33588|2026-07-21 09:43:00+05:30
+2349bcce-eae7-72b3-885e-aedb731b605c|SO-0320|delivered|salesperson|efde1e76-9785-7827-aff2-6f56ecd33588|efde1e76-9785-7827-aff2-6f56ecd33588|2026-07-17 09:43:00+05:30
+amit orders total: 383

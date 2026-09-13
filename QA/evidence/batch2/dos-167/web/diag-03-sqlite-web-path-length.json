@@ -1,0 +1,206 @@
+{
+  "rows": [
+    {
+      "databasePath": "./p.db",
+      "length": 6,
+      "open": {
+        "ok": true,
+        "error": null
+      },
+      "exec": {
+        "ok": true,
+        "error": null
+      },
+      "close": {
+        "ok": true,
+        "error": null
+      },
+      "delete": {
+        "ok": true,
+        "error": null
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 58,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 59,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 60,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 61,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 62,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 63,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 64,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 65,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 66,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 67,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 68,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 69,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./xxxxxxxxxxxxxxxxxx…xxxxxxxxx.db",
+      "length": 70,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    },
+    {
+      "databasePath": "./dos-sales__u-8760e…c569b0099.db",
+      "length": 94,
+      "open": {
+        "ok": false,
+        "error": {
+          "name": "Error",
+          "message": "sqlite3_open_v2",
+          "code": null,
+          "str": "Error: sqlite3_open_v2"
+        }
+      }
+    }
+  ]
+}

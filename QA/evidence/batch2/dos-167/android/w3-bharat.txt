@@ -1,0 +1,28 @@
+## W3 bharat.jadhav (Sai Distributors) signs in on the same phone, no install, no clear 01:52:27
+SIGNED_IN w3-bharat: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+## W3 after sync 01:53:44
+home texts: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w3-bharat-home.png
+tap 'Pick' at 405 2237
+pick texts: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Pick | ✓ Every beat | ✓ Every beat | Kopar Road | Kopar Road | Ayre Road | Ayre Road | ORDERS WAITING | Select all | Select all | Clear | Clear | 0 selected · 0 pc | Thakurli Station Kirana, SO-0454 · Kopar Road · 243 pc, confirmed | Thakurli Station Kirana | SO-0454 · Kopar Road · 243 pc | confirmed | Rajhans General Store, SO-0453 · Ayre Road · 537 pc, confirmed | Rajhans General Store | SO-0453 · Ayre Road · 537 pc | confirmed | Swami Samarth Stores, SO-9003 · Tilak Nagar · 2 pc, confirmed | Swami Samarth Stores | SO-9003 · Tilak Nagar · 2 pc | confirmed | WAVES | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PICK-0051, 8824 of 8824 pc picked, picked | PICK-0051 | picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w3-bharat-pick.png
+-- picklist numbers bharat sees: PICK-0051 PICK-0052 
+--- shot times
+## w3-bharat sign-in tapped at 01:53:19 (1789330999.861015)
+1 +0.403s
+2 +0.917s
+3 +1.284s
+4 +1.642s
+5 +2.044s
+6 +2.474s
+--- A-marker grep (Tarsun-only PICK-0053..0078, 'Tarsun') over the 3 early full dumps + home + pick screen (expect nothing)
+count: 0
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (01:53:53)
+total 2836
+drwx------ 2 u0_a213 u0_a213    4096 2026-09-14 01:53 .
+drwxrwx--x 3 u0_a213 u0_a213    4096 2026-09-14 01:49 ..
+-rw------- 1 u0_a213 u0_a213    4096 2026-09-14 01:53 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a213 u0_a213   32768 2026-09-14 01:53 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a213 u0_a213 2834592 2026-09-14 01:53 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+--- widened A-marker grep (dos_qa read-only: Tarsun-only order numbers SO-0877/0873/0870, Tarsun-only shops Bhosale Traders/Vitthal Traders/Nutan Kirana Stores, Tarsun-only beats Station Road/Kalyan West Market/Khadakpada/Godrej Hill/Kolsewadi/Birla College Road, PICK-0053..0078, 'Tarsun'; SO-9003 excluded because Sai has it too) over the 3 early dumps + home + pick texts of W3 (expect 0)
+count: 0

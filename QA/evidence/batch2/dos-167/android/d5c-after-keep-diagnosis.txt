@@ -1,0 +1,72 @@
+## D5c diagnosis: after 'Sign out, keep here' the SALES app (rahul, left running by the sales proof) came to the front instead of the delivery sign-in form 01:23:42
+$ dumpsys activity activities | grep ResumedActivity
+    topResumedActivity=ActivityRecord{201382848 u0 in.distributionos.sales/.MainActivity t87}
+  ResumedActivity: ActivityRecord{201382848 u0 in.distributionos.sales/.MainActivity t87}
+$ pidof in.distributionos.delivery / in.distributionos.sales
+delivery pid: 
+sales pid: 9977
+$ logcat -b events: am_proc_died / am_kill / am_crash / am_anr / am_finish_activity / wm_finish_activity for delivery since 01:21:40
+09-14 01:22:09.574   676 13904 I am_crash: [676,0,in.distributionos.delivery,686341702,Native crash,Segmentation fault,unknown,0,0]
+09-14 01:22:09.615   676 13904 I wm_finish_activity: [0,146077952,89,in.distributionos.delivery/.MainActivity,force-crash]
+09-14 01:22:09.675   676  2223 I am_proc_died: [0,12906,in.distributionos.delivery,0,2]
+$ logcat main/crash: FATAL / AndroidRuntime / lowmemorykiller / ReactNativeJS errors since 01:21:40
+09-14 01:21:51.028 13760 13760 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:21:51.035 13760 13760 I AndroidRuntime: Using default boot image
+09-14 01:21:51.035 13760 13760 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:21:51.145 13760 13760 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:21:52.260 13760 13760 D AndroidRuntime: Shutting down VM
+09-14 01:21:55.346 13784 13784 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:21:55.352 13784 13784 I AndroidRuntime: Using default boot image
+09-14 01:21:55.352 13784 13784 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:21:55.474 13784 13784 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:21:56.573 13784 13784 D AndroidRuntime: Shutting down VM
+09-14 01:21:57.559 13800 13800 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:21:57.562 13800 13800 I AndroidRuntime: Using default boot image
+09-14 01:21:57.562 13800 13800 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:21:57.616 13800 13800 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:21:58.667 13800 13800 D AndroidRuntime: Shutting down VM
+09-14 01:22:00.746 13823 13823 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:22:00.751 13823 13823 I AndroidRuntime: Using default boot image
+09-14 01:22:00.751 13823 13823 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:22:00.887 13823 13823 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:22:01.963 13823 13823 D AndroidRuntime: Shutting down VM
+09-14 01:22:03.961 13839 13839 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:22:03.963 13839 13839 I AndroidRuntime: Using default boot image
+09-14 01:22:03.963 13839 13839 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:22:04.015 13839 13839 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:22:05.052 13839 13839 D AndroidRuntime: Shutting down VM
+09-14 01:22:06.212 13858 13858 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:22:06.216 13858 13858 I AndroidRuntime: Using default boot image
+09-14 01:22:06.216 13858 13858 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:22:06.298 13858 13858 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-14 01:22:07.350 13858 13858 D AndroidRuntime: Shutting down VM
+09-14 01:22:08.379 12906 13623 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x1000000bb in tid 13623 (DefaultDispatch), pid 12906 (tionos.delivery)
+09-14 01:22:09.459 13893 13893 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-14 01:22:09.467 13893 13893 I AndroidRuntime: Using default boot image
+09-14 01:22:09.467 13893 13893 I AndroidRuntime: Leaving lock profiling enabled
+09-14 01:22:09.557 13881 13881 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+09-14 01:22:09.557 13881 13881 F DEBUG   : Build fingerprint: 'google/sdk_gphone64_arm64/emu64a:16/BE2A.250530.026.F3/13894323:userdebug/dev-keys'
+09-14 01:22:09.557 13881 13881 F DEBUG   : Revision: '0'
+09-14 01:22:09.557 13881 13881 F DEBUG   : ABI: 'arm64'
+09-14 01:22:09.557 13881 13881 F DEBUG   : Timestamp: 2026-09-14 01:22:08.548620252+0530
+09-14 01:22:09.557 13881 13881 F DEBUG   : Process uptime: 271s
+09-14 01:22:09.557 13881 13881 F DEBUG   : Cmdline: in.distributionos.delivery
+09-14 01:22:09.557 13881 13881 F DEBUG   : pid: 12906, tid: 13623, name: DefaultDispatch  >>> in.distributionos.delivery <<<
+09-14 01:22:09.557 13881 13881 F DEBUG   : uid: 10214
+09-14 01:22:09.557 13881 13881 F DEBUG   : tagged_addr_ctrl: 0000000000000001 (PR_TAGGED_ADDR_ENABLE)
+09-14 01:22:09.557 13881 13881 F DEBUG   : pac_enabled_keys: 000000000000000f (PR_PAC_APIAKEY, PR_PAC_APIBKEY, PR_PAC_APDAKEY, PR_PAC_APDBKEY)
+09-14 01:22:09.557 13881 13881 F DEBUG   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x00000001000000bb
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x0  00000001000000bb  x1  000000005c000000  x2  b40000732fad7500  x3  00000071ede6c491
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x4  00000071d784b128  x5  7265746e696f5065  x6  7265746e696f5065  x7  000000715c79532f
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x8  0000006f21ac5b10  x9  7d861118c4ff8167  x10 00000000fffffffd  x11 0000000000000000
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x12 000000000000000e  x13 0000000003092bd0  x14 000000000000000c  x15 00000000ebad6a89
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x16 0000006f21bf28b8  x17 00000074a752228c  x18 00000071d4ccc000  x19 b40000731fafcaf8
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x20 b40000731faf7b48  x21 00000071d784f880  x22 00000071d784b410  x23 b4000073af930d00
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x24 0000000000000002  x25 0000000000000001  x26 0000000000000001  x27 0000007100404680
+09-14 01:22:09.557 13881 13881 F DEBUG   :     x28 00000071d784b2e0  x29 00000071d784b1d0
+09-14 01:22:09.557 13881 13881 F DEBUG   :     lr  0000006f21aa5ab0  sp  00000071d784b1d0  pc  00000074a7522298  pst 0000000060001000
+09-14 01:22:09.557 13881 13881 F DEBUG   : 93 total frames
+09-14 01:22:09.557 13881 13881 F DEBUG   : backtrace:
+09-14 01:22:09.558 13881 13881 F DEBUG   :       #00 pc 0000000000082298  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_mutex_lock+12) (BuildId: 2445fc73ede03b9536eef49355aff375)
+09-14 01:22:09.558 13881 13881 F DEBUG   :       #01 pc 0000000000071aac  /data/app/~~aNXwb8By7EYkNMRLWlEsYQ==/in.distributionos.delivery-nrmaM3JccKc3LCXdDe2lCA==/base.apk!libexpo-sqlite.so (offset 0x2520000) (exsqlite3_reset+44) (BuildId: 228abdacc41f61b5f0d51230dedba0f66920ba6c)
+09-14 01:22:09.558 13881 13881 F DEBUG   :       #02 pc 0000000000067f48  /data/app/~~aNXwb8By7EYkNMRLWlEsYQ==/in.distributionos.delivery-nrmaM3JccKc3LCXdDe2lCA==/base.apk!libexpo-sqlite.so (offset 0x2520000) (facebook::jni::detail::MethodWrapper<int (expo::NativeStatementBinding::*)(), &expo::NativeStatementBinding::sqlite3_reset(), expo::NativeStatementBinding, int>::dispatch(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<expo::NativeStatementBinding, facebook::jni::detail::BaseHybridClass>::JavaPart, facebook::jni::JObject, void>::_javaobject*>)+64) (BuildId: 228abdacc41f61b5f0d51230dedba0f66920ba6c)

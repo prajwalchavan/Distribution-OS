@@ -1,0 +1,45 @@
+{
+ "coi": true,
+ "rows": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "dir"
+  },
+  {
+   "path": "expo-sqlite/u8yodz0h9s",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  },
+  {
+   "path": "expo-sqlite/rmv6qk1f38p",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  },
+  {
+   "path": "expo-sqlite/o66uxkpl27j",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  },
+  {
+   "path": "expo-sqlite/f3h8qfnafqr",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  },
+  {
+   "path": "expo-sqlite/81e1bb60ovk",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  },
+  {
+   "path": "expo-sqlite/0zerm1wgm54g",
+   "kind": "file",
+   "size": 4096,
+   "header": ""
+  }
+ ]
+}

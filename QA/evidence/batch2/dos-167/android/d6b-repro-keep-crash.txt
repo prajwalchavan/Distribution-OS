@@ -1,0 +1,56 @@
+## D6b retry of the keep path: restore reverse, sachin signs in online, full pull, then offline, stop 6 -> 'I am at the shop', Sign out -> 'Sign out, keep here' 01:34:55
+3000
+3005
+SIGNED_IN d6b-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+tap 'No thanks' at 484 1809
+synced:  Updated just now 
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:36:10)
+total 7592
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:35 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:30 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 01:35 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:35 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4845152 2026-09-14 01:35 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+relaunched offline:  Offline since 1:35 am 
+row 6 at: 401 1448
+tap 'I am at the shop' at 540 2207
+tap 'No thanks' at 484 1809
+queued:  Offline since 1:35 am · 1 waiting to send  /  Stop 6 of 10 · TRIP-ACTIVE 
+shot d6b-sachin-stop6-queued.png
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 1 change has not reached the office | 1 change has not reached the office | They stay on this phone for Sachin Dalvi only and go the next time Sachin Dalvi signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot d6b-sachin-leave-sheet.png
+tap 'Sign out, keep here' at 540 1779
+keep tapped at 01:37:11 (1789330029.104)
++3.8s pid=DEAD top= shot=d6b-keep-1.png
++5.3s pid=DEAD top=in.distributionos.sales shot=d6b-keep-2.png
++6.5s pid=DEAD top=in.distributionos.sales shot=d6b-keep-3.png
++7.8s pid=DEAD top=in.distributionos.sales shot=d6b-keep-4.png
++9.1s pid=DEAD top=in.distributionos.sales shot=d6b-keep-5.png
++10.4s pid=DEAD top=in.distributionos.sales shot=d6b-keep-6.png
++11.6s pid=DEAD top=in.distributionos.sales shot=d6b-keep-7.png
++12.9s pid=DEAD top=in.distributionos.sales shot=d6b-keep-8.png
++14.1s pid=DEAD top=in.distributionos.sales shot=d6b-keep-9.png
++15.4s pid=DEAD top=in.distributionos.sales shot=d6b-keep-10.png
++16.7s pid=DEAD top=in.distributionos.sales shot=d6b-keep-11.png
++17.9s pid=DEAD top=in.distributionos.sales shot=d6b-keep-12.png
++19.2s pid=DEAD top=in.distributionos.sales shot=d6b-keep-13.png
++20.4s pid=DEAD top=in.distributionos.sales shot=d6b-keep-14.png
++21.7s pid=DEAD top=in.distributionos.sales shot=d6b-keep-15.png
++22.9s pid=DEAD top=in.distributionos.sales shot=d6b-keep-16.png
+screen at end: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 1:02 am | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit
+-- events since keep tap
+09-14 01:37:11.956   676 16976 I am_crash: [676,0,in.distributionos.delivery,686341702,Native crash,Segmentation fault,unknown,0,0]
+09-14 01:37:12.049   676   759 I am_proc_died: [0,16561,in.distributionos.delivery,0,2]
+-- fatal/backtrace top frames since keep tap
+09-14 01:37:11.046 16561 16642 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x1000000bb in tid 16642 (DefaultDispatch), pid 16561 (tionos.delivery)
+09-14 01:37:11.941 16964 16964 F DEBUG   :       #00 pc 0000000000082298  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_mutex_lock+12) (BuildId: 2445fc73ede03b9536eef49355aff375)
+09-14 01:37:11.941 16964 16964 F DEBUG   :       #01 pc 0000000000071aac  /data/app/~~aNXwb8By7EYkNMRLWlEsYQ==/in.distributionos.delivery-nrmaM3JccKc3LCXdDe2lCA==/base.apk!libexpo-sqlite.so (offset 0x2520000) (exsqlite3_reset+44) (BuildId: 228abdacc41f61b5f0d51230dedba0f66920ba6c)
+09-14 01:37:11.941 16964 16964 F DEBUG   :       #02 pc 0000000000067f48  /data/app/~~aNXwb8By7EYkNMRLWlEsYQ==/in.distributionos.delivery-nrmaM3JccKc3LCXdDe2lCA==/base.apk!libexpo-sqlite.so (offset 0x2520000) (facebook::jni::detail::MethodWrapper<int (expo::NativeStatementBinding::*)(), &expo::Nativ
+09-14 01:37:11.941 16964 16964 F DEBUG   :       #03 pc 00000000000677e8  /data/app/~~aNXwb8By7EYkNMRLWlEsYQ==/in.distributionos.delivery-nrmaM3JccKc3LCXdDe2lCA==/base.apk!libexpo-sqlite.so (offset 0x2520000) (facebook::jni::detail::FunctionWrapper<int (*)(facebook::jni::alias_ref<facebook::jni::det
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:37:34)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:37 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:36 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:37 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db

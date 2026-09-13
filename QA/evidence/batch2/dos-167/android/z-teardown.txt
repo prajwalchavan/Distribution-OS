@@ -1,0 +1,30 @@
+## teardown 01:55:18
+-- final device files
+delivery: dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal 
+warehouse: dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal 
+$ adb emu kill
+OK: killing emulator, bye bye
+OK
+emulator process after kill: none
+List of devices attached
+
+$ stop warehouse Metro
+5176 listeners: 0 / 5177 listeners: 0
+$ proxy8081 back to the sales Metro (as it was before this run)
+31366 node QA/tools/proxy8081.mjs 5175
+$ restart the sales Metro on :5175 (CI=1, --clear, as it was)
+sales Metro :5175 status: packager-status:running
+31389 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+31391 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+-- worker
+16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+System-wide memory free percentage: 62%

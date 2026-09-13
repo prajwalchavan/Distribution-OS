@@ -1,0 +1,20 @@
+## step5c retry2: scroll items above the footer, add one case, save on this phone 00:43:30
+visible Add a case at 855 904
+after add: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 12:39 am | Anand Bhavan Provision | Order | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Campa Cola 500 ml | Campa · 24 pc case | Add a case | Add a case | Campa Cola 750 ml | Campa · 24 pc case | Add a case | Add a case | Campa Lemon 1 L | Campa · 24 pc case | Add a case | Add a case | Campa Lemon 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Lemon 200 ml | Campa · 48 pc case | Add a c
+items:  / Items 1 · ₹684.00 before GST 
+shot 5c-amit-order-line-added.png
+Save on this phone at 773 2012
+save tapped at 00:43:45
+after save: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 12:39 am · 2 waiting to send | Offline since 12:39 am · 2 waiting to send | Anand Bhavan Provision | Order | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the order | Open the order | Back to the beat | Back to the beat | This order | Clear | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Campa Cola 500 ml | Campa · 24 pc case | Add a case | Add a case | Campa Cola 750 ml | Add a case | Items 1 · ₹684.00 before GST | Saved on this phone, busy | Saved on this phone | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+strip: Offline since 12:39 am · 2 waiting to send 
+Offline since 12:39 am · 2 waiting to send 
+shot 5c-amit-order-saved-on-phone.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:43:56)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:40 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:40 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 00:30 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:43 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 00:43 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- dos_qa (read-only) amit orders at Anand Bhavan created after 00:39: 0
+-- amit orders total: 383

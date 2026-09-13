@@ -1,0 +1,9 @@
+## step2 rahul sign out 00:25:10
+tap '⋯' at 947 247
+menu: More | Settings | My account | Change your password | Sign out | Close | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
+tap 'Sign out' at 540 2002
+sign-in form after ~3s: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you. | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:25:24)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-14 00:25 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-14 00:22 ..

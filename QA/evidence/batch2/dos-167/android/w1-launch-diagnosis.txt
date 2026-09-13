@@ -1,0 +1,61 @@
+## W1 launch diagnosis 01:49:18
+top:     topResumedActivity=ActivityRecord{201382848 u0 in.distributionos.sales/.MainActivity t87}
+warehouse pid:  / sales pid: 9977
+-- package
+package:in.distributionos.delivery
+package:in.distributionos.manager
+package:in.distributionos.admin
+package:in.distributionos.owner
+package:in.distributionos.sales
+package:in.distributionos.warehouse
+package:in.distributionos.retailer
+    versionName=0.1.0
+    lastUpdateTime=2026-09-14 01:40:53
+      firstInstallTime=2026-09-07 06:50:55
+in.distributionos.warehouse/.MainActivity
+-- events since 01:40:40 (warehouse)
+09-14 01:40:53.358   676   724 I am_proc_start: [0,17631,10213,in.distributionos.warehouse,broadcast,{in.distributionos.warehouse/expo.modules.taskManager.TaskBroadcastReceiver}]
+09-14 01:40:53.374   676  1857 I am_kill : [0,17631,in.distributionos.warehouse,-10000,stop in.distributionos.warehouse due to from pid 17632,38540]
+09-14 01:40:53.620   676  2199 I wm_create_activity: [0,124297792,94,in.distributionos.warehouse/.MainActivity,NULL,NULL,NULL,268435456]
+09-14 01:40:53.714   676   724 I am_proc_start: [0,17668,10213,in.distributionos.warehouse,next-top-activity,{in.distributionos.warehouse/in.distributionos.warehouse.MainActivity}]
+09-14 01:41:09.751   676 17840 I am_crash: [676,0,in.distributionos.warehouse,686341702,Native crash,Segmentation fault,unknown,0,0]
+09-14 01:41:09.769   676 17840 I wm_finish_activity: [0,124297792,94,in.distributionos.warehouse/.MainActivity,force-crash]
+09-14 01:41:09.847   676   706 I am_proc_died: [0,17668,in.distributionos.warehouse,0,2]
+-- main/crash lines from warehouse processes (E/F only) since 01:40:40
+pid 17631
+pid 17668
+09-14 01:40:55.302 17668 17668 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: Unhandled SoftException
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: com.facebook.react.bridge.ReactNoCrashSoftException: raiseSoftException(onWindowFocusChange(hasFocus = "true")): Tried to access onWindowFocusChange while context is not ready
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.raiseSoftException(ReactHostImpl.kt:919)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.raiseSoftException$default(ReactHostImpl.kt:910)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.runtime.ReactHostImpl.onWindowFocusChange(ReactHostImpl.kt:682)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.ReactDelegate.onWindowFocusChanged(ReactDelegate.kt:229)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.ReactActivityDelegate.onWindowFocusChanged(ReactActivityDelegate.java:235)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invokeSuspend(ReactActivityDelegateWrapper.kt:320)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invoke(Unknown Source:8)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$onWindowFocusChanged$1.invoke(Unknown Source:4)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper$launchLifecycleScopeWithLock$1.invokeSuspend(ReactActivityDelegateWrapper.kt:452)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:375)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:26)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:358)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:134)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:53)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt.launch(Unknown Source:1)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch$default(Builders.common.kt:44)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at kotlinx.coroutines.BuildersKt.launch$default(Unknown Source:1)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.launchLifecycleScopeWithLock(ReactActivityDelegateWrapper.kt:450)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.launchLifecycleScopeWithLock$default(ReactActivityDelegateWrapper.kt:446)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at expo.modules.ReactActivityDelegateWrapper.onWindowFocusChanged(ReactActivityDelegateWrapper.kt:318)
+09-14 01:40:55.571 17668 17668 E unknown:ReactHost: 	at com.facebook.react.ReactActivity.onWindowFocusChanged(ReactActivity.java:161)
+-- proxy
+28646 node /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/proxy8081.mjs 5176
+packager-status:running
+-- warehouse Metro log tail
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:5176
+
+Logs for your project will appear below.
+Android Bundled 10000ms node_modules/expo-router/entry.js (1869 modules)

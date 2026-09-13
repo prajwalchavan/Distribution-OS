@@ -1,0 +1,33 @@
+total 13888
+drwxr-xr-x@ 5 prajwalchavan  wheel      160 Sep 14 00:42 .
+drwxr-xr-x@ 6 prajwalchavan  wheel      192 Sep 14 00:42 ..
+-rw-r--r--@ 1 prajwalchavan  wheel  2605056 Sep 14 00:42 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw-r--r--@ 1 prajwalchavan  wheel    32768 Sep 14 00:42 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw-r--r--@ 1 prajwalchavan  wheel  4470232 Sep 14 00:42 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+schemaVersion|36957a3c3b8da665
+role|salesperson
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxOTowOTo1MS43NDJaIn0
+lastPulledAt|2026-09-13T19:09:56.742Z
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a09c1d-8ac3-7653-9115-12549fa139d1
+-- _outbox
+-- _sync_errors

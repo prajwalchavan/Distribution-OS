@@ -1,0 +1,39 @@
+## D5f ganesh signs out (nothing queued) 01:27:54
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+after Sign out (+1s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot d5f-ganesh-signed-out.png
+top:     topResumedActivity=ActivityRecord{232602619 u0 in.distributionos.delivery/.MainActivity t90}
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:28:04)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:28 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:25 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:22 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+## D5g sachin signs in again (online) 01:28:04
+SIGNED_IN d5g-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+poll 1 01:29:21:  No thanks ;
+tap 'No thanks' at 484 1809
+poll 2 01:29:27:  Updated just now ;
+texts: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | 2. Balaji Wholesale Stores, Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201, 107906 rupees, Delivered | 2. Balaji Wholesale Stores | ₹1,07,906.00 | 107906 rupees | Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201 | Delivered | 3. Nandivali Super Bazar, Shop 16, Nandivali, Dombivli East, Dombivli, 421201, 44645 rupees, Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+shot d5g-sachin-after-send.png
+--- early dumps (strip only)
+dump1 +2.45s: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Today's trip | Still filling this phone from the office. | Your trips | Your tri
+dump2 +4.659s: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate locat
+dump3 +7.231s: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate locat
+--- Tarsun (ganesh) marker grep over early dumps + final screen (expect nothing)
+count: 0
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:29:28)
+total 7108
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:28 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:25 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:29 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:29 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4268352 2026-09-14 01:29 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+-- dos_qa after sachin's sign-in
+arrived|2026-09-14 01:21:31.738+05:30|2026-09-14 01:28:57.128364+05:30
+01a09c53-2c9d-7053-97c3-204f035c8183|2026-09-14 01:28:57.081591+05:30|{"ok": true}
+-- device outbox after send
+seq|op_id|status|attempts|sent_at|acked_at
+1|01a09c53-2c9d-7053-97c3-204f035c8183|acked|7|2026-09-13T19:58:56.831Z|2026-09-13T19:58:56.932Z
+id|state|arrived_at
+b3cd5226-2b8f-7019-9b5f-6b5b3523d645|arrived|2026-09-14 01:21:31.738+05:30

@@ -1,0 +1,16 @@
+-- _sync_state
+key|value
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09c1d-8ac3-7653-9115-12549fa139d1
+lastUploadAt|2026-09-13T19:20:10.186Z
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxOToyMDoxMS42NjhaIn0
+lastPulledAt|2026-09-13T19:20:16.668Z
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09c30-9e4e-72f0-82b2-29b89b625e57|sales_orders|01a09c2c-7c5c-700e-947f-b08f77717683|PUT|{"retailer_id":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09c30-9e4e-72f0-82b2-29b89b625e57|acked|9|2026-09-13T19:13:47.087Z|2026-09-13T19:20:09.991Z|2026-09-13T19:20:10.186Z||
+2|01a09c30-9e8d-735a-a6ae-92651f1669a7|sales_order_lines|01a09c30-7471-779a-8677-1bef4ec861f3|PUT|{"order_id":"01a09c2c-7c5c-700e-947f-b08f77717683","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09c30-9e8d-735a-a6ae-92651f1669a7|acked|9|2026-09-13T19:13:47.151Z|2026-09-13T19:20:09.991Z|2026-09-13T19:20:10.186Z||
+-- _sync_errors

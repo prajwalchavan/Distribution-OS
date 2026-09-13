@@ -1,0 +1,45 @@
+## D1 note: the first driver run (fresh: install -r + pm clear + start at ~01:03:35) exited NO_SIGN_IN_FORM while the bundle was still building (Metro: 'Android Bundled 11151ms'); the form appeared ~20 s later (d1-diag-after-noform.png). No sign-in happened in between.
+## D1 before sign-in (after pm clear)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:04:50)
+total 16
+drwx------ 2 u0_a214 u0_a214 4096 2026-09-14 01:03 .
+drwxrwx--x 3 u0_a214 u0_a214 4096 2026-09-14 01:03 ..
+SIGNED_IN d1-ganesh: Allow Distribution OS - Delivery to access this device’s location? | Precise | Approximate | While using the app | Only this time | Don’t allow
+permission dialog (seen on 60 consecutive polls, 2 s apart, 01:05-01:10): Allow Distribution OS - Delivery to access this device’s location? | Precise | Approximate | While using the app | Only this time | Don’t allow
+## D1 after sync 01:10:03
+texts: Allow Distribution OS - Delivery to access this device’s location? | Precise | Approximate | While using the app | Only this time | Don’t allow
+strip: 
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:10:03)
+total 8956
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:05 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:03 ..
+-rw------- 1 u0_a214 u0_a214 4718592 2026-09-14 01:05 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:05 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a214 u0_a214 4387832 2026-09-14 01:05 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+shot d1-ganesh-home.png
+-- A markers visible on this screen:
+## D1b the Android location dialog covered the app after sign-in; tap 'While using the app' (01:10:29)
+tap 'While using the app' at 540 1475
+## D1c after sync 01:13:36
+texts: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+strip: 
+shot d1-ganesh-home.png
+-- A markers visible on this screen:
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:13:36)
+total 8956
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:05 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:03 ..
+-rw------- 1 u0_a214 u0_a214 4718592 2026-09-14 01:05 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:10 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a214 u0_a214 4387832 2026-09-14 01:10 dos-delivery__u-7b2db500-02d5-7aa7-a1dc-005a3e89ff63__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+## D1d a Google 'Location Accuracy' dialog followed; tap 'No thanks' (privacy-preserving) (01:13:49)
+tap 'No thanks' at 484 1809
+## D1e after sync 01:13:55
+texts: Tarsun Enterprise logo | Tarsun Enterprise | delivery | More | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | STILL TO COLLECT | ₹80,180.00 | 80180 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Vaibhav Kirana Mart, Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306, 7856 rupees, At the shop | Vaibhav Kirana Mart | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | ₹7,856.00 | 7856 rupees | At the shop | Stops in order | 3 of 10 stops done | 1. Prerna Super Market, Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301, 73245 rupees, Delivered | 1. Prerna Super Market | ₹73,245.00 | 73245 rupees | Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301 | Delivered | 2. Metro Kirana Bazar, Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301, 4547 rupees, Delivered | 2. Metro Kirana Bazar | ₹4,547.00 | 4547 rupees | Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301 | Delivered | 3. Anand Bhavan Provision, Shop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306, 2843 rupees, Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+strip:  Updated just now  
+shot d1-ganesh-home.png
+-- A markers visible on this screen:
+   1 Anand Bhavan Provision
+   2 Metro Kirana Bazar
+   2 Prerna Super Market
+   2 Vaibhav Kirana Mart

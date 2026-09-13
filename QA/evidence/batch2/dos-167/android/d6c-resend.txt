@@ -1,0 +1,23 @@
+## D6c restore reverse, relaunch the delivery app after crash #2, sachin signs in online; his kept stop-6 change must go 01:38:30
+3000
+3005
+-- dos_qa before: pending / sync_ops for op: 0
+relaunch shows: Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot d6c-relaunch-after-crash2.png
+SIGNED_IN d6c-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+tap 'No thanks' at 484 1809
+strip:  Updated just now  
+shot d6c-sachin-after-send.png
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:39:56)
+total 7108
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:39 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:38 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4268352 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+-- dos_qa after
+arrived|2026-09-14 01:36:55.453+05:30|2026-09-14 01:39:34.783929+05:30
+01a09c61-44e0-776e-bdd7-6630eee23e00|2026-09-14 01:39:34.752341+05:30|{"ok": true}
+-- device outbox
+seq|op_id|status|attempts|acked_at
+1|01a09c61-44e0-776e-bdd7-6630eee23e00|acked|5|2026-09-13T20:09:34.602Z

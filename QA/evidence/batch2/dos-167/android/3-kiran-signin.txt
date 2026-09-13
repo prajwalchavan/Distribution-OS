@@ -1,0 +1,23 @@
+## step3 kiran sign-in 00:25:52
+SIGNED_IN 3-kiran: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+--- shot times (s after tap)
+1 0.347
+2 0.73
+3 1.12
+4 1.481
+5 1.834
+6 2.285
+--- early texts
+dump1 +2.462s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | — | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | — | To visit | Mahalaxmi General Stores | Dombivli East · your last order 27 Aug | — | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | — | To visit | Jai Bhavani Stores | Dombivli East · your last order 9 Sep | — | To visit | Shivs
+dump2 +4.584s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+dump3 +6.709s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+--- marker grep over early texts (expect nothing)
+0
+strip: Updated just now 
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:27:11)
+total 6968
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:26 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:22 ..
+-rw------- 1 u0_a217 u0_a217 2609152 2026-09-14 00:26 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:26 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a217 u0_a217 4461992 2026-09-14 00:26 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal

@@ -1,0 +1,18 @@
+## W1b warehouse: the first cold start after install -r + pm clear died with a native SIGSEGV in the JS thread (w1-crash-logcat.txt) before any sign-in; relaunched at 01:49:47, sign-in form up. Sign in dinesh.patil (Tarsun) 01:50:27
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (01:50:27)
+total 16
+drwx------ 2 u0_a213 u0_a213 4096 2026-09-14 01:49 .
+drwxrwx--x 3 u0_a213 u0_a213 4096 2026-09-14 01:49 ..
+SIGNED_IN w1b-dinesh: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0078, 5926 of 7834 pc picked, picking | PICK-0078 | 5926 of 7834 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+## W1b after sync 01:51:36
+top: in.distributionos.warehouse
+home texts: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0078, 5926 of 7834 pc picked, picking | PICK-0078 | 5926 of 7834 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w1b-dinesh-home.png
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (01:51:36)
+total 4032
+drwx------ 2 u0_a213 u0_a213    4096 2026-09-14 01:51 .
+drwxrwx--x 3 u0_a213 u0_a213    4096 2026-09-14 01:49 ..
+-rw------- 1 u0_a213 u0_a213    4096 2026-09-14 01:51 dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a213 u0_a213   32768 2026-09-14 01:51 dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a213 u0_a213 4062352 2026-09-14 01:51 dos-warehouse__u-5b6fbe87-cb70-7195-8de1-a4f5046c3675__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- picklist numbers on the home: PICK-0078 

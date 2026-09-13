@@ -1,0 +1,141 @@
+{
+  "steps": [
+    {
+      "step": "idle on sign-in",
+      "t": 8852,
+      "coi": true,
+      "walk": [
+        [
+          "expo-sqlite/thdzsirs0n",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/tcps3cf6va",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/pm6bqk11j79",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/mkfekjx0uqc",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/eahhruc6ngg",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/3iuzzpzmquv",
+          4096,
+          ""
+        ]
+      ]
+    },
+    {
+      "step": "rahul synced",
+      "t": 12556,
+      "persisted": false,
+      "strip": "Updated just now",
+      "walk": [
+        [
+          "expo-sqlite/thdzsirs0n",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/tcps3cf6va",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/pm6bqk11j79",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/mkfekjx0uqc",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/eahhruc6ngg",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/3iuzzpzmquv",
+          4096,
+          ""
+        ]
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "t": 704,
+      "type": "log",
+      "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+    },
+    {
+      "t": 940,
+      "type": "log",
+      "text": "[to-worker] {\"type\":\"open\",\"id\":0,\"data\":{\"nativeDatabaseId\":0,\"databasePath\":\"./dos-sales.db\",\"options\":{}},\"isSync\":false}"
+    },
+    {
+      "t": 1002,
+      "type": "log",
+      "text": "[from-worker ERROR] {\"id\":0,\"error\":null}"
+    },
+    {
+      "t": 1009,
+      "type": "log",
+      "text": "[from-worker ERROR] {\"id\":1,\"error\":null}"
+    },
+    {
+      "t": 1010,
+      "type": "log",
+      "text": "[to-worker] {\"type\":\"close\",\"id\":2,\"data\":{\"nativeDatabaseId\":0},\"isSync\":false}"
+    },
+    {
+      "t": 1010,
+      "type": "log",
+      "text": "[from-worker ERROR] {\"id\":2,\"error\":null}"
+    },
+    {
+      "t": 1010,
+      "type": "log",
+      "text": "[to-worker] {\"type\":\"deleteDatabase\",\"id\":3,\"data\":{\"databasePath\":\"./dos-sales.db\"},\"isSync\":false}"
+    },
+    {
+      "t": 1010,
+      "type": "log",
+      "text": "[from-worker ERROR] {\"id\":3,\"error\":null}"
+    },
+    {
+      "t": 9046,
+      "type": "log",
+      "text": "[to-worker] {\"type\":\"open\",\"id\":4,\"data\":{\"nativeDatabaseId\":1,\"databasePath\":\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\",\"options\":{}},\"isSync\":false}"
+    },
+    {
+      "t": 9049,
+      "type": "log",
+      "text": "[from-worker ERROR] {\"id\":4,\"error\":{}}"
+    },
+    {
+      "t": 9051,
+      "type": "requestfailed",
+      "text": "http://127.0.0.1:3003/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789411291&signature=b625c1a302b085f99f1eb22307da2c1418a193e23e7cbfa3c224bf5a38744ea9 net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    },
+    {
+      "t": 9051,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    }
+  ]
+}

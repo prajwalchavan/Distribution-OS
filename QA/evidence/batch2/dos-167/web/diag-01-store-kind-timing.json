@@ -1,0 +1,158 @@
+{
+  "steps": [
+    {
+      "step": "sign-in form idle 12 s",
+      "t": 12886,
+      "walk": [
+        [
+          "expo-sqlite/zy2r3yp1xym",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/rrg7a2yqiar",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/pj53ru79z3",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/an0nkqj0adr",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/6f6jq6guzt9",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/2d1r2khgjq4",
+          4096,
+          ""
+        ]
+      ]
+    },
+    {
+      "step": "rahul signed in after idle, synced",
+      "t": 16088,
+      "persisted": false,
+      "strip": "Updated just now",
+      "walk": [
+        [
+          "expo-sqlite/zy2r3yp1xym",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/rrg7a2yqiar",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/pj53ru79z3",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/an0nkqj0adr",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/6f6jq6guzt9",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/2d1r2khgjq4",
+          4096,
+          ""
+        ]
+      ]
+    },
+    {
+      "step": "reload while signed in (cold start)",
+      "t": 80414,
+      "persisted": false,
+      "strip": "Not updated yet",
+      "walk": [
+        [
+          "expo-sqlite/zy2r3yp1xym",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/rrg7a2yqiar",
+          20480,
+          "0.qyy9c6be83s"
+        ],
+        [
+          "expo-sqlite/pj53ru79z3",
+          8192,
+          "0.595l3rxzq3g"
+        ],
+        [
+          "expo-sqlite/an0nkqj0adr",
+          8192,
+          "0.oi6jurr201h"
+        ],
+        [
+          "expo-sqlite/6f6jq6guzt9",
+          8192,
+          "0.z9c7486ul7"
+        ],
+        [
+          "expo-sqlite/2d1r2khgjq4",
+          8192,
+          "0.v8dif36wc6"
+        ]
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "t": 701,
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "t": 728,
+      "type": "log",
+      "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+    },
+    {
+      "t": 976,
+      "type": "worker-started",
+      "text": "blob:http://localhost:5175/c23b2dbe-f00d-476d-84d1-a376dd95f8ef"
+    },
+    {
+      "t": 13095,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    },
+    {
+      "t": 16771,
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "t": 16780,
+      "type": "log",
+      "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+    },
+    {
+      "t": 16846,
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    },
+    {
+      "t": 16945,
+      "type": "worker-started",
+      "text": "blob:http://localhost:5175/46a4a564-332e-4c62-96bd-e1fa15251f32"
+    }
+  ]
+}

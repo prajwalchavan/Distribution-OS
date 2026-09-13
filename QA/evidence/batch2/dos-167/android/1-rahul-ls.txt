@@ -1,0 +1,16 @@
+## step1 after rahul sync 00:24:22
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:23 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:22 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 00:23 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:23 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 00:23 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+$ adb shell run-as in.distributionos.sales ls -la files databases
+ls: databases: No such file or directory
+total 9788
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:22 .
+drwx------ 8 u0_a217 u0_a217    4096 2026-09-14 00:22 ..
+-rw------- 1 u0_a217 u0_a217 9983401 2026-09-14 00:22 BridgelessReactNativeDevBundle.js
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:23 SQLite
+-rw------- 1 u0_a217 u0_a217      24 2026-09-14 00:22 profileInstalled

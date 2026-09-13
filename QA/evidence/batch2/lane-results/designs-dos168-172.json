@@ -1,0 +1,354 @@
+{
+ "designs": [
+  {
+   "key": "money",
+   "ids": [
+    "DOS-168",
+    "DOS-169",
+    "DOS-170"
+   ],
+   "file": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/verdicts/DOS-168-169-170-design.md",
+   "summaryForFounder": "Three money faults are confirmed: two people banking the same receipt at the same moment both succeed; a payment a driver takes at a door with no signal is left out when the trip's cash is counted at day-end; and undoing a doorstep cash payment after day-end takes it out of the van's money a second time instead of the office's. The fix locks each receipt while it is banked, undone or counted, so only one of those can win. Day-end counts every payment of the trip however it arrived, an undo takes the money from wherever it really is, and the driver's phone cannot check the vehicle in until its payments have reached the office. Two decisions are yours: whether a payment that reaches the office after its trip was settled is refused, with the driver told to hand the cash to the cashier (recommended), and whether wrong figures in your own records are corrected by one extra balancing entry each, trip by trip with your say (recommended). This revision was written by Opus standing in for Fable.",
+   "founderQuestions": [
+    {
+     "question": "A driver's phone was dead all evening; the trip was settled at Day-end on the cash counted; next morning the phone sends a Rs 672 cash receipt for that trip. What should happen?",
+     "options": [
+      "A - Refuse it: the phone and its End of day screen tell the driver to hand Rs 672 to the cashier, and the office records it when the cash changes hands",
+      "B - Accept it as van cash: the books say the crew still holds Rs 672 on a closed trip, and no screen hands it over",
+      "C - Accept it as office cash at once: the books say the office has the money before anyone handed it over"
+     ],
+     "recommended": "A",
+     "why": "Nothing is ever posted against a closed trip, and the shop's bill is paid when the money really reaches the office. The new check-in gate makes this case rare, because at the godown the phone has signal and sends everything before the vehicle can be checked in."
+    },
+    {
+     "question": "If the read-only checks find figures already wrong in your own dos database (a receipt banked twice, trip cash booked as over or short, an undo taken from van cash after settlement), may each be corrected with one extra balancing entry, listed for your sign-off trip by trip?",
+     "options": [
+      "A - Yes: one appended correcting entry per case, never an edit, with your say per trip on whether the crew handed that cash over or still holds it",
+      "B - No: rebuild dos from the seed, which loses the receipts recorded there"
+     ],
+     "recommended": "A",
+     "why": "The books stay append-only and every correction is visible. Only you know, per trip, whether the missing cash was handed over or is still with the crew. dos_qa needs neither option: it is rebuilt from the seed."
+    }
+   ],
+   "migration": false,
+   "contractChange": false,
+   "permissionChange": false,
+   "files": [
+    "backend/libs/core/src/modules/receivables/receivables.service.ts",
+    "backend/libs/core/src/modules/receivables/receivables.sync.ts",
+    "backend/libs/core/src/modules/receivables/money-locks.spec.ts (new)",
+    "backend/libs/core/src/modules/delivery/settlement.service.ts",
+    "backend/libs/core/src/modules/delivery/delivery.sync.ts",
+    "backend/libs/core/src/modules/delivery/settlement-money.spec.ts (new)",
+    "backend/libs/contracts/src/delivery.ts (JSDoc :818-822 only)",
+    "frontend/delivery-app/app/day.tsx",
+    "frontend/delivery-app/src/strings.ts (d8 block)",
+    "frontend/delivery-app/src/lib/check-in.ts (new)",
+    "frontend/delivery-app/src/lib/check-in.test.ts (new)",
+    "hand-off only: docs/22 \u00a74 D8 node (one edit with DOS-172 D5/T1), \u00a76, \u00a78, \u00a711",
+    "hand-off only: docs/27 \u00a714 row (after DOS-167 ruling 2 merges)",
+    "hand-off only: docs/23 \u00a710 #6 reworded (before group 14)",
+    "hand-off only: group 14 comments collect.tsx:13-21 and queue.ts:225-235; group 10 two Day-end sentences"
+   ],
+   "tests": [
+    "T1 money-locks.spec.ts: DOS-168 two desks banking the same receipt at the same moment: one 200, one 409, one deposit entry, one event (cash and cheque)",
+    "T2 money-locks.spec.ts: DOS-168 overlapping batches lock in one order: no deadlock, the loser is refused whole",
+    "T3 money-locks.spec.ts: DOS-168/170 a reversal racing a deposit on the same receipt: whichever commits second sees the other",
+    "T4 money-locks.spec.ts: DOS-169 a receipt for a settled trip is refused trip_settled at every door (POST /receipts 409, sync receipts op, sync collections op with identical message) and posts nothing; a planned trip keeps trip_not_open",
+    "T5 settlement-money.spec.ts: DOS-169 settlement counts a doorstep receipt uploaded offline exactly like an online collection (cash, UPI, cheque)",
+    "T5' settlement-money.spec.ts: DOS-169 fully offline doorstep in one batch settles with a CASH_VAN line (trip loaded out through a confirmed sheet)",
+    "T6 settlement-money.spec.ts: DOS-169 a crew that keeps offline cash is short at settlement",
+    "T7 settlement-money.spec.ts: DOS-169 a trip cash receipt reversed before settlement is neither counted nor credited twice",
+    "T8 settlement-money.spec.ts: DOS-169 the cockpit of a settled trip keeps its settled figures after a later reversal",
+    "T9 settlement-money.spec.ts: DOS-170 reversing a trip cash receipt after settlement credits CASH not CASH_VAN (settled, settled_with_variance, active control, deposited control)",
+    "T10 money-locks.spec.ts: DOS-170 a reversal racing the settlement on the same trip: the loser sees the winner",
+    "T11 settlement-money.spec.ts: DOS-169 a late receipt cannot slip between the count and the close",
+    "check-in.test.ts: DOS-169 check-in waits for the outbox, after the trip and signal checks and before the odometer",
+    "check-in.test.ts: DOS-169 D8 adds only what has not reached the office, and nothing on a settled trip",
+    "check-in.test.ts: source guard that day.tsx uses checkInBlock and dayEndCash"
+   ],
+   "sizeDays": 1.6,
+   "conflicts": [
+    "DOS-167: merged 199952b; ruling 2 (b2-dos167r2) prepared, not launched. Shares only the delivery strings.ts append (leave.* vs d8). Money's docs/27 \u00a714 row lands after ruling 2 merges; group 5 also edits docs/27.",
+    "DOS-171 (b2-dos171): delivery strings.ts, d6 block vs d8 block. vansales.service.ts is untouched: its recordReceipt now takes the advisory lock after lockTrip, the same order as settle.",
+    "DOS-172 (b2-dos172): contracts/delivery.ts hunks are disjoint (money :818-822 JSDoc; DOS-172 :726-744 and :778); DOS-172 regenerates READMEs, money changes none. trips.return: money gates check-in on the phone and DOS-172 releases returned bills there, which is compatible. docs/22 \u00a74 D5/D8/T1 go in ONE edit by the main session. Money's specs are Rule-C-proof (loaded out through a confirmed sheet, or no-stop van-sales trips), so DOS-172 merging last stays green without changing money's assertions.",
+    "lean-owner-money-approvals (17) owns receivables.service.ts and receivables.spec.ts: different regions; it rebases after money.",
+    "lean-delivery-collect (14) owns contracts/delivery.ts, delivery.spec.ts, collect.tsx, queue.ts and delivery strings.ts. It rebases after money, DOS-171 and DOS-172, and gets the reworded docs/23 \u00a710 #6 (receipts stays the only doorstep upload door; collections is pull-only if published), two comment rewrites, and the {tripId} settle route.",
+    "lean-delivery-door (2) owns delivery strings.ts and delivery.spec.ts: one string append; it goes first in wave 3.",
+    "lean-manager-money (10) owns day-end.tsx and manager strings: gets the cash-over hint and the check-the-phone-before-settling sentence, copy only.",
+    "lean-manager-order-lifecycle (18) owns trips.service.ts and delivery.spec.ts: untouched. lean-libs-offline-boot (5) owns delivery trips.tsx and docs/27, not day.tsx."
+   ],
+   "order": "After founder approval, b2-money starts from main together with b2-dos171. Its backend and pure-module work runs while the DOS-167 ruling-2 proofs hold the emulator. Merge order: money first (P0), then DOS-171, then DOS-172 (last: it changes depart for every spec and runs the whole core suite). Platform proofs run one at a time after ruling 2's re-proof, money first (web, Android, iOS). Doc hand-offs: docs/23 \u00a710 #6 is reworded before group 14 starts. docs/22 \u00a74 D5/D8/T1 are written in one edit after money and DOS-172 merge. docs/27 \u00a714 is written after ruling 2 merges. Lean wave 3 (2, then 5, then the rest) waits for all three merges; groups 10, 14 and 17 rebase on money.",
+   "dataRepair": "dos_qa needs nothing: it is rebuilt from the seed at the A.12 rebuild, and the probes ran on disposable copies. The founder's own dos (the pilot data) may hold wrong rows, so run read-only checks first, after pnpm db:migrate. Anything found is corrected only by appended balanced entries, never edits, and only after founder question 2 is answered:\n- DOS-168: find receipts with more than one ChequeDeposited event. For each extra deposit batch, append Dr CASH or CHEQUES / Cr BANK.\n- DOS-169: for each settled trip, compare the CASH_VAN debits of its receipts with the settlement's CASH_VAN credit. The founder decides per trip whether the remainder was handed over (Dr CASH_SHORT / Cr CASH_VAN) or is still held by the crew (collect it, then Dr CASH / Cr CASH_VAN).\n- DOS-170: for each reversal that credited CASH_VAN after its trip settled, append Dr CASH_VAN / Cr CASH.\nThe main session writes this as one transaction in QA/tools/batch2/money-repair.sql; nothing is run by this design."
+  },
+  {
+   "key": "vansale",
+   "ids": [
+    "DOS-171"
+   ],
+   "file": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/verdicts/DOS-171-design.md",
+   "summaryForFounder": "At the van door the crew's phone shows the price before GST as the sale total, so on a Rs 248 bill they ask the shop for Rs 221.40 and the shop is left owing Rs 26.60, even though the books themselves are right. The fix makes the van-sale screen show the full bill amount with GST and a breakdown under it, keeps the bill number and amount on screen after billing, and makes the money screen count a van-sale bill in what is owed at that shop. One question for you: the extra tax on fizzy drinks is not in the price check yet, so should we build this now and let that separate fix close the last gap, or wait until both are ready?",
+   "founderQuestions": [
+    {
+     "question": "The extra tax on fizzy drinks (28% GST plus 12% cess) is not in the price check yet; that is a separate, lower-priority fix (DOS-079). Should the van-door fix be built now, or held until both are ready together?",
+     "options": [
+      "A: Build now. Every item that carries only GST (the whole catalogue except aerated drinks) is exact at the door at once. On a fizzy drink the screen is short by the cess until the other fix, but the bill's own amount is shown right after billing, so the crew still asks for the right money.",
+      "B: Hold until the cess fix lands too. Every van sale keeps showing the price without GST, and the crew keeps asking for too little, for weeks."
+     ],
+     "recommended": "A",
+     "why": "Holding keeps every van sale short by the full GST (5-28%) at the moment money changes hands, to avoid a much smaller cess-only error on one product family. After billing the screen shows the bill itself, which already includes cess. We also recommend moving the cess fix ahead of the rest of its group."
+    }
+   ],
+   "migration": false,
+   "contractChange": false,
+   "permissionChange": false,
+   "files": [
+    "backend/libs/core/src/modules/delivery/vansales.service.ts",
+    "backend/libs/core/src/modules/delivery/vansales.spec.ts (new)",
+    "frontend/delivery-app/app/stop/[id]/van-sale.tsx",
+    "frontend/delivery-app/src/lib/van-sale.ts (new)",
+    "frontend/delivery-app/src/lib/van-sale.test.ts (new)",
+    "frontend/delivery-app/src/strings.ts (d6 block only)"
+   ],
+   "tests": [
+    "van-sale.test.ts: DOS-171 the figure under the van-sale button is the quote's payable total, GST and rounding included (S-28 totals give 24800, not 22140; red because the module is missing)",
+    "van-sale.test.ts: DOS-171 a line shows its GST-inclusive amount (lineFigure gives 24797; red because the module is missing)",
+    "van-sale.test.ts: DOS-171 D6 reads money only through saleFigures and lineFigure and stays on the bill after issue (source guard: no netPaise/lineNetPaise, d6-billed-total present, one router.replace after d6-back; red because :193 reads totals.netPaise and router.replace sits in onSuccess)",
+    "vansales.spec.ts: DOS-171 the delivery role's quote for a van sale is the bill's payable total (passes today; kept as the guard)",
+    "vansales.spec.ts: DOS-171 a van sale adds its bill to what is owed at that door (stop planned with plannedCollectionPaise 50000 and no bill: +inv1, +inv2 on the finished stop, a new stop = inv3; red today: 50000, 50000, 0)",
+    "vansales.spec.ts: DOS-171 the device's next pull carries the new figure (the second pull after a sale on a finished stop carries the stop again; red today: stale figure, then no row)",
+    "vansales.spec.ts: DOS-171 a replayed van sale adds once (idempotency guard)",
+    "Handed to DOS-079: a van sale of a cess item bills the quote's total (red until DOS-079)"
+   ],
+   "sizeDays": 0.75,
+   "conflicts": [
+    "Opus 5 stand-in for Fable (Fable limit reached 2026-09-14, resets Saturday 11:30 IST); Fable's decisions kept, critic raised no gap here",
+    "DOS-172 Rule C: resolved by amendment (l). vansales.spec.ts never departs a trip carrying a packed bill (S-28 fixture: stops with invoiceIds [], planned starting figure via the stop's own plannedCollectionPaise, van stock on a confirmed sheet), so it passes on main and under Rule C with either founder answer. DOS-172 merges last, runs the whole core suite and may swap in its shared load-out helper without changing any assertion",
+    "DOS-172: no shared file. stopFor inserts its own stop, not through insertStop, so bill_on_road never applies; a van-sale delivery row is outcome 'delivered', so the new plannedOnOpenTrips predicate never counts it",
+    "Money (DOS-168/169/170): only delivery strings.ts is shared. planned_collection_paise is not a settlement input, and the trip-then-stop lock order is unchanged (amendment o); money's own spec files align with DOS-172's fixtures",
+    "Lane status: DOS-167 merged (199952b); ruling 2 (b2-dos167r2) is prepared, not launched, and covers @dos/offline engine/react/store, api-client errors.ts, the leave flow, _layout.tsx, strings.ts leave.* and docs/27. DOS-171 edits none of these except the separate d6 block; it calls the unchanged useSyncEngine().sync()",
+    "Delivery strings.ts is edited by four lanes (money d8.pendingBlocks and the d8.uncounted reword, DOS-171 d6, ruling 2 leave.*, later groups 2 and 14); the blocks are separate and each later merge re-runs pnpm format",
+    "lean-delivery-door (2): only the d6 block of strings.ts is shared; it rebases after all three merges; its DOS-064 QtyStepper hunk on van-sale.tsx is in a different place",
+    "lean-delivery-collect (14): only strings.ts is shared; it inherits a correct D5; its docs/23 \u00a710 #6 rewording is money's hand-off",
+    "lean-sales-orders-pricing (16): rebases on DOS-171 for the DOS-079 hand-offs (cess test in vansales.spec.ts, splitGst alignment); recommend pulling the DOS-079 cess work ahead of the group",
+    "lean-libs-offline-boot (5), lean-manager-order-lifecycle (18), lean-owner-desk (7): none of their files are touched; the trip/stop lock-order S-item is for group 18's designer",
+    "S-items for the main session: D5 shows the bill total to a cash-discount shop; D6 bill-and-collect as a Phase-2 line; startStopInTx/arrive/fail lock stop then trip, the reverse of every other path (a possible 40P01 deadlock)"
+   ],
+   "order": "After founder approval: b2-dos171 starts from main 10c2464 together with b2-money; backend and pure-module work runs while the ruling-2 proofs hold the emulator. Build order: (1) van-sale.ts plus its test and the source guard; (2) vansales.spec.ts red, then the vansales.service.ts increment; (3) van-sale.tsx and the d6 strings; (4) the backend core delivery specs, lint, typecheck and format, and the frontend lint, typecheck, test and build; (5) the platform proof in its serial slot (after ruling 2's re-proof and money's proof; before DOS-172's): web, then Android, then iOS. Merge order: money first, then DOS-171 (rebased on money; strings.ts only, re-run pnpm format), then DOS-172 last. Ruling 2 merges whenever its proofs pass. Lean wave 3 (group 2 first) waits for all three merges. The main session then writes the docs/22 \u00a78 row and \u00a711 line (no \u00a74 node change for DOS-171) in its single docs pass.",
+   "dataRepair": "No correcting entry is needed. No ledger, journal, bill, order, outstanding row or receipt is wrong in dos_qa or in the founder's dos (the pilot); S-28 read them back at the true GST-inclusive total. Only the display column trip_stops.planned_collection_paise is wrong, on stops where a van sale was made. In dos_qa those rows are on throwaway QA tenants, and the seed's van sale is on a settled past-day trip; settled trips are left alone. Read-only check per database: count van_sale deliveries on trips in planned/loading/active/closing. If the count is 0, touch nothing. Otherwise the main session writes one UPDATE in one transaction, adding to each such open stop the totals of the van-sale bills issued there before the fix. It must run before the fixed service first serves that database, so nothing is counted twice, and it records before and after figures in QA/evidence/batch2/dos-171/. On dos it runs only with the founder's go-ahead. Nothing was run by this design."
+  },
+  {
+   "key": "loadsheet",
+   "ids": [
+    "DOS-172",
+    "S-03",
+    "S-82"
+   ],
+   "file": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/verdicts/DOS-172-design.md",
+   "summaryForFounder": "When a shop is closed or refuses the goods, the bill rides back on the van, and today the godown can never load it again properly: it drops off the loading list for good and the next van quietly carries it off with no count, no challan and no e-way bill check. Fix: the bill waits on its van until the vehicle is checked in, then comes back on the planning board and the loading list and goes out on a fresh load sheet for its next trip, with the manager's approval, the count, a new challan and the e-way bill check on the whole load. One question for you: may a van still leave with a bill nobody counted out at the godown (recommended: no, the van waits for its load sheet).",
+   "founderQuestions": [
+    {
+     "question": "May a trip leave the godown with a bill that nobody counted out on a load sheet? Today it can: the bill is marked dispatched quietly at departure and no challan or e-way bill covers it, and every bill that comes back undelivered takes this road on its second trip.",
+     "options": [
+      "A: No. The trip is refused until the godown builds and confirms the load sheet; the driver's screen names the uncounted bills.",
+      "B: Yes. Keep the quiet departure but write on the trip that it left without a load sheet so the desk can see it."
+     ],
+     "recommended": "A",
+     "why": "Under A nothing leaves without the manager's approval, the blind count, a challan and the e-way bill check, which is the 2026-09-05 decision and DOS-043. A load worth Rs 1 lakh or more can no longer go out without its e-way bill number. B is half a day cheaper and never holds a crew back, but the count, the challan and the e-way bill stay optional on every bill that comes back."
+    }
+   ],
+   "migration": false,
+   "contractChange": true,
+   "permissionChange": false,
+   "files": [
+    "backend/libs/core/src/modules/delivery/delivery.internals.ts",
+    "backend/libs/core/src/modules/delivery/delivery.module.ts",
+    "backend/libs/core/src/modules/delivery/trips.service.ts",
+    "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "backend/libs/core/src/modules/delivery/load-out.spec.ts (new)",
+    "backend/libs/core/src/modules/warehouse/load-sheets.service.ts",
+    "backend/libs/core/src/modules/warehouse/packing.service.ts",
+    "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+    "backend/libs/core/src/testing/load-out.ts (new)",
+    "backend/libs/core/src/service/definitions.test.ts (new)",
+    "backend/libs/core/src/docs/examples.ts",
+    "backend/tools/smoke-endpoints.mts",
+    "backend/libs/contracts/src/delivery.ts",
+    "backend/libs/contracts/src/warehouse.ts",
+    "backend/libs/core/src/modules/delivery/settlement-money.spec.ts (merged tree, departs only)",
+    "backend/libs/core/src/modules/receivables/money-locks.spec.ts (merged tree, departs only)",
+    "backend/libs/core/src/modules/delivery/vansales.spec.ts (merged tree, departs only)",
+    "backend/*-service/README.md and frontend/*-app/README.md (generated)",
+    "frontend/warehouse-app/app/load/trips.tsx",
+    "frontend/warehouse-app/src/strings.ts",
+    "frontend/manager-app/app/fulfilment/trips.tsx",
+    "frontend/manager-app/src/strings.ts"
+   ],
+   "tests": [
+    "load-out.spec.ts: DOS-172 a bill that came back undelivered goes out again on a new sheet for its next trip (red: not offered, create 409)",
+    "load-out.spec.ts: DOS-172 a returned bill is held on its trip until the van checks in, at planning and at the godown (red: no held field, plans answer 200, create answers already-on-load-sheet before and after return)",
+    "load-out.spec.ts: DOS-172 no trip departs with a bill nobody counted out (red: 200 with reason trip depart)",
+    "load-out.spec.ts: DOS-172 the three doorstep paths (offline stop fail, refused at door with zero lines, return with an open stop) hold and release alike (red: 409 at the sheet)",
+    "delivery.spec.ts DOS-043 step (c): depart with both drafts cancelled is 409 bill_not_loaded, then 200 after loadOut (red: 200)",
+    "warehouse.spec.ts DOS-133 (e)(f)(g): the returned bill on a confirmed sheet is offered and accepted; the oracle uses status = draft (red: absent, 409)",
+    "service/definitions.test.ts: every service mounting WarehouseModule mounts DeliveryModule (pinned guard)",
+    "Gates on the tree rebased onto money + DOS-171: whole backend format/lint/typecheck/build/docs:readme:check/test, the /depart grep verdicts, pnpm smoke 0 BROKEN with depart OK on owner/manager/delivery, frontend lint/typecheck/test/build"
+   ],
+   "sizeDays": 2,
+   "conflicts": [
+    "DOS-167 merged (199952b); ruling 2 (b2-dos167r2, prepared, not launched) shares only warehouse-app/src/strings.ts (separate appends; the second to merge re-runs pnpm format)",
+    "Money lane: contracts/delivery.ts disjoint hunks (its JSDoc :823-838 vs DOS-172 :726-778); its settlement-money.spec.ts and money-locks.spec.ts follow the loadOut fixture rule; one docs/22 section 4 edit for D5/D8/T1",
+    "DOS-171 lane: vansales.spec.ts follows the loadOut fixture rule; DOS-172 does not touch delivery strings.ts",
+    "lean-delivery-door (2) and lean-delivery-collect (14): delivery.spec.ts (four depart sites; new tests go in a new file); 14 also owns contracts/delivery.ts and rebases after all three slices",
+    "lean-warehouse-pick (9) and lean-warehouse-stock (12): warehouse.spec.ts (DOS-133 test only), load/trips.tsx, warehouse strings.ts; load/index.tsx no longer edited (stale comment :88-90 handed to 9)",
+    "lean-manager-money (10): load-sheets.service.ts, warehouse.spec.ts, manager strings.ts",
+    "lean-orders-panels (13) and lean-sales-orders-pricing (16): manager strings.ts append m7t.heldOnTrip",
+    "lean-manager-order-lifecycle (18): trips.service.ts, delivery.spec.ts, warehouse.spec.ts, warehouse and manager strings.ts; its DOS-139 approve/confirm re-check must keep create's bill_on_road check",
+    "lean-warehouse-rules (20): contracts/warehouse.ts (docs only here), warehouse.spec.ts, warehouse strings.ts",
+    "Groups 2, 9, 10, 12, 13, 14, 16, 18 and 20 rebase after DOS-172; lean-backend-platform (8, smoke-endpoints.mts) is already merged (d1c7da0)"
+   ],
+   "order": "Opus 5 stands in for Fable here (the Fable limit was reached on 2026-09-14 and resets Saturday 11:30 IST). Fable's rules and the founder question are kept. The revision adds a server-side hold at the godown (registered by delivery, like DOS-132) and one load-out fixture rule for every spec and the smoke harness. Order after founder approval: b2-dos172 is the third heavy lane and starts when RAM allows, no earlier than the ruling-2 launch. Build steps 1-6 test-first. Before merge review, rebase on main after money and DOS-171 merge, apply loadOut to their departing specs, and run the whole backend suite and smoke. Merge LAST of the three (money, then DOS-171, then DOS-172). Web and Android proofs run one at a time after DOS-171's; iOS is NOT WALKED. Then lean wave 3 (lean-delivery-door first), and the main session's single docs/22 + docs/23 pass together with money's sentences. Hand-off before launching money and DOS-171: their specs load a bill out through a confirmed sheet before departing, which main already supports.",
+   "dataRepair": "No correcting entry in dos_qa, the founder's dos or the pilot: no stock or journal row was written wrong. The goods left as sale at pack, the invoice stays open, and the failed stop is recorded. Four seeded bills (tarsun SO-0845 and SO-0850 on DC-0080, kalyan-agencies SO-0169 on DC-0037, sai-distributors SO-0435 on DC-0050) become plannable and loadable under the new read rules with no row changed. A bill held on a trip still active at deploy is freed at that trip's check-in. Bills that already left through 'trip depart' keep that transition row, since a challan cannot be issued after the fact. The verifier records two read-only queries in the evidence folder: transitions with reason 'trip depart' per tenant, and the S-03 packed-on-confirmed-sheet template."
+  }
+ ],
+ "critic": {
+  "verdict": "needs-changes",
+  "overlaps": [
+   "Rule C against the other two lanes' new specs. DOS-172 makes trips.depart refuse any trip that carries a packed bill without a confirmed load sheet. The money lane's settlement-money.spec.ts and money-locks.spec.ts (closing and settled trips) and DOS-171's vansales.spec.ts ('stop planned with one bill') all plan bills and depart. DOS-172's file list reworks only delivery.spec.ts and warehouse.spec.ts, so whichever lane merges second goes red. Resolved by gap loadsheet-fixtures.",
+   "backend/libs/contracts/src/delivery.ts is edited by two designs. Money rewords the SettlementPreviewOutput JSDoc (:823-838). DOS-172 adds HeldBillSchema beside PlanningBillSchema (:726-744), TripPlanningOutput.held and the depart doc (:778). The hunks don't overlap. DOS-172 regenerates the READMEs on the merged tree; money changes no README. lean-delivery-collect (14) owns the file and rebases after both. Money's conflict list does not name group 14 for this file.",
+   "frontend/delivery-app/src/strings.ts is edited by four lanes: money (d8.pendingBlocks, plus the d8.uncounted reword from gap money-d8-compensation), DOS-171 (the d6 block) and DOS-167 ruling 2 (b2-dos167r2, the leave.* keys). lean-delivery-door (2) and lean-delivery-collect (14) own the file. The blocks are separate; each later merge re-runs pnpm format.",
+   "'Check the vehicle in' (trips.return) takes on a second rule in each of two designs. Money blocks it while the phone's outbox still holds unsent records. DOS-172 releases a returned bill for re-planning only at trips.return. The two fit together: a returned bill stays held until the queue drains. The docs/22 \u00a74 D5, D8 and T1 nodes must be written in ONE edit by the main session, not as two separate hand-offs.",
+   "DOS-172's own Rule A and Rule B pull against each other. Rule B holds a returned bill only inside delivery (insertStop, the board), while Rule A opens the godown side (awaiting_load, loadSheets.create) the moment the stop fails. See gap loadsheet-server-hold.",
+   "The designs disagree on lane status. Money says b2-dos167 is running; DOS-171 says it is merged. Truth on main 10c2464: DOS-167 merged as 199952b. Ruling 2 (worktree b2-dos167r2) is prepared but not launched. It covers @dos/offline engine/react/store, api-client errors.ts, the sales/delivery/warehouse leave flow, _layout.tsx, strings.ts and docs/27. None of the three designs edits those files except the delivery and warehouse strings appends. Money's docs/27 \u00a714 row has to land after ruling 2 merges, because ruling 2 and lean-libs-offline-boot (5) also edit docs/27.",
+   "DOS-172's conflict list misses four groups: lean-warehouse-rules (20: contracts/warehouse.ts, warehouse.spec.ts), lean-manager-order-lifecycle (18: warehouse strings.ts, warehouse.spec.ts), and lean-orders-panels (13) and lean-sales-orders-pricing (16), both on manager strings.ts. Every hunk there is a doc comment or an append; all four rebase after DOS-172.",
+   "docs/23 \u00a710 #6 still tells lean-delivery-collect to publish `collections` to the pull set. That would move phones from the `receipts` op to applyCollectionSync, whose settled-trip refusal is `trip_not_open` (delivery.sync.ts:204-209), not money's `trip_settled`. See gap money-collections-route."
+  ],
+  "gaps": [
+   {
+    "key": "money-d8-compensation",
+    "gap": "delivery-app/app/day.tsx:143-197 already patches DOS-169 on the phone. handOverPaise is expectedCashPaise + max(0, device cash receipts \u2212 preview cash), and the 'd8.uncounted' line says 'The cash part is already in the figure above'. Once step 2a counts synced receipts net of reversals, that difference is no longer offline receipts. It becomes queued rows plus timing skew (for example an original pulled before its reversal mirror), so the hand-over figure the crew reads can be too high. The comments in day.tsx:143-154, collect.tsx:13-21 and queue.ts:225-238 still say the settlement ignores offline receipts. Step 3 edits day.tsx but leaves all of this in place.",
+    "fix": "Step 3 also replaces the heuristic. uncounted = \u03a3 amount_paise of this trip's local receipts whose _pending is 'queued' or 'sending' (docs/27 \u00a73). The cash part is added to the hand-over only while the trip is active; the note counts every mode. 'd8.uncounted' becomes '{amount} in receipts on this phone have not been sent yet'. The day.tsx comment is rewritten, and the queued-only sum becomes a pure function tested in check-in.test.ts. The collect.tsx and queue.ts comment lines go to lean-delivery-door (2) as comment-only edits."
+   },
+   {
+    "key": "money-trip-detail",
+    "gap": "loadTripDetail and chequeCollectedOf (delivery.mappers.ts:531-575) still sum `collections` for TripDetail.expectedCashPaise and the cheque figure (pinned by delivery.spec.ts around :1320). After 2a, a trip with offline or reversed receipts gets two different expected-cash figures: one from GET /delivery/trips/:id, another from GET /delivery/trips/:id/settlement. Amendment (d) says collections is 'never summed for money again', but this reader is missed.",
+    "fix": "Add delivery.mappers.ts to Files (no lean group owns it). loadTripDetail's cash and cheque figures and chequeCollectedOf read ReceivablesService.tripMoney(tx, tripId, { lock: false }) through a new TripDetailDeps.tripMoney. T5 also asserts that trips.get expectedCashPaise equals the preview's. No contract shape change."
+   },
+   {
+    "key": "money-refusal-modes",
+    "gap": "1c refuses EVERY receipt that names a settled trip. The design's own ONE DEFINITION says UPI and cheques are never 'with the crew'. A UPI payment already sitting in the distributor's UPI account would be refused, the shop's bill left open, and the office made to re-key money it already holds. T4 has no mode control.",
+    "fix": "trip_settled refuses only mode cash and cheque, the two things a crew physically carries (cheques follow DOS-132). upi and bank_transfer are accepted and post to UPI / BANK as today. T4 adds a UPI receipt for the same settled trip: 200 online and accepted 1 offline, Dr UPI, no CASH_VAN line. Founder question 1 is worded for cash and cheques."
+   },
+   {
+    "key": "money-lock-sentence",
+    "gap": "1c takes pg_advisory_xact_lock and then asks isTripSettled, but its closing sentence says 'with no predicate registered \u2026 no lock is taken'. The two statements contradict each other. Owner, manager and delivery services all mount DeliveryModule (service/definitions.ts), so an unregistered predicate happens only in receivables.spec.",
+    "fix": "Always take the advisory lock for a receipt that carries tripId, and delete the 'no lock is taken' clause. Amendment (b) is otherwise unchanged."
+   },
+   {
+    "key": "money-allocation-lock",
+    "gap": "The lock discipline leaves three receipt writers on plain reads: createAllocations through loadAllocationSource (receivables.service.ts:1805-1828), removeAllocation (:1037-1117) and applyAllocationSync (receivables.sync.ts:113-123). An allocation that commits while a reversal runs is missing from the reversal's mirrored set (:1881-1885). The bill then stays paid by a receipt that is cancelled. This is the DOS-168 class of fault that amendment (a) says is closed.",
+    "fix": "Those three reads take .for('update') on the receipt row before touching any invoice row, and amendment (a) names them. Add one money-locks.spec.ts test: an allocation and a reversal on the same on-account receipt, fired under the row gate. Either the reversal mirrors the allocation, or the allocation gets 409 'is cancelled'. An allocation is never left on a cancelled receipt."
+   },
+   {
+    "key": "money-test-placement",
+    "gap": "T4 (a settled trip refuses a receipt) and T10 (a reversal racing the settlement) sit in receivables/money-locks.spec.ts, which boots like receivables.spec.ts does ([ReceivablesModule, SyncModule], :328). That harness has no trips, no settle route and no registered tripSettled predicate, so T4 cannot go red then green there. Separately, T8 is already green on today's code: the cockpit sums `collections`, which a reversal never touches. Its stated red ('the live recount drops to 0') is wrong.",
+    "fix": "Move T4 and T10 to delivery/settlement-money.spec.ts, which boots DeliveryModule. money-locks.spec.ts keeps T1\u2013T3 and the new allocation race. Label T8 as a guard for 2b, and prove it red by running it after 2a and before 2b."
+   },
+   {
+    "key": "money-collections-route",
+    "gap": "The same late doorstep payment gets two different refusals depending on which upload table carries it. As a `receipts` op it gets trip_settled (1e). As a `collections` op it gets trip_not_open, checked before recordReceipt runs (delivery.sync.ts:204-209). docs/23 \u00a710 #6 still asks lean-delivery-collect to publish `collections`, which would move the phones onto that second route.",
+    "fix": "applyCollectionSync answers a trip in TRIP_CASH_HANDED_OVER with the same SyncRejection('trip_settled') and the same sentence, for cash and cheque. Add delivery.sync.ts to Files; no lean group owns it. Step 4's docs/23 \u00a710 #6 rewording ('display only; the settlement never needs it') lands before lean-delivery-collect starts."
+   },
+   {
+    "key": "money-checkin-escape",
+    "gap": "Step 3 disables 'Check the vehicle in' whenever pending > 0. An op that keeps failing with a 5xx never becomes a rejection, so it holds the crew at the godown with no way out. trips.return is allowed for the desk (DOORSTEP), but no desk screen calls it; only day.tsx does.",
+    "fix": "Keep the block. d8.pendingBlocks ends with 'If this does not clear, call the office.' Record a desk 'check the trip in' action (manager Day-end, owner or manager) in docs/23 \u00a710 as a follow-up for lean-manager-money; the API already allows it. Nothing else changes in this lane."
+   },
+   {
+    "key": "money-repair-queries",
+    "gap": "Three problems in the repair checks. (i) The DOS-168 repair reverses a whole extra deposit entry. A losing batch can also carry receipts it banked only once (T2's shape), and deposit_ref is optional free text, so it cannot identify the extra batch. (ii) The DOS-169 check (receipt CASH_VAN debits minus the settlement credit) misses neighbour (a): after a reversal before settlement it reads 0 while CASH_VAN is actually \u2212X. (iii) The DOS-170 check must compare journal created_at with trip_settlements.settled_at; entry_date is only a business date.",
+    "fix": "(i) For each receipt with more than one ChequeDeposited event, append (count \u2212 1) entries of Dr CASH|CHEQUES / Cr BANK for that receipt's amount only, with a narration naming both deposit ids. (ii) and (iii): one read-only check per settled trip of NET CASH_VAN across its receipts, their reversals and its settlement. Each non-zero result is one of three cases. +X is an offline receipt not counted (the founder decides per trip). \u2212X reversed before settlement gets Dr CASH_VAN / Cr CASH_SHORT. \u2212X undone after settlement gets Dr CASH_VAN / Cr CASH. All corrections are appended in one transaction as ref_type correction, and nothing runs before the founder answers."
+   },
+   {
+    "key": "vansale-repair",
+    "gap": "The rows-already-written section ends in 'one idempotent UPDATE adding that stop's van-sale invoice totals'. A planned += \u2026 statement is not idempotent: every run adds the totals again.",
+    "fix": "Skip the repair when the count query answers 0 (expected in dos_qa and dos). Otherwise make it a one-shot that writes the corrected stop ids to QA/evidence/batch2/dos-171/repair.json and refuses to run when that file already exists."
+   },
+   {
+    "key": "loadsheet-server-hold",
+    "gap": "Rule A makes packs.list?status=awaiting_load and loadSheets.create accept a returned bill the moment its stop fails, but Rule B is enforced only in delivery (insertStop and the board). W7's client filter (4a) sees only the board's first 200 bills, and the server stores whatever tripId it is given (trip-plan.ts header). So a sheet for trip 2 can carry a bill still on trip 1's van, and confirm then dispatches an order no stop carries. That breaks the DOS-131 principle (the board never offers a bill the guard would refuse) on the godown side, and DOS-133's list/create parity has nothing tying it to the hold.",
+    "fix": "At DeliveryModule.onModuleInit, delivery registers a billOnRoad(orderIdSql, tenantId) SQL predicate into warehouse, following the registerTripSettled pattern from DOS-132. With no delivery module mounted, nothing counts as on the road. onDraftLoadSheet's awaiting_load filter and create both apply it; create answers 409 bill_on_road naming the trip. New warehouse.spec DOS-172 test: create with R while trip 1 is active \u2192 409 bill_on_road; after trips.return \u2192 200. 4a stays as belt and braces."
+   },
+   {
+    "key": "loadsheet-fixtures",
+    "gap": "Rule C (depart refuses a packed bill with no confirmed sheet) reaches beyond delivery.spec.ts. The new specs of the other two lanes plan bills and depart: settlement-money.spec.ts T5\u2013T11, money-locks.spec.ts, and vansales.spec.ts 'stop planned with one bill'. DOS-172's gate runs only the delivery and warehouse specs, so it would not catch the breakage.",
+    "fix": "Binding on all three lanes: a new spec departs a trip that carries packed bills only after create \u2192 manager approve \u2192 confirm of a load sheet for those bills. That works on today's code (confirm dispatches, depart is a no-op) and after Rule C. DOS-172 merges last, and its verifier runs the whole @dos/core suite plus pnpm --filter @dos/db test, not only the delivery and warehouse specs."
+   },
+   {
+    "key": "loadsheet-test-order",
+    "gap": "Test 1 ends with 'a second draft sheet listing R \u2192 409 already on load sheet', after sheet 2 is confirmed. By then R is dispatched, and create checks 'packed' first (load-sheets.service.ts:165-171), so the answer is 'only a packed order can be loaded'. The assertion as written can never pass.",
+    "fix": "Assert the duplicate draft while sheet 2 is still a draft (409 'already on load sheet'). After confirm, assert the not-packed 409 instead."
+   },
+   {
+    "key": "loadsheet-demo-trip",
+    "gap": "The seeded TRIP-NEXT (seed-demo/delivery-road.ts:124-170) is `planned` with packed bills on outcome-null rows and no load sheet. Under answer A its Start trip answers 409 bill_not_loaded. 'No seed change' is the right call, but nothing tells the docs/28 walkthrough, the A.12 regression walkers or the E2E script to build the sheet first.",
+    "fix": "Step 5 adds one step to docs/28 and the QA walk scripts: W7 builds TRIP-NEXT's load sheet, the manager approves it, W7 confirms, then D2 Start trip. pnpm smoke keeps the 409 as EXPECTED (classify() already counts a 409 as EXPECTED)."
+   },
+   {
+    "key": "loadsheet-depart-read",
+    "gap": "3a reads each planned order with findOrder inside a loop, where docs/20 rule 3 asks for one batched read. Its refusal sentence names order numbers, while the crew's D2 and D3 screens show bill numbers and shop names.",
+    "fix": "Use one orders.fulfilmentOrders(tx, orderIds) read. The sentence names the invoice number and the shop ('INV/0012 Chavan Kirana'), and data carries both orderIds and invoiceIds."
+   },
+   {
+    "key": "questions-merge",
+    "gap": "DOS-171's cess question is not a real product choice. Option B (hold) keeps every van sale wrong by the full GST for weeks and gives the founder nothing to decide. The cess residue also matters more than the design says: Campa (28% GST + 12% cess) is a pilot brand.",
+    "fix": "Drop it as a founder question; as architect, build DOS-171 now. Recommend that the main session move DOS-079's quote-side cess out of lean-sales-orders-pricing (16) so it is built right after DOS-171 merges, before any Campa van sale is walked."
+   }
+  ],
+  "sequencing": "Critic: Opus 5 standing in for Fable. The Fable limit was reached on 2026-09-14 at about 01:26 and resets Saturday 11:30 IST.\n\nTruth on main 10c2464: DOS-167 is merged (199952b). Ruling 2 (b2-dos167r2) is prepared and waits for wf_74bd442f-12c's proofs. None of the three slices touches its files except strings appends.\n\nAfter founder approval:\n(1) b2-money (P0 DOS-168/169, P1 DOS-170) and b2-dos171 start together from main. Their backend and pure-module work can run while the ruling-2 proofs hold the emulator.\n(2) b2-dos172 is the third heavy lane. It starts when RAM allows (at most 3 heavy agents), no earlier than the ruling-2 launch.\n(3) Merge order: money, then DOS-171, then DOS-172. P0 goes first. DOS-172 goes last because it changes depart for every spec, regenerates READMEs and must run the whole core suite (gap loadsheet-fixtures). Ruling 2 merges whenever its proofs pass; it is independent of all three.\n(4) Platform proofs run one at a time, after ruling 2's re-proof frees the emulator and simulator: money (web, Android, iOS), DOS-171 (web, Android, iOS), DOS-172 (web, Android).\n(5) Lean wave 3 waits for all three merges. lean-delivery-door (2) goes first, because every other waiting group chains through it or lean-libs-offline-boot (5); then 5, then the rest in lean-groups.json order. Groups that rebase on these slices:\n- 17 on money (receivables.service.ts)\n- 14 on all three (contracts/delivery.ts, delivery.spec.ts, delivery strings, docs/23 \u00a710 #6 reworded)\n- 10 on money (Day-end cash-over hint, desk check-in follow-up) and on DOS-172 (load-sheets.service.ts, warehouse.spec.ts)\n- 9, 12, 18 and 20 on DOS-172 (warehouse.spec.ts, load screens, trips.service.ts, contracts/warehouse.ts)\n- 13 on DOS-172 (manager strings)\n- 16 on DOS-171 (the DOS-079 cess work recommended to move ahead of the group)\n(6) After the three merges, the main session writes docs/22 \u00a74/\u00a76/\u00a78/\u00a79/\u00a711, docs/27 \u00a714 and docs/23 in one pass (one \u00a74 edit for D5/D8/T1), then renders and republishes. DOS-173 (P3) goes to a lean group once approved.",
+  "founderQuestions": [
+   {
+    "ids": [
+     "DOS-169"
+    ],
+    "question": "A driver took \u20b9672 cash at a shop with no signal. The trip was checked in and settled at the office before his phone sent that receipt, for example because he signed out keeping it or checked in from another phone. The receipt arrives the next morning. What should happen?",
+    "options": [
+     "A: Refuse it on the phone. The driver's Needs-attention list says the trip was already settled and asks him to hand the \u20b9672 to the cashier, who records it at the office. A cheque is handled the same way. A UPI payment is accepted, because that money is already in your account.",
+     "B: Accept it as cash the crew still holds on a closed trip. The books then show the crew holding \u20b9672, with no screen to hand it over.",
+     "C: Accept it as cash already in the office. The books then show the money in the till before anyone has handed it over."
+    ],
+    "recommended": "A",
+    "why": "Money follows the hand-over. Only A keeps the van, the office till and the shop's bill true at every moment. The new rule that the van cannot be checked in while the phone still holds unsent records makes this case rare."
+   },
+   {
+    "ids": [
+     "DOS-172",
+     "S-03",
+     "S-82"
+    ],
+    "question": "A bill comes back undelivered and goes out again on a later trip. May that trip leave the godown without a load sheet that counted the bill out?",
+    "options": [
+     "A: No. The trip waits until the godown builds the load sheet, the manager approves it and the count is confirmed. The driver's screen names the bills still to be counted. Every van then leaves with a challan, and with an e-way bill number when the load is big enough to need one.",
+     "B: Yes, as today, but the trip and the bill are marked 'left without a load sheet' so the desk can see it. Nothing blocks the crew, but those bills travel with no count, no challan and no e-way bill check."
+    ],
+    "recommended": "A",
+    "why": "A matches what you decided for load-out on 2026-09-05 and in DOS-043. With B, every returned bill goes out uncounted, and a van can be stopped on the road for a missing e-way bill."
+   },
+   {
+    "ids": [
+     "DOS-168",
+     "DOS-169",
+     "DOS-170"
+    ],
+    "question": "Checks that change nothing may find money figures already wrong in your own database: a payment banked twice, van cash missed at a settlement, or an undo taken from the van after day-end. How should they be put right?",
+    "options": [
+     "A: Add one correcting entry for each case, never editing the old ones. You see the list and approve it trip by trip, including whether the crew handed that cash over or still has it.",
+     "B: Rebuild your database from the demo data. Anything recorded in it since then is lost."
+    ],
+    "recommended": "A",
+    "why": "The books can only be corrected by adding entries, and only you know whether a crew handed the cash over. The QA database is rebuilt from the fixed demo data anyway, so it needs neither."
+   }
+  ]
+ },
+ "run": "wf_4254a4ee-d2f"
+}

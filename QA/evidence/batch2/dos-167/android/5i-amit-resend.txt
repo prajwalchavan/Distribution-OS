@@ -1,0 +1,22 @@
+## step5i amit signs in again (online) 00:49:17
+SIGNED_IN 5i-amit: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | ₹3,94,334.00 | To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | ₹8,042.00 | To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | ₹1,31,361.00 | To visit | City Light Provision | Godrej Hill, Kalyan West · your last order 11 Sep | ₹29,824.00 | To visit | Metro Kirana B
+--- shot times
+1 0.389
+2 0.877
+3 1.249
+4 1.674
+5 2.097
+6 2.461
+--- early texts
+dump1 +2.634s: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | — | To visit | City Light Provision | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Metro Kirana Bazar | Godrej Hill, Kalyan West · your 
+dump2 +5.083s: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | — | To visit | City Light Provision | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Metro Kirana Bazar | Godrej Hill, Kalyan West · your 
+dump3 +7.255s: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | ₹3,94,334.00 | To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | ₹8,042.00 | To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | ₹1,31,361.00 | To visit | City Light Provision | Godrej Hill, Kalyan West · your last order 11 Sep | ₹29,824.00 | To visit | Metro Kirana B
+poll 1 00:50:34: Updated just now ;
+shot 5i-amit-after-send.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:50:34)
+total 8236
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:50 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:45 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 00:50 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:50 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4305432 2026-09-14 00:50 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal

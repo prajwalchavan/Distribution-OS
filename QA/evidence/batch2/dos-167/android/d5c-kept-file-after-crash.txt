@@ -1,0 +1,24 @@
+## sachin's kept file after the crash, copied read-only off the device 01:24:32 (process dead, app not relaunched)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:22 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:17 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:22 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-- integrity_check
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state (manifest cut)
+key|substr(value,1,120)
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09c43-0226-70f5-b75b-c7a92b9b25d6
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09c53-2c9d-7053-97c3-204f035c8183|trip_stops|b3cd5226-2b8f-7019-9b5f-6b5b3523d645|PATCH|{"state":"arrived","occurred_at":"2026-09-13T19:51:31.738Z","device_id":"01a09c43-0226-70f5-b75b-c7a92b9b25d6","arrived_at":"2026-09-13T19:51:31.738Z"}|2026-09-13T10:41:22.953Z|01a09c53-2c9d-7053-97c3-204f035c8183|queued|6|2026-09-13T19:51:31.819Z||||
+-- _sync_errors

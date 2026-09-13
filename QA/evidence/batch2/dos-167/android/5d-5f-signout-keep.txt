@@ -1,0 +1,32 @@
+## step5d WARM sign-out with 2 queued, offline 00:45:00
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot 5d-amit-warm-sheet.png
+Send now present? 0
+Cancel at 540 2002
+after Cancel: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 12:39 am · 2 waiting to send | Anand Bhavan Provision | Order | It goes to the office as a draft as soon as there is a signal. Submit it fro
+shot 5d-amit-after-cancel.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:45:22)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:40 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:40 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 00:30 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:44 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 00:45 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+## step5e COLD-START sign-out (ruling case 1): force-stop, relaunch, tap Sign out at once 00:45:22
+relaunch t0=1789326923.431
+⋯ found at +7.88s (947 247)
+Sign out tapped at +10.4s
+state at +13.8s: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot 5e-amit-cold-sheet.png
+Send now present? 0
+## step5f 'Sign out, keep here' 00:45:37
+keep at 540 1779
+after keep: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot 5f-amit-kept-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:45:47)
+total 3988
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:45 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:45 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 00:45 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db

@@ -1,0 +1,7 @@
+     uname      | shops_today | orders_90d | created_by_90d 
+----------------+-------------+------------+----------------
+ amit.pawar     |          29 |        380 |            362
+ kiran.mhatre   |          24 |        218 |            175
+ rahul.deshmukh |          30 |        363 |            302
+(3 rows)
+

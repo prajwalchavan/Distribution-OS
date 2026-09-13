@@ -1,0 +1,12 @@
+sales-service /sync/* and any other requests since 00:46:41 IST (kiran window)
+00:47:34 req-ak GET /sync/manifest port 65411
+00:47:34 req-al GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500 port 65411
+00:47:34 req-am GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:35 req-an GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:36 req-ao GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:36 req-ap GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:37 req-aq GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:37 req-ar GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:38 req-as GET /sync/pull?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&limit=500&since=<cursor> port 65411
+00:47:38 req-at GET /sync/errors?deviceId=01a09c1d-8ac3-7653-9115-12549fa139d1&unresolvedOnly=true&limit=50 port 65411
+dos_qa rows for the queued order id: 0

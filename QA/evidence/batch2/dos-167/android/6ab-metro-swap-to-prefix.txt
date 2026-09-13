@@ -1,0 +1,16 @@
+## step6a stop main sales Metro :5175 00:52:31
+  PID STARTED                      COMMAND
+10812 Sun Sep 13 23:48:35 2026     sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+10814 Sun Sep 13 23:48:35 2026     node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+5175 listeners after stop: 0
+## step6b start PRE-FIX worktree sales Metro :5175 --clear 00:52:32
+worktree HEAD: 144bcfe fix(DOS-026): merge-review blocker — Print the challan no longer relies on a stale user gesture; DOS-167 merge 199952b ancestor? no; engine.ts claimIdentity refs: 0; layout databaseName: databaseName="dos-sales.db"
+(eval):disown:4: no current job
+status: packager-status:running
+listener pid 19157 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/sales-app
+19157 node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/node_modules/.bin/expo start --port 5175 --clear
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:5175
+
+Logs for your project will appear below.

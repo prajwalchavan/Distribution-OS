@@ -1,0 +1,43 @@
+## step5g restore reverse tcp:3003, sign in kiran 00:46:41
+3003
+host-16 tcp:3003 tcp:3003
+airplane: 0
+SIGNED_IN 5g-kiran: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+--- shot times
+1 0.38
+2 0.735
+3 1.1
+4 1.461
+5 1.824
+6 2.27
+--- early texts
+dump1 +2.444s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | — | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | — | To visit | Mahalaxmi General Stores | Dombivli East · your last order 27 Aug | — | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | — | To visit | Jai Bhavani Stores | Dombivli East · your last order 9 Sep | — | To visit | Shivs
+dump2 +4.558s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+dump3 +6.793s: SD | Sai Distributors, Dombivli | salesperson | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Search this beat | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | To visit | Jai Bhavani Stores | Dombivli East · your l
+beat all: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | ✓ Manpada Road | Tilak Nagar | Tilak Nagar | Ayre Road | Ayre Road | Search this beat | Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees, To visit | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | 26470 rupees | To visit | Om Sai Provision Store, Dombivli East · your last order 3 Sep, 94393 rupees, To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | 94393 rupees | To visit | Mahalaxmi General Stores, Dombivli East · your last order 10 Sep, 38730 rupees, To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | 38730 rupees | To visit | Sai Krupa Super Bazar, Dombivli East · your last order 7 Sep, 274724 rupees, To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | 274724 rupees | To visit | Jai Bhavani Stores, Dombivli East · your last order 9 Sep, 137023 rupees, To visit | Jai Bhavani Stores | Dombivli East · your last order 9 Sep | ₹1,37,023.00 | 137023 rupees | To visit | Shivshakti Traders, Dombivli East · your last order 20 Aug, 30205 rupees, To visit | Shivshakti Traders | Dombivli East · your last order 20 Aug | ₹30,205.00 | 30205 rupees | To visit | Ganesh General Store, Dombivli East · your last order 7 Sep, 28696 rupees, To visit | Ganesh General Store | ₹28,696.00 | 28696 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+shot 5g-kiran-beat.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:48:00)
+total 10940
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:47 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:45 ..
+-rw------- 1 u0_a217 u0_a217 2609152 2026-09-14 00:47 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:47 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a217 u0_a217 4461992 2026-09-14 00:47 dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 00:45 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+tap 'Shops' at 675 2246
+shops tab: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated just now | Shops | Shops: 24 | Shops | Shops | Losing | Losing | Catalog | Catalog | Search by name, code or phone | Aditya Provision, SD-0023 · Ayre Road · Dombivli East, 26033 rupees, C | Aditya Provision | SD-0023 · Ayre Road · Dombivli East | ₹26,033.00 | 26033 rupees | C | Ambika Provision Store, SD-0009 · Tilak Nagar
+chip: Shops: 24 
+shot 5g-kiran-shops.png
+search Anand: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated just now | Shops | Shops: 24 | Shops | Shops | Losing | Losing | Catalog | Catalog | Anand | Anand General Store, SD-0014 · Tilak Nagar · Dombivli East, 4727 rupees, D | Anand General Store | SD-0014 · Tilak Nagar · Dombivli East | ₹4,727.00 | 4727 rupees | D | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+shot 5g-kiran-search-anand.png
+=== amit markers in kiran dumps (expect 0): 0 ; early: 0
+## step5h kiran one-tap sign out 00:48:21
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+after sign-out: Distribution OS - Sales | Sign in | Username | Password | Sign in | Sign in | Use the username your distributor gave you.
+shot 5h-kiran-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:48:34)
+total 3988
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:48 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:45 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 00:45 dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db

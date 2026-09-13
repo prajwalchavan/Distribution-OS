@@ -1,0 +1,14 @@
+# sourced helpers for the DOS-167 Android proof (bash or zsh)
+cd "/Users/prajwalchavan/Desktop/Distribution OS"
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+D="/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/android"
+PKG=in.distributionos.sales
+ui() { python3 "/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/ui.py" "$@"; }
+tapt() { local xy; xy=$(ui text "$1"); if [ -z "$xy" ]; then echo "NOT FOUND: $1"; return 1; fi; echo "tap '$1' at $xy"; adb shell input tap ${=xy} 2>/dev/null || adb shell input tap $xy; }
+shot() { adb exec-out screencap -p > "$D/$1.png"; echo "shot $1.png"; }
+lsdb() { echo "\$ adb shell run-as $PKG ls -la files/SQLite   ($(date '+%H:%M:%S'))"; adb shell run-as $PKG ls -la files/SQLite 2>&1; }
+texts() { ui texts; }
+alltexts() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | python3 -c 'import re,sys,html; x=sys.stdin.read(); print(" | ".join(html.unescape(t) for t in re.findall(r"(?:text|content-desc)=\"([^\"]+)\"", x)))'; }
+markers() { grep -o "Chavan Kirana\|Iyer Provision\|Khadakpada\|Kalyan West Market\|SO-0875" "$@" | sort | uniq -c; }
+q() { psql postgres://dos:dos@127.0.0.1:5439/dos_qa -At -c "$1"; }

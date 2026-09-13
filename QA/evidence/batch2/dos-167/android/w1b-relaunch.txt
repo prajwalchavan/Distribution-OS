@@ -1,0 +1,9 @@
+## W1b force-stop the SALES app (process only; its data stays) so it cannot mask the warehouse screen, then start the warehouse app again (no reinstall, no clear: it was cleared at 01:40:53 and never signed in) 01:49:47
+logcat mark 09-14 01:49:47.000
+Starting: Intent { cmp=in.distributionos.warehouse/.MainActivity }
++3.1s pid=20026 top=in.distributionos.warehouse
+sign-in form is up
+screen: Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot w1b-warehouse-relaunch.png
+-- events since relaunch
+09-14 01:49:47.864   676   724 I am_proc_start: [0,20026,10213,in.distributionos.warehouse,next-top-activity,{in.distributionos.warehouse/in.distributionos.warehouse.MainActivity}]

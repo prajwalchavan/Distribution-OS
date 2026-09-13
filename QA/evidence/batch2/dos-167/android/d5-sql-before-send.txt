@@ -1,0 +1,5 @@
+## dos_qa read-only, before sachin's queued op can reach the office 01:23:16
+-- trip_stops stop 5 (Dombivli Fresh Mart)
+b3cd5226-2b8f-7019-9b5f-6b5b3523d645|pending||2026-09-13 16:11:22.95301+05:30
+-- sync_ops with the queued op id (expect 0)
+0

@@ -1,0 +1,13 @@
+#!/bin/zsh
+# Copy one identity file (+ -wal/-shm) off the device READ-ONLY into the scratchpad and print its outbox and stamp.
+# Usage: outbox.sh <db file name> <label>
+export ANDROID_HOME=$HOME/Library/Android/sdk; export PATH="$ANDROID_HOME/platform-tools:$PATH"
+PKG=in.distributionos.sales; F=$1; LABEL=$2
+S=/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167/db-$LABEL
+rm -rf "$S"; mkdir -p "$S"
+for suf in "" "-wal" "-shm"; do adb exec-out run-as $PKG cat "files/SQLite/$F$suf" > "$S/$F$suf" 2>/dev/null; done
+ls -la "$S"
+echo "-- tables"; sqlite3 "$S/$F" ".tables"
+echo "-- _sync_state"; sqlite3 -header "$S/$F" "select * from _sync_state" 2>&1 | cut -c1-200
+echo "-- _outbox"; sqlite3 -header "$S/$F" "select * from _outbox" 2>&1 | cut -c1-600
+echo "-- _sync_errors"; sqlite3 -header "$S/$F" "select * from _sync_errors" 2>&1 | cut -c1-300

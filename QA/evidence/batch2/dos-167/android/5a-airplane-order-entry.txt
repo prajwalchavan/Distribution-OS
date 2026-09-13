@@ -1,0 +1,16 @@
+## step5a retry4 00:38:41
+keyboard: mInputShown=true
+keyboard after Back: mInputShown=false
+screen: Tarsun Enterprise | salesperson | ⋯ | Updated just now | My orders | Waiting: 0 | Drafts: 1 | SO-0686 | 25 Aug | ₹18
+(dismissed toast)
+tap 'Shops' at 675 2246
+after Shops tap: Tarsun Enterprise | salesperson | ⋯ | Updated 1 min ago | Shops | Shops: 29 | Shops | Losing | Catalog | Search by name, code or phone | Anand Bhavan Provisio
+search at 540 1021
+search: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Shops | Shops: 29 | Shops | Losing | Catalog | Anand | Anand Bhavan Provision | R-0043 · Kolsewadi · Kolsewadi, Kalyan East | ₹35,548.00 | C | Beat | Orders | Shops | Me
+tap 'Anand Bhavan Provision' at 345 1235
+shop card: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Kolsewadi · R-0043 | Anand Bhavan Provision | Owes ₹35,548 | Limit ₹50,000 | Overdue ₹32,705 | Shop | Shop | Orders 10 | Orders 10 | Bills 5 | Bills 5 | How old the dues are | as of 14 Sep | Money owed, by age | ₹ | 0–7 | 2,843.00 | 8–15 | 6,073.00 | 16–30 | 12,264.00 | 31–60 | 14,368.00 | 61–90 | 0.00 | 90+ | 0.00 | Credit | Credit limit | Credit days | Open bills | Terms | ₹50,000.00 | 50000 rupees | 7 | 5 | Pay after delivery | The office checks the credit (Strict) when the order is submitted, not here. | Your last order 11 Sep | ₹2,843.00 | 2843 rupees | Take order | Take ord
+shot 5-amit-shop-card-airplane.png
+tap 'Take order' at 540 2012
+order entry: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Anand Bhavan Provision | Order | Items: 0 | Repeat last order (2) | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case · 19 cs available | Add a case | Add a case | Campa Cola 2 L | Campa · 24 pc case · 10 cs available | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case · 10 cs available | Add a case | Add a case | Items 0 · ₹0.00 before GST | Place order | Place order | Add at least one item | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+place button label: Place order
+shot 5-amit-order-entry-airplane.png

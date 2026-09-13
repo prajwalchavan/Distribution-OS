@@ -1,0 +1,61 @@
+## D5b queue one stop move offline as sachin: stop 5 Dombivli Fresh Mart (pending) -> 'I am at the shop' 01:18:22
+row at: 
+NOT FOUND: 5. Dombivli Fresh Mart
+stop screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 1:16 am | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+shot d5b-sachin-stop5.png
+NOT FOUND: I am at the shop
+after arrive 01:20:18: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 1:16 am | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+strip:  Offline since 1:16 am  
+shot d5b-sachin-stop5-queued.png
+-- device file copied read-only: dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-- _sync_state
+key|value
+schemaVersion|0e8ebf40b7d68023
+role|delivery
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxOTo0NjozOC4yMTdaIn0
+lastPulledAt|2026-09-13T19:46:43.217Z
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09c43-0226-70f5-b75b-c7a92b9b25d6
+-- _outbox
+-- _sync_errors
+-- local trip_stops row
+id|state|arrived_at|updated_at
+b3cd5226-2b8f-7019-9b5f-6b5b3523d645|pending||2026-09-13 16:11:22.95301+05:30
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:20:18)
+total 7604
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:17 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:17 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 01:15 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:17 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4857512 2026-09-14 01:17 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+## D5b retry: the 400 ms swipe did not scroll the home list; two 800 ms swipes (540,1500 -> 540,500) brought stop 5 into view 01:21:13
+tap '5. Dombivli Fresh Mart' at 395 970
+stop screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 1:16 am | Stop 5 of 10 · TRIP-ACTIVE | Dombivli Fresh Mart | Not started | Owes ₹2,90,577.00 | Credit | Shop 27, Kopar Road, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Still due | 12 Sep, 11:00 am | ₹2,90,577.00 | 290577 rupees | 8 bills still open at this shop | Bills on this stop | ₹32,368.00 | Still filling this phone from the office. | SAI/0430, 11 Sep 2026, 32368 rupees, Not started | SAI/0430 | ₹32,368.00 | 32368 rupees | 11 Sep 2026 | Not started | Sell from the van | Sell from the van | I am at the shop | I am at the shop
+shot d5b-sachin-stop5.png
+tap 'I am at the shop' at 540 2207
+Location Accuracy dialog: tap No thanks
+tap 'No thanks' at 484 1809
+after arrive 01:21:35: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 1:16 am · 1 waiting to send | Offline since 1:16 am · 1 waiting to send | Stop 5 of 10 · TRIP-ACTIVE | Dombivli Fresh Mart | At the shop | Owes ₹2,90,577.00 | Credit | Shop 27, Kopar Road, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Arrived | Still due | 12 Sep, 11:00 am | 14 Sep, 1:21 am | ₹2,90,577.00 | 290577 rupees | 8 bills still open at this shop | Bills on this stop | ₹32,368.00 | Still filling this phone from the office. | SAI/0430, 11 Sep 2026, 32368 rupees, Not started | SAI/0430 | ₹32,368.00 | 32368 rupees | 11 Sep 2026 | Not started | Deliver this bill | Deliver this bill | Take money | Take money
+strip:  Offline since 1:16 am · 1 waiting to send   Offline since 1:16 am · 1 waiting to send  
+shot d5b-sachin-stop5-queued.png
+-- device file copied read-only: dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09c53-2c9d-7053-97c3-204f035c8183|trip_stops|b3cd5226-2b8f-7019-9b5f-6b5b3523d645|PATCH|{"state":"arrived","occurred_at":"2026-09-13T19:51:31.738Z","device_id":"01a09c43-0226-70f5-b75b-c7a92b9b25d6","arrived_at":"2026-09-13T19:51:31.738Z"}|2026-09-13T10:41:22.953Z|01a09c53-2c9d-7053-97c3-204f035c8183|queued|3|2026-09-13T19:51:31.819Z||||
+-- _sync_errors
+-- local trip_stops row
+id|state|arrived_at|updated_at
+b3cd5226-2b8f-7019-9b5f-6b5b3523d645|arrived|2026-09-13T19:51:31.738Z|2026-09-13 16:11:22.95301+05:30
+-- userId/tenantId stamp
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:21:36)
+total 7604
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:17 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:17 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 01:15 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:21 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4857512 2026-09-14 01:21 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal

@@ -1,0 +1,17 @@
+## W1c dinesh opens the Pick tab (more Tarsun picklist numbers on screen) 01:52:06
+tap 'Pick' at 405 2237
+pick texts: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated 1 min ago | Tarsun Enterprise | Pick | ✓ Every beat | ✓ Every beat | Khadakpada | Khadakpada | Station Road | Station Road | ORDERS WAITING | Select all | Select all | Clear | Clear | 0 selected · 0 pc | Bhosale Traders, SO-0877 · Khadakpada · 750 pc, confirmed | Bhosale Traders | SO-0877 · Khadakpada · 750 pc | confirmed | Shree Ganesh Kirana, SO-0873 · Station Road · 163 pc, confirmed | Shree Ganesh Kirana | SO-0873 · Station Road · 163 pc | confirmed | Vitthal Traders, SO-9003 · Kalyan West Market · 2 pc, confirmed | Vitthal Traders | SO-9003 · Kalyan West Market · 2 pc | confirmed | Nutan Kirana Stores, SO-0870 · Birla College Road · 158 pc, confirmed | Nutan Kirana Stores | SO-0870 · Birla College Road · 158 pc | confirmed | WAVES | PICK-0078, 5926 of 7834 pc picked, picking | PICK-0078 | picking | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w1c-dinesh-pick.png
+-- picklist numbers on the pick screen: PICK-0078 
+## W2 dinesh signs out 01:52:15
+tap '⋯' at 938 256
+menu: More | More | Settings | Settings | Me | Me | Change your password | Change your password | Sign out | Sign out | Close | Close
+shot w2-dinesh-menu.png
+tap 'Sign out' at 540 1976
+after Sign out (+1s): Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot w2-dinesh-signed-out.png
+top: in.distributionos.warehouse
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (01:52:27)
+total 16
+drwx------ 2 u0_a213 u0_a213 4096 2026-09-14 01:52 .
+drwxrwx--x 3 u0_a213 u0_a213 4096 2026-09-14 01:49 ..

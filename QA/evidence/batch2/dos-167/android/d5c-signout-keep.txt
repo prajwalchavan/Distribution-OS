@@ -1,0 +1,17 @@
+## D5c sachin signs out with 1 queued, offline 01:21:51
+tap '⋯' at 947 247
+menu: More | More | Today | Today | Day summary | Day summary | Expenses | Expenses | Attention | Attention | Trip history | Trip history | Me | Me | Change your password | Change your password | Sign out | Sign out | Close | Close
+tap 'Sign out' at 540 2002
+sheet: 1 change has not reached the office | 1 change has not reached the office | They stay on this phone for Sachin Dalvi only and go the next time Sachin Dalvi signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot d5c-sachin-leave-sheet.png
+Send now present? 0
+title singular present? 1
+names the person? for Sachin Dalvi only
+tap 'Sign out, keep here' at 540 1779
+after keep (+20s): Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 1:02 am | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | 35843 rupees | To visit | Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, 69862 rupees 50 paise, To visit | Om Sai Provision Store | Station Road, Kalyan West · your last order 31 Aug | ₹69,862.50 | 69862 rupees 50 paise | To visit | Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, 36259 rupees, To visit | Mahalaxmi General Stores | Station Road, Kalyan West · your last order 10 Sep | ₹36,259.00 | 36259 rupees | To visit | Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709 rupees, To visit | Sai Krupa Super Bazar | Station Road, Kalyan West · your last order 3 Sep | ₹2,06,709.00 | 206709 rupees | To visit | Jai Bhavani Stores, Station Road, Kalyan West · your last order 10 Sep, 11511 rupees, To visit | Jai Bhavani Stores | Station Road, Kalyan West · your last order 10 Sep | ₹11,511.00 | 11511 rupees | To visit | Shivshakti Traders, Station Road, Kalyan West · your last order 3 Sep, 22834 rupees, To visit | Shivshakti Traders | Station Road, Kalyan West · your last order 3 Sep | ₹22,834.00 | 22834 rupees | To visit | Ganesh General Store, Station Road, Kalyan West · your last order 9 Sep, 94373 rupees, To visit | Ganesh General Store | ₹94,373.00 | 94373 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me | !, Open debugger to view warnings. | ! | Open debugger to view warnings.
+shot d5c-sachin-kept-signed-out.png
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (01:23:14)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:22 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:17 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:22 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db

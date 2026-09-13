@@ -1,0 +1,17 @@
+## step6c PRE-FIX bundle: fresh install + pm clear + sign in rahul 00:53:03
+19157 node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/node_modules/.bin/expo start --port 5175 --clear
+8081 proxy -> 14389 node /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/proxy8081.mjs 5175
+SIGNED_IN 6c-prefix-rahul: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | To visit | Om Sai Provision Store | Station Road, Kalyan West · your last order 31 Aug | ₹69,862.50 | To visit | Mahalaxmi General Stores | Station Road, Kalyan West · your last order 10 Sep | ₹36,259.00 | To visit | Sai Krupa Super Bazar | Station Road, Kalyan West · your last order 3 Sep | ₹2,06,709.00 | To visit 
+strip: Updated just now 
+shot 6c-prefix-rahul-synced.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (00:54:33)
+total 7012
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 00:54 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 00:54 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 00:54 dos-sales.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 00:54 dos-sales.db-shm
+-rw------- 1 u0_a217 u0_a217 4499072 2026-09-14 00:54 dos-sales.db-wal
+  ExpoRoot (node_modules/expo-router/build/ExpoRoot.js:85:33)
+  App (node_modules/expo-router/build/qualified-entry.js:20:91)
+  WithDevTools (node_modules/expo/src/launch/withDevTools.tsx:21:12)
+Android Bundled 475ms node_modules/expo-sqlite/build/index.js (735 modules)

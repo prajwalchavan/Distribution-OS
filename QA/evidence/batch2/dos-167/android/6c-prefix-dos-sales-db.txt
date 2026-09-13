@@ -1,0 +1,23 @@
+total 13968
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 00:54 .
+drwxr-xr-x@ 10 prajwalchavan  wheel      320 Sep 14 00:54 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2617344 Sep 14 00:54 dos-sales.db
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 00:54 dos-sales.db-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4499072 Sep 14 00:54 dos-sales.db-wal
+-- tables
+-- _sync_state
+key|value
+deviceId|01a09c39-5a03-72cb-9bdd-050092d6d9e5
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxOToyNDoxNi4yNTlaIn0
+lastPulledAt|2026-09-13T19:24:21.259Z
+-- _outbox
+-- _sync_errors
+-- row counts in the legacy dos-sales.db (copy)
+retailers: 30
+sales_orders: 363
+Chavan Kirana Stores rows: 1
+SO-0875 rows: 1
