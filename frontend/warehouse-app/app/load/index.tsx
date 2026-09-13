@@ -28,8 +28,12 @@ import { haptics } from '@dos/ui/platform'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { shortDate } from '../../src/lib/dates'
-import { Async, Panel, PageTabs, workFamily } from '../../src/lib/ui'
+import { instantWithClock, shortDate } from '../../src/lib/dates'
+import { Async, atLeast, Panel, PageTabs, workFamily } from '../../src/lib/ui'
+
+/** W7 reads the newest 50 packed orders, then up to the contract's page cap — also create's cap per sheet. */
+const PACKED_FIRST = 50
+const PACKED_CAP = 200
 
 export default function LoadSheets(): React.JSX.Element {
   const t = useStrings()
@@ -52,10 +56,17 @@ export default function LoadSheets(): React.JSX.Element {
     () => api.api.inventory.locations.list({ kind: 'vehicle', activeOnly: true }),
     { enabled: signedIn },
   )
-  /** Packed and waiting for a vehicle: `packs.list` is the register of what is on the dock. */
-  const packed = useQuery(['packs', 'recent'], () => api.api.warehouse.packs.list({ limit: 50 }), {
-    enabled: signedIn,
-  })
+  /**
+   * Packed and waiting for a vehicle. The server applies loadSheets.create's own rule (DOS-133): the
+   * order is packed and on no draft or confirmed sheet, newest pack first. "Show older packs" refetches
+   * up to the cap; the key keeps the `['packs']` prefix, so Build's invalidation still refreshes it.
+   */
+  const [packedLimit, setPackedLimit] = useState(PACKED_FIRST)
+  const packed = useQuery(
+    ['packs', 'awaitingLoad', packedLimit],
+    () => api.api.warehouse.packs.list({ status: 'awaiting_load', limit: packedLimit }),
+    { enabled: signedIn },
+  )
 
   const create = useMutation(
     (input: { toLocationId: string; orderIds: readonly string[] }, meta) =>
@@ -176,7 +187,29 @@ export default function LoadSheets(): React.JSX.Element {
           </Async>
         </Panel>
 
-        <Panel title={t('w7.packedOrders')} testID="w7-packed">
+        <Panel
+          title={t('w7.packedOrders')}
+          meta={
+            packedLimit >= PACKED_CAP && (packed.data?.nextCursor ?? null) !== null
+              ? t('w7.packedCapped', { count: PACKED_CAP })
+              : atLeast(t, packed.data)
+          }
+          actions={
+            (packed.data?.nextCursor ?? null) === null || packedLimit >= PACKED_CAP ? undefined : (
+              /* `fullWidth={false}`: an inline word in a panel head, as on W4 (pick/index.tsx). */
+              <Button
+                label={t('w7.packedMore')}
+                variant="ghost"
+                fullWidth={false}
+                onPress={() => {
+                  setPackedLimit(PACKED_CAP)
+                }}
+                testID="w7-packed-more"
+              />
+            )
+          }
+          testID="w7-packed"
+        >
           <Async
             state={packed}
             empty={(packed.data?.items.length ?? 0) === 0}
@@ -190,7 +223,7 @@ export default function LoadSheets(): React.JSX.Element {
                   primary={pack.retailerName}
                   secondary={`${pack.orderNo ?? pack.orderId.slice(0, 8)} · ${t('w6.packages')} ${String(
                     pack.packages,
-                  )}`}
+                  )} · ${t('w7.packedAt', { when: instantWithClock(pack.packedAt) })}`}
                   state={chosen.includes(pack.orderId) ? 'selected' : 'default'}
                   trailing={
                     pack.invoiceNo === null ? (

@@ -308,6 +308,9 @@ export const strings = {
   'w7.vehicle': 'Vehicle',
   'w7.packedOrders': 'PACKED ORDERS',
   'w7.packedEmpty': 'Nothing packed and waiting for a vehicle',
+  'w7.packedAt': 'Packed {when}',
+  'w7.packedMore': 'Show older packs',
+  'w7.packedCapped': 'Newest {count} shown — build a sheet and the rest move up',
   'w7.createFailed': 'Could not build the sheet',
   'w7.waitingApproval': 'Waiting for the manager',
   'w7.waitingBody':

@@ -398,6 +398,7 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `billing.invoices.get` ✓, `billing.invoices.pdf` ✓, `billing.invoices.setEwayBill` ✓ (`billing` is mounted on warehouse-service
   in the in-flight slice). PDF renderer deferred.
 - **W7 Load sheet: build, crew blind count, manager confirm, challan print** — Calls: `warehouse.loadSheets.create/get/list` ✓,
+  `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
