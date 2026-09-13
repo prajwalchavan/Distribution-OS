@@ -29,7 +29,7 @@ import {
   type Db,
 } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
-import { asCaller, DESK, loadDocumentOr404, notFound } from './docint.internals.js'
+import { asCaller, DESK, DESK_WRITERS, loadDocumentOr404, notFound } from './docint.internals.js'
 import { reviewedOf, toCandidate, type CandidateRow } from './docint.mappers.js'
 import { linePath } from './pipeline/paths.js'
 import { readingOf, rematch, rememberSupplierAlias, type DocumentRow } from './pipeline/steps.js'
@@ -95,7 +95,7 @@ export class MatchesService {
   }
 
   async accept(input: AcceptIn): Promise<LineOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -144,7 +144,7 @@ export class MatchesService {
   }
 
   async reject(input: RejectIn): Promise<LineOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -202,7 +202,7 @@ export class MatchesService {
   }
 
   async choose(input: ChooseIn): Promise<LineOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -270,7 +270,7 @@ export class MatchesService {
 
   /** Re-run the cascade for every line with no chosen candidate (after `catalog.propose`). */
   async rerun(input: RerunIn): Promise<RerunOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

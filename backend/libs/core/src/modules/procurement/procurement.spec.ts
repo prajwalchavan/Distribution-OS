@@ -1,4 +1,13 @@
 import { sql } from 'drizzle-orm'
+import {
+  CancelSupplierInvoiceInput,
+  CreateSupplierInvoiceInput,
+  DisputeSupplierInvoiceInput,
+  MatchLineInput,
+  OpenGrnInput,
+  PostGrnInput,
+  UpsertPurchaseOrderInput,
+} from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
@@ -15,12 +24,14 @@ import {
   tenants,
   users,
   withTenant,
+  type TenantContext,
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { TenantCatalogModule } from '../tenant-catalog/index.js'
-import { ProcurementModule } from './index.js'
+import { GrnService, ProcurementModule, SupplierInvoiceService } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -632,6 +643,160 @@ describeDb('procurement (DATABASE_URL)', () => {
         })
       ).status,
     ).not.toBe(200)
+  })
+
+  it('DOS-037 refuses the accountant every supplier-bill, goods-receipt and purchase-order write at the gate and in the service, and still lets her read them', async () => {
+    // docs/23 §2 M4 (QA DOS-037): the owner or a manager books, matches, disputes and cancels a supplier bill,
+    // opens and posts its goods receipt and raises a purchase order; the gate counts; the accountant reads.
+    const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
+    const accountantCtx: TenantContext = { tenantId, actorId: ownerId, actorRole: 'accountant' }
+    const tally = async (): Promise<unknown> =>
+      (
+        await db.execute(
+          sql`select (select count(*)::int from supplier_invoices where tenant_id = ${tenantId}) as invoices,
+                     (select count(*)::int from grns where tenant_id = ${tenantId}) as grns,
+                     (select count(*)::int from purchase_orders where tenant_id = ${tenantId}) as orders,
+                     (select count(*)::int from stock_ledger where tenant_id = ${tenantId}) as ledger`,
+        )
+      ).rows[0]
+    const before = await tally()
+    const bill = {
+      ...invoice,
+      idempotencyKey: `inv-dos037-${run}`,
+      id: uuidv7(),
+      invoiceNo: `GK/${run}/DOS037`,
+      irn: undefined,
+      lines: invoice.lines.map((l) => ({ ...l, id: uuidv7() })),
+    }
+    const reason = { id: invoiceId, reason: 'DOS-037 probe' }
+    const grn = { id: uuidv7(), supplierInvoiceId: invoiceId, locationId: godown }
+    const order = {
+      id: uuidv7(),
+      supplierId,
+      lines: [{ variantId: variantA, qtyPcs: 90, ratePaise: 800 }],
+    }
+    const refused: [string, Record<string, unknown>][] = [
+      ['/procurement/supplier-invoices', bill],
+      [
+        `/procurement/supplier-invoices/${invoiceId}/lines/${lineA}/match`,
+        { idempotencyKey: `match-dos037-${run}`, variantId: variantA },
+      ],
+      [
+        `/procurement/supplier-invoices/${invoiceId}/dispute`,
+        { idempotencyKey: `dispute-dos037-${run}`, ...reason },
+      ],
+      [
+        `/procurement/supplier-invoices/${invoiceId}/cancel`,
+        { idempotencyKey: `cancel-dos037-${run}`, ...reason },
+      ],
+      ['/procurement/grns', { idempotencyKey: `grn-dos037-${run}`, ...grn }],
+      [`/procurement/grns/${grnId}/post`, { idempotencyKey: `post-dos037-${run}` }],
+      ['/procurement/purchase-orders', { idempotencyKey: `po-dos037-${run}`, ...order }],
+    ]
+    for (const [path, body] of refused) {
+      const res = await call<{ message: string }>(app, accountant, 'POST', path, body)
+      expect(res.status, `POST ${path}`).toBe(403)
+      expect(res.body.message, `POST ${path}`).toContain('the accountant role may not call')
+    }
+    expect(await tally()).toEqual(before)
+
+    // The handlers refuse her on their own: over HTTP the gate answers first, so call them directly.
+    const invoiceService = app.get(SupplierInvoiceService)
+    const grnService = app.get(GrnService)
+    const inService: [string, () => Promise<unknown>][] = [
+      [
+        'supplierInvoices.create',
+        () =>
+          invoiceService.create(
+            CreateSupplierInvoiceInput.parse({ ...bill, idempotencyKey: `svc-inv-dos037-${run}` }),
+          ),
+      ],
+      [
+        'supplierInvoices.createInTx',
+        () =>
+          withTenant(db, accountantCtx, (tx) =>
+            invoiceService.createInTx(
+              tx,
+              CreateSupplierInvoiceInput.parse({ ...bill, idempotencyKey: `svc-tx-dos037-${run}` }),
+            ),
+          ),
+      ],
+      [
+        'supplierInvoices.matchLine',
+        () =>
+          invoiceService.matchLine(
+            MatchLineInput.parse({
+              idempotencyKey: `svc-match-dos037-${run}`,
+              id: invoiceId,
+              lineId: lineA,
+              variantId: variantA,
+            }),
+          ),
+      ],
+      [
+        'supplierInvoices.dispute',
+        () =>
+          invoiceService.dispute(
+            DisputeSupplierInvoiceInput.parse({
+              idempotencyKey: `svc-dispute-dos037-${run}`,
+              ...reason,
+            }),
+          ),
+      ],
+      [
+        'supplierInvoices.cancel',
+        () =>
+          invoiceService.cancel(
+            CancelSupplierInvoiceInput.parse({
+              idempotencyKey: `svc-cancel-dos037-${run}`,
+              ...reason,
+            }),
+          ),
+      ],
+      [
+        'purchaseOrders.upsert',
+        () =>
+          invoiceService.upsertPurchaseOrder(
+            UpsertPurchaseOrderInput.parse({ idempotencyKey: `svc-po-dos037-${run}`, ...order }),
+          ),
+      ],
+      [
+        'grns.open',
+        () =>
+          grnService.open(OpenGrnInput.parse({ idempotencyKey: `svc-grn-dos037-${run}`, ...grn })),
+      ],
+      [
+        'grns.post',
+        () =>
+          grnService.post(
+            PostGrnInput.parse({ idempotencyKey: `svc-post-dos037-${run}`, id: grnId }),
+          ),
+      ],
+    ]
+    for (const [name, invoke] of inService) {
+      await expect(tenantStorage.run(accountantCtx, invoke), name).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      })
+    }
+    expect(await tally()).toEqual(before)
+
+    // She still reads every one of them.
+    for (const [path, query] of [
+      ['/procurement/supplier-invoices', {}],
+      [`/procurement/supplier-invoices/${invoiceId}`, {}],
+      ['/procurement/grns', {}],
+      [`/procurement/grns/${grnId}`, {}],
+      ['/procurement/discrepancies', { grnId }],
+      ['/procurement/purchase-orders', {}],
+    ] as const) {
+      expect((await call(app, accountant, 'GET', path, query)).status, `GET ${path}`).toBe(200)
+    }
+    // Control: the manager still raises a purchase order.
+    const raised = await call(app, manager, 'POST', '/procurement/purchase-orders', {
+      idempotencyKey: `po-manager-dos037-${run}`,
+      ...order,
+    })
+    expect(raised.status).toBe(200)
   })
 
   it('refuses requests without tenant context', async () => {

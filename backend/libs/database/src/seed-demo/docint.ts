@@ -650,7 +650,7 @@ export async function seedDocint(
       id: sid(key),
       tenantId,
       documentId: did(key),
-      reviewerId: people.accountant.id,
+      reviewerId: people.manager.id,
       baseExtractionId: ext,
       status: 'submitted',
       reviewed: reviewedOf(

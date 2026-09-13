@@ -28,11 +28,8 @@ import { SupplierInvoiceWithLinesSchema } from './procurement.js'
  *
  *   owner :3001      YES — the whole surface: capture, the review desk, the queue, the stats, approve
  *   manager :3002    YES — manager + accountant: the review desk (M3), the queue (M1), approve. The
- *                    accountant reviews and approves inbound invoices (brief §5 "the CA reviews inbound
- *                    invoices"; `procurement.supplierInvoices.create` is BACK_OFFICE for the same
- *                    reason) — approving a supplier's bill is bookkeeping, not one of the approvals the
- *                    founder took away from the accountant (docs/22 2026-09-05: prices, schemes, credit,
- *                    order approvals, settings)
+ *                    manager reviews, matches, rejects and approves; the accountant reads the queue, the
+ *                    reading and the candidates (docs/23 §2 M3, QA DOS-037)
  *   sales :3003      NO  — a rep never sees a supplier bill; it is a page full of purchase rates
  *   warehouse :3004  YES — CAPTURE AND STATUS ONLY (W2): `documents.create/pageUploadUrl/addPage/
  *                    verifyQr/submit/list/get/status/pageUrl`. Every extraction, match, review, queue,
@@ -52,7 +49,7 @@ import { SupplierInvoiceWithLinesSchema } from './procurement.js'
  *    ZERO rows of those six tables ("not even the gate staff"). So on the CAP surface a warehouse
  *    caller sees a document, its pages and its pipeline status, and `checkSummary` / `lock` /
  *    `latestExtractionId` come back NULL for it — the rows are invisible, not hidden by the mapper.
- *  - `documents.approve` is BACK_OFFICE: the draft it creates carries printed purchase rates and
+ *  - `documents.approve` is owner + manager (MANAGEMENT): the draft it creates carries printed purchase rates and
  *    becomes `tenant_product_costs` at `procurement.grns.post`. The brief's open question (docint §8
  *    q1, "may the gate approve?") was assumed NO. If the founder ever says yes, the switch is a tenant
  *    setting (`docint.warehouse_may_approve`, default off, to join `TENANT_SETTING_KEYS` in `@dos/db`)
