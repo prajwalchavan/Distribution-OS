@@ -79,7 +79,8 @@ export interface LeaveSteps {
   waiting: () => Promise<WaitingCounts>
   /** Upload what is queued; what still waits afterwards. */
   sendNow: () => Promise<WaitingCounts>
-  end: (options: { keepQueue: boolean }) => Promise<void>
+  /** What it kept (`EndResult`) is the device's to report; the order of leaving is the same either way. */
+  end: (options: { keepQueue: boolean }) => Promise<unknown>
   /** This hand's files at their other distributors: deleted where nothing waits in them. */
   sweep: () => Promise<unknown>
   signOut: () => Promise<void>

@@ -118,6 +118,32 @@ const BACKOFF_CEILING_MS = 60_000
 /** docs/27 §8: breadcrumbs are pruned locally after a week. */
 const GPS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * What every write answers once sign-out has begun (DOS-167, ruling (m)). A write refused here was never
+ * saved, so the sign-out cannot delete it, and the screen shows this sentence instead of "saved on this phone".
+ */
+export class SyncEngineEndedError extends Error {
+  readonly code = 'ended'
+
+  constructor() {
+    super(
+      'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+    )
+    this.name = 'SyncEngineEndedError'
+  }
+}
+
+/**
+ * What `end()` did with the file (DOS-167, ruling (m)): `kept` when it survives for this person — asked for,
+ * or because the count taken once the last write and pull had landed found something still waiting — and
+ * that count.
+ */
+export interface EndResult {
+  kept: boolean
+  pending: number
+  rejected: number
+}
+
 export interface SyncEngineOptions {
   transport: SyncTransport
   /** One id per install (docs/27 §4); the app already has it for `auth_sessions`. */
@@ -185,8 +211,15 @@ export class SyncEngine {
   private retryTimer: Timer | null = null
   private pollTimer: Timer | null = null
   private started = false
-  /** Set the moment `end()` begins (DOS-167): nothing new starts, and a later `stop()` is a no-op. */
+  /**
+   * Set the moment `end()` begins (DOS-167): every write is refused from then on (`SyncEngineEndedError`),
+   * nothing new starts, and a later `stop()` is a no-op.
+   */
   private ended = false
+  /** The one `end()`: a second call waits for the first rather than starting again. */
+  private ending: Promise<EndResult> | null = null
+  /** Writes that passed the gate and have not landed yet; `end()` waits for every one (ruling (m)). */
+  private readonly writes = new Set<Promise<void>>()
   private flushChain: Promise<void> = Promise.resolve()
   /** The open in `start()` and the pull in flight, so `end()` never drops a table under either. */
   private opening: Promise<void> = Promise.resolve()
@@ -278,7 +311,11 @@ export class SyncEngine {
    * its own state until it unmounts.
    */
   async wipe(options: { keepQueue?: boolean } = {}): Promise<void> {
-    const store = this.requireStore()
+    await this.dropReadSet(this.requireStore(), options)
+  }
+
+  /** `wipe` on the store in hand: what `end()` runs once it has refused new writes and they have all landed. */
+  private async dropReadSet(store: SyncStore, options: { keepQueue?: boolean }): Promise<void> {
     const dropped = await this.dataTablesIn(store)
     await dropDataTables(store, dropped)
     await store.exec(`DELETE FROM ${GPS_TABLE}`)
@@ -307,16 +344,26 @@ export class SyncEngine {
   /**
    * What the app's sign-out calls, BEFORE it clears the session (DOS-167; founder, 2026-09-13).
    *
-   * Nothing is dropped under work in flight: the engine stops starting anything, then waits for the
-   * open, the upload batch and the pull page that are already out — a pull page that committed after
-   * the drop would put a cursor back into the file, and on SQLite its rollback would undo the drop on
-   * the shared connection. Then the read set goes (`wipe`), the file is closed and, with nothing to
-   * keep, deleted. `keepQueue: true` leaves the file holding only this person's unsent writes and their
-   * refusals: the same person's next `start()` sends them before it re-snapshots, and anyone else's
-   * `start()` wipes them unread. The engine is finished either way; a later `stop()` does nothing.
+   * From the call on every write is refused with `SyncEngineEndedError` (ruling (m)): a write that was
+   * never saved is never deleted, and the screen says so instead of "saved on this phone". Nothing is
+   * dropped under work in flight: the engine stops starting anything, then waits for the open, the upload
+   * batch, the pull page and every write already in hand — a pull page that committed after the drop would
+   * put a cursor back into the file, and on SQLite its rollback would undo the drop on the shared
+   * connection. Then the file is COUNTED AGAIN: a write that was in hand at the tap, or landed between the
+   * tap's count and this call, waits in it now, and a file with anything waiting is kept for this person
+   * exactly as `keepQueue: true` keeps it, whatever was asked — `kept` in the result says so. Then the read
+   * set goes (`wipe`), the file is closed and, with nothing to keep, deleted. A kept file holds only this
+   * person's unsent writes and their refusals: the same person's next `start()` sends them before it
+   * re-snapshots, and anyone else's `start()` wipes them unread. The engine is finished either way; a later
+   * `stop()` does nothing, and a second `end()` waits for the first.
    */
-  async end(options: { keepQueue: boolean }): Promise<void> {
-    if (this.ended) return
+  end(options: { keepQueue: boolean }): Promise<EndResult> {
+    this.ending ??= this.endOnce(options)
+    return this.ending
+  }
+
+  private async endOnce(options: { keepQueue: boolean }): Promise<EndResult> {
+    // Before the first `await`: a write that begins from here on is refused (`requireStore`).
     this.ended = true
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
@@ -326,25 +373,35 @@ export class SyncEngine {
     await this.settled()
     const store = this.store
     try {
-      if (store === null) return
-      await this.wipe(options)
+      if (store === null) return { kept: false, pending: 0, rejected: 0 }
+      await this.refreshCounts()
+      const pending = this.pending
+      const rejected = this.rejected
+      const kept = options.keepQueue || pending + rejected > 0
+      await this.dropReadSet(store, { keepQueue: kept })
       await store.close()
-      if (!options.keepQueue) await store.destroy?.()
+      if (!kept) await store.destroy?.()
+      return { kept, pending, rejected }
     } finally {
       // Even when a step threw: the caller signs out regardless, and this engine never writes again.
       this.store = null
     }
   }
 
-  /** Until no open, no upload batch and no pull is in flight. Nothing new starts once `ended` is set. */
+  /**
+   * Until no open, no upload batch, no pull and no write in hand is in flight. Nothing new starts once
+   * `ended` is set, so one pass that finds the batch and the pull unchanged and no write left is the end.
+   */
   private async settled(): Promise<void> {
     await this.opening
     for (;;) {
       const flushing = this.flushChain
       const syncing = this.syncing
+      const writes = [...this.writes]
       await flushing.catch(() => {})
       await syncing
-      if (flushing === this.flushChain && syncing === this.syncing) return
+      await Promise.all(writes)
+      if (flushing === this.flushChain && syncing === this.syncing && this.writes.size === 0) return
     }
   }
 
@@ -792,6 +849,7 @@ export class SyncEngine {
    * visible but unqueued, or queued but invisible.
    */
   async enqueue(input: EnqueueInput): Promise<string> {
+    // The gate: once `end()` has begun this refuses, before anything is written (DOS-167, ruling (m)).
     const store = this.requireStore()
     const shape = this.shapes.get(input.table)
     if (!shape)
@@ -802,29 +860,31 @@ export class SyncEngine {
       throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
     const opId = input.opId ?? uuidv7()
     const createdAt = new Date(this.now()).toISOString()
-    await store.transaction(async (tx) => {
-      await tx.exec(
-        `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
-           (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
-        [
-          opId,
-          input.table,
-          input.id,
-          input.op,
-          input.data === undefined ? null : JSON.stringify(input.data),
-          input.baseUpdatedAt ?? null,
-          opId,
-          createdAt,
-        ],
-      )
-      await this.applyLocally(tx, shape, input)
+    return this.inHand(async () => {
+      await store.transaction(async (tx) => {
+        await tx.exec(
+          `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
+             (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
+          [
+            opId,
+            input.table,
+            input.id,
+            input.op,
+            input.data === undefined ? null : JSON.stringify(input.data),
+            input.baseUpdatedAt ?? null,
+            opId,
+            createdAt,
+          ],
+        )
+        await this.applyLocally(tx, shape, input)
+      })
+      await this.refreshCounts()
+      this.bus.emit([input.table, OUTBOX_CHANNEL])
+      this.emitStatus()
+      void this.flush()
+      return opId
     })
-    await this.refreshCounts()
-    this.bus.emit([input.table, OUTBOX_CHANNEL])
-    this.emitStatus()
-    void this.flush()
-    return opId
   }
 
   private async applyLocally(tx: SyncStore, shape: TableShape, input: EnqueueInput): Promise<void> {
@@ -1050,49 +1110,58 @@ export class SyncEngine {
 
   /** Send a rejected op again after the user fixed what was wrong. The `opId` is deliberately kept. */
   async retry(opId: string): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
-    const rows = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
-      [opId],
-    )
-    const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-    if (op === null) return
-    await store.exec(
-      `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
-      [opId],
-    )
-    await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
-    const shape = this.shapes.get(op.table)
-    if (shape) await this.setPending(store, shape, op.rowId, 'queued')
-    await this.refreshCounts()
-    this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
-    this.emitStatus()
-    void this.flush()
+    return this.inHand(async () => {
+      const rows = await store.query<Record<string, SqlValue>>(
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        [opId],
+      )
+      const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      if (op === null) return
+      await store.exec(
+        `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
+        [opId],
+      )
+      await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
+      const shape = this.shapes.get(op.table)
+      if (shape) await this.setPending(store, shape, op.rowId, 'queued')
+      await this.refreshCounts()
+      this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
+      this.emitStatus()
+      void this.flush()
+    })
   }
 
   /** Throwing a rejected write away. Only ever offered on a rejection, and it leaves an audit line. */
   async discard(opId: string): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
-    const rows = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
-      [opId],
-    )
-    const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-    const at = new Date(this.now()).toISOString()
-    /*
-     * A tray item does NOT always have an outbox row behind it: `pullErrors` brings back rejections
-     * the server still holds for this device after a reinstall or a cleared browser, and returning
-     * early on a missing op left those un-dismissable for ever.
-     */
-    await store.exec(`DELETE FROM ${OUTBOX_TABLE} WHERE op_id = ?`, [opId])
-    await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET discarded_at = ? WHERE op_id = ?`, [at, opId])
-    if (op !== null) {
-      const shape = this.shapes.get(op.table)
-      if (shape) await this.setPending(store, shape, op.rowId, null)
-    }
-    await this.refreshCounts()
-    this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
-    this.emitStatus()
+    return this.inHand(async () => {
+      const rows = await store.query<Record<string, SqlValue>>(
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        [opId],
+      )
+      const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      const at = new Date(this.now()).toISOString()
+      /*
+       * A tray item does NOT always have an outbox row behind it: `pullErrors` brings back rejections
+       * the server still holds for this device after a reinstall or a cleared browser, and returning
+       * early on a missing op left those un-dismissable for ever.
+       */
+      await store.exec(`DELETE FROM ${OUTBOX_TABLE} WHERE op_id = ?`, [opId])
+      await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET discarded_at = ? WHERE op_id = ?`, [
+        at,
+        opId,
+      ])
+      if (op !== null) {
+        const shape = this.shapes.get(op.table)
+        if (shape) await this.setPending(store, shape, op.rowId, null)
+      }
+      await this.refreshCounts()
+      this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
+      this.emitStatus()
+    })
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1190,14 +1259,17 @@ export class SyncEngine {
     accuracyM?: number
     speedMps?: number
   }): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun, like every other write.
     const store = this.requireStore()
-    const ts = point.at ?? new Date(this.now()).toISOString()
-    await store.exec(
-      `INSERT OR REPLACE INTO ${GPS_TABLE} (ts, trip_id, lat, lng, accuracy_m, speed_mps, posted) VALUES (?, ?, ?, ?, ?, ?, 0)`,
-      [ts, point.tripId, point.lat, point.lng, point.accuracyM ?? null, point.speedMps ?? null],
-    )
-    const cutoff = new Date(this.now() - GPS_RETENTION_MS).toISOString()
-    await store.exec(`DELETE FROM ${GPS_TABLE} WHERE posted = 1 AND ts < ?`, [cutoff])
+    return this.inHand(async () => {
+      const ts = point.at ?? new Date(this.now()).toISOString()
+      await store.exec(
+        `INSERT OR REPLACE INTO ${GPS_TABLE} (ts, trip_id, lat, lng, accuracy_m, speed_mps, posted) VALUES (?, ?, ?, ?, ?, ?, 0)`,
+        [ts, point.tripId, point.lat, point.lng, point.accuracyM ?? null, point.speedMps ?? null],
+      )
+      const cutoff = new Date(this.now() - GPS_RETENTION_MS).toISOString()
+      await store.exec(`DELETE FROM ${GPS_TABLE} WHERE posted = 1 AND ts < ?`, [cutoff])
+    })
   }
 
   /**
@@ -1238,9 +1310,34 @@ export class SyncEngine {
   // -------------------------------------------------------------------------------------------------------------
   // Plumbing
 
+  /**
+   * The store a write may use, and the gate every write passes first (DOS-167, ruling (m)): from the moment
+   * `end()` begins, and after it has finished, nothing more is saved on this phone and the person is told so
+   * in a sentence — never shown a write that the sign-out would then delete.
+   */
   private requireStore(): SyncStore {
+    if (this.ended) throw new SyncEngineEndedError()
     if (this.store === null) throw new Error('the sync engine has not started yet')
     return this.store
+  }
+
+  /**
+   * A write that passed the gate, held in `writes` from before its first `await` until it has landed and told
+   * the bus (DOS-167, ruling (m)). `end()` waits for every one, so a write begun a moment before the tap lands
+   * whole and is counted and kept, rather than having its tables dropped under its transaction.
+   */
+  private async inHand<T>(write: () => Promise<T>): Promise<T> {
+    let landed = (): void => {}
+    const held = new Promise<void>((resolve) => {
+      landed = resolve
+    })
+    this.writes.add(held)
+    try {
+      return await write()
+    } finally {
+      this.writes.delete(held)
+      landed()
+    }
   }
 
   /**

@@ -203,7 +203,8 @@ scripts, strict CSP on the hosted site). The local database is unencrypted for t
 contains no cost or margin column by construction (the manifest strips them server-side). A device file belongs to one person in
 one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out ends the engine before the session is
 cleared: with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
-other distributors are deleted when they hold nothing unsent. With anything queued or refused the app names the count and the
+other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
+write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep them here": the file keeps only that queue and its refusals, for
 that person only, and they go out the next time that person signs in on this phone, before the re-snapshot. Discarding is never
 offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
@@ -227,7 +228,10 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     wiped before any table is published and its queue is never uploaded; the same person keeps rows, cursor and queue.
 13. `end()` at sign-out: with nothing queued it drops the read set, tells every table and deletes the file; `keepQueue` keeps the
     queue and the tray for the same person only, who sends it before the re-snapshot, while anyone else's start wipes it; `end()`
-    under a pull page and an upload batch in flight waits for both and lets nothing land after the drop.
+    under a pull page and an upload batch in flight waits for both and lets nothing land after the drop. A write that begins once
+    `end()` has begun is refused with `SyncEngineEndedError`, never saved and so never deleted; a write already in hand when `end()`
+    begins, or landed between the tap's count and `end()`, is finished and counted, and the file is kept for that person, who sends
+    it at the next sign-in, while anyone else's start wipes it.
 14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
 15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
     only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through
@@ -244,6 +248,7 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 | Server rolled forward (new manifest) | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot) |
 | Token expired while offline | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue |
 | Another person signs in on this phone | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167) |
+| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167) |
 | Storage full | writes fail loudly ("Phone storage is full"); nothing is silently dropped |
 
 ## 15. What this does not do (yet)

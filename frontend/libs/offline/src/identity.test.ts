@@ -502,7 +502,7 @@ describe('DOS-167 sign-out ends the engine', () => {
       setTimeout(() => {
         openPull()
       }, 10)
-      await expect(ending).resolves.toBeUndefined()
+      await expect(ending).resolves.toEqual({ kept: keepQueue, pending: 0, rejected: 0 })
       await expect(pulling).resolves.toBeUndefined()
       await sleep(30)
 
@@ -518,6 +518,231 @@ describe('DOS-167 sign-out ends the engine', () => {
         await expect(readAllState(store)).rejects.toThrow(/no such table/)
       }
     }
+  })
+
+  /*
+   * Ruling (m). The one-tap sign-out counted nothing waiting and called end(); end() then waited for a pull already
+   * in the air, and an order taken in that window landed in the outbox and was deleted with the file (verifier probe,
+   * 2026-09-13). From the tap on, a write is REFUSED with a sentence: never saved, so never deleted.
+   */
+  it('DOS-167 a write that begins after end() has begun is refused and never deleted', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const base = server.transport()
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const engine = engineAs(RAHUL, store, {
+      ...base,
+      pull: async (input) => {
+        if (pullGate !== null) await pullGate
+        return base.pull(input)
+      },
+    })
+    await engine.start()
+
+    // The poll's pull hangs in a dead spot; Rahul taps Sign out with nothing waiting.
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    server.queuePull({ changes: [], cursor: 'c2' })
+    const pulling = engine.sync('poll')
+    await sleep(0)
+    const counted = await engine.waiting()
+    const ending = engine.end({ keepQueue: false })
+
+    // Before the sign-out has finished he submits an order for Chavan Kirana, and the rest of the writes try too.
+    const outcome = (write: Promise<unknown>): Promise<unknown> =>
+      write.then(
+        (value) => ({ resolved: value ?? null }),
+        (error: unknown) => {
+          const { name, code, message } = error as {
+            name?: unknown
+            code?: unknown
+            message?: unknown
+          }
+          return { name, code, message }
+        },
+      )
+    const whileEnding = {
+      enqueue: await outcome(
+        engine.enqueue({
+          table: 'sales_orders',
+          id: 'o-late',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+        }),
+      ),
+      recordGpsPoint: await outcome(
+        engine.recordGpsPoint({ tripId: 't-1', lat: 19.24, lng: 73.13 }),
+      ),
+      retry: await outcome(engine.retry('x')),
+      discard: await outcome(engine.discard('x')),
+    }
+    const pendingWhileEnding = engine.status().pending
+
+    openPull()
+    const ended = await ending
+    await pulling
+    const afterEnd = await outcome(
+      engine.enqueue({ table: 'sales_orders', id: 'o-later', op: 'PUT', data: {} }),
+    )
+
+    const REFUSED = {
+      name: 'SyncEngineEndedError',
+      code: 'ended',
+      message:
+        'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+    }
+    expect({
+      counted,
+      whileEnding,
+      pendingWhileEnding,
+      ended,
+      uploaded: server.uploadCalls,
+      afterEnd,
+    }).toEqual({
+      counted: { pending: 0, rejected: 0 },
+      whileEnding: { enqueue: REFUSED, recordGpsPoint: REFUSED, retry: REFUSED, discard: REFUSED },
+      pendingWhileEnding: 0,
+      ended: { kept: false, pending: 0, rejected: 0 },
+      uploaded: [],
+      // Not "has not started yet": the same sentence once the sign-out is over.
+      afterEnd: REFUSED,
+    })
+    // Nothing was kept, so the file is gone.
+    await expect(store.query(`SELECT * FROM ${OUTBOX_TABLE}`)).rejects.toThrow(/no such table/)
+  })
+
+  it('DOS-167 a write in hand when end() begins is finished, counted and kept for that person', async () => {
+    /**
+     * Rahul submits an order; it is inside its transaction (a slow disk) when he taps Sign out with nothing waiting,
+     * and the sign-out is given every chance to run ahead of it.
+     */
+    async function inHandAtTheTap(): Promise<{
+      store: SyncStore
+      server: FakeServer
+      order: string[]
+      written: { opId: string } | { error: string }
+      ended: unknown
+    }> {
+      const inner = createMemoryStore()
+      let door: Promise<void> | null = null
+      const store: SyncStore = {
+        persistent: inner.persistent,
+        kind: inner.kind,
+        exec: (sql, params) => inner.exec(sql, params),
+        query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> =>
+          inner.query<T>(sql, params),
+        transaction: async (fn) => {
+          if (door !== null) await door
+          return inner.transaction(fn)
+        },
+        close: () => inner.close(),
+        destroy: () => inner.destroy?.() ?? Promise.resolve(),
+      }
+      const server = new FakeServer(TABLES)
+      const order: string[] = []
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+      const rahul = engineAs(RAHUL, store, recording(server, order))
+      await rahul.start()
+
+      let openDoor = (): void => {}
+      door = new Promise<void>((resolve) => {
+        openDoor = resolve
+      })
+      const writing = rahul.enqueue({
+        table: 'sales_orders',
+        id: 'o-in-hand',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id },
+      })
+      await sleep(0)
+      const ending = rahul.end({ keepQueue: false })
+      await sleep(0)
+      door = null
+      openDoor()
+      const written = await writing.then(
+        (opId) => ({ opId }),
+        (error: unknown) => ({ error: String(error) }),
+      )
+      const ended = await ending
+      return { store, server, order, written, ended }
+    }
+
+    const kept = await inHandAtTheTap()
+    const opId = 'opId' in kept.written ? kept.written.opId : null
+    expect({ written: opId === null ? kept.written : 'landed', ended: kept.ended }).toEqual({
+      written: 'landed',
+      ended: { kept: true, pending: 1, rejected: 0 },
+    })
+    // The order is in the file, for Rahul; his read set is not.
+    expect(
+      await kept.store.query<{ op_id: string; status: string }>(
+        `SELECT op_id, status FROM ${OUTBOX_TABLE}`,
+      ),
+    ).toEqual([{ op_id: opId, status: 'queued' }])
+    await expect(kept.store.query('SELECT * FROM "retailers"')).rejects.toThrow(/no such table/)
+    expect(await readState(kept.store, 'userId')).toBe(RAHUL.userId)
+    expect(await readState(kept.store, 'cursor')).toBeNull()
+
+    // Rahul signs in again on this phone: the order goes out first, then his snapshot comes down.
+    const mark = kept.order.length
+    kept.server.pulls = []
+    kept.server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c2',
+    })
+    const back = engineAs(RAHUL, kept.store, recording(kept.server, kept.order))
+    await back.start()
+    expect(kept.order.slice(mark)).toEqual(['manifest', 'upload', 'pull'])
+    expect(kept.server.uploadCalls.at(-1)?.ops.map((op) => op.opId)).toEqual([opId])
+    await back.stop()
+
+    // Instead, Amit signs in on that phone: nothing of Rahul's is sent under his token.
+    const other = await inHandAtTheTap()
+    const uploadsBefore = other.server.uploadCalls.length
+    const amit = engineAs(AMIT, other.store, other.server.transport())
+    await amit.start()
+    await amit.flush()
+    expect(other.server.uploadCalls).toHaveLength(uploadsBefore)
+    expect(await amit.outbox()).toEqual([])
+    await amit.stop()
+
+    // A moment earlier: the order landed between the tap's count and end(), and the upload failed in the dead spot.
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const rahul = engineAs(RAHUL, store, server.transport())
+    await rahul.start()
+    server.offline = true
+    const counted = await rahul.waiting()
+    const landed = await rahul.enqueue({
+      table: 'sales_orders',
+      id: 'o-landed',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await rahul.flush()
+    const ended = await rahul.end({ keepQueue: false })
+    expect({ counted, ended }).toEqual({
+      counted: { pending: 0, rejected: 0 },
+      ended: { kept: true, pending: 1, rejected: 0 },
+    })
+    expect(
+      await store.query<{ op_id: string; status: string }>(
+        `SELECT op_id, status FROM ${OUTBOX_TABLE}`,
+      ),
+    ).toEqual([{ op_id: landed, status: 'queued' }])
   })
 })
 

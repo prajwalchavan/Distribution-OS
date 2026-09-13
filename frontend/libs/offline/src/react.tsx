@@ -18,7 +18,13 @@ import {
 } from 'react'
 
 import { OUTBOX_CHANNEL, ERRORS_CHANNEL } from './bus.js'
-import { legacyStoreName, storeNameFor, SyncEngine, type SyncEngineOptions } from './engine.js'
+import {
+  legacyStoreName,
+  storeNameFor,
+  SyncEngine,
+  type EndResult,
+  type SyncEngineOptions,
+} from './engine.js'
 import { transportFromApi, type SyncApiLike } from './transport.js'
 import type {
   EnqueueInput,
@@ -265,9 +271,11 @@ export interface LeaveSession {
   sendNow: () => Promise<{ pending: number; rejected: number }>
   /**
    * End the engine BEFORE the session is cleared: `keepQueue: false` deletes this person's file,
-   * `keepQueue: true` keeps the queue and the tray in it and drops everything else.
+   * `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the
+   * engine refuses every new write; a write already in hand lands first, and when anything waits once it
+   * has, the file is kept for this person whatever was asked. `kept` says which (DOS-167, ruling (m)).
    */
-  end: (options: { keepQueue: boolean }) => Promise<void>
+  end: (options: { keepQueue: boolean }) => Promise<EndResult>
 }
 
 /**
@@ -287,9 +295,9 @@ export function useLeaveSession(): LeaveSession {
     return engine.waiting()
   }, [engine])
   const end = useCallback(
-    async (options: { keepQueue: boolean }): Promise<void> => {
-      if (engine === null) return
-      await engine.end(options)
+    async (options: { keepQueue: boolean }): Promise<EndResult> => {
+      if (engine === null) return { kept: false, pending: 0, rejected: 0 }
+      return engine.end(options)
     },
     [engine],
   )

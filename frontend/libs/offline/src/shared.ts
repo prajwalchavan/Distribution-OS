@@ -10,9 +10,11 @@
  */
 export {
   SyncEngine,
+  SyncEngineEndedError,
   CLIENT_SYNC_PROTOCOL,
   legacyStoreName,
   storeNameFor,
+  type EndResult,
   type SyncEngineOptions,
 } from './engine.js'
 export { transportFromApi, type SyncApiLike } from './transport.js'
