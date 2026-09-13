@@ -452,9 +452,14 @@ export default function OrderEntry(): React.JSX.Element {
                           onChange={(pieces) => {
                             setQty(line.variantId, pieces, 'case', caseSize)
                           }}
-                          onOpenPieces={() => {
-                            setQty(line.variantId, line.qtyPcs + 1, 'piece', caseSize)
-                          }}
+                          /*
+                           * DOS-085: the pad itself — typing an exact count, a piece-minus, and
+                           * committing through `onChange` — now lives in the kit's own `QtyStepper`
+                           * (frontend/libs/ui/src/{web,native}/money.tsx), so every caller gets it
+                           * for free. This callback is only the opt-in flag that makes the "Pieces"
+                           * button appear; it used to add exactly one piece per tap and never go down.
+                           */
+                          onOpenPieces={() => {}}
                         />
                         <Row gap={2} wrap>
                           <Button

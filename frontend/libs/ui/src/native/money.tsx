@@ -23,7 +23,17 @@ import {
   toEditableRupees,
   type MoneyPadKey,
 } from '../money.js'
-import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
+import {
+  availableLine,
+  caseLine,
+  caseStepNeedsConfirm,
+  formatCount,
+  parsePieces,
+  qtyState,
+  splitQty,
+  stepByCase,
+  stepPiece,
+} from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
   gap,
@@ -43,7 +53,8 @@ import type {
   RupeeInputProps,
 } from '../types.js'
 import { Txt, typeStyle, useTypeStyle } from './base.js'
-import { Button } from './controls.js'
+import { Button, TextInput } from './controls.js'
+import { Dialog, Sheet } from './feedback.js'
 
 const FIELD_SIZE: Record<MoneySize, TypeToken> = {
   hero: typeField.hero,
@@ -465,6 +476,18 @@ export function QtyStepper({
   const q = splitQty(pieces, caseSize)
   const inactive = state === 'disabled'
 
+  /*
+   * DOS-085: the loose-pieces pad and the "one case less at zero" confirm live HERE, in the kit, so
+   * every `QtyStepper` caller gets them the moment it opts in — a manager credit note, a delivery van
+   * sale, a retailer's own order, not just this screen. `onOpenPieces` stays the opt-in flag ("this
+   * stepper offers pieces entry") and an optional notification; the pad reads and writes through the
+   * stepper's own `pieces` / `onChange`, exactly like the case buttons — no new prop.
+   */
+  const [piecesOpen, setPiecesOpen] = useState(false)
+  const [piecesText, setPiecesText] = useState(() => String(pieces))
+  const [confirmZero, setConfirmZero] = useState(false)
+  const parsedPieces = parsePieces(piecesText)
+
   const stepper = (
     direction: 1 | -1,
     glyph: string,
@@ -476,6 +499,15 @@ export function QtyStepper({
       accessibilityLabel={label}
       disabled={off}
       onPress={() => {
+        /*
+         * "One case less" at zero whole cases would silently wipe whatever loose pieces sit there
+         * (18 pc of a 24-pc case -> 0) and remove the whole line — the rep meant to drop a case, not
+         * the line. A genuine whole-case decrement still needs no asking (`caseStepNeedsConfirm`).
+         */
+        if (caseStepNeedsConfirm(pieces, direction, caseSize)) {
+          setConfirmZero(true)
+          return
+        }
         onChange(stepByCase(pieces, direction, caseSize))
       }}
       style={{
@@ -517,7 +549,11 @@ export function QtyStepper({
         {onOpenPieces ? (
           <Pressable
             accessibilityRole="button"
-            onPress={onOpenPieces}
+            onPress={() => {
+              setPiecesText(String(pieces))
+              setPiecesOpen(true)
+              onOpenPieces()
+            }}
             style={{
               height,
               justifyContent: 'center',
@@ -570,6 +606,77 @@ export function QtyStepper({
           </Txt>
         </View>
       ) : null}
+
+      {/* DOS-085: type an exact count ("18"), or nudge it a single piece at a time — never only +1. */}
+      <Sheet
+        open={piecesOpen}
+        onClose={() => {
+          setPiecesOpen(false)
+        }}
+        title={theme.t('qty.piecesTitle')}
+        testID={testID ? `${testID}-pieces-sheet` : undefined}
+      >
+        <View style={{ gap: space[4] }}>
+          <TextInput
+            testID={testID ? `${testID}-pieces-input` : undefined}
+            label={theme.t('qty.piecesLabel')}
+            value={piecesText}
+            onChange={setPiecesText}
+            keyboard="decimal"
+            autoFocus
+            error={
+              piecesText.trim() !== '' && !parsedPieces.ok
+                ? theme.t('qty.piecesInvalid')
+                : undefined
+            }
+          />
+          <View style={{ flexDirection: 'row', gap: space[3] }}>
+            <Button
+              label={theme.t('qty.pieceLess')}
+              variant="secondary"
+              disabled={!parsedPieces.ok || parsedPieces.pieces <= 0}
+              onPress={() => {
+                if (parsedPieces.ok) setPiecesText(String(stepPiece(parsedPieces.pieces, -1)))
+              }}
+            />
+            <Button
+              label={theme.t('qty.pieceMore')}
+              variant="secondary"
+              onPress={() => {
+                if (parsedPieces.ok) setPiecesText(String(stepPiece(parsedPieces.pieces, 1)))
+              }}
+            />
+          </View>
+          <Button
+            testID={testID ? `${testID}-pieces-set` : undefined}
+            variant="primary"
+            label={theme.t('qty.piecesSet')}
+            disabled={!parsedPieces.ok}
+            onPress={() => {
+              if (!parsedPieces.ok) return
+              onChange(parsedPieces.pieces)
+              setPiecesOpen(false)
+            }}
+          />
+        </View>
+      </Sheet>
+
+      {/* DOS-085: "one case less" at zero whole cases asks before it wipes the loose pieces. */}
+      <Dialog
+        open={confirmZero}
+        onClose={() => {
+          setConfirmZero(false)
+        }}
+        title={theme.t('qty.removeTitle')}
+        body={theme.t('qty.removeBody', { pieces: q.pieces })}
+        confirmLabel={theme.t('qty.remove')}
+        destructive
+        onConfirm={() => {
+          onChange(0)
+          setConfirmZero(false)
+        }}
+        testID={testID ? `${testID}-remove-confirm` : undefined}
+      />
     </View>
   )
 }
