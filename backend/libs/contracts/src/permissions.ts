@@ -633,9 +633,10 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
   // Five populations, one new tuple:
   //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
-  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, depart, add a stop.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop.
   //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
-  //    consent, and the check-in (`trips.return`).
+  //    consent, the departure (`trips.depart`: the crew or the desk, never the godown, QA DOS-043) and
+  //    the check-in (`trips.return`).
   //  * MONEY_COLLECTORS is the field's ONLY money path (docs/17 §D4): `collections.record` wraps
   //    `ReceivablesService.recordReceipt`, so the same four people who may take a receipt take it at
   //    the door — the salesperson is in no row of this block. The same four keep the trip's cash story:
@@ -659,7 +660,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.list': STOCK_VIEWERS,
   'delivery.trips.get': STOCK_VIEWERS,
   'delivery.trips.startLoading': TRIP_PLANNERS,
-  'delivery.trips.depart': TRIP_PLANNERS,
+  'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,
   'delivery.trips.cancel': PIN_HOLDERS,
   'delivery.trips.settlementPreview': MONEY_COLLECTORS,

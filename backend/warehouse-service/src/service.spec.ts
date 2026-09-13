@@ -87,6 +87,35 @@ describe('warehouse-service', () => {
       expect(allowed.json<{ code?: string }>().code).toBe('UNAUTHORIZED')
     }
   })
+
+  it('DOS-043: a warehouse token is refused at the gate on POST /delivery/trips/{id}/depart and still reaches start-loading', async () => {
+    const headers = {
+      ...(await bearer({ tenantId, actorId, role: 'warehouse' })),
+      'content-type': 'application/json',
+    }
+    const trip = '00000000-0000-7000-8000-0000000000aa'
+    const depart = await app.inject({
+      method: 'POST',
+      url: `/delivery/trips/${trip}/depart`,
+      headers,
+      payload: { idempotencyKey: 'dos-043-depart' },
+    })
+    expect(depart.statusCode).toBe(403)
+    expect(depart.json<{ message: string }>().message).toBe(
+      'the warehouse role may not call POST /delivery/trips/:id/depart',
+    )
+    // The godown still puts a trip into loading: the gate lets it through to the handler.
+    const loading = await app.inject({
+      method: 'POST',
+      url: `/delivery/trips/${trip}/start-loading`,
+      headers,
+      payload: { idempotencyKey: 'dos-043-start-loading' },
+    })
+    const refusedAtGate =
+      loading.statusCode === 403 &&
+      (loading.json<{ message?: string }>().message ?? '').includes('may not call')
+    expect(refusedAtGate).toBe(false)
+  })
 })
 
 describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))

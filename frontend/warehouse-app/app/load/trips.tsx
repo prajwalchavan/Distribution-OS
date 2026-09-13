@@ -1,19 +1,20 @@
 /**
  * W10 — trips, from the godown's side (docs/23 §4.1).
  *
- * `TRIP_PLANNERS` in `permissions.ts` is owner, manager, warehouse, delivery: the godown may put a
- * trip into loading and send it off, because those are the two moments a vehicle is standing on the
- * dock in front of the person holding this phone. It may NOT create the round, cancel it, settle it
- * or see a rupee of its collections — `settlementPreview` and `collections.*` are MONEY_COLLECTORS,
- * and a loader is not one.
+ * `TRIP_PLANNERS` in `permissions.ts` is owner, manager, warehouse, delivery: the godown may create a
+ * trip, add its stops and put it into loading, because the vehicle is standing on the dock in front of
+ * the person holding this phone. "Start loading" asks first; the load sheet is then built and counted
+ * out on W7.
  *
- * The order on a trip that the godown has already dispatched through a confirmed load sheet is a
- * no-op at depart (coordination §4 item 4), which is why sending a vehicle off from here is safe even
- * when W7 has already checked it out.
+ * The godown never sends the vehicle off (QA DOS-043): `trips.depart` is DOORSTEP, the crew's step on D2
+ * in the delivery app (consent, odometer, opening cash), and the server refuses it while any load sheet
+ * of the trip is still a draft. Nor does the godown cancel or settle a trip, or see a rupee of its
+ * collections — `settlementPreview` and `collections.*` are MONEY_COLLECTORS, and a loader is not one.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
   Button,
+  Dialog,
   Group,
   ListRow,
   Row,
@@ -25,6 +26,7 @@ import {
   useStrings,
 } from '@dos/ui'
 import { haptics } from '@dos/ui/platform'
+import { useState } from 'react'
 
 import { shortDate } from '../../src/lib/dates'
 import { Async, Panel, PageTabs, workFamily } from '../../src/lib/ui'
@@ -35,6 +37,8 @@ export default function Trips(): React.JSX.Element {
   const colors = useColors()
   const { session } = useSession()
   const signedIn = session !== null
+  /** The trip whose "Start loading" is waiting for the loader's yes. */
+  const [asking, setAsking] = useState<string | null>(null)
 
   const trips = useQuery(
     ['trips', 'open'],
@@ -48,28 +52,20 @@ export default function Trips(): React.JSX.Element {
     {
       invalidates: [['trips']],
       onSuccess: () => {
+        setAsking(null)
         haptics.success()
       },
       onError: () => {
-        haptics.error()
-      },
-    },
-  )
-  const depart = useMutation(
-    (input: { id: string }, meta) =>
-      api.api.delivery.trips.depart({ id: input.id, idempotencyKey: meta.idempotencyKey }),
-    {
-      invalidates: [['trips']],
-      onSuccess: () => {
-        haptics.success()
-      },
-      onError: () => {
+        // A refusal closes the dialog, so the server's sentence under the list is what the loader reads.
+        setAsking(null)
         haptics.error()
       },
     },
   )
 
-  const error = startLoading.error ?? depart.error
+  const error = startLoading.error
+  const askingTrip =
+    asking === null ? undefined : (trips.data?.items ?? []).find((trip) => trip.id === asking)
 
   return (
     <Screen title={t('w10.title')} context={session?.tenant.displayName} testID="w10-screen">
@@ -113,21 +109,20 @@ export default function Trips(): React.JSX.Element {
                         variant="primary"
                         loading={startLoading.status === 'pending'}
                         onPress={() => {
-                          startLoading.mutate({ id: trip.id })
+                          setAsking(trip.id)
                         }}
                         testID={`w10-load-${trip.id}`}
                       />
                     ) : null}
                     {trip.state === 'loading' ? (
-                      <Button
-                        label={t('w10.depart')}
-                        variant="primary"
-                        loading={depart.status === 'pending'}
-                        onPress={() => {
-                          depart.mutate({ id: trip.id })
-                        }}
-                        testID={`w10-depart-${trip.id}`}
-                      />
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.secondary}
+                        testID={`w10-driver-departs-${trip.id}`}
+                      >
+                        {t('w10.driverDeparts')}
+                      </Txt>
                     ) : null}
                   </Row>
                 </Stack>
@@ -146,6 +141,27 @@ export default function Trips(): React.JSX.Element {
           <ListRow primary={t('w9.settlementIsDesk')} state="disabled" />
         </Group>
       </Stack>
+
+      <Dialog
+        open={askingTrip !== undefined}
+        onClose={() => {
+          setAsking(null)
+        }}
+        title={t('w10.confirmTitle', {
+          trip: askingTrip === undefined ? '' : (askingTrip.tripNo ?? askingTrip.id.slice(0, 8)),
+        })}
+        body={t('w10.confirmBody', {
+          vehicle: askingTrip?.vehicleRegNo ?? '',
+          date: shortDate(askingTrip?.tripDate),
+          stops: askingTrip?.plannedStops ?? 0,
+        })}
+        confirmLabel={t('w10.startLoading')}
+        busy={startLoading.status === 'pending'}
+        onConfirm={() => {
+          if (askingTrip !== undefined) startLoading.mutate({ id: askingTrip.id })
+        }}
+        testID="w10-dialog"
+      />
     </Screen>
   )
 }

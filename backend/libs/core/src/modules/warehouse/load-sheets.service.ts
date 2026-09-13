@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, lt, lte, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApproveLoadSheetInput,
@@ -606,9 +606,9 @@ export class LoadSheetsService {
   // what delivery imports (coordination §4)
 
   /**
-   * The confirmed loads of a trip — read-only, and the ONLY thing delivery asks the warehouse. It is
-   * how `delivery.trips.depart` answers "is the load actually out of the godown" without reading
-   * `load_sheets` itself, and where the crew's van stock comes from.
+   * The confirmed loads of a trip — read-only, and one of the two things delivery asks the warehouse
+   * (the other is `draftsForTrip`). It is how the trip answers "is the load actually out of the godown"
+   * without delivery reading `load_sheets` itself, and where the crew's van stock comes from.
    */
   async confirmedForTrip(tx: Db, tripId: string): Promise<ConfirmedLoad[]> {
     const { tenantId } = currentTenant()
@@ -638,6 +638,39 @@ export class LoadSheetsService {
       ewbNo: r.ewbNo,
       confirmedAt: r.confirmedAt ? r.confirmedAt.toISOString() : null,
     }))
+  }
+
+  /**
+   * The draft load sheets that still hold a trip back — read-only, asked by `delivery.trips.depart`
+   * (QA DOS-043): a sheet linked to the trip by `trip_id`, OR one carrying an order planned on one of the
+   * trip's stops. The second half matters because a sheet is built for a VEHICLE and the warehouse app
+   * may leave `trip_id` empty (DOS-137). Delivery passes the order ids of its own planned deliveries, so
+   * neither module reads the other's tables. A confirmed or cancelled sheet never holds a trip back.
+   */
+  async draftsForTrip(tx: Db, tripId: string, orderIds: readonly string[]): Promise<string[]> {
+    const { tenantId } = currentTenant()
+    const linked = eq(loadSheets.tripId, tripId)
+    const rows = await tx
+      .select({ id: loadSheets.id })
+      .from(loadSheets)
+      .where(
+        and(
+          eq(loadSheets.tenantId, tenantId),
+          eq(loadSheets.status, 'draft'),
+          orderIds.length === 0
+            ? linked
+            : or(
+                linked,
+                sql`exists (select 1 from jsonb_array_elements_text(${loadSheets.orderIds}) o
+                             where o.value in (${sql.join(
+                               orderIds.map((id) => sql`${id}`),
+                               sql`, `,
+                             )}))`,
+              ),
+        ),
+      )
+      .orderBy(loadSheets.id)
+    return rows.map((r) => r.id)
   }
 
   // -------------------------------------------------------------------------------------------------------------

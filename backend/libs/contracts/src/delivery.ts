@@ -29,7 +29,8 @@ import { AddressSchema, PaymentTermsSchema } from './retailers.js'
  * through `InventoryService`, every order state through `OrdersService`, the van-sale bill through
  * `BillingService.issueFromLocation` and the doorstep credit note through
  * `CreditNotesService.raiseForDelivery` (coordination §4). It never reads `load_sheets`: "is the load
- * out of the godown" is `LoadSheetsService.confirmedForTrip`.
+ * out of the godown" is `LoadSheetsService.confirmedForTrip`, and "does a load sheet still hold this
+ * trip back" is `LoadSheetsService.draftsForTrip`.
  *
  * WHICH SERVICES MOUNT `delivery` (docs/plans/00-coordination.md §6 table):
  *
@@ -722,11 +723,13 @@ export const StartLoadingInput = MutationBase.extend({
 export const StartLoadingOutput = TripItemOutput
 
 /**
- * `tripMachine.next(state, 'depart')` → `active`. Needs a granted `location_consents` row for the driver
- * (403 `gps_consent_missing`); a denied OS permission on the phone never blocks it. 409 when the trip has
- * no stops and van sales are off. Orders on the trip that the godown has NOT dispatched through a
- * confirmed load sheet are dispatched here; an already-dispatched order is a no-op (coordination §4
- * item 4).
+ * `tripMachine.next(state, 'depart')` → `active`. The crew and the desk depart, never the godown (QA
+ * DOS-043). Needs a granted `location_consents` row for the driver (403 `gps_consent_missing`); a denied
+ * OS permission on the phone never blocks it. 409 when the trip has no stops and van sales are off. 409
+ * `load_sheet_not_confirmed` (`data.loadSheetIds`) while any load sheet of the trip is still a draft: one
+ * linked to the trip, or one carrying a bill planned on one of its stops; a trip with no load sheet
+ * departs. Orders on the trip that the godown has NOT dispatched through a confirmed load sheet are
+ * dispatched here; an already-dispatched order is a no-op (coordination §4 item 4).
  */
 export const DepartTripInput = MutationBase.extend({
   id: IdSchema,
@@ -1333,7 +1336,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/depart',
-        summary: "Start the trip: loading → active (needs the driver's location consent)",
+        summary:
+          "Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet)",
       })
       .input(DepartTripInput)
       .output(DepartTripOutput),

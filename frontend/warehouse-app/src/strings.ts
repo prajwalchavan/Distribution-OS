@@ -419,8 +419,11 @@ export const strings = {
   'w10.startLoading': 'Start loading',
   'w10.startFailed': 'Could not start loading',
   'w10.loading': 'Loading',
-  'w10.depart': 'Send it off',
-  'w10.departFailed': 'Could not send it off',
+  'w10.confirmTitle': 'Start loading {trip}?',
+  'w10.confirmBody':
+    '{vehicle} · {date} · {stops} stops. The trip moves to loading so its load sheet can be built and counted out.',
+  'w10.driverDeparts':
+    'The driver starts the trip from the delivery app once the load sheet is counted out.',
 
   // ---------------------------------------------------------------- W11 reservations
   'w11.title': 'Held for orders',

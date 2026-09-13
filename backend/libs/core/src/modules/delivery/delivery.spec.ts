@@ -1964,4 +1964,154 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(list.body.items).toHaveLength(0)
     expect((await call(app, stranger, 'GET', '/delivery/vehicles')).body).toEqual({ items: [] })
   })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-043: the godown loads, the crew departs, and never past a load sheet that is still a draft
+
+  it('DOS-043: the godown starts loading but cannot send a trip off, nobody departs past a draft load sheet, and both moves are audited', async () => {
+    // Tomorrow, so the driver's own trip of today never clashes (the busy check is per trip date). The
+    // bill is packed inside this test, not in a hook, so no earlier test sees one more open bill.
+    const tomorrow = new Date(Date.parse(today) + 86_400_000).toISOString().slice(0, 10)
+    const trip3 = uuidv7()
+    const bill = await billedOrder(retailerB, variantA, 'dos043')
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos043-trip-${run}`,
+      id: trip3,
+      tripDate: tomorrow,
+      vehicleId,
+      driverId,
+      openingCashPaise: 0,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerB, invoiceIds: [bill.invoiceId] }],
+    })
+    expect(created.status).toBe(200)
+    expect(created.body.item.state).toBe('planned')
+
+    const auditRows = async (action: string) =>
+      (
+        await db.execute(
+          sql`select actor_id, actor_role, after from audit_log
+               where tenant_id = ${tenantId} and entity_type = 'trip' and entity_id = ${trip3}
+                 and action = ${action}
+               order by occurred_at, id`,
+        )
+      ).rows as { actor_id: string; actor_role: string; after: Record<string, unknown> }[]
+    const stateOf = async () =>
+      (await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip3}`)).body.item
+        .state
+
+    // The godown puts the trip into loading, and the move is on the record under its own name.
+    const loading = await call<{ item: TripBody }>(
+      app,
+      packer,
+      'POST',
+      `/delivery/trips/${trip3}/start-loading`,
+      { idempotencyKey: `dos043-loading-${run}` },
+    )
+    expect(loading.status).toBe(200)
+    expect(loading.body.item.state).toBe('loading')
+    // Pressed again under a new key, the trip is already loading: no second row.
+    expect(
+      (
+        await call(app, packer, 'POST', `/delivery/trips/${trip3}/start-loading`, {
+          idempotencyKey: `dos043-loading-again-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (await auditRows('trip.start_loading')).map((r) => [r.actor_id, r.actor_role, r.after.state]),
+    ).toEqual([[packerId, 'warehouse', 'loading']])
+
+    // It never sends the vehicle off: departing is the crew's step (docs/23 D2).
+    const godownDepart = await call(app, packer, 'POST', `/delivery/trips/${trip3}/depart`, {
+      idempotencyKey: `dos043-depart-godown-${run}`,
+    })
+    expect(godownDepart.status).toBe(403)
+    expect(await stateOf()).toBe('loading')
+    expect(await outboxTypes(trip3)).not.toContain('TripDeparted')
+
+    // Two draft sheets hold the load back: one built FOR the trip (van stock only), and one built for
+    // the vehicle with no trip on it, the way the warehouse app builds it (DOS-137), that carries the
+    // bill riding on this trip's stop.
+    const linked = uuidv7()
+    const unlinked = uuidv7()
+    const linkedSheet = await call<{ item: { status: string } }>(
+      app,
+      manager,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `dos043-sheet-linked-${run}`,
+        id: linked,
+        toLocationId: vehicleLocation,
+        tripId: trip3,
+        vanStock: [{ lotId: lotB, qtyPcs: 1 }],
+      },
+    )
+    expect(linkedSheet.status).toBe(200)
+    expect(linkedSheet.body.item.status).toBe('draft')
+    const unlinkedSheet = await call<{ item: { status: string } }>(
+      app,
+      manager,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `dos043-sheet-unlinked-${run}`,
+        id: unlinked,
+        toLocationId: vehicleLocation,
+        orderIds: [bill.orderId],
+      },
+    )
+    expect(unlinkedSheet.status).toBe(200)
+    expect(unlinkedSheet.body.item.status).toBe('draft')
+
+    const depart = (tag: string) =>
+      call<{ item: TripBody; data?: { code?: string; loadSheetIds?: string[] } }>(
+        app,
+        driver,
+        'POST',
+        `/delivery/trips/${trip3}/depart`,
+        { idempotencyKey: `dos043-depart-${tag}-${run}`, startOdometerKm: 41_900 },
+      )
+    const cancelSheet = async (sheetId: string) =>
+      (
+        await call(app, manager, 'POST', `/warehouse/load-sheets/${sheetId}/cancel`, {
+          idempotencyKey: `dos043-cancel-${sheetId}`,
+          id: sheetId,
+          reason: 'DOS-043',
+        })
+      ).status
+
+    const both = await depart('a')
+    expect(both.status).toBe(409)
+    expect(both.body.data?.code).toBe('load_sheet_not_confirmed')
+    expect(both.body.data?.loadSheetIds).toEqual([linked, unlinked].sort())
+    expect(await stateOf()).toBe('loading')
+    expect(await orderState(bill.orderId)).toBe('packed')
+    expect(await outboxTypes(trip3)).not.toContain('TripDeparted')
+
+    // With the linked sheet cancelled, the unlinked one alone, found through the bill on the stop,
+    // still holds the trip.
+    expect(await cancelSheet(linked)).toBe(200)
+    const unlinkedOnly = await depart('b')
+    expect(unlinkedOnly.status).toBe(409)
+    expect(unlinkedOnly.body.data?.code).toBe('load_sheet_not_confirmed')
+    expect(unlinkedOnly.body.data?.loadSheetIds).toEqual([unlinked])
+    expect(await stateOf()).toBe('loading')
+
+    // No draft left: the crew departs, the bill leaves with the trip, and the departure is audited once.
+    expect(await cancelSheet(unlinked)).toBe(200)
+    const departed = await depart('c')
+    expect(departed.status).toBe(200)
+    expect(departed.body.item.state).toBe('active')
+    expect(await orderState(bill.orderId)).toBe('dispatched')
+    expect(await outboxTypes(trip3)).toEqual(['TripPlanned', 'TripLoading', 'TripDeparted'])
+    expect(
+      (await auditRows('trip.depart')).map((r) => [
+        r.actor_id,
+        r.actor_role,
+        r.after.state,
+        r.after.startOdometerKm,
+      ]),
+    ).toEqual([[driverId, 'delivery', 'active', 41_900]])
+  }, 180_000)
 })
