@@ -29,7 +29,7 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
-import { SyncRegistry, SyncRejection, vetoIfStale } from './sync.registry.js'
+import { SyncRegistry, SyncRejection, vetoIfStale, type PullResult } from './sync.registry.js'
 
 type In = z.infer<typeof SyncUploadInput>
 type Out = z.infer<typeof SyncUploadOutput>
@@ -304,11 +304,19 @@ export class SyncService {
 
   /**
    * The delta download (docs/23 §8.11): every table registered for the actor's role (or the ones the
-   * device names), rows changed since the cursor, `limit` rows in total. RLS narrows every table to
-   * what the actor may hold — a rep never receives a cost column because no pulled table has one.
-   * `cursor` is the server clock at the start of the read minus an overlap; the device sends it back
-   * as `since`. `hasMore` means at least one table hit its share of the limit: pull again with the
-   * SAME cursor until it is false, then keep the cursor for the next delta.
+   * device names), rows and tombstones changed since the cursor. RLS narrows every table to what the
+   * actor may hold — a rep never receives a cost column because no pulled table has one.
+   *
+   * A PAGE IS THE `limit` EARLIEST CHANGES OF THE WHOLE READ SET (DOS-080): the rows and tombstones of
+   * every table ranked by their own instant, a group sharing one instant never cut in half, and
+   * `cursor` is the last instant the page delivered. `hasMore` means something lies past the page:
+   * pull again with the cursor THIS response gave until it is false. The last page of a pass moves the
+   * cursor to the server clock at the start of the read minus an overlap, and the device keeps it for
+   * the next delta.
+   *
+   * It used to hand each table `limit / tables` rows and move the cursor only as far as the earliest
+   * table that filled that share: 23 rows a call for a rep's 21 tables, every table that was not full
+   * re-sent on the next call, and some 257 calls for one snapshot of the pilot data.
    */
   async pull(input: PullIn): Promise<PullOut> {
     requireRole(ANY_MEMBER)
@@ -317,15 +325,25 @@ export class SyncService {
     const sinceText = decodeCursor(input.since)
     const since = sinceText ? new Date(sinceText) : null
     const registered = this.registry.pullTables(ctx.actorRole)
-    const tables = input.tables ? input.tables.filter((t) => registered.includes(t)) : registered
+    // A name repeated in `tables` would run its handler twice and count its changes twice.
+    const tables = input.tables
+      ? [...new Set(input.tables)].filter((t) => registered.includes(t))
+      : registered
     const startedAt = new Date()
-    const perTable = Math.max(1, Math.floor(input.limit / Math.max(1, tables.length)))
+    const limit = input.limit
     return withTenant(db, ctx, async (tx) => {
-      const changes: PullOut['changes'] = []
-      let hasMore = false
-      // How far a SATURATED table is complete. One cursor serves every table, so it may only move to
-      // the earliest of these — the point past which no table has been read yet. The empty string
-      // sorts before every timestamp and is what a table that cannot say reports.
+      const pages: { table: string; result: PullResult }[] = []
+      // The instants of the changes read so far, rows and tombstones alike, never more than `limit`
+      // of the earliest once the page has overflowed. An empty instant (a handler that cannot say) is
+      // left out: it never counts against the page and can never become a cursor.
+      let held: string[] = []
+      // Once more than a page is held, the latest instant the page can still reach: every later table
+      // reads nothing past it. It only ever moves earlier.
+      let until: string | null = null
+      let overflow = false
+      let saturated = false
+      // How far a SATURATED table is complete — the earliest of their watermarks. The empty string
+      // sorts before every instant and is what a table that cannot say reports.
       const wm: { at: string | null } = { at: null }
       const mark = (at: string | null | undefined): void => {
         const value = at ?? ''
@@ -334,26 +352,57 @@ export class SyncService {
       for (const table of tables) {
         const spec = this.registry.pull(table)
         if (!spec) continue
-        const result = await spec.handler(tx, { ctx, since, sinceText, limit: perTable })
-        // The handler owns its own paging: it knows the table's key, and it may hand back a few rows
-        // MORE than the budget to finish a group that shares one `updated_at` (see `tablePull`), which
-        // is the only way a one-instant cursor can move at all. So nothing is sliced here.
+        // Every table reads a whole page, never what is left of one: a later table may hold EARLIER
+        // changes than the ones already held. The handler owns its own paging — it knows the table's
+        // key, and it hands back a few rows MORE than `limit` to finish a group that shares one
+        // `updated_at` (see `tablePull`), which is the only way a one-instant cursor can move at all.
+        const result = await spec.handler(tx, { ctx, since, sinceText, untilText: until, limit })
         if (result.hasMore) {
-          hasMore = true
+          saturated = true
           mark(result.watermark)
         }
-        if (result.rows.length > 0 || result.deleted.length > 0 || since === null)
-          changes.push({ table, rows: result.rows, deleted: result.deleted })
+        pages.push({ table, result })
+        for (const at of [...result.at, ...result.deletedAt]) if (at) held.push(at)
+        // STRICTLY more than a page. A table that answered exactly `limit` changes has not overflowed
+        // it, and bounding the next table at its last instant would end the pass without that table.
+        if (held.length > limit) {
+          overflow = true
+          held = held.sort().slice(0, limit)
+          until = held[limit - 1] ?? until
+        }
       }
-      // A complete pass moves the cursor to the server clock minus the overlap. An INCOMPLETE one
-      // still has to move it, or the next call answers the same page and the device never finishes
-      // its read set: it moves to the earliest point EVERY table has finished. A table that filled
-      // its page mid-instant and could not finish that instant (see `TIE_COMPLETION_LIMIT`) reports
-      // no watermark, and then the cursor stays where it was — repeating a page is recoverable,
-      // stepping over a row is not.
+      const hasMore = saturated || overflow
+      // A table that filled its page inside one instant it could not finish (`TIE_COMPLETION_LIMIT`)
+      // cannot say how far it got. Then the page goes out whole and the cursor stays where it was, as
+      // it always has — repeating a page is recoverable, stepping over a row is not.
+      const pinned = saturated && wm.at === ''
+      let cut: string | null = null
+      if (hasMore && !pinned) {
+        held.sort()
+        // The earlier of the page budget's last instant and the earliest full table's watermark. The
+        // second matters when a table's tombstone page filled but its ids all turned out to be rows
+        // still in scope: nothing of it is held, and yet past its watermark it has not been read.
+        cut = earliestInstant(held.length >= limit ? held[limit - 1] : undefined, wm.at)
+        // Never a cursor the next call would answer 400 on: anything that is not a microsecond
+        // instant pins the page instead (DOS-080 amendment a).
+        if (cut !== null && !MICROSECOND_INSTANT.test(cut)) cut = null
+      }
+      // Every instant held and every watermark came out of SQL bounded by `> since`, so `cut` is later
+      // than the cursor by construction; it is never compared with `sinceText` as a string, which may
+      // carry only milliseconds when it came from `asOf`.
+      const changes: PullOut['changes'] = []
+      for (const { table, result } of pages) {
+        const rows =
+          cut === null ? result.rows : result.rows.filter((_, i) => onPage(result.at[i], cut))
+        const deleted =
+          cut === null
+            ? result.deleted
+            : result.deleted.filter((_, i) => onPage(result.deletedAt[i], cut))
+        if (rows.length > 0 || deleted.length > 0 || since === null)
+          changes.push({ table, rows, deleted })
+      }
       const asOf = new Date(startedAt.getTime() - PULL_OVERLAP_MS).toISOString()
-      const forward = wm.at && wm.at > (sinceText ?? '') ? wm.at : sinceText
-      const cursor = hasMore ? encodeCursor(forward ?? EPOCH) : encodeCursor(asOf)
+      const cursor = hasMore ? encodeCursor(cut ?? sinceText ?? EPOCH) : encodeCursor(asOf)
       return { changes, cursor, hasMore, asOf: startedAt.toISOString() }
     })
   }
@@ -403,6 +452,24 @@ function schemaHash(role: MembershipRole, tables: ManifestOut['tables']): string
 
 /** Before every row there is: what a pull answers when it cannot advance and has no floor to keep. */
 const EPOCH = '1970-01-01T00:00:00.000000Z'
+
+/** The only instant a mid-pass cursor may carry: UTC to the microsecond, as `to_char` stamps it. */
+const MICROSECOND_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/
+
+/** The earlier of two instants in that fixed-width form, where lexicographic order IS time order. */
+function earliestInstant(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): string | null {
+  if (!a) return b || null
+  if (!b) return a
+  return a <= b ? a : b
+}
+
+/** A change is on a page cut at `cut` when its instant is at or before it; one with none always is. */
+function onPage(at: string | undefined, cut: string): boolean {
+  return !at || at <= cut
+}
 
 /**
  * The cursor is base64url `{v:1,t:<instant>}`, where the instant is ISO-8601 UTC to the MICROsecond —

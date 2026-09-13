@@ -432,12 +432,13 @@ export class SyncEngine {
        *
        * `stop()` clears the timers and closes the database, but a pull loop already inside its
        * `for(;;)` holds the store it was handed and kept going to the last page. A cold read set is
-       * hundreds of pages (265 for a salesperson on the pilot data), so an engine replaced a second
-       * after it started — a token refresh, a distributor switch, or the provider's own effect
-       * re-running — crawled the WHOLE thing a second time in parallel: measured 530 `sync/pull`
-       * calls on one sign-in of the sales app where 265 is the read set. That is twice the data on a
-       * phone paying for it (UX-00 §8.3 budgets 10 MB a day) and a signed-out app still calling the
-       * service. Rows kept landing in a store nothing reads, so nothing on screen ever said so.
+       * many pages (about 25 for a salesperson on the pilot data; 265 before DOS-080), so an engine
+       * replaced a second after it started — a token refresh, a distributor switch, or the provider's
+       * own effect re-running — crawled the WHOLE thing a second time in parallel: measured 530
+       * `sync/pull` calls on one sign-in of the sales app, where the read set was 265 pages before
+       * DOS-080. That is twice the data on a phone paying for it (UX-00 §8.3 budgets 10 MB a day)
+       * and a signed-out app still calling the service. Rows kept landing in a store nothing reads,
+       * so nothing on screen ever said so.
        */
       if (!this.started) return
       const since = await readState(store, 'cursor')
