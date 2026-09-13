@@ -376,6 +376,7 @@ describeDb('incentives (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: '2026-27',
         retailerId: retailer1,
         mode: 'cash',
         amountPaise: 40_000,
@@ -387,6 +388,7 @@ describeDb('incentives (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: '2026-27',
         retailerId: retailer2,
         mode: 'upi',
         amountPaise: 25_000,
@@ -398,6 +400,7 @@ describeDb('incentives (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: '2026-27',
         retailerId: retailer1,
         mode: 'cheque',
         amountPaise: 99_000,
@@ -409,6 +412,7 @@ describeDb('incentives (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: '2026-27',
         retailerId: retailer1,
         mode: 'cash',
         amountPaise: 77_000,
@@ -420,6 +424,7 @@ describeDb('incentives (DATABASE_URL)', () => {
       {
         id: uuidv7(),
         tenantId,
+        fy: '2026-27',
         retailerId: retailer1,
         mode: 'cash',
         amountPaise: 66_000,

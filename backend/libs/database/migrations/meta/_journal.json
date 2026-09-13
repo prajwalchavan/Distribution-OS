@@ -302,6 +302,20 @@
       "when": 1788648239041,
       "tag": "0042_platform_idempotency_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789273070199,
+      "tag": "0043_receipts_number_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789273155181,
+      "tag": "0044_receipts_number_guarantees",
+      "breakpoints": true
     }
   ]
 }
