@@ -1,7 +1,22 @@
 import { createHash } from 'node:crypto'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { sql } from 'drizzle-orm'
-import type { ExtractedInvoice, ExtractedLine } from '@dos/contracts'
+import {
+  AcceptMatchInput,
+  ApproveDocumentInput,
+  ChooseMatchInput,
+  HeartbeatReviewInput,
+  RejectDocumentInput,
+  RejectMatchInput,
+  ReleaseReviewInput,
+  RerunMatchesInput,
+  RunExtractionInput,
+  SaveReviewInput,
+  StartReviewInput,
+  SubmitReviewInput,
+  type ExtractedInvoice,
+  type ExtractedLine,
+} from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
@@ -26,7 +41,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { ProcurementModule } from '../procurement/index.js'
-import { DocintModule } from './index.js'
+import {
+  DocintModule,
+  DocumentsService,
+  ExtractionsService,
+  MatchesService,
+  ReviewService,
+} from './index.js'
 import { registerStubReading } from './pipeline/engines/index.js'
 
 process.env.DOCINT_ENGINE = 'stub'
@@ -847,6 +868,32 @@ describeDb('docint (DATABASE_URL)', () => {
     expect(await outboxTypes(docId)).toContain('docint.document.reviewed')
   })
 
+  it('DOS-031: review.start refuses a reviewed document with 409 before it takes a lock', async () => {
+    const reviewed = await call<{ item: DocBody }>(
+      app,
+      managerA,
+      'GET',
+      `/docint/documents/${docId}`,
+    )
+    expect(reviewed.body.item.status).toBe('reviewed')
+
+    const refusedSessionId = uuidv7()
+    const refused = await call<{ message: string }>(
+      app,
+      managerA,
+      'POST',
+      `/docint/documents/${docId}/review`,
+      {
+        idempotencyKey: `review-reviewed-${run}`,
+        id: docId,
+        sessionId: refusedSessionId,
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toContain('can be reviewed')
+    expect(await count('review_sessions', sql`id = ${refusedSessionId}`)).toBe(0)
+  })
+
   it('approves into a supplier invoice DRAFT and posts nothing to stock, cost or the journal', async () => {
     const before = {
       ledger: await count('stock_ledger', sql`tenant_id = ${tenantId}`),
@@ -867,7 +914,7 @@ describeDb('docint (DATABASE_URL)', () => {
         totalPaise: number
         lines: { lineNo: number; variantId: string | null; qtyPcs: number }[]
       }
-    }>(app, accountant, 'POST', `/docint/documents/${docId}/approve`, {
+    }>(app, managerA, 'POST', `/docint/documents/${docId}/approve`, {
       idempotencyKey: `approve-${run}`,
       id: docId,
       supplierInvoiceId,
@@ -916,7 +963,7 @@ describeDb('docint (DATABASE_URL)', () => {
 
     const replay = await call<{ supplierInvoice: { id: string } }>(
       app,
-      accountant,
+      managerA,
       'POST',
       `/docint/documents/${docId}/approve`,
       {
@@ -936,6 +983,203 @@ describeDb('docint (DATABASE_URL)', () => {
       reason: 'duplicate',
     })
     expect(rejectCommitted.status).toBe(409)
+  })
+
+  it('DOS-037 lets the accountant read the review queue and the reading but not start a review, rematch, accept a match, reject or approve a document, at the gate and in the service', async () => {
+    // docs/23 §2 M3 (QA DOS-037): the owner or a manager reviews, matches, re-reads, rejects and approves
+    // an inbound bill; the accountant reads the queue, the reading and the candidates.
+    const tally = async () => ({
+      sessions: await count('review_sessions', sql`tenant_id = ${tenantId}`),
+      corrections: await count('corrections_log', sql`tenant_id = ${tenantId}`),
+      candidates: await count('sku_match_candidates', sql`tenant_id = ${tenantId}`),
+      extractions: await count('extractions', sql`tenant_id = ${tenantId}`),
+      invoices: await count('supplier_invoices', sql`tenant_id = ${tenantId}`),
+    })
+    const before = await tally()
+    const review = { id: docId, sessionId: uuidv7() }
+    const session = { id: sessionId }
+    const line = { id: extractionId, lineNo: 1 }
+    const approve = {
+      id: docId,
+      supplierInvoiceId: uuidv7(),
+      lineIds: [{ lineNo: 1, id: uuidv7() }],
+    }
+    const refused: [string, Record<string, unknown>][] = [
+      [`/docint/documents/${docId}/review`, { idempotencyKey: `acc-review-${run}`, ...review }],
+      [
+        `/docint/review-sessions/${sessionId}/heartbeat`,
+        { idempotencyKey: `acc-beat-${run}`, ...session },
+      ],
+      [
+        `/docint/review-sessions/${sessionId}`,
+        { idempotencyKey: `acc-save-${run}`, ...session, patch: {} },
+      ],
+      [
+        `/docint/review-sessions/${sessionId}/release`,
+        { idempotencyKey: `acc-release-${run}`, ...session },
+      ],
+      [
+        `/docint/review-sessions/${sessionId}/submit`,
+        { idempotencyKey: `acc-submit-${run}`, ...session },
+      ],
+      [`/docint/documents/${docId}/extract`, { idempotencyKey: `acc-extract-${run}`, id: docId }],
+      [
+        `/docint/extractions/${extractionId}/rematch`,
+        { idempotencyKey: `acc-rematch-${run}`, id: extractionId },
+      ],
+      [
+        `/docint/extractions/${extractionId}/matches/accept`,
+        { idempotencyKey: `acc-accept-${run}`, ...line, candidateId: uuidv7() },
+      ],
+      [
+        `/docint/extractions/${extractionId}/matches/reject`,
+        { idempotencyKey: `acc-unmatch-${run}`, ...line, reason: 'wrong_product' },
+      ],
+      [
+        `/docint/extractions/${extractionId}/matches/choose`,
+        { idempotencyKey: `acc-choose-${run}`, ...line, variantId: variantA },
+      ],
+      [
+        `/docint/documents/${docId}/reject`,
+        { idempotencyKey: `acc-reject-${run}`, id: docId, reason: 'other' },
+      ],
+      [`/docint/documents/${docId}/approve`, { idempotencyKey: `acc-approve-${run}`, ...approve }],
+    ]
+    for (const [path, body] of refused) {
+      const res = await call<{ message: string }>(app, accountant, 'POST', path, body)
+      expect(res.status, `POST ${path}`).toBe(403)
+      expect(res.body.message, `POST ${path}`).toContain('the accountant role may not call')
+    }
+    expect(await tally()).toEqual(before)
+
+    // The handlers refuse her on their own: over HTTP the gate answers first, so call them directly.
+    const documentsService = app.get(DocumentsService)
+    const extractionsService = app.get(ExtractionsService)
+    const matchesService = app.get(MatchesService)
+    const reviewService = app.get(ReviewService)
+    const key = (tag: string): string => `svc-acc-${tag}-${run}`
+    const inService: [string, () => Promise<unknown>][] = [
+      [
+        'review.start',
+        () =>
+          reviewService.start(StartReviewInput.parse({ idempotencyKey: key('review'), ...review })),
+      ],
+      [
+        'review.heartbeat',
+        () =>
+          reviewService.heartbeat(
+            HeartbeatReviewInput.parse({ idempotencyKey: key('beat'), ...session }),
+          ),
+      ],
+      [
+        'review.save',
+        () =>
+          reviewService.save(
+            SaveReviewInput.parse({ idempotencyKey: key('save'), ...session, patch: {} }),
+          ),
+      ],
+      [
+        'review.release',
+        () =>
+          reviewService.release(
+            ReleaseReviewInput.parse({ idempotencyKey: key('release'), ...session }),
+          ),
+      ],
+      [
+        'review.submit',
+        () =>
+          reviewService.submit(
+            SubmitReviewInput.parse({ idempotencyKey: key('submit'), ...session }),
+          ),
+      ],
+      [
+        'extractions.run',
+        () =>
+          extractionsService.run(
+            RunExtractionInput.parse({ idempotencyKey: key('extract'), id: docId }),
+          ),
+      ],
+      [
+        'matches.rerun',
+        () =>
+          matchesService.rerun(
+            RerunMatchesInput.parse({ idempotencyKey: key('rematch'), id: extractionId }),
+          ),
+      ],
+      [
+        'matches.accept',
+        () =>
+          matchesService.accept(
+            AcceptMatchInput.parse({
+              idempotencyKey: key('accept'),
+              ...line,
+              candidateId: uuidv7(),
+            }),
+          ),
+      ],
+      [
+        'matches.reject',
+        () =>
+          matchesService.reject(
+            RejectMatchInput.parse({
+              idempotencyKey: key('unmatch'),
+              ...line,
+              reason: 'wrong_product',
+            }),
+          ),
+      ],
+      [
+        'matches.choose',
+        () =>
+          matchesService.choose(
+            ChooseMatchInput.parse({ idempotencyKey: key('choose'), ...line, variantId: variantA }),
+          ),
+      ],
+      [
+        'documents.reject',
+        () =>
+          documentsService.reject(
+            RejectDocumentInput.parse({
+              idempotencyKey: key('reject'),
+              id: docId,
+              reason: 'other',
+            }),
+          ),
+      ],
+      [
+        'documents.approve',
+        () =>
+          documentsService.approve(
+            ApproveDocumentInput.parse({ idempotencyKey: key('approve'), ...approve }),
+          ),
+      ],
+    ]
+    for (const [name, invoke] of inService) {
+      await expect(
+        tenantStorage.run(ctxOf(accountantId, 'accountant'), invoke),
+        name,
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    }
+    expect(await tally()).toEqual(before)
+
+    // She still reads the queue, the document, the reading and the candidates.
+    const queue = await call(app, accountant, 'GET', '/docint/queue', {})
+    expect(queue.status, JSON.stringify(queue.body)).toBe(200)
+    const readings = await call<{ items: { id: string }[] }>(
+      app,
+      accountant,
+      'GET',
+      `/docint/documents/${docId}/extractions`,
+    )
+    expect(readings.status).toBe(200)
+    expect(readings.body.items.length).toBeGreaterThan(0)
+    for (const path of [
+      `/docint/documents/${docId}`,
+      `/docint/extractions/${extractionId}`,
+      `/docint/extractions/${extractionId}/candidates`,
+    ]) {
+      expect((await call(app, accountant, 'GET', path)).status, `GET ${path}`).toBe(200)
+    }
   })
 
   it('flags a duplicate invoice number on the next bill and refuses approve out of state; reject records the reason', async () => {

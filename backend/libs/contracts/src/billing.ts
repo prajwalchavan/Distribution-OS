@@ -115,6 +115,22 @@ export const CreditNoteReasonSchema = z.enum([
 ])
 export type CreditNoteReason = z.infer<typeof CreditNoteReasonSchema>
 
+/**
+ * The credit-note reasons whose returned pieces never go back on sale: the credit-note side of
+ * `UNSALEABLE_RETURN_REASONS` (delivery.ts, DOS-058). Damaged or expired goods returned at the desk are both
+ * booked as `return_damaged`, so this is the one code. `creditNotes.create` refuses such a line marked
+ * `saleable: true` and gives a line that omits the flag this predicate's answer, and the manager app derives
+ * the flag with the same predicate, so the screen and the server read one list (DOS-116).
+ */
+export const UNSALEABLE_CREDIT_NOTE_REASONS = [
+  'return_damaged',
+] as const satisfies readonly CreditNoteReason[]
+
+/** False when a credit note's returned pieces belong in the damaged bin; true for every other reason. */
+export function isSaleableCreditNoteReason(reason: CreditNoteReason): boolean {
+  return !(UNSALEABLE_CREDIT_NOTE_REASONS as readonly CreditNoteReason[]).includes(reason)
+}
+
 /** `applied` is set by receivables when the note has been allocated in full; billing never writes it. */
 export const CreditNoteStateSchema = z.enum(['draft', 'issued', 'applied', 'cancelled'])
 export type CreditNoteState = z.infer<typeof CreditNoteStateSchema>
@@ -598,7 +614,13 @@ export const CreditNoteLineInput = z.object({
   id: IdSchema,
   invoiceLineId: IdSchema,
   qtyPcs: PiecesSchema.positive(),
-  saleable: z.boolean().default(true),
+  /**
+   * Whether the returned pieces go back on sale. When omitted, the flag follows the note's reason
+   * (`isSaleableCreditNoteReason`): false for `return_damaged`, whose pieces go to the damaged bin, and true
+   * for every other reason. A `return_damaged` line with `saleable: true` is refused with 400
+   * `return_not_saleable`, the doorstep rule (DOS-058, DOS-116).
+   */
+  saleable: z.boolean().optional(),
   ratePaise: PaiseSchema.nonnegative().optional(),
 })
 
@@ -606,6 +628,7 @@ export const CreditNoteLineInput = z.object({
  * A draft correction against an issued (or partially paid, or paid) invoice, at the ORIGINAL rate and
  * the frozen tax of the line it corrects (ADR 0004). It moves no stock and posts no journal until it is
  * issued. `autoIssue` runs `issue` in the same transaction — the crew's one-tap doorstep short delivery.
+ * Damaged or expired goods returned at the desk are booked as `return_damaged`.
  */
 export const CreateCreditNoteInput = MutationBase.extend({
   id: IdSchema,

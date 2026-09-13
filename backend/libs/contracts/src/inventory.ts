@@ -81,6 +81,7 @@ export const AdjustmentReasonSchema = z.enum([
   'opening',
   'cycle_count',
 ])
+export type AdjustmentReason = z.infer<typeof AdjustmentReasonSchema>
 
 export const StockLotSchema = z.object({
   id: IdSchema,
@@ -387,7 +388,8 @@ export const inventoryContract = {
       .route({
         method: 'POST',
         path: '/inventory/adjustments',
-        summary: 'Post an opening/adjustment/damage/expiry/cycle-count ledger row',
+        summary:
+          'Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only)',
       })
       .input(AdjustStockInput)
       .output(AdjustStockOutput),

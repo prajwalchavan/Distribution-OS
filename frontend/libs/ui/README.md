@@ -180,6 +180,16 @@ ledger writes only**, stating exactly what will be written, with the real verb o
 `<Toast open message actionLabel onAction onDismiss>` — 4 s, one at a time, Undo only for what the machines
 can actually reverse.
 
+**On a phone, one native modal at a time (DOS-164).** iOS presents one modal at a time, so in the native
+renderer a Sheet or Dialog opened while another Sheet or Dialog is up renders inside that one's modal, as a
+layer over its panel. The lower one's modal stays up, without its panel, if it closes first, and Android back
+closes the top layer first. Screens keep rendering Sheets and Dialogs as siblings and never nest them or swap
+them by hand. Three rules follow. An overlay's body never reads route-scoped context (`useLocalSearchParams`,
+`useRouter`): a layer renders at its host's place in the tree, and a host can be the shell's More or tenant
+sheet. A layer appears and leaves without motion. `<RupeeInput>`'s number pad is not a kit overlay: its own
+modal chains correctly only from inside a presented Sheet or Dialog, so never open a Sheet or Dialog while a
+page-level pad is up. The web renderer is unchanged: stacked elements, no modal.
+
 ### 6.13 `<Avatar>` · `<TenantLogo>` · `<EmptyState>` · `<ErrorState>` · `<Skeleton>`
 
 `<TenantLogo size={'rail'|'header'|'card'} name logoUrl withName subtitle />` — falls back to up to two

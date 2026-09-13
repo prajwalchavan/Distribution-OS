@@ -36,6 +36,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   nextDocumentNumber,
   requireDb,
   requireRole,
@@ -82,7 +83,10 @@ export type CreateInTxInput = Omit<CreateIn, 'lines'> & {
 
 const CASE_UNITS = /^(cs|case|cases|ctn|carton|cartons|box|boxes|bx)$/i
 
-/** Everything here carries rates, so every procedure is back office; RLS on the tables says the same. */
+/**
+ * Everything here carries rates: every read is back office and every write the owner's or a manager's
+ * (docs/23 §2 M4, QA DOS-037); RLS on the tables stays back office.
+ */
 /** A booked supplier bill's header, as the Tally purchase voucher reads it. */
 export interface SupplierInvoiceForExport {
   id: string
@@ -113,7 +117,7 @@ export class SupplierInvoiceService {
    * until `matchLine` closes the gaps. A duplicate IRN or (supplier, number, date) is refused with the existing id.
    */
   async create(input: CreateIn): Promise<CreateOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -128,7 +132,7 @@ export class SupplierInvoiceService {
    * HTTP procedure's lines default to per piece. Creates the DRAFT only — never a GRN, lot or cost.
    */
   async createInTx(tx: Db, input: CreateInTxInput): Promise<CreateOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const ctx = currentTenant()
     const expected = sum([
       ...input.lines.map((l) => paise(l.lineTotalPaise)),
@@ -334,7 +338,7 @@ export class SupplierInvoiceService {
    * promotes well-used pack configs into aliases later.
    */
   async matchLine(input: MatchIn): Promise<MatchOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -416,7 +420,7 @@ export class SupplierInvoiceService {
   }
 
   async upsertPurchaseOrder(input: PoIn): Promise<PoOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -493,7 +497,7 @@ export class SupplierInvoiceService {
    * correction is a discrepancy claim or a supplier credit. Audited.
    */
   async dispute(input: DisputeIn): Promise<DisputeOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -523,7 +527,7 @@ export class SupplierInvoiceService {
 
   /** `extracted | in_review | approved | disputed → cancelled`; never once a live GRN has been opened on it. */
   async cancel(input: CancelIn): Promise<CancelOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

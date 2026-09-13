@@ -1,0 +1,55 @@
+{
+  "probe": "01",
+  "phase": "after DOS-166 merge (main 3d7cb36)",
+  "role": "delivery",
+  "username": "ganesh.more",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T10:49:42.442Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "delivery"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3005/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-after-delivery-01",
+      "ops": [
+        {
+          "opId": "01a09a63-1f2a-745c-b2bb-9f39dff042d0",
+          "op": "PUT",
+          "table": "receipts",
+          "id": "01a09a63-1f2a-75be-b38f-e7e21930e147",
+          "clientTime": "2026-09-13T10:49:42.442Z",
+          "data": {
+            "retailer_id": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+            "mode": "cash",
+            "amount_paise": 100,
+            "received_at": "2026-09-13T10:49:42.442Z",
+            "received_by": null,
+            "device_id": "qa-b2-syncprobe-after-delivery-01",
+            "status": "collected",
+            "note": "QA batch2 sync-role-probe AFTER 01 delivery"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "accepted": 1,
+      "replayed": 0,
+      "rejected": [],
+      "warnings": [],
+      "upgradeRequired": false
+    }
+  }
+}

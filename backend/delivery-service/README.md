@@ -86,17 +86,17 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
+| POST | `/inventory/locations` | Create or update a stock location | owner, manager, warehouse |
 | GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
+| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
 | POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
@@ -6790,7 +6790,7 @@ curl "http://localhost:3005/inventory/locations?kind=warehouse&activeOnly=true" 
 
 Create or update a stock location · contract `inventory.locations.upsert`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7181,9 +7181,9 @@ curl "http://localhost:3005/inventory/balances?variantId=01a06df0-2faf-79a2-8456
 
 ### POST `/inventory/adjustments`
 
-Post an opening/adjustment/damage/expiry/cycle-count ledger row · contract `inventory.stock.adjust`
+Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) · contract `inventory.stock.adjust`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7307,7 +7307,7 @@ request.json
 
 Move pieces of a lot between locations · contract `inventory.stock.transfer`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7546,7 +7546,7 @@ curl "http://localhost:3005/inventory/ledger?lotId=01a06dc6-1c19-701b-8a21-982c1
 
 Find or create a lot (variant + batch + MRP) · contract `inventory.lots.upsert`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7929,7 +7929,7 @@ request.json
 
 Post the differences as cycle_count ledger rows (back office) · contract `inventory.cycleCounts.post`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 

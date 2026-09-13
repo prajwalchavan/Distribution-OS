@@ -86,33 +86,33 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
+| POST | `/inventory/locations` | Create or update a stock location | owner, manager, warehouse |
 | GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
+| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
-| POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager |
 | GET | `/procurement/supplier-invoices` | Supplier invoices (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices/{id}` | One supplier invoice with lines and rates (back office) | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager, accountant |
-| POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager |
+| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager |
+| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager |
+| POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager |
 | POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line | owner, manager, warehouse |
-| POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager, accountant |
+| POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager |
 | GET | `/procurement/grns` | Goods receipts | owner, manager, accountant, warehouse |
 | GET | `/procurement/grns/{id}` | One GRN with lines and discrepancies | owner, manager, accountant, warehouse |
 | GET | `/procurement/discrepancies` | Short/excess/damaged findings from gate counts | owner, manager, accountant, warehouse |
 | POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
-| POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
+| POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
 | POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
@@ -234,21 +234,21 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/docint/documents/{id}` | One document with its pages (signed read URLs), QR result and pipeline status | owner, manager, accountant, warehouse |
 | GET | `/docint/documents/{id}/status` | Pipeline status only: the cheap poll after submit | owner, manager, accountant, warehouse |
 | GET | `/docint/documents/{id}/page-url` | A fresh signed read URL for one page image (object storage getUrl) | owner, manager, accountant, warehouse |
-| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager, accountant |
+| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager |
+| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager |
+| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager |
 | GET | `/docint/documents/{id}/extractions` | Every engine reading of a document with its checks (back office: carries rates) | owner, manager, accountant |
 | GET | `/docint/extractions/{id}` | One reading in full: header, lines with evidence, confidence per field | owner, manager, accountant |
 | GET | `/docint/extractions/{extractionId}/candidates` | SKU match candidates per printed line, best first | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager |
+| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager |
+| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager |
+| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager |
+| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager |
+| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager |
+| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager |
+| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager |
+| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager |
 | GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
 | GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |
 | POST | `/integrations/imports` | Register an uploaded CSV / XLSX for a target and stage its rows | owner, manager |
@@ -6875,7 +6875,7 @@ curl "http://localhost:3001/inventory/locations?kind=warehouse&activeOnly=true" 
 
 Create or update a stock location · contract `inventory.locations.upsert`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7266,9 +7266,9 @@ curl "http://localhost:3001/inventory/balances?variantId=01a06df0-2faf-79a2-8456
 
 ### POST `/inventory/adjustments`
 
-Post an opening/adjustment/damage/expiry/cycle-count ledger row · contract `inventory.stock.adjust`
+Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) · contract `inventory.stock.adjust`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7392,7 +7392,7 @@ request.json
 
 Move pieces of a lot between locations · contract `inventory.stock.transfer`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -7631,7 +7631,7 @@ curl "http://localhost:3001/inventory/ledger?lotId=01a06dc6-1c19-701b-8a21-982c1
 
 Find or create a lot (variant + batch + MRP) · contract `inventory.lots.upsert`
 
-**Roles:** owner, manager, accountant, warehouse
+**Roles:** owner, manager, warehouse
 
 **Request body**
 
@@ -8014,7 +8014,7 @@ request.json
 
 Post the differences as cycle_count ledger rows (back office) · contract `inventory.cycleCounts.post`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -8363,7 +8363,7 @@ curl "http://localhost:3001/inventory/cycle-counts/01a06d17-0be7-794a-8dab-9b14c
 
 Record a reviewed supplier invoice with its lines (back office) · contract `procurement.supplierInvoices.create`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -8845,7 +8845,7 @@ curl "http://localhost:3001/procurement/supplier-invoices/01a06d17-0be7-794a-8da
 
 Resolve a printed line to a catalog variant · contract `procurement.supplierInvoices.matchLine`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -9014,7 +9014,7 @@ request.json
 
 Mark a supplier invoice disputed before any GRN posts against it · contract `procurement.supplierInvoices.dispute`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -9181,7 +9181,7 @@ request.json
 
 Cancel a supplier invoice that never became stock · contract `procurement.supplierInvoices.cancel`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -9348,7 +9348,7 @@ request.json
 
 Open a GRN for an approved supplier invoice (expected pieces, no rates) · contract `procurement.grns.open`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -9642,7 +9642,7 @@ request.json
 
 Post the GRN: lots, stock ledger, purchase cost, invoice received · contract `procurement.grns.post`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -10224,7 +10224,7 @@ request.json
 
 Create or update a purchase order · contract `procurement.purchaseOrders.upsert`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -28826,7 +28826,7 @@ curl "http://localhost:3001/docint/documents/01a06d17-0be7-794a-8dab-9b14cf78673
 
 Reject a document with a reason (never a committed one) · contract `docint.documents.reject`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -29002,7 +29002,7 @@ request.json
 
 Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) · contract `docint.documents.approve`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -29245,7 +29245,7 @@ request.json
 
 Retry or escalate the extraction by hand · contract `docint.extractions.run`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -29923,7 +29923,7 @@ curl "http://localhost:3001/docint/extractions/01a06d61-15b4-76ba-8090-83e7be1db
 
 Accept a listed candidate for a line (remembers the alias and the pack) · contract `docint.matches.accept`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30067,7 +30067,7 @@ request.json
 
 Reject a candidate, or the line's match as a whole, with a reason · contract `docint.matches.reject`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30211,7 +30211,7 @@ request.json
 
 Pick another variant from the catalog for a line · contract `docint.matches.choose`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30355,7 +30355,7 @@ request.json
 
 Re-run the SKU cascade for every unmatched line (after catalog.propose) · contract `docint.matches.rerun`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30465,7 +30465,7 @@ request.json
 
 Open a review session and take the single-writer lock · contract `docint.review.start`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30679,7 +30679,7 @@ request.json
 
 Keep the review lock alive · contract `docint.review.heartbeat`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -30787,7 +30787,7 @@ request.json
 
 Save corrections; every changed path is logged and the validators re-run · contract `docint.review.save`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -31071,7 +31071,7 @@ request.json
 
 Give the document up so another reviewer may take it · contract `docint.review.release`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
@@ -31281,7 +31281,7 @@ request.json
 
 Assert the reading is right (refused while any red check stands) · contract `docint.review.submit`
 
-**Roles:** owner, manager, accountant
+**Roles:** owner, manager
 
 **Request body**
 
