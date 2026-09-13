@@ -749,6 +749,113 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(again.res.status).toBe(409)
   })
 
+  it('DOS-022: the queue lists only packed orders with no live bill — a confirmed or a picking order is the picker’s problem, not the biller’s — and the one row that needs a bill can be re-billed via packs.list + issueForPack', async () => {
+    // A: never touched by the godown. Still the picker's problem.
+    const confirmedOrderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantA, cases: 1 }],
+      'q-confirmed',
+    )
+
+    // B: waved and started, so it is `picking` — nothing packed yet, nothing to bill.
+    const pickingOrderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantA, cases: 1 }],
+      'q-picking',
+    )
+    const picklistId = uuidv7()
+    const waved = await call(app, manager, 'POST', '/warehouse/picklists', {
+      idempotencyKey: `q-wave-${run}`,
+      id: picklistId,
+      orderIds: [pickingOrderId],
+    })
+    expect(waved.status).toBe(200)
+    const started = await call(app, manager, 'POST', `/warehouse/picklists/${picklistId}/start`, {
+      idempotencyKey: `q-start-${run}`,
+    })
+    expect(started.status).toBe(200)
+    const pickingState = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'GET',
+      `/orders/${pickingOrderId}`,
+    )
+    expect(pickingState.body.item.state).toBe('picking')
+
+    // C: SO-9001's shape — packed, billed once, that bill then cancelled. This is the one row billing
+    // must be able to act on.
+    const packedOrderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantA, cases: 1 }],
+      'q-packed',
+    )
+    const {
+      invoiceId: firstInvoiceId2,
+      packId,
+      res: firstIssue,
+    } = await issueFor(packedOrderId, 'q-packed')
+    expect(firstIssue.status).toBe(200)
+    const firstNumber = firstIssue.body.item.invoiceNo
+    const packCancelled = await call<{ item: { state: string } }>(
+      app,
+      owner,
+      'POST',
+      `/invoices/${firstInvoiceId2}/cancel`,
+      { idempotencyKey: `q-cancel-${run}`, reason: 'GSTIN was wrong' },
+    )
+    expect(packCancelled.status).toBe(200)
+    expect(packCancelled.body.item.state).toBe('cancelled')
+
+    const queue = await call<{ items: { orderId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/billing/queue',
+      { limit: 200 },
+    )
+    const queuedIds = queue.body.items.map((i) => i.orderId)
+    // Confirmed and picking orders belong to the picker, not the biller — narrowed OUT of the queue.
+    expect(queuedIds).not.toContain(confirmedOrderId)
+    expect(queuedIds).not.toContain(pickingOrderId)
+    // The packed order with no live bill IS the queue's real work.
+    expect(queuedIds).toContain(packedOrderId)
+
+    // The pack survives its cancelled invoice — `packs.list({orderId})` finds it regardless of the
+    // cancelled `invoiceId` it still carries — and `issueForPack` re-bills it with a fresh number.
+    const packs = await call<{ items: { id: string; orderId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/warehouse/packs',
+      { orderId: packedOrderId, limit: 5 },
+    )
+    expect(packs.body.items.map((p) => p.id)).toContain(packId)
+
+    const rebilled = await call<{ item: Detail }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/packs/${packId}/invoice`,
+      { idempotencyKey: `q-rebill-${run}`, id: uuidv7() },
+    )
+    expect(rebilled.status).toBe(200)
+    expect(rebilled.body.item.state).toBe('issued')
+    expect(rebilled.body.item.invoiceNo).not.toBe(firstNumber)
+
+    // Once re-billed, the order leaves the queue again.
+    const queueAfter = await call<{ items: { orderId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/billing/queue',
+      { limit: 200 },
+    )
+    expect(queueAfter.body.items.map((i) => i.orderId)).not.toContain(packedOrderId)
+  })
+
   it('refuses cancellation once money has been allocated to the bill', async () => {
     const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], 'paid')
     const { invoiceId, res } = await issueFor(orderId, 'paid')

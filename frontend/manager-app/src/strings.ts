@@ -355,6 +355,10 @@ export const strings = {
   'm20.pickedOk': 'Pick recorded',
   'm20.packedOk': 'Packed',
   'm20.shortPick': 'Short picked',
+  'm20.piecesLabel': 'Pieces picked',
+  'm20.asksFor': 'Asks for {count} pc',
+  'm20.overAsk': 'Only {count} pc asked on this row',
+  'm20.wholePieces': 'Type whole pieces, like 6 or 18',
 
   // --- M7 Load-out and challans (the manager's PIN) -------------------------------------------------
   'm7.tab': 'Load-out',
@@ -386,6 +390,8 @@ export const strings = {
   'm7.ewbHint': 'Type the number from the government portal.',
   'm7.challanNo': 'Challan no.',
   'm7.printChallan': 'Print the challan',
+  'm7.challanQueued': 'Preparing the challan. It will open here once ready.',
+  'm7.challanReady': 'The challan is ready — press Print the challan.',
   'm7.empty': 'No load sheet today',
   'm7.detail': 'Load sheet · {vehicle}',
   'm7.from': 'From',
@@ -432,7 +438,7 @@ export const strings = {
   'm6.tab': 'Billing desk',
   'm6.title': 'Billing desk',
   'm6.remaining': '{count} left to bill',
-  'm6.queueRows': '{count} confirmed orders',
+  'm6.queueRows': '{count} packed, no bill yet',
   'm6.packRows': '{count} packs already gone out',
   'm6.orderNo': 'Order',
   'm6.shop': 'Shop',

@@ -49,3 +49,28 @@ function byActionOrder(a: LoadSheetSummary, b: LoadSheetSummary): number {
   if (a.id !== b.id) return a.id > b.id ? -1 : 1
   return 0
 }
+
+/** One step of the DOS-026 challan poll: open the URL, retry after `delayMs`, or give up. */
+export type ChallanPollStep =
+  | { readonly action: 'open'; readonly url: string }
+  | { readonly action: 'retry'; readonly delayMs: number }
+  | { readonly action: 'error' }
+
+/**
+ * `warehouse.challans.pdf` is queued by the same worker that renders an invoice (docs/20 rule 3): the
+ * first call answers `queued` with no URL, and only the worker's write flips it to a pre-signed one.
+ * "Print the challan" (DOS-026) used to ask once and go silent when the answer was `queued`; this is
+ * the decision the screen now makes on every answer instead — open the moment a URL exists, retry a
+ * `queued` answer on the caller's delay, and stop honestly once `attempt` reaches `maxAttempts` rather
+ * than polling forever. A pure function of the answer so the bound is provable without a fake clock.
+ */
+export function nextChallanPoll(
+  url: string | null,
+  attempt: number,
+  maxAttempts: number,
+  delayMs: number,
+): ChallanPollStep {
+  if (url !== null) return { action: 'open', url }
+  if (attempt >= maxAttempts) return { action: 'error' }
+  return { action: 'retry', delayMs }
+}

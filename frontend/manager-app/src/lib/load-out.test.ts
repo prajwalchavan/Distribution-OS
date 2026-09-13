@@ -11,7 +11,7 @@
 import type { LoadSheetSummary } from '@dos/contracts'
 import { describe, expect, it } from 'vitest'
 
-import { loadOutHistory, loadOutQueue } from './load-out'
+import { loadOutHistory, loadOutQueue, nextChallanPoll } from './load-out'
 
 // Fixture ids: the vehicle and the approving manager are the dos_qa rows; the rest only need to be ids.
 const GODOWN = '0c61d5f2-3e8a-7b14-9a52-6d0e41f7c3b8'
@@ -199,5 +199,28 @@ describe('M7 Load-out registers', () => {
       approvedToday.id,
       approvedYesterday.id,
     ])
+  })
+})
+
+describe('DOS-026: the challan print poll', () => {
+  it('opens the URL the moment the render is ready, whatever attempt it arrives on', () => {
+    expect(nextChallanPoll('https://cdn.example/dc-0074.pdf', 0, 20, 3000)).toEqual({
+      action: 'open',
+      url: 'https://cdn.example/dc-0074.pdf',
+    })
+    expect(nextChallanPoll('https://cdn.example/dc-0074.pdf', 19, 20, 3000)).toEqual({
+      action: 'open',
+      url: 'https://cdn.example/dc-0074.pdf',
+    })
+  })
+
+  it('retries a still-queued render, on the configured delay, short of the last attempt', () => {
+    expect(nextChallanPoll(null, 0, 20, 3000)).toEqual({ action: 'retry', delayMs: 3000 })
+    expect(nextChallanPoll(null, 18, 20, 3000)).toEqual({ action: 'retry', delayMs: 3000 })
+  })
+
+  it('gives up honestly once the bound is reached, rather than polling forever', () => {
+    expect(nextChallanPoll(null, 20, 20, 3000)).toEqual({ action: 'error' })
+    expect(nextChallanPoll(null, 21, 20, 3000)).toEqual({ action: 'error' })
   })
 })

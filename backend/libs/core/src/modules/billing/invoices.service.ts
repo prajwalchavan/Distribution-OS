@@ -689,9 +689,12 @@ export class BillingService {
   // =============================================================================================================
 
   /**
-   * The billing desk's "to bill" list: confirmed / picking / packed orders that have no ISSUED bill.
-   * An order whose bill is still a draft stays in the queue with `hasDraftInvoice`, because it is still
-   * work; an order with an issued bill has left the desk, and a cancelled bill puts it back.
+   * The billing desk's "to bill" list: PACKED orders that have no ISSUED bill (DOS-022). A confirmed
+   * or picking order is not yet the biller's problem — a bill is issued at pack, so nothing before
+   * that state can be acted on here; offering it just inflates the backlog number with rows the desk
+   * cannot touch. An order whose bill is still a draft stays in the queue with `hasDraftInvoice`,
+   * because it is still work; an order with an issued bill has left the desk, and a cancelled bill
+   * (the pack survives it — `packs.list({orderId})` + `issueForPack` re-bills it) puts it back.
    */
   async queue(input: QueueIn): Promise<QueueOut> {
     requireRole(BILLING_ISSUERS)
@@ -700,7 +703,7 @@ export class BillingService {
     return withTenant(db, currentTenant(), async (tx) => {
       const filters: (SQL | undefined)[] = [
         eq(salesOrders.tenantId, tenantId),
-        inArray(salesOrders.state, ['confirmed', 'picking', 'packed']),
+        eq(salesOrders.state, 'packed'),
         input.locationId ? eq(salesOrders.fulfilFromLocationId, input.locationId) : undefined,
         input.retailerId ? eq(salesOrders.retailerId, input.retailerId) : undefined,
         input.cursor ? sql`${salesOrders.id} > ${input.cursor}` : undefined,

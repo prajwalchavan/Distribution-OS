@@ -22,6 +22,7 @@ import {
   QtyStepper,
   Screen,
   Segments,
+  Sheet,
   Stack,
   StatusChip,
   TextInput,
@@ -43,6 +44,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { shortDate, shortInstant } from '../../src/lib/dates'
+import { nextPiecesEntry } from '../../src/lib/pick-pieces'
 import { useWord } from '../../src/lib/words'
 
 const PICK_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -70,6 +72,9 @@ export default function PickAndPack(): React.JSX.Element {
   const [packing, setPacking] = useState<string | null>(null)
   const [packages, setPackages] = useState('1')
   const [confirming, setConfirming] = useState<'pick' | 'pack' | null>(null)
+  /** The pick line whose loose-pieces entry (DOS-134) is open, or null. */
+  const [piecesFor, setPiecesFor] = useState<string | null>(null)
+  const [piecesText, setPiecesText] = useState('')
 
   /*
    * One read per live status, asked of the server (DOS-023), as the warehouse home does. Filtering
@@ -140,6 +145,16 @@ export default function PickAndPack(): React.JSX.Element {
 
   const lines = sheet?.lines ?? []
   const touched = lines.filter((line) => counts[line.id] !== undefined && line.lotId !== null)
+
+  const piecesLine = lines.find((line) => line.id === piecesFor)
+  const piecesAsk = piecesLine?.requestedQtyPcs ?? 0
+  const piecesResult = piecesFor === null ? null : nextPiecesEntry(piecesText, piecesAsk)
+  const piecesError =
+    piecesResult === null || piecesResult.ok || piecesResult.reason === 'empty'
+      ? undefined
+      : piecesResult.reason === 'overAsk'
+        ? t('m20.overAsk', { count: piecesResult.askedQtyPcs })
+        : t('m20.wholePieces')
 
   const commit = (): void => {
     const done = (): void => {
@@ -265,6 +280,19 @@ export default function PickAndPack(): React.JSX.Element {
                         onChange={(pieces) => {
                           setCounts((current) => ({ ...current, [line.id]: pieces }))
                         }}
+                        /*
+                         * DOS-134: FEFO routinely asks a row for less than a whole case (6 pc, 18 pc
+                         * of a 24-piece case) and the stepper above steps whole cases only, so this is
+                         * the one way to record that exactly — capped at the row's own ask.
+                         */
+                        onOpenPieces={
+                          mayPack && line.lotId !== null
+                            ? () => {
+                                setPiecesFor(line.id)
+                                setPiecesText('')
+                              }
+                            : undefined
+                        }
                       />
                     </Stack>
                   ))}
@@ -360,6 +388,34 @@ export default function PickAndPack(): React.JSX.Element {
           </Panel>
         </Stack>
       )}
+
+      <Sheet
+        open={piecesFor !== null}
+        onClose={() => {
+          setPiecesFor(null)
+          setPiecesText('')
+        }}
+        title={piecesLine?.variantName ?? t('m20.piecesLabel')}
+        testID="pieces-sheet"
+      >
+        <Stack gap={3}>
+          <TextInput
+            label={t('m20.piecesLabel')}
+            keyboard="decimal"
+            maxLength={6}
+            value={piecesText}
+            onChange={(value) => {
+              setPiecesText(value)
+              if (piecesFor === null) return
+              const result = nextPiecesEntry(value, piecesAsk)
+              if (result.ok) setCounts((current) => ({ ...current, [piecesFor]: result.pieces }))
+            }}
+            helper={t('m20.asksFor', { count: piecesAsk })}
+            error={piecesError}
+            testID="pieces-input"
+          />
+        </Stack>
+      </Sheet>
 
       <Dialog
         open={confirming !== null}

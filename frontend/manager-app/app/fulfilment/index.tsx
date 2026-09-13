@@ -73,7 +73,16 @@ export default function Fulfilment(): React.JSX.Element {
   const [acting, setActing] = useState<'wave' | 'start' | 'cancel' | null>(null)
   const [reason, setReason] = useState('')
 
-  const queue = useQuery(['warehouse', 'queue'], () => api.api.warehouse.queue.list({ limit: 200 }))
+  const queue = useQuery(['warehouse', 'queue'], () =>
+    /*
+     * `state: 'confirmed'` is not a nicety (DOS-024, the same fix warehouse-app's own pick queue
+     * needed): `unpicklistedOnly` only hides an order on a LIVE picklist, and an order that was
+     * picked, packed and billed carries no live picklist any more — so a packed order came back in
+     * "Waiting to be picked" and ticking it was a silent 409 from `picklists.create`, which refuses
+     * anything that is not `confirmed`.
+     */
+    api.api.warehouse.queue.list({ state: 'confirmed', unpicklistedOnly: true, limit: 200 }),
+  )
   const sheets = useQuery(['warehouse', 'picklists'], () =>
     api.api.warehouse.picklists.list({ limit: 50 }),
   )
