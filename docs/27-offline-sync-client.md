@@ -120,6 +120,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 
 - `enqueue({ table, id, op, data, baseUpdatedAt })` writes the outbox row AND applies the change locally in the same transaction
   (`_pending='queued'`). The screen shows the order at once, marked as waiting.
+- An aggregate — an order and its lines — is queued in ONE transaction through `enqueueMany(inputs)` (ruling 2 (u),
+  2026-09-14): every input is checked against the manifest before anything is written, so one line the role may not queue
+  refuses the whole order; the rows land in call order (ascending `seq`, header first); a sign-out that has begun refuses all of
+  it. The phone and the office hold the whole order or none of it. `enqueue(input)` is `enqueueMany([input])`.
 - Uploader: one batch in flight at a time; FIFO by `seq`; ≤ 50 ops and ≤ 4 MiB of op JSON per batch (an op larger than that
   goes on its own; DOS-056, §15); `sync.upload({ deviceId, protocol, ops })`.
   Ops keep their order inside the batch so a `sales_order_lines` op follows its `sales_orders` op.
@@ -250,7 +254,10 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     under a pull page and an upload batch in flight waits for both and lets nothing land after the drop. A write that begins once
     `end()` has begun is refused with `SyncEngineEndedError`, never saved and so never deleted; a write already in hand when `end()`
     begins, or landed between the tap's count and `end()`, is finished and counted, and the file is kept for that person, who sends
-    it at the next sign-in, while anyone else's start wipes it.
+    it at the next sign-in, while anyone else's start wipes it. An order and its lines are queued whole or not at all through
+    `enqueueMany`: refused whole once `end()` has begun, refused whole for one download-only line, and landed in call order with
+    one message to every table touched; a file kept by the count keeps that person's drafts, and the sibling sweep runs on every
+    sign-out.
 14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
 15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
     only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through

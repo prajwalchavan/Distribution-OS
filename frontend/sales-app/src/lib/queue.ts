@@ -18,6 +18,7 @@
  * the same local lines by the same engine, and every screen marks it as waiting rather than placed.
  */
 import { useOutbox } from '@dos/offline/react'
+import type { EnqueueInput } from '@dos/offline'
 import { useCallback } from 'react'
 
 import type { CatalogItem } from './local'
@@ -33,17 +34,21 @@ export interface QueueOrderInput {
 }
 
 /**
- * Queue a draft order and its lines, header first.
+ * Queue a draft order and its lines as ONE write, header first.
  *
  * The order of the two matters and is not an implementation detail: `applyLineSync` refuses a line
  * whose order "has not arrived yet", and the outbox drains in sequence, so the header has to be
  * queued before its lines or the whole order comes back as a tray full of rejections.
+ *
+ * And ONE write, not one per line (DOS-167 ruling 2 (u)): queued one by one, a sign-out that began
+ * between the header and its lines refused the lines after the header had landed, and the office got a
+ * draft with no lines. `enqueueMany` holds the phone and the office to the whole order or none of it.
  */
 export function useEnqueueOrder(): (input: QueueOrderInput) => Promise<void> {
   const outbox = useOutbox()
   return useCallback(
     async (input: QueueOrderInput) => {
-      await outbox.enqueue({
+      const header: EnqueueInput = {
         table: 'sales_orders',
         id: input.orderId,
         op: 'PUT',
@@ -55,10 +60,10 @@ export function useEnqueueOrder(): (input: QueueOrderInput) => Promise<void> {
           note: input.note.trim() === '' ? null : input.note.trim(),
           expected_delivery_date: input.expectedDeliveryDate,
         },
-      })
-      for (const line of input.lines) {
-        if (line.qtyPcs <= 0) continue
-        await outbox.enqueue({
+      }
+      const lines = input.lines
+        .filter((line) => line.qtyPcs > 0)
+        .map((line): EnqueueInput => ({
           table: 'sales_order_lines',
           id: line.id,
           op: 'PUT',
@@ -68,8 +73,8 @@ export function useEnqueueOrder(): (input: QueueOrderInput) => Promise<void> {
             entered_qty: line.enteredQty,
             entered_unit: line.enteredUnit,
           },
-        })
-      }
+        }))
+      await outbox.enqueueMany([header, ...lines])
     },
     [outbox],
   )

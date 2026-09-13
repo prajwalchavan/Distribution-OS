@@ -26,7 +26,7 @@ import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
-import type { StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
+import type { EnqueueInput, StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
 import type { PullOutput } from './wire.js'
 
 const RETAILERS = tableManifest('retailers', [
@@ -1226,6 +1226,132 @@ describe('DOS-167 sign-out ends the engine', () => {
         `SELECT op_id, status FROM ${OUTBOX_TABLE}`,
       ),
     ).toEqual([{ op_id: landed, status: 'queued' }])
+  })
+
+  /*
+   * Ruling 2 (u). The order screen queued the header, then one enqueue per line. A sign-out that began between them
+   * refused the lines after the header had landed, and the office got a draft with no lines (web V5E, S-120).
+   */
+  it('DOS-167 an order and its lines are queued whole or not at all', async () => {
+    const ORDER_LINES = tableManifest(
+      'sales_order_lines',
+      [column('id'), column('order_id'), column('variant_id'), column('updated_at')],
+      { writable: true },
+    )
+    const WITH_LINES = [...TABLES, ORDER_LINES]
+    const header = {
+      table: 'sales_orders',
+      id: 'o-whole',
+      op: 'PUT' as const,
+      data: { retailer_id: CHAVAN.id, state: 'draft' },
+    }
+    const line = (n: number): EnqueueInput => ({
+      table: 'sales_order_lines',
+      id: `l-${String(n)}`,
+      op: 'PUT',
+      data: { order_id: 'o-whole', variant_id: `v-${String(n)}` },
+    })
+    const outcome = (write: Promise<unknown>): Promise<string> =>
+      write.then(
+        () => 'saved',
+        (error: unknown) => `${(error as Error).name}: ${(error as Error).message}`,
+      )
+
+    // (1) Rahul has tapped Sign out, and a pull is still in the air: the whole order is refused.
+    const signingOut = createMemoryStore()
+    const signingOutServer = new FakeServer(WITH_LINES)
+    signingOutServer.queuePull({ changes: [], cursor: 'c1' })
+    const base = signingOutServer.transport()
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const leaving = engineAs(RAHUL, signingOut, {
+      ...base,
+      pull: async (input) => {
+        if (pullGate !== null) await pullGate
+        return base.pull(input)
+      },
+    })
+    await leaving.start()
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    const pulling = leaving.sync('poll')
+    await sleep(0)
+    const ending = leaving.end({ keepQueue: false })
+    const refusedWhileEnding = await outcome(leaving.enqueueMany([header, line(1)]))
+    const outboxWhileEnding = await signingOut.query(`SELECT op_id FROM ${OUTBOX_TABLE}`)
+    openPull()
+    await pulling
+    const ended = await ending
+
+    // (2) One line for a table this role may only read: nothing of the order is written.
+    const readOnly = createMemoryStore()
+    const readOnlyEngine = engineAs(RAHUL, readOnly, new FakeServer(WITH_LINES).transport())
+    await readOnlyEngine.start()
+    const refusedReadOnly = await outcome(
+      readOnlyEngine.enqueueMany([
+        header,
+        line(1),
+        { table: 'retailers', id: CHAVAN.id, op: 'PATCH', data: { name: 'Chavan Kirana' } },
+      ]),
+    )
+    const readOnlyOutbox = await readOnly.query(`SELECT op_id FROM ${OUTBOX_TABLE}`)
+    const readOnlyOrders = await readOnly.query('SELECT id FROM "sales_orders"')
+    const readOnlyLines = await readOnly.query('SELECT id FROM "sales_order_lines"')
+    await readOnlyEngine.stop()
+
+    // (3) The whole order: three rows in call order, one message to every table it touched.
+    const whole = createMemoryStore()
+    const wholeServer = new FakeServer(WITH_LINES)
+    const wholeEngine = engineAs(RAHUL, whole, wholeServer.transport())
+    await wholeEngine.start()
+    // The upload the write starts waits here, so nothing else is told meanwhile.
+    const releaseUpload = wholeServer.hold()
+    const told: string[][] = []
+    wholeEngine.onTables((tables) => {
+      told.push([...tables].sort())
+    })
+    const opIds = await wholeEngine.enqueueMany([header, line(1), line(2)])
+    const rows = await whole.query<{ seq: number; op_id: string; tbl: string; row_id: string }>(
+      `SELECT seq, op_id, tbl, row_id FROM ${OUTBOX_TABLE} ORDER BY seq`,
+    )
+    const toldOutbox = told.filter((tables) => tables.includes(OUTBOX_CHANNEL))
+    const pending = wholeEngine.status().pending
+    releaseUpload()
+    await wholeEngine.flush()
+    await wholeEngine.stop()
+
+    expect({
+      whileEnding: { refused: refusedWhileEnding, outbox: outboxWhileEnding, ended },
+      readOnly: {
+        refused: refusedReadOnly.includes('download-only'),
+        outbox: readOnlyOutbox,
+        orders: readOnlyOrders,
+        lines: readOnlyLines,
+      },
+      whole: {
+        sameOpIds: rows.map((row) => row.op_id).join() === opIds.join(),
+        order: rows.map((row) => `${row.tbl} ${row.row_id}`),
+        ascending: rows.every((row, index) => index === 0 || row.seq > (rows[index - 1]?.seq ?? 0)),
+        toldOutbox,
+        pending,
+      },
+    }).toEqual({
+      whileEnding: {
+        refused:
+          'SyncEngineEndedError: This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+        outbox: [],
+        ended: { kept: false, pending: 0, rejected: 0 },
+      },
+      readOnly: { refused: true, outbox: [], orders: [], lines: [] },
+      whole: {
+        sameOpIds: true,
+        order: ['sales_orders o-whole', 'sales_order_lines l-1', 'sales_order_lines l-2'],
+        ascending: true,
+        toldOutbox: [[OUTBOX_CHANNEL, 'sales_order_lines', 'sales_orders']],
+        pending: 3,
+      },
+    })
   })
 })
 

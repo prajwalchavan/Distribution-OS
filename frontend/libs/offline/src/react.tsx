@@ -450,6 +450,8 @@ export function useRow<T = Record<string, unknown>>(
 
 export interface OutboxApi {
   enqueue: (input: EnqueueInput) => Promise<string>
+  /** An aggregate — an order and its lines — as ONE write, whole or not at all (DOS-167 ruling 2 (u)). */
+  enqueueMany: (inputs: readonly EnqueueInput[]) => Promise<string[]>
   rows: OutboxRow[]
   pending: number
   rejected: number
@@ -494,6 +496,13 @@ export function useOutbox(): OutboxApi {
     },
     [engine],
   )
+  const enqueueMany = useCallback(
+    async (inputs: readonly EnqueueInput[]) => {
+      if (engine === null) throw new Error('no offline engine: is <OfflineProvider> mounted?')
+      return engine.enqueueMany(inputs)
+    },
+    [engine],
+  )
   const retry = useCallback(async (opId: string) => engine?.retry(opId) ?? undefined, [engine])
   const discard = useCallback(async (opId: string) => engine?.discard(opId) ?? undefined, [engine])
   const flush = useCallback(async () => engine?.flush() ?? undefined, [engine])
@@ -501,6 +510,7 @@ export function useOutbox(): OutboxApi {
   return useMemo(
     () => ({
       enqueue,
+      enqueueMany,
       rows,
       pending: status.pending,
       rejected: status.rejected,
@@ -508,7 +518,7 @@ export function useOutbox(): OutboxApi {
       discard,
       flush,
     }),
-    [enqueue, rows, status.pending, status.rejected, retry, discard, flush],
+    [enqueue, enqueueMany, rows, status.pending, status.rejected, retry, discard, flush],
   )
 }
 

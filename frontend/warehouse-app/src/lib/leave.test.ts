@@ -206,6 +206,50 @@ describe('DOS-167 the warehouse leave sheet', () => {
   })
 
   /*
+   * Ruling 2 (u), merge review minor 2. `end()` keeps the file by itself when its re-count finds something waiting — a
+   * pick in hand at the tap. The other distributorships are swept on every sign-out, a kept one included: the sweep
+   * deletes only files with nothing unsent. (This app keeps no drafts.)
+   */
+  it('DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out', async () => {
+    function recorded(kept: boolean): { calls: string[]; steps: LeaveSteps } {
+      const calls: string[] = []
+      const steps: LeaveSteps = {
+        waiting: async () => ({ pending: 0, rejected: 0 }),
+        sendNow: async () => ({ pending: 0, rejected: 0 }),
+        end: async ({ keepQueue }) => {
+          calls.push(`end keepQueue=${String(keepQueue)}`)
+          return { kept }
+        },
+        sweep: async () => {
+          calls.push('sweep')
+        },
+        signOut: async () => {
+          calls.push('signOut')
+        },
+        switchDistributor: async (tenantId) => {
+          calls.push(`switch ${tenantId}`)
+        },
+      }
+      return { calls, steps }
+    }
+    // One tap with nothing counted, and a pick in hand landed: the engine kept the file.
+    const recount = recorded(true)
+    await leaveNow({ mode: 'signOut' }, false, recount.steps)
+    // "Sign out, keep here".
+    const keep = recorded(true)
+    await leaveNow({ mode: 'signOut' }, true, keep.steps)
+    // Nothing waited and the file went.
+    const gone = recorded(false)
+    await leaveNow({ mode: 'signOut' }, false, gone.steps)
+
+    expect({ recount: recount.calls, keep: keep.calls, gone: gone.calls }).toEqual({
+      recount: ['end keepQueue=false', 'sweep', 'signOut'],
+      keep: ['end keepQueue=true', 'sweep', 'signOut'],
+      gone: ['end keepQueue=false', 'sweep', 'signOut'],
+    })
+  })
+
+  /*
    * Ruling 2 (t). A browser that cannot keep the device store (not cross-origin isolated, no OPFS, an open that
    * failed) holds the queue in memory, and it goes with the tab: "keep here" would be a promise nothing keeps.
    */
@@ -332,7 +376,7 @@ describe('DOS-167 the warehouse leave sheet', () => {
     // The file could not be counted: it is never deleted, and the hand is still signed out.
     const unreadable = phone({ waiting: new Error('database disk image is malformed') })
     await expect(tapLeave({ mode: 'signOut' }, unreadable.steps)).resolves.toBe('left')
-    expect(unreadable.calls).toEqual(['waiting', 'end keepQueue=true', 'signOut'])
+    expect(unreadable.calls).toEqual(['waiting', 'end keepQueue=true', 'sweep', 'signOut'])
 
     // Ending the engine threw: signed out regardless.
     const endFails = phone({ endFails: true })
@@ -358,10 +402,11 @@ describe('DOS-167 the warehouse leave sheet', () => {
     await expect(sendNowThenLeave({ mode: 'signOut' }, sendFailed.steps)).resolves.toBe('ask')
     expect(sendFailed.calls).toEqual(['sendNow'])
 
-    // "Sign out, keep here" keeps the queue and does not sweep; "Switch anyway" only switches.
+    // "Sign out, keep here" keeps the queue and sweeps the other distributorships as every sign-out does
+    // (ruling 2 (u)); "Switch anyway" only switches.
     const keep = phone({})
     await leaveNow({ mode: 'signOut' }, true, keep.steps)
-    expect(keep.calls).toEqual(['end keepQueue=true', 'signOut'])
+    expect(keep.calls).toEqual(['end keepQueue=true', 'sweep', 'signOut'])
     const anyway = phone({})
     await leaveNow({ mode: 'switch', tenantId: 'sai' }, true, anyway.steps)
     expect(anyway.calls).toEqual(['switch sai'])

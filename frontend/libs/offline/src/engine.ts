@@ -1008,41 +1008,64 @@ export class SyncEngine {
    * visible but unqueued, or queued but invisible.
    */
   async enqueue(input: EnqueueInput): Promise<string> {
+    // Called before the first `await`, so the gate in `enqueueMany` still refuses synchronously (ruling (m)).
+    const [opId] = await this.enqueueMany([input])
+    if (opId === undefined) throw new Error('offline: the outbox took no op')
+    return opId
+  }
+
+  /**
+   * An aggregate as ONE write (DOS-167 ruling 2 (u)): an order and its lines land in the outbox together, or none of
+   * them does. One gate; every input checked against the manifest BEFORE anything is written, so one line this role
+   * may not queue refuses the whole order; one transaction that inserts the rows in call order — ascending `seq`,
+   * header first, so FIFO still delivers an order before its lines — and applies each locally; then one count, one
+   * message to every table touched and one flush.
+   *
+   * Queued one enqueue at a time, a sign-out that began between the header and its lines refused the lines after the
+   * header had landed, and the office got a draft with no lines (web proof V5E). Refused at the gate now, nothing of
+   * it is queued; past the gate, `end()` waits for it, counts it and keeps the file (ruling (m)).
+   */
+  async enqueueMany(inputs: readonly EnqueueInput[]): Promise<string[]> {
     // The gate: once `end()` has begun this refuses, before anything is written (DOS-167, ruling (m)).
     const store = this.requireStore()
-    const shape = this.shapes.get(input.table)
-    if (!shape)
-      throw new Error(
-        `${input.table} is not in this device's manifest; nothing may be queued for it`,
-      )
-    if (!shape.writable)
-      throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
-    const opId = input.opId ?? uuidv7()
+    const planned = inputs.map((input) => {
+      const shape = this.shapes.get(input.table)
+      if (!shape)
+        throw new Error(
+          `${input.table} is not in this device's manifest; nothing may be queued for it`,
+        )
+      if (!shape.writable)
+        throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
+      return { input, shape, opId: input.opId ?? uuidv7() }
+    })
+    if (planned.length === 0) return []
     const createdAt = new Date(this.now()).toISOString()
     return this.inHand(async () => {
       await store.transaction(async (tx) => {
-        await tx.exec(
-          `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
-             (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
-          [
-            opId,
-            input.table,
-            input.id,
-            input.op,
-            input.data === undefined ? null : JSON.stringify(input.data),
-            input.baseUpdatedAt ?? null,
-            opId,
-            createdAt,
-          ],
-        )
-        await this.applyLocally(tx, shape, input)
+        for (const { input, shape, opId } of planned) {
+          await tx.exec(
+            `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
+               (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
+            [
+              opId,
+              input.table,
+              input.id,
+              input.op,
+              input.data === undefined ? null : JSON.stringify(input.data),
+              input.baseUpdatedAt ?? null,
+              opId,
+              createdAt,
+            ],
+          )
+          await this.applyLocally(tx, shape, input)
+        }
       })
       await this.refreshCounts()
-      this.bus.emit([input.table, OUTBOX_CHANNEL])
+      this.bus.emit([...planned.map(({ input }) => input.table), OUTBOX_CHANNEL])
       this.emitStatus()
       void this.flush()
-      return opId
+      return planned.map(({ opId }) => opId)
     })
   }
 

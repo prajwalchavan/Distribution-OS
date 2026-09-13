@@ -127,8 +127,11 @@ export interface LeaveSteps {
   waiting: () => Promise<WaitingCounts>
   /** Upload what is queued; what still waits afterwards. */
   sendNow: () => Promise<WaitingCounts>
-  /** What it kept (`EndResult`) is the device's to report; the order of leaving is the same either way. */
-  end: (options: { keepQueue: boolean }) => Promise<unknown>
+  /**
+   * What it kept (`EndResult`): the file survives when asked to, and also when the engine's own count found something
+   * waiting once the last write had landed (ruling 2 (u)). The order of leaving is the same either way.
+   */
+  end: (options: { keepQueue: boolean }) => Promise<{ kept: boolean } | void>
   /** This hand's files at their other distributors: deleted where nothing waits in them. */
   sweep: () => Promise<unknown>
   signOut: () => Promise<void>
@@ -174,8 +177,9 @@ export async function sendNowThenLeave(to: Leaving, steps: LeaveSteps): Promise<
  * The leaving itself, once there is nothing left to ask. A switch wipes nothing: the provider stops the
  * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out ends the
  * engine BEFORE the session is cleared ("Send now" needed the token, and the revoke may wait out the
- * 20 s deadline with no signal); `keepQueue: false` deletes this hand's file, and only then are their
- * other files swept. The session is cleared whatever those steps did.
+ * 20 s deadline with no signal); `keepQueue: false` deletes this hand's file unless the engine's own count
+ * found something waiting, which keeps it. Then their other files are swept, on EVERY sign-out — the sweep deletes
+ * only files with nothing unsent (ruling 2 (u)). The session is cleared whatever those steps did.
  */
 export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveSteps): Promise<void> {
   if (to.mode === 'switch') {
@@ -187,12 +191,10 @@ export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveStep
   } catch {
     // Signed out regardless: the next person opens a different file whatever happened to this one.
   }
-  if (!keepQueue) {
-    try {
-      await steps.sweep()
-    } catch {
-      // Best effort, file by file: a file left behind is still under this hand's own name.
-    }
+  try {
+    await steps.sweep()
+  } catch {
+    // Best effort, file by file: a file left behind is still under this hand's own name.
   }
   await steps.signOut()
 }
