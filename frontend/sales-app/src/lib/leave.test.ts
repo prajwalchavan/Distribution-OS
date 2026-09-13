@@ -14,7 +14,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { strings } from '../strings'
-import { leaveSentence } from './leave'
+import {
+  leaveNow,
+  leaveSentence,
+  sendNowThenLeave,
+  tapLeave,
+  type LeaveSteps,
+  type WaitingCounts,
+} from './leave'
 
 interface NodeFs {
   readFileSync: (path: string, encoding: 'utf8') => string
@@ -125,5 +132,120 @@ describe('DOS-167 the sales leave sheet', () => {
     expect(asked.length).toBeGreaterThan(0)
     for (const key of asked)
       if (key !== 'action.cancel') expect(catalogue[key], key).toBeTypeOf('string')
+  })
+
+  it('DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count', async () => {
+    const NOTHING: WaitingCounts = { pending: 0, rejected: 0 }
+
+    /** The device and the session, writing down in order what the leave flow asked of them. */
+    function phone(options: {
+      waiting?: WaitingCounts | Error
+      /** How long the file takes to open before it can be counted. */
+      openMs?: number
+      afterSend?: WaitingCounts | Error
+      endFails?: boolean
+    }): { calls: string[]; steps: LeaveSteps } {
+      const calls: string[] = []
+      const steps: LeaveSteps = {
+        waiting: async () => {
+          calls.push('waiting')
+          await new Promise((resolve) => setTimeout(resolve, options.openMs ?? 0))
+          const counts = options.waiting ?? NOTHING
+          if (counts instanceof Error) throw counts
+          calls.push(`counted ${String(counts.pending)}+${String(counts.rejected)}`)
+          return counts
+        },
+        sendNow: async () => {
+          calls.push('sendNow')
+          const counts = options.afterSend ?? NOTHING
+          if (counts instanceof Error) throw counts
+          return counts
+        },
+        end: async ({ keepQueue }) => {
+          calls.push(`end keepQueue=${String(keepQueue)}`)
+          if (options.endFails === true) throw new Error('Access to closed resource')
+        },
+        sweep: async () => {
+          calls.push('sweep')
+        },
+        forgetDrafts: async () => {
+          calls.push('forgetDrafts')
+        },
+        signOut: async () => {
+          calls.push('signOut')
+        },
+        switchDistributor: async (tenantId) => {
+          calls.push(`switch ${tenantId}`)
+        },
+      }
+      return { calls, steps }
+    }
+
+    // Rahul kept an order on this phone, signed in again and tapped Sign out while the file was still
+    // opening. The count is waited for, and the sheet asks: nothing is ended and nobody is signed out.
+    const coldStart = phone({ waiting: { pending: 1, rejected: 0 }, openMs: 40 })
+    await expect(tapLeave({ mode: 'signOut' }, coldStart.steps)).resolves.toBe('ask')
+    expect(coldStart.calls).toEqual(['waiting', 'counted 1+0'])
+
+    // A refusal waiting in the tray asks too, for a sign-out and for a switch.
+    const refused = phone({ waiting: { pending: 0, rejected: 2 } })
+    await expect(tapLeave({ mode: 'switch', tenantId: 'sai' }, refused.steps)).resolves.toBe('ask')
+    expect(refused.calls).toEqual(['waiting', 'counted 0+2'])
+
+    // Nothing waits: one tap. The engine ends (file deleted) BEFORE the session is cleared, then the
+    // person's other files are swept and this rep's drafts forgotten.
+    const clean = phone({})
+    await expect(tapLeave({ mode: 'signOut' }, clean.steps)).resolves.toBe('left')
+    expect(clean.calls).toEqual([
+      'waiting',
+      'counted 0+0',
+      'end keepQueue=false',
+      'sweep',
+      'forgetDrafts',
+      'signOut',
+    ])
+
+    // The file could not be counted: it is never deleted, and the rep is still signed out.
+    const unreadable = phone({ waiting: new Error('database disk image is malformed') })
+    await expect(tapLeave({ mode: 'signOut' }, unreadable.steps)).resolves.toBe('left')
+    expect(unreadable.calls).toEqual(['waiting', 'end keepQueue=true', 'signOut'])
+
+    // Ending the engine threw: signed out regardless.
+    const endFails = phone({ endFails: true })
+    await expect(tapLeave({ mode: 'signOut' }, endFails.steps)).resolves.toBe('left')
+    expect(endFails.calls.at(-1)).toBe('signOut')
+
+    // A switch with nothing waiting wipes nothing.
+    const switching = phone({})
+    await expect(tapLeave({ mode: 'switch', tenantId: 'sai' }, switching.steps)).resolves.toBe(
+      'left',
+    )
+    expect(switching.calls).toEqual(['waiting', 'counted 0+0', 'switch sai'])
+
+    // The sheet's Send now: everything went, so the leaving carries on by itself...
+    const sent = phone({ afterSend: NOTHING })
+    await expect(sendNowThenLeave({ mode: 'signOut' }, sent.steps)).resolves.toBe('left')
+    expect(sent.calls).toEqual([
+      'sendNow',
+      'end keepQueue=false',
+      'sweep',
+      'forgetDrafts',
+      'signOut',
+    ])
+    // ...something is still waiting, or the send itself failed: the sheet stays.
+    const stillWaiting = phone({ afterSend: { pending: 1, rejected: 0 } })
+    await expect(sendNowThenLeave({ mode: 'signOut' }, stillWaiting.steps)).resolves.toBe('ask')
+    expect(stillWaiting.calls).toEqual(['sendNow'])
+    const sendFailed = phone({ afterSend: new Error('Network request failed') })
+    await expect(sendNowThenLeave({ mode: 'signOut' }, sendFailed.steps)).resolves.toBe('ask')
+    expect(sendFailed.calls).toEqual(['sendNow'])
+
+    // "Sign out, keep them here" keeps the queue and neither sweeps nor forgets; "Switch anyway" only switches.
+    const keep = phone({})
+    await leaveNow({ mode: 'signOut' }, true, keep.steps)
+    expect(keep.calls).toEqual(['end keepQueue=true', 'signOut'])
+    const anyway = phone({})
+    await leaveNow({ mode: 'switch', tenantId: 'sai' }, true, anyway.steps)
+    expect(anyway.calls).toEqual(['switch sai'])
   })
 })

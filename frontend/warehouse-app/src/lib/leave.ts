@@ -8,8 +8,13 @@
  * (that stays in the Needs-attention tray). When the sheet is shown at all is `leaveDecision` in
  * `@dos/offline/react`; this is only what it says, and every word of it is in `src/strings.ts`.
  *
- * Pure: no React, no kit, no device — which is what lets `leave.test.ts` run it in Node.
+ * And the ORDER of leaving (`tapLeave`, `sendNowThenLeave`, `leaveNow`), which `Chrome` in
+ * `app/_layout.tsx` runs with the device and the session handed in as `LeaveSteps`.
+ *
+ * No hooks, no kit, no device of its own — which is what lets `leave.test.ts` run all of it in Node.
  */
+import { leaveDecision } from '@dos/offline/react'
+
 import { strings } from '../strings'
 
 export type LeaveMode = 'signOut' | 'switch'
@@ -54,4 +59,91 @@ export function leaveSentence(input: LeaveSentenceInput): LeaveSentence {
         ? say('leave.bodySignOut', { name: input.name })
         : say('leave.bodySwitch', { tenantName: input.tenantName }),
   }
+}
+
+/** How the person asked to leave: signing out, or switching to another distributor. */
+export type Leaving =
+  { readonly mode: 'signOut' } | { readonly mode: 'switch'; readonly tenantId: string }
+
+export interface WaitingCounts {
+  pending: number
+  rejected: number
+}
+
+/** What leaving needs of the device and the session (`useLeaveSession`, `useSession`), handed in. */
+export interface LeaveSteps {
+  /**
+   * What waits in this hand's file, counted once the engine has opened it — never the status snapshot,
+   * which reads 0 until the open has counted the outbox.
+   */
+  waiting: () => Promise<WaitingCounts>
+  /** Upload what is queued; what still waits afterwards. */
+  sendNow: () => Promise<WaitingCounts>
+  end: (options: { keepQueue: boolean }) => Promise<void>
+  /** This hand's files at their other distributors: deleted where nothing waits in them. */
+  sweep: () => Promise<unknown>
+  signOut: () => Promise<void>
+  switchDistributor: (tenantId: string) => Promise<unknown>
+}
+
+/**
+ * The tap on "Sign out", or on another distributor (DOS-167; founder, 2026-09-13). 'ask' opens the sheet;
+ * 'left' means the leaving is done.
+ *
+ * Decided on `waiting()`, which waits for the engine to open the file. A sign-out tapped on a cold start,
+ * before the open had counted the outbox, used to read 0 from the snapshot, take the one-tap path and
+ * delete a pick this hand had kept on the phone — with no sheet. A file that cannot be counted at all is
+ * never deleted: the hand is signed out keeping whatever it holds.
+ */
+export async function tapLeave(to: Leaving, steps: LeaveSteps): Promise<'ask' | 'left'> {
+  let counts: WaitingCounts
+  try {
+    counts = await steps.waiting()
+  } catch {
+    await leaveNow(to, true, steps)
+    return 'left'
+  }
+  if (leaveDecision(counts) === 'ask') return 'ask'
+  await leaveNow(to, false, steps)
+  return 'left'
+}
+
+/** The sheet's "Send now": when nothing waits any more the leaving carries on by itself; else the sheet stays. */
+export async function sendNowThenLeave(to: Leaving, steps: LeaveSteps): Promise<'ask' | 'left'> {
+  let after: WaitingCounts
+  try {
+    after = await steps.sendNow()
+  } catch {
+    return 'ask'
+  }
+  if (leaveDecision(after) === 'ask') return 'ask'
+  await leaveNow(to, false, steps)
+  return 'left'
+}
+
+/**
+ * The leaving itself, once there is nothing left to ask. A switch wipes nothing: the provider stops the
+ * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out ends the
+ * engine BEFORE the session is cleared ("Send now" needed the token, and the revoke may wait out the
+ * 20 s deadline with no signal); `keepQueue: false` deletes this hand's file, and only then are their
+ * other files swept. The session is cleared whatever those steps did.
+ */
+export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveSteps): Promise<void> {
+  if (to.mode === 'switch') {
+    await steps.switchDistributor(to.tenantId)
+    return
+  }
+  try {
+    await steps.end({ keepQueue })
+  } catch {
+    // Signed out regardless: the next person opens a different file whatever happened to this one.
+  }
+  if (!keepQueue) {
+    try {
+      await steps.sweep()
+    } catch {
+      // Best effort, file by file: a file left behind is still under this hand's own name.
+    }
+  }
+  await steps.signOut()
 }

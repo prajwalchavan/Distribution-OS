@@ -16,7 +16,7 @@
 import { sessionIdentity } from '@dos/api-client'
 import { ApiProvider, useApi, useSession } from '@dos/api-client/react'
 import { connectionStateFrom, openStore, SyncEngine } from '@dos/offline'
-import { leaveDecision, OfflineProvider, useLeaveSession, useSyncStatus } from '@dos/offline/react'
+import { OfflineProvider, useLeaveSession, useSyncStatus } from '@dos/offline/react'
 import {
   AppShell,
   Button,
@@ -36,10 +36,17 @@ import type { NavItem, TenantChoice } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
 import { StatusBar } from 'expo-status-bar'
 import { Slot, useRootNavigationState, usePathname, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { boot, deviceId } from '../src/api'
 import { APP, absoluteUrl } from '../src/config'
+import {
+  leaveNow,
+  sendNowThenLeave,
+  tapLeave,
+  type Leaving,
+  type LeaveSteps,
+} from '../src/lib/leave'
 import { LeaveSheet } from '../src/lib/leave-sheet'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
@@ -331,9 +338,6 @@ function otherIdentities(session: Session): SyncIdentity[] {
 type ShellTenant = NonNullable<React.ComponentProps<typeof AppShell>['tenant']>
 type ShellAccount = NonNullable<React.ComponentProps<typeof AppShell>['account']>
 
-/** How the person asked to leave: signing out, or switching to another distributor. */
-type Leaving = { mode: 'signOut' } | { mode: 'switch'; tenantId: string }
-
 interface ChromeProps {
   can: (item: NavItem) => boolean
   pathname: string
@@ -390,70 +394,80 @@ function Chrome({
     }))
   }, [status.rejected])
 
-  /** The leaving itself, once there is nothing left to ask. */
-  const go = useCallback(
-    async (to: Leaving, keepQueue: boolean): Promise<void> => {
-      if (to.mode === 'switch') {
-        try {
-          await switchDistributor(to.tenantId)
-        } finally {
-          setAsking(null)
-        }
-        return
-      }
-      // The engine ends BEFORE the session is cleared: "Send now" needed the token, and the revoke may
-      // wait out the 20 s deadline with no signal.
-      try {
-        await device.end({ keepQueue })
-      } catch {
-        // Signed out regardless: the next person opens a different file whatever happened to this one.
-      }
-      if (!keepQueue)
-        await SyncEngine.sweepIdentityStores(openStore, STORE_PREFIX, otherIdentities(session))
-      await signOut()
-    },
-    [device, session, signOut, switchDistributor],
+  /**
+   * What the leave flow (`src/lib/leave.ts`) needs of the device and the session. It decides on
+   * `waiting()` — this hand's file, counted once the engine has opened it — and never on the status
+   * snapshot, which reads 0 until then: a sign-out tapped on a cold start took the one-tap path on that 0
+   * and deleted what the hand had kept on this phone, with no sheet.
+   */
+  const steps = useMemo<LeaveSteps>(
+    () => ({
+      waiting: device.waiting,
+      sendNow: device.sendNow,
+      end: device.end,
+      sweep: () =>
+        SyncEngine.sweepIdentityStores(openStore, STORE_PREFIX, otherIdentities(session)),
+      signOut,
+      switchDistributor,
+    }),
+    [device.waiting, device.sendNow, device.end, session, signOut, switchDistributor],
   )
 
+  /** One leave step at a time: a second tap before `busy` has rendered is swallowed too. */
+  const running = useRef(false)
   const run = useCallback((step: () => Promise<void>): void => {
+    if (running.current) return
+    running.current = true
     setBusy(true)
     void step().finally(() => {
+      running.current = false
       setBusy(false)
     })
   }, [])
 
   const leave = useCallback(
     (to: Leaving): void => {
-      if (busy) return
-      if (leaveDecision(device) === 'leave') {
-        run(() => go(to, false))
-        return
-      }
-      setSent(false)
-      setAsking(to)
+      if (asking !== null) return
+      run(async () => {
+        if ((await tapLeave(to, steps)) === 'ask') {
+          setSent(false)
+          setAsking(to)
+        }
+      })
     },
-    [busy, device, go, run],
+    [asking, run, steps],
   )
 
   const sendNow = useCallback((): void => {
-    if (asking === null || busy) return
+    if (asking === null) return
     const to = asking
     run(async () => {
-      const after = await device.sendNow()
-      setSent(true)
-      if (leaveDecision(after) === 'leave') await go(to, false)
+      let next: 'ask' | 'left' | null = null
+      try {
+        next = await sendNowThenLeave(to, steps)
+      } finally {
+        setSent(true)
+        // Left, or a switch that failed (a failed send is 'ask'): the sheet closes.
+        if (next !== 'ask') setAsking(null)
+      }
     })
-  }, [asking, busy, device, go, run])
+  }, [asking, run, steps])
 
   const keep = useCallback((): void => {
-    if (asking === null || busy) return
+    if (asking === null) return
     const to = asking
-    run(() => go(to, true))
-  }, [asking, busy, go, run])
+    run(async () => {
+      try {
+        await leaveNow(to, true, steps)
+      } finally {
+        setAsking(null)
+      }
+    })
+  }, [asking, run, steps])
 
   const cancel = useCallback((): void => {
-    if (!busy) setAsking(null)
-  }, [busy])
+    if (!running.current) setAsking(null)
+  }, [])
 
   return (
     <>

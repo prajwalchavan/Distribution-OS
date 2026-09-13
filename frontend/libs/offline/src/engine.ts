@@ -349,6 +349,19 @@ export class SyncEngine {
   }
 
   /**
+   * What still waits in this file — queued or sending, and refused — counted from the file itself once the
+   * open in `start()` has finished (DOS-167). The sign-out decision is taken on THIS, never on `status()`:
+   * the snapshot reads 0 until the open has counted the outbox, and a sign-out tapped in that window took
+   * the one-tap path and deleted the queue it had not seen yet. An open that failed has no file to count.
+   */
+  async waiting(): Promise<{ pending: number; rejected: number }> {
+    await this.opening
+    await this.refreshCounts()
+    this.emitStatus()
+    return { pending: this.pending, rejected: this.rejected }
+  }
+
+  /**
    * WHOSE FILE IS THIS (DOS-167). Runs in `start()` before a shape is restored, before the first table is
    * published and before anything is uploaded.
    *

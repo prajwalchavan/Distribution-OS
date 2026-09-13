@@ -186,9 +186,11 @@ browser". The strip never shows a spinner without a word.
 - `useOutbox()` → `{ enqueue, pending, rejected, retry(opId), discard(opId) }`. `discard` is only offered on a rejected op and writes
   an audit line into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
-- `useLeaveSession()` → `{ pending, rejected, online, sendNow(), end({ keepQueue }) }` — the app's sign-out flow (DOS-167).
-  `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. `end` is called before the
-  session is cleared; `SyncEngine.sweepIdentityStores` deletes the person's other-distributor files that hold nothing unsent.
+- `useLeaveSession()` → `{ pending, rejected, online, waiting(), sendNow(), end({ keepQueue }) }` — the app's sign-out flow
+  (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is given
+  `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which reads 0
+  until then. `end` is called before the session is cleared; `SyncEngine.sweepIdentityStores` deletes the person's
+  other-distributor files that hold nothing unsent.
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
 
@@ -228,7 +230,8 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     under a pull page and an upload batch in flight waits for both and lets nothing land after the drop.
 14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
 15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
-    only when something is queued or refused.
+    only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through
+    `waiting()` and asks.
 16. `@dos/api-client`: `identityKey` changes with the user or the distributor, not with a password flag or a role, and the query
     cache is cleared on every identity change, a forced sign-out included; the sales draft is keyed by the signed-in user.
 

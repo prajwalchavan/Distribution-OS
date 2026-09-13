@@ -659,4 +659,68 @@ describe('DOS-167 the sign-out rule', () => {
     expect(leaveDecision({ pending: 1, rejected: 0 })).toBe('ask')
     expect(leaveDecision({ pending: 0, rejected: 1 })).toBe('ask')
   })
+
+  it('DOS-167 a sign-out tapped while the store is still opening counts the file, not the snapshot, and asks', async () => {
+    // Rahul took an order in a dead spot and signed out keeping it on this phone (founder answer A).
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const rahul = engineAs(RAHUL, store, server.transport())
+    await rahul.start()
+    server.offline = true
+    const opId = await rahul.enqueue({
+      table: 'sales_orders',
+      id: 'o-dead-spot',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await rahul.flush()
+    await rahul.end({ keepQueue: true })
+
+    // He signs in again on a phone that takes a moment to open the file, as OPFS and expo-sqlite do, and
+    // the account menu is already on the screen.
+    let open = (): void => {}
+    const opening = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    const back = engineAs(RAHUL, store, server.transport(), {
+      storeFactory: async () => {
+        await opening
+        return store
+      },
+    })
+    const starting = back.start()
+
+    // The status snapshot has counted nothing yet. A sign-out decided on it took the one-tap path and
+    // deleted the order with no sheet (verifier probe, 2026-09-13).
+    expect(back.status()).toMatchObject({ ready: false, pending: 0, rejected: 0 })
+    expect(leaveDecision(back.status())).toBe('leave')
+
+    // What the sign-out reads instead waits for the open and counts the file.
+    const counting = back.waiting()
+    open()
+    const counts = await counting
+    expect(counts).toEqual({ pending: 1, rejected: 0 })
+    expect(leaveDecision(counts)).toBe('ask')
+    expect(back.status()).toMatchObject({ ready: true, pending: 1 })
+    expect(
+      await store.query<{ op_id: string; status: string }>(
+        `SELECT op_id, status FROM ${OUTBOX_TABLE}`,
+      ),
+    ).toEqual([{ op_id: opId, status: 'queued' }])
+    await starting
+    await back.stop()
+
+    // A file that never opens is never waited on for ever: there is nothing in it to count or delete.
+    const broken = engineAs(RAHUL, createMemoryStore(), server.transport(), {
+      storeFactory: async () => {
+        throw new Error('OPFS is not available in this browser')
+      },
+    })
+    await expect(broken.start()).rejects.toThrow(/OPFS/)
+    await expect(broken.waiting()).resolves.toEqual({ pending: 0, rejected: 0 })
+  })
 })

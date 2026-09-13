@@ -252,11 +252,16 @@ export function leaveDecision(counts: { pending: number; rejected: number }): 'l
 }
 
 export interface LeaveSession {
-  /** queued + sending */
+  /** queued + sending, from the status snapshot: what the sheet SHOWS, never what the tap decides on. */
   pending: number
   rejected: number
   online: boolean
-  /** Upload what is queued now; the counts that are still waiting afterwards. */
+  /**
+   * What waits in this person's file, counted once the engine has opened it. The tap decides on this:
+   * before the open the snapshot reads 0, and a sign-out decided on it deleted a queue it had not seen.
+   */
+  waiting: () => Promise<{ pending: number; rejected: number }>
+  /** Upload what is queued now; what is still waiting afterwards, counted the same way. */
   sendNow: () => Promise<{ pending: number; rejected: number }>
   /**
    * End the engine BEFORE the session is cleared: `keepQueue: false` deletes this person's file,
@@ -272,11 +277,14 @@ export interface LeaveSession {
 export function useLeaveSession(): LeaveSession {
   const engine = useSyncEngine()
   const status = useSyncStatus()
+  const waiting = useCallback(async (): Promise<{ pending: number; rejected: number }> => {
+    if (engine === null) return { pending: 0, rejected: 0 }
+    return engine.waiting()
+  }, [engine])
   const sendNow = useCallback(async (): Promise<{ pending: number; rejected: number }> => {
     if (engine === null) return { pending: 0, rejected: 0 }
     await engine.flush()
-    const after = engine.status()
-    return { pending: after.pending, rejected: after.rejected }
+    return engine.waiting()
   }, [engine])
   const end = useCallback(
     async (options: { keepQueue: boolean }): Promise<void> => {
@@ -290,10 +298,11 @@ export function useLeaveSession(): LeaveSession {
       pending: status.pending,
       rejected: status.rejected,
       online: status.online,
+      waiting,
       sendNow,
       end,
     }),
-    [status.pending, status.rejected, status.online, sendNow, end],
+    [status.pending, status.rejected, status.online, waiting, sendNow, end],
   )
 }
 
