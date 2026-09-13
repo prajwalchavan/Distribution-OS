@@ -98,6 +98,11 @@ export function storeNameFor(prefix: string, identity: SyncIdentity): string {
 function idDigits(id: string): string {
   if (!CANONICAL_UUID.test(id))
     throw new Error('offline: a store name takes a user id and a distributor id that are UUIDs')
+  /*
+   * `BigInt`: Hermes has it from React Native 0.70 (the apps run 0.86), and the Android proof checks `typeof BigInt` on its
+   * first run. Should a platform lack it, the same digits come from four 32-bit limbs: the format is the rule, not the
+   * arithmetic (ruling 2 (s), docs/27 §2).
+   */
   return BigInt(`0x${id.toLowerCase().replaceAll('-', '')}`)
     .toString(36)
     .padStart(ID_DIGITS, '0')

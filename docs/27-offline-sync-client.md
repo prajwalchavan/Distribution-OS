@@ -54,6 +54,13 @@ signing in on a phone somebody else used starts with no rows and no cursor (DOS-
 `<prefix>.db` of earlier builds is deleted once at mount; the 199952b name is swept once per person, deleted when it holds nothing
 unsent and kept (and logged) when it does. To read a name in a QA listing:
 `node -e 'const n=process.argv[1],id=g=>{let v=0n;for(const c of g)v=v*36n+BigInt(parseInt(c,36));return v.toString(16).padStart(32,"0").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")};console.log({s:"dos-sales",d:"dos-delivery",w:"dos-warehouse",h:"dos-harness"}[n[0]],id(n.slice(1,26)),id(n.slice(26)))' <name>`.
+The name is computed with `BigInt`, which Hermes has from React Native 0.70 (the apps run 0.86). The Android proof checks
+`typeof BigInt` on its first run; should a platform ever lack it, the same digits come from four 32-bit limbs — the format is the
+rule, not the arithmetic (ruling 2 (s)).
+
+A file has one holder at a time in a process (merge review of ruling 2): an engine takes its file from `start()` until its close has
+resolved and opens it only once the holder before has let go — the engine of the same person still ending after a sign-out, or a
+sweep counting that file — and a sweep skips a file somebody holds (`offline: sweep skipped a store in use`).
 
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
@@ -204,12 +211,14 @@ browser". The strip never shows a spinner without a word.
 - `useOutbox()` → `{ enqueue, pending, rejected, retry(opId), discard(opId) }`. `discard` is only offered on a rejected op and writes
   an audit line into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
-- `useLeaveSession()` → `{ pending, rejected, online, waiting(), sendNow(), end({ keepQueue }) }` — the app's sign-out flow
-  (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is given
-  `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which reads 0
-  until then. the session is cleared on the device first, then `end` is called, and the server's revoke goes last, in
-  the background (addendum (y), 2026-09-14); `SyncEngine.sweepIdentityStores` deletes the person's
-  other-distributor files that hold nothing unsent.
+- `useLeaveSession()` → `{ pending, rejected, online, persistent, waiting(), sendNow(), end({ keepQueue, after }) }` — the app's
+  sign-out flow (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is
+  given `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which
+  reads 0 until then. The leaving runs inside `useSession().signOutOnDevice(leave)` of `@dos/api-client` (addendum (y),
+  2026-09-14): the session is cleared on the device first, `leave(stored)` is called in the same turn and calls `end` with
+  `after: stored`, the session's removal from the platform store, which `end` waits for before it touches the file; then
+  `SyncEngine.sweepIdentityStores` deletes the person's other-distributor files that hold nothing unsent. The server's revoke goes
+  once `leave` has settled, in the background, and a sign-in on that client waits until then.
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
 
@@ -221,9 +230,12 @@ Tokens live in `platform.storage` (secure store on native; `localStorage` on web
 scripts, strict CSP on the hosted site). The local database is unencrypted for the pilot (SQLCipher is a phase-2 item in docs/25); it
 contains no cost or margin column by construction (the manifest strips them server-side). A device file belongs to one person in
 one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out clears the session on the device first — a
-crash from then on relaunches to the sign-in form — then ends the engine, and asks the server to revoke last, in the background
-(addendum (y), 2026-09-14): with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
-other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
+crash from then on relaunches to the sign-in form, and the engine touches the file only once the session has left the platform
+store (the Keychain delete is asynchronous) — then ends the engine, and asks the server to revoke last, in the background
+(addendum (y), 2026-09-14). Until the leaving is over no one signs in on that phone, and a refresh or a switch that set off under
+the session that ended writes nothing and replays nothing (merge review of ruling 2): with nothing queued or refused it is one
+tap, the read set is dropped and the file deleted, and the person's files at their other distributors are deleted when they hold
+nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
 that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
@@ -259,13 +271,18 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     it at the next sign-in, while anyone else's start wipes it. An order and its lines are queued whole or not at all through
     `enqueueMany`: refused whole once `end()` has begun, refused whole for one download-only line, and landed in call order with
     one message to every table touched; a file kept by the count keeps that person's drafts, and the sibling sweep runs on every
-    sign-out.
-14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
+    sign-out. `end({ after })` touches the store only once `after` has settled; the same person signing straight back in opens
+    the file only once the engine before has closed it.
+14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue;
+    it never takes a file an engine holds, and an engine waits for a sweep that holds its file.
 15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
     only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through
     `waiting()` and asks.
 16. `@dos/api-client`: `identityKey` changes with the user or the distributor, not with a password flag or a role, and the query
     cache is cleared on every identity change, a forced sign-out included; the sales draft is keyed by the signed-in user.
+    `signOutOnDevice` clears the session before any network call and revokes only once the leaving has settled; a sign-in waits
+    for the leaving; the leaving is told when the session has left the platform store; a refresh in flight at the sign-out signs
+    nobody back in and never replaces the next person's session.
 
 ## 14. Failure modes
 
