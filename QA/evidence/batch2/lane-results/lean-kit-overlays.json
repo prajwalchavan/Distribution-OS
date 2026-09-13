@@ -1,0 +1,118 @@
+{
+ "group": "lean-kit-overlays",
+ "items": [
+  "DOS-152",
+  "DOS-159",
+  "DOS-157",
+  "DOS-162",
+  "DOS-158"
+ ],
+ "build": [
+  {
+   "id": "DOS-152",
+   "status": "fixed",
+   "commits": [
+    "4af2565"
+   ],
+   "deviations": "Implemented option 2 of the finding's suggested fix (\"put Close inside the scroll content\") rather than option 1 (inset by measured footer height), since it is simpler and needs no onLayout bookkeeping, and it matches the group note's instruction to keep the change \"inside the native Sheet only\" \u2014 the pick/[id].tsx \"compact the W5 sheet\" half of the original suggested fix was intentionally NOT done (that is DOS-118's own fix, only cross-referenced inside this finding, and DOS-118 is not in this group). The test is a source-reading guard, not a live render/measurement, because native/* cannot run under vitest and this worktree may not start an emulator.",
+   "followUps": "Needs a real uiautomator walk on Pixel_7_API_36 (per the finding's own testPlan: drag slowly to Short, tap it, confirm it saves and Close never overlaps it) \u2014 not run here. Also worth a look by whoever owns frontend/libs/ui/src/native/money.tsx: NumberPad's own `flex: 1` (intended for a full-screen pad) is a plausible contributor to the reported height blow-up when NumberPad is embedded in a Sheet's ScrollView, but that file is outside this group's scope.",
+   "platformCheck": "Android (Pixel_7_API_36, uiautomator) walk of the W5 Short sheet still required \u2014 not run in this worktree (emulators/simulators are disallowed here). iOS is not implicated by this finding (Android-only defect); no iOS walk needed for this item specifically, though DOS-159's KeyboardAvoidingView change to the same component should be walked on both platforms together."
+  },
+  {
+   "id": "DOS-159",
+   "status": "fixed",
+   "commits": [
+    "bf47ebd"
+   ],
+   "deviations": "The group note pairs DOS-152 and DOS-159 as landing together in the same component; per the per-item commit requirement they were still built and committed as two sequential, independently-tested diffs (152 first, then 159 on top), each verified with `git diff HEAD` to contain only that item's change before committing. Also strengthened (not weakened) the pre-existing 'scrolls its own body rather than overflowing' test: it previously matched one exact multi-name import line, which the new KeyboardAvoidingView/Platform imports would have broken as an unrelated string match, so it was rewritten to parse the react-native import and assert the exact expected name set (still exact-match, now robust to import re-wrapping).",
+   "followUps": "Needs a real Android (Gboard) walk of the credit-note Sheet's Bill field per the finding's testPlan, plus the decimal-pad/red-error re-check it calls out, and an iOS walk to confirm the 'padding' behavior does not over-lift the sheet.",
+   "platformCheck": "Android (Pixel_7_API_36, Gboard) walk of the credit-note Sheet required; iOS simulator walk of any Sheet with a text field required (behavior differs by platform: 'height' vs 'padding'). Neither run here \u2014 emulators/simulators disallowed in this worktree."
+  },
+  {
+   "id": "DOS-157",
+   "status": "fixed",
+   "commits": [
+    "6b4aee5"
+   ],
+   "deviations": "None \u2014 implemented exactly as the finding and group note describe: ListRow now renders a non-string `secondary` (a StatusChip node from a Register's chip column) directly, only wrapping strings/numbers in the numberOfLines Txt. Confirmed via grep that this exact pattern (`priority: 'chip'`) is used by roughly 30+ registers across manager/owner/sales/admin apps, matching the note that this touches every native Register with a chip column.",
+   "followUps": "Needs a real Android walk of M7 Load-out's waiting panel (per the finding's testPlan: uiautomator content-desc should read '13 Sep, Waiting for your approval, 1375 rupees' then 'Approved') plus at least two other chip-column registers (e.g. billing/credit-notes, orders index) to confirm the chip now renders in full rather than as '\u2026'.",
+   "platformCheck": "Android (Pixel_7_API_36, 1080x2400) walk of Load-out plus two other chip-column registers required, and a 360dp-phone check per the finding's own suggested-fix note; not run here \u2014 no emulator in this worktree."
+  },
+  {
+   "id": "DOS-162",
+   "status": "fixed",
+   "commits": [
+    "23d33c8"
+   ],
+   "deviations": "None \u2014 kept Promise<void> in platform/types.ts unchanged as directed; only documents.native.ts's print() now catches and swallows a PrintIncompleteException specifically, re-throwing everything else. Extended the expo-print mock in documents.native.test.ts with a settable `printError` (was a static resolved promise), which is a genuine behavioral test (not source-reading) since the Expo modules are already mocked in that file.",
+   "followUps": "Needs an iOS simulator walk (Print then Cancel on delivery's 'Send the papers' and the retailer's bill) confirming no red toast, and the equivalent on Android.",
+   "platformCheck": "iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go) walk required per the finding; Android equivalent also worth checking since expo-print raises the same exception there. Not run here \u2014 simulators/emulators disallowed in this worktree."
+  },
+  {
+   "id": "DOS-158",
+   "status": "fixed",
+   "commits": [
+    "d6977fa"
+   ],
+   "deviations": "None \u2014 implemented exactly the two-part suggested fix: `accessibilityLabel={successLabel ?? label}` added, and `accessibilityState` now omits the `busy` key entirely when `loading` is false instead of passing `busy: false`.",
+   "followUps": "Needs a real uiautomator dump on the manager app after a refused write (409/400/501, per the finding's repro list) to confirm content-desc reads the button's label again once settled, instead of staying 'busy'.",
+   "platformCheck": "Android (Pixel_7_API_36) walk of a refused-write dialog (manager Waves \u2192 'Make a picking sheet' \u2192 409, and the other repro cases in the finding) required; not run here \u2014 no emulator in this worktree."
+  }
+ ],
+ "verdict": [
+  {
+   "id": "DOS-152",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-159",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-157",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-162",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-158",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  }
+ ],
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "bf47ebd (DOS-159) wraps the sheet panel in a content-sized KeyboardAvoidingView (frontend/libs/ui/src/native/feedback.tsx:223-236, `width:'100%'`, no flex) between the flex-end backdrop and the `maxHeight:'86%'` panel. (a) Yoga resolves the 86% against the KAV's available height in both passes: the measure pass clamps the panel at 0.86\u00b7H and sizes the KAV to that, the final pass lays the KAV out Exactly at that size and re-resolves 86% against it \u2014 every native Sheet on iOS and Android ends at 86% of its own content height, bodies that fit now scroll, and a ~14%-of-sheet scrim gap opens under the panel where a tap closes the sheet (the DOS-152 harm moved one row down). (b) Android behavior='height' (RN 0.86.3 KeyboardAvoidingView.js:244-247) sets `height: initialFrameHeight - overlap, flex:0` on the KAV itself; a box pinned to the bottom by the backdrop's flex-end only gets shorter in place and cannot rise, and when the sheet is shorter than Gboard its height goes <= 0 and the panel vanishes. The comment 'Android already resizes the window' contradicts the finding (ReactModalHostView.kt:332 asks ADJUST_RESIZE but :395 makes the dialog edge-to-edge, ignored on API 35+, and nothing applies ime() insets). Fix: KAV `style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents=\"box-none\"`, backdrop keeps flex:1 + colour only, behavior='padding' on both platforms (drop Platform), fix both comment blocks, update parity.test.ts:308-310 (import set) and :359-370 (behavior string); then the Android and iOS walks before merge."
+  ],
+  "conflicts": [
+   "None: `git merge-tree --write-tree main qa/b2-lean-kit-overlays` is clean; no file changed on main since 53daedb overlaps the six branch files; the only other unmerged qa/b2-* branch (lean-sales-entry) touches none of them.",
+   "Process: lean-kit-polish (DOS-150) reuses the Button accessibility pattern \u2014 start it from main after this merges rather than editing controls.tsx:78-92 in parallel."
+  ],
+  "unfiledDefects": [
+   "frontend/libs/ui/src/native/list.tsx:170 \u2014 a numeric `secondary` of 0 is dropped by the truthiness check (P4, pre-existing; no register passes 0 today).",
+   "frontend/libs/ui/src/native/feedback.tsx:198-221 \u2014 the backdrop comment block still explains flex-end on the backdrop and claims Android resizes the modal window; both statements move/change with the blocker fix (same group, noted so it is not forgotten)."
+  ]
+ },
+ "final": "merged",
+ "mainHead": "8c6d228",
+ "pushed": true,
+ "run": "wf_5c958b90-522",
+ "setup": "Sonnet 5 builder/verifier/integrator, Fable merge review (founder-approved lean setup)"
+}

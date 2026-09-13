@@ -289,3 +289,14 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **h10:** prettier fixed in platform-admin.spec.ts, and the admin-service and admin-app READMEs regenerated.
 - **h13:** the frontend lockfile auto-merged; `pnpm install --frozen-lockfile` passes.
 - **Result:** all 25 batch-2 P1 findings are on main. Still owed: the platform walks, the owner Support access walk on the DOS-164 overlay host, and three "may follow" minors in the admin console (auditChange has no 'user.enabled' case, the unlock dialog keeps its old error, and a spec comment still counts fifteen).
+
+### Batch 2 — lean wave 1 merged (2026-09-13, 20:04 IST)
+
+**Run `wf_5c958b90-522`** — Sonnet 5 build, verify and integrate; Fable merge review (every group has a P2); 20 agents, about 1 h 55 min. 15 findings merged (11 P2, 4 P3). Every item failed its test before the fix and passed after; no verifier blocker. Per-group reports: `QA/evidence/batch2/lane-results/lean-<group>.json`; reviews: `merge-reviews/lean-<group>.md`.
+- **lean-kit-overlays `8c6d228`:** DOS-152 `4af2565`, DOS-159 `bf47ebd`, DOS-157 `6b4aee5`, DOS-162 `23d33c8`, DOS-158 `d6977fa`. Review: MERGE AFTER FIXES. DOS-159's KeyboardAvoidingView was sized by its content, so every native Sheet would stop at 86 % of its own height with a tap-to-close gap under it, and Android's 'height' behaviour could shrink a short sheet to nothing. Merge-time fix `58a8a99` gives it a definite height.
+- **lean-sales-entry `e6f931c`:** DOS-128 + DOS-147 `636cc3f`, DOS-161 `30927ba`, DOS-085 `a226956` + review fix `996a4e1`, DOS-082 `3d7e61f`, DOS-129 `e250fde`. Review: MERGE AFTER FIXES. The phone footer's full-width button squeezed the money read-back; fix `101fc28`.
+- **lean-manager-billing `663c6f3`:** DOS-022 `7865d6c`, DOS-026 `42f6bcb`, DOS-024 `917a505`, DOS-134 `1ae9a0d`. Review: MERGE AFTER FIXES. Print the challan opened from a poll timer, which a web browser blocks outside the tap; fix `144bcfe`.
+- **Pushed:** origin/main = `663c6f3`, which also carries the docs/22 merge `46f2227`.
+- **NOT TESTED (goes to the A.12 regression):** every walk the builders listed — W5 Short sheet (Android), credit-note Sheet with Gboard (Android) and a Sheet with a text field (iOS), Load-out chip plus two chip registers (Android), print cancel (iOS and Android), refused-write button label (Android), sales order entry phone footer and pieces pad (web phone, Android, iOS), the QtyStepper confirm on delivery D4 / van sale and manager M20, Print the challan (web, Android, iOS).
+- **New suspects:** S-102..S-109 in `QA/findings/12` (money: S-106, the parked-pack double count in 'left to bill').
+- **Wave 2 started:** lean-retailer-shop (DOS-101, 123, 124, 154, 105, 143, 144) and lean-backend-platform (DOS-127, 160, 028, 112, 151); worktrees from main `663c6f3`, DBs `dos_test_b2_lr` and `dos_test_b2_lb`.
