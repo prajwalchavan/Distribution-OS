@@ -50,6 +50,22 @@ A text search of the served sales bundle for the DOS-077 comment and prop was in
 runtime observations are the evidence. The :5174 manager server serves main without DOS-029 (0 `useRefusal` in its bundle, as expected); the
 DOS-029 manager build walked on web and Android is the :5274 server started at 02:14:43 from the DOS-029 worktree at d600ab8.
 
+### 0c. CI chain after merging DOS-029 + DOS-135 (merge d8ae49e, 2026-09-13 08:46 IST, every step `--force`)
+
+| Step | Result |
+|---|---|
+| frontend install (`--frozen-lockfile`) | exit 0 |
+| frontend format:check | exit 0 |
+| frontend lint | exit 0, 11/11, 0 cached |
+| frontend typecheck | exit 0, 11/11, 0 cached |
+| frontend test | exit 0, 6/6 packages, **341 passed** (api-client 77, ui 216, offline 38, delivery-app 6, manager-app 3, sales-app 1) |
+| frontend build | exit 0, 8/8 (seven web exports) |
+| backend docs:readme:check | exit 0 (DOS-029/135 touched no backend or contract) |
+
+The backend was not re-run: the merge changed only `frontend/libs/api-client` and `frontend/manager-app` (24 files). The seven main Metro servers
+were restarted on the merged code at 08:48 IST with `--clear`; **manager :5174 bundle 7606031B useRefusal=9 onItsWrite=3** (DOS-029 and DOS-135 present). The :5274 branch server is
+stopped, the branch worktree and its test database are removed, the branch is kept (merged).
+
 ### 1. Focused regression — the fixes, re-walked in the running product
 
 **Part A — web (desk 1280×800 and phone 390×844) outside the manager app, 2026-09-13 00:55–02:25 IST, dos_qa, Opus walkers with their own browsers.**
