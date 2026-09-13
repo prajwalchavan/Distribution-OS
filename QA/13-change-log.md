@@ -442,3 +442,21 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - **Repair:** Fable ruling 2 covers the store name, the silent fallback, the count, and the order-enqueue gap between the header and its lines. Then build, verify, review, merge, and re-run the proof.
 - **New suspects:** S-116..S-123 — see QA/findings/12. They are the ruling-1 out-of-scope items, the verifier minor and the proof defects.
 - **Lean wave 3 is on HOLD** until the proofs finish and the store-name repair merges.
+
+### Batch 2 — DOS-167 ruling 2 (Fable) on the web store-name regression (2026-09-14 01:24 IST)
+
+**Run `wf_03a998d4-f25`** — 1 Fable agent, about 15 min. Ruling: `verdicts/DOS-167-ruling-2.md` and `.json`. No founder question; answer A decides everything below.
+
+**Root cause (confirmed in code).** wa-sqlite's VFS has `mxPathname = 64`, and SQLite refuses a path when its length + 8 > 64. The databasePath `'./' + name` must therefore be at most 56 characters. The 199952b names are 92–96 characters.
+
+**Mandatory amendments:**
+- **(s) The name.** It is `<app><user><distributor>`: 51 lowercase base-36 characters, lossless and provably collision-free, so it is safe even on the case-insensitive filesystem of the iOS simulator. `parseStoreName` turns a name back into its ids. The long-name files from 199952b are swept once for the signed-in person, and kept if they still hold anything unsent.
+- **(t) The fallback.** It is logged and named in the sync status. On a memory store the leave sheet offers only "Send now" (online) or "Cancel". The sign-out waits, and a new sentence says this browser cannot keep the changes.
+- **(u) Orders.** An order and its lines are queued as one write, whole or not at all. A kept file keeps its drafts, and the sweep runs on every sign-out.
+- **(v) The refusal sentence.** A write refused because the phone is signing out shows its own sentence on the sales order screen.
+
+**Left as is:** (w) the count stays as outbox ops, so S-121 stays open.
+
+**New suspects:** S-124 and S-125. The strip cannot say "not kept in this browser", and the order screen says "Saved on this phone" on a memory store.
+
+**Build prepared, not launched.** It waits for the running delivery, warehouse and iOS proofs of `wf_74bd442f-12c`, which hold the emulator and simulator (not enough RAM for both).

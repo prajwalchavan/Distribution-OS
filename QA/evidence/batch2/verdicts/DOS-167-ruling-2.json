@@ -1,0 +1,177 @@
+{
+ "needsFounder": false,
+ "founderQuestion": "",
+ "amendments": [
+  {
+   "id": "s",
+   "title": "The name: <app><user><distributor>, 51 lowercase base-36 characters, lossless and provably collision-free, within web SQLite's 54-character limit",
+   "rule": "Root cause confirmed: wa-sqlite's VFS declares mxPathname = 64 (expo-sqlite/web/wa-sqlite/VFS.js:10) and SQLite refuses to open when strlen(path) + 8 > mxPathname, so the databasePath expo-sqlite web passes \u2014 './' + name (SQLiteModule.ts:403 defaultDatabaseDirectory '.', pathUtils createDatabasePath) \u2014 must be <= 56: names of <= 54 open, 55+ fail with sqlite3_open_v2 (diag-04: 56 opens, 57 fails). The 199952b names are 92-96.\n\nFORMAT: `<app><user><distributor>`, exactly 51 characters, [0-9a-z] only, no separators, no extension.\n- <app>: one letter from a table in engine.ts: dos-sales -> s, dos-delivery -> d, dos-warehouse -> w, dos-harness -> h; any other prefix throws. The apps' storePrefix props and legacyStoreName(prefix) = '<prefix>.db' are unchanged.\n- <user>, <distributor>: each id's 128-bit value in base 36, zero-padded to 25 digits (36^25 > 2^128 > 36^24). BUILD: the id must match /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i (canonical UUID; anything else throws \u2014 every id in this system is a UUID and a file name never carries an unchecked string), lowercase, drop hyphens, BigInt('0x'+hex).toString(36).padStart(25,'0'). PARSE: parseStoreName(name) matches /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/, each 25-digit group back through base 36 to 32 hex digits, re-hyphenated 8-4-4-4-12; exported from engine.ts and shared.ts; docs/27 \u00a72 carries a one-line `node -e` decode for QA listings. Example (dos_qa rahul at Tarsun): s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft. Hermes has BigInt (RN >= 0.70); if the first Android run finds typeof BigInt === 'undefined', the builder does the base-36 division on four 32-bit limbs \u2014 the format is the rule, not the arithmetic.\n- FIT: './' + 51 = 53 <= 56 on web (margin 3; the only thing that can eat it is expo-sqlite's own defaultDatabaseDirectory, pinned at 57.0.2 in the catalog); 51 of 255 bytes on Android and iOS.\n- PROOF (no hash anywhere): canonical UUID <-> 128-bit integer is a bijection; 128-bit integer -> 25-digit zero-padded base-36 string is injective; the alphabet has one case, so no case-folding filesystem (the iOS simulator's container sits on a case-insensitive macOS volume) can identify two distinct names; fixed widths make the concatenation unambiguous. Hence (app, userId, tenantId) -> name is injective on every store we run (OPFS pool header byte-compare, ext4/f2fs, APFS). Amendment (a) stands with this format.\n- FILES UNDER THE 199952b NAMES: on web none ever existed (the open failed before a header was written) \u2014 nothing to do. On the QA phones the long name is exported as interimStoreName(prefix, identity) and the provider's legacy effect (react.tsx:165) sweeps it ONCE for the signed-in identity with the sibling-sweep rule \u2014 deleted when it holds nothing queued/sending/refused, kept and logged ('offline: kept the store from before ruling 2') when it does \u2014 through a generalised static SyncEngine.sweepStores(storeFactory, names, onLog) that sweepIdentityStores now calls. The legacy '<prefix>.db' keeps its plain destroy (amendment i). No customer device has either name (pre-release).\n- DOCS: docs/27 \u00a72 line 40 and \u00a713 test 12, frontend/libs/offline/README.md line 45; docs/22 \u00a78 row handed to the main session.",
+   "files": [
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/shared.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/identity.test.ts",
+    "frontend/libs/offline/README.md",
+    "docs/27-offline-sync-client.md"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 storeNameFor keys the file by app, user and distributor",
+     "redBecause": "Rewritten: the name must match /^[sdw][0-9a-z]{50}$/ and ('./' + name).length <= 56; parseStoreName round-trips 200 random UUIDs plus 00000000-0000-0000-0000-000000000000 and ffffffff-ffff-ffff-ffff-ffffffffffff; a different user, tenant or app gives a different name, a different role the same; an upper-case id gives the same name as lower-case; 'a', 'a/b', '../rahul', '', 'dos/sales' and 'dos-shop' throw. Red today: the name is 'dos-sales__u-<uuid>__t-<uuid>.db' (92 characters), 'a' is accepted, and parseStoreName does not exist."
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 the SQLite adapter's destroy closes then deletes the file by name (and the two sweepIdentityStores cases)",
+     "redBecause": "The fixtures become canonical UUIDs and the expected deleteDatabaseAsync argument is the 51-character name. Red today: the assertion at :1165 expects 'dos-sales__u-a__t-t1.db' and the sweep tests build names from non-UUID ids, which the new storeNameFor refuses."
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 the 199952b store is swept once for the signed-in person: deleted when empty, kept and logged with a queue",
+     "redBecause": "A factory over a Map<name, store>: the store at interimStoreName('dos-sales', RAHUL) holding no ops is destroyed (map entry emptied) and the new-format file is untouched; the same store holding one queued op is kept and the log line 'offline: kept the store from before ruling 2' is written. Red today: interimStoreName and SyncEngine.sweepStores do not exist and the legacy effect knows only '<prefix>.db'."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "t",
+   "title": "The fallback is loud, the status names it, and a browser that cannot keep never offers to keep \u2014 the sign-out waits",
+   "rule": "- SyncStore gains `readonly fallback?: { wanted: StoreKind; reason: string }`; createMemoryStore(fallback?) carries it. open.web.ts returns the memory store with the reason 'not cross-origin isolated (no COOP/COEP)', 'no OPFS', 'expo-sqlite did not load' or 'open failed: <message>'; open.native.ts with 'expo-sqlite is not in this binary' or 'open failed: <message>'. Never silent again.\n- start(): after the open, when !store.persistent && this.options.identity !== undefined, onLog('offline: no persistent store; running in memory', { name, fallback }) once. SyncStatus gains `storeNote: string | null` (the reason; null on a persistent store).\n- Screens: the sales beat line s0.notPersisted and the delivery/warehouse 'Held in memory only' lines stay; the strip is unchanged (the kit's ConnectionState has no persistence field and (j) forbids a kit change \u2014 S-row).\n- THE SHEET on a memory store (persistent === false): useLeaveSession exposes `persistent`; a pure leaveButtons({ mode, online, persistent }) in each app's leave.ts decides the buttons and leave-sheet.tsx renders from it: persistent -> as today; memory + online -> 'Send now', 'Cancel'; memory + offline -> 'Cancel' only. The sign-out WAITS. This follows answer A directly: the app throws nothing away; a discard verb at sign-out stays forbidden by (f); refused ops are discarded in the tray as today (orders/attention.tsx:99), and the browser that cannot keep says so. One new string, byte-identical in the three strings.ts, 'leave.bodyMemory': 'This browser cannot keep them once you leave. Send them now while there is a signal \u2014 without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.' leaveSentence takes `persistent` and uses this body for both modes; title and attention line unchanged. A distributor switch on a memory store is the same case (the old engine's memory dies with it), so 'Switch anyway' is withheld the same way.\n- docs/27 \u00a72 (the memory adapter is announced in the log and the status) and \u00a712 (a store that cannot keep never offers to; the sign-out waits for a signal or the tray).",
+   "files": [
+    "frontend/libs/offline/src/types.ts",
+    "frontend/libs/offline/src/store/memory.ts",
+    "frontend/libs/offline/src/store/open.web.ts",
+    "frontend/libs/offline/src/store/open.native.ts",
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/identity.test.ts",
+    "frontend/sales-app/src/strings.ts",
+    "frontend/sales-app/src/lib/leave.ts",
+    "frontend/sales-app/src/lib/leave-sheet.tsx",
+    "frontend/sales-app/src/lib/leave.test.ts",
+    "frontend/sales-app/app/_layout.tsx",
+    "frontend/delivery-app/src/strings.ts",
+    "frontend/delivery-app/src/lib/leave.ts",
+    "frontend/delivery-app/src/lib/leave-sheet.tsx",
+    "frontend/delivery-app/src/lib/leave.test.ts",
+    "frontend/delivery-app/app/_layout.tsx",
+    "frontend/warehouse-app/src/strings.ts",
+    "frontend/warehouse-app/src/lib/leave.ts",
+    "frontend/warehouse-app/src/lib/leave-sheet.tsx",
+    "frontend/warehouse-app/src/lib/leave.test.ts",
+    "frontend/warehouse-app/app/_layout.tsx",
+    "docs/27-offline-sync-client.md"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 a memory store is announced at start and named in the status",
+     "redBecause": "An engine with an identity over createMemoryStore({ wanted: 'sqlite-web', reason: 'open failed: sqlite3_open_v2' }) writes 'offline: no persistent store; running in memory' with that reason in the detail and status().storeNote equals it; over a persistent fake store no such line and storeNote null. Red today: createMemoryStore takes no argument, SyncStore has no fallback, SyncStatus has no storeNote, and start() logs nothing."
+    },
+    {
+     "file": "frontend/sales-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait",
+     "redBecause": "leaveButtons gives ['sendNow','keep','cancel'] for (persistent, online), ['keep','cancel'] for (persistent, offline), ['sendNow','cancel'] for (memory, online), ['cancel'] for (memory, offline); leaveSentence({ persistent: false }) returns the 'leave.bodyMemory' body for signOut and for switch and never contains 'stay on this phone'. Red today: leaveButtons, the persistent argument and the key do not exist."
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait",
+     "redBecause": "Same assertions over the delivery catalogue; red for the same reasons."
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a browser that cannot keep offers no keep: Send now or wait",
+     "redBecause": "Same assertions over the warehouse catalogue; red for the same reasons."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "u",
+   "title": "An order and its lines are queued as one write, whole or not at all; a kept file keeps its drafts and the sweep runs on every sign-out",
+   "rule": "- Engine: enqueueMany(inputs: readonly EnqueueInput[]): Promise<string[]> \u2014 one requireStore() gate (m1), every input's shape and writable checked BEFORE anything is written (one bad line refuses the whole order), one inHand (m2), ONE store.transaction inserting the outbox rows in call order (ascending seq, header first, so FIFO still delivers the header before its lines and applyLineSync never sees a line before its order) and applying each locally, then one refreshCounts, one emit of every table touched plus OUTBOX_CHANNEL, one flush(). enqueue(input) becomes (await enqueueMany([input]))[0]. useOutbox() exposes enqueueMany.\n- useEnqueueOrder (frontend/sales-app/src/lib/queue.ts:42-72) builds the header and its lines and calls enqueueMany once. OUTCOME: the phone and the office hold the whole order or none of it \u2014 refused at the gate, the rep sees the sentence of (v) and nothing is queued; past the gate, end() waits for it, counts it and keeps the file (m2, m3). A header-only draft can no longer come from a sign-out (S-120). Delivery and warehouse already queue one op per fact (deliveries carries its lines inline; receipts, trip_stops, pick_lines are single facts) \u2014 no change. Upload batching (<= 50 ops, DOS-056 bytes) is untouched.\n- leaveNow (the three apps' leave.ts): LeaveSteps.end returns Promise<{ kept: boolean } | void>; kept = result?.kept ?? keepQueue. The sibling sweep runs on EVERY sign-out (it deletes only files with nothing unsent \u2014 merge review minor 2); forgetDrafts runs only when !kept, so a file kept by the re-count keeps that person's drafts with it (they are keyed by userId; nobody else can read them).\n- docs/27 \u00a76: 'an aggregate (an order and its lines) is queued in one transaction through enqueueMany'; \u00a713 test 13 gains the case.",
+   "files": [
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/identity.test.ts",
+    "frontend/sales-app/src/lib/queue.ts",
+    "frontend/sales-app/src/lib/leave.ts",
+    "frontend/sales-app/src/lib/leave.test.ts",
+    "frontend/delivery-app/src/lib/leave.ts",
+    "frontend/delivery-app/src/lib/leave.test.ts",
+    "frontend/warehouse-app/src/lib/leave.ts",
+    "frontend/warehouse-app/src/lib/leave.test.ts",
+    "docs/27-offline-sync-client.md"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 an order and its lines are queued whole or not at all",
+     "redBecause": "(1) engine started, `const ending = engine.end({ keepQueue: false })`, then enqueueMany([header, line]) rejects with { name: 'SyncEngineEndedError' } and _outbox is empty; (2) a line for a download-only table refuses the call before any write: _outbox empty and no local sales_orders row; (3) three ops land with ascending seq in call order, exactly one OUTBOX_CHANNEL emit, status().pending === 3. Red today: enqueueMany does not exist (TypeError), and the verifier's PROBE-3 shape (header resolved, line refused) is what the sequential enqueue gives."
+    },
+    {
+     "file": "frontend/sales-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out",
+     "redBecause": "steps.end resolving { kept: true } with keepQueue false -> forgetDrafts not called, sweep called once, signOut called; keepQueue true -> sweep called once. Red today: leaveNow ignores the result and calls forgetDrafts whenever keepQueue is false, and skips the sweep whenever keepQueue is true (leave.ts:163-175)."
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out",
+     "redBecause": "Same assertions (delivery has no drafts: forgetDrafts is a no-op step; the sweep assertion is the red one)."
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+     "name": "DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out",
+     "redBecause": "Same assertions; red on the sweep-on-keep path."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "v",
+   "title": "The refusal reaches the sales order screen in its own words \u2014 ruling 1's optional (q), mandatory now",
+   "rule": "As ruling 1 wrote it: toApiError (frontend/libs/api-client/src/errors.ts:175) maps an error whose name === 'SyncEngineEndedError' (structural check, no import of @dos/offline; amendment h stands) to new ApiError({ kind: 'auth', message: err.message, cause: err }), so orders/new.tsx:427-429 shows 'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.' instead of 'Something could not be completed. Try again.' (web V5E, S-122). Delivery and warehouse already show the engine's sentence. The guarantee in (m) does not depend on it; the re-proof asserts the exact sentence, which also proves the gate \u2014 not some other error \u2014 refused the write.",
+   "files": [
+    "frontend/libs/api-client/src/errors.ts",
+    "frontend/libs/api-client/src/identity.test.ts"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/api-client/src/identity.test.ts",
+     "name": "DOS-167 an engine that is signing out reaches the screen as a sign-in-again error in its own words",
+     "redBecause": "toApiError(Object.assign(new Error('This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.'), { name: 'SyncEngineEndedError', code: 'ended' })) must have kind 'auth' and that exact message. Red today: kind 'unknown', message 'Something could not be completed. Try again.'"
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "w",
+   "title": "The count stays as ops: S-121 remains open (P3) and the re-proof expects '2 changes' for a one-line order",
+   "rule": "'2 changes have not reached the office' and '2 waiting to send' for one order with one line are true to the outbox and are NOT a DOS-167 guarantee. A user-level count needs a group_id column on _outbox (stamped by enqueueMany; the sheet and the strip count COUNT(DISTINCT COALESCE(group_id, op_id))), which is a device-schema bump and belongs with DOS-046's systemSchema in lean-libs-offline-boot. Out of scope here; the re-proof EXPECTS '2 changes have not reached the office' and '2 waiting to send' for one order with one line, '11' for ten lines.",
+   "files": [],
+   "tests": [],
+   "mandatory": false
+  }
+ ],
+ "reproof": [
+  "WEB, persistent store (COOP/COEP injected, dos_qa): `s-098-shared-device.mjs v5a v5b v5c v5d v5e` with storeFacts matching the NEW names (pool header path `/s<50>`, both ids decoded with parseStoreName and asserted against the signed-in person and distributor). V5A/V5B/V5C: the beat screen never shows 'This browser will not keep the offline copy'; the console never shows 'offline: no persistent store'; after rahul's sign-in exactly one header names his file; after his one-tap sign-out none, and no dos-sales.db; after the second sign-in exactly one names that person; every leak checkpoint and the +0.4 s shot clean; the first manifest without knownSchemaVersion and the first pull without since; Shops 29 (amit) / 24 (kiran), orders 380 / 218; rahul's order route 'That order is not on this phone'. Desk 1280x800 and phone 390x844 as before.",
+  "WEB V5D: sheet title '2 changes have not reached the office' (see (w)), body names Rahul, no Send now while offline, keep button 'Sign out, keep here'; after keep the header of rahul's file is still present; kiran's sign-in adds a second header and shows no rahul marker; kiran's one-tap sign-out leaves only rahul's header; COLD START: sign in as rahul holding the kept order and tap Sign out at once -> the sheet with the same title and the file still present; then sign in online: calls manifest -> upload -> pull without since, strip '2 waiting' then 'Updated just now', dos_qa holds the draft 01a0\u2026 with its line exactly once, salesperson rahul.",
+  "WEB V5E (race): a TWO-line order; the refused tap shows the engine's sentence 'This phone is signing out; nothing more can be saved on it\u2026' and never the generic line nor 'Saved on this phone'; after re-sign-in nothing waits, 0 uploads, dos_qa has no row for the order id (no header-only draft).",
+  "WEB MEMORY variant (plain Metro :5175, no header injection): the console line 'offline: no persistent store; running in memory' with reason 'not cross-origin isolated'; the beat line s0.notPersisted shown; queue an order offline; tap Sign out -> the sheet shows the leave.bodyMemory sentence and ONLY Cancel (no keep, no Send now); radio on -> 'Send now' appears, sends (strip 'Updated just now'), then Sign out is one tap; dos_qa holds that order once.",
+  "ANDROID (Pixel_7_API_36, -memory 3072, sales debug APK, `pm clear` first): design steps 1-6 with `adb shell run-as in.distributionos.sales ls files/SQLite` expecting exactly one `s[0-9a-z]{50}` (+ -wal/-shm) decoded to the signed-in person and distributor, no dos-sales.db and no dos-sales__u-\u2026 name at any step; step 5 offline through `adb reverse --remove tcp:3003` + force-stop/relaunch (airplane mode does not cut adb reverse); the warm and cold sheets ('2 changes\u2026', 'Sign out, keep here'); after keep the file's tables are only _gps_buffer/_outbox/_sync_errors/_sync_state with userId/tenantId/deviceId stamped and cursor/schemaVersion/role/lastPulledAt empty, both ops 'queued'; kiran clean (0 markers, 0 uploads, Shops 24) and her sign-out leaves only amit's file; amit's re-sign-in: manifest -> upload -> pull without since, dos_qa holds the order with its line once.",
+  "ANDROID upgrade from a long-name file: install the 199952b JS, sign in as rahul, sync (ls shows dos-sales__u-\u2026__t-\u2026.db); swap to the fixed JS and reopen WITHOUT pm clear: the long file is gone within the first start (it held nothing unsent) and only `s\u2026` remains, rahul's session back with 'Updated just now'. Repeat with one op queued in the long file (service unreachable): the long file STAYS, logcat shows 'offline: kept the store from before ruling 2', and the new `s\u2026` file is created beside it.",
+  "ANDROID delivery (in.distributionos.delivery) and warehouse (in.distributionos.warehouse): design steps 1-3 with `d[0-9a-z]{50}` / `w[0-9a-z]{50}` names, their own markers (trip/stop names; picklist numbers), no dos-delivery.db / dos-warehouse.db.",
+  "iOS (iPhone 16 Pro sim via xcrun simctl + QA/tools/ios-drive.mjs, Expo Go, fresh container, never the simulator panel): design steps 1-5 with `find \"$C\" -path '*SQLite*'` expecting exactly one `[sdw][0-9a-z]{50}` per signed-in person, none after a one-tap sign-out, no dos-sales*; sign-out through the product (no keychain reset between people); the keep case with sales-service stopped, then the resend after restart; the early screenshot burst after kiran's sign-in clean.",
+  "UNIT (all platforms, before any walk): cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check green; every test named in (s)-(v) seen red on main first (logs kept), then green; identity.test.ts, the three leave.test.ts and api-client identity.test.ts run one file per command."
+ ],
+ "outOfScope": [
+  "S-121 (P3) stays open: the sheet and the strip count outbox ops ('2 changes' for one order with one line); the fix is a group_id column on _outbox stamped by enqueueMany and COUNT(DISTINCT COALESCE(group_id, op_id)) \u2014 a device-schema bump that belongs with DOS-046's systemSchema in lean-libs-offline-boot.",
+  "S-row (new, P3): the connection strip cannot say 'not kept in this browser' \u2014 the kit's ConnectionState (frontend/libs/ui/src/types.ts:353) has no persistence field and docs/27 \u00a72 claims a sentence the strip does not render; a kit field and the strip copy are a UX-00 \u00a76.11 item, not DOS-167's.",
+  "S-row (new, P3 copy): on a memory store the sales order screen still says 'Saved on this phone' (orders/new.tsx) although the beat screen says the browser will not keep it; reword from status.persistent when the strip item is done.",
+  "S-116..S-119 unchanged (no render test of the layouts' Chrome wiring; a rejected switchDistributor escapes unhandled; the server cursor carries no device identity; identity files of people who never return are never swept, and pre-DOS-167 draft keys rest in localStorage).",
+  "The merge-review 'orphaned start()' blocker is already on main (engine.ts stoppedWhileOpening); nothing to re-rule.",
+  "docs/22 \u00a78 row (main session's file): replace the 2026-09-13 quote 'Sign out, keep them here' with 'Sign out, keep here', add the (m) clause, and add the 2026-09-14 row from this ruling's Lane section."
+ ],
+ "summaryForFounder": "The web version stopped keeping anything on the device because the file name the fix gave each person was too long for the browser's database, and the app hid that failure, so a rep could be told his unsent order was kept when it was not; the phone versions were fine. The repair gives the file a short name that still says exactly whose it is and which distributor it belongs to, makes the app say out loud when it cannot keep anything, and in that case never offers to keep \u2014 it asks the rep to send now or stay signed in until there is a signal. An order and its lines are now saved together or not at all, and a rep refused because the phone is signing out is told so in plain words; the count on the sign-out screen still counts an order and each of its lines separately, which is left for a later fix.",
+ "notes": "Written: /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/verdicts/DOS-167-ruling-2.md (under 150 lines). Read-only otherwise; no build, test, git write or database connection; worktrees untouched.\\n\\nWhy this format and not a shorter hash: only a case-insensitive alphabet makes the injectivity proof hold on every filesystem we run (the iOS simulator's container is on a case-insensitive macOS volume), and base 36 is the densest such alphabet made of safe characters: 25 digits per UUID, 51 with the app letter, './'+51 = 53 <= 56. Base64url would give 45-48 characters but is only injective on case-sensitive stores; base32 (52) and hex (64) do not fit. Exactness: the SQLite rule is nPathname + 8 <= mxPathname (64) with wa-sqlite's mxPathname, so the databasePath may be 56 and a name 54; the task's '54+ fail' is off by one against diag-04 (56 opens, 57 fails); the ruling uses the measured numbers.\\n\\nWhy the memory-store sign-out WAITS (needsFounder false): answer A says nothing is thrown away and (f) forbids a discard verb at sign-out; a browser that cannot keep has no 'keep' to offer, so the only honest offers are Send now (online) and staying signed in (offline), with the tray for refusals. The founder's objection to 'refuse until sent' was about a shared PHONE in a dead spot; on a non-persistent browser the queue dies with the tab whatever the app does, and the session-handover risk is the refresh token's, which is unchanged by either choice. The founder may reword leave.bodyMemory; the three facts (no keep on a memory store, Send now only online, the sign-out waits) are the rule.\\n\\nRating: (s) is the P0's own regression (S-123, P1 on web); (t) is what turns a silent broken promise into an honest one; (u) closes S-120 and merge-review minor 2; (v) closes S-122. One lane over main (199952b+), test-first in the order s -> t -> u -> v -> docs, then the re-proof, then my merge review. Sizing: engine/name/openers 0.3 d, apps' leave.ts/sheet/strings 0.2 d, enqueueMany + queue.ts 0.15 d, docs 0.05 d, re-proof web 0.25 d, Android 0.3 d (sales 1-6 + upgrade + delivery/warehouse 1-3), iOS 0.15 d.\\n\\nConflicts: lean-libs-offline-boot (DOS-046) owns engine.ts retry/needsAttention/pullErrors and the systemSchema key \u2014 (s)/(t)/(u) touch storeNameFor, start(), enqueue and the sweep: disjoint hunks except the SyncStatus type (both add fields) and docs/27 \u00a72/\u00a713; DOS-167 ruling 2 merges first. lean-delivery-door touches delivery _layout.tsx stop screens, not the Chrome (rebases after). The verifier's s-098 script (QA/tools/e2e) must switch storeFacts from the '__u-' pattern to the 51-character regex and decode with the same base-36 arithmetic."
+}
