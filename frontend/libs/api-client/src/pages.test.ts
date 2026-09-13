@@ -141,3 +141,96 @@ describe('readEveryPage', () => {
     expect(fetchPage).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * The same helper under the order screens' stock hint (DOS-074 rep, DOS-097 shop).
+ *
+ * `inventory.stock.availability` answers one row per item that has stock at the godown, 500 to a page, and
+ * nothing for an item with none. So a screen may read a missing item as ZERO only after a complete read:
+ * the old screens read one 500-row page and told a shop "Stock not known", or a rep "0 cs", for items the
+ * godown held by the pallet.
+ */
+interface StockRow {
+  variantId: string
+  available: number
+}
+
+interface StockPage {
+  items: StockRow[]
+  nextCursor: string | null
+}
+
+/** `count` stocked items, keyed like the service: cursor = the last variant id of the page. */
+function godown(count: number): StockRow[] {
+  return Array.from({ length: count }, (_, i) => ({
+    variantId: `variant-${String(i).padStart(5, '0')}`,
+    available: (i % 7) * 24 + 1,
+  }))
+}
+
+function stockPager(rows: readonly StockRow[], limit: number) {
+  return vi.fn(async (cursor: string | undefined): Promise<StockPage> => {
+    await Promise.resolve()
+    const start = cursor === undefined ? 0 : rows.findIndex((row) => row.variantId === cursor) + 1
+    const page = rows.slice(start, start + limit)
+    const more = start + limit < rows.length
+    return { items: page, nextCursor: more ? (page.at(-1)?.variantId ?? null) : null }
+  })
+}
+
+describe('readEveryPage under the stock hint', () => {
+  it('DOS-074: readEveryPage follows nextCursor to the last page, so every stocked item gets its godown total', async () => {
+    const rows = godown(1_203)
+    const fetchPage = stockPager(rows, 500)
+
+    const read = await readEveryPage(fetchPage, { maxPages: 20 })
+
+    expect(fetchPage).toHaveBeenCalledTimes(3)
+    expect(fetchPage.mock.calls.map((call) => call[0])).toEqual([
+      undefined,
+      'variant-00499',
+      'variant-00999',
+    ])
+    expect(read.complete).toBe(true)
+    expect(read.items).toEqual(rows)
+    // an item past row 500 (the one the old single read never saw) is on the list with its total
+    expect(read.items.find((row) => row.variantId === 'variant-01202')?.available).toBe(
+      rows[1_202]?.available,
+    )
+  })
+
+  it('DOS-097: readEveryPage reports an incomplete read when the page cap or a repeated cursor stops it, so an absent item is not treated as zero', async () => {
+    const rows = godown(1_203)
+
+    const capped = await readEveryPage(stockPager(rows, 500), { maxPages: 2 })
+    expect(capped.complete).toBe(false)
+    expect(capped.items).toHaveLength(1_000)
+    // this item HAS stock; it is only missing because the read stopped, which `complete: false` says
+    expect(capped.items.some((row) => row.variantId === 'variant-01202')).toBe(false)
+
+    const stuck = vi.fn(async (): Promise<StockPage> => {
+      await Promise.resolve()
+      return { items: rows.slice(0, 500), nextCursor: 'variant-00499' }
+    })
+    const looped = await readEveryPage(stuck, { maxPages: 20 })
+    expect(stuck).toHaveBeenCalledTimes(2)
+    expect(looped.complete).toBe(false)
+  })
+
+  it('DOS-097: readEveryPage rejects when any page fails, so a screen never gets a partial stock map', async () => {
+    const rows = godown(1_203)
+    const lost = new ApiError({ kind: 'network', message: 'No connection.' })
+    const fetchPage = vi.fn(async (cursor: string | undefined): Promise<StockPage> => {
+      await Promise.resolve()
+      if (cursor === 'variant-00999') throw lost
+      const start = cursor === undefined ? 0 : 500
+      return {
+        items: rows.slice(start, start + 500),
+        nextCursor: `variant-${String(start + 499).padStart(5, '0')}`,
+      }
+    })
+
+    await expect(readEveryPage(fetchPage, { maxPages: 20 })).rejects.toBe(lost)
+    expect(fetchPage).toHaveBeenCalledTimes(3)
+  })
+})

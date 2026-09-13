@@ -60,6 +60,7 @@ import {
   type CatalogItem,
 } from '../../src/lib/local'
 import { quoteOnDevice, type DraftLine } from '../../src/lib/pricing'
+import { useGodownStock } from '../../src/lib/stock'
 import { OrderLineRow, Panel } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
 import { useEnqueueOrder } from '../../src/lib/queue'
@@ -89,23 +90,13 @@ export default function OrderEntry(): React.JSX.Element {
   const [placed, setPlaced] = useState<string | null>(null)
 
   /**
-   * Available-to-promise, when there is signal.
+   * Available-to-promise per item at the godown, when there is signal (DOS-074).
    *
    * `sellable_stock` is NOT in the salesperson's device manifest, so with no signal the stepper
    * simply carries no availability line rather than an invented one. Over-available is an `ochre`
    * warning and never a block (UX-00 §6.4): the godown short-supplies, the doorway does not.
    */
-  const stock = useQuery(
-    ['inventory', 'sellable', 'all'],
-    () => api.api.inventory.stock.sellable({ limit: 500 }),
-    { staleTime: 120_000 },
-  )
-  const availableByVariant = useMemo(() => {
-    const totals = new Map<string, number>()
-    for (const row of stock.data?.items ?? [])
-      totals.set(row.variantId, (totals.get(row.variantId) ?? 0) + row.available)
-    return totals
-  }, [stock.data])
+  const stock = useGodownStock()
 
   const quote = useMemo(() => {
     if (shop === null) return { result: null, unpriced: [], error: null }
@@ -384,7 +375,7 @@ export default function OrderEntry(): React.JSX.Element {
                 const item = byVariant.get(line.variantId)
                 const priced = pricedById.get(line.id)
                 const caseSize = item?.caseSize ?? 1
-                const available = availableByVariant.get(line.variantId)
+                const available = stock.availableOf(line.variantId)
                 const schemeLabel = describeScheme(
                   priced?.discountPaise ?? 0,
                   priced?.freeQtyPcs ?? 0,
@@ -472,7 +463,7 @@ export default function OrderEntry(): React.JSX.Element {
                 <SuggestionRow
                   key={item.variantId}
                   item={item}
-                  available={availableByVariant.get(item.variantId)}
+                  available={stock.availableOf(item.variantId)}
                   onAdd={() => {
                     setQty(item.variantId, item.caseSize, 'case', item.caseSize)
                     setQuery('')

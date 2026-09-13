@@ -46,6 +46,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { today } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
+import { useGodownStock } from '../src/lib/stock'
 import { Async, Panel } from '../src/lib/ui'
 
 /** One line as the screen holds it while it is being typed. Pieces are the state; cases are typing. */
@@ -94,24 +95,8 @@ export default function PlaceOrder(): React.JSX.Element {
       }),
     { enabled: signedIn, staleTime: 300_000 },
   )
-  const stock = useQuery(['sellable'], () => api.api.inventory.stock.sellable({ limit: 500 }), {
-    enabled: signedIn,
-    staleTime: 60_000,
-  })
-
-  /**
-   * Available-to-promise per item, summed across the distributor's locations.
-   *
-   * `stock.sellable` answers ONE ROW PER LOT PER LOCATION — the same item appears many times — so a
-   * screen that read the first row would tell a shop "1 pc left" of something the godown has cartons
-   * of. It is a hint, never a promise: the order is reserved when the distributor confirms it.
-   */
-  const available = useMemo(() => {
-    const totals = new Map<string, number>()
-    for (const row of stock.data?.items ?? [])
-      totals.set(row.variantId, (totals.get(row.variantId) ?? 0) + row.available)
-    return totals
-  }, [stock.data])
+  // Pieces left to promise per item at the godown; null = not known (src/lib/stock.ts, DOS-097).
+  const stock = useGodownStock()
 
   const items = catalog.data?.items ?? []
   const byVariant = useMemo(() => {
@@ -429,7 +414,7 @@ export default function PlaceOrder(): React.JSX.Element {
                         key={line.id}
                         item={item}
                         pieces={line.qtyPcs}
-                        availablePieces={available.get(item.variantId) ?? null}
+                        availablePieces={stock.availableOf(item.variantId)}
                         quoted={quoted.get(line.id)}
                         standing={listRates.get(item.variantId)}
                         onChange={(pieces) => {
@@ -519,7 +504,7 @@ export default function PlaceOrder(): React.JSX.Element {
                         key={item.variantId}
                         item={item}
                         pieces={0}
-                        availablePieces={available.get(item.variantId) ?? null}
+                        availablePieces={stock.availableOf(item.variantId)}
                         quoted={undefined}
                         standing={listRates.get(item.variantId)}
                         onChange={(pieces) => {

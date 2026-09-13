@@ -35,6 +35,13 @@ export class InventoryController {
     )
   }
 
+  @Implement(contract.inventory.stock.availability)
+  availability(@OwnsReply() _reply: unknown) {
+    return implement(contract.inventory.stock.availability).handler(({ input }) =>
+      this.stock.availability(input),
+    )
+  }
+
   @Implement(contract.inventory.stock.balances)
   balances(@OwnsReply() _reply: unknown) {
     return implement(contract.inventory.stock.balances).handler(({ input }) =>

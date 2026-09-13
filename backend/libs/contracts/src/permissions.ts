@@ -471,11 +471,13 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'pricing.bounds.set': OWNER_ONLY,
   'pricing.bounds.list': STAFF,
 
-  // Inventory. `sellable` is the only stock surface a rep or a shop ever sees; per-lot balances and
-  // the ledger stay with the people who hold the stock.
+  // Inventory. A rep or a shop sees two stock reads and nothing else: `availability` (one godown total
+  // per item, the order screens' hint) and `sellable` (per lot per location); per-lot balances and the
+  // ledger stay with the people who hold the stock.
   'inventory.locations.list': STAFF,
   'inventory.locations.upsert': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.sellable': ANY_MEMBER,
+  'inventory.stock.availability': ANY_MEMBER,
   'inventory.stock.balances': STOCK_VIEWERS,
   'inventory.stock.adjust': BACK_OFFICE_OR_WAREHOUSE,
   'inventory.stock.transfer': BACK_OFFICE_OR_WAREHOUSE,

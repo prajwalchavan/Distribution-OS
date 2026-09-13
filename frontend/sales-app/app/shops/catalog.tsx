@@ -2,8 +2,9 @@
  * S11 · Catalog and stock, and the deals worth pitching.
  *
  * The catalog itself is on the phone (`tenant_products` joined to the global product master), so
- * search works in a doorway. Availability is the one figure that is NOT: `sellable_stock` is not in
- * this role's manifest, so with no signal the rows carry no availability chip rather than a stale one.
+ * search works in a doorway. Availability is the one figure that is NOT: it is the godown total per item
+ * (`useGodownStock`, DOS-074) and `sellable_stock` is not in this role's manifest, so with no signal the
+ * rows carry no availability chip rather than a stale one.
  *
  * "Deals to pitch" is `schemes` valid today, read off the same rows `priceOrder()` prices with — the
  * banner and the price can never disagree, because they are the same table.
@@ -11,7 +12,6 @@
  * There is no cost column and there is no cost row: `tenant_product_costs` is not on this device and
  * `tenantCatalog.costs` refuses this role at the server (docs/23 §3.3).
  */
-import { useApi, useQuery } from '@dos/api-client/react'
 import {
   Group,
   ListRow,
@@ -29,6 +29,7 @@ import { useMemo, useState } from 'react'
 
 import { shortDate, today } from '../../src/lib/dates'
 import { useCatalog, useLocalState, useSchemes } from '../../src/lib/local'
+import { useGodownStock } from '../../src/lib/stock'
 import { LocalAsync, PageTabs, Panel } from '../../src/lib/ui'
 import { formatBps } from '../../src/lib/words'
 import { useWord } from '../../src/lib/words'
@@ -38,7 +39,6 @@ type View = 'all' | 'deals' | 'stock'
 export default function Catalog(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
-  const api = useApi()
   const local = useLocalState()
   const word = useWord()
   const { items, loading } = useCatalog()
@@ -46,17 +46,7 @@ export default function Catalog(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<View>('all')
 
-  const stock = useQuery(
-    ['inventory', 'sellable', 'catalog'],
-    () => api.api.inventory.stock.sellable({ limit: 500 }),
-    { staleTime: 120_000 },
-  )
-  const availableByVariant = useMemo(() => {
-    const totals = new Map<string, number>()
-    for (const row of stock.data?.items ?? [])
-      totals.set(row.variantId, (totals.get(row.variantId) ?? 0) + row.available)
-    return totals
-  }, [stock.data])
+  const stock = useGodownStock()
 
   const day = today()
   const liveSchemes = useMemo(
@@ -68,7 +58,7 @@ export default function Catalog(): React.JSX.Element {
     const needle = query.trim().toLowerCase()
     const pool =
       view === 'stock'
-        ? items.filter((item) => (availableByVariant.get(item.variantId) ?? 0) > 0)
+        ? items.filter((item) => (stock.availableOf(item.variantId) ?? 0) > 0)
         : items
     if (needle === '') return pool.slice(0, 60)
     return pool
@@ -79,7 +69,7 @@ export default function Catalog(): React.JSX.Element {
           (item.brandName ?? '').toLowerCase().includes(needle),
       )
       .slice(0, 60)
-  }, [items, query, view, availableByVariant])
+  }, [items, query, view, stock])
 
   return (
     <Screen
@@ -167,7 +157,7 @@ export default function Catalog(): React.JSX.Element {
             >
               <Group>
                 {filtered.map((item) => {
-                  const available = availableByVariant.get(item.variantId)
+                  const available = stock.availableOf(item.variantId)
                   return (
                     <ListRow
                       key={item.variantId}
