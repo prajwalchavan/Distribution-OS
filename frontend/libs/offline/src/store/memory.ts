@@ -13,7 +13,7 @@ class MemoryStore implements SyncStore {
   readonly kind = 'memory' as const
   private depth = 0
 
-  constructor(private readonly db: MemoryDatabase) {}
+  constructor(private db: MemoryDatabase) {}
 
   async exec(sql: string, params: readonly SqlValue[] = []): Promise<void> {
     this.db.run(sql, params)
@@ -43,6 +43,14 @@ class MemoryStore implements SyncStore {
 
   async close(): Promise<void> {
     /* nothing to release */
+  }
+
+  /**
+   * A memory store has no file to delete, so it models one (DOS-167): whoever opens this store next —
+   * `fixedStoreFactory` hands the same object back — finds no tables and no state, as on a deleted file.
+   */
+  async destroy(): Promise<void> {
+    this.db = new MemoryDatabase()
   }
 }
 

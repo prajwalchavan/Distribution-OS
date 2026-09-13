@@ -138,6 +138,7 @@ export function App(): React.JSX.Element {
           deviceId={device}
           storeFactory={openStore}
           databaseName="dos-harness.db"
+          identity={null}
           /*
            * The REAL foreground poll (docs/27 §5), not a switched-off one. Turning it off here is how
            * a device that stopped pulling after its first minute went unseen: leave the page open for

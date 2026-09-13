@@ -27,15 +27,33 @@ export interface ExpoDatabaseLike {
 
 export interface ExpoSqliteLike {
   openDatabaseAsync(name: string, options?: Record<string, unknown>): Promise<ExpoDatabaseLike>
+  /**
+   * Deletes a CLOSED database file from the default directory (expo-sqlite has it on native and on
+   * web). Optional, so a module without it still opens: its `destroy` then only closes.
+   */
+  deleteDatabaseAsync?(name: string): Promise<void>
+}
+
+/**
+ * The two answers that mean the work is already done: the file is not there (native "Database '…' not
+ * found"), or the connection was already closed (native "Access to closed resource"). The web worker
+ * answers neither — its close and delete are no-ops on something absent.
+ */
+function alreadyGone(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /not found|closed resource|already closed/i.test(message)
 }
 
 class ExpoSqliteStore implements SyncStore {
   readonly persistent = true
   private depth = 0
+  private closed = false
 
   constructor(
     private readonly db: ExpoDatabaseLike,
     readonly kind: 'sqlite-native' | 'sqlite-web',
+    private readonly sqlite: ExpoSqliteLike,
+    private readonly name: string,
   ) {}
 
   async exec(sql: string, params: readonly SqlValue[] = []): Promise<void> {
@@ -82,6 +100,28 @@ class ExpoSqliteStore implements SyncStore {
 
   async close(): Promise<void> {
     await this.db.closeAsync()
+    this.closed = true
+  }
+
+  /**
+   * Sign-out with nothing left to send (DOS-167): the file goes, not only its rows. SQLite refuses to
+   * delete an open database, so it is closed first — once: `end()` has usually closed it already.
+   */
+  async destroy(): Promise<void> {
+    if (!this.closed) {
+      try {
+        await this.db.closeAsync()
+      } catch (error) {
+        if (!alreadyGone(error)) throw error
+      }
+      this.closed = true
+    }
+    if (this.sqlite.deleteDatabaseAsync === undefined) return
+    try {
+      await this.sqlite.deleteDatabaseAsync(this.name)
+    } catch (error) {
+      if (!alreadyGone(error)) throw error
+    }
   }
 }
 
@@ -101,5 +141,5 @@ export async function openExpoSqlite(
   } catch {
     /* the web build has no journal to set; the database is still usable */
   }
-  return new ExpoSqliteStore(db, kind)
+  return new ExpoSqliteStore(db, kind, sqlite, name)
 }

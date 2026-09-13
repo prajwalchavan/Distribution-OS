@@ -26,14 +26,23 @@ import { OfflineProvider, useTable, useOutbox, useSyncStatus } from '@dos/offlin
 ## Wiring it into an app
 
 ```tsx
-<OfflineProvider api={client.api} deviceId={deviceId} storeFactory={openStore}>
+<OfflineProvider
+  api={client.api}
+  deviceId={deviceId}
+  identity={sessionIdentity(session)}
+  storePrefix="dos-sales"
+  storeFactory={openStore}
+>
   …
 </OfflineProvider>
 ```
 
 `storeFactory` is `openStore` from this package: the bundler picks `index.native.ts` on Android and iOS
 and `index.web.ts` in a browser. `deviceId` is the id the app already keeps for `auth_sessions`
-(`src/api.ts` in the app template) — one per install, kept across a sign-out.
+(`src/api.ts` in the app template) — one per install, kept across a sign-out. `identity` is
+`sessionIdentity(session)` from `@dos/api-client` (`null` while nobody is signed in) and `storePrefix`
+names the app: the device database is one file per app, person and distributor,
+`dos-sales__u-<userId>__t-<tenantId>.db` (DOS-167).
 
 ## The tests
 
