@@ -241,3 +241,6 @@ Notes from the Admin walk (2026-09-12):
   → `QA/tools/seed/verify-seed.sh` 206/206, log `~/.dos-qa-logs/logs/batch2-template.log`). Each lane gets `createdb -T dos_test_batch2_template
   dos_test_b2_<lane>` and a worktree `.claude/worktrees/b2-<lane>` on branch `qa/b2-<lane>` whose `backend/.env` points at that copy.
   Every QA-created database name carries `test` (Charter A.3).
+
+- **`QA/tools/seed/verify-seed.sh` ignores its argument (2026-09-13):** it reads `DATABASE_URL`, and falls back to the founder's `dos`. `verify-seed.sh dos_test_x` without exporting `DATABASE_URL` silently checks `dos` (batch-2 template build: 93 pass / 108 fail against `dos`, 206/206 against the template once exported). It writes only with `RESEED=1`. Always run `DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/<db> QA/tools/seed/verify-seed.sh`.
+- **Batch 2 template after DOS-032+059 (2026-09-13):** `dos_test_batch2b_template` = main 5499c86, 45 migrations, fixed seed (no duplicate receipt numbers). Lanes that merge main must recreate their DB from it (`dropdb --force dos_test_b2_<lane>; createdb -T dos_test_batch2b_template dos_test_b2_<lane>`), because migration 0044 refuses a database seeded by the old code.
