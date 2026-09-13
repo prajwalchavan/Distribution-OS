@@ -1,0 +1,618 @@
+{
+ "libs": {
+  "key": "libs",
+  "final": "verified",
+  "impl": {
+   "id": "DOS-167/libs",
+   "status": "fixed",
+   "commits": [
+    "afc8b6eaf74906ad200d79907c4c7f921b65638e"
+   ],
+   "failBefore": "All runs are single test files in the worktree. Raw output is in the session scratchpad under red/.\n\n**offline src/identity.test.ts, first run: 9 failed, 1 passed.**\n- **Missing functions (the design's stated reason):** storeNameFor, end() and leaveDecision each failed with \"is not a function\".\n- **Passed as the design predicts:** 'the same identity keeps its rows, cursor and queue across a restart'.\n- **V5A (a second user on the same store):**\n  - Before the handshake the second user saw count 1, cursor \"c1\", schemaVersion \"v1\" and the r-chavan (Chavan Kirana Stores) row, where 0/null/null/[] was expected.\n  - The first handshake sent knownSchemaVersion \"v1\" and since \"c1\", where both should be undefined.\n- **V5C (another distributor after a restart):**\n  - Two emissions painted retailers [\"r-chavan\"], one of them before the handshake.\n  - Rahul's queued op o-rahul was uploaded under Kiran's token and was still in her outbox.\n  - Kiran's first pull carried since \"c1\", and no 'belonged to another identity' log line was written (wipeLogged false).\n\n**Two tests first failed at storeNameFor, so they were re-run once it existed.**\n- For the SQLite test, the adapter from HEAD was written back into place with `git show HEAD:\u2026 > file`, then the working copy was restored and checked with cmp.\n- **Sweep:** \"SyncEngine.sweepIdentityStores is not a function\".\n- **SQLite destroy:** \"expected [] to deeply equal ['closeAsync', 'deleteDatabaseAsync dos-sales__u-a__t-t1.db']\". With no destroy, nothing was closed or deleted.\n\n**engine.test.ts, DISTRIBUTOR test with `identity`:** \"expected [ { id: 'r1', \u2026 } ] to deeply equal []\". The old engine ignored the identity and kept the other distributor's rows.\n\n**api-client src/identity.test.ts**\n- First run: \"sessionIdentity is not a function\" and \"bindCacheToSession is not a function\".\n- A temporary no-op stub of bindCacheToSession then showed the design's stated reason: after store.clear() (a forced sign-out), the cache still held {status 'success', data ['SO-0875']} instead of idle.\n\n**Mutation checks on the finished code (engine restored and cmp-verified after each):**\n- **end() awaiting only the flush chain:** 'end() is safe under a running pull and upload' failed with \"expected 'p1' to be null\". A pull page committed its cursor into the kept file after the drop.\n- **The stamp overwriting the stored role:** 'the stamp at open never hides a role change on the same membership from the manifest' failed. The old role's r-chavan row survived.",
+   "passAfter": "**After prettier, one test file per command, all exit 0:**\n- offline src/identity.test.ts: 11/11.\n- offline src/engine.test.ts: 29/29.\n- api-client src/identity.test.ts: 2/2.\n\n**Earlier in the session, other api-client test files that cover the touched code, all exit 0:**\n- src/react/reads.test.ts: 9/9.\n- src/react/refusal.test.ts: 5/5.\n- src/client.test.ts: 21/21.\n- src/platform-client.test.ts: 5/5.\n- src/cache.test.ts: 15/15.\n\n**Checks:**\n- `pnpm --filter @dos/offline typecheck` (covers src and harness) and `lint`: exit 0.\n- `pnpm --filter @dos/api-client typecheck` and `lint`: exit 0.\n- The three field apps, not edited: `@dos/sales-app`, `@dos/delivery-app` and `@dos/warehouse-app` typecheck all exit 0, so they still compile with today's props.\n- `pnpm format` exit 0 and `pnpm format:check` exit 0 inside frontend.\n- `git status --short` was empty after commit afc8b6e.",
+   "testsAdded": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 storeNameFor keys the file by app, user and distributor"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 a second user on the same store never renders the first user's rows and starts with no cursor"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 another distributor after a restart is wiped before any shape is restored and its queue never leaves"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 the same identity keeps its rows, cursor and queue across a restart"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 the stamp at open never hides a role change on the same membership from the manifest"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 end() at sign-out with nothing queued drops the read set, emits every table and destroys the store"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 end() keeps the queue for the same person only"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 end() is safe under a running pull and upload"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 sweepIdentityStores deletes a sibling identity's empty store and keeps one with a queue"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 the SQLite adapter's destroy closes then deletes the file by name"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 leaveDecision asks only when something is queued or rejected"
+    },
+    {
+     "file": "frontend/libs/api-client/src/identity.test.ts",
+     "name": "DOS-167 sessionIdentity and identityKey change with the user or the distributor and not with a password flag"
+    },
+    {
+     "file": "frontend/libs/api-client/src/identity.test.ts",
+     "name": "DOS-167 the query cache is cleared on every identity change, including a forced sign-out"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "frontend/libs/offline/src/engine.test.ts",
+     "name": "drops on a DISTRIBUTOR change even when the hash and the role are identical",
+     "before": "The two engines were built with `tenantId: 'tenant-a'` and `tenantId: 'tenant-b'`. The comment said the distributor is compared by the handshake.",
+     "after": "The two engines are built with `identity: { userId: 'user-1', tenantId: 'tenant-a' | 'tenant-b', role: 'salesperson' }`. The comment now says the wipe happens at open, before a shape is restored or a row is read. The assertions are unchanged: no rows, and no `since` on the next pull.",
+     "why": "Amendment (k) and design 3a: `identity` replaces `tenantId`, and this is the one engine.test.ts test the design allows to change. Every new engine test is in identity.test.ts."
+    }
+   ],
+   "filesChanged": [
+    "docs/27-offline-sync-client.md",
+    "frontend/libs/api-client/src/identity.test.ts",
+    "frontend/libs/api-client/src/index.ts",
+    "frontend/libs/api-client/src/react/index.tsx",
+    "frontend/libs/api-client/src/session.ts",
+    "frontend/libs/offline/README.md",
+    "frontend/libs/offline/harness/App.tsx",
+    "frontend/libs/offline/src/engine.test.ts",
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/identity.test.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/shared.ts",
+    "frontend/libs/offline/src/state.ts",
+    "frontend/libs/offline/src/store/expo-sqlite.ts",
+    "frontend/libs/offline/src/store/memory.ts",
+    "frontend/libs/offline/src/types.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "Step 1a: SessionIdentity, sessionIdentity(), identityKey() in session.ts, exported from index.ts",
+     "done": true,
+     "how": "`identityKey` returns `userId:tenantId`; the role is deliberately left out. All three are exported from index.ts."
+    },
+    {
+     "amendment": "Step 1b: bindCacheToSession, called from ApiProvider",
+     "done": true,
+     "how": "It subscribes to the session store, remembers the last `user.id:(tenant?.id ?? '')` and calls `cache.clear()` on every change: to null, from null, to another user or another distributor. `updateUser` keeps the same key, so nothing is cleared. ApiProvider binds it in a `useEffect` on `[value]` declared before the hydrate effect and returns the unsubscribe. The explicit `cache.clear()` calls in `useSession` are kept."
+    },
+    {
+     "amendment": "Step 2a-2e: SyncIdentity type, SyncStore.destroy?, the userId state key, expo-sqlite destroy, memory destroy",
+     "done": true,
+     "how": "types.ts adds `SyncIdentity` and the optional `destroy()`. state.ts adds the `userId` key. The expo-sqlite adapter now knows its module and file name: `destroy` closes once (a closed flag, since `end()` has usually closed it already), then calls `deleteDatabaseAsync(name)`. It swallows only 'not found' and 'closed resource' errors. The memory store's `destroy` swaps in a fresh MemoryDatabase. open.web.ts and open.native.ts are unchanged."
+    },
+    {
+     "amendment": "Step 3a-3i: the engine (identity option, storeNameFor/legacyStoreName, start order with claimIdentity, wipeAll, applyManifest, wipe(keepQueue), end, sweepIdentityStores)",
+     "done": true,
+     "how": "Built as designed.\n- **start order:** open, system tables, sending\u2192queued, claimIdentity, deviceId, state, restoreManifest, counts, emit, sync.\n- **wipeAll:** drops the stored manifest's tables together with the loaded shapes, clears outbox, errors and GPS, and nulls every state key but deviceId through an exhaustive Record.\n- **wipe(keepQueue):** keeps userId, tenantId and deviceId, nulls protocol too, and emits the dropped tables plus OUTBOX_CHANNEL and ERRORS_CHANNEL.\n- **end:** stops, waits until nothing is in flight, then wipe, close and destroy unless keepQueue; the store is nulled in a finally; a later stop() does nothing.\n- **sweepIdentityStores:** static; counts queued, sending and rejected ops per file.\n- **Untouched:** retry, needsAttention and pullErrors.\n- **Deviations:** listed under deviations."
+    },
+    {
+     "amendment": "Step 4a-4e: provider props, effect deps, legacy file destroy, useLeaveSession/leaveDecision, README, harness",
+     "done": true,
+     "how": "- **Props:** `identity` and `storePrefix` are added. The file is `databaseName`, else `storeNameFor(storePrefix, identity)`, else 'dos-offline.db'. An id that cannot be a file name gets no store at all, never a shared fallback.\n- **When the engine is created:** only when `enabled && (identity !== null || databaseName !== undefined)`.\n- **Effect deps:** `[enabled, deviceId, storeFactory, name, idKey, pullIntervalMs, tenantId]`, with the 'DELIBERATELY NOT' comment updated.\n- **Legacy file:** `legacyStoreName(prefix)` is destroyed once per mount, best effort.\n- **Leave hooks:** `useLeaveSession` and `leaveDecision` are exported.\n- **README:** the snippet gains `identity={sessionIdentity(session)} storePrefix=\"dos-sales\"` plus one explanatory sentence; the deviceId sentence is kept.\n- **Harness:** gains `identity={null}` and keeps `databaseName=\"dos-harness.db\"`."
+    },
+    {
+     "amendment": "Step 7: docs/27 (\u00a72, \u00a73, \u00a74, \u00a75, \u00a711, \u00a712, \u00a713 tests 12-16, \u00a714 row)",
+     "done": true,
+     "how": "- **\u00a72:** one file per (app, user, distributor), `<prefix>__u-<userId>__t-<tenantId>.db`.\n- **\u00a73:** `userId` joins `_sync_state`, and the re-create rule gains \"or the stored identity differs, checked at open before any read\".\n- **\u00a74:** sign-out wipes the read set and deletes the file.\n- **\u00a75 step 1:** the identity is compared at open; the manifest is the second check.\n- **\u00a711:** adds useLeaveSession, leaveDecision, sweepIdentityStores and the provider props.\n- **\u00a712:** rewritten to founder answer A, stated as decided (2026-09-13). With unsent changes the app offers 'Send now' only while online, or 'Sign out, keep them here' for that person only. Discard is never offered at sign-out. A forced sign-out keeps the queue.\n- **\u00a713:** tests 12-16.\n- **\u00a714:** the 'Another person signs in on this phone' row."
+    },
+    {
+     "amendment": "(a) the store name is lossless and checked, with a literal storePrefix per app",
+     "done": true,
+     "how": "Library half only. `storeNameFor` embeds the raw ids after a `[A-Za-z0-9-]{1,64}` check and the prefix after `[A-Za-z0-9-]+`, with no hash; the test covers the throws. Passing the literal 'dos-sales', 'dos-delivery' and 'dos-warehouse' from the layouts is the apps slice's job."
+    },
+    {
+     "amendment": "(b) claimIdentity runs before restoreManifest, the first emit and sync; a foreign stamp is wiped whole and logged; no identity skips the check",
+     "done": true,
+     "how": "Implemented in start() and covered by the V5A and V5C tests: nothing is painted with rows, nothing is uploaded, the outbox is empty, the first pull has no since, and the log line is written. One change from the design: the role is stamped only where none is stored (see deviations)."
+    },
+    {
+     "amendment": "(c) wipe/end drop the read set and emit every dropped table plus the outbox and errors channels; keepQueue keeps the queue and the file; userId, tenantId and deviceId are never cleared",
+     "done": true,
+     "how": "Implemented in wipe(options) and end(options). Covered by the 'nothing queued' and 'keeps the queue for the same person only' tests: the upload goes out before the pull on the same person's restart, and Amit's start wipes the queue unsent."
+    },
+    {
+     "amendment": "(d) end() stops, clears timers and waits before dropping; stop() after end() is a no-op; the session is cleared even when end throws",
+     "done": true,
+     "how": "end() sets ended and started=false and clears both timers. It then waits for the open, the flush chain and the in-flight sync to settle before wipe, close and destroy, and nulls the store in a finally so an error still propagates afterwards. A later stop() returns at once. Calling end() before signOut() is the apps slice's job."
+    },
+    {
+     "amendment": "(e) a distributor switch wipes nothing: the old engine stops with its queue kept and a new one starts on the other file",
+     "done": true,
+     "how": "Provider half only. The engine effect is keyed on `userId:tenantId` and the file name, and its cleanup only stop()s, so the old file keeps its queue. The 'Switch anyway' sheet is the apps slice's job."
+    },
+    {
+     "amendment": "(f) sign-out rule, founder answer A: one tap when nothing is waiting, otherwise the sheet with 'Send now' only online and 'Sign out, keep them here'; discard never offered",
+     "done": true,
+     "how": "Library half only: `leaveDecision` ('leave' only when pending + rejected = 0), `useLeaveSession` (sendNow = flush then fresh counts; end), `end({ keepQueue: true })`, and `sweepIdentityStores` (deletes empty sibling files, keeps and reports ones with a queue). The sheet, the strings and the one-tap flow are the apps slice's job. docs/27 \u00a712 states the rule as decided."
+    },
+    {
+     "amendment": "(g) nothing rendered from any store before the identity is settled: query cache and sales draft",
+     "done": true,
+     "how": "Cache half only: `bindCacheToSession` inside ApiProvider, which covers all seven apps and the forced sign-out. Keying the sales draft by userId is the apps slice's job."
+    },
+    {
+     "amendment": "(h) SyncIdentity is offline's own type; sessionIdentity and identityKey live in api-client",
+     "done": true,
+     "how": "types.ts declares `SyncIdentity`, and no runtime import of @dos/api-client was added to @dos/offline. session.ts owns the only definitions of who is signed in."
+    },
+    {
+     "amendment": "(i) the legacy fixed-name file is destroyed once per mount, best effort",
+     "done": true,
+     "how": "A provider effect on `[storeFactory, storePrefix, databaseName]` opens `legacyStoreName(storePrefix)` and destroys it (or closes it when the store has no destroy), catching and logging any failure. It is skipped when there is no storePrefix, as in today's layouts, or when databaseName is the legacy name."
+    },
+    {
+     "amendment": "(j) no backend change and no kit change",
+     "done": true,
+     "how": "Only frontend/libs/offline, frontend/libs/api-client and docs/27 were edited. Nothing under backend/ or frontend/libs/ui changed, and the backend libs were only built."
+    },
+    {
+     "amendment": "(k) engine.test.ts touched only at the DISTRIBUTOR test; new engine tests go in identity.test.ts",
+     "done": true,
+     "how": "The only engine.test.ts hunks are the comment and the two option lines of that test (tenantId becomes identity). All eleven new engine tests are in identity.test.ts; test-support.ts was not edited, and call order is recorded by a transport wrapper inside the test."
+    },
+    {
+     "amendment": "(l) files outside the design's list are not edited; docs/22 rows go to the main session",
+     "done": true,
+     "how": "All 16 changed files are in the design's file list. The docs/22 rows are handed over in followUps."
+    },
+    {
+     "amendment": "Tests section, this slice's share",
+     "done": true,
+     "how": "Wrote the ten offline and two api-client DOS-167 tests plus the engine.test.ts :146 change. I also added one test for the role-stamp fix, proven by mutation rather than red-first. Every red was captured before implementing; see failBefore."
+    }
+   ],
+   "deviations": "1. **end() waits for more than the flush chain.** It also waits for the open in start() and the pull in flight. For that, sync() now records its run in `syncing` and returns at once after end() has begun; start() records `opening`, refuses to run on an ended engine, and schedules the poll only while started.\n   - The code proved design (d) incomplete: sync() is not on the flush chain.\n   - Mutation evidence: with the design's wait, a pull page committed after the drop and wrote cursor 'p1' into the kept file.\n   - On expo-sqlite, a pull transaction still open across the DROPs would roll them back on the shared connection.\n   - The only engine regions touched are start, stop, wipe, sync and the new methods; retry, needsAttention and pullErrors are not.\n\n2. **claimIdentity stamps `role` only where none is stored.** The design said write all three keys.\n   - Overwriting the stored role with the session's role at open makes the stored and published roles agree before the manifest compares them.\n   - A server-side role change with an identical hash would then keep the old role's rows; design 1a relies on the manifest to catch that.\n   - Proven by mutation. I added 'DOS-167 the stamp at open never hides a role change on the same membership from the manifest'.\n\n3. **The old `tenantId` prop stays, and `identity` is optional for now.**\n   - The design has `identity` required on the provider and replacing `tenantId` in the provider and engine.\n   - Your instruction was to keep the three field layouts compiling unchanged, and they still pass `tenantId` and a fixed `databaseName`.\n   - So `identity` is optional (absent means the old behaviour) and `tenantId` stays, marked @deprecated, in both OfflineProviderProps and SyncEngineOptions. It is read only when `identity` is absent and is still in the effect deps.\n   - Without it, the unchanged layouts would lose the distributor re-snapshot until the apps slice lands.\n\n4. **bindCacheToSession takes a wider store type:** `Pick<SessionStoreLike, 'subscribe' | 'getSnapshot'>`. The design's intersection type would not accept the console's PlatformSessionStore, which the design says it must handle (key `user.id:` when there is no tenant).\n\n5. **The legacy-file cleanup has an extra guard.** It is skipped when `databaseName` equals the legacy name, so a caller still opening `dos-sales.db` never has its live file deleted. Its deps are therefore `[storeFactory, storePrefix, databaseName]`.\n\n6. **Smaller implementation choices:**\n   - wipe and wipeAll drop the loaded shapes plus the stored manifest's tables. The design said the stored manifest with shapes as fallback, and at open nothing is loaded yet.\n   - The state.ts header says 'ten strings', not the design's 'nine'; with `userId` the union has ten keys.\n   - The expo-sqlite destroy keeps a closed flag so end()'s close-then-destroy never closes twice.\n\n7. **Test mechanics:**\n   - The V5C test does not assert inside the onTables listener. It records what each emission would paint (the memory store runs the SELECT synchronously at emission) and asserts afterwards.\n   - The api-client cache test flips the password flag on the signed-in user (Amit, true to false). `updateUser` with another user's id would itself be an identity change.\n   - The api-client behavioural red used a temporary no-op stub of bindCacheToSession.\n   - The SQLite destroy red was taken by writing the HEAD adapter back into place with `git show \u2026 > file`, then restoring it and checking with cmp; no stash, checkout or reset was used.",
+   "followUps": "1. **Apps slice:**\n   - The three layouts pass `identity={sessionIdentity(session)} storePrefix=\"dos-sales\" | \"dos-delivery\" | \"dos-warehouse\"` and drop `databaseName` and `tenantId`.\n   - Chrome's sign-out calls `useLeaveSession`: `end` first, then `SyncEngine.sweepIdentityStores(openStore, prefix, otherMemberships)`, `forgetDraftsOf` (sales), then `signOut()`.\n   - After that, remove the deprecated `tenantId` from OfflineProviderProps and SyncEngineOptions and make `identity` required. The field layouts are the only remaining callers.\n   - Keep the leave sheet busy while `end()` runs. `enqueue` and `recordGpsPoint` are not refused during `end()`, so a write racing a `keepQueue: false` end would be deleted with the file.\n\n2. **Merge note for lean-libs-offline-boot (DOS-046):** adding a `systemSchema` SyncStateKey will not compile until it is placed in engine.ts `CLEARED_FOR_ANOTHER_IDENTITY` or excluded like `deviceId`. This is deliberate, so someone decides whether another person's store keeps it. docs/27 \u00a74 now carries the sign-out sentences, which DOS-046 also edits; the second to merge re-reads that paragraph.\n\n3. **docs/22 rows for the main session, from the design:**\n   - \u00a78: \"2026-09-13 \u2014 A phone's offline copy belongs to one person in one distributorship: keyed by user and distributor, checked before the first read, wiped and deleted at sign-out; the online cache and the sales draft follow the same rule (QA DOS-167, P0). Unsent changes at sign-out: kept on that phone for that person only (founder answer A).\"\n   - \u00a79: \"11. A device never renders a previous user's or another distributor's rows\".\n   - \u00a711: a change-log entry, then re-render and republish.\n\n4. **S-list candidates from the design:** the server-issued cursor carries no device identity (sync.service.ts:481-493), a defence-in-depth item; and files of people who never return are never swept (P3 retention).",
+   "platformCheck": "NOT TESTED. This slice cannot be walked on its own because the layouts still open the fixed `dos-<app>.db`, and dev servers, emulators and simulators were not allowed. Nothing is covered on any platform beyond vitest in Node (memory store and a fake expo-sqlite module) and typecheck of the three field apps.\n\nThe walks needed once the apps slice lands:\n\n**Web (OPFS):** `QA/tools/e2e/s-098-shared-device.mjs v5a v5b v5c` plus the new V5D.\n- No marker from the previous person at any checkpoint, including +0.4 s after the second sign-in.\n- The second user's first manifest has no knownSchemaVersion and the first pull no since.\n- Amit ends with Shops 29 and 380 orders; Kiran with Shops 24 and 218 orders.\n- OPFS listing: after Rahul's sign-out neither `dos-sales__u-<rahul>__t-<tarsun>.db` nor `dos-sales.db` exists; after Kiran signs in exactly one Kiran file exists.\n\n**Android (Pixel_7_API_36), sales app:**\n- `run-as in.distributionos.sales ls files/SQLite` shows only the signed-in person's file.\n- The file is gone after sign-out.\n- Six screenshots 150 ms apart after Kiran taps Sign in contain no Tarsun marker.\n- Amit: Shops 29, his own beat, 380 orders.\n- Airplane-mode queue case: the sheet, 'Sign out, keep them here', the file survives, Kiran is clean, and Amit's queued order goes out.\n- Upgrade path: a pre-fix APK's `dos-sales.db` is deleted on the first start of the fixed build.\n- Repeat steps 1-3 on the delivery and warehouse apps.\n\n**iOS (simulator via xcrun simctl and ios-drive.mjs):**\n- The same `find` of the `dos-sales*` files.\n- Sign out through the product without resetting the keychain.\n- Kiran's early screenshot shows no Tarsun marker.\n- Amit has no SO-0875.\n- Queue case with sales-service stopped."
+  },
+  "verdict": {
+   "id": "DOS-167/libs",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "Step 1a: SessionIdentity, sessionIdentity(), identityKey() in session.ts, exported from index.ts",
+     "satisfied": true,
+     "detail": "session.ts adds all three; identityKey is `userId:tenantId` with no role. index.ts exports identityKey, sessionIdentity and type SessionIdentity. Covered by the api-client identity test (1/2), which was red ('sessionIdentity is not a function') and is now green."
+    },
+    {
+     "amendment": "Step 1b: bindCacheToSession, called from ApiProvider in a useEffect on [value], declared before the hydrate effect",
+     "satisfied": true,
+     "detail": "react/index.tsx: cacheOwner keys on `user.id:(tenant?.id ?? '')`, so it handles PlatformSession, which has user and no tenant. The effect is declared before the hydrate effect and returns the unsubscribe; the useSession clear() calls are kept. Behavioural red: with a no-op stub the cache still read status 'success' after store.clear(). Mutation M6 (key on user only) fails the test. The wider Pick<> parameter type is justified by PlatformSessionStore, and typecheck passes."
+    },
+    {
+     "amendment": "Step 2a-2e: SyncIdentity type, SyncStore.destroy?, userId state key, expo-sqlite destroy, memory destroy, open.* unchanged",
+     "satisfied": true,
+     "detail": "types.ts adds SyncIdentity (exported through `export type *` in shared.ts) and destroy?(). state.ts adds 'userId'. ExpoSqliteStore.destroy closes once, then calls deleteDatabaseAsync(name), swallowing only not found / closed resource. That matches expo-sqlite 57's Android and iOS messages (SQLExceptions.kt, Exceptions.swift). MemoryStore.destroy swaps in a fresh MemoryDatabase. open.web.ts and open.native.ts are not in the diff. With storeNameFor stubbed, the destroy test was red with 'expected [] to deeply equal [closeAsync, deleteDatabaseAsync \u2026]'."
+    },
+    {
+     "amendment": "Step 3a-3i: engine identity option, storeNameFor/legacyStoreName, start order with claimIdentity, wipeAll, applyManifest, wipe(keepQueue), end, sweepIdentityStores, nothing else moved",
+     "satisfied": true,
+     "detail": "All present. start runs open \u2192 system tables \u2192 sending\u2192queued \u2192 claimIdentity \u2192 deviceId \u2192 state \u2192 restoreManifest \u2192 counts \u2192 emit \u2192 sync. retry, needsAttention and pullErrors are untouched in the diff. There are two code-proven deviations. (1) end() also waits for the open and the in-flight sync: mutation M3 (the design's flush-chain-only wait) fails 'end() is safe under a running pull and upload'. (2) The role is stamped only when none is stored: mutation M4 (always stamp) fails the role-change test. identity is optional and tenantId is kept @deprecated, as the orchestrator required so the field apps keep compiling; the sales, delivery and warehouse typechecks all exit 0."
+    },
+    {
+     "amendment": "Step 4a-4e: provider identity/storePrefix props, gating, effect deps, legacy file destroy, useLeaveSession/leaveDecision, README, harness",
+     "satisfied": true,
+     "detail": "react.tsx: the file name is databaseName, else storeNameFor(prefix, identity), else 'dos-offline.db'. A name that throws gets no engine at all. The engine is gated on `enabled && !(identity===null && databaseName===undefined)`. Deps are [enabled, deviceId, storeFactory, name, idKey, pullIntervalMs, tenantId(deprecated)] and the cleanup only stop()s. The legacy-file effect destroys `<prefix>.db` best effort and skips when databaseName equals it. useLeaveSession and leaveDecision are exported. README snippet and sentence are updated with the deviceId sentence kept; the harness adds identity={null}. No test renders the provider, so gating and the legacy effect were verified by reading only."
+    },
+    {
+     "amendment": "Step 7: docs/27 \u00a72, \u00a73, \u00a74, \u00a75, \u00a711, \u00a712, \u00a713 tests 12-16, \u00a714 row; rule stated as decided",
+     "satisfied": true,
+     "detail": "Every listed section is edited. \u00a72 has the file-per-identity line and the legacy delete. \u00a73 adds userId and the 'stored identity differs, checked at open' clause. \u00a74 covers sign-out, the file deleted and founder answer A. \u00a75 step 1 makes the identity the first check and the manifest the second. \u00a711 adds useLeaveSession, leaveDecision, sweep and the provider props. \u00a712 is rewritten to answer A with 'Decided by the founder, 2026-09-13': Send now only while online, keep for that person only, discard never at sign-out, forced sign-out keeps the queue. \u00a713 adds tests 12-16 and \u00a714 the new row."
+    },
+    {
+     "amendment": "(a) lossless, checked store name; literal storePrefix per app",
+     "satisfied": true,
+     "detail": "storeNameFor embeds the raw ids after /^[A-Za-z0-9-]{1,64}$/ and the prefix after /^[A-Za-z0-9-]+$/, with no hash. The test covers '/', '../', ':', '' and a bad prefix; red with a naive stub ('expected [Function] to throw'). The literal prefixes in the layouts belong to the apps slice."
+    },
+    {
+     "amendment": "(b) claimIdentity before restoreManifest, first emit and sync; foreign stamp wiped whole and logged; no identity skips",
+     "satisfied": true,
+     "detail": "Proven by the V5C red (r-chavan painted twice, o-rahul uploaded under Kiran, since c1, no log) and V5A red (1 row, cursor c1, knownSchemaVersion v1). Caught by mutations M1 (claim after emit: V5C fails), M8 (no wipeAll: V5A, V5C and keepQueue fail) and M9 (wipeAll keeps the outbox: V5C fails)."
+    },
+    {
+     "amendment": "(c) wipe/end drop the read set, emit dropped tables + OUTBOX + ERRORS; keepQueue keeps queue and file; userId/tenantId/deviceId never cleared",
+     "satisfied": true,
+     "detail": "wipe(options) drops the loaded shapes plus the stored manifest's tables and GPS, nulls cursor, schemaVersion, role, lastPulledAt, manifest and protocol, and deletes outbox and errors unless keepQueue; tenantId is no longer nulled. Caught by M2 (no emit), M5 (keepQueue ignored) and M7 (no destroy)."
+    },
+    {
+     "amendment": "(d) end() stops, clears timers, waits before dropping; stop() after end() no-op; store nulled even on throw",
+     "satisfied": true,
+     "detail": "end sets ended, sets started=false, clears both timers, then awaits settled() (the open, the flush chain and the sync) before wipe, close and destroy, with store=null in a finally. stop() returns when ended. The test asserts a stop() after end() resolves, and M3 and M7 are caught. Calling end() before signOut is the apps slice's job."
+    },
+    {
+     "amendment": "(e) distributor switch wipes nothing: old engine stop()s with queue kept, new engine on the other file",
+     "satisfied": true,
+     "detail": "Provider half only. The effect is keyed on idKey `userId:tenantId` and the file name; the cleanup is `void next.stop()` only, and stop never deletes the outbox. Verified by reading (no provider test). The 'Switch anyway' sheet belongs to the apps slice."
+    },
+    {
+     "amendment": "(f) founder answer A: one tap when nothing waiting; sheet with Send now only online and 'Sign out, keep them here'; discard never offered; sweep other memberships",
+     "satisfied": true,
+     "detail": "Library half: leaveDecision returns 'ask' when pending or rejected > 0 (tested). useLeaveSession exposes pending, rejected, online, sendNow (flush then fresh counts) and end; there is no discard in the leave API. end({keepQueue:true}) is tested and the queue goes out before the pull on the same person's restart. sweepIdentityStores deletes an empty sibling and keeps and reports one with a queue (tested; red 'not a function'). docs/27 \u00a712 states the rule as decided."
+    },
+    {
+     "amendment": "(g) nothing rendered before identity settled: QueryCache cleared on every identityKey change incl. forced sign-out",
+     "satisfied": true,
+     "detail": "Cache half: bindCacheToSession inside ApiProvider serves all seven apps, and store.clear() (the 401 path) clears the cache (tested; behavioural red confirmed). The sales draft key belongs to the apps slice."
+    },
+    {
+     "amendment": "(h) SyncIdentity is offline's own type; no runtime import of @dos/api-client in @dos/offline",
+     "satisfied": true,
+     "detail": "grep over offline/src finds @dos/api-client only in comments. SyncIdentity is declared in types.ts; sessionIdentity and identityKey live only in api-client's session.ts."
+    },
+    {
+     "amendment": "(i) legacy <prefix>.db destroyed once per mount, best effort",
+     "satisfied": true,
+     "detail": "A provider effect opens legacyStoreName(storePrefix) and calls destroy (or close), catching and logging failures. It is inert until the apps slice passes storePrefix, and not unit-tested; OPFS and Android removal is not proven on any platform."
+    },
+    {
+     "amendment": "(j) no backend change, no kit change",
+     "satisfied": true,
+     "detail": "git show --stat afc8b6e lists 16 files, all under frontend/libs/offline, frontend/libs/api-client or docs/27; nothing under backend/, frontend/libs/ui or frontend/*-app."
+    },
+    {
+     "amendment": "(k) engine.test.ts touched only at the DISTRIBUTOR test; new engine tests in identity.test.ts",
+     "satisfied": true,
+     "detail": "The engine.test.ts diff is the added comment plus the two option lines (tenantId \u2192 identity); assertions are unchanged. Red on the reversed engine: 'expected [ { id: r1 \u2026 } ] to deeply equal []'. The other 28 engine tests are unchanged and pass."
+    },
+    {
+     "amendment": "(l) no file outside the design's list; docs/22 rows handed to main session",
+     "satisfied": true,
+     "detail": "All 16 files are in the design's Files list. There is no QA/, docs/22, docs/18, CLAUDE.md or generated README in the commit, and the docs/22 rows are in the implementer's followUps. main..HEAD is the single commit afc8b6e."
+    },
+    {
+     "amendment": "Tests section, this slice's share (10 offline + 2 api-client + engine.test.ts:146)",
+     "satisfied": true,
+     "detail": "All 13 design tests exist with the design's names, plus one extra mutation-backed role-stamp test. The V5C listener check records at each emission and asserts afterwards; this is equivalent because the memory store's SELECT runs synchronously at the call. The api-client password-flag step uses Amit with updateUser on the same id; equivalent. No existing assertion was weakened."
+    },
+    {
+     "amendment": "Founder answer A (2026-09-13) reflected as final in library and docs",
+     "satisfied": true,
+     "detail": "end({keepQueue:true}) keeps the queue for the same person, and any other identity's start wipes it unsent (tested). A forced sign-out leaves the file through the provider's stop(). Nothing in the library offers discard at leave. docs/27 \u00a74 and \u00a712 state it as decided, with no 'pending'/'default' wording left in the edited sections."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/engine.ts",
+     "detail": "In start(), this.store is set before claimIdentity runs. outbox() and needsAttention() read _outbox and _sync_errors without the shapes gate that queryTable and countRows have. A useOutbox or useNeedsAttention effect that fires between the open and the end of claimIdentity could briefly read another identity's queue from a shared file; the OUTBOX_CHANNEL emit after the claim clears it. This is only reachable when two identities open the same file, which Layer A prevents once the apps pass storePrefix and identity. It is also outside amendment (b)'s literal list (restoreManifest, first emit, sync). Defence-in-depth only."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/engine.ts",
+     "detail": "sweepIdentityStores: if createSystemTables or the COUNT query throws after storeFactory returns, the store is never closed; the catch only logs. On native, expo-sqlite keeps that connection cached, so a later deleteDatabaseAsync of the same file throws 'Unable to delete database \u2026 currently open'. The design only asks for best effort."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/engine.ts",
+     "detail": "enqueue() and recordGpsPoint() are not refused once end() has begun. A write that lands during end({ keepQueue: false }), after settled() but before destroy, is deleted with the file. Design (d) does not require refusing; the implementer flagged that the apps slice must keep the leave sheet busy while end() runs."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/react.tsx",
+     "detail": "Design 3a/4a (identity required, tenantId removed) is deferred. identity is optional and tenantId stays @deprecated in OfflineProviderProps and SyncEngineOptions (and in the effect deps), as the orchestrator instructed so the three field layouts compile unchanged; their typechecks exit 0. The apps slice must remove tenantId and make identity required, otherwise a caller that omits identity silently keeps the pre-DOS-167 unstamped behaviour."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/offline/src/store/expo-sqlite.ts",
+     "detail": "Not proven on any platform: this slice cannot be walked until the layouts pass identity and storePrefix, and no dev server, emulator or simulator was allowed. From reading expo-sqlite 57: Android deleteDatabase deletes only the main .db file (SQLiteModule.kt:526-541), so -wal/-shm removal relies on SQLite checkpointing at close. Web deletes through the AccessHandlePoolVFS jDelete, which does not throw on an absent file. The legacy-file destroy, the OPFS listing and the upgrade path all need the design's web, Android and iOS proof."
+    }
+   ],
+   "evidence": "**Verdict: pass.** Every test failed before the fix for the design's reason and passes after it, every amendment this slice owns is met, and all five problems are minor. Worktree `.claude/worktrees/b2-dos167`, branch `qa/b2-dos167`. Raw output is in `/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/verify167/`.\n\n**1. Scope**\n- `git log main..HEAD` has one commit, afc8b6e.\n- `git show --stat` lists 16 files, all in the design's file list.\n- None are under backend/, frontend/libs/ui, frontend/*-app or QA/, and there are no docs/22 or generated README changes.\n\n**2. Red**\n- The commit's non-test changes were reversed with `git diff C^ C -- . ':(exclude)**/*.test.ts' \u2026 | git apply -R`, which left 12 files modified.\n- **offline `src/identity.test.ts`: 9 failed, 2 passed** (`red-offline-identity.txt`).\n  - storeNameFor, end() and leaveDecision failed with 'is not a function'.\n  - **V5A (a second user on the same store):** count 1, the r-chavan row, cursor 'c1' and schemaVersion 'v1' before the handshake; the first handshake sent knownSchemaVersion 'v1' and since 'c1'.\n  - **V5C (another distributor after a restart):** two paints with r-chavan, o-rahul uploaded and still in the outbox, firstPullSince 'c1', no wipe log line.\n  - **Passed before:** 'same identity keeps its rows' (the design's green regression guard) and the extra role-stamp test.\n- **With a plain storeNameFor stub added** (`red-offline-identity-stubname.txt`):\n  - the id-check test failed with 'expected [Function] to throw';\n  - the sweep test failed with 'SyncEngine.sweepIdentityStores is not a function';\n  - the SQLite destroy test failed with 'expected [] to deeply equal [closeAsync, \u2026]'.\n- **offline `src/engine.test.ts`: 1 failed, 28 passed.** The DISTRIBUTOR test failed with 'expected [ { id: r1 \u2026 } ] to deeply equal []'.\n- **api-client `src/identity.test.ts`: 2 failed**, with 'sessionIdentity is not a function' and 'bindCacheToSession is not a function'. With a no-op bindCacheToSession stub, the cache still read status 'success' after store.clear() (`red-api-cache-stub.txt`).\n- Restored with `git checkout -- .`; `git status --short --untracked-files=all` was empty.\n\n**3. Green** (one test file per command, all exit 0)\n- offline identity.test.ts 11/11, offline engine.test.ts 29/29, api-client identity.test.ts 2/2, api-client react/reads.test.ts 9/9, react/refusal.test.ts 5/5.\n- Typecheck and lint of @dos/offline and @dos/api-client: exit 0.\n- Typecheck of @dos/sales-app, @dos/delivery-app and @dos/warehouse-app: exit 0.\n- Prettier `--check` passes on every changed code file.\n- docs/27 fails prettier, but that was already true on the parent commit and on main, and docs/ is outside both workspaces' format:check. Not introduced here.\n\n**4. Mutations** on the finished code, one at a time, file restored and `git diff --quiet` checked after each. All nine were caught:\n\n| Mutation | Test(s) that failed |\n| --- | --- |\n| M1: claimIdentity moved after the emit | V5C, keepQueue |\n| M2: wipe emits nothing | end() with nothing queued |\n| M3: end() waits only for the flush chain (the design's literal wait) | end() under a running pull and upload |\n| M4: role always stamped at open | role-change stamp test |\n| M5: keepQueue ignored | keepQueue |\n| M6: cache keyed on the user only | api-client cache test |\n| M7: end() never destroys the store | end() with nothing queued, end() under a running pull |\n| M8: no wipeAll on a foreign stamp | V5A, V5C, keepQueue |\n| M9: wipeAll keeps the outbox | V5C, keepQueue |\n\nM3 and M4 back the implementer's deviations 1 and 2 with code.\n\n**5. Hunt**\n- @dos/offline has no runtime import of @dos/api-client; the only mentions are in comments.\n- No react-native or react-dom imports were added, and no app, backend, contract or permission file changed.\n- expo-sqlite 57 source was read: the native error messages match the adapter's swallow regex, and web delete goes through the VFS jDelete.\n- The findings are the five minor problems listed.\n\n**6. Final state:** `git status` in the worktree is clean. No commits were made.\n\n**Platform check: NOT TESTED.** No dev servers, emulators or simulators were allowed, and the slice cannot be walked until the apps slice lands."
+  }
+ },
+ "apps": {
+  "key": "apps",
+  "final": "needs-main-review",
+  "impl": {
+   "id": "DOS-167/apps",
+   "status": "fixed",
+   "commits": [
+    "9c304b7 fix(DOS-167): sign-out and distributor switch keep each person to their own data (sales, delivery, warehouse)",
+    "3386a4e fix(DOS-167): address review \u2014 decide sign-out on the counted file, not the snapshot before the open"
+   ],
+   "failBefore": "Slice commit 9c304b7 (the verifier re-ran these red): sales draft.test.ts failed with 'TypeError: saveDraft is not a function' at draft.test.ts:44. The sales, delivery and warehouse leave.test.ts files each failed with \"Cannot find module './leave'\".\n\nReview fix 3386a4e: every test was written first and run alone before any product code.\n- frontend/libs/offline/src/identity.test.ts, new test 'a sign-out tapped while the store is still opening counts the file, not the snapshot, and asks': the other 11 tests passed and this one failed with 'TypeError: back.waiting is not a function' at identity.test.ts:703. The assertions before that line passed, so they reproduce the verifier's major in the repo: status() read { ready: false, pending: 0, rejected: 0 } and leaveDecision(status()) returned 'leave', although the file held one kept queued order.\n- Sales, delivery and warehouse leave.test.ts, new test 'leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count': it failed with 'TypeError: tapLeave is not a function' (sales :187, delivery :185, warehouse :185). The leaveSentence test still passed in each file.",
+   "passAfter": "Each file was run on its own with 'pnpm --filter <pkg> exec vitest run <file>'. Log: scratchpad/dos167-review-green.log.\n- @dos/offline: src/identity.test.ts 12/12, src/engine.test.ts 29/29.\n- @dos/sales-app: src/lib/leave.test.ts 2/2, src/lib/draft.test.ts 1/1, src/order-entry-layout.test.ts 4/4.\n- @dos/delivery-app: src/lib/leave.test.ts 2/2.\n- @dos/warehouse-app: src/lib/leave.test.ts 2/2.\n\nPrettier --check failed on six new app files (leave.ts and leave.test.ts in each app). After prettier --write on those six files, the three leave.test.ts files were re-run at 2/2 each, and lint was re-run and exited 0 for all three apps (scratchpad/dos167-review-postformat.log).\n\nOn the committed tree 3386a4e, typecheck exited 0 for @dos/offline, @dos/sales-app, @dos/delivery-app and @dos/warehouse-app. Lint exited 0 for @dos/offline, on files the write did not touch. Prettier --check on every touched frontend file exited 0. git status is clean.",
+   "testsAdded": [
+    {
+     "file": "frontend/sales-app/src/lib/draft.test.ts",
+     "name": "DOS-167 a draft is keyed by the signed-in user and forgetDraftsOf removes every draft of that user and nothing of another"
+    },
+    {
+     "file": "frontend/sales-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaveSentence names the count, the person and the rule for sign-out and for a switch"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaveSentence names the count, the person and the rule for sign-out and for a switch"
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaveSentence names the count, the person and the rule for sign-out and for a switch"
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 a sign-out tapped while the store is still opening counts the file, not the snapshot, and asks"
+    },
+    {
+     "file": "frontend/sales-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count"
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count"
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+     "name": "DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "frontend/sales-app/app/_layout.tsx",
+    "frontend/sales-app/app/orders/new.tsx",
+    "frontend/sales-app/src/lib/draft.ts",
+    "frontend/sales-app/src/lib/draft.test.ts",
+    "frontend/sales-app/src/lib/leave.ts",
+    "frontend/sales-app/src/lib/leave-sheet.tsx",
+    "frontend/sales-app/src/lib/leave.test.ts",
+    "frontend/sales-app/src/strings.ts",
+    "frontend/delivery-app/app/_layout.tsx",
+    "frontend/delivery-app/src/lib/leave.ts",
+    "frontend/delivery-app/src/lib/leave-sheet.tsx",
+    "frontend/delivery-app/src/lib/leave.test.ts",
+    "frontend/delivery-app/src/strings.ts",
+    "frontend/warehouse-app/app/_layout.tsx",
+    "frontend/warehouse-app/src/lib/leave.ts",
+    "frontend/warehouse-app/src/lib/leave-sheet.tsx",
+    "frontend/warehouse-app/src/lib/leave.test.ts",
+    "frontend/warehouse-app/src/strings.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/identity.test.ts",
+    "docs/27-offline-sync-client.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "Step 5: sales draft keyed by user, per-user index, forgetDraft(userId, retailerId), forgetDraftsOf, every caller",
+     "done": true,
+     "how": "In 9c304b7, draft.ts keys a draft dos.sales.draft.<userId>.<retailerId> and keeps the index dos.sales.drafts.<userId>. useOrderDraft reads useSession().session?.user.id and neither reads nor writes without a session. forgetDraftsOf removes every listed key and the index. The only external caller, app/orders/new.tsx, passes the rep's id. The verifier confirmed it. In 3386a4e, forgetDraftsOf reaches leaveNow as steps.forgetDrafts and runs only when keepQueue is false, after end() and the sweep; the leave.test.ts order assertions cover it."
+    },
+    {
+     "amendment": "Step 6a: three layouts pass identity={sessionIdentity(session)} and a literal storePrefix; databaseName/tenantId removed",
+     "done": true,
+     "how": "Done in 9c304b7 and confirmed by the verifier; 3386a4e does not change it."
+    },
+    {
+     "amendment": "Step 6b: pure leave.ts + strings per app",
+     "done": true,
+     "how": "leaveSentence and the leave.* strings are unchanged from 9c304b7 and confirmed by the verifier. In 3386a4e, leave.ts also holds the leave order (tapLeave, sendNowThenLeave, leaveNow) over injected LeaveSteps; it imports leaveDecision from @dos/offline/react, so the rule still has one home."
+    },
+    {
+     "amendment": "Step 6c: LeaveSheet on the kit's Sheet/Stack/Button/Txt, no Dialog, Send now only online, no discard",
+     "done": true,
+     "how": "The sheet is unchanged since 9c304b7 and confirmed by the verifier. It lives in src/lib/leave-sheet.tsx; see deviation 1."
+    },
+    {
+     "amendment": "Step 6d: Chrome owns the flow through useLeaveSession; end before signOut; sweep and forgetDraftsOf on a keepQueue:false sign-out; signOut even when end throws",
+     "done": true,
+     "how": "Chrome still owns the flow. It builds LeaveSteps from useLeaveSession (waiting, sendNow, end), the sweep over otherIdentities(session), forgetDraftsOf (sales only), signOut and switchDistributor.\n- account.onSignOut and tenant.onSwitch call tapLeave. On 'ask' the sheet opens.\n- Send now calls sendNowThenLeave. It leaves by itself when both counts are 0, and the sheet stays when something still waits or the send failed.\n- 'Sign out, keep them here' and 'Switch anyway' call leaveNow(to, true).\n- leaveNow runs end({ keepQueue }), then (keepQueue false only) the sweep and forgetDrafts, each in try/catch, then signOut(). A switch calls only switchDistributor.\n- A ref guard in run swallows a second tap before busy renders.\nThe step's 'read {pending, rejected}' now reads waiting(); see amendment (f)."
+    },
+    {
+     "amendment": "Step 6e: WrongRole sign-out stays void signOut()",
+     "done": true,
+     "how": "Unchanged in all three layouts."
+    },
+    {
+     "amendment": "Step 6f: forced sign-out (401 on refresh) keeps the queue for that person",
+     "done": true,
+     "how": "No app code is involved and nothing in 3386a4e touches it. The provider's identity===null path only stops the engine. Not walked on a platform."
+    },
+    {
+     "amendment": "(a) lossless store name, literal prefix per app, no hand-built file names",
+     "done": true,
+     "how": "The STORE_PREFIX literals are unchanged. The same constant feeds the sweep, now through steps.sweep."
+    },
+    {
+     "amendment": "(d) app half: end() before client.signOut(); session cleared even when end() throws",
+     "done": true,
+     "how": "leaveNow awaits steps.end inside try/catch before steps.signOut. Tested with a fake device in each app's leave.test.ts: the call order is end then signOut, and signOut is still the last call when end throws."
+    },
+    {
+     "amendment": "(e) a distributor switch wipes nothing; asks only when pending + rejected > 0",
+     "done": true,
+     "how": "leaveNow in switch mode calls only switchDistributor. tapLeave asks only when waiting() counts something. Tested: a switch with nothing waiting records ['waiting', 'counted 0+0', 'switch sai'], a switch with 2 refused returns 'ask', and 'Switch anyway' records only 'switch sai'."
+    },
+    {
+     "amendment": "(f) one tap only when nothing waits; the sheet whenever anything is queued or rejected; discard never offered (founder answer A)",
+     "done": true,
+     "how": "This was the verifier's unsatisfied amendment and major, fixed in 3386a4e.\n- Engine: SyncEngine.waiting() awaits the open in start() (this.opening), refreshes the counts from the file, emits status and returns { pending, rejected }. A failed open resolves with nothing to count.\n- useLeaveSession exposes waiting(). sendNow() now returns engine.waiting() after its flush.\n- Apps: tapLeave decides on waiting() and never on the snapshot. A file that cannot be counted is never deleted (leaveNow keepQueue true). There is still no discard control.\n- Proof: identity.test.ts reproduces the verifier's probe (kept order, slow open, snapshot 0 / 'leave') and shows waiting() returns { pending: 1 }, 'ask' and the op still queued. Each app's leave.test.ts shows a cold-start tap with a 40 ms open returns 'ask' with no end and no signOut call."
+    },
+    {
+     "amendment": "(g) nothing from a previous user is rendered: the draft half",
+     "done": true,
+     "how": "The draft key carries the userId (9c304b7). Screens still import only @dos/ui and @dos/offline/react. The layouts and leave.ts import only @dos/offline, @dos/offline/react, @dos/api-client, @dos/ui, @dos/contracts, expo-router and react; lint passes."
+    },
+    {
+     "amendment": "(i) legacy <prefix>.db deleted once per mount",
+     "done": true,
+     "how": "All three layouts pass storePrefix, which triggers the libs provider effect. Unchanged; not walked on a device."
+    },
+    {
+     "amendment": "(j) no backend, contract, permission, schema or kit change; sheet app-level on Sheet/Stack/Button/Txt",
+     "done": true,
+     "how": "3386a4e touches only frontend/{sales,delivery,warehouse}-app, frontend/libs/offline/src/{engine.ts,react.tsx,identity.test.ts} and docs/27. There is no backend/, @dos/ui, contract or PERMISSIONS change."
+    },
+    {
+     "amendment": "(k) new engine tests go in identity.test.ts; engine.test.ts untouched beyond the DISTRIBUTOR test",
+     "done": true,
+     "how": "The waiting() test is in identity.test.ts. engine.test.ts is not touched by this slice and still passes 29/29."
+    },
+    {
+     "amendment": "(l) files outside the design's list are not edited",
+     "done": true,
+     "how": "Every edited file is on the list, with leave-sheet.tsx standing in for leave.tsx (deviation 1)."
+    },
+    {
+     "amendment": "Steps 3a/4a leftover from libs: identity replaces tenantId in SyncEngineOptions and OfflineProviderProps",
+     "done": true,
+     "how": "Done in 9c304b7 and confirmed by the verifier; unchanged."
+    },
+    {
+     "amendment": "Founder answer A final in docs/27",
+     "done": true,
+     "how": "The \u00a74 and \u00a712 wording from the libs slice is unchanged. 3386a4e adds waiting() to the \u00a711 useLeaveSession line and to \u00a713 item 15; see deviation 7."
+    }
+   ],
+   "deviations": "From 9c304b7, confirmed by the verifier:\n1) The sheet is src/lib/leave-sheet.tsx, not src/lib/leave.tsx. Both tsc and Metro resolve './leave' to leave.ts, so a leave.tsx next to it cannot be imported; the verifier proved this with tsc --traceResolution.\n2) leave.ts fills {n}, {name} and {tenantName} with a 4-line copy of the kit's placeholder rule, because @dos/ui exports no interpolate.\n3) There is no leave.cancel key; the sheet reuses the kit's action.cancel.\n4) The noSignal line shows whenever the phone is offline.\n5) The libs slice's tenantId removal went into the apps commit.\n6) No onLog is wired, so end() and forgetDraftsOf errors are swallowed and signOut() still runs.\n\nFrom the review fix, 3386a4e:\n7) The major needed a small library addition, because a test proved the libs composition wrong. identity.test.ts reproduces the verifier's probe: status() reads { ready: false, pending: 0 } over a kept queued op. Nothing in the engine's public API could await the open, so I added:\n   - SyncEngine.waiting(), which awaits the open, refreshes the counts, emits status and returns { pending, rejected };\n   - LeaveSession.waiting in useLeaveSession;\n   - sendNow now returns engine.waiting() after its flush instead of engine.status(), so it cannot read a pre-open 0 either.\n   end(), wipe(), claimIdentity() and their tests are unchanged. docs/27 \u00a711 (the useLeaveSession line) and \u00a713 item 15 now name waiting(). Both are DOS-167's own lines, edited so the binding doc matches the hook.\n8) The leave order moved out of each Chrome into leave.ts as tapLeave, sendNowThenLeave and leaveNow over injected LeaveSteps. This gives the fix a red-then-green test at app level, and it partly answers the verifier's minor #3 (no coverage of the Chrome flow). Chrome still owns the flow and the sheet state.\n   Behaviour is unchanged, with four small hardenings:\n   - the sweep is now inside try/catch, so signOut() runs even if it throws;\n   - a file whose outbox cannot be counted signs the person out with keepQueue true and is never deleted;\n   - a failed sendNow keeps the sheet open instead of rejecting unhandled;\n   - a ref guard stops a second tap before busy renders.\n   A failed switchDistributor still closes the sheet and still rejects unhandled, as before.\n9) The six new app files were formatted with a targeted prettier --write, not the workspace-wide pnpm format, so no unrelated file was touched.",
+   "followUps": "For the orchestrator or architect:\n\n1) Verifier minor #2 is REAL, and I did not fix it (it needs an engine contract decision outside the signed-off design). Executed probe: scratchpad/race2/enqueue-during-end.test.ts, output in scratchpad/race2/probe.log.\n   - Setup: the worktree's engine with a pull held in flight. waiting() returned { pending: 0, rejected: 0 } and the decision was 'leave'. end({ keepQueue: false }) started.\n   - Then enqueue() of an order resolved with opId 01a09b96-ec56-7675-abbc-c50b53d12376 ('refused null').\n   - After end, querying _outbox failed with 'no such table: _outbox', and nothing was uploaded ('uploaded []').\n   So an order a rep submits while a one-tap sign-out's end() waits for a pull in flight is silently deleted. The tap-time decision was correct; the loss is in the window after it. This breaks founder answer A's 'no order is ever lost'.\n   Suggested direction:\n   - enqueue() refuses once `ended` is set;\n   - settled() also awaits enqueue transactions in flight;\n   - after settling, end({ keepQueue: false }) re-counts and keeps the file if anything now waits;\n   - or show a blocking 'Signing out\u2026' state while end() settles.\n   It needs a P-rating and an owner.\n\n2) Verifier minor #4 (copy): 'Sign out, keep them here' is 24 characters, over the kit's 20-character button rule, and the title reads '1 changes have not reached the office'. Both are design-mandated wording, for the founder or UX to reword.\n\n3) Nothing in this slice was walked on web, Android or iOS. The design's platform proof is still the verifier's:\n   - web: V5A/B/C, V5D and the OPFS listing;\n   - Android: steps 1-6 for sales and 1-3 for delivery and warehouse;\n   - iOS: steps 1-5.\n   Add one case for this fix on web or Android: sign in as a rep holding a kept order on a cold start and tap Sign out at once. Expected: the sheet shows '1 changes\u2026' after the open, and the file is not deleted.\n\n4) From the builder, still open:\n   - docs/22 \u00a78/\u00a79/\u00a711 rows go to the main session;\n   - old unkeyed dos.sales.draft.<retailerId> keys are left at rest (P3 candidate);\n   - two S-list candidates: the cursor carries no device identity, and identity files are never swept;\n   - lean-delivery-door and lean-libs-offline-boot must rebase over the rewritten Chrome, leave.ts and react.tsx (useLeaveSession gained waiting).",
+   "platformCheck": "NOT TESTED on any platform. Dev servers, emulators and simulators were not allowed in this slice, so no web, Android or iOS walk was run for 9c304b7 or 3386a4e.\n\nEvidence that does exist is Node only:\n- Engine race: identity.test.ts runs on the memory store with a slow storeFactory.\n- Leave order: each app's leave.test.ts runs with fake LeaveSteps.\n- Typecheck and lint pass for the four packages.\n\nNot proven: the sheet on the native overlay host; waiting() over real OPFS or expo-sqlite opens; the one-tap, sheet, Send now, keep and switch flows in a browser or on a device. These belong to the verifier's walks: web s-098 V5A/B/C plus V5D and the OPFS listing, Android Pixel_7_API_36 steps 1-6 (sales) and 1-3 (delivery, warehouse), and iOS simctl steps 1-5, plus the cold-start sign-out case in followUps item 3."
+  },
+  "verdict": {
+   "id": "DOS-167/apps",
+   "verdict": "fail",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "Step 5: sales draft keyed by user, per-user index, forgetDraft(userId, retailerId), forgetDraftsOf, every caller",
+     "satisfied": true,
+     "detail": "draft.ts builds the key as dos.sales.draft.<userId>.<retailerId> and keeps an index at dos.sales.drafts.<userId>. saveDraft, forgetDraft(userId, retailerId) and forgetDraftsOf all exist. useOrderDraft neither reads nor writes without a session. The only external caller is app/orders/new.tsx:236, which passes the rep id. forgetDraftsOf runs only on a keepQueue:false sign-out (leave.ts:143-154). draft.test.ts is green, and two mutants were killed: a key without the user (M6) and an index left behind (M7)."
+    },
+    {
+     "amendment": "Step 6a: the three layouts pass identity={sessionIdentity(session)} and a literal storePrefix; databaseName and tenantId are removed",
+     "satisfied": true,
+     "detail": "The sales, delivery and warehouse _layout.tsx each compute identity with useMemo(sessionIdentity(session)) and pass STORE_PREFIX ('dos-sales', 'dos-delivery', 'dos-warehouse'). A grep for databaseName and tenantId= in the three layouts finds nothing. Typecheck passes for all three apps."
+    },
+    {
+     "amendment": "Step 6b: a pure leave.ts plus strings per app",
+     "satisfied": true,
+     "detail": "Each app has leaveSentence and the eight leave.* keys in strings.ts. The missing leave.cancel is covered by the kit's action.cancel, which exists at libs/ui/src/strings.ts:19. The leaveSentence test is green in all three apps."
+    },
+    {
+     "amendment": "Step 6c: LeaveSheet on the kit's Sheet/Stack/Button/Txt; no Dialog; Send now only when online; no discard",
+     "satisfied": true,
+     "detail": "leave-sheet.tsx uses only @dos/ui, and Send now renders only when online. There is no discard control and no raw Modal. The native kit Sheet opens its own overlay-host Modal as root (feedback.tsx:149-165). The sheet lives in leave-sheet.tsx rather than leave.tsx, because './leave' resolves to leave.ts first (deviation 1, code-proven). The sheet was not rendered on any platform."
+    },
+    {
+     "amendment": "Step 6d: Chrome owns the flow; end before signOut; sweep and forgetDraftsOf only on keepQueue:false; signOut even when end throws",
+     "satisfied": true,
+     "detail": "leave.ts has tapLeave, sendNowThenLeave and leaveNow, and Chrome wires them in all three layouts. The leave.test.ts files check the exact call order. Mutants killed: signOut before end (M2), keep path sweeps (M8), Send now leaves anyway (M10). The tap decides on waiting(); mutants ignoring the counts (M3, all three apps) and waiting() not awaiting the open (M4) were killed. The Chrome wiring itself has no Node test (see minor)."
+    },
+    {
+     "amendment": "Step 6e: WrongRole sign-out stays void signOut()",
+     "satisfied": true,
+     "detail": "Unchanged in all three layouts (sales _layout.tsx:204-209)."
+    },
+    {
+     "amendment": "Step 6f: a forced sign-out (401 on refresh) keeps the queue for that person",
+     "satisfied": true,
+     "detail": "No app code ends the engine when the session goes null. The provider's identity===null path only stops the engine (react.tsx:110-114, 137-141). Checked by code reading; not walked on a platform."
+    },
+    {
+     "amendment": "(a) lossless store name, a literal prefix per app, no hand-built file names",
+     "satisfied": true,
+     "detail": "Each app has a STORE_PREFIX literal, and the same constant feeds sweepIdentityStores. No layout builds a file name itself."
+    },
+    {
+     "amendment": "(d) app half: end() before client.signOut(); session cleared even when end() throws",
+     "satisfied": true,
+     "detail": "leaveNow awaits steps.end inside try/catch before steps.signOut, and the test covers end throwing. As written this is satisfied, but a same-person order queued while end() waits is silently deleted (major problem 1)."
+    },
+    {
+     "amendment": "(e) a distributor switch wipes nothing; it asks only when pending + rejected > 0",
+     "satisfied": true,
+     "detail": "leaveNow in switch mode calls only switchDistributor. Tests show a clean switch records waiting, counted 0+0, switch sai; a switch with refusals asks; Switch anyway only switches."
+    },
+    {
+     "amendment": "(f) one tap only when nothing waits; the sheet when anything is queued or rejected; discard never offered (founder answer A)",
+     "satisfied": true,
+     "detail": "The decision now uses waiting(), counted from the opened file. A cold-start tap asks, and a file that cannot be counted is kept (keepQueue true, mutant M1 killed in all three apps). My control probe: an order queued before the tap gives {pending:1} and 'ask'. The founder's 'no order is ever lost' still breaks through the end() window (major problem 1)."
+    },
+    {
+     "amendment": "(g) nothing from a previous user is rendered: the draft half, and screens importing only allowed packages",
+     "satisfied": true,
+     "detail": "The draft key carries the userId. Lint exits 0 for sales, delivery and warehouse, and a grep finds no react-native or react-dom import in the three apps' app/ and src/."
+    },
+    {
+     "amendment": "(i) the legacy <prefix>.db is deleted once per mount",
+     "satisfied": true,
+     "detail": "All three layouts pass storePrefix, which triggers the provider's legacy effect (react.tsx:159-178). Checked by code; not walked on a device."
+    },
+    {
+     "amendment": "(j) no backend, contract, permission, schema or kit change; the sheet is app-level",
+     "satisfied": true,
+     "detail": "git diff merge-base..HEAD lists only frontend/ files and docs/27. There is no backend/ or libs/ui change."
+    },
+    {
+     "amendment": "(k) new engine tests go in identity.test.ts; engine.test.ts untouched beyond the DISTRIBUTOR test",
+     "satisfied": true,
+     "detail": "The waiting() test is in identity.test.ts. git diff afc8b6e..HEAD does not list engine.test.ts, which still passes 29/29."
+    },
+    {
+     "amendment": "(l) files outside the design's list are not edited",
+     "satisfied": true,
+     "detail": "Every file edited by 9c304b7 and 3386a4e is on the list, with leave-sheet.tsx standing in for leave.tsx (deviation 1). The waiting() addition sits in engine.ts and react.tsx, both on the list, and the libs change is justified in deviation 7 by a failing test."
+    },
+    {
+     "amendment": "Founder answer A is final in docs/27",
+     "satisfied": true,
+     "detail": "docs/27 \u00a74 (lines 74-77) and \u00a712 (lines 204-210) state the rule as decided ('Decided by the founder, 2026-09-13'), including discard never offered at sign-out and a forced sign-out keeping the queue. Neither docs/27 nor the code says 'pending the founder' anywhere."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "major",
+     "file": "frontend/libs/offline/src/engine.ts",
+     "detail": "A one-tap sign-out silently deletes an order the same rep queues while the sign-out is still finishing. This is proven by an executed probe, not code reading.\n\nThe sequence:\n- tapLeave calls waiting(), gets {0,0}, and runs leaveNow(false), which calls end({keepQueue:false}).\n- end() sets `ended`, then settled() waits for a pull already in flight.\n- In that window, enqueue() never checks `ended` (engine.ts:794-828). It resolves with an opId, and status shows pending 1.\n- wipe() then deletes _outbox (engine.ts:285-287) and destroy() removes the file.\n\nProbe: scratchpad/v167apps/zz-verifier-race.test.ts, copied into offline/src, run, then deleted. Output in probe-race.json. PROBE-A gave counts {0,0}, decision 'leave', opId returned, refused null, pendingAfterEnqueue 1. The outbox query after end failed with 'no such table: _outbox', and uploaded was [].\n\nA rep can reach this window:\n- The kit closes the account menu before calling onSignOut (native shell.tsx:329-330 and 465-466; web shell.tsx:417-418 and 680-681).\n- Chrome's one-tap path shows no busy state; `busy` only reaches the closed LeaveSheet (sales _layout.tsx:506, same in delivery and warehouse).\n- The order screen queues whenever !local.online (sales app/orders/new.tsx:189-190).\n- The poll's pull is not gated on reachability and can hang up to the 20 s deadline in a dead spot.\n\nThis loss path did not exist before DOS-167, because sign-out never deleted a queue. It breaks the founder's answer A ('no order is ever lost') and docs/27 \u00a714 ('nothing is silently dropped').\n\nThe signed-off design does not cover this window, so the implementer rightly did not fix it on their own. It needs an architect amendment. Options:\n- enqueue refuses once `ended` is set, so the rep sees an error instead of a silent loss;\n- or end() re-counts after settled() and keeps the file when something now waits;\n- or the app shows a blocking 'Signing out\u2026' state for the whole leave flow."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/sales-app/app/_layout.tsx",
+     "detail": "No Node test covers the Chrome wiring in the three layouts: steps.waiting = device.waiting, steps.end = device.end, the sweep over otherIdentities(session), the running-ref guard and the sheet state. Only leave.ts is tested, with fake steps. A regression that wired the status snapshot back in would not fail any test. No platform proof has been run: web V5A/B/C/D plus the OPFS listing, Android steps 1-6 (sales) and 1-3 (delivery, warehouse), iOS steps 1-5, and the cold-start sign-out case all remain NOT TESTED."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/sales-app/src/strings.ts",
+     "detail": "Design-mandated copy, to go to the founder or UX, not the builder. Same strings in delivery and warehouse.\n- 'Sign out, keep them here' is 24 characters, over the kit's \u226420-character button rule (libs/ui/src/types.ts:25).\n- The title reads '1 changes have not reached the office'.\n- With refusals only, the body still says the changes 'go the next time {name} signs in here', although refused ops wait in the tray and do not go by themselves."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/delivery-app/app/_layout.tsx",
+     "detail": "When switchDistributor rejects, the error escapes run()'s `void step().finally(...)` as an unhandled promise rejection. This happens from the tap, from 'Send now' and from 'Switch anyway', in all three layouts. It is pre-existing behaviour (`void switchDistributor(tenantId)` before DOS-167), and the implementer noted it. No error is shown to the person."
+    }
+   ],
+   "evidence": "Verdict: fail on one major. The order-loss window was proven with an executed probe. Everything else checks out: red before, green after, every owned amendment satisfied, and 12 of 12 mutants killed. Worktree .claude/worktrees/b2-dos167, branch qa/b2-dos167, HEAD 3386a4e. Logs are in /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/v167apps/.\n\n1. Scope. `git log main..HEAD` shows afc8b6e (libs), 9c304b7 and 3386a4e (apps). `git diff $(merge-base)..HEAD --name-only` lists only frontend/ files and docs/27. There is nothing under QA/, no docs/22 change, no backend change and no generated README. The QA/ and backend paths that appear in a two-dot diff come from main having moved ahead.\n\n2. RED, commit 3386a4e. `git diff 3386a4e^ 3386a4e` (excluding tests and docs) piped to `git apply -R` on HEAD, then each file run alone:\n- offline identity.test.ts: 1 failed, 11 passed. The new test fails with 'TypeError: back.waiting is not a function'. Its earlier assertions pass, which reproduces the bug: the snapshot reads 0 and the decision is 'leave'.\n- sales, delivery and warehouse leave.test.ts: each 1 failed, 1 passed, with 'TypeError: tapLeave is not a function'.\nRestored with `git checkout -- .`; status clean.\n\n3. RED, commit 9c304b7. `git checkout 9c304b7 --` on the files changed after it, then `git apply -R` of its non-test diff:\n- sales draft.test.ts: 'TypeError: saveDraft is not a function'.\n- the three leave.test.ts files: \"Cannot find module './leave'\".\nRestored with `git checkout HEAD -- .`; status clean.\n\n4. Mutation probes. 12 of 12 killed, each on its own run and restored after:\n- M1 (an uncounted file is deleted), in all three apps;\n- M3 (ignore the counts), in all three apps;\n- M2 (signOut before end), M8 (keep path sweeps), M10 (Send now leaves anyway), in sales;\n- M4 (waiting() skips the open), in offline;\n- M6 (draft key without the user), M7 (forgetDraftsOf keeps the index), in sales.\n\n5. GREEN, each file run alone:\n- @dos/offline: identity.test.ts 12/12, engine.test.ts 29/29.\n- @dos/sales-app: leave.test.ts 2/2, draft.test.ts 1/1, order-entry-layout.test.ts 4/4.\n- @dos/delivery-app: leave.test.ts 2/2.\n- @dos/warehouse-app: leave.test.ts 2/2.\nTypecheck exits 0 and lint exits 0 for @dos/offline, sales-app, delivery-app and warehouse-app. Backend contracts and domain were built first (turbo cache hit).\n\nPrettier --check passes on every touched frontend file. It flags only docs/27, and that failure already exists at merge-base 0f5a9b5 and at afc8b6e. docs/ is outside both workspaces' format:check.\n\n6. Race probe (executed). zz-verifier-race.test.ts was copied into offline/src, run and deleted. PROBE-A: {counts:{pending:0,rejected:0}, decision:'leave', opId:'01a09ba3-6317-7162-8369-1ef46b485281', refused:null, pendingAfterEnqueue:1, outbox:'query failed: no such table: _outbox', uploaded:[]}. PROBE-B (control, order queued before the tap): {counts:{pending:1,rejected:0}, decision:'ask'}.\n\nThe window is reachable by a rep, from code reading:\n- the kit closes the menu before onSignOut (native shell.tsx:329-330, 465-466; web shell.tsx:417-418, 680-681);\n- `busy` only reaches the closed LeaveSheet;\n- new.tsx:189-190 queues the order when offline;\n- the api-client's `hydrating` never goes true after boot (session.ts:151, 204-216), so an engine swap mid-flow is ruled out.\n\n7. Other checks:\n- No react-native or react-dom imports in the three apps.\n- Every forgetDraft caller passes the user.\n- No databaseName or tenantId props remain in the layouts.\n- The harness passes identity={null} and the README shows identity and storePrefix.\n- docs/27 \u00a74 and \u00a712 state founder answer A as decided.\n\nNOT TESTED: web, Android and iOS (dev servers and emulators were not allowed). Final: `git status` is empty and HEAD is still 3386a4e; I made no commits."
+  }
+ },
+ "final": "apps-not-verified",
+ "run": "wf_74bd442f-12c"
+}

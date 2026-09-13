@@ -310,3 +310,23 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
   - Review: two Fable merge reviews, one for leaks and one for loss and platform.
   - Merge: Opus integration with one repair round, then merge and push.
   - Proof: web (persistent store), Android sales, Android delivery and warehouse, and iOS, then a Fable judge per platform.
+
+### Batch 2 — DOS-167 first pass: libs verified, apps slice sent to an architect ruling (22:17 IST)
+
+**Run `wf_74bd442f-12c`** — 6 agents, about 1 h 52 min. Lane result: `QA/evidence/batch2/lane-results/DOS-167.json`.
+- **Libs slice `afc8b6e`: VERIFIED.** 13 new tests (11 in offline identity.test.ts, 2 in api-client identity.test.ts), each red before and green after. The DISTRIBUTOR test in engine.test.ts moved to `identity` as amendment (k) allows. Two deviations were proven by mutation:
+  - end() also waits for the open and for a pull in flight; otherwise a pull page commits its cursor into the kept file after the drop.
+  - The stamp writes `role` only when none is stored, so the manifest still catches a role change. A new test covers it.
+- **Apps slice `9c304b7` + review fix `3386a4e`: NOT VERIFIED.** The re-verifier's executed probe found a loss race:
+  - A one-tap sign-out calls end({ keepQueue: false }), which waits for a pull still in flight.
+  - An order the same rep queues in that window resolves with an opId.
+  - wipe() then deletes the queue and the file. Nothing is uploaded.
+  - This path is new with DOS-167, breaks answer A, and the design does not cover it, so it goes to the architect.
+- **Minors:**
+  - 'Sign out, keep them here' is 24 characters, over the kit's 20-character button rule.
+  - The title reads '1 changes'.
+  - When only refusals remain, the body still says the changes go by themselves.
+  - No test covers the Chrome wiring in the three layouts.
+  - A pre-existing unhandled switchDistributor rejection.
+- **Next:** the same run is resumed with a ruling stage — Fable ruling → Opus build → adversarial verify (one repair) — then the two Fable merge reviews, integration, merge, the web/Android/iOS proof and the Fable judge.
+- **Wave 2 (seen in git log):** lean-retailer-shop merged `b17e23f`; lean-backend-platform is integrating.
