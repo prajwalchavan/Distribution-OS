@@ -258,14 +258,14 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
 
 Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. Fable merge reviews are running (`wf_5363c388-c3f`). Lean-mode grouping of every open P2 and P3 has started (`wf_c2b9844d-877`).
 
-**h9-desk merged** as `d521f84` at 17:25 (run `wf_30bb86fa-c2d`): DOS-044, DOS-037, DOS-031.
+**h9-desk merged** as `d521f84` at 16:52 (run `wf_30bb86fa-c2d`): DOS-044, DOS-037, DOS-031.
 - **No textual conflict.** The review had predicted a semantic one, and it appeared on the merged tree. The DOS-037 test "pins every non-GET procedure the accountant may call" still listed the five order writes that DOS-115 (founder-approved) had removed, so it failed with 68 received vs 73 expected. The five rows were dropped from that literal list, and nothing else changed (`cbc2cbc`).
 - **READMEs:** 12 regenerated. The stock.adjust summary changed and 24 rows lose the accountant.
 - **Process note:** the integrator ran one read-only `select 1` against the template database, which the lane rules forbid. It disclosed this itself; nothing was written.
 
 **h12-kit and h8-billing merged** (run `wf_f2eaa16e-1a9`), both clean with no merge-time fix: DOS-164 as `146eed2`, DOS-116 as `73b120c`. No generated README changed. One contract note: `/docs/openapi.json` for owner, manager and delivery no longer carries `default: true` on `lines[].saleable`. Batch 2 now has 18 approved findings on main (3 P0, 15 P1).
 
-**h11-syncpull merged** as `be5c40f` at 18:10 (run `wf_c0a9229d-d52`): DOS-080. The merge was clean, and the sync specs pass on the merged tree (coverage 25/25, sync 9/9). The review raised a suspect, S-98: sign-out never wipes the device store. It is being probed on the sales web app now.
+**h11-syncpull merged** as `be5c40f` at 17:21 (run `wf_c0a9229d-d52`): DOS-080. The merge was clean, and the sync specs pass on the merged tree (coverage 25/25, sync 9/9). The review raised a suspect, S-98: sign-out never wipes the device store. It is being probed on the sales web app now.
 
 **h11-syncpull verified** (run `wf_51c8b336-66e`): DOS-080 `38032df`.
 - **The fix:** a pull page now fills its limit across tables, the cursor never passes a table's unread rows or tombstones, and a snapshot takes about ceil(rows / limit) + 1 calls.
