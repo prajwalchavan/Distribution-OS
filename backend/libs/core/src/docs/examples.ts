@@ -80,7 +80,12 @@ import {
   writeOffs,
   type Db,
 } from '@dos/db'
-import { contract, MAX_CLAIM_BUILD_LINES, type ProcedureSummary } from '@dos/contracts'
+import {
+  contract,
+  MAX_CLAIM_BUILD_LINES,
+  mayPostAdjustment,
+  type ProcedureSummary,
+} from '@dos/contracts'
 import { businessDate } from '@dos/domain'
 import { BACK_OFFICE } from '../platform/authz.js'
 import { DB } from '../platform/db.module.js'
@@ -404,7 +409,10 @@ export interface PlatformExamples {
   pendingGrantId?: string | undefined
   /** An APPROVED, live window — the one `auth.supportPass` can actually exchange. */
   activeGrantId?: string | undefined
-  /** A user who is NOT the console account and not a demo sign-in: safe for `users.disable`. */
+  /**
+   * A user who is NOT the console account and not a demo sign-in: safe for `users.disable` and for its
+   * undo `users.enable` (DOS-107), which both point at it.
+   */
   disposableUserId?: string | undefined
   disposableUsername?: string | undefined
 }
@@ -772,22 +780,20 @@ async function collectPlatform(tx: Db, tenantId: string, ctx: ExampleContext): P
     .where(eq(supportGrants.tenantId, tenantId))
     .orderBy(desc(supportGrants.requestedAt))
     .limit(50)
-  // A user this console may safely lock out in a demo: never a seeded sign-in (the six apps and every
-  // other tool depend on those), never the console account itself, and never somebody who is already
-  // disabled. In a freshly seeded database there is usually none, and the example is then left
-  // pointing at the sampler's uuid with a note — `users.disable` is destructive by name, so
+  // A user this console may safely lock out, and unlock again, in a demo: never a seeded sign-in (the
+  // six apps and every other tool depend on those) and never the console account itself. A LOCKED one
+  // comes first (DOS-107): the `users.enable` example then undoes exactly the identity the
+  // `users.disable` example locked, and a database an interrupted run left locked is repaired by
+  // pressing Execute once. In a freshly seeded database there is usually none, and both examples are
+  // then left pointing at the sampler's uuid with a note — `users.disable` is destructive by name, so
   // `pnpm smoke` skips it unless `--destructive` is asked for.
   const [disposable] = await tx
     .select({ id: users.id, username: users.username })
     .from(users)
     .where(
-      and(
-        eq(users.status, 'active'),
-        isNull(users.username),
-        sql`${users.id} NOT IN (SELECT user_id FROM platform_admins)`,
-      ),
+      and(isNull(users.username), sql`${users.id} NOT IN (SELECT user_id FROM platform_admins)`),
     )
-    .orderBy(desc(users.createdAt))
+    .orderBy(sql`(${users.status} = 'disabled') desc`, desc(users.createdAt))
     .limit(1)
   ctx.platform = {
     adminUserId: admin.userId,
@@ -2895,6 +2901,17 @@ function servesBackOffice(options: BuildExamplesOptions): boolean {
     : roles.some((role) => (BACK_OFFICE as readonly string[]).includes(role))
 }
 
+/**
+ * Does this service serve anyone who may ADD stock by an adjustment (DOS-044: the owner or a manager)?
+ * With no roles at all — a document built outside a service — the adding example is shown.
+ */
+function addsStock(options: BuildExamplesOptions): boolean {
+  const roles = options.roles
+  return roles === undefined || roles.length === 0
+    ? true
+    : roles.some((role) => mayPostAdjustment(role, 'adjustment', 1))
+}
+
 /** True only for the shopkeeper's own service: every example there stays inside the linked shop. */
 function servesOnlyRetailer(options: BuildExamplesOptions): boolean {
   const roles = options.roles ?? []
@@ -3398,6 +3415,10 @@ const OVERRIDES: Record<
     id: ctx.platform?.disposableUserId,
     reason: 'Account reported compromised by the distributor.',
   }),
+  'admin.users.enable': (ctx) => ({
+    id: ctx.platform?.disposableUserId,
+    reason: 'Locked by mistake; the distributor confirmed it is the right person.',
+  }),
   'admin.audit.list': (ctx) => ({ tenantId: ctx.tenantId }),
   // A NEW person: reusing a seeded id, username or phone collides on three separate unique indexes,
   // so all three walk the free slot together — otherwise the first Execute takes the only person the
@@ -3567,10 +3588,14 @@ const OVERRIDES: Record<
     batchNo: DOCS_BATCH_NO,
     mrpPaise: DOCS_BATCH_MRP_PAISE,
   }),
-  'inventory.stock.adjust': (ctx) => ({
+  // The sign follows the service's roles (DOS-044): +1 where the owner or a manager is served, −1 where
+  // no adder is (warehouse-service), so Execute sends a call that login may send. The lot is read with
+  // free stock (`collectStock`, `ctx.lotQty`), so −1 never takes it below zero.
+  'inventory.stock.adjust': (ctx, options) => ({
     lotId: ctx.lotId,
     locationId: ctx.lotLocationId ?? ctx.locationId,
-    qtyDelta: 1, // a positive delta is always legal; a negative one could go below zero
+    reason: 'adjustment',
+    qtyDelta: addsStock(options) ? 1 : -1,
   }),
   'inventory.stock.transfer': (ctx) => ({
     lotId: ctx.lotId,
@@ -4869,6 +4894,10 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
     ctx.platform?.disposableUserId
       ? 'DESTRUCTIVE: locks ONE global identity out of every distributor it belongs to and revokes its live sessions. The id here is a demo shopkeeper identity with no login of its own, chosen so no seeded sign-in breaks. Memberships are untouched — removing somebody from a distributorship is the owner’s own `tenancy.staff.setStatus`.'
       : 'DESTRUCTIVE: locks ONE global identity out of every distributor. No safe demo id was found, so replace the id before pressing Execute — do NOT point it at a seeded sign-in.',
+  'admin.users.enable': (ctx) =>
+    ctx.platform?.disposableUserId
+      ? 'The undo of the lock example above: the same identity signs in again from its next attempt; sessions the lock ended stay ended and memberships are untouched. On a login that is not locked it changes nothing and writes no audit row.'
+      : 'No safe demo id was found; replace the id with a locked identity before pressing Execute.',
   'admin.metrics.overview': () =>
     'Counts and storage bytes for the whole platform. There is deliberately no rupee of any distributor’s turnover, outstanding, cost or margin in this answer.',
   'claims.open': (ctx) =>
@@ -4945,7 +4974,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'pricing.schemes.upsert': () =>
     'The example scheme is created `active: false` and scoped to one product, so it cannot change what the demo orders cost until you activate it.',
   'inventory.stock.adjust': () =>
-    'Writes one real stock-ledger row (+1 piece). The fixed idempotencyKey means a second Execute is replayed, not added.',
+    'Writes one real stock-ledger row: +1 piece where the service serves the owner or a manager, −1 on warehouse-service, whose login only takes stock off. The fixed idempotencyKey means a second Execute is replayed, not added.',
   'inventory.stock.transfer': () =>
     'Really moves stock from the godown to the van. The fixed idempotencyKey means a second Execute is replayed, not added.',
   'procurement.supplierInvoices.create': (ctx) =>

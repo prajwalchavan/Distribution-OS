@@ -1,0 +1,38 @@
+{
+  "probe": "05",
+  "phase": "after DOS-166 merge (main 3d7cb36)",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T10:52:03.959Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/receipts",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "idempotencyKey": "01a09a65-47f7-7d22-ae21-3f9238fe72d4",
+      "id": "01a09a65-47f7-7c49-8672-930a1ee509b9",
+      "retailerId": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+      "mode": "cash",
+      "amountPaise": 100,
+      "note": "QA batch2 sync-role-probe AFTER 05 salesperson HTTP control"
+    }
+  },
+  "response": {
+    "status": 403,
+    "body": {
+      "message": "the salesperson role may not call POST /receipts",
+      "error": "Forbidden",
+      "statusCode": 403
+    }
+  }
+}

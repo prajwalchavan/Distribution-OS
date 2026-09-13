@@ -40,8 +40,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses · console levels: super, support | platform_admin |
 | GET | `/admin/users` | Global sign-in identities with every distributor they are a member of · console levels: super, support, billing | platform_admin |
 | POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) · console level: super | platform_admin |
+| POST | `/admin/users/{id}/enable` | Let an identity locked by disable sign in again; ended sessions stay ended (audited) · console level: super | platform_admin |
 | GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing | platform_admin |
-| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing | platform_admin |
+| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks and unlocks · console levels: super, support, billing | platform_admin |
 
 ### GET `/health/ping`
 
@@ -1643,6 +1644,137 @@ request.json
 }
 ```
 
+### POST `/admin/users/{id}/enable`
+
+Let an identity locked by disable sign in again; ended sessions stay ended (audited) · console level: super · contract `admin.users.enable`
+
+**Roles:** platform_admin
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3007/admin/users/01a06d17-0be7-794a-8dab-9b14cf78673b/enable" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "username": "sunil.tarsun",
+    "name": "Sharma Kirana Store",
+    "phone": "+919876543210",
+    "locale": "hi-IN",
+    "status": "active",
+    "platformRole": "platform_admin",
+    "mustChangePassword": true,
+    "lockedUntil": "2026-09-04T10:30:00.000Z",
+    "lastLoginAt": "2026-09-04T10:30:00.000Z",
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "memberships": [
+      {
+        "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+        "tenantSlug": "text",
+        "tenantName": "text",
+        "role": "owner",
+        "status": "invited"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "admin-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/admin/metrics`
 
 Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing · contract `admin.metrics.overview`
@@ -1764,7 +1896,7 @@ curl "http://localhost:3007/admin/metrics?days=30" \
 
 ### GET `/admin/audit`
 
-Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing · contract `admin.audit.list`
+Every platform action: onboarding, suspension, plans, support, user locks and unlocks · console levels: super, support, billing · contract `admin.audit.list`
 
 **Roles:** platform_admin
 
@@ -1814,7 +1946,9 @@ curl "http://localhost:3007/admin/audit?tenantId=01a06d03-67ed-7c68-87e3-25e2fff
       "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
       "occurredAt": "2026-09-04T10:30:00.000Z",
       "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
-      "tenantSlug": "text"
+      "tenantSlug": "text",
+      "actorName": "text",
+      "tenantName": "text"
     }
   ],
   "nextCursor": null
@@ -1891,5 +2025,6 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `admin.support.revoke` | – | – | – | – | – | – | – | ✓ |
 | `admin.users.list` | – | – | – | – | – | – | – | ✓ |
 | `admin.users.disable` | – | – | – | – | – | – | – | ✓ |
+| `admin.users.enable` | – | – | – | – | – | – | – | ✓ |
 | `admin.metrics.overview` | – | – | – | – | – | – | – | ✓ |
 | `admin.audit.list` | – | – | – | – | – | – | – | ✓ |

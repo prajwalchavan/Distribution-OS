@@ -7,6 +7,7 @@ import {
   type MembershipRole,
   type PlatformRole,
 } from './common.js'
+import { AdjustmentReasonSchema } from './inventory.js'
 import {
   ADMIN_LEVELS,
   ALL_ROLES,
@@ -14,10 +15,12 @@ import {
   isAllowed,
   levelAllows,
   listProcedures,
+  mayPostAdjustment,
   PERMISSIONS,
   permissionFor,
   PLATFORM_ROLES,
   ROLE_GROUPS,
+  STOCK_ADDERS,
   type AdminProcedurePath,
 } from './permissions.js'
 
@@ -737,34 +740,50 @@ describe('permission matrix', () => {
     for (const path of capture) {
       expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'warehouse'])
     }
-    // Every other docint procedure is the back office: the reading (printed rates), the SKU
-    // candidates, the review, the queue, the stats, reject and approve. The warehouse role reads zero
-    // rows of those tables in the database (rls.test.ts), so the matrix must agree.
-    for (const path of docintPaths.filter((p) => !capture.includes(p))) {
+    // Every other docint procedure is the back office's reading or the desk's decision. The reading
+    // (printed rates), the SKU candidates, the queue and the stats are BACK_OFFICE; the review, the
+    // matches, a re-read, reject and approve are the owner's or a manager's (QA DOS-037). The warehouse
+    // role reads zero rows of those tables in the database (rls.test.ts), so the matrix must agree.
+    const deskReads = [
+      'docint.extractions.list',
+      'docint.extractions.get',
+      'docint.matches.list',
+      'docint.queue.list',
+      'docint.stats.summary',
+    ]
+    const deskDecisions = docintPaths.filter((p) => !capture.includes(p) && !deskReads.includes(p))
+    expect(deskDecisions).toHaveLength(12)
+    for (const path of deskReads) {
       expect(permissionFor(path), path).toEqual(ROLE_GROUPS.BACK_OFFICE)
       expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
         false,
       )
     }
-    // Approving books a supplier invoice DRAFT, never a GRN: the two are the same three people, and
-    // posting the GRN (where cost is written) stays a separate BACK_OFFICE call.
-    expect(permissionFor('docint.documents.approve')).toEqual(ROLE_GROUPS.BACK_OFFICE)
+    for (const path of deskDecisions) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
+        false,
+      )
+    }
+    // Approving books a supplier invoice DRAFT, never a GRN: the two are the same two people, and
+    // posting the GRN (where cost is written) stays a separate call of the owner or a manager.
+    expect(permissionFor('docint.documents.approve')).toEqual(['owner', 'manager'])
     expect(permissionFor('docint.documents.approve')).toEqual(
       permissionFor('procurement.supplierInvoices.create'),
     )
-    expect(permissionFor('procurement.grns.post')).toEqual(ROLE_GROUPS.BACK_OFFICE)
-    // The accountant reviews and approves inbound bills (brief §5: the CA reviews them).
+    expect(permissionFor('procurement.grns.post')).toEqual(['owner', 'manager'])
+    // The owner or a manager reviews and books; the accountant reads the queue (QA DOS-037).
     for (const path of [
       'docint.review.start',
       'docint.review.save',
       'docint.review.submit',
       'docint.documents.approve',
-      'docint.queue.list',
     ] as const) {
-      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
-        true,
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
+        false,
       )
     }
+    expect(isAllowed(permissionFor('docint.queue.list'), 'accountant')).toBe(true)
     // Every docint write refuses the shop and the rep; every capture write admits the gate.
     for (const row of allProcedures().filter((r) => r.path.startsWith('docint.'))) {
       if (row.method !== 'POST') continue
@@ -777,6 +796,192 @@ describe('permission matrix', () => {
       (p) => allProcedures().find((r) => r.path === p)?.method === 'POST',
     )) {
       expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+  })
+
+  /**
+   * QA DOS-037 (docs/23 §2 M3, M4, M16). The 2026-09-05 narrowing (docs/22 §8) moved prices, schemes,
+   * credit, approvals, settings and the catalog to MANAGEMENT and left these 24 writes on tuples that
+   * include the accountant. She reads every one of those screens and writes none of them; the warehouse
+   * keeps its stock writes, and photographing a bill (docint CAP) is unchanged.
+   */
+  const DOS_037_STOCK_WRITES = [
+    'inventory.locations.upsert',
+    'inventory.stock.adjust',
+    'inventory.stock.transfer',
+    'inventory.lots.upsert',
+  ] as const
+  const DOS_037_DESK_WRITES = [
+    'inventory.cycleCounts.post',
+    'procurement.supplierInvoices.create',
+    'procurement.supplierInvoices.matchLine',
+    'procurement.supplierInvoices.dispute',
+    'procurement.supplierInvoices.cancel',
+    'procurement.grns.open',
+    'procurement.grns.post',
+    'procurement.purchaseOrders.upsert',
+    'docint.documents.reject',
+    'docint.documents.approve',
+    'docint.extractions.run',
+    'docint.matches.accept',
+    'docint.matches.reject',
+    'docint.matches.choose',
+    'docint.matches.rerun',
+    'docint.review.start',
+    'docint.review.heartbeat',
+    'docint.review.save',
+    'docint.review.release',
+    'docint.review.submit',
+  ] as const
+
+  it('DOS-037 keeps the accountant to reads on stock (M16), supplier bills, goods receipts and purchase orders (M4) and inbound review (M3), and the owner, manager and warehouse keep their writes', () => {
+    const writes = [...DOS_037_STOCK_WRITES, ...DOS_037_DESK_WRITES]
+    expect(writes).toHaveLength(24)
+    for (const path of writes) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must refuse accountant`).toBe(
+        false,
+      )
+      for (const role of ['owner', 'manager'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
+    // The godown keeps every stock write it had: the stock keepers.
+    for (const path of DOS_037_STOCK_WRITES) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+    // Posting a count, booking, matching, disputing, cancelling and receiving a supplier bill, raising a
+    // purchase order and deciding an inbound document: the owner or a manager.
+    for (const path of DOS_037_DESK_WRITES) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager'])
+    }
+    // She still reads every one of those screens, and still photographs a bill.
+    for (const path of [
+      'inventory.stock.balances',
+      'inventory.stock.ledger',
+      'inventory.cycleCounts.list',
+      'inventory.cycleCounts.get',
+      'procurement.supplierInvoices.list',
+      'procurement.supplierInvoices.get',
+      'procurement.grns.list',
+      'procurement.grns.get',
+      'procurement.discrepancies.list',
+      'procurement.purchaseOrders.list',
+      'docint.documents.list',
+      'docint.documents.get',
+      'docint.documents.status',
+      'docint.documents.pageUrl',
+      'docint.extractions.list',
+      'docint.extractions.get',
+      'docint.matches.list',
+      'docint.queue.list',
+      'docint.stats.summary',
+      'docint.documents.create',
+      'docint.documents.pageUploadUrl',
+      'docint.documents.addPage',
+      'docint.documents.verifyQr',
+      'docint.documents.submit',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'accountant'), `${path} must allow accountant`).toBe(
+        true,
+      )
+    }
+  })
+
+  it('DOS-037 pins every non-GET procedure the accountant may call', () => {
+    // The root cause of DOS-037 was a hand-added BACK_OFFICE write reaching the accountant unnoticed. A new
+    // write for her changes this list, and that change needs its docs/22 §8 row.
+    const accountantMayWrite = [
+      // public or any signed-in user: signing in and out, the session, the password
+      'auth.changePassword',
+      'auth.forgotPassword',
+      'auth.login',
+      'auth.logout',
+      'auth.platformLogin',
+      'auth.platformRefresh',
+      'auth.refresh',
+      'auth.resetPassword',
+      'auth.revokeSession',
+      'auth.switchTenant',
+      // every member or every staff member: a quote, a bargain request, a proposed
+      // product, a shop and its visit, an upload slot, the offline queue
+      'catalog.propose',
+      'files.uploadUrl',
+      'pricing.bargains.request',
+      'pricing.quote',
+      'retailers.upsert',
+      'retailers.visits.record',
+      'sync.upload',
+      // MONEY_DESK (docs/22 §8, 2026-09-05): receipts, banking, bounces, allocations, write-offs,
+      // statements, the trip desk's cash and expenses, the exports and the Tally names
+      'delivery.collections.record',
+      'delivery.expenses.record',
+      'delivery.trips.settle',
+      'integrations.exports.request',
+      'integrations.tally.mappings.upsert',
+      'receivables.allocations.create',
+      'receivables.allocations.remove',
+      'receivables.receipts.bounce',
+      'receivables.receipts.create',
+      'receivables.receipts.deposit',
+      'receivables.receipts.reverse',
+      'receivables.statements.send',
+      'receivables.writeOffs.create',
+      'reporting.exports.request',
+      // BILLING_ISSUERS: billing a parked pack and its e-way bill (M6)
+      'billing.invoices.issueForPack',
+      'billing.invoices.setEwayBill',
+      // CREDIT_NOTE_RAISERS
+      'billing.creditNotes.cancel',
+      'billing.creditNotes.create',
+      'billing.creditNotes.issue',
+      // claims (coordination §6)
+      'claims.acknowledge',
+      'claims.build',
+      'claims.cancel',
+      'claims.evidence.attach',
+      'claims.lines.add',
+      'claims.lines.adjust',
+      'claims.lines.remove',
+      'claims.open',
+      'claims.reject',
+      'claims.settlements.record',
+      'claims.statements.generate',
+      'claims.submit',
+      'claims.writeOff',
+      // docint CAP: photographing a supplier's bill books nothing
+      'docint.documents.addPage',
+      'docint.documents.create',
+      'docint.documents.pageUploadUrl',
+      'docint.documents.submit',
+      'docint.documents.verifyQr',
+      // notifications: her inbox and push tokens, a message from the desk
+      'notifications.inbound.markHandled',
+      'notifications.messages.markRead',
+      'notifications.messages.send',
+      'notifications.pushTokens.register',
+      'notifications.pushTokens.unregister',
+      // running the numbers, never a target, a payout or a purchase
+      'ai.forecast.run',
+      'incentives.statements.compute',
+      'incentives.targets.refresh',
+      'incentives.targets.whatIf',
+      // Left for the founder (architect verdict on QA DOS-037): writes on screens docs/23 §2 calls read-only
+      // for her — M2 releasing a hold, M6 requesting an IRN, M7 an e-way bill number, M11 importing a
+      // brand bill, and resending a failed message.
+      'billing.invoices.importBrandDms',
+      'billing.invoices.requestIrn',
+      'notifications.messages.resend',
+      'warehouse.challans.recordEwb',
+      'warehouse.reservations.release',
+    ]
+    const actual = allProcedures()
+      .filter((r) => r.method !== 'GET' && isAllowed(r.permission, 'accountant'))
+      .map((r) => r.path)
+      .sort()
+    expect(actual).toEqual([...accountantMayWrite].sort())
+    for (const path of [...DOS_037_STOCK_WRITES, ...DOS_037_DESK_WRITES]) {
+      expect(accountantMayWrite, path).not.toContain(path)
     }
   })
 
@@ -1105,7 +1310,7 @@ describe('permission matrix', () => {
     const warehouseMay = ['reporting.registers.fillRate', 'reporting.series.fillRate']
     for (const path of warehouseMay) {
       expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'warehouse'])
-      expect(permissionFor(path), path).toEqual(permissionFor('inventory.stock.adjust'))
+      expect(permissionFor(path), path).toEqual(permissionFor('procurement.grns.list'))
     }
     for (const path of reportingPaths.filter((p) => !warehouseMay.includes(p))) {
       expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must refuse warehouse`).toBe(
@@ -1363,7 +1568,7 @@ describe('permission matrix', () => {
 
   it('keeps the platform console and the six apps out of each other (admin)', () => {
     const adminPaths = paths.filter((p) => p.startsWith('admin.'))
-    expect(adminPaths).toHaveLength(15)
+    expect(adminPaths).toHaveLength(16)
     // Every admin row is the platform group and only the platform group.
     for (const path of adminPaths) {
       expect(permissionFor(path), path).toEqual(ROLE_GROUPS.PLATFORM)
@@ -1415,7 +1620,7 @@ describe('permission matrix', () => {
         `${path} must refuse platform_admin`,
       ).toBe(path.startsWith('admin.'))
     }
-    // Reads are GETs; onboarding, suspension, plans, a support ask and a user lock are POSTs.
+    // Reads are GETs; onboarding, suspension, plans, a support ask and a user lock and its undo are POSTs.
     const gets = new Set([
       'admin.tenants.list',
       'admin.tenants.get',
@@ -1439,12 +1644,41 @@ describe('permission matrix', () => {
       ['admin.support.request', '/admin/support-grants'],
       ['admin.support.revoke', '/admin/support-grants/{id}/revoke'],
       ['admin.users.disable', '/admin/users/{id}/disable'],
+      ['admin.users.enable', '/admin/users/{id}/enable'],
       ['admin.metrics.overview', '/admin/metrics'],
       ['admin.audit.list', '/admin/audit'],
     ] as const) {
       const row = allProcedures().find((r) => r.path === path)
       expect(row?.httpPath, path).toBe(httpPath)
     }
+  })
+
+  it('DOS-107: a lock has an undo — admin.users.enable is POST /admin/users/{id}/enable, platform_admin only, and only a super may call it', () => {
+    const enable = allProcedures().find((r) => r.path === 'admin.users.enable')
+    expect(enable?.method).toBe('POST')
+    expect(enable?.httpPath).toBe('/admin/users/{id}/enable')
+    // The same door as the lock it undoes: the platform role, and no distributor's role at all.
+    expect(permissionFor('admin.users.enable')).toEqual(['platform_admin'])
+    expect(permissionFor('admin.users.enable')).toEqual(permissionFor('admin.users.disable'))
+    for (const role of ALL_ROLES) {
+      expect(isAllowed(permissionFor('admin.users.enable'), role), `must refuse ${role}`).toBe(
+        false,
+      )
+    }
+    expect(isAllowed(permissionFor('admin.users.enable'), null)).toBe(false)
+    // ...and the same console level: only a super locks or unlocks a login (docs/22 §7).
+    expect(levelAllows('admin.users.enable', 'super')).toBe(true)
+    for (const level of ['support', 'billing'] as const) {
+      expect(levelAllows('admin.users.enable', level), level).toBe(false)
+    }
+    expect(levelAllows('admin.users.enable', null)).toBe(false)
+    // Declared directly after the lock: document order is the smoke harness's run order, and the
+    // undo has to run after the lock it undoes.
+    expect(
+      allProcedures()
+        .map((r) => r.path)
+        .filter((p) => p.startsWith('admin.users.')),
+    ).toEqual(['admin.users.list', 'admin.users.disable', 'admin.users.enable'])
   })
 
   it('gives the console the ask and the owner the decision (support access)', () => {
@@ -1541,6 +1775,59 @@ describe('role groups', () => {
       for (const role of PLATFORM_ROLES) {
         expect(group as readonly string[], `${name} must not contain ${role}`).not.toContain(role)
       }
+    }
+  })
+
+  /**
+   * DOS-044 (docs/22 §8, 2026-09-13). `inventory.stock.adjust` is the stock keepers' at the gate (QA
+   * DOS-037); the handler narrows it through this one predicate, which the /docs example, smoke and W8
+   * read too. Pieces go INTO the books by hand only from the owner or a manager.
+   */
+  it('DOS-044: only the owner and a manager may add stock or post opening stock by an adjustment; every other role only takes stock off, and every stock adder can reach inventory.stock.adjust', () => {
+    const reasons = AdjustmentReasonSchema.options
+    expect([...STOCK_ADDERS].sort()).toEqual(['manager', 'owner'])
+    for (const role of ['owner', 'manager'] as const) {
+      for (const reason of reasons) {
+        for (const qtyDelta of [1, 5, 100000, -1, -5]) {
+          expect(mayPostAdjustment(role, reason, qtyDelta), `${role} ${reason} ${qtyDelta}`).toBe(
+            true,
+          )
+        }
+      }
+    }
+    const takersOnly = [
+      'accountant',
+      'warehouse',
+      'delivery',
+      'salesperson',
+      'retailer',
+      'system',
+      null,
+      undefined,
+    ] as const
+    for (const role of takersOnly) {
+      const who = String(role)
+      for (const reason of reasons) {
+        for (const qtyDelta of [1, 5, 100000]) {
+          expect(mayPostAdjustment(role, reason, qtyDelta), `${who} ${reason} +${qtyDelta}`).toBe(
+            false,
+          )
+        }
+      }
+      // opening stock is the desk's in both signs
+      expect(mayPostAdjustment(role, 'opening', -1), `${who} opening -1`).toBe(false)
+      for (const reason of ['adjustment', 'damage', 'expiry_writeoff', 'cycle_count'] as const) {
+        expect(mayPostAdjustment(role, reason, -1), `${who} ${reason} -1`).toBe(true)
+        expect(mayPostAdjustment(role, reason, -100), `${who} ${reason} -100`).toBe(true)
+      }
+    }
+    // `system` is deliberately NOT an adder: internal modules post through InventoryService.post and
+    // never through StockService.adjust(), so this guards the HTTP door only.
+    expect(mayPostAdjustment('system', 'opening', 1)).toBe(false)
+    expect(mayPostAdjustment('system', 'damage', -1)).toBe(true)
+    // every adder can reach the handler at the gate
+    for (const role of STOCK_ADDERS) {
+      expect(isAllowed(permissionFor('inventory.stock.adjust'), role), role).toBe(true)
     }
   })
 })
@@ -1652,7 +1939,7 @@ describe('console levels (DOS-106)', () => {
     const adminPaths = allProcedures()
       .map((row) => row.path)
       .filter((path): path is AdminProcedurePath => path.startsWith('admin.'))
-    expect(adminPaths).toHaveLength(15)
+    expect(adminPaths).toHaveLength(16)
     // Exactly one row per console procedure: a new `admin.*` procedure without a level fails here
     // (and fails to compile, because the table is keyed by the contract's own paths).
     expect(Object.keys(ADMIN_LEVELS).sort()).toEqual([...adminPaths].sort())
@@ -1673,6 +1960,7 @@ describe('console levels (DOS-106)', () => {
       'admin.tenants.suspend',
       'admin.tenants.reactivate',
       'admin.users.disable',
+      'admin.users.enable',
     ]
     for (const path of superOnly) expect(ADMIN_LEVELS[path], path).toEqual(['super'])
     for (const path of reads) {

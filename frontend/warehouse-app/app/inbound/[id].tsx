@@ -9,8 +9,8 @@
  *
  * So: a full-screen `<NumberPad>` per line with nothing else on it, one line at a time, and only at
  * the end a review of what this hand wrote — still with no expected column. `procurement.grns.count`
- * takes it; `grns.open` and `grns.post` are BACK_OFFICE by design (`permissions.ts`) and this screen
- * says so rather than drawing a button that would 403.
+ * takes it; `grns.open` and `grns.post` are the owner's and the manager's by design (`permissions.ts`)
+ * and this screen says so rather than drawing a button that would 403.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {

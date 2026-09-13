@@ -13,7 +13,7 @@ import {
   type TenantContext,
 } from '@dos/db'
 import { TransitionError, type DocumentEvent } from '@dos/domain'
-import { BACK_OFFICE, currentTenant } from '../../platform/index.js'
+import { BACK_OFFICE, currentTenant, MANAGEMENT } from '../../platform/index.js'
 import { createObjectStorage, type ObjectStorage } from '../../platform/object-storage.js'
 import {
   applyDocumentEvent,
@@ -26,8 +26,13 @@ import { toDocument, toDocumentDetail, toPage, toStatusView } from './docint.map
 
 /** CAP (coordination §6 `BACK_OFFICE_OR_WAREHOUSE`): the inbound desk plus the gate phone. `system` for the worker. */
 export const CAPTURE: readonly ActorRole[] = [...BACK_OFFICE, 'warehouse']
-/** The priced surface. */
+/** The priced surface, read: the reading, the SKU candidates, the queue and the stats. */
 export const DESK: readonly ActorRole[] = BACK_OFFICE
+/**
+ * Who reviews, matches, re-reads, rejects and approves an inbound bill: the owner or a manager
+ * (docs/23 §2 M3, QA DOS-037). The accountant reads. `system` rides along in MANAGEMENT for the worker.
+ */
+export const DESK_WRITERS: readonly ActorRole[] = MANAGEMENT
 
 /** Signed page read URLs live ten minutes (docint.ts `DocumentPageSchema.readUrl`). */
 export const PAGE_URL_TTL_SECONDS = 10 * 60

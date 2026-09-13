@@ -16,6 +16,7 @@ import {
   platformActorId,
   requireActiveAdminLevel,
   statusToColumn,
+  statusToWire,
   toSubscription,
   trialEndToColumn,
   withPlatform,
@@ -191,8 +192,14 @@ export class PlatformSubscriptionsService {
             status: input.status,
             amountPaise: input.amountPaise,
             billingInterval: input.billingInterval,
+            // The state it came FROM in the wire's word (`trialing`), like `status` above, never the
+            // column's `trial`: the trail must not mix two vocabularies (DOS-109).
             from: before
-              ? { plan: before.plan, status: before.status, amountPaise: before.pricePaiseMonth }
+              ? {
+                  plan: before.plan,
+                  status: statusToWire(before.status),
+                  amountPaise: before.pricePaiseMonth,
+                }
               : null,
           },
         })

@@ -1,0 +1,2031 @@
+{
+  "probe": "07",
+  "phase": "after DOS-166 merge (main 3d7cb36)",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T10:52:07.226Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "GET",
+    "url": "http://127.0.0.1:3003/sync/manifest",
+    "headers": {
+      "authorization": "Bearer <redacted>"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "protocol": 1,
+      "schemaVersion": "36957a3c3b8da665",
+      "changed": true,
+      "role": "salesperson",
+      "tables": [
+        {
+          "table": "tenant_products",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "listed",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "local_alias",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "case_size_override",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "min_order_qty",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "order_increment",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "max_per_order",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "sort_order",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "retailers",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "identity_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "code",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "owner_name",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "phone",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "alt_phone",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "address",
+              "type": "object",
+              "nullable": true
+            },
+            {
+              "name": "lat",
+              "type": "number",
+              "nullable": true
+            },
+            {
+              "name": "lng",
+              "type": "number",
+              "nullable": true
+            },
+            {
+              "name": "beat_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "tier",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "gst_reg_type",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "gstin",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "state_code",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "credit_limit_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "credit_limit_bills",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "credit_days",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "credit_mode",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "payment_terms",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "cash_discount_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cash_discount_days",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "tally_ledger_name",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "external_ids",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "onboarded_by",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "merged_into",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "pan",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "active",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "beats",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "area",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "visit_days",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "active",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "beat_assignments",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "beat_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "valid_from",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "valid_to",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "visits",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "beat_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "started_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "ended_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "outcome",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "reason",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "lat",
+              "type": "number",
+              "nullable": true
+            },
+            {
+              "name": "lng",
+              "type": "number",
+              "nullable": true
+            },
+            {
+              "name": "note",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "pjp",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "beat_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "sequence",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "retailer_links",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "identity_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "role",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "linked_by",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "preferred_lang",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "consent_version",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "consented_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "whatsapp_optin_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "sales_orders",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "order_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "source",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "created_by",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "salesperson_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "pricing_date_mode",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "payment_terms",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "fulfil_from_location_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "external_ref",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "subtotal_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "tax_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "round_off_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "total_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "approval_flags",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "expected_delivery_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "note",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "submitted_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "confirmed_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "closed_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "cancelled_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "cancel_reason",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": true
+        },
+        {
+          "table": "sales_order_lines",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "order_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "line_no",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "entered_qty",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "entered_unit",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "pack_size_at_entry",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "free_qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "picked_qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "delivered_qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "list_rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "gst_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "tax_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "line_total_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "applied_rules",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "price_locked",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": true
+        },
+        {
+          "table": "retailer_outstanding_summary",
+          "primaryKey": [
+            "retailer_id"
+          ],
+          "columns": [
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "outstanding_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "overdue_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "unallocated_credit_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "open_bills",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "oldest_due_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "oldest_invoice_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "last_receipt_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "last_receipt_paise",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "bucket_0_7_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "bucket_8_15_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "bucket_16_30_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "bucket_31_60_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "bucket_61_90_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "bucket_90_plus_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "as_of",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "invoices",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "invoice_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "series_code",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "fy",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "invoice_date",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "order_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "source",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "external_invoice_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "supply_type",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "seller_gstin",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "buyer_gstin",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "buyer_name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "buyer_address",
+              "type": "object",
+              "nullable": true
+            },
+            {
+              "name": "place_of_supply_state",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "buyer_fssai",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "seller_fssai",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "is_inter_state",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "subtotal_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "taxable_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cgst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "sgst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "igst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cess_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "round_off_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "total_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cash_discount_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cash_discount_until",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "due_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "irn",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "ack_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "ack_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "signed_qr",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "eway_bill_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "eway_bill_valid_until",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "transport_mode",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "vehicle_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "upi_qr_payload",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "pdf_object_key",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "issued_by",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "issued_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "cancelled_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "cancel_reason",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "invoice_lines",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "invoice_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "line_no",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "order_line_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "lot_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "hsn_code",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "batch_no",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "expiry_date",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "mrp_paise",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "free_qty_pcs",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "entered_qty",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "entered_unit",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "pack_size_at_entry",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "case_size",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "discount_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "taxable_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "gst_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cgst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "sgst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "igst_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cess_bps",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "cess_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "line_total_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "applied_rules",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "manufacturers",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "legal_name",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "gstin",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "fssai_license",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "website",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "brands",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "manufacturer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "products",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "manufacturer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "brand_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name_hi",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "ondc_category",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "fssai_relevant",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "merged_into",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "proposed_by_tenant_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "product_variants",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "product_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "net_qty",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "net_unit",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "promo_extra",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "default_case_size",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "hsn_code",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "ean",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "mrp_paise",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "shelf_life_days",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "merged_into",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "price_lists",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tier",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "is_default",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "valid_from",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "valid_to",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "active",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "price_list_items",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "price_list_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "inclusive_of_gst",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "schemes",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "brand_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "scope",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "trigger_kind",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "trigger_min",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "trigger_unit",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "slabs",
+              "type": "object",
+              "nullable": true
+            },
+            {
+              "name": "reward_kind",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "reward_value",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "free_variant_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "applicability",
+              "type": "object",
+              "nullable": false
+            },
+            {
+              "name": "valid_from",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "valid_to",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "reward_unit",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "priority",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "claim_channel",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "version",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "stackable",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "final",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "gst_on_free_goods",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "pricing_date_mode",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "active",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "retailer_price_overrides",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "final",
+              "type": "boolean",
+              "nullable": false
+            },
+            {
+              "name": "valid_from",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "valid_to",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "approved_by",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "note",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        },
+        {
+          "table": "bargain_requests",
+          "primaryKey": [
+            "id"
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "tenant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "retailer_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "variant_id",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "order_id",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "requested_by",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "list_rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "asked_rate_paise",
+              "type": "integer",
+              "nullable": false
+            },
+            {
+              "name": "approved_rate_paise",
+              "type": "integer",
+              "nullable": true
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "evaluated_basis",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "decided_by",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "decided_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "expires_at",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "note",
+              "type": "string",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "type": "string",
+              "nullable": false
+            },
+            {
+              "name": "updated_at",
+              "type": "string",
+              "nullable": false
+            }
+          ],
+          "writable": false
+        }
+      ],
+      "asOf": "2026-09-13T10:52:07.230Z"
+    }
+  },
+  "summary": {
+    "role": "salesperson",
+    "writable": [
+      "sales_orders",
+      "sales_order_lines"
+    ],
+    "notWritable": [
+      "tenant_products",
+      "retailers",
+      "beats",
+      "beat_assignments",
+      "visits",
+      "pjp",
+      "retailer_links",
+      "retailer_outstanding_summary",
+      "invoices",
+      "invoice_lines",
+      "manufacturers",
+      "brands",
+      "products",
+      "product_variants",
+      "price_lists",
+      "price_list_items",
+      "schemes",
+      "retailer_price_overrides",
+      "bargain_requests"
+    ]
+  }
+}

@@ -28,6 +28,7 @@ import type {
 } from '../types.js'
 import { Txt, typeStyle } from './base.js'
 import { Button } from './controls.js'
+import { OverlayOutlet, useHostPanel, useLayerContent, useOverlay } from './overlay-host.js'
 
 const STALE_MS = 4 * 60 * 60 * 1000
 
@@ -133,84 +134,151 @@ export function ConnectionStrip({
 // 6.12 Sheet, Dialog, Toast
 // ---------------------------------------------------------------------------
 
-export function Sheet({ open, onClose, title, children, testID }: SheetProps): React.JSX.Element {
-  const theme = useTheme()
+/*
+ * ONE NATIVE MODAL PER PRESENTATION (DOS-164).
+ *
+ * iOS presents one modal at a time. A Dialog rendered as a sibling of an open Sheet was refused by UIKit
+ * ("… which is already presenting") and stayed dead until the screen unmounted, so every Approve, Bank
+ * it and Mark bounced inside a panel did nothing on an iPhone. Both components now go through the
+ * overlay stack (`./overlay-host.tsx`): the first one presented owns the Modal, and one opened while it
+ * is up renders inside that Modal as a layer. Screens keep rendering them as siblings. Change how either
+ * looks inside `SheetPanel` / `DialogPanel`; never bind a Modal to the open prop again
+ * (`native-overlays.test.ts` fails that).
+ */
+
+export function Sheet({ open, ...panel }: SheetProps): React.JSX.Element {
+  const overlay = useOverlay(open, panel.onClose)
+  useLayerContent(overlay, open ? <SheetPanel {...panel} covered={false} /> : null)
+  const ownPanel = useHostPanel(open, overlay)
+  // A layer's panel is rendered by its root's outlet; a layer never mounts a Modal of its own.
+  if (overlay.role === 'layer') return <></>
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        testID={testID}
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop, justifyContent: 'flex-end' }}
-      >
-        {/*
-         * A SHEET NEVER REACHES THE NOTCH, AND NEVER RUNS OFF THE BOTTOM.
-         *
-         * It is `justifyContent: 'flex-end'`, so a sheet taller than the screen simply grew upward
-         * until its own title sat under the status bar — measured on the iPhone 16 Pro, where the
-         * phone shell's "More" sheet (eleven destinations plus a search box and a Close button)
-         * printed its heading "More" straight through the 8:15 clock, and anything past the bottom
-         * of the screen was unreachable because the body does not scroll. `maxHeight` keeps the top
-         * clear of the inset and the body scrolls inside whatever is left.
-         */}
-        <Pressable
-          onPress={() => undefined}
-          style={[
-            {
-              backgroundColor: theme.colors.bg.surface,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              padding: space[4],
-              paddingBottom: space[8],
-              maxHeight: '86%',
-            },
-            nativeShadow('sheet'),
-          ]}
-        >
-          <View
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              alignSelf: 'center',
-              backgroundColor: theme.colors.bg.handle,
-              marginBottom: space[3],
-            }}
-          />
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: space[3],
-            }}
-          >
-            {title ? (
-              <Txt field="title" desk="section">
-                {title}
-              </Txt>
-            ) : (
-              <View />
-            )}
-          </View>
-          <ScrollView
-            style={{ flexShrink: 1 }}
-            contentContainerStyle={{ flexGrow: 0 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {children}
-          </ScrollView>
-          <View style={{ marginTop: space[4] }}>
-            <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
-          </View>
-        </Pressable>
-      </Pressable>
+    <Modal
+      visible={overlay.role === 'root' && overlay.presented}
+      transparent
+      animationType="slide"
+      onRequestClose={overlay.requestClose}
+    >
+      {ownPanel ? <SheetPanel {...panel} covered={overlay.hasLayers} /> : null}
+      <OverlayOutlet hostId={overlay.id} />
     </Modal>
   )
 }
 
+interface SheetPanelProps extends Omit<SheetProps, 'open'> {
+  /**
+   * A layer sits over this panel. `accessibilityViewIsModal` on the layer hides only its siblings, so
+   * the panel hides itself too, or VoiceOver, TalkBack and XCUITest reach the buttons behind a Dialog.
+   */
+  covered: boolean
+}
+
+function SheetPanel({
+  onClose,
+  title,
+  children,
+  testID,
+  covered,
+}: SheetPanelProps): React.JSX.Element {
+  const theme = useTheme()
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onClose}
+      accessibilityElementsHidden={covered}
+      importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
+      style={{ flex: 1, backgroundColor: theme.colors.bg.backdrop, justifyContent: 'flex-end' }}
+    >
+      {/*
+       * A SHEET NEVER REACHES THE NOTCH, AND NEVER RUNS OFF THE BOTTOM.
+       *
+       * It is `justifyContent: 'flex-end'`, so a sheet taller than the screen simply grew upward
+       * until its own title sat under the status bar — measured on the iPhone 16 Pro, where the
+       * phone shell's "More" sheet (eleven destinations plus a search box and a Close button)
+       * printed its heading "More" straight through the 8:15 clock, and anything past the bottom
+       * of the screen was unreachable because the body does not scroll. `maxHeight` keeps the top
+       * clear of the inset and the body scrolls inside whatever is left.
+       */}
+      <Pressable
+        onPress={() => undefined}
+        style={[
+          {
+            backgroundColor: theme.colors.bg.surface,
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            padding: space[4],
+            paddingBottom: space[8],
+            maxHeight: '86%',
+          },
+          nativeShadow('sheet'),
+        ]}
+      >
+        <View
+          style={{
+            width: 32,
+            height: 4,
+            borderRadius: 2,
+            alignSelf: 'center',
+            backgroundColor: theme.colors.bg.handle,
+            marginBottom: space[3],
+          }}
+        />
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: space[3],
+          }}
+        >
+          {title ? (
+            <Txt field="title" desk="section">
+              {title}
+            </Txt>
+          ) : (
+            <View />
+          )}
+        </View>
+        <ScrollView
+          style={{ flexShrink: 1 }}
+          contentContainerStyle={{ flexGrow: 0 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+        <View style={{ marginTop: space[4] }}>
+          <Button label={theme.t('action.close')} variant="secondary" onPress={onClose} />
+        </View>
+      </Pressable>
+    </Pressable>
+  )
+}
+
 /** Dialogs exist for irreversible ledger writes only, and state exactly what will be written. */
-export function Dialog({
-  open,
+export function Dialog({ open, ...panel }: DialogProps): React.JSX.Element {
+  const overlay = useOverlay(open, panel.onClose)
+  useLayerContent(overlay, open ? <DialogPanel {...panel} covered={false} /> : null)
+  const ownPanel = useHostPanel(open, overlay)
+  if (overlay.role === 'layer') return <></>
+  return (
+    <Modal
+      visible={overlay.role === 'root' && overlay.presented}
+      transparent
+      animationType="fade"
+      onRequestClose={overlay.requestClose}
+    >
+      {ownPanel ? <DialogPanel {...panel} covered={overlay.hasLayers} /> : null}
+      <OverlayOutlet hostId={overlay.id} />
+    </Modal>
+  )
+}
+
+interface DialogPanelProps extends Omit<DialogProps, 'open'> {
+  /** A layer sits over this dialog: see `SheetPanelProps.covered`. */
+  covered: boolean
+}
+
+function DialogPanel({
   onClose,
   title,
   body,
@@ -220,60 +288,61 @@ export function Dialog({
   destructive,
   busy,
   testID,
-}: DialogProps): React.JSX.Element {
+  covered,
+}: DialogPanelProps): React.JSX.Element {
   const theme = useTheme()
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <View
+      testID={testID}
+      accessibilityElementsHidden={covered}
+      importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.bg.backdrop,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: space[4],
+      }}
+    >
       <View
-        testID={testID}
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.bg.backdrop,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: space[4],
-        }}
+        style={[
+          {
+            width: '100%',
+            maxWidth: 480,
+            backgroundColor: theme.colors.bg.surface,
+            borderRadius: radius.lg,
+            padding: space[5],
+          },
+          nativeShadow('dialog'),
+        ]}
       >
-        <View
-          style={[
-            {
-              width: '100%',
-              maxWidth: 480,
-              backgroundColor: theme.colors.bg.surface,
-              borderRadius: radius.lg,
-              padding: space[5],
-            },
-            nativeShadow('dialog'),
-          ]}
-        >
-          <Txt field="title" desk="pageTitle">
-            {title}
-          </Txt>
-          <View style={{ marginVertical: space[3] }}>
-            {typeof body === 'string' ? (
-              <Txt field="body" desk="body" color={theme.colors.text.secondary}>
-                {body}
-              </Txt>
-            ) : (
-              body
-            )}
-          </View>
-          {/* >= 50 dp between the confirming and the cancelling action. */}
-          <Button
-            label={confirmLabel}
-            variant={destructive === true ? 'destructive' : 'primary'}
-            loading={busy === true}
-            onPress={onConfirm}
-          />
-          <View style={{ height: space[3] }} />
-          <Button
-            label={cancelLabel ?? theme.t('action.cancel')}
-            variant="secondary"
-            onPress={onClose}
-          />
+        <Txt field="title" desk="pageTitle">
+          {title}
+        </Txt>
+        <View style={{ marginVertical: space[3] }}>
+          {typeof body === 'string' ? (
+            <Txt field="body" desk="body" color={theme.colors.text.secondary}>
+              {body}
+            </Txt>
+          ) : (
+            body
+          )}
         </View>
+        {/* >= 50 dp between the confirming and the cancelling action. */}
+        <Button
+          label={confirmLabel}
+          variant={destructive === true ? 'destructive' : 'primary'}
+          loading={busy === true}
+          onPress={onConfirm}
+        />
+        <View style={{ height: space[3] }} />
+        <Button
+          label={cancelLabel ?? theme.t('action.cancel')}
+          variant="secondary"
+          onPress={onClose}
+        />
       </View>
-    </Modal>
+    </View>
   )
 }
 

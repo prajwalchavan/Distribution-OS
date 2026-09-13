@@ -50,5 +50,6 @@ Full request/response samples for each are in `backend-services/admin-service/RE
 | POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses · console levels: super, support | platform_admin |
 | GET | `/admin/users` | Global sign-in identities with every distributor they are a member of · console levels: super, support, billing | platform_admin |
 | POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) · console level: super | platform_admin |
+| POST | `/admin/users/{id}/enable` | Let an identity locked by disable sign in again; ended sessions stay ended (audited) · console level: super | platform_admin |
 | GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing | platform_admin |
-| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing | platform_admin |
+| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks and unlocks · console levels: super, support, billing | platform_admin |

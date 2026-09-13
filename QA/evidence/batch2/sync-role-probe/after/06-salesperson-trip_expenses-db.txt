@@ -1,0 +1,36 @@
+# dos_qa check for 06-salesperson-trip_expenses   expense id: 01a09a65-48e0-7daa-94fe-cc67057b580d   opId: 01a09a65-48e1-707e-9a04-4b456331d9dd   trip: dda35990-f442-7931-8da4-5808f09a33b6   run at: 2026-09-13T10:52:04Z
+\echo == 1. the trip probed: state and crew (is the caller driver or helper?)
+== 1. the trip probed: state and crew (is the caller driver or helper?)
+select t.id, t.trip_no, t.state, d.username as driver, h.username as helper
+  from trips t left join users d on d.id = t.driver_id left join users h on h.id = t.helper_id
+ where t.id = :'trip';
+                  id                  |   trip_no   | state  |   driver    |   helper   
+--------------------------------------+-------------+--------+-------------+------------
+ dda35990-f442-7931-8da4-5808f09a33b6 | TRIP-ACTIVE | active | ganesh.more | raju.yadav
+(1 row)
+
+\echo == 2. trip_expenses row: exists? amount, who recorded it
+== 2. trip_expenses row: exists? amount, who recorded it
+select e.id, e.tenant_id, e.trip_id, e.kind, e.amount_paise, e.recorded_by, u.username as recorded_by_username, e.note, e.created_at
+  from trip_expenses e left join users u on u.id = e.recorded_by
+ where e.id = :'eid';
+ id | tenant_id | trip_id | kind | amount_paise | recorded_by | recorded_by_username | note | created_at 
+----+-----------+---------+------+--------------+-------------+----------------------+------+------------
+(0 rows)
+
+\echo == 3. sync_ops row for the opId (outcome)
+== 3. sync_ops row for the opId (outcome)
+select tenant_id, device_id, op_id, outcome, created_at from sync_ops where op_id = :'op';
+              tenant_id               |              device_id               |                op_id                 |                                                                                                                                                 outcome                                                                                                                                                  |            created_at            
+--------------------------------------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ 01a09a5b-3c58-71c1-a34d-b93c569b0099 | qa-b2-syncprobe-after-salesperson-06 | 01a09a65-48e1-707e-9a04-4b456331d9dd | {"ok": false, "rejection": {"code": "role_not_allowed", "opId": "01a09a65-48e1-707e-9a04-4b456331d9dd", "rowId": "01a09a65-48e0-7daa-94fe-cc67057b580d", "table": "trip_expenses", "messageEn": "A salesperson may not send trip_expenses from a device", "messageHi": "यह काम आपकी भूमिका के लिए नहीं है"}} | 2026-09-13 16:22:04.195654+05:30
+(1 row)
+
+\echo == 4. sync_errors row for the opId
+== 4. sync_errors row for the opId
+select id, user_id, device_id, table_name, row_id, code, message_en, created_at from sync_errors where op_id = :'op';
+                  id                  |               user_id                |              device_id               |  table_name   |                row_id                |       code       |                       message_en                       |            created_at            
+--------------------------------------+--------------------------------------+--------------------------------------+---------------+--------------------------------------+------------------+--------------------------------------------------------+----------------------------------
+ 01a09a65-48e5-7327-b975-ff700cc48912 | 8760e17e-4830-7395-a946-1e02fffa1ad7 | qa-b2-syncprobe-after-salesperson-06 | trip_expenses | 01a09a65-48e0-7daa-94fe-cc67057b580d | role_not_allowed | A salesperson may not send trip_expenses from a device | 2026-09-13 16:22:04.195654+05:30
+(1 row)
+

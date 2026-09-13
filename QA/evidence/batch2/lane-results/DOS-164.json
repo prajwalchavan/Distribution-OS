@@ -1,0 +1,186 @@
+{
+ "id": "DOS-164",
+ "runs": [
+  "wf_1bfa433f-83b"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-164",
+   "status": "fixed",
+   "commits": [
+    "de8f6bdb5f4e3b77cb3afe07e6f978e6ad579fcb"
+   ],
+   "failBefore": "RED against the plan's today's-rule stub of overlay-stack.ts (every opened overlay is its own root) and the pre-fix feedback.tsx/ThemeProvider.tsx. Excerpt, from `pnpm --filter @dos/ui test -- src/overlay-stack.test.ts` (the `--` made vitest run the whole ui package: 13 files, 11 failed | 217 passed):\n- overlay-stack.test.ts: 10 tests | 9 failed, all on assertions.\n  - layered: \"AssertionError: expected 'root' to be 'layer'\" at :65\n  - retained Sheet: \"expected null to be 'root'\" at :91\n  - cancel/reopen: \"expected 'root' to be 'layer'\" at :124\n  - swap: \"expected 'root' to be 'layer'\" at :159 (its layering-contrast assertion; the close-first outcome by itself equals today's rule)\n  - retained reopen: \"expected false to be true\" at :205\n  - promotion: \"expected [] to deeply equal [ 'first', 'second' ]\" at :231\n  - Android back: \"expected [ 'sheet' ] to deeply equal [ 'second' ]\" at :273\n  - amendment (c): \"expected 1 to be +0\" at :291\n  - exhaustive: \"expected [ …(5) ] to deeply equal []\" at :444, where the stub gives two presented roots\n  - The control \"a Dialog opened with nothing presented owns its own modal\" passed, as intended.\n- native-overlays.test.ts: 2 tests | 2 failed.\n  - \"a kit overlay binds a Modal to its own open prop: expected '/**\\n * UX-00 sections 6.11, 6.12 and…' not to match /visible=\\{open\\}/\" (pre-fix feedback.tsx:139/:226).\n  - \"native/overlay-host.tsx is missing: expected false to be true\".",
+   "passAfter": "Run per file from frontend/libs/ui with `pnpm exec vitest run <file>`, on the final committed files:\n- overlay-stack.test.ts: 10/10 passed.\n- native-overlays.test.ts: 2/2 passed.\n- parity.test.ts (not edited): 31/31 passed, including 'native sheet fits the screen', which pins the unchanged react-native import line of feedback.tsx.\n- `pnpm --filter @dos/ui lint`: exit 0. `pnpm --filter @dos/ui typecheck`: exit 0.\n- frontend `pnpm format:check`: all files formatted.\n\nExhaustive walk measured from a scratchpad copy of the same BFS: 11,752 distinct states, 11,464 flushes, max path depth 10, 0 invariant failures, about 110 ms.\n\nMutation checks, run on scratchpad copies of the store:\n- No promotion: caught by invariant (ii), \"(ii) sheetB via open sheetA > open sheetB > flush > unmount sheetA > flush\".\n- Opens resolved before closes: the forward owner swap layers the Dialog ('layer' instead of 'root'), which the swap spec rejects.\n- No retention: keeps both invariants, but the retention scenario leaves roleOf('sheet') null instead of 'root', so the retention spec catches it. Both results were executed.\n\nThe web renderer is untouched: `git diff HEAD~1 HEAD -- frontend/libs/ui/src/web` is empty. The tree is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a Dialog opened while a Sheet is presented is layered into that Sheet, never a second native modal"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: the Sheet's modal stays presented while its layered Dialog is open, even after the Sheet itself is closed"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a Dialog cancelled over a Sheet and opened again is layered again, so no dialog is left open but unseen"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a Dialog opened with nothing presented owns its own modal"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a close and an open in the same flush resolve the close first whichever was requested first, so the owner's Sheet/Dialog swap keeps two separate modals in both directions"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a retained Sheet opened again takes its panel back and is never layered into itself"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: a layer whose host unmounts while it is open becomes the root, so it is never left open without a modal"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: onRequestClose (Android back) closes the top layer before its host"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: an unchanged request records nothing and an unchanged layer emits nothing, so a root Sheet's re-render never re-renders an outlet"
+    },
+    {
+     "file": "frontend/libs/ui/src/overlay-stack.test.ts",
+     "name": "DOS-164: at most one overlay owns a native modal and no open overlay is left unseen after every flush, for every open/close/unmount order of two Sheets and two Dialogs"
+    },
+    {
+     "file": "frontend/libs/ui/src/native-overlays.test.ts",
+     "name": "DOS-164: native Sheet and Dialog present through the overlay stack, never a Modal bound to their own open prop, and the native ThemeProvider mounts the stack"
+    },
+    {
+     "file": "frontend/libs/ui/src/native-overlays.test.ts",
+     "name": "DOS-164: a layer renders as a plain View inside its host's Modal, never a nested Modal (one native presentation per overlay stack)"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "frontend/libs/ui/src/overlay-stack.ts",
+    "frontend/libs/ui/src/overlay-stack.test.ts",
+    "frontend/libs/ui/src/native-overlays.test.ts",
+    "frontend/libs/ui/src/native/overlay-host.tsx",
+    "frontend/libs/ui/src/native/feedback.tsx",
+    "frontend/libs/ui/src/native/ThemeProvider.tsx",
+    "frontend/libs/ui/README.md",
+    "docs/15-decisions-log.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) A layer is a `<View style={absoluteFill} accessibilityViewIsModal>` inside the host's Modal, never a nested Modal; the guard asserts that the OverlayOutlet body contains no `<Modal`",
+     "done": true,
+     "how": "OverlayOutlet in native/overlay-host.tsx renders each layer as `<View key={id} style={StyleSheet.absoluteFill} accessibilityViewIsModal>{render}</View>` after the host panel, inside the host's own Modal. A layer's Sheet or Dialog returns `<></>` and never mounts a Modal. native-overlays.test.ts slices the OverlayOutlet body, asserts it has no '<Modal', and asserts it does contain accessibilityViewIsModal."
+    },
+    {
+     "amendment": "(b) Both invariants after every flush, (i) presentedRoots().length <= 1 and (ii) every open overlay is a root or a layer of a presented root, asserted by the exhaustive spec; the store repairs and never throws",
+     "done": true,
+     "how": "The exhaustive test names both invariants. It is a breadth-first walk over every reachable state of two Sheets and two Dialogs under open, close, unmount and flush, allowing up to two unflushed intents so same-commit pairs are covered: 11,752 states, 11,464 flushes. It also asserts that a closed overlay keeps no role, except a retained root that still hosts layers. The store never throws: unknown ids and repeated intents are no-ops, and the repairs are applied inline in the close phase (rule 5 retained-root drop, rule 6 promotion of the oldest layer) before any open is resolved."
+    },
+    {
+     "amendment": "(c) setLayer emits only when the value changes (null to null is a no-op) and an unchanged request records nothing",
+     "done": true,
+     "how": "request() compares against the effective state (pending intent, else applied) and returns false without recording. A request that returns to the applied state cancels the pending intent. setLayer() ignores non-layers and unchanged values, and otherwise bumps only its root's version before emitting. layersOf() returns the same array until that version changes. Pinned by the 'unchanged request … unchanged layer emits nothing' spec: setLayer(id, null) twice gives at most one emit, and an unchanged request plus flush gives zero emits and the same version and array identity."
+    },
+    {
+     "amendment": "(d) The interim commit renders a root's `<Modal visible={false}>`, and a presented Modal is never unmounted; a root's Modal stays mounted with visible false after close; a layer's Modal is never mounted; setLayer runs from layout effects only",
+     "done": true,
+     "how": "The Sheet and Dialog render `<Modal visible={overlay.role === 'root' && overlay.presented}>`. Before the flush the role is null, so visible is false. The Modal element stays mounted after close, and only the 'layer' role returns `<></>`; roles never go from root to layer. useLayerContent calls setLayer only from a no-deps layout effect, plus a layout-effect cleanup on unmount. One detail differs from the plan's JSX: the root's own panel stays rendered after close so iOS still animates it out (see deviations)."
+    },
+    {
+     "amendment": "(e) D7 fallback pre-authorised: if the owner backward swap fails on the pre-fix main Metros, apply 'layer on coincidence' only to a close and an open in the same flush",
+     "done": false,
+     "how": "Not applicable in this lane. The trigger is a device walk of the owner backward swap on the pre-fix Metros, and this lane may not start simulators or Metros. D7 (a) ships: closes resolve before opens in every flush, pinned by the swap spec. If the walk fails, the change is confined to flush() in overlay-stack.ts: for a close and an open in the same flush, retain the closing root to host the opener. The swap spec's expectations would change with it. Recorded in followUps for the verifier."
+    },
+    {
+     "amendment": "(f) Lane ownership: only overlay-stack.ts, its tests, native/overlay-host.tsx, native/feedback.tsx:136-278, ThemeProvider.tsx:29-35, README §6.12 and docs/15; the QA e2e script is owned by the lane but under QA/",
+     "done": true,
+     "how": "Every edit is inside the owned set. feedback.tsx changed only in the 6.12 Sheet/Dialog block plus one import line; ConnectionStrip, Toast and the 6.13 components are untouched. ThemeProvider gained the provider mount and a comment. No screen, types.ts, parity.test.ts, web/, platform/ or package.json change. The QA/tools/e2e script and the stale lanes.md update are listed in followUps because lanes may not write QA/."
+    },
+    {
+     "amendment": "(g) README §6.12 states the plan's paragraph plus: overlay bodies never read route-scoped context (useLocalSearchParams, useRouter); layers have no motion; RupeeInput's pad is not a kit overlay and chains only from inside a presented kit overlay. docs/15 row as planned; no docs/22 change",
+     "done": true,
+     "how": "frontend/libs/ui/README.md §6.12 gained one paragraph covering:\n- a Sheet or Dialog opened while another is up renders inside that one's modal, and screens keep them as siblings, never nested or swapped by hand;\n- the lower overlay's modal stays up without its panel, and back closes the top layer first;\n- no route-scoped context in an overlay body (including under the shell's More or tenant sheet);\n- no layer motion;\n- the RupeeInput pad is not a kit overlay and chains only from inside a presented Sheet or Dialog, so never open one while a page-level pad is up;\n- the web renderer is unchanged.\n\ndocs/15 gained row E10 in the engineering table: native Sheets and Dialogs share one modal per presentation through the @dos/ui overlay stack, and UX-00 §6.12 / UX-03 D8's @gorhom/bottom-sheet stays unadopted. docs/22 is not touched."
+    }
+   ],
+   "deviations": "1. Panel kept through the dismissal animation.\n- The plan's JSX renders the host panel as `{open ? <SheetPanel/> : null}`. React Native 0.86.3's Modal.js keeps rendering children on iOS until onDismiss (`_shouldShowModal` :278-284, onDismiss :318-326). Removing the panel when `open` flips would therefore make every Sheet and Dialog vanish instantly on close, with an empty slide or fade afterwards. That contradicts the plan's \"the iOS dismissal animation is kept\" and \"with one overlay the path is today's\".\n- I added `useHostPanel(open, overlay)` in overlay-host.tsx. The panel renders while open and stays after close, so the Modal animates it out as today. It goes at once, and stays gone until the overlay reopens, only when the overlay closed while hosting layers. That is rule 5 retention, unchanged from the plan.\n- `visible` follows the plan exactly (`role === 'root' && presented`), so the owner's swap still puts both native prop changes in one commit, like the forward swap proven on iOS.\n\n2. Small API and glue additions the plan did not spell out.\n- request() and remove() return whether a flush is needed, so the provider schedules at most one microtask only for recorded intents.\n- A request cancels a pending remove, which covers StrictMode and Fast Refresh remounts.\n- remove() of an overlay that never held a role only forgets its callback.\n- useLayerContent also clears the layer in an unmount cleanup, so an unmounting layer leaves the outlet in the same commit rather than one microtask later.\n- OverlayOutlet skips a layer whose content has not been handed over yet.\n\n3. Tests.\n- The exhaustive test's name was changed to name both invariants, as amendment (b) requires.\n- Added a spec for amendment (c) and a second guard `it` for amendment (a).\n- The swap spec includes a layering contrast. Against the today's-rule stub the close-first outcome equals today's behaviour, so that contrast assertion is what makes the spec fail there. The opens-first mutant separately proves the spec rejects tree-order or opens-first resolution.\n\n4. docs/15 row wording.\n- The E10 row is shortened, close to the plan's own wording, so it fits the existing column widths. A longer row made prettier re-align all ten rows of the table, so I restored the file from HEAD and re-added the short row. The diff is one line.\n\n5. Commands.\n- The RED run used the lane's `pnpm --filter @dos/ui test -- <file>`, which ran the whole light ui package (13 files) because of the `--`. Later runs used `pnpm exec vitest run <file>` inside libs/ui, one file per command.\n- The plan's `pnpm build` (expo export web for seven apps) was not run, per the lane rule to typecheck and lint only touched packages on this 8 GB machine. Web code is unchanged.",
+   "followUps": "1. QA/tools/e2e/dos-164-ios-sheet-dialog.mjs is not written: lanes may not write QA/. Build it as the plan specifies:\n- Appium/XCUITest, exit codes 0 = pass, 1 = FAILs listed, 2 = missing precondition.\n- SPAWN ios-login.mjs and ios-drive.mjs; never import them.\n- Preconditions: Appium :4723, a booted simulator, the manager and owner Metros, psql, and each SQL pick.\n- Pick receipts by id.\n- After each tap, check `xcrun simctl spawn booted log show --start '<tap time>' --predicate 'process == \"Expo Go\" AND eventMessage CONTAINS \"Attempt to present\"'`.\n- Checks (a)-(h) as planned; `--write` refuses a URL ending in /dos_qa.\n- Assert that dialog labels are present, not that Close is absent: whether XCUITest drops the covered panel is unproven.\n\n2. Amendment (e): walk the owner approvals backward swap (Cancel reopens the Sheet in the same commit) on the pre-fix main Metros.\n- If it fails, apply D7 (b) only to a close and an open in the same flush() of frontend/libs/ui/src/overlay-stack.ts, where the retained closing root hosts the opener.\n- Update the swap spec and record which branch shipped.\n\n3. Device verification from the verdict, none of it run in this lane:\n- iOS by hand: order-panel Approve; Bank it; Mark bounced with the Bank charges pad on top; the 'Record a payment' root-Sheet pad control; the More sheet and tenant switcher.\n- On iOS, also watch that a closing Sheet or Dialog still slides or fades out with its panel (deviation 1).\n- Android (Pixel_7_API_36, -memory 3072, openjdk@21): uiautomator dump, typed text in order with Gboard up, keyevent 4 closes the dialog before the panel, and the DOS-020, DOS-034-manager and DOS-034-accountant rows stay PASS.\n- Web regression: `node e2e/dos-029-manager-refusals.mjs` and `DATABASE_URL=<copy> node e2e/dos-034-day-end.mjs` exit 0.\n- Frontend `pnpm build`.\n\n4. After merge:\n- Re-walk and flip the QA/14 iOS rows DOS-020-manager and DOS-034.\n- DOS-031 case B and DOS-132's Bank it can then be walked on iOS.\n- Main session: update the stale L12/L20 entries at lanes.md:322-325.\n\n5. Rebase notes:\n- DOS-152, DOS-159 and DOS-158 must edit inside SheetPanel / DialogPanel in native/feedback.tsx.\n- The native-overlays guard fails on a raw `visible={open}`.\n- The DOS-044 Q3 warehouse 'large reduction' confirm Dialog can now be built as a sibling inside W8's adjust Sheet.\n\n6. Verdict findings outside this fix, still open:\n- P3 web: both web Sheet and Dialog register Escape (web/feedback.tsx:158-169).\n- P3 kit: the RupeeInput page-level pad Modal (native/money.tsx:415) sits outside the stack.\n\n7. Minor, not in the plan: with two or more layers at once (no screen does this today), only iOS's `accessibilityViewIsModal` on the top layer hides the lower layers; on Android TalkBack could reach them. If a screen ever stacks two layers, add hidden flags for non-top layers in OverlayOutlet.\n\n8. Stale, untouched: frontend/libs/ui/README.md §6 'Tests' still says '71 of them'.",
+   "platformCheck": "Code-level verification only. This lane may not start simulators, emulators, Metros or dev servers.\n\nWhat was executed:\n- In Node: the pure store spec, the source guard, and the untouched parity spec.\n- `tsc --noEmit` and type-aware eslint for @dos/ui. These cover the native .tsx files against the react-native 0.86.3 and React 19.2.3 types.\n- prettier on the frontend and on docs/15.\n- Mutation checks of the store.\n- Read frontend/node_modules/react-native/Libraries/Modal/Modal.js to confirm platform behaviour: on iOS a dismissing Modal keeps its children until onDismiss; on Android it returns null as soon as visible is false.\n\nPlatforms:\n- Web: renderer diff empty, so no change.\n- Android and iOS: every native Sheet and Dialog now goes through the stack. A single overlay keeps today's Modal, animation and back handling, one microtask later on open. Two overlays share one Modal.\n\nNot run: the iOS Appium e2e, the iOS and Android hand walks, and the web regression e2e scripts. They belong to the verifier (see followUps)."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-164",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) A layer is a View absoluteFill accessibilityViewIsModal inside the host's Modal, never a nested Modal; the guard asserts the OverlayOutlet body has no <Modal",
+     "satisfied": true,
+     "detail": "native/overlay-host.tsx OverlayOutlet renders each layer as `<View key={layer.id} style={StyleSheet.absoluteFill} accessibilityViewIsModal>` and contains no Modal import or element. native-overlays.test.ts slices the OverlayOutlet body, asserts it has no '<Modal', and asserts it contains accessibilityViewIsModal. Verifier mutant G1 (outlet renders `<Modal key visible transparent>`) makes that guard fail with 'a nested Modal is a second, chained UIKit presentation'."
+    },
+    {
+     "amendment": "(b) After every flush: (i) presentedRoots().length <= 1 and (ii) every open overlay is a root or a layer of a presented root; exhaustive spec over two Sheets and two Dialogs; the store repairs and never throws",
+     "satisfied": true,
+     "detail": "The exhaustive test's name states both invariants and checkInvariants asserts (i) and (ii), plus 'closed but still has a role'. The store has no throw; unknown ids and repeated intents are no-ops. Re-running the same walk from the scratchpad reproduces the implementer's numbers exactly: 11,752 states, 11,464 flushes, 0 failures. Widened walks: same-id remounts (StrictMode, Fast Refresh) 19,224 states, 0 failures. Three intents per flush plus remounts 148,920 states, walk completed, 0 failures. An uncapped-intents run stopped at the 2,000,000-state limit, depth 9, 0 failures. That run also checked layer/host back-pointers and that no layer hosts layers. Mutants M3 (no promotion) and M8 (retained root re-layered into itself) are caught by the exhaustive test."
+    },
+    {
+     "amendment": "(c) setLayer emits only on change (null to null is a no-op); an unchanged request records nothing",
+     "satisfied": true,
+     "detail": "setLayer returns early when the entry is not a layer or `layer.render === render`. request() returns false without recording when open equals the effective state, or equals the applied state. The spec 'an unchanged request records nothing and an unchanged layer emits nothing…' asserts:\n- zero emits for an unchanged close and open;\n- unchanged version and layersOf identity;\n- setLayer(null) twice gives no emit;\n- setLayer('body') twice gives exactly one emit.\nMutant M5 (emit on unchanged value) fails that spec. Mutant M6 (drop the first unchanged-request guard) survives, but it is near-equivalent: the second guard (`open === applied`) still records nothing, so the amendment (c) behaviour is intact."
+    },
+    {
+     "amendment": "(d) Interim commit renders a root's <Modal visible={false}>, a presented Modal is never unmounted, a root's Modal stays mounted with visible false after close, a layer's Modal is never mounted, setLayer from layout effects only",
+     "satisfied": true,
+     "detail": "Sheet and Dialog render `<Modal visible={overlay.role === 'root' && overlay.presented}>`. Before the flush the role is null, so visible is false. After close the Modal element stays mounted; only role 'layer' returns `<></>`. useLayerContent calls setLayer only from two layout effects.\n\nThe implementer's deviation 1 (the panel stays rendered after close) is code-proven:\n- node_modules/react-native/Libraries/Modal/Modal.js `_shouldShowModal` on iOS returns `visible === true || isRendered === true`, and isRendered is cleared only in onDismiss.\n- RCTModalHostViewComponentView.mm `ensurePresentedOnlyIfNeeded` dismisses the live controller view; the snapshot is added only when `_shouldPresent` is true.\nSo removing the panel on close would empty the dismissal animation.\n\nOne narrow edge, by code: an overlay presented as a root that reopens as a layer during its own dismissal animation unmounts a still-dismissing Modal (see problems)."
+    },
+    {
+     "amendment": "(e) D7 fallback pre-authorised: if the owner backward swap fails on the pre-fix Metros, apply layer-on-coincidence only to a close and an open in the same flush",
+     "satisfied": true,
+     "detail": "Conditional and not evaluated: the trigger is a device walk that neither the lane nor this verifier may run. The shipped branch is D7 (a), closes before opens in flush(). It is pinned by the swap spec in both request orders; mutants M1 (opens first) and M2 (plain request order) both fail it.\n\nNo recorded walk exists: QA/evidence/batch1/regression/ios-results.json DOS-020-owner walked only the forward path (Approve, dialog, Approve).\n\nCode reading, not executed: owner-app/app/approvals.tsx renders Sheet :336 before Dialog :420. Fabric's Differentiator.cpp Stage 1 emits Update mutations in sibling index order, and updateProps presents or dismisses synchronously. So after the flush the backward swap sends the Sheet's present before the Dialog's dismiss, the same order as pre-fix. The (e) trigger is therefore likely to fire on device. Recorded as a minor residual risk, not a regression."
+    },
+    {
+     "amendment": "(f) Lane ownership: only overlay-stack.ts, its tests, native-overlays.test.ts, native/overlay-host.tsx, native/feedback.tsx:136-278, ThemeProvider.tsx:29-35, README §6.12, docs/15; the QA e2e script is under QA/",
+     "satisfied": true,
+     "detail": "`git show --stat de8f6bd` lists exactly 8 files, all in the owned set. `git diff HEAD~1 HEAD` is empty for frontend/libs/ui/src/web, types.ts, parity.test.ts, platform/, package.json, docs/22, docs/18, CLAUDE.md and QA/. feedback.tsx changes only the §6.12 Sheet/Dialog block plus one import. ThemeProvider adds an import and a doc comment beside the :29-35 mount (trivial). QA/tools/e2e/dos-164-ios-sheet-dialog.mjs is listed in followUps, because lanes may not write QA/."
+    },
+    {
+     "amendment": "(g) README §6.12 carries the plan paragraph plus: no route-scoped context in overlay bodies, layers have no motion, the RupeeInput pad is not a kit overlay and chains only from inside a presented kit overlay; docs/15 row; no docs/22",
+     "satisfied": true,
+     "detail": "frontend/libs/ui/README.md: the new paragraph sits between '### 6.12' (:175) and '### 6.13' (:193). It covers:\n- one modal at a time, with layering;\n- screens keep overlays as siblings, never nested or swapped by hand;\n- no useLocalSearchParams or useRouter in an overlay body;\n- 'A layer appears and leaves without motion';\n- the RupeeInput pad is not a kit overlay and chains only from inside a presented Sheet or Dialog.\ndocs/15-decisions-log.md gains row E10, one line. docs/22 is untouched."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "frontend/libs/ui/src/overlay-stack.ts",
+     "detail": "Amendment (e) is still open: the owner approvals backward swap has not been walked. Cancel runs `setConfirm(null)`, which reopens the Sheet in the same commit. By code reading, not executed: Sheet (approvals.tsx:336) precedes Dialog (:420), and Fabric's Differentiator Stage 1 orders updates by sibling index. The post-flush commit therefore presents the Sheet before the Dialog is dismissed, the same as pre-fix, so a refusal is likely on iOS. This is not a regression and not the finding's path, which is layered with no presentation. Walk it on iOS before flipping the QA/14 rows. If it fails, apply D7 (b) only to a close and an open in the same flush() and update the swap spec."
+    },
+    {
+     "severity": "minor",
+     "file": "QA/tools/e2e/dos-164-ios-sheet-dialog.mjs",
+     "detail": "None of the verdict's device-level proof has run, for the implementer or for this verifier; lane rules forbid simulators, emulators, Metros and QA/ writes. Outstanding:\n- the iOS Appium e2e (the script does not exist yet);\n- the iOS hand walks (order-panel Approve, Bank it, Mark bounced with the pad on top, the root-Sheet pad, More and tenant sheets);\n- the Android walk (uiautomator dump, keyevent 4 order, Gboard typing);\n- the web e2e dos-029 and dos-034;\n- frontend `pnpm build`.\nThe web graph is unaffected: only native/feedback.tsx and native/ThemeProvider.tsx import overlay-host, and the web renderer diff is empty. The store spec proves the rules, not the rendering."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/ui/src/native/feedback.tsx",
+     "detail": "By code, not walked. An overlay presented as a root whose Modal is still animating out, and which reopens as a layer while another overlay became root in that window, unmounts a dismissing Modal (`role === 'layer'` returns `<></>`). That is an edge of amendment (d)'s 'never unmounts a Modal that has been presented'. The window is about 300 ms and needs two opens inside it, so it is harmless in practice."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/libs/ui/src/native/overlay-host.tsx",
+     "detail": "A layer's own panel is always handed over with `covered={false}`. With two or more layers at once, which no screen does today, only iOS `accessibilityViewIsModal` on the top wrapper hides the lower layers, and Android TalkBack could reach them. The implementer already recorded this in followUps (7)."
+    }
+   ],
+   "evidence": "Worktree /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h12-kit, branch qa/b2-h12-kit, HEAD de8f6bd. `git status` was clean at the start and at the end, with 0 untracked files.\n\n1. Scope\n- `git show --stat de8f6bd` has 8 files: docs/15-decisions-log.md, frontend/libs/ui/README.md, and in frontend/libs/ui/src: native-overlays.test.ts, native/ThemeProvider.tsx, native/feedback.tsx, native/overlay-host.tsx, overlay-stack.test.ts, overlay-stack.ts.\n- No generated READMEs, no QA/, no docs/22 or docs/18, no CLAUDE.md.\n- Empty diff for ui src/web, types.ts, parity.test.ts, platform/ and the ui package.json.\n- No contract, permission, schema, backend or screen change.\n\n2. RED\n- Ran the mandated `git diff C^ C -- . ':(exclude)**/*.test.ts' … | git apply -R`, which reverts feedback.tsx and ThemeProvider.tsx and deletes overlay-host.tsx and overlay-stack.ts.\n- native-overlays.test.ts: 2/2 failed on assertions.\n  - \"a kit overlay binds a Modal to its own open prop: expected … not to match /visible=\\{open\\}/\"\n  - \"native/overlay-host.tsx is missing\"\n- overlay-stack.test.ts failed on import (\"Cannot find module './overlay-stack.js'\").\n- For the verdict's assertion-level RED I wrote my own today's-rule stub (every opened overlay is its own root; scratchpad/stub-overlay-stack.ts) at src/overlay-stack.ts.\n  - Result: 9 failed, 1 passed. The control 'a Dialog opened with nothing presented owns its own modal' passed.\n  - Failures, all AssertionErrors: :65 'root' to be 'layer'; :91 null to be 'root'; :124 'root' to be 'layer'; :159 'root' to be 'layer'; :205 false to be true; :231 [] to equal ['first','second']; :273 ['sheet'] to equal ['second']; :315 amendment (c) emit 2 to be 3; :449 exhaustive [ …(5) ] to equal [] (two presented roots).\n- That is the finding's reason: a Dialog over an open Sheet becomes a second native modal.\n- Restored with `git checkout -- .`; the tree was clean again. No backend library was touched, so no rebuild was needed.\n\n3. GREEN on de8f6bd, one file per command with `pnpm exec vitest run` in frontend/libs/ui\n- overlay-stack.test.ts 10/10.\n- native-overlays.test.ts 2/2.\n- parity.test.ts (untouched) 31/31.\n- `pnpm --filter @dos/ui typecheck` exit 0; `pnpm --filter @dos/ui lint` exit 0.\n- `prettier --check` on the 8 touched files: all formatted.\n\n4. Mutation checks, each mutant copied into the worktree, its spec run, then restored\n- M1 opens-before-closes: caught by the swap spec.\n- M2 plain request order: caught by the swap spec.\n- M3 no promotion: caught by the promotion spec and the exhaustive test.\n- M4 no retention: caught by the retention and retained-reopen specs.\n- M5 setLayer emits unchanged: caught by the amendment (c) spec.\n- M6 first unchanged-request guard removed: survived; near-equivalent, since the `open === applied` guard still records nothing.\n- M7 back closes the root: caught by the back spec.\n- M8 retained root re-layered: caught by the retained-reopen spec and the exhaustive test.\n- G1 nested Modal in OverlayOutlet: caught by the guard.\n- G2 Dialog `visible={open}`: caught by the guard.\n- G3 Dialog bypasses useOverlay: caught by the guard ('does not go through the overlay stack').\n\n5. Widened exhaustive walk of the committed store (Node 24 type stripping, scratchpad/bfs/bfs.ts)\n- Two intents per flush: 11,752 states, 11,464 flushes, 0 failures.\n- Plus same-id remounts: 19,224 states, 0 failures.\n- Three intents per flush plus remounts: 148,920 states, walk completed, 0 failures.\n- Uncapped intents: stopped at 2,000,000 states, 0 failures.\n\n6. Code review\n- Shell sheets (native/shell.tsx :70, :309, :432) use the kit Sheet, so they go through the stack.\n- The only other raw `<Modal` is RupeeInput's pad (native/money.tsx:415), which the verdict put out of scope.\n- Every app root mounts the native ThemeProvider in separate branches, never nested (manager _layout.tsx :74/:176/:187/:194; delivery and retailer checked too), so there is one stack per app.\n- RN setUpTimers.js installs queueMicrotask.\n- Deviation 1 (panel kept through dismissal) is justified by Modal.js `_shouldShowModal` and onDismiss, and by the iOS dismiss path.\n- Traced by code for the manager Approve-in-Sheet flow: the Dialog becomes a View inside the Sheet's Modal, so no presentViewController call is made and the refusal mechanism is gone. The pad inside that layer presents from the Sheet's modal controller.\n- No weakened or deleted assertions, no corrected tests, no debug files, no paise, quantity, state-machine, idempotency, RLS or sync concerns (frontend kit only).\n\n7. Not executed, because the environment forbids it\n- The iOS Appium e2e (script not yet written; it lives under QA/).\n- iOS, Android and web walks, and frontend `pnpm build`.\n- Shipped branch for amendment (e): D7 (a). Code reading predicts the owner backward swap still presents before it dismisses, as on pre-fix main, so that walk must run before the iOS QA/14 rows flip."
+  }
+ ]
+}

@@ -39,6 +39,16 @@ export interface PullRequest {
    * kept for handlers that only want to know whether this is a delta at all.
    */
   sinceText: string | null
+  /**
+   * Rows and tombstones at or before this instant only, in the same microsecond ISO form as
+   * `sinceText`; null = no upper bound. `sync.pull` sets it once the tables already read hold more
+   * than a page of changes, so a later table reads nothing past where the page will be cut (DOS-080).
+   */
+  untilText: string | null
+  /**
+   * The whole page, not a share of it: a later table may hold EARLIER changes than the ones already
+   * read, so every table reads up to `limit` rows (and, separately, `limit` tombstones), ties completed.
+   */
   limit: number
 }
 
@@ -46,11 +56,20 @@ export interface PullResult {
   /** Rows in the device schema (snake_case columns, as the table has them). */
   rows: Record<string, unknown>[]
   /**
+   * The instant of each row, in the same order as `rows`: its `updated_at` to the microsecond, in the
+   * cursor's ISO form. `sync.pull` ranks every table's changes by it to decide what one page holds
+   * (DOS-080). `''` means the handler cannot say: such a row never counts against the page, never
+   * becomes a cursor, and is delivered on every page it is read.
+   */
+  at: string[]
+  /**
    * Device keys of rows deleted, or moved out of THIS actor's read set, since the cursor — the
    * `sync_tombstones` row_id, which is the row's `id` everywhere except the two composite-key tables
    * (`stock_balances` is `lot_id:location_id`, `retailer_outstanding_summary` is `retailer_id`).
    */
   deleted: string[]
+  /** The instant of each id in `deleted` (its `deleted_at`), in the same order and form as `at`. */
+  deletedAt: string[]
   /**
    * Set when this table has more to give than `limit` allowed — the service turns it into `hasMore`
    * and, with `watermark`, into a cursor that advances (a cursor that did not would hand the device
@@ -59,9 +78,11 @@ export interface PullResult {
   hasMore?: boolean
   /**
    * How far this table is COMPLETE, when `hasMore` is set: the `updated_at` (or `deleted_at`) of the
-   * last row this page carried, in the same microsecond ISO form the cursor uses. The service takes
-   * the earliest watermark across the saturated tables, because one shared cursor may only move to a
-   * point every table has finished. `null` means "cannot say" and pins the cursor where it is.
+   * last row this page carried, in the same microsecond ISO form the cursor uses. The service cuts the
+   * page at the EARLIER of the page budget's last instant and the earliest watermark among the full
+   * tables: past its watermark a table has not been read at all, even when nothing it did read
+   * survived into the page (a tombstone page whose ids all turned out to be rows still in scope).
+   * `null` means "cannot say" and pins the cursor where it is.
    */
   watermark?: string | null
 }
@@ -304,8 +325,8 @@ export function pullRolesFor(table: string): readonly ActorRole[] {
 /**
  * The generic pull spec a module hands its OWN table to:
  *
- *   `select * from <table> where [tenant_id = $tenant and] updated_at > $since [and <extra>]
- *    order by updated_at, <key> limit $limit`
+ *   `select * from <table> where [tenant_id = $tenant and] updated_at > $since
+ *    [and updated_at <= $until] [and <extra>] order by updated_at, <key> limit $limit`
  *
  * with the `omit`ted columns stripped from every row (a scheme's funding source, for one). RLS still
  * decides which rows exist for the caller; the module decides the extra predicate (a rep's own-beat
@@ -351,6 +372,7 @@ export function tablePull(
       const scope = global ? sql`true` : sql`tenant_id = ${request.ctx.tenantId}`
       const where = sql`${scope}
          ${request.sinceText ? sql`and updated_at > ${request.sinceText}::timestamptz` : sql``}
+         ${request.untilText ? sql`and updated_at <= ${request.untilText}::timestamptz` : sql``}
          ${extra ? sql`and (${extra})` : sql``}`
       // One row over the budget, so "there is more" is known without a second count. `__sync_at` is
       // the row's own `updated_at` to the MICROsecond, which is what the next cursor is made of.
@@ -385,6 +407,9 @@ export function tablePull(
         // stays put and the device asks again — visible, and never a silently dropped row.
         if (rest.length >= TIE_COMPLETION_LIMIT) watermark = null
       }
+      // Each row's own instant, read off the page (tie completion included) before `__sync_at` is
+      // stripped below: the service ranks this table's rows against every other table's by it.
+      const at = raw.map((row) => instantOf(row) ?? '')
       const omit = omittedFor(request.ctx.actorRole)
       const rows = raw.map((row) => {
         const out: Record<string, unknown> = {}
@@ -395,7 +420,9 @@ export function tablePull(
       const deleted = await readTombstones(tx, { table: name, key, global, request, extra })
       return {
         rows,
+        at,
         deleted: deleted.ids,
+        deletedAt: deleted.at,
         hasMore: hasMore || deleted.hasMore,
         // One cursor covers rows and tombstones, so it may only move to the earlier of the two.
         watermark: combineWatermarks(
@@ -512,19 +539,21 @@ async function readTombstones(
     request: PullRequest
     extra: SQL | undefined
   },
-): Promise<{ ids: string[]; hasMore: boolean; watermark: string | null }> {
+): Promise<{ ids: string[]; at: string[]; hasMore: boolean; watermark: string | null }> {
   const { table, key, global, request, extra } = input
-  if (!request.sinceText) return { ids: [], hasMore: false, watermark: null }
+  if (!request.sinceText) return { ids: [], at: [], hasMore: false, watermark: null }
   const tenantScope = global ? sql`t.tenant_id = '*'` : sql`t.tenant_id = ${request.ctx.tenantId}`
+  // `untilText` bounds this read; the tie query below is bounded by its watermark, which is <= it.
   const page = (
     await tx.execute(sql`
       select t.row_id, ${INSTANT_TEXT(sql`t.deleted_at`)} as __sync_at from sync_tombstones t
        where ${tenantScope} and t.table_name = ${table}
          and t.deleted_at > ${request.sinceText}::timestamptz
+         ${request.untilText ? sql`and t.deleted_at <= ${request.untilText}::timestamptz` : sql``}
        order by t.deleted_at asc, t.row_id asc
        limit ${request.limit + 1}`)
   ).rows as { row_id: string; __sync_at: string }[]
-  if (page.length === 0) return { ids: [], hasMore: false, watermark: null }
+  if (page.length === 0) return { ids: [], at: [], hasMore: false, watermark: null }
   const hasMore = page.length > request.limit
   const rows = page.slice(0, request.limit)
   let watermark = instantOf(rows[rows.length - 1])
@@ -553,7 +582,10 @@ async function readTombstones(
          ${extra ? sql`and (${extra})` : sql``}`)
   ).rows as { row_id: string }[]
   const survivors = new Set(alive.map((r) => r.row_id))
-  return { ids: candidates.filter((id) => !survivors.has(id)), hasMore, watermark }
+  // Ids and their instants stay paired through the filter: the service ranks each tombstone by its
+  // own `deleted_at`. The watermark does NOT shrink with it — how far the table was read is unchanged.
+  const kept = rows.filter((r) => !survivors.has(r.row_id))
+  return { ids: kept.map((r) => r.row_id), at: kept.map((r) => r.__sync_at), hasMore, watermark }
 }
 
 /**

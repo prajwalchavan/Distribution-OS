@@ -8,9 +8,11 @@ import type {
   AdminMetrics,
   AdminUser,
   AdminUserDisableIn,
+  AdminUserEnableIn,
   AdminUserItem,
   AdminUsersList,
   AdminUsersListInput,
+  PlatformAuditAction,
 } from '@dos/contracts'
 import type { z } from 'zod'
 import {
@@ -28,6 +30,7 @@ import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
 import { platformCounts } from './counts.js'
 import {
   platformActorId,
+  platformAdminNames,
   requireActiveAdminLevel,
   statusToWire,
   withPlatform,
@@ -180,10 +183,90 @@ export class PlatformConsoleService {
           .where(and(eq(authSessions.userId, input.id), isNull(authSessions.revokedAt)))
         await tx.execute(sql`
           insert into platform_audit (id, admin_user_id, action, tenant_id, payload)
-          values (gen_random_uuid()::text, ${actorId}, 'user.disabled', ${firstMembership?.tenantId ?? null},
+          values (gen_random_uuid()::text, ${actorId}, ${'user.disabled' satisfies PlatformAuditAction}, ${firstMembership?.tenantId ?? null},
                   ${JSON.stringify({ userId: input.id, username: target.username, reason: input.reason })}::jsonb)
         `)
         const saved = row ?? target
+        const links = await this.membershipsOf(tx, [saved.id])
+        const admins = await this.platformAdminIds(tx, [saved.id])
+        const lastLogins = await this.lastLogins(tx, [saved.id])
+        return {
+          item: toAdminUser(
+            saved,
+            links.get(saved.id) ?? [],
+            admins.has(saved.id),
+            lastLogins.get(saved.id) ?? null,
+          ),
+        }
+      }
+      return firstMembership
+        ? platformIdempotent(tx, firstMembership.tenantId, input.idempotencyKey, input, run)
+        : run()
+    })
+  }
+
+  /**
+   * The undo of the kill switch above (DOS-107): a login `disableUser` locked signs in again from its
+   * next attempt. It restores `users.status` and NOTHING else. The sessions the lock ended stay ended,
+   * so the person signs in afresh. Memberships stay exactly as they are, so a distributorship that has
+   * since disabled its own membership still refuses them. A closed console row
+   * (`platform_admins.disabled_at`) stays closed. The password-failure lock (`failed_login_count` /
+   * `locked_until`) is the auth service's brute-force protection on somebody else's account, and not
+   * the console's to switch off.
+   *
+   * `withSystem` for the same reason as the lock: `users_self_update` is the only UPDATE policy on
+   * `users`. The level gate and the id-ordered lock of BOTH rows come first, exactly as in
+   * `disableUser` and before any stored reply is looked up, so a support or billing account — or a
+   * super locked a moment ago with the token still in hand — cannot unlock anybody, and a lock and an
+   * unlock of the same identity serialise without a cycle.
+   *
+   * Unlocking a login that is not locked answers the unchanged row, with no UPDATE and no audit row:
+   * the state the super asked for is already true, so a double press or a stale "Locked out" list is
+   * harmless. Enabling yourself is that no-op, because the lock has just proven the actor active. The
+   * audit row is written only when the UPDATE returned a row, so the trail can never say "unlocked"
+   * when nothing changed.
+   */
+  async enableUser(input: AdminUserEnableIn): Promise<AdminUserItem> {
+    const db = requireDb(this.db)
+    const actorId = platformActorId()
+    return withSystem(db, async (tx) => {
+      await requireActiveAdminLevel(tx, actorId, 'admin.users.enable')
+      const locked = await tx
+        .select({ id: users.id, status: users.status })
+        .from(users)
+        .where(inArray(users.id, [actorId, input.id]))
+        .orderBy(asc(users.id))
+        .for('update')
+      if (locked.find((row) => row.id === actorId)?.status !== 'active') {
+        throw new ORPCError('FORBIDDEN', { message: 'This console account is no longer active' })
+      }
+      const [target] = await tx.select().from(users).where(eq(users.id, input.id)).limit(1)
+      if (!target) throw new ORPCError('NOT_FOUND', { message: `no user ${input.id}` })
+      // Filed like the lock: against the first distributor this person belongs to, and against no key
+      // at all for a console account, whose second press the row lock and the guard below absorb.
+      const [firstMembership] = await tx
+        .select({ tenantId: memberships.tenantId })
+        .from(memberships)
+        .where(eq(memberships.userId, input.id))
+        .orderBy(asc(memberships.createdAt))
+        .limit(1)
+      const run = async (): Promise<AdminUserItem> => {
+        let saved = target
+        if (target.status === 'disabled') {
+          const [row] = await tx
+            .update(users)
+            .set({ status: 'active', updatedAt: new Date() })
+            .where(and(eq(users.id, input.id), eq(users.status, 'disabled')))
+            .returning()
+          if (row) {
+            await tx.execute(sql`
+              insert into platform_audit (id, admin_user_id, action, tenant_id, payload)
+              values (gen_random_uuid()::text, ${actorId}, ${'user.enabled' satisfies PlatformAuditAction}, ${firstMembership?.tenantId ?? null},
+                      ${JSON.stringify({ userId: input.id, username: target.username, reason: input.reason })}::jsonb)
+            `)
+            saved = row
+          }
+        }
         const links = await this.membershipsOf(tx, [saved.id])
         const admins = await this.platformAdminIds(tx, [saved.id])
         const lastLogins = await this.lastLogins(tx, [saved.id])
@@ -251,14 +334,19 @@ export class PlatformConsoleService {
 
   /**
    * Everything our own staff did, newest first: onboarding, suspension, plan changes, support requests
-   * and withdrawals, user locks, and one row per request made inside a distributor under an approved
-   * support window. Append-only in the database (`platform_audit_append_only`), so this is a read of a
-   * record, not of a mutable log.
+   * and withdrawals, user locks and unlocks, and one row per request made inside a distributor under an
+   * approved support window. Append-only in the database (`platform_audit_append_only`), so this is a
+   * read of a record, not of a mutable log.
    *
    * The shape is the tenant-side `AuditEntrySchema` plus the distributor, so the console's screen and
    * the owner app's `tenancy.audit.list` render with the same component. `entityType`/`entityId` come
    * out of the payload where the action put them, because `platform_audit` records an ACTION and its
    * payload rather than a before/after pair — the console changes state, it does not edit rows.
+   *
+   * Each row names the staff member who acted (`actorName`) through `platformAdminNames()` — the 0037
+   * SECURITY DEFINER lookup `admin.support.list` uses, because a console session cannot read a
+   * colleague's `users` row — and the distributorship by its legal name (`tenantName`), from the
+   * `tenants` row this query already joins (DOS-109).
    */
   async audit(input: AuditIn): Promise<AdminAuditList> {
     const db = requireDb(this.db)
@@ -283,6 +371,11 @@ export class PlatformConsoleService {
         .orderBy(desc(platformAudit.createdAt), desc(platformAudit.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
+      // One lookup for the page's few distinct staff, awaited on its own (see `listUsers`).
+      const names = await platformAdminNames(
+        tx,
+        page.map((r) => r.entry.adminUserId),
+      )
       const last = page.at(-1)
       const items = page
         .map((r) => {
@@ -302,6 +395,8 @@ export class PlatformConsoleService {
             occurredAt: r.entry.createdAt.toISOString(),
             tenantId: r.entry.tenantId,
             tenantSlug: r.tenant?.slug ?? null,
+            actorName: names.get(r.entry.adminUserId) ?? null,
+            tenantName: r.tenant?.legalName ?? null,
           }
         })
         .filter(

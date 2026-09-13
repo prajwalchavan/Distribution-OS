@@ -9,7 +9,7 @@ import { PlatformSupportService } from './support.service.js'
 import { PlatformTenantsService } from './tenants.service.js'
 
 /**
- * The platform console's fifteen procedures (module 13, founder decision 2026-09-05). Mounted by
+ * The platform console's sixteen procedures (module 13, founder decision 2026-09-05). Mounted by
  * `admin-service` :3007 and by nothing else, so a `platform_admin` token has exactly one door.
  *
  * `TenantGuard` is the same guard the six tenant services use: it verifies the token, sees the
@@ -112,6 +112,14 @@ export class PlatformAdminController {
   disableUser(@OwnsReply() _reply: unknown) {
     return implement(contract.admin.users.disable).handler(({ input }) =>
       this.console.disableUser(input),
+    )
+  }
+
+  /** The undo of the lock above (DOS-107): a super only, audited; the sessions it ended stay ended. */
+  @Implement(contract.admin.users.enable)
+  enableUser(@OwnsReply() _reply: unknown) {
+    return implement(contract.admin.users.enable).handler(({ input }) =>
+      this.console.enableUser(input),
     )
   }
 

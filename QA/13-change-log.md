@@ -235,3 +235,40 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
   - stale proof-of-delivery prose in contracts/delivery.ts and docs/20 rule 15.
 - Suspected defects S-73..S-91, not tested.
 - Tooling note: `pnpm --filter <pkg> test -- <file>` runs the whole vitest suite; use `pnpm --filter <pkg> exec vitest run <file>` for a single file.
+
+**h5-orders slice 3** (DOS-098, DOS-126) merged as `43824b0` at 16:25 (run `wf_64118f05-f5b`). The integrator resolved its one textual conflict, the drizzle import in orders.service.ts, as the review said. The verifier passed it; its only minor was that main had moved on by two QA-only commits. The READMEs gain `GET /orders/last-placed`. The lane DB was recreated and migrated to 0047. Batch 2 now has 13 approved findings on main (3 P0, 10 P1).
+
+**dos_qa rebuilt** on merged main at 16:11: 48 migrations, verify-seed 206/206, no duplicate receipt numbers. The services and the worker were restarted on it.
+
+**P0 regression probe** (run `wf_878c1f40-c4d`, dos_qa): 16 PASS, 0 FAIL, 3 NOT TESTED. Evidence is in `QA/evidence/batch2/sync-role-probe/after/SUMMARY.md` and `p0-probe-dos115/`.
+- DOS-166:
+  - A delivery receipt through /sync/upload is accepted.
+  - A salesperson receipt and a warehouse receipt get 200 role_not_allowed. Neither draws a number or writes a journal; the warehouse one now also writes a sync_ops row.
+  - Retailer and salesperson POST /receipts still get 403.
+  - The manifests are role-aware.
+  - In the database, a salesperson INSERT into receipts fails with 42501 while a delivery INSERT goes through (rolled back).
+- DOS-115: warehouse and delivery logins get 403 on every order write and 200 on reads. The accountant gets 403 on POST /orders. A warehouse sales_orders op through /sync/upload gets role_not_allowed.
+- NOT TESTED: the delivery, sales and warehouse app offline-sync walks. They run in the A.12 regression.
+
+**h9-desk verified** (run `wf_ac1e794b-9d1`): DOS-044 `8798c18`, DOS-037 `d59c8fe`, DOS-031 `dd722a5`. Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. The Fable merge review is running.
+
+**h12-kit and h8-billing verified** (run `wf_1bfa433f-83b`):
+- DOS-164 `de8f6bd`: native overlays now go through a JS overlay stack; the web renderer is untouched.
+- DOS-116 `1ea7cfe`: damaged desk returns go to the damaged bin, and saleable:true is refused.
+
+Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. Fable merge reviews are running (`wf_5363c388-c3f`). Lean-mode grouping of every open P2 and P3 has started (`wf_c2b9844d-877`).
+
+**h9-desk merged** as `d521f84` at 16:52 (run `wf_30bb86fa-c2d`): DOS-044, DOS-037, DOS-031.
+- **No textual conflict.** The review had predicted a semantic one, and it appeared on the merged tree. The DOS-037 test "pins every non-GET procedure the accountant may call" still listed the five order writes that DOS-115 (founder-approved) had removed, so it failed with 68 received vs 73 expected. The five rows were dropped from that literal list, and nothing else changed (`cbc2cbc`).
+- **READMEs:** 12 regenerated. The stock.adjust summary changed and 24 rows lose the accountant.
+- **Process note:** the integrator ran one read-only `select 1` against the template database, which the lane rules forbid. It disclosed this itself; nothing was written.
+
+**h12-kit and h8-billing merged** (run `wf_f2eaa16e-1a9`), both clean with no merge-time fix: DOS-164 as `146eed2`, DOS-116 as `73b120c`. No generated README changed. One contract note: `/docs/openapi.json` for owner, manager and delivery no longer carries `default: true` on `lines[].saleable`. Batch 2 now has 18 approved findings on main (3 P0, 15 P1).
+
+**h11-syncpull merged** as `be5c40f` at 17:21 (run `wf_c0a9229d-d52`): DOS-080. The merge was clean, and the sync specs pass on the merged tree (coverage 25/25, sync 9/9). The review raised a suspect, S-98: sign-out never wipes the device store. It is being probed on the sales web app now.
+
+**h11-syncpull verified** (run `wf_51c8b336-66e`): DOS-080 `38032df`.
+- **The fix:** a pull page now fills its limit across tables, the cursor never passes a table's unread rows or tombstones, and a snapshot takes about ceil(rows / limit) + 1 calls.
+- **Tests:** four new coverage tests failed before the fix for the storm reasons (25 pages against 9, rows sent twice) and pass after. One pin was added for amendment (a).
+- **Existing tests:** six existing coverage tests now drain the whole pass instead of reading page 1. The plan and amendment (c) require this, and their assertions are unchanged.
+- **Merge review:** the Fable merge review is running.

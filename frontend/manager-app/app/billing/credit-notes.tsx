@@ -18,7 +18,11 @@
  * The accountant may draft, issue and cancel here — this is the money desk (`creditNotes.*` is
  * BACK_OFFICE + delivery in the matrix, unlike `invoices.cancel`).
  */
-import type { CreditNoteListItem, CreditNoteReason } from '@dos/contracts'
+import {
+  isSaleableCreditNoteReason,
+  type CreditNoteListItem,
+  type CreditNoteReason,
+} from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import { creditedPiecesByLine, piecesLeftToCredit, uuidv7 } from '@dos/domain'
 import {
@@ -165,7 +169,7 @@ export default function CreditNotes(): React.JSX.Element {
           id: uuidv7(),
           invoiceLineId: line.invoiceLineId,
           qtyPcs: line.qtyPcs,
-          saleable: input.reason !== 'return_damaged',
+          saleable: isSaleableCreditNoteReason(input.reason),
           ratePaise: line.ratePaise,
         })),
       }),

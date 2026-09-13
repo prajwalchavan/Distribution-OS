@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import type {
+  PlatformAuditAction,
   Subscription,
   SupportGrant,
   TenantCreateIn,
@@ -36,6 +37,7 @@ import { tenantSizes } from './counts.js'
 import {
   addDays,
   platformActorId,
+  platformAdminNames,
   requireActiveAdminLevel,
   statusToWire,
   toSubscription,
@@ -129,13 +131,21 @@ export class PlatformTenantsService {
         .where(eq(supportGrants.tenantId, input.id))
         .orderBy(desc(supportGrants.requestedAt))
         .limit(20)
+      // Who asked, named exactly as `admin.support.list` names them (DOS-109). Awaited on its own:
+      // `tx` is one client, so never beside another query in a `Promise.all`.
+      const names = await platformAdminNames(
+        tx,
+        grants.map((g) => g.adminUserId),
+      )
       const sizes = await tenantSizes(db, [input.id])
       const size = sizes.get(input.id)
       const summary = toSummary(row.tenant, row.subscription, size)
       const item: TenantDetail = {
         ...summary,
         subscription: row.subscription ? toSubscription(row.subscription) : null,
-        supportGrants: grants.map((g): SupportGrant => toSupportGrant(g)),
+        supportGrants: grants.map((g): SupportGrant =>
+          toSupportGrant(g, names.get(g.adminUserId) ?? 'Distribution OS support'),
+        ),
         storageBytes: size?.storageBytes ?? 0,
         invoices30d: size?.invoices30d ?? 0,
       }
@@ -312,7 +322,7 @@ export class PlatformTenantsService {
     idempotencyKey: string,
     request: unknown,
     status: 'active' | 'suspended',
-    audit: { action: string; reason: string | null },
+    audit: { action: PlatformAuditAction; reason: string | null },
   ): Promise<TenantItem> {
     const db = requireDb(this.db)
     const actorId = platformActorId()
@@ -382,7 +392,7 @@ async function subscriptionOf(tx: Db, tenantId: string): Promise<SubscriptionRow
 async function insertPlatformAuditUnderSystem(
   tx: Db,
   actorId: string,
-  entry: { action: string; tenantId: string | null; payload: Record<string, unknown> },
+  entry: { action: PlatformAuditAction; tenantId: string | null; payload: Record<string, unknown> },
 ): Promise<void> {
   await tx.execute(sql`
     insert into platform_audit (id, admin_user_id, action, tenant_id, payload)

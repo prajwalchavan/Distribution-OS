@@ -281,7 +281,10 @@ remove`, `incentives.statements.approve/reopen` (planned).
   `warehouse.reservations.release`, `warehouse.challans.recordEwb`, `delivery.trips.settle` (planned), `claims.*` writes (planned).
   docs/22 §2 says the accountant is "read + exports". Either an `ACCOUNTANT_READS` narrowing lands in `permissions.ts` before the
   frontend (recommended: keep `receipts.*`, `allocations.*`, `deposit`, `bounce`, `trips.settle`, `creditNotes.*`, exports; drop the
-  rest) or docs/22 is amended to say the accountant may write. Flagged, not decided here.
+  rest) or docs/22 is amended to say the accountant may write. Stock, procurement and inbound review are settled (QA DOS-037):
+  the inventory writes (`locations.upsert`, `stock.adjust/transfer`, `lots.upsert`) are STOCK_KEEPERS, and
+  `inventory.cycleCounts.post`, the `procurement.*` writes and the docint decisions (review, matches, `extractions.run`,
+  `reject`, `approve`) are MANAGEMENT; the accountant reads them. The other items above stay as listed.
 - Accountant deliberately ✗: `warehouse.picklists.*`, `warehouse.packs.confirm`, `loadSheets.confirm/cancel`, `billing.invoices.cancel`,
   `retailers.linkIdentity`, `tenancy.staff.create/setPassword/setStatus`, `procurement.grns.count`. The app hides these.
 
@@ -403,6 +406,7 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
+  Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
   warehouse) — the warehouse app shows expected van stock from balances instead.
@@ -876,12 +880,12 @@ pcsPerCase, code }` — M3/M4 (buy-side pack sizes for the GRN) — `supplier_pa
 
 ### 8.18 inventory (built) — 2 · DONE
 
-- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (BACK_OFFICE; one `cycle_count` ledger row
+- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (owner, manager; one `cycle_count` ledger row
   per non-zero variance, keyed `cycle_count:<countId>:<lotId>`), `list` / `get` (STOCK_VIEWERS);
   `StockBalancesInput.expiringBefore` and `nearExpiryOnly` (60-day window).
 
 - `inventory.cycleCounts.open` / `.count` / `.post` / `.list` — POST/GET `/inventory/cycle-counts` — `{ id, locationId, lotIds? }`
-  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, BACK_OFFICE post) — W8, M16, O15 —
+  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, owner/manager post) — W8, M16, O15 —
   `cycle_counts` / `cycle_count_lines` exist; `stock.adjust` reason `cycle_count` is one lot at a time.
 - field: `StockBalancesInput.expiringBefore: IsoDate` and `nearExpiryOnly` — W8, O15 — the near-expiry list is a client-side
   filter over pages today.
@@ -903,7 +907,8 @@ id, reason }` → `{ item }` — M4 — the `disputed` / `cancelled` statuses in
 
 1. Accountant write scope (§2.3) — **DECIDED and DONE** (docs/22 2026-09-05): the accountant is the money desk
    (`ROLE_GROUPS.MONEY_DESK`: receipts, reversals, deposits, bounces, allocations, write-offs, statements) and reads
-   everything else; no price, scheme, credit limit, approval, catalog write or setting.
+   everything else; no price, scheme, credit limit, approval, catalog write or setting (stock, procurement and
+   inbound-review writes enforced 2026-09-13, QA DOS-037).
 2. Manager's PIN on the warehouse device (§4.3) — **DECIDED and DONE** (docs/22 2026-09-05): the manager app
    approves the load sheet (`loadSheets.approve`), the warehouse phone confirms it (`loadSheets.confirm`); no
    `auth.stepUp`. W7 shows "waiting for the manager" until `approvedBy` is set.
@@ -954,8 +959,8 @@ would break the gate that is running.
 
 | 11  | `admin.subscriptions.list`                                                                               | rows carry `tenantId` and no name, and `admin.tenants.list` has no "these ids" filter, so the Subscriptions register reads the distributorship's name ONE CALL PER ROW. Measured on the founder's database: **104 requests to open the screen**, 50 of them `GET /admin/tenants/{id}` plus their CORS preflights, for one page of 50                                                                                                          | a `tenantName` on the subscription row, or an `ids` filter on `tenants.list`                             |
 | 12  | `admin.support.list` (`openOnly`, `status`)                                                              | neither filter means what a console reader means. `openOnly()` is "not revoked AND (not approved OR not expired)" — every ask nobody ever answered, for ever; `status: 'requested'` includes an ask whose own hours ran out and which their owner can no longer open (409 `request_expired`). Measured: the default view headed **"Open now" listed 100 rows of which one was open**, and "Waiting for their owner" listed 100 with nobody waiting. The app now filters the page by `active` and by its own `askLapsed()` | a `state` filter with the reader's three words — open · waiting · lapsed — so the page and the count agree |
-| 13  | `admin.audit.list`                                                                                       | rows carry `tenantSlug` but no `tenantName`, and `actorId` + `actorRole` but no `actorName`, so the audit register prints a handle (`tarsun`) where every other screen prints "M/s. Tarsun Enterprise", and a column headed "Who" that answers "Distribution OS staff" on every row. `support.list` already joins `requestedByName`; there are 100+ platform users in a developer's database, so the app cannot build the directory itself | `tenantName` and `actorName` on the audit row, the same join `support.list` does                        |
-| 14  | `admin.users` (`disable`, no enable)                                                                     | the platform kill switch is one-way from the console: nothing in the product sets `users.status` back to `active` (only `pnpm db:seed`'s `restoreDemoAccess`). The dialog now says "Nothing in this console puts it back"                                                                                                                                                                                                              | an audited `admin.users.enable`, the same shape as `disable`                                            |
+| 13  | `admin.audit.list`                                                                                       | rows carry `tenantSlug` but no `tenantName`, and `actorId` + `actorRole` but no `actorName`, so the audit register prints a handle (`tarsun`) where every other screen prints "M/s. Tarsun Enterprise", and a column headed "Who" that answers "Distribution OS staff" on every row. `support.list` already joins `requestedByName`; there are 100+ platform users in a developer's database, so the app cannot build the directory itself | `tenantName` and `actorName` on the audit row, the same join `support.list` does. **Done (DOS-109):** both are on the row, `actorName` resolved through `dos_support_requester_names()` (migration 0037) and `tenantName` from `tenants.legal_name`; `admin.tenants.get` names each support window's requester the same way |
+| 14  | `admin.users` (`disable`, no enable)                                                                     | the platform kill switch is one-way from the console: nothing in the product sets `users.status` back to `active` (only `pnpm db:seed`'s `restoreDemoAccess`)                                                                                                                                                                                                              | an audited `admin.users.enable`, the same shape as `disable`. **Done (DOS-107):** `POST /admin/users/{id}/enable`, super only, reason mandatory and audited as `user.enabled`; it restores `users.status` only (the sessions the lock ended stay ended; memberships, `platform_admins` and the password-failure lock are untouched) and is a no-op with no audit row on a login that is not locked. The People panel offers "Unlock this login" on a locked person, and both confirmations name every distributorship the press spans |
 | 15  | `tenancy.me` under a support pass                                                                        | answers **401 "No active membership for this tenant"** through a perfectly valid pass — the procedure reads the ACTOR's membership row and a console session has none anywhere. Verified by hand: `GET /tenancy/branding` through the same pass is 200, a write is 403 "this support window is read-only", and the pass on :3007 itself is 403. The console asks for branding and numbering instead                                     | either answer `tenancy.me` from the borrowed owner, or say in the contract that it is not pass-reachable |
 
 Three data-quality items on the demo database, same slice:
