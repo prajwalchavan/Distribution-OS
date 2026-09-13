@@ -295,8 +295,23 @@ describe('native sheet fits the screen', () => {
 
   it('scrolls its own body rather than overflowing', () => {
     expect(native).toContain('<ScrollView')
-    expect(native).toContain(
-      "import { Image, Modal, Pressable, ScrollView, View } from 'react-native'",
+    const imported = /import\s*\{([^}]*)\}\s*from\s*'react-native'/.exec(native)
+    expect(imported, "native/feedback.tsx has no 'react-native' import").not.toBeNull()
+    const names = (imported?.[1] ?? '')
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .sort()
+    expect(names).toEqual(
+      [
+        'Image',
+        'KeyboardAvoidingView',
+        'Modal',
+        'Platform',
+        'Pressable',
+        'ScrollView',
+        'View',
+      ].sort(),
     )
   })
 })
@@ -329,6 +344,30 @@ describe('DOS-152: sheet Close lives inside the scrollable content, never behind
     expect(scrollClose, 'SheetPanel has no </ScrollView>').toBeGreaterThan(-1)
     expect(closeButton, 'SheetPanel has no Close button').toBeGreaterThan(-1)
     expect(closeButton).toBeLessThan(scrollClose)
+  })
+})
+
+/**
+ * DOS-159: the Sheet's Modal never avoided the soft keyboard, so a bottom sheet stayed anchored
+ * under it — measured on the Pixel 7/Gboard: the credit-note Sheet's matching-bill suggestion was
+ * laid out at y 1622-1811 while the keyboard covered the lower half of the screen, and a tap there
+ * opened Gboard's Clipboard panel instead of picking the bill.
+ */
+describe('DOS-159: native sheet avoids the soft keyboard', () => {
+  const source = readFileSync(join(here, 'native', 'feedback.tsx'), 'utf8')
+
+  it('imports KeyboardAvoidingView and Platform from react-native', () => {
+    expect(source).toContain('KeyboardAvoidingView')
+    expect(source).toContain('Platform')
+  })
+
+  it('wraps the sheet panel in a KeyboardAvoidingView, height on Android and padding on iOS', () => {
+    const start = source.indexOf('function SheetPanel(')
+    expect(start, 'SheetPanel is not declared in native/feedback.tsx').toBeGreaterThan(-1)
+    const end = source.indexOf('\nfunction DialogPanel', start)
+    const body = source.slice(start, end === -1 ? undefined : end)
+    expect(body).toContain('<KeyboardAvoidingView')
+    expect(body).toContain("Platform.OS === 'ios' ? 'padding' : 'height'")
   })
 })
 
