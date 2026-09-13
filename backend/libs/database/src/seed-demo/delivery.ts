@@ -522,7 +522,10 @@ export async function seedDelivery(
       tenantId,
       deliveryId,
       kind: 'photo' as const,
-      objectKey: `demo/pod/${tripId}/${inv.id}.jpg`,
+      // DOS-123: no object was ever PUT under a `demo/pod/…` key, so a made-up one signed a read URL
+      // that 404s at the service's own origin — a broken image, not a photo. `objectKey` null reads
+      // as "no photo" (`delivery.mappers.ts` answers `readUrl: null`), which is the honest demo state.
+      objectKey: null,
       capturedAt: occurred(completedAt ?? atIstTime(day, 17, 0)),
     })
     collectAtDoor(inv, tripId, driverId)

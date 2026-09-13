@@ -215,6 +215,21 @@ describeDb('demo seed on an empty database', () => {
     expect(sheetRows.every((r) => /^CLM-\d{4}$/.test(r.claim_no))).toBe(true)
     expect(sheetRows.every((r) => typeof r.shop === 'string' && r.shop.length > 0)).toBe(true)
 
+    /*
+     * DOS-123: a demo POD "photo" is a row with no object behind it — `demo/pod/<trip>/<invoice>.jpg`
+     * was never PUT to the object store, so `files.readUrl` on batch1's dev database signed a URL for
+     * a key the service itself answers 404 for, and the retailer app drew a broken image where a
+     * photo should be. `objectKey` is nullable for exactly this: no key at all reads as "no photo"
+     * (`delivery.mappers.ts` answers `readUrl: null` and the bill screen already hides those), which
+     * is honest, unlike a key that LOOKS like a photo but 404s.
+     */
+    const pod = (
+      await db.execute(sql`
+        SELECT object_key FROM pod_evidence WHERE tenant_id = ${tenantId}`)
+    ).rows as { object_key: string | null }[]
+    expect(pod.length).toBeGreaterThan(0)
+    expect(pod.every((r) => r.object_key === null)).toBe(true)
+
     await expectAiDemo(db, tenantId, 'pilot')
 
     // The owner's half of platform support access: a pending request the owner app can answer, filed

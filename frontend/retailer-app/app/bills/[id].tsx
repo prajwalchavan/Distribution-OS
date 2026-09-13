@@ -294,11 +294,20 @@ export default function BillDetail(): React.JSX.Element {
                         </Txt>
                       )}
                       {proofs
-                        .filter((proof) => proof.readUrl !== null)
-                        .map((proof) => (
+                        .map((proof) => ({ proof, url: absoluteUrl(proof.readUrl) }))
+                        // DOS-123: `readUrl` comes back service-relative; a browser resolves a bare
+                        // one against THIS app's own origin (its own HTML shell answers, 200
+                        // text/html) and a phone refuses it outright. `absoluteUrl()` also turns a
+                        // missing key into `null`, same as DOS-099's PDF, so the row is left out
+                        // rather than drawn as a broken image.
+                        .filter(
+                          (row): row is { proof: (typeof proofs)[number]; url: string } =>
+                            row.url !== null,
+                        )
+                        .map(({ proof, url }) => (
                           <Img
                             key={proof.id}
-                            source={proof.readUrl ?? ''}
+                            source={url}
                             alt={t('r4.podPhoto')}
                             height={220}
                             radius="md"
