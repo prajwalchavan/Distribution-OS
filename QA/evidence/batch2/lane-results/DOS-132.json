@@ -1,0 +1,132 @@
+{
+ "id": "DOS-132",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-132",
+   "status": "fixed",
+   "commits": [
+    "460269e"
+   ],
+   "failBefore": "Before the fix, the three new specs failed for the reasons in the finding. The outputs are saved in the session scratchpad as dos132-delivery-before.txt and dos132-receivables-before.txt.\n\n(1) delivery.spec.ts › \"DOS-132: cash taken on a trip still on the road is not in hand…\" failed at `expect(inHand.body.totals.countedPaise).toBe(0)` with \"AssertionError: expected 35400 to be +0\". receipts.list ignored withCrew=false and counted all the trip's cash (cashCollected = 35400) as in hand.\n\n(2) delivery.spec.ts › \"DOS-132: once the trip is settled its cash is in hand and banks from CASH…\" failed at the deposit entry with \"AssertionError: expected { BANK: 35400, CASH_VAN: -35400 } to deeply equal { BANK: 35400, CASH: -35400 }\". The deposit credited CASH_VAN again after the settlement had already emptied it.\n\n(3) receivables.spec.ts › \"DOS-132 (fail closed): …\" failed at `expect(idsOf(inHand)).toEqual([officeCash.id])` with \"expected [ …(3) ] to deeply equal [ Array(1) ]\". Both crew receipts taken on the trip were listed as money in hand.\n\nIn the same delivery run the other 24 tests passed (2 failed of 26).",
+   "passAfter": "All checks below were run after the fix and after prettier.\n\n- `vitest run src/modules/delivery/delivery.spec.ts`: 26/26 passed, both DOS-132 specs green.\n- `vitest run src/modules/receivables/receivables.spec.ts`: 40/40 passed, the fail-closed DOS-132 spec green.\n- @dos/domain src/receipts.test.ts: 2/2.\n- `pnpm --filter @dos/manager-service test`: 343/343. This boots the real manager composition with DeliveryModule and ReceivablesModule and runs the permission matrix.\n- `turbo run typecheck lint` for @dos/domain, @dos/contracts and @dos/core: 9/9 tasks successful.\n- Frontend `pnpm --filter @dos/manager-app typecheck` and `lint`, and the same for @dos/owner-app: all exit 0.\n- Amendment (a) grep: no SQL in backend/libs/core/src/modules/receivables names `trips` (only comments mention it). `tripSettledSql` carries `t.tenant_id =`, and the default predicate is sql`false`.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-132: cash taken on a trip still on the road is not in hand — receipts.list withCrew=false leaves it out of the rows and the totals (withCrew=true lists it), receipts.get says withCrew to the desk and null to the crew, and receipts.deposit refuses it 409 trip_cash_not_settled with nothing banked"
+    },
+    {
+     "file": "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "name": "DOS-132: once the trip is settled its cash is in hand and banks from CASH (Dr BANK / Cr CASH, no CASH_VAN line), so CASH_VAN over the trip's receipts, its settlement and the deposit nets to zero"
+    },
+    {
+     "file": "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+     "name": "DOS-132 (fail closed): with no delivery module to say a trip is settled, a receipt carrying a tripId is never listed in hand, reads withCrew, and is refused for banking"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/receivables.ts",
+    "backend/libs/core/src/modules/delivery/delivery.internals.ts",
+    "backend/libs/core/src/modules/delivery/delivery.module.ts",
+    "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+    "backend/libs/core/src/modules/receivables/index.ts",
+    "backend/libs/core/src/modules/receivables/receivables.queries.ts",
+    "backend/libs/core/src/modules/receivables/receivables.service.ts",
+    "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+    "backend/libs/domain/src/receipts.ts",
+    "frontend/manager-app/app/index.tsx",
+    "frontend/manager-app/app/money/day-end.tsx",
+    "frontend/manager-app/app/money/index.tsx",
+    "frontend/manager-app/src/strings.ts",
+    "frontend/owner-app/app/money/receipts.tsx",
+    "frontend/owner-app/src/strings.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Tenant-qualify the trips lookup. TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL. tripSettledSql adds t.tenant_id =. listReceipts passes tenantId from currentTenant(); getReceipt and depositReceipts pass ctx.tenantId.",
+     "done": true,
+     "how": "receivables.service.ts exports `type TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL`, re-exported from receivables/index.ts, with a private default of `() => sql\\`false\\``. delivery.internals.ts `tripSettledSql(tripId, tenantId)` emits `exists (select 1 from trips t where t.id = ${tripId} and t.tenant_id = ${tenantId} and t.state in (…TRIP_CASH_HANDED_OVER))`, and the IN list is built with sql.join from the set. listReceipts uses the tenantId it already takes from currentTenant(). getReceipt and depositReceipts pass ctx.tenantId. A grep confirms no receivables SQL names trips."
+    },
+    {
+     "amendment": "(b) withCrew on receipts.list applies only when MONEY_DESK includes the actor role. For any other role the filter is not applied. The wrapper decides this, not the query function.",
+     "done": true,
+     "how": "The ReceivablesService.listReceipts wrapper passes `MONEY_DESK.includes(ctx.actorRole) ? this.tripSettled : null`. queries.ts takes a required nullable `tripSettled` parameter and pushes the withCrew filter into the shared `where` only when the predicate is non-null, so the page and the totals both follow it. The contract JSDoc says the filter is ignored outside the money desk. The receivables spec asserts the crew's list with withCrew=false has the same rows and totals as its unfiltered list, and that receipts.get gives the crew withCrew null."
+    },
+    {
+     "amendment": "(c) The refusal is mode-neutral. Message: 'receipt X was taken on a trip that is not settled yet; bank it after the trip's cash is handed over at Day-end'. data.code is trip_cash_not_settled and data.receiptIds holds only the refused ids, sorted by receipt number. Cheques on an unsettled trip are refused too (founder default), and the contract JSDoc names cash and cheques.",
+     "done": true,
+     "how": "depositReceipts runs after the existing status and mode loop and before the UPDATE, the journal post and the events. It makes one VALUES-list query over the batch's distinct tripIds (sql.join of `(${id}::text)`, never = any(array)). Refused rows are the ones whose trip is not settled, whatever their mode, sorted by receipt number. It throws ORPCError CONFLICT with the exact single-receipt wording, `data: { code: 'trip_cash_not_settled', receiptIds }`. The credit line now uses receiptAccountCode(mode, null), so settled trip cash leaves CASH. The contract JSDoc on withCrew, on the receipts.get field and on DepositReceiptsInput names cash and cheques. The receivables spec refuses a batch of [office cash, crew cash, crew cheque] and asserts receiptIds equals only the two crew ids in number order, and that all three stay collected with no deposit entry."
+    },
+    {
+     "amendment": "(d) Place the two delivery specs by anchor text (the `// check-in` comment and the settle test's `it(` title), never by line. The receivables spec goes after the DOS-034 guard `it(`, found by title.",
+     "done": true,
+     "how": "Delivery spec (1), with its small section of helpers (ReceiptListBody, tripCash, tripStateOf), is inserted just before the `// check-in` section comment. Spec (2) is inserted directly after the settle test ('returns, previews the cockpit and settles within tolerance…') and before the `// the other crew's trip` section comment. The receivables fail-closed spec sits directly after the 'DOS-034 (guard): …' test and before the `// the receipt number (DOS-032 / DOS-059)` section. All edits were matched on text, not line numbers."
+    },
+    {
+     "amendment": "(e) Frontend: the manager Refusal already shows the 409. The owner O11 dialog (`.then(done, done)`) is not fixed here; the only owner change is the Bank it disabled guard. No new react-native or react-dom import anywhere.",
+     "done": true,
+     "how": "In owner-app/app/money/receipts.tsx only the Bank it Button changed: `disabled={receipt.status !== 'collected' || detail.data?.withCrew === true}` and `disabledReason` reads 'o11.withCrew' when withCrew is true. The string was added in owner-app/src/strings.ts. The O11 dialogs and the bounce and reverse buttons are untouched. The manager Bank it uses the same guard with 'm9.withCrew'. Day-end and Today use identical inputs (`withCrew: false`) and keys (['receipts','collected','cash'|'cheque','office']). No new imports beyond existing @dos packages; manager-app and owner-app lint and typecheck pass."
+    }
+   ],
+   "deviations": "1. Not created: QA/tools/e2e/dos-132-day-end-trip-cash.mjs. This lane may not edit anything under QA/.\n\n2. Not regenerated: the generated service and app READMEs. `pnpm docs:readme` is not allowed in this lane, so `pnpm docs:readme:check` will fail until they are regenerated once.\n\n3. Plural refusal message. With one refused receipt the wording is exactly amendment (c). With more than one it reads \"receipts X, Y were taken on a trip that is not settled yet; bank them after the trip's cash is handed over at Day-end\".\n\n4. Delivery spec (2) order. The withCrew=true list and the per-receipt GET withCrew:false checks run after the deposit, not before. That way the unfixed tree fails at the deposit posting (CASH_VAN line), which is the verdict's fail-first evidence. After the deposit the withCrew=true list is queried without a status filter and the GETs also assert status 'deposited'. The withCrew=false list and its totals are still checked before banking.\n\n5. Receivables fail-closed spec is wider than the plan. On the same shop it also takes a crew cheque and an office cash receipt (no trip). That proves amendment (c) (cheques refused, receiptIds holds only the refused ids, the batch is refused whole) and amendment (b) (the crew's list is not filtered). Its withCrew=false result is therefore [office receipt] with total 2,500 paise, not 0.\n\n6. Doorstep receipt lookup. In delivery spec (1) the receipt is found by SQL on its collections row (trip, stop_id = stopA1, mode cash, first by id), not by hoisting a variable out of the test at :1082. The existing test is left untouched, which avoids merge conflicts with the h2 and h3 lanes.\n\n7. Predicate type in receivables.queries.ts. The parameter type is written inline, `((tripId: SQL, tenantId: string) => SQL) | null`, instead of importing TripSettledPredicate from the service. This avoids a service↔queries import cycle; `null` is the \"not the money desk\" case that amendment (b) allows.\n\n8. Whole-suite test run, which broke the one-spec-per-command rule. My first fail-first attempt, `pnpm --filter @dos/core test -- src/modules/receivables/receivables.spec.ts -t DOS-132`, ran the whole core suite (36 files, 3 failed / 536 passed) against dos_test_b2_h1, because vitest ignores arguments after `--`. The 3 failures were the DOS-132 specs. Every later run called `pnpm exec vitest run <one file>` directly.\n\n9. Reverted formatting. `pnpm format` also reformatted backend/libs/core/src/modules/reporting/reporting.spec.ts, which this fix never touched. I reverted it in this worktree with `git checkout --` and left it out of the commit.",
+   "followUps": "1. **Main session after merge:** run `pnpm docs:readme` once and commit the regenerated backend/*-service/README.md and app READMEs (receipts.list input and receipts.get output changed). Then `pnpm docs:readme:check`.\n\n2. **Main session after merging main into this lane:** re-run delivery.spec.ts and receivables.spec.ts. h2 (DOS-043, 131+137, 133) and h3 (DOS-056, 146) also edit delivery.spec.ts.\n\n3. **QA lane:** add QA/tools/e2e/dos-132-day-end-trip-cash.mjs as the plan describes. It should exit 2 when no unsettled-trip receipt exists, and needs a doorstep collection by ganesh.more on a disposable copy after the Q5 rebuild.\n\n4. **docs/22:** record the FOUNDER DEFAULT in §8 and §11: a cheque taken on a trip, like its cash, is banked (and bounced from Day-end) only after the trip settles.\n\n5. **Not run in this lane (no servers or emulators):**\n   - `pnpm smoke` (expect 0 BROKEN; its deposit receipt has no tripId)\n   - API verify steps 1, 4 and 5 on a disposable copy\n   - web manager and accountant at 1280x800 and 390x844, and owner O11\n   - Android Pixel_7 and iOS Appium spot checks (plan verify step 7)\n\n6. **Overlaps:** DOS-164 and DOS-136 edit the same two Bank it `disabled` lines. Whichever lands second rebases the one-line guard.\n\n7. **New findings to file (from the verdict):**\n   - (P2) receivables.service.ts undoReceipt credits CASH_VAN when a trip cash receipt is reversed after its trip settled.\n   - (P1) Settlement counts only `collections` rows, so an offline doorstep receipt uploaded through the `receipts` sync table never leaves CASH_VAN and reads as cash over.\n   - (P2, design) After a settlement with expenses or a shortage, banking every receipt at full value takes CASH below the drawer.\n   - (P2, reproduce first) depositReceipts reads without FOR UPDATE and its UPDATE has no status='collected' guard, so a double deposit is possible.\n   - (P2) The owner O11 dialogs close on any refusal (`.then(done, done)`), so a 409 is never shown.\n   - (P3) seed-demo RCPT-VAN receipts sit on a settled trip with no collections row, and seeded trip_settlements post no journal entry.",
+   "platformCheck": "API only: core specs through bootTestApp (Fastify inject), plus the manager-service spec, which boots the real manager service composition, runs its 343-test permission matrix and passes. Web, Android and iOS were checked only by typecheck and lint of manager-app and owner-app, both green. No browser, emulator, simulator, dev server or `pnpm smoke` run: this lane does not allow them."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-132",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Tenant-qualify the trips lookup: TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL; tripSettledSql adds t.tenant_id; listReceipts passes tenantId from currentTenant(), getReceipt and depositReceipts pass ctx.tenantId",
+     "satisfied": true,
+     "detail": "receivables.service.ts:277 exports the type with that exact signature, and the private default at :318 is sql`false` (fail closed). delivery.internals.ts tripSettledSql emits `exists (select 1 from trips t where t.id = ${tripId} and t.tenant_id = ${tenantId} and t.state in (...))`, with the IN list built by sql.join from TRIP_CASH_HANDED_OVER. queries.ts:116/127/131 uses tenantId from currentTenant(). getReceipt (:792) and depositReceipts (:907) pass ctx.tenantId. Grep over modules/receivables (non-spec): 'trips' appears only in comments (:274, :323, :784, :896), never in SQL."
+    },
+    {
+     "amendment": "(b) withCrew on receipts.list applied only when MONEY_DESK includes the actor role; the wrapper decides; JSDoc says it is ignored otherwise",
+     "satisfied": true,
+     "detail": "The wrapper at receivables.service.ts:756 passes `MONEY_DESK.includes(ctx.actorRole) ? this.tripSettled : null`. queries.ts:125-132 pushes the filter into the shared `where` only when the predicate is non-null, and that `where` feeds both the page (:149) and the totals (:165). The contract JSDoc says the filter is ignored for every other role. MONEY_DESK = BACK_OFFICE (owner, manager, accountant, system). The receivables spec asserts the crew's withCrew=false list has the same rows and totals as its unfiltered list, and that the crew's GET reads withCrew null. Passing null instead of undefined or a flag is equivalent to the amendment's options."
+    },
+    {
+     "amendment": "(c) Mode-neutral refusal: exact message, data.code trip_cash_not_settled, data.receiptIds only the refused ids sorted by number, cheques refused too, contract JSDoc names cash and cheques",
+     "satisfied": true,
+     "detail": "The check runs after the status/mode loop and before the UPDATE, the journal post and the events, inside the same withTenant+idempotent transaction (service :895-920). It is one VALUES-list query built with sql.join, not = any(array), and it refuses rows whatever their mode. For one receipt the message is exactly the amendment's wording; the delivery spec asserts that exact string. data.code and receiptIds are set. The receivables spec refuses [office cash, crew cash, crew cheque] and asserts receiptIds = only the two crew ids in number order, all three stay collected, and there is no deposit entry. The deposit credit is receiptAccountCode(mode, null) (:930). JSDoc on the list withCrew, on the get withCrew and on DepositReceiptsInput all name cash and cheques. The plural message for more than one receipt is a documented grammatical extension (deviation 3)."
+    },
+    {
+     "amendment": "(d) Place the delivery specs by anchor (the // check-in comment and the settle test's it( title) and the receivables spec after the DOS-034 guard it(",
+     "satisfied": true,
+     "detail": "Read delivery.spec.ts in the worktree. Spec (1) and its helpers sit immediately before the `// check-in` divider (:1650-1651). Spec (2) (:1760) directly follows the end of 'returns, previews the cockpit and settles within tolerance…' (:1655-1758) and precedes `// the other crew's trip`. In receivables.spec.ts the new test (:1667) comes right after the DOS-034 guard it( (:1531), with no other it( between, and before the `// the receipt number (DOS-032 / DOS-059)` section."
+    },
+    {
+     "amendment": "(e) Frontend: manager Refusal unchanged; owner O11 dialog (.then(done, done)) not fixed here, the only owner change is the Bank it disabled guard; no new react-native/react-dom import",
+     "satisfied": true,
+     "detail": "The owner diff is limited to the Bank it Button's disabled/disabledReason in receipts.tsx plus the 'o11.withCrew' string; the dialogs and the bounce/reverse buttons are untouched. The manager Bank it uses the same guard with 'm9.withCrew'. No import lines changed in any frontend file. In both panels `receipt` comes from detail.data?.item, the same receipts.get response that carries withCrew, so there is no window where Bank it shows enabled before withCrew loads. Day-end and Today use identical inputs (withCrew: false) and keys ['receipts','collected','cash'|'cheque','office']. No other screen uses those keys, and the existing ['receipts'] invalidations still prefix-match them. manager-app and owner-app typecheck and lint exit 0."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/receivables/receivables.service.ts",
+     "detail": "Refusal wording (deviation 3): with more than one refused receipt the message reads 'receipts X, Y were taken … bank them …' instead of amendment (c)'s single-receipt template. The one-receipt wording is exact, and data.code and receiptIds (the machine contract) are unaffected. Grammatical extension only, documented by the implementer."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/receivables/receivables.service.ts",
+     "detail": "data.receiptIds is ordered by a string comparison of receipt numbers (:912). Numbers are padded to 4 digits (platform/numbering.ts:63), so past RCPT-9999 the string order differs from the numeric order (RCPT-10000 sorts before RCPT-9999). Only the order of ids in the error payload is affected."
+    },
+    {
+     "severity": "minor",
+     "file": "QA/tools/e2e/dos-132-day-end-trip-cash.mjs",
+     "detail": "Plan items this lane is barred from doing, left as follow-ups:\n- the E2E script, never created;\n- the service and app READMEs, not regenerated, so docs:readme:check will fail until pnpm docs:readme runs once on the merged tree (receipts.list input and receipts.get output changed);\n- pnpm smoke;\n- API verify steps 4-5 on a disposable copy;\n- the web, Android and iOS walks.\nNone of this was executed by the implementer or by me."
+    }
+   ],
+   "evidence": "SCOPE\n- git log -6: 460269e (DOS-132) sits on ed9ee4d (DOS-117) and b18cc68 (DOS-007).\n- git show --stat 460269e: 15 files, all named by the plan:\n  - contracts receivables.ts\n  - delivery internals, module and spec\n  - receivables index, queries, service and spec\n  - domain receipts.ts (comment only)\n  - manager index, day-end, money/index and strings\n  - owner receipts and strings\n- Not in the commit: generated READMEs, QA/, docs/22, permissions, schema, migrations.\n- Spec diffs are additions only; the single removed line is the delivery.spec import widened to add `type SQL`. No assertion was weakened, and testsCorrected is empty.\n\nFAIL BEFORE\n- Reversal: `git diff --text 460269e^ 460269e -- . <excludes> | git apply -R`. --text is needed because receivables.queries.ts holds pre-existing control characters and git treats it as binary. The plain command failed atomically and changed nothing.\n- `git diff --text --stat 460269e^` on the non-test files was empty afterwards. Contracts dist had no withCrew after `turbo run build --filter=@dos/core`.\n- `vitest run src/modules/delivery/delivery.spec.ts`: 2 failed / 24 passed of 26.\n  - Spec (1): \"expected 35400 to be +0\" (withCrew=false ignored, trip cash counted as in hand).\n  - Spec (2): \"expected { BANK: 35400, CASH_VAN: -35400 } to deeply equal { BANK: 35400, CASH: -35400 }\" (the deposit credits CASH_VAN again after settlement).\n- `vitest run src/modules/receivables/receivables.spec.ts`: 1 failed / 39 passed of 40, \"expected [ …(3) ] to deeply equal [ Array(1) ]\" (crew receipts listed as in hand).\n- Soft-assert copies of the DOS-132 tests (expect → expect.soft inside those tests only; temporary *.soft132.spec.ts files, deleted in the same command) showed every discriminating assertion also fails on the unfixed tree:\n  - get withCrew is undefined, not true or null;\n  - deposit answers 200, not 409;\n  - data.code, receiptIds and message are undefined;\n  - the receipt ends up deposited, not collected;\n  - a deposit journal entry exists (1, not 0);\n  - CASH_VAN net is -35400, not 0;\n  - the crew cheque on the trip is banked.\n- Restore: git checkout -- .; git status clean, git clean -n empty, `git diff --text --stat 460269e` empty; libraries rebuilt (contracts dist carries withCrew again).\n\nPASS AFTER (all executed by me on dos_test_b2_h1, DATABASE_POOL_MAX=3, one spec file per command)\n- delivery.spec.ts: 26/26.\n- receivables.spec.ts: 40/40.\n- @dos/domain src/receipts.test.ts: 2/2.\n- `pnpm --filter @dos/manager-service test`: 343/343. This boots the real manager composition, including DeliveryModule.onModuleInit, and runs the permission matrix.\n- `turbo run typecheck lint --filter=@dos/domain --filter=@dos/contracts --filter=@dos/core --force`: 9/9, 0 cached.\n- frontend `pnpm --filter @dos/manager-app typecheck`/`lint` and `@dos/owner-app typecheck`/`lint`: all exit 0.\n- prettier --check on every touched file in both workspaces: clean.\n\nCODE REVIEW\n- Boundaries: receivables never names trips in SQL. Delivery imports ReceivablesService only through receivables/index.ts. ReceivablesModule is a static module, so delivery registers into the same singleton the controller uses. Registration runs before the sync early return.\n- Compositions: every service with a money-desk role (owner, manager) mounts DeliveryModule. sales mounts receivables without delivery but serves only the salesperson, so withCrew and the gate are null or unapplied there.\n- The only product writer of status 'deposited' is depositReceipts; no sync handler, worker or offline path deposits.\n- QueryBoolSchema = union(boolean, stringbool), so the string 'false' parses to false.\n- Money stays in integer paise. No state column is set by hand. The deposit remains inside withTenant + idempotent, and the 409 rolls back the idempotency row.\n- Posting changes only at the deposit credit; receipt posting, reversal and settlement are unchanged, per the architect's decision.\n- No leftover temporary files.\n- Implementer deviations 4-7 are justified by the code:\n  - (4) getReceipt's withCrew depends only on trip state, so checking it after the deposit is equivalent;\n  - (5) the wider receivables spec is stronger;\n  - (6) the SQL doorstep lookup is guarded by expect(ids).toContain;\n  - (7) the inline type avoids an import cycle.\n  Deviation 8 (one accidental whole-core-suite run) had no code impact.\n\nNOT RUN (barred in this lane): pnpm smoke, docs:readme:check after regeneration, the E2E script, disposable-copy API steps, web/Android/iOS.\n\nFinal: git status clean, no untracked files, HEAD 460269e.\n\nOutputs saved in /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/:\n- verify132-delivery-before.txt, verify132-receivables-before.txt\n- verify132-delivery-soft-before.txt, verify132-receivables-soft-before.txt\n- verify132-delivery-after.txt, verify132-receivables-after.txt\n- verify132-manager-service.txt\n- verify132-{manager,owner}-app-{typecheck,lint}.txt"
+  }
+ ]
+}

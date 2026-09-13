@@ -1,0 +1,151 @@
+{
+ "id": "DOS-133",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-133",
+   "status": "fixed",
+   "commits": [
+    "16f1f4e"
+   ],
+   "failBefore": "Unfixed code, lane DB dos_test_b2_h2. Both DOS-133 specs failed at the newest-first assertion; every page came back 200, so neither failed at status=bogus:\n- FAIL DOS-133: packs.list status=awaiting_load ... → AssertionError: the pack made now tops the older pack whose id sorts higher: expected 'ffffffff-ffff-7fff-bfff-133053b24be0' to be '01a099b5-93e6-7754-b976-90a8162885ad' (warehouse.spec.ts:2076). The status filter was ignored and the page was id-ordered, so the back-dated hash-shaped id came first.\n- FAIL DOS-133: packs.list with no status ... → AssertionError: the pack made now tops the older pack whose id sorts higher: expected 'ffffffff-ffff-7fff-bfff-133153b24be0' to be '01a099b5-9711-72e0-9dc3-286208a07739' (warehouse.spec.ts:2136).\nSummary line: \"Tests 2 failed | 549 passed (551)\". The lane recipe `pnpm --filter @dos/core test -- <file> -t DOS-133` dropped the file filter and ran all 36 core spec files; only the two DOS-133 tests failed.",
+   "passAfter": "- `pnpm exec vitest run src/modules/warehouse/warehouse.spec.ts -t DOS-133` (in libs/core): 2 passed, 41 skipped, 1 file.\n- The whole warehouse.spec.ts: 43/43 passed, including DOS-023, DOS-039 and both DOS-133 specs.\n- `pnpm --filter @dos/warehouse-service test`: 253/253 passed.\n- contracts `src/contract.test.ts`: 4/4 passed.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/db --filter=@dos/core`: 9/9 tasks passed. The only warnings are the eslint-boundaries plugin's own deprecation notices.\n- `turbo run build --filter='./libs/*'`: 4/4 passed.\n- Frontend `pnpm --filter @dos/warehouse-app typecheck` and `lint`: both exit 0.\n- `prettier --check` on every changed file: clean.\n- `pnpm db:migrate` on dos_test_b2_h2 applied 0045. `\\d pack_confirmations` lists `pack_confirmations_created_idx btree (tenant_id, created_at, id)`.\n- EXPLAIN ANALYZE under `SET LOCAL ROLE app_rw` with app.tenant_id and actor_role=warehouse:\n  - The no-status page (limit 51) is `Index Scan Backward using pack_confirmations_created_idx`.\n  - The oracle on the lane DB returns SO-0862 only.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "name": "DOS-133: packs.list status=awaiting_load offers exactly the packed orders on no draft or confirmed load sheet, newest pack first by server time — a pack made now tops an older pack whose id sorts higher; an order on a draft sheet, one dispatched with no sheet and one returned onto a confirmed sheet are left out; loadSheets.create accepts every row offered and cancelling that sheet gives them back; the cursor walks each once"
+    },
+    {
+     "file": "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "name": "DOS-133: packs.list with no status is newest first by creation time — a pack made now tops a pack whose id sorts higher, and the cursor walks every pack of the tenant once in (created_at, id) order, with and without the invoiced filter"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/warehouse.ts",
+    "backend/libs/core/src/modules/orders/fulfilment.ts",
+    "backend/libs/core/src/modules/orders/orders.service.ts",
+    "backend/libs/core/src/modules/warehouse/packing.service.ts",
+    "backend/libs/core/src/modules/warehouse/load-sheets.service.ts",
+    "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+    "backend/libs/database/src/schema/warehouse.ts",
+    "backend/libs/database/migrations/0045_pack_confirmations_created_idx.sql",
+    "backend/libs/database/migrations/meta/0045_snapshot.json",
+    "backend/libs/database/migrations/meta/_journal.json",
+    "frontend/warehouse-app/app/load/index.tsx",
+    "frontend/warehouse-app/src/strings.ts",
+    "docs/23-app-screens-and-api-gaps.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Spec step (e): pack, packer creates the sheet, manager approves, packer confirms, return_undelivered; assert order packed, left out of awaiting_load, and loadSheets.create([returned]) answers 409",
+     "done": true,
+     "how": "Test 1 step (e) follows that sequence:\n- the packer builds a sheet with [returned];\n- the manager calls POST /warehouse/load-sheets/{id}/approve → 200;\n- the packer calls POST …/confirm { countedPackages: 1, challanId } → 200, status confirmed, dispatched [returned];\n- applyFulfilmentEvent(tx, returned, 'return_undelivered', null, 'DOS-133 spec') runs as the manager.\nIt then asserts:\n- orderState is 'packed';\n- POST /warehouse/load-sheets with [returned] → 409 matching /already on load sheet/;\n- in step (f), the returned order is absent from the awaiting_load walk."
+    },
+    {
+     "amendment": "(b) Both correlated predicates carry an explicit tenant fence",
+     "done": true,
+     "how": "- orderInState renders `so.tenant_id = ${currentTenant().tenantId} and so.id = ${orderId} and so.state = ${state}`, with state bound as a parameter, never sql.raw.\n- onLiveLoadSheet renders `ls.tenant_id = ${tenantId} and ls.status <> 'cancelled' and ls.order_ids @> jsonb_build_array(${orderId})`."
+    },
+    {
+     "amendment": "(c) orderInState lives in orders/fulfilment.ts, is re-exposed only on OrdersService, and its JSDoc names it the one sanctioned cross-module predicate; index.ts files, warehouse.internals.ts and load-sheets.service.ts not edited (the last comment-only if DOS-043 merged)",
+     "done": true,
+     "how": "- `export function orderInState(orderId: SQLWrapper, state: OrderState): SQL` was added to fulfilment.ts. Its JSDoc says it is THE ONE SANCTIONED CROSS-MODULE PREDICATE and that no module outside orders may name sales_orders.\n- OrdersService.orderInState delegates to it.\n- warehouse/index.ts, orders/index.ts and warehouse.internals.ts are untouched.\n- load-sheets.service.ts got a comment-only change, allowed because DOS-043 is already merged in this lane (5499c86)."
+    },
+    {
+     "amendment": "(d) The live-sheet rule exists twice; each JSDoc names the other and the DOS-133 spec; the implementation uses @>, the spec oracle jsonb_array_elements_text",
+     "done": true,
+     "how": "- The JSDoc on the private onLiveLoadSheet (packing.service.ts) names LoadSheetsService.onALiveSheet and the DOS-133 spec as the tie.\n- The JSDoc on onALiveSheet (load-sheets.service.ts) names onLiveLoadSheet, packs.list?status=awaiting_load and the DOS-133 spec.\n- Both say a fix to the 'a returned bill can never be re-loaded' residual changes both.\n- The implementation uses `@> jsonb_build_array(...)`; the spec oracle uses `jsonb_array_elements_text`."
+    },
+    {
+     "amendment": "(e) DOS-133 builds after DOS-043 and before DOS-131+137; the W7 edit goes on the DOS-043 version of load/index.tsx and strings.ts",
+     "done": true,
+     "how": "Built on the current lane file, the DOS-043 version with today's vehicle picker. Unchanged: the header, chosen/toggle, the vehicles query, the create mutation and newId.\nWhat DOS-131+137 needs is in place:\n- `const packed = useQuery(['packs', 'awaitingLoad', packedLimit], () => api.api.warehouse.packs.list({ status: 'awaiting_load', limit: packedLimit }), { enabled: signedIn })`;\n- the ListRow keeps key, testID, state and onPress;\n- secondary is one template string with ` · Packed <IST>` appended;\n- w7.packedAt, w7.packedMore and w7.packedCapped sit right after w7.packedEmpty.\npacks.list got no trip parameter."
+    },
+    {
+     "amendment": "(f) Migration takes the lane's next free index, generated by drizzle-kit, with no hand-written sibling",
+     "done": true,
+     "how": "- `drizzle-kit generate --name pack_confirmations_created_idx` produced 0045_pack_confirmations_created_idx.sql, containing only `CREATE INDEX \"pack_confirmations_created_idx\" ON \"pack_confirmations\" USING btree (\"tenant_id\",\"created_at\",\"id\")`.\n- It also produced meta/0045_snapshot.json (prevId 71fb2489…, which is 0044's id) and one new journal entry.\n- A JSON diff of the 0045 snapshot against 0044 shows only the added index.\n- No sibling migration.\n- If h7's 0045/0046 merge first, the main session deletes these three artifacts and regenerates; they are never renumbered."
+    },
+    {
+     "amendment": "(g) Every packs.list caller changes order (W1, W5, W6, M20, manager billing desk); the verifier opens W1, W5 and M20 once; no code change there",
+     "done": true,
+     "how": "No code change in those screens. The server-side order change applies to every packs.list call, and the no-status DOS-133 spec proves it with and without the invoiced filter. Opening W1, W5 and M20 is left to the verifier: this lane forbids dev servers."
+    }
+   ],
+   "deviations": "1. `fullWidth={false}` was added to the 'Show older packs' ghost Button. The kit's Button fills its parent by default; W4's panel-head ghost buttons (pick/index.tsx) document that without this flag they overflowed on the phone.\n2. The literals 50 and 200 became the named constants PACKED_FIRST and PACKED_CAP. Create's orderIds cap of max(200) was re-checked in the contract.\n3. The two tests share two spec helpers, `walkPacks(actor, filter, limit)` and `packBackDated(tag, packId)`.\n   - Test 1 reads awaiting_load as the warehouse actor (W7's role); test 2 reads as the manager.\n   - The plan's separate 'count equal' check is covered by the ordered-array toEqual against the oracle.\n4. The red run used the lane recipe `pnpm --filter @dos/core test -- <file> -t DOS-133`, which ran all 36 core spec files (pnpm forwards `--` and vitest drops the file filter). Every later run used `pnpm exec vitest run <file>` inside libs/core, so each command ran exactly one file.\n5. `pnpm format` in backend also rewrote backend/libs/core/src/modules/pricing/pricing.spec.ts, which predates this fix (formatting drift from the DOS-096 merge). I restored that one file in this worktree with `git checkout --`; it is not committed.",
+   "followUps": "- **READMEs:** after the rebase, the main session must run `pnpm docs:readme`. GET /warehouse/packs gains a `status` query row, so docs:readme:check fails until then; it was not run here, per the lane rules.\n- **Formatting on main:** pricing.spec.ts (the DOS-096 lines around :601-612) is not prettier-formatted, so backend `pnpm format:check` fails on main regardless of this fix.\n- **Migration clash:** if lane h7 (DOS-166, 0045/0046) merges first:\n  - delete 0045_pack_confirmations_created_idx.sql, meta/0045_snapshot.json and its _journal entry;\n  - rebase, then re-run `drizzle-kit generate --name pack_confirmations_created_idx`, never renumbering.\n- **Planner evidence on the lane DB:**\n  - Tarsun's tenant id in this fixed-seed copy is 01a0999a-28c3-7341-93f5-e0e84b0189a1, not the plan's 01a0947d….\n  - The no-status page is an Index Scan Backward on the new index.\n  - For awaiting_load, a hand-written equivalent of the generated predicate ran under app_rw with the warehouse role. The planner chose a Hash Join with Seq Scan on pack_confirmations (840 tarsun rows of 1 504) and on sales_orders (9 packed), then a Nested Loop Anti Join over 83 live sheets.\n  - At this volume tarsun is about 56% of the table, so the verdict's 'no Seq Scan of pack_confirmations' check will not hold here. With a tenant that has no rows, the planner picked sales_orders_updated_idx + pack_confirmations_order_uniq.\n  - The architect may want to restate that criterion, or check it at multi-tenant volume.\n- **Verifier still to walk:**\n  - W7 on web at 1280/375 and on Android: the oracle rows, 'Packed 11 Sep, 11:30 am' for SO-0862, build → row gone, cancel → row back;\n  - W1, W5 and M20 newest first (amendment g);\n  - `pnpm smoke --service warehouse --only GET`.\n  - iOS is not walked.\n- **Out of scope, unfixed (the verdict's new findings):**\n  - a bill returned undelivered can never be loaded again (P1);\n  - fulfilmentQueue is still id-ordered (P1);\n  - loadSheets.list, and W7's LOAD SHEETS panel, are still id-ordered (P2);\n  - no GIN index serves load_sheets.order_ids (P3);\n  - packedAt comes from the Node clock (P3).\n  - The decision to leave DOS-139 as option (b) stands: a cancelled bill such as SO-0909 / INV/9014 is still offered.\n- **Next in lane:** DOS-131+137 builds W7 on this file and narrows the awaiting_load rows on the client only.\n- **Lane recipe:** `pnpm --filter <pkg> test -- <file>` runs the whole package; the one-file form is `pnpm exec vitest run <file>` inside the package.\n- **Docs:** docs/22 and docs/18 were not edited; this is a technical definition, not a product decision. docs/23's W7 row was updated.",
+   "platformCheck": "- **API:** proven through the Nest inject harness.\n  - warehouse.spec.ts passes 43/43; its two DOS-133 specs cover awaiting_load parity with loadSheets.create, the keyset cursor walk and status=bogus → 400.\n  - warehouse-service's permission-matrix/smoke spec passes 253/253.\n  - No live service or `pnpm smoke` was run: the lane forbids dev servers.\n- **DB:** migration 0045 applied to dos_test_b2_h2, `\\d` shows the index, and EXPLAIN ANALYZE was recorded under app_rw.\n- **Web:** @dos/warehouse-app typecheck and lint pass. There was no browser walk (dev servers are forbidden), and `expo export` (frontend build) was not run.\n- **Android and iOS:** shared screen code, not walked; emulators and simulators are forbidden in this lane."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-133",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Spec step (e): pack, packer builds sheet, manager approves, packer confirms, return_undelivered; assert packed, left out of awaiting_load, and create([returned]) answers 409",
+     "satisfied": true,
+     "detail": "warehouse.spec.ts test 1 step (e):\n- the packer POSTs /warehouse/load-sheets [returned];\n- the manager POSTs …/approve → 200;\n- the packer POSTs …/confirm {countedPackages:1, challanId} → 200, confirmed, dispatched [returned];\n- applyFulfilmentEvent 'return_undelivered' runs as the manager.\nIt then asserts orderState 'packed' and that create([returned]) answers 409 /already on load sheet/. Step (f) asserts the returned order is not among the offered orders. The spec passes with the fix."
+    },
+    {
+     "amendment": "(b) Both correlated predicates carry an explicit tenant fence",
+     "satisfied": true,
+     "detail": "- fulfilment.ts orderInState: `so.tenant_id = ${tenantId} and so.id = ${orderId} and so.state = ${state}`. tenantId comes from currentTenant(), state is a bound parameter, never sql.raw.\n- packing.service.ts onLiveLoadSheet: `ls.tenant_id = ${tenantId} and ls.status <> 'cancelled' and ls.order_ids @> jsonb_build_array(${orderId})`."
+    },
+    {
+     "amendment": "(c) orderInState lives in orders/fulfilment.ts and is re-exposed only on OrdersService, with a JSDoc naming it the one sanctioned cross-module predicate. index.ts files and warehouse.internals.ts are not edited; load-sheets.service.ts only as a comment, since DOS-043 is merged",
+     "satisfied": true,
+     "detail": "- `export function orderInState(orderId: SQLWrapper, state: OrderState): SQL` is in fulfilment.ts. Its JSDoc says 'THE ONE SANCTIONED CROSS-MODULE PREDICATE' and 'No module outside orders may name sales_orders'.\n- OrdersService.orderInState delegates to it.\n- git show --stat: warehouse/index.ts, orders/index.ts and warehouse.internals.ts are untouched.\n- load-sheets.service.ts has a JSDoc-only hunk. DOS-043 is merged in the lane (5499c86).\n- Lint, including eslint-boundaries, passes for core."
+    },
+    {
+     "amendment": "(d) Live-sheet rule exists twice; each JSDoc names the other and the DOS-133 spec; implementation uses @>, oracle uses jsonb_array_elements_text",
+     "satisfied": true,
+     "detail": "- The onLiveLoadSheet JSDoc names LoadSheetsService.onALiveSheet and the DOS-133 spec as the tie.\n- The onALiveSheet JSDoc names onLiveLoadSheet in packing.service.ts, packs.list?status=awaiting_load and the DOS-133 spec.\n- Both say a fix to the returned-bill residual changes both.\n- The implementation uses `@> jsonb_build_array`. The spec oracle uses `load_sheets ls, jsonb_array_elements_text(ls.order_ids) o ... o.value = pc.order_id`."
+    },
+    {
+     "amendment": "(e) DOS-133 after DOS-043 and before DOS-131+137; W7 edit on the DOS-043 file; ruling: leave query name/prefix, status only new input, ListRow key/testID/state/onPress, one secondary string, strings after w7.packedEmpty",
+     "satisfied": true,
+     "detail": "- Lane history: fcb0d77 → 16f1f4e on top of the DOS-043 merge 5499c86. DOS-131+137 is not in the lane.\n- load/index.tsx keeps the vehicle picker, chosen/toggle, the create mutation and newId.\n- The query is `const packed = useQuery(['packs','awaitingLoad',packedLimit], () => …packs.list({ status: 'awaiting_load', limit: packedLimit }), { enabled: signedIn })`.\n- The ListRow keeps key={pack.id}, testID w7-packed-${orderId}, the selected/default state, onPress toggle, and one secondary template string with ` · Packed {when}`.\n- PackListItemSchema is unchanged, and packs.list gains no trip parameter.\n- strings.ts inserts w7.packedAt, w7.packedMore and w7.packedCapped right after w7.packedEmpty."
+    },
+    {
+     "amendment": "(f) Migration takes the lane's next free index, drizzle-generated, no hand-written sibling",
+     "satisfied": true,
+     "detail": "- 0045_pack_confirmations_created_idx.sql holds only the CREATE INDEX (tenant_id, created_at, id).\n- 0045_snapshot prevId 71fb2489… equals 0044's id. A JSON diff of the 0044 and 0045 snapshots shows only the added index. There is one new journal entry, idx 45, and no sibling.\n- Scratch DB dos_test_b2_h2_mig: migrating on the reversed tree applied 45 migrations and no created_idx. On the restored tree it applied 0045: 46 rows, the index is present and relforcerowsecurity is still true. The scratch DB was then dropped."
+    },
+    {
+     "amendment": "(g) Every packs.list caller changes order (W1, W5, W6, M20, billing desk); verifier opens W1, W5, M20; no code change there",
+     "satisfied": true,
+     "detail": "- No code change in those screens: they are not in the diff.\n- The server ordering is applied unconditionally in PackingService.list (created_at desc, id desc, keyset cursor).\n- Test 2 proves newest-first with no filter and with invoiced=true.\n- A grep shows no packs.list caller reads nextCursor for paging, so the cursor-semantics change breaks no app.\n- The W1/W5/M20 browser walk was NOT performed: dev servers are forbidden in this lane."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/warehouse/packing.service.ts",
+     "detail": "The verdict's EXPLAIN criterion for awaiting_load does not hold on the lane DB. It asks for a plan that starts from sales_orders_state_idx or pack_confirmations_created_idx, with no Seq Scan of pack_confirmations.\n- Under app_rw with the warehouse role, the planner picks Seq Scan pack_confirmations (840 of 1 511 rows) and Seq Scan sales_orders, then a Hash Join and a Nested Loop Anti Join over 83 live sheets: 2.2 ms.\n- With enable_seqscan=off it uses bitmap scans on the tenant_id prefix of pack_confirmations_updated_idx and sales_orders_no_idx, never sales_orders_state_idx.\n- Cause: enum_eq has proleakproof=false, so under RLS `state = 'packed'` cannot become an index condition.\nThis is a planner and RLS property, not a code defect. The architect should restate that criterion. The no-status page criterion holds: Index Scan Backward using pack_confirmations_created_idx."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/warehouse-app/app/load/index.tsx",
+     "detail": "No running product was walked here: dev servers, emulators and simulators are forbidden in this lane. Not walked:\n- W7 at 1280 and 375 px on web and on Android: oracle rows, 'Packed 11 Sep, 11:30 am', Build removes the row, cancel brings it back;\n- W1, W5 and M20 newest first (amendment g);\n- the live GET :3004 checks and `pnpm smoke --service warehouse --only GET`;\n- iOS.\nNo spec covers invoiced=false (W1 home, manager billing desk), although it uses the same unconditional orderBy."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/warehouse-service/README.md",
+     "detail": "GET /warehouse/packs gains a `status` query parameter, so backend `pnpm docs:readme:check` fails until the main session runs `pnpm docs:readme` after merge. This is expected under the lane rules and recorded in the implementer's followUps."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "detail": "`vitest -t \"DOS-023|DOS-039\"` fails 2 tests, because the filter skips the earlier tests they build on:\n- DOS-039 confirms: 400 at :1012, confirming a sheetId that a skipped test builds;\n- DOS-023: 'expected 1 to be >= 2' at :2311.\nThe whole file passes 43/43 with the fix, DOS-023 and DOS-039 included. This is order dependence that predates this fix, not a regression; noted so nobody reads a filtered run as red."
+    }
+   ],
+   "evidence": "**Scope.** Worktree b2-h2-trips, HEAD 16f1f4e on fcb0d77.\n- 13 files, matching the amended plan: contracts warehouse.ts, orders fulfilment.ts and orders.service.ts, packing.service.ts, load-sheets.service.ts (JSDoc only), warehouse.spec.ts, schema warehouse.ts, migration 0045 with its snapshot and journal, docs/23 (W7 line), W7 load/index.tsx and strings.ts.\n- No READMEs, no QA/ files, no docs/22 or docs/18, no index.ts or warehouse.internals.ts.\n- No permissions.ts change. Contract change: the additive `PackListStatusSchema`, `PacksListInput.status` and a header comment.\n\n**Fail before.**\n- Reversed the non-test diff with `git diff 16f1f4e^ 16f1f4e -- . ':(exclude)**/*.spec.ts' … | git apply -R` and rebuilt contracts, db and core with turbo.\n- Ran `pnpm exec vitest run src/modules/warehouse/warehouse.spec.ts -t DOS-133` in libs/core against dos_test_b2_h2: 2 failed, 41 skipped.\n  - Test 1 got 200 pages and failed at step (f): \"the pack made now tops the older pack whose id sorts higher: expected 'ffffffff-ffff-7fff-bfff-13302c2fc5ac' to be '01a099c4-420f-…'\" (:2070). Steps (a) to (e) passed first, including approve, confirm, return and create 409.\n  - Test 2 failed the same way: expected 'ffffffff-…-13312c2fc5ac' to be '01a099c4-463b-…' (:2130).\n  - This is the finding's cause: status ignored, id-ordered page.\n- Restored with `git checkout -- .`. git status was clean (untracked-files=all), and I rebuilt the libs.\n\n**Migration proof.**\n- Created scratch dos_test_b2_h2_mig (template0).\n- Reversed tree: `pnpm db:migrate` gave 45 journal rows and indexes order_uniq, pkey and updated_idx only.\n- Restored tree: migrate applied 0045, giving 46 rows, `CREATE INDEX pack_confirmations_created_idx … (tenant_id, created_at, id)`, and relforcerowsecurity=t.\n- Dropped the scratch DB; only dos_test_b2_h2 remains.\n\n**Pass after.**\n- warehouse.spec.ts, whole file: 43/43 passed.\n- Verbose `-t DOS-133|DOS-023|DOS-039`: both DOS-133 tests and DOS-039 'sends out' pass. DOS-039 'confirms' and DOS-023 fail only because the filter skips their setup (400 confirming a never-built sheetId; a sheet count of 1 < 2). Both pass in the whole-file run.\n- `pnpm --filter @dos/warehouse-service test`: 253/253.\n- contracts src/contract.test.ts: 4/4.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/db --filter=@dos/core`: 9/9 successful.\n- Frontend `@dos/warehouse-app` typecheck and lint: exit 0 each.\n- prettier --check is clean on all 9 changed source files.\n\n**Database, lane DB, under SET LOCAL ROLE app_rw with tarsun 01a0999a-… and actor_role warehouse.**\n- `\\d pack_confirmations` lists the new index.\n- The no-status limit-51 page is `Index Scan Backward using pack_confirmations_created_idx`, with and without an explicit tenant_id.\n- The awaiting_load oracle returns SO-0862 only.\n- The awaiting_load plan hash-joins over seq scans (2.2 ms). With seq scans off it still never uses sales_orders_state_idx, because enum_eq is not leakproof (proleakproof=f).\n\n**Diff review.**\n- No weakened or deleted assertion; testsCorrected is empty.\n- Both specs sit between 'answers 401…' (:1902) and the DOS-039 KEEP comment.\n- The oracle uses create's jsonb_array_elements_text form, not the implementation's @>.\n- The keyset cursor copies DOS-023: a `(created_at, id) <` subquery, no filter, and an unknown cursor matches nothing.\n- Everything runs inside withTenant; no RLS bypass. No mutation added, no state set by hand, no money or quantity change.\n- The screen imports only @dos/ui, @dos/ui/platform, @dos/api-client, expo-router and react, and uses no fetch.\n- The ['packs'] cache prefix is kept, so Build's invalidation still refreshes the list.\n- Show-older appears only while nextCursor is non-null and the limit is under 200; the capped note shows at 200 with a cursor. The pack time uses instantWithClock (IST).\n- No other packs.list caller pages with a cursor.\n- No leftover temp files. Final git status is clean at 16f1f4e."
+  }
+ ]
+}
