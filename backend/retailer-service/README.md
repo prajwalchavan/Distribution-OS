@@ -163,7 +163,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
-| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (needs the driver's location consent) | owner, manager, warehouse, delivery |
+| POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
@@ -17641,9 +17641,9 @@ request.json
 
 ### POST `/delivery/trips/{id}/depart`
 
-Start the trip: loading → active (needs the driver's location consent) · contract `delivery.trips.depart`
+Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) · contract `delivery.trips.depart`
 
-**Roles:** owner, manager, warehouse, delivery
+**Roles:** owner, manager, delivery
 
 **Request body**
 
