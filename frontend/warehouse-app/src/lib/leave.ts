@@ -48,16 +48,35 @@ function say(key: LeaveKey, params: Readonly<Record<string, string | number>>): 
   })
 }
 
+/** A count of exactly 1 takes its `.one` sentence: "1 change has", never "1 changes have". */
+function counted(n: number, many: LeaveKey, one: LeaveKey): string {
+  return n === 1 ? say(one, {}) : say(many, { n })
+}
+
+/**
+ * Which body, by what waits: queued changes go the next time; refused ones wait in Needs attention and never
+ * go by themselves, so a sheet holding refusals never promises that they will.
+ */
+function bodyKey(mode: LeaveMode, queued: boolean, refused: boolean): LeaveKey {
+  if (mode === 'signOut') {
+    if (!refused) return 'leave.bodySignOut'
+    return queued ? 'leave.bodySignOutBoth' : 'leave.bodySignOutRefused'
+  }
+  if (!refused) return 'leave.bodySwitch'
+  return queued ? 'leave.bodySwitchBoth' : 'leave.bodySwitchRefused'
+}
+
 export function leaveSentence(input: LeaveSentenceInput): LeaveSentence {
-  const refused = input.rejected > 0 ? say('leave.attention', { n: input.rejected }) : null
-  const queued = input.pending > 0 ? say('leave.title', { n: input.pending }) : null
+  const queued = input.pending > 0
+  const refused = input.rejected > 0
+  const attention = counted(input.rejected, 'leave.attention', 'leave.attention.one')
   return {
-    title: queued ?? refused ?? say('leave.title', { n: 0 }),
-    attention: queued === null ? null : refused,
-    body:
-      input.mode === 'signOut'
-        ? say('leave.bodySignOut', { name: input.name })
-        : say('leave.bodySwitch', { tenantName: input.tenantName }),
+    title: queued ? counted(input.pending, 'leave.title', 'leave.title.one') : attention,
+    attention: queued && refused ? attention : null,
+    body: say(bodyKey(input.mode, queued, refused), {
+      name: input.name,
+      tenantName: input.tenantName,
+    }),
   }
 }
 

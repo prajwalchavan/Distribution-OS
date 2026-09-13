@@ -93,7 +93,7 @@ describe('DOS-167 the warehouse leave sheet', () => {
       name: DINESH,
       tenantName: TARSUN,
     })
-    expect(both.title).toBe('1 changes have not reached the office')
+    expect(both.title).toBe('1 change has not reached the office')
     expect(both.attention).toBe('2 need attention')
 
     // A switch names the distributor the changes wait for, not the person.
@@ -132,6 +132,76 @@ describe('DOS-167 the warehouse leave sheet', () => {
     expect(asked.length).toBeGreaterThan(0)
     for (const key of asked)
       if (key !== 'action.cancel') expect(catalogue[key], key).toBeTypeOf('string')
+  })
+
+  it("DOS-167 the sheet counts one change in the singular, tells the truth about refusals, and keeps every button under the kit's 20 characters", () => {
+    // One pick confirmed in the back of the shed with no signal.
+    const one = leaveSentence({
+      mode: 'signOut',
+      pending: 1,
+      rejected: 0,
+      name: DINESH,
+      tenantName: TARSUN,
+    })
+    // One pick the office refused and nothing queued: it waits in Needs attention, it does not go.
+    const refusedOnly = leaveSentence({
+      mode: 'signOut',
+      pending: 0,
+      rejected: 1,
+      name: DINESH,
+      tenantName: TARSUN,
+    })
+    const refusedSwitch = leaveSentence({
+      mode: 'switch',
+      pending: 0,
+      rejected: 2,
+      name: DINESH,
+      tenantName: TARSUN,
+    })
+    // Two queued and one refused: the sheet tells the two apart.
+    const both = leaveSentence({
+      mode: 'signOut',
+      pending: 2,
+      rejected: 1,
+      name: DINESH,
+      tenantName: TARSUN,
+    })
+    const NEW_KEYS = [
+      'leave.title.one',
+      'leave.attention.one',
+      'leave.bodySignOutRefused',
+      'leave.bodySignOutBoth',
+      'leave.bodySwitchRefused',
+      'leave.bodySwitchBoth',
+    ]
+    const BUTTON_KEYS = ['leave.sendNow', 'leave.signOutKeep', 'leave.switchAnyway']
+
+    expect({
+      oneTitle: one.title,
+      refusedOnlyTitle: refusedOnly.title,
+      refusedOnlyAttention: refusedOnly.attention,
+      refusedOnlySaysTheyWait: refusedOnly.body.includes('do not go by themselves'),
+      refusedOnlyPromisesTheyGo: refusedOnly.body.includes('go the next time'),
+      refusedSwitchSaysTheyWait: refusedSwitch.body.includes('do not go by themselves'),
+      bothAttention: both.attention,
+      bothNamesTheQueued: both.body.includes('queued ones'),
+      bothNamesTheRefused: both.body.includes('needing attention'),
+      missingKeys: NEW_KEYS.filter((key) => typeof catalogue[key] !== 'string'),
+      // types.ts: a button label is at most 20 characters.
+      longButtons: BUTTON_KEYS.filter((key) => (catalogue[key] ?? '').length > 20),
+    }).toEqual({
+      oneTitle: '1 change has not reached the office',
+      refusedOnlyTitle: '1 needs attention',
+      refusedOnlyAttention: null,
+      refusedOnlySaysTheyWait: true,
+      refusedOnlyPromisesTheyGo: false,
+      refusedSwitchSaysTheyWait: true,
+      bothAttention: '1 needs attention',
+      bothNamesTheQueued: true,
+      bothNamesTheRefused: true,
+      missingKeys: [],
+      longButtons: [],
+    })
   })
 
   it('DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count', async () => {
@@ -231,7 +301,7 @@ describe('DOS-167 the warehouse leave sheet', () => {
     await expect(sendNowThenLeave({ mode: 'signOut' }, sendFailed.steps)).resolves.toBe('ask')
     expect(sendFailed.calls).toEqual(['sendNow'])
 
-    // "Sign out, keep them here" keeps the queue and does not sweep; "Switch anyway" only switches.
+    // "Sign out, keep here" keeps the queue and does not sweep; "Switch anyway" only switches.
     const keep = phone({})
     await leaveNow({ mode: 'signOut' }, true, keep.steps)
     expect(keep.calls).toEqual(['end keepQueue=true', 'signOut'])

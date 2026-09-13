@@ -205,7 +205,7 @@ one distributorship (DOS-167, §2) and is checked at open before any read (§5).
 cleared: with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
 other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
-person and offers "Send now" only while online, or "Sign out, keep them here": the file keeps only that queue and its refusals, for
+person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
 that person only, and they go out the next time that person signs in on this phone, before the re-snapshot. Discarding is never
 offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
 queue in that person's file the same way (§14). Decided by the founder, 2026-09-13.
