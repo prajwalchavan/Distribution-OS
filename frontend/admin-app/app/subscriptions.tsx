@@ -41,6 +41,7 @@ import {
   showingCount,
   subscriptionFamily,
   textColumn,
+  useCan,
 } from '../src/lib/ui'
 import { SubscriptionEditor } from '../src/lib/subscription'
 import { daysFromToday, longDate } from '../src/lib/dates'
@@ -62,6 +63,8 @@ export default function Subscriptions(): React.JSX.Element {
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
+  const can = useCan()
+  const mayEdit = can('admin.subscriptions.upsert')
 
   const [status, setStatus] = useState<SubscriptionStatus | null>(null)
   const [plan, setPlan] = useState<TenantPlan | null>(null)
@@ -220,20 +223,23 @@ export default function Subscriptions(): React.JSX.Element {
             emptyMessage={t('p5.empty')}
             onSelect={(row) => {
               setSelected(row.id)
-              setEditing(true)
+              // Only a level that may change a subscription opens the editor (DOS-106): super, billing.
+              if (mayEdit) setEditing(true)
             }}
           />
         </Async>
         {current === null ? null : (
           <Row gap={3} wrap>
-            <Button
-              label={t('p5.edit')}
-              variant="secondary"
-              testID="edit-subscription"
-              onPress={() => {
-                setEditing(true)
-              }}
-            />
+            {mayEdit ? (
+              <Button
+                label={t('p5.edit')}
+                variant="secondary"
+                testID="edit-subscription"
+                onPress={() => {
+                  setEditing(true)
+                }}
+              />
+            ) : null}
             <Button
               label={t('p3.doneOpen')}
               variant="ghost"
@@ -246,7 +252,7 @@ export default function Subscriptions(): React.JSX.Element {
         )}
       </Stack>
 
-      {current === null ? null : (
+      {current === null || !mayEdit ? null : (
         <SubscriptionEditor
           open={editing}
           onClose={() => {

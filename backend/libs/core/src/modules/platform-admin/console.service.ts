@@ -26,7 +26,12 @@ import {
 } from '@dos/db'
 import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
 import { platformCounts } from './counts.js'
-import { platformActorId, requireActiveAdmin, statusToWire, withPlatform } from './internals.js'
+import {
+  platformActorId,
+  requireActiveAdminLevel,
+  statusToWire,
+  withPlatform,
+} from './internals.js'
 
 type UsersIn = z.infer<typeof AdminUsersListInput>
 type AuditIn = z.infer<typeof AdminAuditListInput>
@@ -62,8 +67,10 @@ export class PlatformConsoleService {
    */
   async listUsers(input: UsersIn): Promise<AdminUsersList> {
     const db = requireDb(this.db)
-    await this.assertActive(db)
+    const actorId = platformActorId()
     return withSystem(db, async (tx) => {
+      // A closed, locked or unlisted console account reads nothing, checked in this very transaction.
+      await requireActiveAdminLevel(tx, actorId, 'admin.users.list')
       const q = input.q?.trim()
       const rows = await tx
         .selectDistinct({ user: users })
@@ -125,10 +132,26 @@ export class PlatformConsoleService {
   async disableUser(input: AdminUserDisableIn): Promise<AdminUserItem> {
     const db = requireDb(this.db)
     const actorId = platformActorId()
-    await this.assertActive(db)
     return withSystem(db, async (tx) => {
+      await requireActiveAdminLevel(tx, actorId, 'admin.users.disable')
+      // Lock BOTH identities, in id order, and re-read the actor under that lock. Two supers pressing
+      // "Lock this login" on each other at the same instant serialise here: the second waits for the
+      // first to commit, then finds its own login locked. Id order means two disables never deadlock,
+      // and a sign-in or a refresh writes a single `users` row, so there is no cycle with those either.
+      const locked = await tx
+        .select({ id: users.id, status: users.status })
+        .from(users)
+        .where(inArray(users.id, [actorId, input.id]))
+        .orderBy(asc(users.id))
+        .for('update')
+      if (locked.find((row) => row.id === actorId)?.status !== 'active') {
+        throw new ORPCError('FORBIDDEN', { message: 'This console account is no longer active' })
+      }
       const [target] = await tx.select().from(users).where(eq(users.id, input.id)).limit(1)
       if (!target) throw new ORPCError('NOT_FOUND', { message: `no user ${input.id}` })
+      // Why the platform can never be left without an active super administrator through the API:
+      // only a super reaches this line (the level gate above), a super may not lock themselves (below),
+      // and the acting super is proven still active at commit by the row lock above.
       if (target.id === actorId) {
         throw new ORPCError('CONFLICT', {
           message: 'you cannot lock yourself out of the console; ask another super administrator',
@@ -183,7 +206,7 @@ export class PlatformConsoleService {
   async metrics(input: { days: number }): Promise<AdminMetrics> {
     const db = requireDb(this.db)
     const tenantRows = await withPlatform(db, async (tx) => {
-      await requireActiveAdmin(tx)
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.metrics.overview')
       return {
         byStatus: await tx
           .select({ status: tenants.status, n: sql<string>`count(*)` })
@@ -240,7 +263,7 @@ export class PlatformConsoleService {
   async audit(input: AuditIn): Promise<AdminAuditList> {
     const db = requireDb(this.db)
     return withPlatform(db, async (tx) => {
-      await requireActiveAdmin(tx)
+      await requireActiveAdminLevel(tx, platformActorId(), 'admin.audit.list')
       const from = input.from ? new Date(`${input.from}T00:00:00+05:30`) : null
       const to = input.to ? new Date(`${input.to}T23:59:59.999+05:30`) : null
       const rows = await tx
@@ -288,11 +311,6 @@ export class PlatformConsoleService {
         )
       return { items, nextCursor: rows.length > input.limit && last ? last.entry.id : null }
     })
-  }
-
-  /** One indexed lookup before any cross-tenant read: a closed console account reads nothing. */
-  private async assertActive(db: Db): Promise<void> {
-    await withPlatform(db, (tx) => requireActiveAdmin(tx))
   }
 
   private async membershipsOf(

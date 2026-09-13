@@ -15,10 +15,12 @@ import { useRouter } from 'expo-router'
 
 import { Async, Field, Note, Panel, deviceLabel } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
+import { useWord } from '../src/lib/words'
 import { APP } from '../src/config'
 
 export default function Account(): React.JSX.Element {
   const t = useStrings()
+  const word = useWord()
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
@@ -38,7 +40,7 @@ export default function Account(): React.JSX.Element {
           <Stack gap={3}>
             <Field label={t('p9.name')}>{session?.user.name ?? '—'}</Field>
             <Field label={t('p9.username')}>{session?.user.username ?? '—'}</Field>
-            <Field label={t('p9.roleLabel')}>{t('word.platform_admin')}</Field>
+            <Field label={t('p9.roleLabel')}>{word(session?.level)}</Field>
           </Stack>
         </Panel>
 

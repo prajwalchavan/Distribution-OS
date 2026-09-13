@@ -624,7 +624,8 @@ request.json
     "locale": "en-IN",
     "mustChangePassword": true
   },
-  "role": "platform_admin"
+  "role": "platform_admin",
+  "level": "super"
 }
 ```
 
@@ -715,7 +716,8 @@ request.json
     "locale": "en-IN",
     "mustChangePassword": true
   },
-  "role": "platform_admin"
+  "role": "platform_admin",
+  "level": "super"
 }
 ```
 
@@ -786,6 +788,7 @@ curl "http://localhost:3000/auth/platform/me" \
     "mustChangePassword": true
   },
   "role": "platform_admin",
+  "level": "super",
   "session": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",

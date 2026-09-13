@@ -1,4 +1,4 @@
-import type { MembershipRole, PlatformRole } from './common.js'
+import type { MembershipRole, PlatformAdminLevel, PlatformRole } from './common.js'
 import { contract, type AppContract } from './contract.js'
 
 /**
@@ -990,6 +990,63 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'admin.users.disable': PLATFORM,
   'admin.metrics.overview': PLATFORM,
   'admin.audit.list': PLATFORM,
+}
+
+/** Dotted path of a platform-console procedure, e.g. 'admin.tenants.suspend'. */
+export type AdminProcedurePath = Extract<ProcedurePath, `admin.${string}`>
+
+const CONSOLE_SUPER = ['super'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_SUPPORT_DESK = ['super', 'support'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_BILLING_DESK = ['super', 'billing'] as const satisfies readonly PlatformAdminLevel[]
+const CONSOLE_EVERY_LEVEL = [
+  'super',
+  'support',
+  'billing',
+] as const satisfies readonly PlatformAdminLevel[]
+
+/**
+ * CONSOLE LEVELS (DOS-106). `PERMISSIONS` above lets `platform_admin` — the one role Distribution OS's
+ * own staff sign in as — reach every `admin.*` row; this table narrows that role by the LEVEL of the
+ * account, `platform_admins.role` (the database enum `platform_admin_role`). The job split is the
+ * schema's own comment and docs/18's: a `super` onboards distributors, sets plans, suspends them and
+ * locks logins; `support` reads every register and ASKS a distributor's owner for a support window
+ * (and withdraws its own ask); `billing` reads every register and keeps what a distributor pays us.
+ *
+ * ONE table for both sides. admin-service enforces it in every `admin.*` handler, inside that handler's
+ * own transaction, against the level and the login as the database holds them at that moment
+ * (`requireActiveAdminLevel` in module 13) — so a lock or a demotion bites on the next request. The
+ * console reads it through `useCan()` to hide what the level cannot use. It is deliberately NOT a token
+ * claim, and `PERMISSIONS`, `PLATFORM_ROLES` and `isAllowed` do not change. Keyed by the contract's own
+ * paths: a new `admin.*` procedure without a level here does not compile.
+ */
+export const ADMIN_LEVELS: Record<AdminProcedurePath, readonly PlatformAdminLevel[]> = {
+  'admin.tenants.create': CONSOLE_SUPER,
+  'admin.tenants.list': CONSOLE_EVERY_LEVEL,
+  'admin.tenants.get': CONSOLE_EVERY_LEVEL,
+  'admin.tenants.suspend': CONSOLE_SUPER,
+  'admin.tenants.reactivate': CONSOLE_SUPER,
+  'admin.subscriptions.upsert': CONSOLE_BILLING_DESK,
+  'admin.subscriptions.list': CONSOLE_EVERY_LEVEL,
+  'admin.subscriptions.get': CONSOLE_EVERY_LEVEL,
+  'admin.support.request': CONSOLE_SUPPORT_DESK,
+  'admin.support.list': CONSOLE_EVERY_LEVEL,
+  'admin.support.revoke': CONSOLE_SUPPORT_DESK,
+  'admin.users.list': CONSOLE_EVERY_LEVEL,
+  'admin.users.disable': CONSOLE_SUPER,
+  'admin.metrics.overview': CONSOLE_EVERY_LEVEL,
+  'admin.audit.list': CONSOLE_EVERY_LEVEL,
+}
+
+/**
+ * May a console account at `level` call `path`? Anything outside `admin.*` is not narrowed by a level
+ * (true). An `admin.*` path with no row, or a caller with no level (a session saved before the level
+ * existed, or no session at all), is a refusal: fail closed, like `isAllowed`.
+ */
+export function levelAllows(path: string, level: PlatformAdminLevel | null): boolean {
+  if (!path.startsWith('admin.')) return true
+  const levels = (ADMIN_LEVELS as Record<string, readonly PlatformAdminLevel[] | undefined>)[path]
+  if (levels === undefined || level === null) return false
+  return levels.includes(level)
 }
 
 /**

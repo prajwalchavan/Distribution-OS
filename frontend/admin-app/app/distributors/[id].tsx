@@ -30,7 +30,16 @@ import { uuidv7 } from '@dos/domain'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 
-import { Async, Columns, Field, Half, Note, Panel, subscriptionFamily } from '../../src/lib/ui'
+import {
+  Async,
+  Columns,
+  Field,
+  Half,
+  Note,
+  Panel,
+  subscriptionFamily,
+  useCan,
+} from '../../src/lib/ui'
 import { AskForAccess, InsidePanel } from '../../src/lib/support'
 import { SubscriptionEditor } from '../../src/lib/subscription'
 import { daysFromToday, formatBytes, instantWithClock, longDate } from '../../src/lib/dates'
@@ -46,6 +55,7 @@ export default function Distributor(): React.JSX.Element {
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
+  const can = useCan()
   const params = useLocalSearchParams<{ id: string }>()
   const id = typeof params.id === 'string' ? params.id : ''
 
@@ -132,16 +142,19 @@ export default function Distributor(): React.JSX.Element {
         )
       }
       actions={
+        // Suspending and reactivating are a super administrator's (DOS-106); other levels see neither.
         item === undefined ? null : item.status === 'active' ? (
-          <Button
-            label={t('p4.suspend')}
-            variant="destructive"
-            testID="suspend"
-            onPress={() => {
-              setSuspending(true)
-            }}
-          />
-        ) : (
+          can('admin.tenants.suspend') ? (
+            <Button
+              label={t('p4.suspend')}
+              variant="destructive"
+              testID="suspend"
+              onPress={() => {
+                setSuspending(true)
+              }}
+            />
+          ) : null
+        ) : can('admin.tenants.reactivate') ? (
           <Button
             label={t('p4.reactivate')}
             variant="primary"
@@ -150,7 +163,7 @@ export default function Distributor(): React.JSX.Element {
               setReactivating(true)
             }}
           />
-        )
+        ) : null
       }
     >
       <Async state={[tenant]} rows={8}>
@@ -198,14 +211,17 @@ export default function Distributor(): React.JSX.Element {
                   title={t('p4.subscription')}
                   testID="subscription"
                   actions={
-                    <Button
-                      label={t('p4.editSubscription')}
-                      variant="secondary"
-                      testID="edit-subscription"
-                      onPress={() => {
-                        setEditing(true)
-                      }}
-                    />
+                    // What a distributor pays us is set by super and billing (DOS-106), not support.
+                    can('admin.subscriptions.upsert') ? (
+                      <Button
+                        label={t('p4.editSubscription')}
+                        variant="secondary"
+                        testID="edit-subscription"
+                        onPress={() => {
+                          setEditing(true)
+                        }}
+                      />
+                    ) : undefined
                   }
                 >
                   {item.subscription === null ? (

@@ -37,6 +37,7 @@ import {
   showingCount,
   subscriptionFamily,
   textColumn,
+  useCan,
 } from '../../src/lib/ui'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { stateName, useWord } from '../../src/lib/words'
@@ -49,6 +50,7 @@ export default function Distributors(): React.JSX.Element {
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
+  const can = useCan()
 
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<'all' | 'active' | 'suspended'>('all')
@@ -126,14 +128,17 @@ export default function Distributors(): React.JSX.Element {
       title={t('p2.title')}
       context={showingCount(t, tenants, rows.length)}
       actions={
-        <Button
-          label={t('p2.onboard')}
-          variant="primary"
-          testID="onboard"
-          onPress={() => {
-            router.push('/distributors/new')
-          }}
-        />
+        // Onboarding is a super administrator's (DOS-106): support and billing are not offered it.
+        can('admin.tenants.create') ? (
+          <Button
+            label={t('p2.onboard')}
+            variant="primary"
+            testID="onboard"
+            onPress={() => {
+              router.push('/distributors/new')
+            }}
+          />
+        ) : undefined
       }
     >
       <Stack gap={4}>

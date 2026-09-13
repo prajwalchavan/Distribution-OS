@@ -61,6 +61,17 @@ export const PlatformRoleSchema = z.enum(['platform_admin'])
 export type PlatformRole = z.infer<typeof PlatformRoleSchema>
 
 /**
+ * The LEVEL of a console account inside the one `platform_admin` role: the database's
+ * `platform_admin_role` enum (`platform_admins.role`), value for value and in its on-disk order. The job
+ * split is the schema's and docs/18's — `super` onboards distributors, sets plans, suspends and locks
+ * logins; `support` reads and ASKS a distributor's owner for a support window; `billing` reads and keeps
+ * what a distributor pays us. It is never a token claim: admin-service re-reads it on every console
+ * call against `ADMIN_LEVELS` (permissions.ts), so a demotion bites on the next request (DOS-106).
+ */
+export const PlatformAdminLevelSchema = z.enum(['super', 'support', 'billing'])
+export type PlatformAdminLevel = z.infer<typeof PlatformAdminLevelSchema>
+
+/**
  * Sign-in name. Lowercase, 3–32 characters, starts with a letter or digit, then letters, digits,
  * dots and underscores. Unique across the platform; a user invited without one cannot sign in yet.
  */

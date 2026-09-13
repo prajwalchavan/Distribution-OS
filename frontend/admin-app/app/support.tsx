@@ -42,6 +42,7 @@ import {
   grantFamily,
   showingCount,
   textColumn,
+  useCan,
 } from '../src/lib/ui'
 import { instantWithClock, untilInstant } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
@@ -75,6 +76,7 @@ export default function Support(): React.JSX.Element {
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
+  const can = useCan()
 
   const [view, setView] = useState<View>('open')
   const [selected, setSelected] = useState<string | null>(null)
@@ -282,7 +284,8 @@ export default function Support(): React.JSX.Element {
                   router.push(`/distributors/${current.tenantId}`)
                 }}
               />
-              {current.status === 'requested' || current.active ? (
+              {/* Withdrawing an ask or handing a window back: super and support (DOS-106). */}
+              {(current.status === 'requested' || current.active) && can('admin.support.revoke') ? (
                 <Button
                   label={current.active ? t('p6.handBack') : t('p6.withdraw')}
                   variant="destructive"

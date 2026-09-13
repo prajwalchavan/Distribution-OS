@@ -27,21 +27,21 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | Method | Path | What it does | Roles |
 |---|---|---|---|
 | GET | `/health/ping` | Liveness + database reachability | public |
-| POST | `/admin/tenants` | Onboard a distributor: tenant, chart of accounts, owner login and a trial | platform_admin |
-| GET | `/admin/tenants` | Distributors on the platform, with subscription state and size | platform_admin |
-| GET | `/admin/tenants/{id}` | One distributor: subscription, size, storage and its support grants | platform_admin |
-| POST | `/admin/tenants/{id}/suspend` | Refuse every sign-in to this distributor; nothing is deleted (audited) | platform_admin |
-| POST | `/admin/tenants/{id}/reactivate` | Let a suspended distributor back in (audited) | platform_admin |
-| POST | `/admin/subscriptions` | Set a distributor's plan, price and period (audited) | platform_admin |
-| GET | `/admin/subscriptions` | Subscriptions, filtered by state, plan or what is about to end | platform_admin |
-| GET | `/admin/subscriptions/{id}` | One subscription | platform_admin |
-| POST | `/admin/support-grants` | Ask a distributor's owner for a time-boxed window; grants nothing by itself | platform_admin |
-| GET | `/admin/support-grants` | Support requests and windows across every distributor | platform_admin |
-| POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses | platform_admin |
-| GET | `/admin/users` | Global sign-in identities with every distributor they are a member of | platform_admin |
-| POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) | platform_admin |
-| GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage | platform_admin |
-| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks | platform_admin |
+| POST | `/admin/tenants` | Onboard a distributor: tenant, chart of accounts, owner login and a trial · console level: super | platform_admin |
+| GET | `/admin/tenants` | Distributors on the platform, with subscription state and size · console levels: super, support, billing | platform_admin |
+| GET | `/admin/tenants/{id}` | One distributor: subscription, size, storage and its support grants · console levels: super, support, billing | platform_admin |
+| POST | `/admin/tenants/{id}/suspend` | Refuse every sign-in to this distributor; nothing is deleted (audited) · console level: super | platform_admin |
+| POST | `/admin/tenants/{id}/reactivate` | Let a suspended distributor back in (audited) · console level: super | platform_admin |
+| POST | `/admin/subscriptions` | Set a distributor's plan, price and period (audited) · console levels: super, billing | platform_admin |
+| GET | `/admin/subscriptions` | Subscriptions, filtered by state, plan or what is about to end · console levels: super, support, billing | platform_admin |
+| GET | `/admin/subscriptions/{id}` | One subscription · console levels: super, support, billing | platform_admin |
+| POST | `/admin/support-grants` | Ask a distributor's owner for a time-boxed window; grants nothing by itself · console levels: super, support | platform_admin |
+| GET | `/admin/support-grants` | Support requests and windows across every distributor · console levels: super, support, billing | platform_admin |
+| POST | `/admin/support-grants/{id}/revoke` | Withdraw our own request, or hand back a window before it lapses · console levels: super, support | platform_admin |
+| GET | `/admin/users` | Global sign-in identities with every distributor they are a member of · console levels: super, support, billing | platform_admin |
+| POST | `/admin/users/{id}/disable` | Lock one identity out of every distributor and revoke its sessions (audited) · console level: super | platform_admin |
+| GET | `/admin/metrics` | Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing | platform_admin |
+| GET | `/admin/audit` | Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing | platform_admin |
 
 ### GET `/health/ping`
 
@@ -80,7 +80,7 @@ curl "http://localhost:3007/health/ping"
 
 ### POST `/admin/tenants`
 
-Onboard a distributor: tenant, chart of accounts, owner login and a trial · contract `admin.tenants.create`
+Onboard a distributor: tenant, chart of accounts, owner login and a trial · console level: super · contract `admin.tenants.create`
 
 **Roles:** platform_admin
 
@@ -236,7 +236,7 @@ request.json
 
 ### GET `/admin/tenants`
 
-Distributors on the platform, with subscription state and size · contract `admin.tenants.list`
+Distributors on the platform, with subscription state and size · console levels: super, support, billing · contract `admin.tenants.list`
 
 **Roles:** platform_admin
 
@@ -336,7 +336,7 @@ curl "http://localhost:3007/admin/tenants?status=active&plan=pilot&subscriptionS
 
 ### GET `/admin/tenants/{id}`
 
-One distributor: subscription, size, storage and its support grants · contract `admin.tenants.get`
+One distributor: subscription, size, storage and its support grants · console levels: super, support, billing · contract `admin.tenants.get`
 
 **Roles:** platform_admin
 
@@ -476,7 +476,7 @@ curl "http://localhost:3007/admin/tenants/01a06d17-0be7-794a-8dab-9b14cf78673b" 
 
 ### POST `/admin/tenants/{id}/suspend`
 
-Refuse every sign-in to this distributor; nothing is deleted (audited) · contract `admin.tenants.suspend`
+Refuse every sign-in to this distributor; nothing is deleted (audited) · console level: super · contract `admin.tenants.suspend`
 
 **Roles:** platform_admin
 
@@ -594,7 +594,7 @@ request.json
 
 ### POST `/admin/tenants/{id}/reactivate`
 
-Let a suspended distributor back in (audited) · contract `admin.tenants.reactivate`
+Let a suspended distributor back in (audited) · console level: super · contract `admin.tenants.reactivate`
 
 **Roles:** platform_admin
 
@@ -712,7 +712,7 @@ request.json
 
 ### POST `/admin/subscriptions`
 
-Set a distributor's plan, price and period (audited) · contract `admin.subscriptions.upsert`
+Set a distributor's plan, price and period (audited) · console levels: super, billing · contract `admin.subscriptions.upsert`
 
 **Roles:** platform_admin
 
@@ -845,7 +845,7 @@ request.json
 
 ### GET `/admin/subscriptions`
 
-Subscriptions, filtered by state, plan or what is about to end · contract `admin.subscriptions.list`
+Subscriptions, filtered by state, plan or what is about to end · console levels: super, support, billing · contract `admin.subscriptions.list`
 
 **Roles:** platform_admin
 
@@ -945,7 +945,7 @@ curl "http://localhost:3007/admin/subscriptions?tenantId=01a06d03-67ed-7c68-87e3
 
 ### GET `/admin/subscriptions/{id}`
 
-One subscription · contract `admin.subscriptions.get`
+One subscription · console levels: super, support, billing · contract `admin.subscriptions.get`
 
 **Roles:** platform_admin
 
@@ -1047,7 +1047,7 @@ curl "http://localhost:3007/admin/subscriptions/01a06d17-0be7-794a-8dab-9b14cf78
 
 ### POST `/admin/support-grants`
 
-Ask a distributor's owner for a time-boxed window; grants nothing by itself · contract `admin.support.request`
+Ask a distributor's owner for a time-boxed window; grants nothing by itself · console levels: super, support · contract `admin.support.request`
 
 **Roles:** platform_admin
 
@@ -1173,7 +1173,7 @@ request.json
 
 ### GET `/admin/support-grants`
 
-Support requests and windows across every distributor · contract `admin.support.list`
+Support requests and windows across every distributor · console levels: super, support, billing · contract `admin.support.list`
 
 **Roles:** platform_admin
 
@@ -1277,7 +1277,7 @@ curl "http://localhost:3007/admin/support-grants?tenantId=01a06d03-67ed-7c68-87e
 
 ### POST `/admin/support-grants/{id}/revoke`
 
-Withdraw our own request, or hand back a window before it lapses · contract `admin.support.revoke`
+Withdraw our own request, or hand back a window before it lapses · console levels: super, support · contract `admin.support.revoke`
 
 **Roles:** platform_admin
 
@@ -1407,7 +1407,7 @@ request.json
 
 ### GET `/admin/users`
 
-Global sign-in identities with every distributor they are a member of · contract `admin.users.list`
+Global sign-in identities with every distributor they are a member of · console levels: super, support, billing · contract `admin.users.list`
 
 **Roles:** platform_admin
 
@@ -1514,7 +1514,7 @@ curl "http://localhost:3007/admin/users?q=campa&tenantId=01a06d03-67ed-7c68-87e3
 
 ### POST `/admin/users/{id}/disable`
 
-Lock one identity out of every distributor and revoke its sessions (audited) · contract `admin.users.disable`
+Lock one identity out of every distributor and revoke its sessions (audited) · console level: super · contract `admin.users.disable`
 
 **Roles:** platform_admin
 
@@ -1645,7 +1645,7 @@ request.json
 
 ### GET `/admin/metrics`
 
-Platform counts: tenants, active users, orders and invoices per day, storage · contract `admin.metrics.overview`
+Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing · contract `admin.metrics.overview`
 
 **Roles:** platform_admin
 
@@ -1764,7 +1764,7 @@ curl "http://localhost:3007/admin/metrics?days=30" \
 
 ### GET `/admin/audit`
 
-Every platform action: onboarding, suspension, plans, support, user locks · contract `admin.audit.list`
+Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing · contract `admin.audit.list`
 
 **Roles:** platform_admin
 
