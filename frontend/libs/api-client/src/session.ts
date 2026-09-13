@@ -15,6 +15,7 @@ import type {
   AuthUser,
   MembershipRole,
   MembershipSummary,
+  PlatformAdminLevel,
   PlatformRole,
   PlatformTokenPair,
   TokenPair,
@@ -35,6 +36,12 @@ export interface Session {
 export interface PlatformSession {
   readonly user: AuthUser
   readonly role: PlatformRole
+  /**
+   * The console LEVEL (DOS-106) from the last sign-in or refresh reply. Null for a session saved by a
+   * build from before the level existed, until the boot refresh fills it in: every level-gated
+   * control stays hidden meanwhile, and the server stays the authority either way.
+   */
+  readonly level: PlatformAdminLevel | null
 }
 
 export interface SessionState {
@@ -84,10 +91,21 @@ function isSession(value: unknown): value is Session {
   )
 }
 
-function isPlatformSession(value: unknown): value is PlatformSession {
+/**
+ * A console snapshot as it may sit in storage: a user and the role for certain, and a `level` only when
+ * the build that wrote it knew about console levels (DOS-106). The store BUILDS the session out of it
+ * rather than trusting the stored shape.
+ */
+function isPlatformSession(
+  value: unknown,
+): value is Pick<PlatformSession, 'user' | 'role'> & { readonly level?: unknown } {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Partial<PlatformSession>
   return v.user !== undefined && v.role === 'platform_admin' && !('tenant' in v)
+}
+
+function isPlatformAdminLevel(value: unknown): value is PlatformAdminLevel {
+  return value === 'super' || value === 'support' || value === 'billing'
 }
 
 /**
@@ -197,11 +215,25 @@ export class SessionStore extends BaseSessionStore<Session> {
 /** The console's store. Same plumbing, and a session that has no distributor by construction. */
 export class PlatformSessionStore extends BaseSessionStore<PlatformSession> {
   constructor(storage: TokenStorage) {
-    super(storage, (value) => (isPlatformSession(value) ? value : null))
+    // BUILT, not passed through: a snapshot saved before the console level existed has no `level` at
+    // all, and it must restore as `null` (no level-gated control) rather than as undefined.
+    super(storage, (value) =>
+      isPlatformSession(value)
+        ? {
+            user: value.user,
+            role: value.role,
+            level: isPlatformAdminLevel(value.level) ? value.level : null,
+          }
+        : null,
+    )
   }
 
   applyTokens(pair: PlatformTokenPair): void {
-    this.settle({ user: pair.user, role: pair.role }, pair.accessToken, pair.refreshToken)
+    this.settle(
+      { user: pair.user, role: pair.role, level: pair.level },
+      pair.accessToken,
+      pair.refreshToken,
+    )
   }
 
   updateUser(user: AuthUser): void {

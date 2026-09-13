@@ -29,7 +29,29 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { usePlatformSession } from '@dos/api-client/react'
+import { isAllowed, levelAllows, permissionFor } from '@dos/contracts'
 import type { ReactNode } from 'react'
+
+// ---------------------------------------------------------------------------
+// What this console account may do
+// ---------------------------------------------------------------------------
+
+/**
+ * `can('admin.tenants.suspend')`: may the signed-in console account call this procedure? It reads the
+ * same two tables the server enforces, both from `@dos/contracts` — `PERMISSIONS` for the role and
+ * `ADMIN_LEVELS` for the console LEVEL inside it (DOS-106: a `super` does everything, `support` reads
+ * and asks for a support window, `billing` reads and sets a subscription). A control the level cannot
+ * use is not drawn, rather than drawn and refused. The server stays the authority: admin-service
+ * re-reads the level on every call and answers 403 whatever this hides. A session with no level yet
+ * (saved by an older build, before the boot refresh lands) is offered no level-gated control at all.
+ */
+export function useCan(): (path: string) => boolean {
+  const { session } = usePlatformSession()
+  const role = session?.role ?? null
+  const level = session?.level ?? null
+  return (path) => isAllowed(permissionFor(path), role) && levelAllows(path, level)
+}
 
 // ---------------------------------------------------------------------------
 // Panels and section furniture

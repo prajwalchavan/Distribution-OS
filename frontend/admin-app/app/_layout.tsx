@@ -133,7 +133,12 @@ function Shell(): React.JSX.Element {
         ? undefined
         : {
             name: session.user.name,
-            roleLabel: strings['word.platform_admin'],
+            // The console LEVEL (DOS-106) when the session carries one, so the rail and the phone
+            // account label read "Support" or "Super" like the Account screen, not one word for both.
+            roleLabel:
+              session.level === null
+                ? strings['word.platform_admin']
+                : strings[`word.${session.level}`],
             onSignOut: () => {
               void signOut()
             },

@@ -16,6 +16,7 @@ import {
   Button,
   Chips,
   ErrorState,
+  Link,
   Row,
   RupeeInput,
   Screen,
@@ -31,7 +32,7 @@ import type { BillingInterval, TenantPlan } from '@dos/contracts'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
-import { Note, Panel } from '../../src/lib/ui'
+import { Note, Panel, useCan } from '../../src/lib/ui'
 import { stateName } from '../../src/lib/words'
 
 const PLANS: readonly TenantPlan[] = ['pilot', 'starter', 'growth', 'standard', 'pro']
@@ -90,6 +91,7 @@ export default function OnboardDistributor(): React.JSX.Element {
   const colors = useColors()
   const api = usePlatformApi()
   const router = useRouter()
+  const can = useCan()
 
   /*
    * Every client-generated UUIDv7 this call needs, made ONCE. `useState` with an initialiser keeps
@@ -173,6 +175,21 @@ export default function OnboardDistributor(): React.JSX.Element {
       ],
     },
   )
+
+  // Reached by a deep link from a support or billing account (DOS-106): onboarding is a super
+  // administrator's, so the form is never offered. The server refuses the call either way.
+  if (!can('admin.tenants.create')) {
+    return (
+      <Screen title={t('p3.title')} context={t('p2.title')}>
+        <Stack gap={4} maxWidth={520}>
+          <Note testID="onboard-super-only">{t('p3.superOnly')}</Note>
+          <Link href="/distributors" testID="onboard-back">
+            {t('p3.superOnlyBack')}
+          </Link>
+        </Stack>
+      </Screen>
+    )
+  }
 
   const done = create.data
   if (done !== undefined) {
