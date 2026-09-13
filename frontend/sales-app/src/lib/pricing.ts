@@ -277,3 +277,40 @@ export function diffQuoteVsOrder(
 export function describePriceChange(change: PriceChange): string {
   return `${change.name} ${toRupees(paise(change.fromRatePaise))} → ${toRupees(paise(change.toRatePaise))}`
 }
+
+export interface CaseSummary {
+  cases: number
+  pieces: number
+}
+
+/**
+ * Sum whole cases and loose pieces across the order's lines, each in ITS OWN case size (DOS-129).
+ * `new.tsx:266` used to format the footer's total pieces against `caseSizeOf()` — the FIRST line's
+ * case size — so 2 cs of a 24-pc case plus 1 cs of a 48-pc case (96 pc total) read "4 cs" (96 / 24)
+ * instead of "3 cs", and a 21-line order of mixed case sizes read "45 cs + 3 pcs" for what was really
+ * 21 single cases. Moved out of `app/` because sales vitest runs `--dir src`.
+ */
+export function summarizeCases(
+  lines: readonly { qtyPcs: number; caseSize: number }[],
+): CaseSummary {
+  let cases = 0
+  let loosePieces = 0
+  for (const line of lines) {
+    const qty = Math.max(0, Math.trunc(line.qtyPcs))
+    if (!Number.isSafeInteger(line.caseSize) || line.caseSize <= 0) {
+      loosePieces += qty
+      continue
+    }
+    cases += Math.floor(qty / line.caseSize)
+    loosePieces += qty % line.caseSize
+  }
+  return { cases, pieces: loosePieces }
+}
+
+/** "3 cs", "3 cs + 31 pcs", or "5 pcs" with no whole case anywhere — mirrors `formatQty`'s own shape. */
+export function formatCaseSummary(summary: CaseSummary): string {
+  const parts: string[] = []
+  if (summary.cases > 0) parts.push(`${String(summary.cases)} cs`)
+  if (summary.pieces > 0 || summary.cases === 0) parts.push(`${String(summary.pieces)} pcs`)
+  return parts.join(' + ')
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { describePriceChange, diffQuoteVsOrder } from './pricing'
+import { describePriceChange, diffQuoteVsOrder, formatCaseSummary, summarizeCases } from './pricing'
 
 /**
  * DOS-082: `orders.create` re-prices on the server from the same price-list tables the device just
@@ -50,5 +50,44 @@ describe('DOS-082: diffQuoteVsOrder names a rate the office changed while the dr
       ],
     )
     expect(changes.map((change) => change.variantId)).toEqual(['v1'])
+  })
+})
+
+/**
+ * DOS-129: `new.tsx:266` formatted the order footer's total against `caseSizeOf()` — the FIRST
+ * line's case size — so 2 cs of a 24-pc case plus 1 cs of a 48-pc case (96 pc total) read "4 cs"
+ * (96 / 24), not "3 cs". The helper must move out of `app/` to be testable (sales vitest runs
+ * `--dir src`), and sum each line's whole cases and loose pieces against its OWN case size.
+ */
+describe('DOS-129: summarizeCases sums each line in its OWN case size', () => {
+  it("2 cs of a 24-pc case plus 1 cs of a 48-pc case reads '3 cs', not '4 cs' off the first line's case size", () => {
+    const summary = summarizeCases([
+      { qtyPcs: 48, caseSize: 24 }, // 2 cs
+      { qtyPcs: 48, caseSize: 48 }, // 1 cs
+    ])
+    expect(summary).toEqual({ cases: 3, pieces: 0 })
+    expect(formatCaseSummary(summary)).toBe('3 cs')
+  })
+
+  it("21 single-case lines with mixed case sizes read '21 cs'", () => {
+    const lines = [24, 48, 12, 96, 120, 144, 90].flatMap((caseSize) =>
+      Array.from({ length: 3 }, () => ({ qtyPcs: caseSize, caseSize })),
+    )
+    expect(lines).toHaveLength(21)
+    expect(formatCaseSummary(summarizeCases(lines))).toBe('21 cs')
+  })
+
+  it("carries loose pieces separately, each counted against its own line's case size", () => {
+    const summary = summarizeCases([
+      { qtyPcs: 54, caseSize: 24 }, // 2 cs + 6 pc
+      { qtyPcs: 25, caseSize: 48 }, // 0 cs + 25 pc
+    ])
+    expect(summary).toEqual({ cases: 2, pieces: 31 })
+    expect(formatCaseSummary(summary)).toBe('2 cs + 31 pcs')
+  })
+
+  it('reads pieces alone when there is no whole case anywhere, and "0 pcs" for an empty order', () => {
+    expect(formatCaseSummary(summarizeCases([{ qtyPcs: 5, caseSize: 24 }]))).toBe('5 pcs')
+    expect(formatCaseSummary(summarizeCases([]))).toBe('0 pcs')
   })
 })

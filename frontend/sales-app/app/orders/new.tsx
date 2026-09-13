@@ -63,7 +63,9 @@ import {
 import {
   describePriceChange,
   diffQuoteVsOrder,
+  formatCaseSummary,
   quoteOnDevice,
+  summarizeCases,
   type DraftLine,
   type PriceChange,
 } from '../../src/lib/pricing'
@@ -246,7 +248,16 @@ export default function OrderEntry(): React.JSX.Element {
     )
   }
 
-  const totalPcs = draft.lines.reduce((sum, line) => sum + line.qtyPcs, 0)
+  /*
+   * DOS-129: each line in ITS OWN case size, never the first line's — a 24-pc case and a 48-pc case,
+   * 2 cs and 1 cs, is "3 cs", not 96 total pieces divided by whichever line happened to be added first.
+   */
+  const caseSummary = summarizeCases(
+    draft.lines.map((line) => ({
+      qtyPcs: line.qtyPcs,
+      caseSize: byVariant.get(line.variantId)?.caseSize ?? 1,
+    })),
+  )
   const netPaise = quote.result?.totals.netPaise ?? 0
   const discountPaise = quote.result?.totals.discountPaise ?? 0
 
@@ -325,7 +336,7 @@ export default function OrderEntry(): React.JSX.Element {
               <Txt field="label" desk="meta" color={colors.text.secondary}>
                 {t('s3.summary', {
                   lines: draft.lines.length,
-                  qty: formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)),
+                  qty: formatCaseSummary(caseSummary),
                 })}
               </Txt>
               <Money value={netPaise} size="moneyL" />
@@ -576,13 +587,6 @@ export default function OrderEntry(): React.JSX.Element {
       />
     </Screen>
   )
-}
-
-/** The case size the summary line counts in — the first line's, which is what a rep is holding. */
-function caseSizeOf(lines: readonly DraftLine[], catalog: Map<string, CatalogItem>): number {
-  const first = lines[0]
-  if (first === undefined) return 1
-  return catalog.get(first.variantId)?.caseSize ?? 1
 }
 
 function schemeFooter(
