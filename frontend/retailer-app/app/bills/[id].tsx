@@ -113,7 +113,9 @@ export default function BillDetail(): React.JSX.Element {
                 label={t('r3.payBill')}
                 variant="primary"
                 onPress={() => {
-                  router.push('/pay')
+                  // DOS-124: carry this bill's id, so Pay opens ticked to it instead of forgetting
+                  // it and prefilling the shop's whole dues.
+                  router.push(billId === null ? '/pay' : `/pay?bill=${billId}`)
                 }}
                 testID="r4-pay"
               />

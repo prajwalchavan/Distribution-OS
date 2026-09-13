@@ -29,7 +29,8 @@ import {
   useStrings,
 } from '@dos/ui'
 import { links } from '@dos/ui/platform'
-import { useState } from 'react'
+import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 
 import { instantWithClock, longDate } from '../src/lib/dates'
 import { useMyShop } from '../src/lib/shop'
@@ -45,8 +46,19 @@ export default function Pay(): React.JSX.Element {
   const my = useMyShop()
   const retailerId = my.retailerId
 
+  /*
+   * DOS-124: "Pay this bill" (dues.tsx's QR sheet, or the bill detail's own Pay button) carries the
+   * bill it was raised for as `?bill=<id>`. Without it this screen used to open with nothing ticked
+   * and the shop's WHOLE dues prefilled — one tap from minting a payment intent for every bill
+   * instead of the one the shop chose.
+   */
+  const params = useLocalSearchParams<{ bill?: string }>()
+  const preselect = typeof params.bill === 'string' && params.bill !== '' ? params.bill : null
+
   const [amount, setAmount] = useState<number | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
+  /** The `bill` param already ticked (or found gone), so a re-render never re-ticks over an untick. */
+  const [seeded, setSeeded] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   /**
    * `links.open` answers false when no app on the phone takes a `upi://` link, and the tap would otherwise
@@ -61,6 +73,16 @@ export default function Pay(): React.JSX.Element {
   )
   const bills = [...(dues.data?.bills ?? [])].sort((a, b) => b.ageDays - a.ageDays)
   const owed = dues.data?.outstandingPaise ?? 0
+
+  // Tick the carried bill once its own row is on the page, so the amount and the "which bills" panel
+  // agree with it from the first paint. Runs once per `preselect` — never fights a later untick.
+  useEffect(() => {
+    if (preselect === null || seeded === preselect || dues.data === undefined) return
+    if (dues.data.bills.some((bill) => bill.id === preselect)) {
+      setChosen((current) => (current.length === 0 ? [preselect] : current))
+    }
+    setSeeded(preselect)
+  }, [preselect, seeded, dues.data])
 
   const initiate = useMutation(
     (input: { amountPaise: number | null; invoiceIds: readonly string[] }, meta) =>
