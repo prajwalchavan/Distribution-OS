@@ -1,0 +1,66 @@
+# dos_qa check for 01-delivery-receipts   receipt id: 01a09919-ed3d-7388-be23-0d84e98b21b5   opId: 01a09919-ed3d-78f5-908d-3b90b761a56e   run at: 2026-09-13T04:50:22Z
+\echo == 1. receipt row: exists? amount, who recorded it (received_by -> user, role in that tenant)
+== 1. receipt row: exists? amount, who recorded it (received_by -> user, role in that tenant)
+select r.id, t.slug as tenant, r.tenant_id, r.receipt_no, r.retailer_id, r.mode, r.amount_paise, r.status,
+       r.received_by, u.username as received_by_username, m.role as received_by_role,
+       r.device_id, r.trip_id, r.idempotency_key, r.note, r.created_at
+  from receipts r
+  join tenants t on t.id = r.tenant_id
+  left join users u on u.id = r.received_by
+  left join memberships m on m.user_id = r.received_by and m.tenant_id = r.tenant_id
+ where r.id = :'rid';
+                  id                  | tenant |              tenant_id               | receipt_no |             retailer_id              | mode | amount_paise |  status   |             received_by              | received_by_username | received_by_role |          device_id          | trip_id |                  idempotency_key                  |                 note                  |            created_at            
+--------------------------------------+--------+--------------------------------------+------------+--------------------------------------+------+--------------+-----------+--------------------------------------+----------------------+------------------+-----------------------------+---------+---------------------------------------------------+---------------------------------------+----------------------------------
+ 01a09919-ed3d-7388-be23-0d84e98b21b5 | tarsun | 01a0947d-7a79-75d2-bfff-97e499a58d49 | RCPT-0707  | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | cash |          100 | collected | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | ganesh.more          | delivery         | qa-b2-syncprobe-delivery-01 |         | sync:receipt:01a09919-ed3d-78f5-908d-3b90b761a56e | QA batch2 sync-role-probe 01 delivery | 2026-09-13 10:20:08.356918+05:30
+(1 row)
+
+\echo == 2. journal entry + lines for the receipt (journal_entries.ref_type = 'receipt' and ref_id = receipt id; journal_lines.entry_id)
+== 2. journal entry + lines for the receipt (journal_entries.ref_type = receipt and ref_id = receipt id; journal_lines.entry_id)
+select e.id as entry_id, e.entry_date, e.ref_type, e.ref_id, e.narration, e.posted_by,
+       l.id as line_id, a.code as account, l.amount_paise, l.party_type, l.party_id
+  from journal_entries e
+  join journal_lines l on l.entry_id = e.id
+  join accounts a on a.id = l.account_id
+ where e.ref_type = 'receipt' and e.ref_id = :'rid'
+ order by l.amount_paise desc;
+               entry_id               | entry_date | ref_type |                ref_id                |     narration     |              posted_by               |               line_id                | account | amount_paise | party_type |               party_id               
+--------------------------------------+------------+----------+--------------------------------------+-------------------+--------------------------------------+--------------------------------------+---------+--------------+------------+--------------------------------------
+ 01a09919-edc9-76d8-86e1-7c013d14613d | 2026-09-13 | receipt  | 01a09919-ed3d-7388-be23-0d84e98b21b5 | receipt RCPT-0707 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 01a09919-edcd-7755-a6be-a0200cd9b902 | CASH    |          100 |            | 
+ 01a09919-edc9-76d8-86e1-7c013d14613d | 2026-09-13 | receipt  | 01a09919-ed3d-7388-be23-0d84e98b21b5 | receipt RCPT-0707 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 01a09919-edcd-7756-a7e9-cfdd94a21a5c | AR      |         -100 | retailer   | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8
+(2 rows)
+
+\echo == 3. allocations the receipt made, and the state of each bill now
+== 3. allocations the receipt made, and the state of each bill now
+select al.id, al.invoice_id, al.amount_paise, al.allocated_by, i.state as invoice_state_now
+  from allocations al
+  left join invoices i on i.id = al.invoice_id
+ where al.receipt_id = :'rid';
+                  id                  |              invoice_id              | amount_paise |             allocated_by             | invoice_state_now 
+--------------------------------------+--------------------------------------+--------------+--------------------------------------+-------------------
+ 01a09919-edb9-70d1-9d68-cb14e09b04fc | 52c9311a-af62-7a65-bdd3-27f4b771fee4 |          100 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | partially_paid
+(1 row)
+
+\echo == 4. sync_ops row for the opId (outcome)
+== 4. sync_ops row for the opId (outcome)
+select tenant_id, device_id, op_id, outcome, created_at from sync_ops where op_id = :'op';
+              tenant_id               |          device_id          |                op_id                 |   outcome    |            created_at            
+--------------------------------------+-----------------------------+--------------------------------------+--------------+----------------------------------
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | qa-b2-syncprobe-delivery-01 | 01a09919-ed3d-78f5-908d-3b90b761a56e | {"ok": true} | 2026-09-13 10:20:08.356918+05:30
+(1 row)
+
+\echo == 5. sync_errors row for the opId
+== 5. sync_errors row for the opId
+select id, user_id, device_id, table_name, row_id, code, message_en, created_at from sync_errors where op_id = :'op';
+ id | user_id | device_id | table_name | row_id | code | message_en | created_at 
+----+---------+-----------+------------+--------+------+------------+------------
+(0 rows)
+
+\echo == 6. outbox events carrying the receipt id (row text match)
+== 6. outbox events carrying the receipt id (row text match)
+select left(o::text, 600) as outbox_row from outbox_events o where o::text like '%' || :'rid' || '%';
+                                                                                                                                                                                                                                          outbox_row                                                                                                                                                                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ (01a09919-edec-7266-95fd-58ba65046d7c,01a0947d-7a79-75d2-bfff-97e499a58d49,receipt,01a09919-ed3d-7388-be23-0d84e98b21b5,ReceiptRecorded,"{""tripId"": null, ""receiptId"": ""01a09919-ed3d-7388-be23-0d84e98b21b5"", ""receiptNo"": ""RCPT-0707"", ""retailerId"": ""8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8"", ""amountPaise"": 100, ""cashDiscountPaise"": 0}",,"2026-09-13 10:20:08.356918+05:30","2026-09-13 10:20:08.356918+05:30",0,,,)
+ (01a09919-edf3-77ef-80a4-8487948e74a1,01a0947d-7a79-75d2-bfff-97e499a58d49,document,receipt:01a09919-ed3d-7388-be23-0d84e98b21b5:a5:original,DocumentRenderRequested,"{""id"": ""01a09919-ed3d-7388-be23-0d84e98b21b5"", ""copy"": ""original"", ""kind"": ""receipt"", ""format"": ""a5"", ""tenantId"": ""01a0947d-7a79-75d2-bfff-97e499a58d49"", ""requestedBy"": ""7b2db500-02d5-7aa7-a1dc-005a3e89ff63""}",,"2026-09-13 10:20:08.356918+05:30","2026-09-13 10:20:08.356918+05:30",0,,,)
+(2 rows)
+

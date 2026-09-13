@@ -186,7 +186,7 @@ flowchart LR
 ```
 
 Founder rule (2026-09-04): **the salesperson never collects money** — the sales service has no receipt endpoint and the matrix never
-grants one. Cash on a vehicle counts toward expected cash at settlement; variance beyond the owner's tolerance blocks trip close. Cash from a trip reaches the bank only after that trip settles (QA DOS-132, 2026-09-13).
+grants one. Cash on a vehicle counts toward expected cash at settlement; variance beyond the owner's tolerance blocks trip close. Cash and cheques from a trip reach the bank only after that trip settles (QA DOS-132, 2026-09-13).
 
 ## 7. Sign-in and permissions
 
@@ -212,8 +212,9 @@ and the server enforces it on every console action: **super** does everything (o
 logins, support access); **support** reads everything and may only ask for and hand back support access to a distributor; **billing**
 reads everything and may only change a distributor's plan.
 
-**Order changes (founder, 2026-09-13, QA DOS-115).** Warehouse and delivery logins cannot create, re-line, submit or cancel an order;
-they still read orders.
+**Order changes (founder, 2026-09-13, QA DOS-115).** Warehouse, delivery and accountant logins cannot create, re-line, submit or cancel an
+order; they still read orders. **Offline uploads (founder, 2026-09-13, QA DOS-166).** `/sync/upload` checks every operation against the same
+permission matrix, so the offline route can never do what the normal endpoint refuses.
 
 OTP (SMS / WhatsApp) is a **later enhancement layered on top** of username + password, not a replacement. Distribution OS branding
 appears only on the sign-in screen; inside every app and on every printed document the distributor sees their **own** name and logo.
@@ -277,6 +278,8 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | 2026-09-13 | **A damaged or expired return never goes back into saleable stock, at the desk or at the door (QA DOS-116).** A credit note for damaged or expired goods puts its pieces in the damaged bin; marking such a line saleable is refused, the same rule as the doorstep return. |
 | 2026-09-13 | **Fable's weekly budget is used in full, as helper agents.** From the Opus session, Fable signs off every fix plan before it is built, designs what needs a decision, reviews each lane before it merges into main, and judges the end-to-end business test. Planners, builders, verifiers and app walkers stay on Opus; no session switch is needed for that work. This replaces the 2026-09-12 rule that every helper agent runs on Opus. |
 | 2026-09-13 | **P2 and P3 fixes are built in lean mode.** P0 and P1 keep the full process (plan, review, Fable sign-off, build, verify). P2 and P3 are grouped by app: one builder and one verifier per group of five to eight, no separate planning step; copy-only or layout-only P3 fixes may run on Sonnet; Fable designs the ones that need a decision. One full regression (web, Android, iOS) runs at the end of QA batch 2, and phones are walked only where a fix changes a phone screen. If overall weekly usage passes about 70% by Wednesday, work stops after P0/P1 and its regression, and P2/P3 resume after the Saturday reset. |
+| 2026-09-13 | **Every offline upload is checked against the permission matrix (QA DOS-166).** A role that may not make a change through the normal endpoint cannot make it through /sync/upload either; the upload refuses it as a recorded sync rejection, never silently. A salesperson can never record a receipt by any route. Added to QA batch 2 as a P0. |
+| 2026-09-13 | **Architect defaults in QA batch 2, approved by the founder.** (1) The accountant cannot create, re-line, submit or cancel an order (DOS-115; follows the 2026-09-05 accountant scope). (2) Confirming a held order applies the rates approved since it was drafted, including a shop's own approved rate, and nothing else: a price-list or scheme edit made in between does not re-price it (DOS-126). (3) Cheques collected on a trip, like its cash, are banked only after the trip settles (DOS-132). (4) Expired goods returned at the desk are booked as damaged; there is no separate expired reason yet (DOS-116). (5) At trip start an emptied 'Cash handed to you' means a ₹0 float; an untouched field keeps the planned float (DOS-146). (6) In the warehouse app a load sheet is always built for one trip and carries only that trip's bills (DOS-131, DOS-137). |
 
 ## 9. Non-negotiables (never list)
 
@@ -336,3 +339,4 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 | 2026-09-13 | §6, §7, §8: QA batch 2 approved (every open finding). Warehouse and delivery cannot change orders (DOS-115); trip cash is banked only after its trip settles (DOS-132); damaged or expired returns never restock saleable (DOS-116); the receipt-number row corrected to the architect's self-healing collision rule (DOS-032, DOS-059) | Founder: "I want to fix everything identified" · "Approved all pending items" |
 | 2026-09-13 | §8: Fable runs as helper agents for plan sign-off, design, merge review and end-to-end judgment, so its weekly budget is used before the Saturday reset | Founder: "I want to make sure Fable is used its whole potential before weekly limits hits" · option "A" |
 | 2026-09-13 | §8: P2/P3 of QA batch 2 built in lean mode (grouped by app, builder + verifier, Sonnet for copy/layout-only P3, one regression at the end, stop at about 70% weekly usage) | Founder: "yes for lean mode" |
+| 2026-09-13 | §6, §7, §8: DOS-166 approved into QA batch 2 (offline uploads checked against the permission matrix); six architect defaults approved (accountant and orders, re-pricing at confirm, trip cheques, expired returns, trip-start float, one trip per load sheet) | Founder: "approved" |

@@ -1,0 +1,53 @@
+{
+  "probe": "03",
+  "role": "warehouse",
+  "username": "dinesh.patil",
+  "tenant": "tarsun (01a0947d-7a79-75d2-bfff-97e499a58d49)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T04:50:37.627Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "warehouse"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3004/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-warehouse-03",
+      "ops": [
+        {
+          "opId": "01a0991a-5fbb-7ca8-9d13-edf84333ba4c",
+          "op": "PUT",
+          "table": "receipts",
+          "id": "01a0991a-5fbb-788b-8db2-0097977b034d",
+          "clientTime": "2026-09-13T04:50:37.627Z",
+          "data": {
+            "retailer_id": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+            "mode": "cash",
+            "amount_paise": 100,
+            "received_at": "2026-09-13T04:50:37.627Z",
+            "received_by": null,
+            "device_id": "qa-b2-syncprobe-warehouse-03",
+            "status": "collected",
+            "note": "QA batch2 sync-role-probe 03 warehouse"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 500,
+    "body": {
+      "defined": false,
+      "code": "INTERNAL_SERVER_ERROR",
+      "status": 500,
+      "message": "Internal server error"
+    }
+  }
+}

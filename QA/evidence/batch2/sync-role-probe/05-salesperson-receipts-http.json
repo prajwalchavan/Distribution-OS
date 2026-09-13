@@ -1,0 +1,37 @@
+{
+  "probe": "05",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a0947d-7a79-75d2-bfff-97e499a58d49)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T04:51:16.603Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/receipts",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "idempotencyKey": "01a0991a-f7fc-7e53-afc4-059c6223123e",
+      "id": "01a0991a-f7fb-7483-9d23-171a169cb351",
+      "retailerId": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+      "mode": "cash",
+      "amountPaise": 100,
+      "note": "QA batch2 sync-role-probe 05 salesperson HTTP control"
+    }
+  },
+  "response": {
+    "status": 403,
+    "body": {
+      "message": "the salesperson role may not call POST /receipts",
+      "error": "Forbidden",
+      "statusCode": 403
+    }
+  }
+}

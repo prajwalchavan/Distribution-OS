@@ -1,0 +1,91 @@
+# excerpt of /Users/prajwalchavan/.dos-qa-logs/logs/warehouse-service.log (stdout/stderr of the warehouse-service node process pid 30197 listening on :3004), lines 11637..11737, captured 2026-09-13T04:51:35Z
+{"level":30,"time":1789264423984,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bj","req":{"method":"GET","url":"/sync/pull?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwMTo1MzoyOS43NzZaIn0","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51778},"msg":"incoming request"}
+{"level":30,"time":1789264424018,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bj","res":{"statusCode":200},"responseTime":33.72841599956155,"msg":"request completed"}
+{"level":30,"time":1789264424022,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bk","req":{"method":"GET","url":"/sync/errors?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&unresolvedOnly=true&limit=50","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51778},"msg":"incoming request"}
+{"level":30,"time":1789264424025,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bk","res":{"statusCode":200},"responseTime":2.2980839982628822,"msg":"request completed"}
+{"level":30,"time":1789264474841,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bl","req":{"method":"GET","url":"/sync/manifest?knownSchemaVersion=3c0acb5b2de1f232","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51808},"msg":"incoming request"}
+{"level":30,"time":1789264474847,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bl","res":{"statusCode":200},"responseTime":5.363624997437,"msg":"request completed"}
+{"level":30,"time":1789264474860,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bm","req":{"method":"GET","url":"/sync/pull?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwMTo1MzozOC45ODVaIn0","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51808},"msg":"incoming request"}
+{"level":30,"time":1789264474959,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bm","res":{"statusCode":200},"responseTime":98.9559579975903,"msg":"request completed"}
+{"level":30,"time":1789264474970,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bn","req":{"method":"GET","url":"/sync/errors?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&unresolvedOnly=true&limit=50","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51808},"msg":"incoming request"}
+{"level":30,"time":1789264474976,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bn","res":{"statusCode":200},"responseTime":5.4788339994847775,"msg":"request completed"}
+{"level":30,"time":1789264535020,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bo","req":{"method":"GET","url":"/sync/manifest?knownSchemaVersion=3c0acb5b2de1f232","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51832},"msg":"incoming request"}
+{"level":30,"time":1789264535036,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bo","res":{"statusCode":200},"responseTime":12.706749998033047,"msg":"request completed"}
+{"level":30,"time":1789264535054,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bp","req":{"method":"GET","url":"/sync/pull?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwMTo1NDoyOS44NjJaIn0","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51832},"msg":"incoming request"}
+{"level":30,"time":1789264535156,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bp","res":{"statusCode":200},"responseTime":101.60241699963808,"msg":"request completed"}
+{"level":30,"time":1789264535163,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bq","req":{"method":"GET","url":"/sync/errors?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&unresolvedOnly=true&limit=50","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51832},"msg":"incoming request"}
+{"level":30,"time":1789264535169,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bq","res":{"statusCode":200},"responseTime":5.506500001996756,"msg":"request completed"}
+{"level":30,"time":1789264568161,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4br","req":{"method":"POST","url":"/sync/upload","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264568223,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4br","res":{"statusCode":200},"responseTime":61.99670799821615,"msg":"request completed"}
+{"level":30,"time":1789264568258,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bs","req":{"method":"GET","url":"/sync/manifest?knownSchemaVersion=3c0acb5b2de1f232","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264568260,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bs","res":{"statusCode":200},"responseTime":2.3696669973433018,"msg":"request completed"}
+{"level":30,"time":1789264568275,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bt","req":{"method":"GET","url":"/sync/pull?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwMTo1NTozMC4wNTdaIn0","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264568321,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bt","res":{"statusCode":200},"responseTime":45.913166999816895,"msg":"request completed"}
+{"level":30,"time":1789264568325,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bu","req":{"method":"GET","url":"/sync/errors?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&unresolvedOnly=true&limit=50","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264568329,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bu","res":{"statusCode":200},"responseTime":4.291999999433756,"msg":"request completed"}
+{"level":30,"time":1789264595221,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bv","req":{"method":"GET","url":"/sync/manifest?knownSchemaVersion=3c0acb5b2de1f232","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264595224,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bv","res":{"statusCode":200},"responseTime":2.4658330008387566,"msg":"request completed"}
+{"level":30,"time":1789264595235,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bw","req":{"method":"GET","url":"/sync/pull?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwMTo1NjowMy4yNzVaIn0","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264595257,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bw","res":{"statusCode":200},"responseTime":22.099082998931408,"msg":"request completed"}
+{"level":30,"time":1789264595265,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bx","req":{"method":"GET","url":"/sync/errors?deviceId=01a0986f-dfef-74cb-b5af-a546bf401b2b&unresolvedOnly=true&limit=50","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":51844},"msg":"incoming request"}
+{"level":30,"time":1789264595268,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bx","res":{"statusCode":200},"responseTime":3.1755839996039867,"msg":"request completed"}
+{"level":30,"time":1789266824914,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4by","req":{"method":"POST","url":"/warehouse/picklists/01a0989b-c9d4-7556-91eb-4c828d3cb7c1/start","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":52771},"msg":"incoming request"}
+{"level":30,"time":1789266825059,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4by","res":{"statusCode":200},"responseTime":144.06262499839067,"msg":"request completed"}
+{"level":30,"time":1789271134428,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4bz","req":{"method":"GET","url":"/docs/openapi.json","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":53933},"msg":"incoming request"}
+{"level":30,"time":1789271168631,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c0","req":{"method":"GET","url":"/health","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":53949},"msg":"incoming request"}
+{"level":30,"time":1789271170620,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c0","res":{"statusCode":200},"responseTime":1974.1833329983056,"msg":"request completed"}
+{"level":30,"time":1789271170724,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c1","req":{"method":"GET","url":"/docs/openapi.json","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":53951},"msg":"incoming request"}
+{"level":30,"time":1789274869304,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c2","req":{"method":"GET","url":"/health","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":54972},"msg":"incoming request"}
+{"level":30,"time":1789274869392,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c2","res":{"statusCode":200},"responseTime":79.79412499815226,"msg":"request completed"}
+{"level":30,"time":1789275037630,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c3","req":{"method":"POST","url":"/sync/upload","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":55038},"msg":"incoming request"}
+DrizzleQueryError: Failed query: insert into "journal_entries" ("id", "tenant_id", "entry_date", "ref_type", "ref_id", "narration", "idempotency_key", "posted_by", "posted_at", "reversed_by_entry_id") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default)
+params: 01a0991a-5ff1-7220-8ae8-bcb669fb73c9,01a0947d-7a79-75d2-bfff-97e499a58d49,2026-09-13,receipt,01a0991a-5fbb-788b-8db2-0097977b034d,receipt RCPT-0709,journal:receipt:01a0991a-5fbb-788b-8db2-0097977b034d,5b6fbe87-cb70-7195-8de1-a4f5046c3675
+    at NodePgPreparedQuery.queryWithCache (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/pg-core/session.js:41:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async postJournalEntry (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/receivables/posting.js:60:5)
+    ... 4 lines matching cause stack trace ...
+    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/sync/sync.service.js:90:25
+    at async NodePgSession.transaction (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async SyncService.upload (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/sync/sync.service.js:69:28) {
+  query: 'insert into "journal_entries" ("id", "tenant_id", "entry_date", "ref_type", "ref_id", "narration", "idempotency_key", "posted_by", "posted_at", "reversed_by_entry_id") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default)',
+  params: [
+    '01a0991a-5ff1-7220-8ae8-bcb669fb73c9',
+    '01a0947d-7a79-75d2-bfff-97e499a58d49',
+    '2026-09-13',
+    'receipt',
+    '01a0991a-5fbb-788b-8db2-0097977b034d',
+    'receipt RCPT-0709',
+    'journal:receipt:01a0991a-5fbb-788b-8db2-0097977b034d',
+    '5b6fbe87-cb70-7195-8de1-a4f5046c3675'
+  ],
+  cause: error: new row violates row-level security policy for table "journal_entries"
+      at /Users/prajwalchavan/Desktop/Distribution OS/backend/node_modules/pg/lib/client.js:694:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:113:20
+      at async NodePgPreparedQuery.queryWithCache (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/pg-core/session.js:39:16)
+      at async postJournalEntry (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/receivables/posting.js:60:5)
+      at async ReceivablesService.recordReceipt (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/receivables/receivables.service.js:393:9)
+      at async applyReceiptSync (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/receivables/receivables.sync.js:43:5)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/sync/sync.service.js:95:29
+      at async NodePgTransaction.transaction (file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/node_modules/drizzle-orm/node-postgres/session.js:215:22)
+      at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/backend/libs/core/dist/modules/sync/sync.service.js:90:25 {
+    length: 138,
+    severity: 'ERROR',
+    code: '42501',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'execMain.c',
+    line: '2202',
+    routine: 'ExecWithCheckOptions'
+  }
+}
+{"level":30,"time":1789275037687,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4c3","res":{"statusCode":500},"responseTime":56.67508299648762,"msg":"request completed"}

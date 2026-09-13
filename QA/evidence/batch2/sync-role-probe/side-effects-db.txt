@@ -1,0 +1,114 @@
+\echo == receipts created by the probes (note contains the probe tag)
+== receipts created by the probes (note contains the probe tag)
+select r.id, r.tenant_id, r.receipt_no, r.retailer_id, r.mode, r.amount_paise, u.username as received_by, r.created_at from receipts r left join users u on u.id = r.received_by where r.note like 'QA batch2 sync-role-probe%' order by r.created_at;
+                  id                  |              tenant_id               | receipt_no |             retailer_id              | mode | amount_paise |  received_by   |            created_at            
+--------------------------------------+--------------------------------------+------------+--------------------------------------+------+--------------+----------------+----------------------------------
+ 01a09919-ed3d-7388-be23-0d84e98b21b5 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | RCPT-0707  | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | cash |          100 | ganesh.more    | 2026-09-13 10:20:08.356918+05:30
+ 01a0991a-2d76-76c5-b612-dc8f51e30adf | 01a0947d-7a79-75d2-bfff-97e499a58d49 | RCPT-0708  | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | cash |          100 | rahul.deshmukh | 2026-09-13 10:20:24.814611+05:30
+(2 rows)
+
+\echo == allocations of those receipts
+== allocations of those receipts
+select al.id, al.tenant_id, al.invoice_id, al.receipt_id, al.amount_paise from allocations al where al.receipt_id in (select id from receipts where note like 'QA batch2 sync-role-probe%') order by al.id;
+                  id                  |              tenant_id               |              invoice_id              |              receipt_id              | amount_paise 
+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+--------------
+ 01a09919-edb9-70d1-9d68-cb14e09b04fc | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 52c9311a-af62-7a65-bdd3-27f4b771fee4 | 01a09919-ed3d-7388-be23-0d84e98b21b5 |          100
+ 01a0991a-2de3-7645-9e05-48d1d4c0cc64 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 52c9311a-af62-7a65-bdd3-27f4b771fee4 | 01a0991a-2d76-76c5-b612-dc8f51e30adf |          100
+(2 rows)
+
+\echo == journal entries and lines of those receipts
+== journal entries and lines of those receipts
+select e.id as entry_id, e.tenant_id, e.ref_id, l.id as line_id, a.code, l.amount_paise from journal_entries e join journal_lines l on l.entry_id = e.id join accounts a on a.id = l.account_id where e.ref_type = 'receipt' and e.ref_id in (select id from receipts where note like 'QA batch2 sync-role-probe%') order by e.id, l.amount_paise desc;
+               entry_id               |              tenant_id               |                ref_id                |               line_id                | code | amount_paise 
+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+------+--------------
+ 01a09919-edc9-76d8-86e1-7c013d14613d | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 01a09919-ed3d-7388-be23-0d84e98b21b5 | 01a09919-edcd-7755-a6be-a0200cd9b902 | CASH |          100
+ 01a09919-edc9-76d8-86e1-7c013d14613d | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 01a09919-ed3d-7388-be23-0d84e98b21b5 | 01a09919-edcd-7756-a7e9-cfdd94a21a5c | AR   |         -100
+ 01a0991a-2ded-7411-8281-62781f8b3a7d | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 01a0991a-2d76-76c5-b612-dc8f51e30adf | 01a0991a-2def-74cb-8a5d-4f66cbfe1a22 | CASH |          100
+ 01a0991a-2ded-7411-8281-62781f8b3a7d | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 01a0991a-2d76-76c5-b612-dc8f51e30adf | 01a0991a-2def-74cc-96dc-0c5481131892 | AR   |         -100
+(4 rows)
+
+\echo == outbox events for those receipts
+== outbox events for those receipts
+select o.id, o.tenant_id, left(o::text, 160) as row_head from outbox_events o where exists (select 1 from receipts r where r.note like 'QA batch2 sync-role-probe%' and o::text like '%' || r.id || '%') order by o.id;
+                  id                  |              tenant_id               |                                                                             row_head                                                                             
+--------------------------------------+--------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 01a09919-edec-7266-95fd-58ba65046d7c | 01a0947d-7a79-75d2-bfff-97e499a58d49 | (01a09919-edec-7266-95fd-58ba65046d7c,01a0947d-7a79-75d2-bfff-97e499a58d49,receipt,01a09919-ed3d-7388-be23-0d84e98b21b5,ReceiptRecorded,"{""tripId"": null, ""re
+ 01a09919-edf3-77ef-80a4-8487948e74a1 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | (01a09919-edf3-77ef-80a4-8487948e74a1,01a0947d-7a79-75d2-bfff-97e499a58d49,document,receipt:01a09919-ed3d-7388-be23-0d84e98b21b5:a5:original,DocumentRenderReque
+ 01a0991a-2e05-7504-9644-f8e6c0cf01c4 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | (01a0991a-2e05-7504-9644-f8e6c0cf01c4,01a0947d-7a79-75d2-bfff-97e499a58d49,receipt,01a0991a-2d76-76c5-b612-dc8f51e30adf,ReceiptRecorded,"{""tripId"": null, ""re
+ 01a0991a-2e0a-7082-a8a2-e9f9dfe59181 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | (01a0991a-2e0a-7082-a8a2-e9f9dfe59181,01a0947d-7a79-75d2-bfff-97e499a58d49,document,receipt:01a0991a-2d76-76c5-b612-dc8f51e30adf:a5:original,DocumentRenderReque
+(4 rows)
+
+\echo == sync_ops rows from the probe devices
+== sync_ops rows from the probe devices
+select tenant_id, device_id, op_id, outcome, created_at from sync_ops where device_id like 'qa-b2-syncprobe-%' order by created_at;
+              tenant_id               |           device_id            |                op_id                 |                                                                                                                                                       outcome                                                                                                                                                        |            created_at            
+--------------------------------------+--------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | qa-b2-syncprobe-delivery-01    | 01a09919-ed3d-78f5-908d-3b90b761a56e | {"ok": true}                                                                                                                                                                                                                                                                                                         | 2026-09-13 10:20:08.356918+05:30
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | qa-b2-syncprobe-salesperson-02 | 01a0991a-2d76-76f1-b76d-81c393cdac5b | {"ok": true}                                                                                                                                                                                                                                                                                                         | 2026-09-13 10:20:24.814611+05:30
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | qa-b2-syncprobe-salesperson-06 | 01a0991c-6c21-7c59-8a01-1eb99176baa2 | {"ok": false, "rejection": {"code": "not_found", "opId": "01a0991c-6c21-7c59-8a01-1eb99176baa2", "rowId": "01a0991c-6c20-7ff1-abb7-db1d2586b778", "table": "trip_expenses", "messageEn": "trip dda35990-f442-7931-8da4-5808f09a33b6 not found", "messageHi": "trip dda35990-f442-7931-8da4-5808f09a33b6 not found"}} | 2026-09-13 10:22:51.894511+05:30
+(3 rows)
+
+\echo == sync_errors rows from the probe devices
+== sync_errors rows from the probe devices
+select id, tenant_id, device_id, op_id, table_name, row_id, code from sync_errors where device_id like 'qa-b2-syncprobe-%' order by created_at;
+                  id                  |              tenant_id               |           device_id            |                op_id                 |  table_name   |                row_id                |   code    
+--------------------------------------+--------------------------------------+--------------------------------+--------------------------------------+---------------+--------------------------------------+-----------
+ 01a0991c-6c4d-76d2-a03d-aee63c4d6d64 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | qa-b2-syncprobe-salesperson-06 | 01a0991c-6c21-7c59-8a01-1eb99176baa2 | trip_expenses | 01a0991c-6c20-7ff1-abb7-db1d2586b778 | not_found
+(1 row)
+
+\echo == the bill both accepted receipts allocated to: state and allocations now
+== the bill both accepted receipts allocated to: state and allocations now
+select i.id, i.state, (select sum(amount_paise) from allocations where invoice_id = i.id) as allocated_paise_total from invoices i where i.id = '52c9311a-af62-7a65-bdd3-27f4b771fee4';
+                  id                  |     state      | allocated_paise_total 
+--------------------------------------+----------------+-----------------------
+ 52c9311a-af62-7a65-bdd3-27f4b771fee4 | partially_paid |               1620200
+(1 row)
+
+\echo == receipt numbers around the probes (was RCPT-0709, assigned inside the rolled-back warehouse transaction, skipped or reused?)
+== receipt numbers around the probes (was RCPT-0709, assigned inside the rolled-back warehouse transaction, skipped or reused?)
+select receipt_no, id, note, created_at from receipts where tenant_id = '01a0947d-7a79-75d2-bfff-97e499a58d49' and receipt_no in ('RCPT-0706','RCPT-0707','RCPT-0708','RCPT-0709','RCPT-0710') order by receipt_no;
+ receipt_no |                  id                  |                   note                   |            created_at            
+------------+--------------------------------------+------------------------------------------+----------------------------------
+ RCPT-0706  | 01a09854-816c-75b3-8160-3d23b94864e4 |                                          | 2026-09-13 06:44:30.152007+05:30
+ RCPT-0707  | 01a09919-ed3d-7388-be23-0d84e98b21b5 | QA batch2 sync-role-probe 01 delivery    | 2026-09-13 10:20:08.356918+05:30
+ RCPT-0708  | 01a0991a-2d76-76c5-b612-dc8f51e30adf | QA batch2 sync-role-probe 02 salesperson | 2026-09-13 10:20:24.814611+05:30
+(3 rows)
+
+\echo == bill 52c9311a: total vs allocations with and without the two probe receipts (did its state change?)
+== bill 52c9311a: total vs allocations with and without the two probe receipts (did its state change?)
+select column_name from information_schema.columns where table_schema = 'public' and table_name = 'invoices' and column_name like '%total%';
+  column_name   
+----------------
+ subtotal_paise
+ total_paise
+(2 rows)
+
+select i.id, i.state, i.grand_total_paise, (select sum(amount_paise) from allocations where invoice_id = i.id) as allocated_now, (select sum(amount_paise) from allocations where invoice_id = i.id and receipt_id not in (select id from receipts where note like 'QA batch2 sync-role-probe%')) as allocated_without_probes from invoices i where i.id = '52c9311a-af62-7a65-bdd3-27f4b771fee4';
+ERROR:  column i.grand_total_paise does not exist
+LINE 1: select i.id, i.state, i.grand_total_paise, (select sum(amoun...
+                              ^
+\echo == derived rollup refreshed for the shop (retailer_outstanding_summary is re-derived, not appended)
+== derived rollup refreshed for the shop (retailer_outstanding_summary is re-derived, not appended)
+select * from retailer_outstanding_summary where retailer_id = '8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8';
+              tenant_id               |             retailer_id              | outstanding_paise | overdue_paise | unallocated_credit_paise | open_bills | oldest_due_date | oldest_invoice_date |        last_receipt_at        | last_receipt_paise | bucket_0_7_paise | bucket_8_15_paise | bucket_16_30_paise | bucket_31_60_paise | bucket_61_90_paise | bucket_90_plus_paise |   as_of    |           updated_at           
+--------------------------------------+--------------------------------------+-------------------+---------------+--------------------------+------------+-----------------+---------------------+-------------------------------+--------------------+------------------+-------------------+--------------------+--------------------+--------------------+----------------------+------------+--------------------------------
+ 01a0947d-7a79-75d2-bfff-97e499a58d49 | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 |          40763200 |      29862900 |                        0 |          9 | 2026-07-31      | 2026-07-10          | 2026-09-13 10:20:24.758+05:30 |                100 |         10900300 |           5762700 |           13127300 |           10972900 |                  0 |                    0 | 2026-09-13 | 2026-09-13 10:20:24.8966+05:30
+(1 row)
+
+\echo == worker-rendered receipt PDFs (receipts.pdf_object_key) and outbox processing state
+== worker-rendered receipt PDFs (receipts.pdf_object_key) and outbox processing state
+select id, receipt_no, pdf_object_key from receipts where note like 'QA batch2 sync-role-probe%' order by receipt_no;
+                  id                  | receipt_no |                                             pdf_object_key                                             
+--------------------------------------+------------+--------------------------------------------------------------------------------------------------------
+ 01a09919-ed3d-7388-be23-0d84e98b21b5 | RCPT-0707  | tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09919-ed3d-7388-be23-0d84e98b21b5.pdf
+ 01a0991a-2d76-76c5-b612-dc8f51e30adf | RCPT-0708  | tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a0991a-2d76-76c5-b612-dc8f51e30adf.pdf
+(2 rows)
+
+\echo == bill 52c9311a (rerun with the right column): total vs allocations with and without the two probe receipts
+== bill 52c9311a (rerun with the right column): total vs allocations with and without the two probe receipts
+select i.id, i.state, i.total_paise, (select sum(amount_paise) from allocations where invoice_id = i.id) as allocated_now, (select sum(amount_paise) from allocations where invoice_id = i.id and receipt_id not in (select id from receipts where note like 'QA batch2 sync-role-probe%')) as allocated_without_probes from invoices i where i.id = '52c9311a-af62-7a65-bdd3-27f4b771fee4';
+                  id                  |     state      | total_paise | allocated_now | allocated_without_probes 
+--------------------------------------+----------------+-------------+---------------+--------------------------
+ 52c9311a-af62-7a65-bdd3-27f4b771fee4 | partially_paid |     3211100 |       1620200 |                  1601000
+(1 row)
+

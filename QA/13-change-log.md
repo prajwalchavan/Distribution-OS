@@ -163,3 +163,15 @@ sign-off, build, verify. P2 and P3 are grouped by app, with one Opus builder and
 separate planning step. Copy-only or layout-only P3 fixes may run on Sonnet. Fable designs the ones that need a decision. One full A.12
 regression runs at the end of batch 2, and phones are walked only where a fix changes a phone screen. If overall weekly usage passes
 about 70% by Wednesday, work stops after P0/P1 and its regression, and P2/P3 resume after the Saturday 11:30 IST reset.
+
+Added to batch 2 (founder, 2026-09-13: "approved"): **DOS-166** (P0, security). A salesperson recorded a money receipt through
+`/sync/upload`, which the HTTP matrix refuses (QA/findings/12-batch2-new-findings.md). Fable writes the design
+(QA/evidence/batch2/verdicts/DOS-166-design.md), which serves as the signed-off plan; Opus builds and verifies it ahead of the remaining
+P1. Approved in the same answer, the architect defaults of the batch-2 sign-offs:
+- the accountant cannot change orders (DOS-115)
+- confirm applies only rates approved since the draft (DOS-126)
+- trip cheques wait for settlement (DOS-132)
+- expired desk returns are booked as damaged (DOS-116)
+- an emptied trip-start cash field means a ₹0 float (DOS-146)
+- a warehouse-app load sheet is always for one trip (DOS-131+137)
+All are recorded in docs/22 §8.
