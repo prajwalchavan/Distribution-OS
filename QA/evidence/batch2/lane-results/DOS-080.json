@@ -1,0 +1,180 @@
+{
+ "id": "DOS-080",
+ "runs": [
+  "wf_51c8b336-66e"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-080",
+   "status": "fixed",
+   "commits": [
+    "38032df"
+   ],
+   "failBefore": "Unfixed tree, run on its own: `pnpm --filter @dos/core exec vitest run src/modules/sync/sync.coverage.spec.ts -t DOS-080` gave \"Tests 4 failed | 21 skipped (25)\". Each failure matches the reason in the plan:\n1. 'DOS-080 fills the page limit across tables…': \"AssertionError: expected 25 to be less than or equal to 9\" at sync.coverage.spec.ts:975. That is 25 pages against a bound of ceil((R+T)/10)+1: the storm.\n2. 'DOS-080 a delta whose updates and tombstones overflow…': \"expected [ …(16) ] to deeply equal [ …(15) ]\" at :1014. The renamed row \"…=Interleaved 94653dcd 19 renamed\" was received twice (re-sent). The deleted assertion at :1012 passed.\n3. 'DOS-080 a first table that fills the page exactly…': \"expected [ …(10) ] to deeply equal [ …(5) ]\" at :1042. The beats were re-sent.\n4. 'DOS-080 a tombstone page thinned by the still-visible filter…': \"expected [ …(20) ] to deeply equal [ …(10) ]\" at :1067. L1..L10 were re-sent.\n\nThe extra test 'DOS-080 a page holding a row with no instant (the desk_only stub)…' in sync.spec.ts PASSED on the unfixed tree (\"Tests 1 passed | 8 skipped\"). It is a regression pin for amendment (a), not fail-first evidence.",
+   "passAfter": "After the fix, every check ran with one file per command against dos_test_b2_h11:\n- sync.coverage.spec.ts -t DOS-080: 4 passed.\n- Whole sync.coverage.spec.ts: 25 passed in 3.36 s. This covers the six drainOf refactors, 'advances the cursor when a page is full…', and both DOS-166 tests.\n- Whole sync.spec.ts: 9 passed, including the DOS-080 amendment (a) pin and the DOS-166 42501 test.\n- No other spec in @dos/core, and no service spec, calls /sync/pull; grep over backend found only the two sync specs.\n- @dos/core `tsc --noEmit`: exit 0.\n- `pnpm --filter @dos/core lint`: exit 0. Its only output is the existing eslint-plugin-boundaries config deprecation notices.\n- `prettier --check` on the four backend files: clean. `pnpm format` in backend changed only my files.\n- @dos/offline typecheck and lint: exit 0.\n- Frontend `pnpm format:check`: exit 0.\n- `git status` is clean after commit 38032df.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-080 fills the page limit across tables: a snapshot of a 60-beat burst takes at most ceil((rows+tombstones)/limit)+1 calls and delivers every row exactly once"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-080 a delta whose updates and tombstones overflow the page delivers each of them exactly once across the pages"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-080 a first table that fills the page exactly does not hide a later table's changes"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "DOS-080 a tombstone page thinned by the still-visible filter does not let the cursor pass that table's unread tombstones"
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.spec.ts",
+     "name": "DOS-080 a page holding a row with no instant (the desk_only stub) issues a cursor the next pull accepts"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "gives a shop only the rows linked to its own shop: not another customer, not another tier",
+     "before": "shopPull = pullOf(shop) and deskPull = pullOf(owner): page 1 only, default limit 200.",
+     "after": "shopPull = drainOf(shop, tablesOf('retailer_links','price_lists','price_list_items')) and deskPull = drainOf(owner, tablesOf('price_lists','retailer_links')): the whole pass, merged by manifest primary key. Every assertion is unchanged.",
+     "why": "The plan requires it, and amendment (c) requires naming the tables. After DOS-080, page 1 is the `limit` earliest changes, and the global catalog rows predate this describe's fixtures, so page 1 would hold only catalog rows and `links.length > 0` / `items.length` 2 would fail."
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "sends every value in the shape its own manifest declared (paise are numbers, not strings)",
+     "before": "pull = pullOf(shop): page 1.",
+     "after": "pull = drainOf(shop): the whole pass over the shop's full read set. Assertions unchanged.",
+     "why": "The plan requires it. `bill.rows[0].total_paise` would fail on page 1 after the fix. Tables are not named because the assertions iterate every table the shop holds."
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "never sends a cost, margin or landed-cost column to a %s device",
+     "before": "The rows half used snapshot = pullOf(actor): page 1.",
+     "after": "The rows half uses snapshot = drainOf(actor) over the full read set. The manifest half and all assertions are unchanged.",
+     "why": "The plan requires it. On page 1 after the fix, the rows half would silently check only catalog rows. Tables are not named because the check is over every table."
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "gives the shop its own bill and the desk both shops, and the rep only its own beat",
+     "before": "shopPull, repPull and deskPull each came from pullOf on page 1.",
+     "after": "drainOf(shop, tablesOf('retailers','invoices')), drainOf(rep, tablesOf('retailers')) and drainOf(owner, tablesOf('retailers')). Assertions unchanged.",
+     "why": "The plan requires it, and amendment (c) requires naming the tables. `toEqual([shopId])` would fail on page 1 after the fix."
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "sends a delta after a change, and a tombstone after a delete",
+     "before": "first = pullOf(store, {limit:'500'}); delta, before, after and gone came from pullOf, some with since.",
+     "after": "All five use drainOf(store, …) naming tables locations and stock_balances; `first` keeps limit '500' and the since arguments are unchanged. Assertions unchanged.",
+     "why": "The plan requires it, and amendment (c) names this test's first/before drains. After the fix, mid-pass cursors are no longer the complete-pass cursor this test relies on."
+    },
+    {
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "name": "does not report a row that merely moved to another reader as deleted for the one that still holds it",
+     "before": "before = pullOf(owner) and desk = pullOf(owner, {since}).",
+     "after": "before = drainOf(owner, tablesOf('retailers')) and desk = drainOf(owner, {...tablesOf('retailers'), since}). Assertion unchanged.",
+     "why": "The plan requires it, and amendment (c) names this test. On page 1 after the fix, the not.toContain assertion would silently check less, because the retailers delta could fall past page 1."
+    }
+   ],
+   "filesChanged": [
+    "backend/libs/core/src/modules/sync/sync.service.ts",
+    "backend/libs/core/src/modules/sync/sync.registry.ts",
+    "backend/libs/core/src/modules/sync/sync.spec.ts",
+    "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+    "docs/07-offline-sync.md",
+    "docs/27-offline-sync-client.md",
+    "frontend/libs/offline/src/engine.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Cursor guard: pull() never encodes a mid-pass cursor that is not a full microsecond instant; a cut that fails the test pins (sinceText ?? EPOCH, no trim). `held` takes only non-empty instants, and `until` is set on strict held.length > limit.",
+     "done": true,
+     "how": "In sync.service.ts, `MICROSECOND_INSTANT = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$/`. When `cut` fails it, cut becomes null, so there is no trim and the cursor is `cut ?? sinceText ?? EPOCH`. `held` pushes only truthy instants from result.at and result.deletedAt, and the overflow branch runs only on `held.length > limit`. The verifier's check is pinned by the new sync.spec.ts test: a desk_only-only pull returns 200 and its cursor re-pulls with 200, and a beats+desk_only pass at limit 1 answers 200 on every page and delivers each beat once. That test passes on the unfixed tree too, so it is a regression pin."
+    },
+    {
+     "amendment": "(b) Stale client comment at engine.ts:422-426 ('265 for a salesperson') corrected to the post-fix figure; comment only, and frontend format:check stays green.",
+     "done": true,
+     "how": "frontend/libs/offline/src/engine.ts pullLoop comment now reads 'many pages (about 25 for a salesperson on the pilot data; 265 before DOS-080)' and '…where the read set was 265 pages before DOS-080'; the rest of that comment was reflowed. No code changed. @dos/offline typecheck and lint exit 0, and frontend `pnpm format:check` exits 0."
+    },
+    {
+     "amendment": "(c) Drain cost: drainOf names `tables` wherever the test's assertions are table-specific (at least the delta test's first/before and the moved-row test), the 200-page guard stays, and assertions are unchanged.",
+     "done": true,
+     "how": "Tables are named in the shop/tier, bill, delta (all five drains) and moved-row tests. pagesOf throws past 200 pages. The value-shape test and the cost-column rows half still drain the full read set, because their assertions iterate every table (see deviations). The whole coverage file ran in 3.36 s."
+    },
+    {
+     "amendment": "(d) docs/27 §5 item 2 gains one clause: the FIRST page of a snapshot carries no tombstones; later pages carry a cursor and may. Nothing else in docs/27 touched.",
+     "done": true,
+     "how": "docs/27-offline-sync-client.md §5 item 2: 'Snapshots carry no tombstones.' became 'The first page of a snapshot carries no tombstones; later pages carry a cursor and may.' No other line changed; §15 is untouched."
+    },
+    {
+     "amendment": "(e) Merge-time re-run: run the whole core sync suite on this branch one file per command (sync.spec.ts, sync.coverage.spec.ts and every other spec that drains a pull), and keep every DOS-166 test green.",
+     "done": true,
+     "how": "Before committing, each file ran whole on its own command: sync.coverage.spec.ts 25/25 (including both DOS-166 tests) and sync.spec.ts 9/9 (including the DOS-166 42501 test). grep over backend found no other spec calling /sync/pull. The DOS-166 upload half, register/standsFor, mayUploadTable and the role-aware manifest are untouched. The merge review should still re-run both files on main after merging, per the verdict."
+    }
+   ],
+   "deviations": "1. Amendment (c) says the suite should drain the global catalog 'at most once per file'. That is not literally met.\n   - Its operative rule is to name tables wherever the assertions are table-specific, and I applied that.\n   - The value-shape test (shop) and the rows half of the cost-column it.each (rep, crew, store, shop) check every table the role holds. Naming tables there would narrow what they check.\n   - So the coverage file still drains the full read set, catalog included, five times.\n   - Measured cost on dos_test_b2_h11 (284 global catalog rows): the whole file took 3.36 s. It will be slower on the founder's polluted `dos` database; the fallback would be a verdict call on those two tests.\n2. Amendment (a) is read as guarding `cut`, as its second sentence says.\n   - The final-page cursor is still `encodeCursor(asOf)`, which carries millisecond precision, exactly as before and as the plan keeps it.\n   - The pinned cursor is still `sinceText`, which decodeCursor has already accepted.\n   - Neither can produce a 400.\n3. A fifth test was added: 'DOS-080 a page holding a row with no instant (the desk_only stub)…' in sync.spec.ts.\n   - It covers the verdict's 'What the verifier must prove' item for amendment (a).\n   - It is additive; the stub change stays type-only (`at: ['']`, `deletedAt: []`) and no existing assertion changed.\n   - It passes on the unfixed tree as well.\n   - Through tablePull the non-microsecond guard itself cannot fire, because every instant comes from `to_char`. The test pins the empty-instant path.\n4. Test 1 counts T (tombstones) into the bound but does not assert T >= 1. The plan's 'at least one exists' depends on the earlier delta test, and asserting it would break `-t DOS-080` runs.\n5. From the verdict's builder risks: `input.tables` is deduplicated with a Set inside pull().\n6. The four DOS-080 tests are appended at the very end of the describe, after the two DOS-166 tests that merged after the plan was written. That still satisfies 'after replays an upload batch twice…' and check (i).\n7. In test 4's correct paging, page 1 is empty with hasMore true (cut = tombstone watermark), exactly as the plan describes. This is expected, not a defect.",
+   "followUps": "1. Merge review (amendment e):\n   - Re-run sync.spec.ts and sync.coverage.spec.ts whole on main after merging.\n   - Run `pnpm docs:readme:check` (not run here per lane rules; no contract change, so no README should move).\n   - Run `pnpm smoke --service sales --only GET`; it needs running services, which were not allowed in this lane.\n2. Running-product verification from the verdict was NOT done (no dev servers or emulators in this lane):\n   - fresh web sign-in as rahul.deshmukh on :5175 should be ≤ 25 /sync/pull calls, with every non-final page carrying about 500 rows+deleted;\n   - a reload of /orders/new should cost ≤ 25 calls, and 2 minutes idle should give 2 polls;\n   - content parity against the b59bbf0 baseline;\n   - Android `pm clear in.distributionos.sales` then sign-in should be one run of ≤ 25 calls, and a relaunch exactly one pull carrying since;\n   - warehouse (dinesh.patil :5176) and delivery (ganesh.more :5177) first syncs;\n   - iOS is optional.\n3. Doc updates for the main session:\n   - a docs/18 build-log row for DOS-080.\n   - docs/07 §0 client-contract item 4 ('A pull with no since is a full snapshot and carries no tombstones') is still true per call but should echo the new docs/27 §5 clause. It is not in the plan, so I left it.\n4. New findings recorded in the verdict, outside this fix:\n   - P1: sign-out never calls SyncEngine.wipe(), and the device store is not keyed by user.\n   - P2: the four global catalog tables are pulled unnarrowed by every device.\n   - P3: docs/27 §2 claims the dev server sends COOP/COEP; nothing sets it.\n5. Residual risk (plan risk 3): per-request memory rises, up to about 37 × 501 rows read before trimming for the desk. If profiling shows pressure, the follow-up is an instants-first two-phase read, not a smaller per-table limit.",
+   "platformCheck": "This is a server-side change in @dos/core. It was exercised at the API layer through booted Nest/Fastify test apps: sync.coverage.spec.ts boots every module that registers a pull, and sync.spec.ts boots the sync module with stubs. Everything ran against the private database dos_test_b2_h11 after migrating it to main's 0047.\n\nThe client half (@dos/offline engine.ts) changed only in a comment. It was checked with typecheck, lint and frontend format:check only.\n\nWeb, Android and iOS were NOT exercised: this lane forbids dev servers, emulators and simulators. The running-product checks are listed in followUps."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-080",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Cursor guard: pull() never encodes a cut that is not a full microsecond instant; a failing cut pins (sinceText ?? EPOCH, no trim); held takes only non-empty instants; until set only on strict held.length > limit",
+     "satisfied": true,
+     "detail": "In sync.service.ts, MICROSECOND_INSTANT is /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$/, and `if (cut !== null && !MICROSECOND_INSTANT.test(cut)) cut = null`. Then cursor = `encodeCursor(cut ?? sinceText ?? EPOCH)` and the page is untrimmed (cut === null). `for (const at of [...result.at, ...result.deletedAt]) if (at) held.push(at)`, and `if (held.length > limit)` is strict. The sync.spec.ts test 'DOS-080 a page holding a row with no instant (the desk_only stub)…' passes 9/9 with the fix: desk_only's cursor is accepted with 200, and a beats+desk_only pass at limit 1 delivers each beat once. It also passes on the unfixed tree, so it is a regression pin. I also exercised the guard itself with a temporary probe (deleted afterwards). A stub pull returned at ['not-an-instant'], watermark 'garbage' and hasMore. The answer was 200 with cursor t = 1970-01-01T00:00:00.000000Z; the next call carrying it was also 200 and returned the same cursor. Without the guard the cursor would have been {t:'garbage'}, which decodeCursor answers with 400."
+    },
+    {
+     "amendment": "(b) Stale client comment at engine.ts pullLoop ('265 for a salesperson') corrected to the post-fix figure; comment only; frontend format:check green",
+     "satisfied": true,
+     "detail": "The diff to frontend/libs/offline/src/engine.ts touches only the comment block: 'about 25 for a salesperson on the pilot data; 265 before DOS-080'. No code changed. Frontend `pnpm format:check`: 'All matched files use Prettier code style!'. @dos/offline typecheck exit 0 and lint exit 0, both run by me."
+    },
+    {
+     "amendment": "(c) Drain cost: drainOf names tables wherever assertions are table-specific (at least delta first/before and the moved-row test), 200-page guard stays, assertions unchanged",
+     "satisfied": true,
+     "detail": "Tables are named in:\n- the shop/tier test: retailer_links, price_lists, price_list_items; desk: price_lists, retailer_links\n- the bill test: retailers, invoices; rep and desk: retailers\n- all five drains of the delta test: locations, stock_balances\n- the moved-row test: retailers\npagesOf throws at 200 pages. In the diff, every refactored test changes only pullOf->drainOf (plus the named tables); no expect() was altered.\nOn the UNFIXED tree the whole coverage file ran 21 passed / 4 failed, and the failures were only the four DOS-080 tests. So the six refactors are neutral and do not encode the fix.\nLiteral gap: the architect's expected outcome, 'drains the global catalog at most once per file', is not met. The value-shape test (shop) and the cost-column rows half (rep, crew, store, shop) still drain the full read set, five drains in all. This is a documented deviation with a code-checkable reason: both assertions loop over every change of every table, so naming tables would narrow what they check. Measured: whole file 3.04 s on dos_test_b2_h11 (296 global catalog rows). Listed as a minor problem."
+    },
+    {
+     "amendment": "(d) docs/27 §5 item 2 gains: the FIRST page of a snapshot carries no tombstones; later pages carry a cursor and may. Nothing else in docs/27",
+     "satisfied": true,
+     "detail": "`git show 38032df -- docs/27-offline-sync-client.md` is a single-line change in §5 item 2: 'Snapshots carry no tombstones.' became 'The first page of a snapshot carries no tombstones; later pages carry a cursor and may.' §15 is untouched. The docs/07 lines 22 and 34 edits are the plan's own change. The engine applies `deleted` before rows on every page (engine.ts applyPull), so snapshot pages after the first that carry tombstones are handled."
+    },
+    {
+     "amendment": "(e) Merge-time re-run: whole core sync suite on this branch one file per command, every DOS-166 test green",
+     "satisfied": true,
+     "detail": "Run by me with the fix, one file per command:\n- sync.coverage.spec.ts: 25/25 passed in 3.04 s, including 'DOS-166: refuses a salesperson receipt…', 'DOS-166: every upload table stands for a declared procedure…' and 'advances the cursor when a page is full…'.\n- sync.spec.ts: 9/9, including 'DOS-166: answers a row policy refusal (42501)…'.\nA grep for sync/pull across backend and frontend tests finds nothing else that drains a pull: rls.test.ts is a comment, permissions.test.ts a matrix entry, and engine.test.ts uses a fake transport.\nThe DOS-166 upload half, register/standsFor, mayUploadTable and the manifest writable flag are not in the diff. The re-run on main after merge is still owed by the merge review."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "detail": "Amendment (c)'s stated outcome, 'the suite drains the global catalog at most once per file', is not literally met. Five full-read-set drains remain: the value-shape test (shop) and the four cost-column rows halves (rep, crew, store, shop). The deviation is documented, and the reason holds: those assertions iterate every table, and naming tables would narrow them. Cost measured on dos_test_b2_h11 with 296 global catalog rows: the whole file took 3.04 s. It is untested on the founder's polluted `dos` database, where the risk is the 30 s per-test vitest timeout. The merge review should watch the timing there."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.service.ts",
+     "detail": "The pinned path still holds the cursor exactly as before. Pinned means a table stuck on TIE_COMPLETION_LIMIT, or a cut failing the amendment-(a) guard.\nThe response size changed, though. Every table now reads a whole page (limit+1 plus ties) and the pinned page goes out untrimmed, so one response can carry up to tables × (limit+1) rows plus ties, about 37 × 501 for the desk. Before, each table got limit/N rows.\nThe plan and verdict accept this ('the pinned path delivers untrimmed'), and it only happens with more than 2000 rows in one microsecond of one table. It is recorded so 'today's behaviour exactly' is read as the cursor, not the payload."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/sync/sync.spec.ts",
+     "detail": "The added test 'DOS-080 a page holding a row with no instant (the desk_only stub)…' passes on the unfixed tree too, so it is a regression pin, not fail-first evidence.\nThrough tablePull, every instant comes from to_char, so the MICROSECOND_INSTANT guard itself is not reached by any committed test. It is also not strictly needed: earliestInstant already treats '' as absent.\nThe guard was proven only by my temporary probe, which was deleted: a stub with a malformed instant got 200 and a pinned EPOCH cursor. The implementer disclosed this."
+    },
+    {
+     "severity": "minor",
+     "file": "docs/27-offline-sync-client.md",
+     "detail": "Not verified in this lane, because it forbids dev servers, emulators and smoke:\n- the running-product checks from the verdict: web :5175 first sign-in ≤ 25 /sync/pull calls; reload of /orders/new ≤ 25; 2 minutes idle = 2 polls; content parity against b59bbf0; Android pm clear then one run ≤ 25 and a relaunch doing one delta pull; warehouse and delivery first syncs;\n- `pnpm smoke --service sales --only GET`;\n- `pnpm docs:readme:check`.\nThese remain for the merge review (the implementer's followUps). The core-layer proof is complete."
+    }
+   ],
+   "evidence": "Worktree .claude/worktrees/b2-h11-syncpull, branch qa/b2-h11-syncpull, HEAD 38032df. DB dos_test_b2_h11 (48 migrations, through 0047).\n\nSCOPE\n`git show --stat 38032df` lists 7 files, all named by the plan or its amendments:\n- sync.service.ts: pull half only, plus a `type PullResult` import\n- sync.registry.ts: PullRequest.untilText, PullResult.at/deletedAt, tablePull until-bound and `at`, readTombstones until-bound with paired `at` after the survivors filter\n- sync.spec.ts: stub made type-only, plus 1 pin test\n- sync.coverage.spec.ts: helpers, 6 drainOf refactors, 4 DOS-080 tests appended last\n- docs/07: lines 22 and 34\n- docs/27: §5 item 2\n- engine.ts: comment only\nThere are no READMEs, QA/ files, docs/22, migrations, or contract or permission changes. The upload half, register/standsFor, mayUploadTable and the manifest writable flag are untouched. Every pull registration goes through tablePull, so typecheck proves the new required fields.\n\nFAIL BEFORE\nI reverse-applied the non-test part of `git diff 38032df^ 38032df` (git apply -R; perTable back at sync.service.ts:322) and rebuilt @dos/core with turbo.\n- `vitest run sync.coverage.spec.ts -t DOS-080`: 4 failed, 21 skipped.\n  1. 'expected 25 to be less than or equal to 9' (:978): 25 pages against the bound, the storm.\n  2. 'expected [ …(16) ] to deeply equal [ …(15) ]' (:1019): a renamed row sent twice.\n  3. 'expected [ …(10) ] to deeply equal [ …(5) ]' (:1049): beats sent twice.\n  4. 'expected [ …(20) ] to deeply equal [ …(10) ]' (:1074): L1..L10 sent twice.\n- Whole coverage file on the unfixed tree: 4 failed (only the DOS-080 tests), 21 passed. The six drainOf refactors are neutral.\n- `sync.spec.ts -t DOS-080` on the unfixed tree: 1 passed (a regression pin).\nRestored with `git checkout -- .`; git status clean; core rebuilt (dist carries untilText).\n\nPASS AFTER (one file per command)\n- coverage `-t DOS-080`: 4 passed.\n- Whole sync.coverage.spec.ts: 25/25 in 3.04 s, including both DOS-166 tests and 'advances the cursor…'.\n- Whole sync.spec.ts: 9/9, including the DOS-166 42501 test and the DOS-080 pin.\n- `turbo run typecheck lint --filter=@dos/core`: exit 0, 5 tasks successful; only the existing boundaries config notices.\n- Prettier check on the 4 backend files: clean.\n- Frontend `pnpm format:check`: clean.\n- @dos/offline typecheck exit 0, lint exit 0.\n\nADVERSARIAL PROBES\nA temporary spec copied the coverage harness plus a stub module; I ran it with `-t PROBE`, then deleted it.\n- PROBE A: 220 seeded random ops over beats, locations and price_lists (insert, rename, delete, re-insert of a deleted id, so the survivors filter thins tombstones), then 4 forced instants shared within tables, across tables, and between rows and tombstones (touch trigger disabled inside one transaction; tombstone deleted_at set).\n  - R=61, T=43. Delta from a µs mark at limits 1,2,3,4,5,7,10,16,33,500: each row and tombstone arrived exactly once, and rows and tombstones equal the database. Pages 47/23/14/12/9/8/6/5/3/1, all within ceil((R+T)/limit)+1.\n  - Snapshot at limits 1,2,5,13,500: each row once and the device equals the database (56/27/10/6/1 pages).\n  - Devices that snapshotted before the changes at limits 1,3,7,500 caught up from their own cursors and matched the database.\n- PROBE B (amendment a): a malformed instant and hasMore got 200, cursor EPOCH, next call 200 with the same cursor.\n- PROBE D (root cause 7): a millisecond-precision since over 6 rows inside that millisecond at limit 1 advanced and delivered each row once.\nAfter cleanup: touch triggers confirmed enabled (tgenabled O), `git status --short` empty, no untracked files, HEAD 38032df.\n\nNot run in this lane: web/Android/iOS, smoke, docs:readme:check."
+  }
+ ]
+}

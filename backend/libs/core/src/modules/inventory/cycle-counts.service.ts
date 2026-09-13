@@ -29,10 +29,10 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
+  MANAGEMENT,
   requireDb,
   requireRole,
 } from '../../platform/index.js'
@@ -200,11 +200,11 @@ export class CycleCountsService {
 
   /**
    * Posts the differences: one `cycle_count` ledger row per line whose variance is not zero, keyed
-   * `cycle_count:<countId>:<lotId>` so a replay writes nothing twice. Back office only: this is the
-   * step that changes the books' quantity.
+   * `cycle_count:<countId>:<lotId>` so a replay writes nothing twice. The owner or a manager only
+   * (MANAGEMENT; the accountant reads, QA DOS-037): this is the step that changes the books' quantity.
    */
   async post(input: PostIn): Promise<PostOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

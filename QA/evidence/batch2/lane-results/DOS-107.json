@@ -1,0 +1,175 @@
+{
+ "id": "DOS-107",
+ "runs": [
+  "wf_12400ce1-eae"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-107",
+   "status": "fixed",
+   "commits": [
+    "388987a fix(DOS-107): make a login lock reversible - super-only audited admin.users.enable and an Unlock this login action"
+   ],
+   "failBefore": "Run on qa/b2-h10-console against dos_test_b2_h10 before any implementation.\n\n1. `pnpm --filter @dos/contracts test -- src/permissions.test.ts`: 1 failed, 83 passed. The failing case was \"DOS-107: a lock has an undo — ...\" with `AssertionError: expected undefined to be 'POST'` at `enable?.method`: the procedure did not exist.\n\n2. `pnpm --filter @dos/core test -- src/modules/platform-admin/platform-admin.spec.ts`: the `--` separator dropped the file filter, so all 37 core files ran. 3 tests failed and 586 passed. The three failures were exactly the DOS-107 cases; every DOS-106 and DOS-109 case passed.\n   - \"a super unlocks a locked distributor login …\": `{\"message\":\"Cannot POST /admin/users/01a09a89-6e9d-75c1-…/enable\",\"error\":\"Not Found\",\"statusCode\":404}: expected 404 to be 200`.\n   - \"a locked console account with no distributorship …\": the same 404 against 200.\n   - \"a support or billing console account is refused …\": `support → admin.users.enable: {…\"Not Found\",\"statusCode\":404}: expected 404 to be 403`.\n\nAll four failed for the reason in the finding: there was no enable route or permission.",
+   "passAfter": "After the fix, contracts and core rebuilt, then re-run after `pnpm format`. Each spec file was run on its own with `pnpm exec vitest run <file>`.\n- **Contracts:** backend/libs/contracts/src/permissions.test.ts: 47/47 passed. This includes the DOS-107 case and DOS-106's pins, now 16 admin procedures, with enable in `superOnly` and the httpPath pins.\n- **Platform admin:** backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts: 23/23 passed. That covers the 3 DOS-107 cases, both DOS-109 cases, and every DOS-106 case. DOS-106's locked-token sweep now has the `admin.users.enable` probe row and still matches the contract.\n- **Docs examples:** backend/libs/core/src/docs/examples.spec.ts: 31/31 passed.\n- **Admin service:** `pnpm --filter @dos/admin-service test`: 24/24 passed. This is `describePermissionMatrix` plus /docs/openapi.json answering 200.\n- **Admin app tests:** frontend/admin-app vitest (DOS-109's audit.test.ts): 6/6 passed.\n- **Backend typecheck and lint:** `pnpm exec turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core`: 7/7 tasks passed.\n- **Admin app typecheck and lint:** `pnpm --filter @dos/admin-app typecheck` and `lint` both exited 0.\n- **Formatting:** `pnpm format` ran in backend/ and frontend/.\n- **backend/tools:** `tsc -p tools/tsconfig.json` still reports 2 `PermissionRole` errors (smoke-endpoints.mts:2437 and :2558). They were already there: HEAD's copy gives the same 2 errors at :2402 and :2523. CI's turbo typecheck does not cover tools.\n- **New SQL:** both new queries ran read-only on dos_test_b2_h10 and each returned an identity: the docs pick that prefers a locked identity (amendment f), and the smoke `disposableIdentity` fixture.\n- **Git:** `git status` is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-107: a lock has an undo — admin.users.enable is POST /admin/users/{id}/enable, platform_admin only, and only a super may call it"
+    },
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-107: a super unlocks a locked distributor login — it signs in again, the sessions the lock ended stay ended, both memberships are untouched, the trail names who unlocked it and why, and repeating the unlock writes no second audit row"
+    },
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-107: a locked console account with no distributorship is unlocked by a super and signs in at the console again; a second unlock changes nothing and writes no second audit row"
+    },
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-107: a support or billing console account is refused unlocking a login, and the login stays locked"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "keeps the platform console and the six apps out of each other (admin)",
+     "before": "expect(adminPaths).toHaveLength(15); the httpPath pins ended at admin.users.disable; the comment said 'a user lock are POSTs'",
+     "after": "expect(adminPaths).toHaveLength(16); ['admin.users.enable', '/admin/users/{id}/enable'] added to the httpPath pins; the comment now says 'a user lock and its undo are POSTs'",
+     "why": "The plan and permissionsChange require it: an additive new admin procedure. Every existing assertion still holds, and the existing loop already requires POST for enable."
+    },
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-106: declares a console level for every admin.* procedure — super does everything, support only reads and asks or withdraws, billing only reads and sets a subscription",
+     "before": "expect(adminPaths).toHaveLength(15); superOnly = [tenants.create, tenants.suspend, tenants.reactivate, users.disable]",
+     "after": "expect(adminPaths).toHaveLength(16); superOnly also contains 'admin.users.enable', so the support and billing refusal loops cover it",
+     "why": "The plan requires it (these pins move in the implementation commit). This tightens the test; nothing is loosened."
+    },
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-106: a demotion or a locked login bites on the very next request with the same token — every admin.* read and mutation re-reads the level and the login",
+     "before": "probes() had 15 rows, and the comment said 'every one of the fifteen console procedures refuses'",
+     "after": "probes() gains 'admin.users.enable' (POST /admin/users/${victimId}/enable with idempotencyKey lvl-enable-${tag}-${run}, reason 'Probe.'), and the comment says 'sixteen'",
+     "why": "The plan requires it: the sweep's equality with the contract needs one row per admin procedure. The sweep now also proves that a locked console token cannot unlock anyone."
+    }
+   ],
+   "filesChanged": [
+    "backend/libs/contracts/src/admin.ts",
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/core/src/modules/platform-admin/console.service.ts",
+    "backend/libs/core/src/modules/platform-admin/platform-admin.controller.ts",
+    "backend/libs/core/src/modules/platform-admin/internals.ts",
+    "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+    "backend/libs/core/src/docs/examples.ts",
+    "backend/tools/smoke-endpoints.mts",
+    "docs/23-app-screens-and-api-gaps.md",
+    "frontend/admin-app/app/users.tsx",
+    "frontend/admin-app/src/strings.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) The app mints uuidv7() on every unlock call, exactly as disable does; not meta.idempotencyKey plus enable.reset().",
+     "done": true,
+     "how": "In users.tsx, the `enable` useMutation calls `api.api.admin.users.enable({ idempotencyKey: uuidv7(), id, reason: reason.trim() })`, and a comment explains why. There is no `reset()` anywhere. Opening the unlock dialog only clears the reason and sets `unlocking`. The confirm button shows busy while the call is pending."
+    },
+    {
+     "amendment": "(b) The smoke planFor case returns { pathParams: { id }, pinned: { id } }, never pathParams alone.",
+     "done": true,
+     "how": "smoke-endpoints.mts has a new `case 'admin.users.disable': case 'admin.users.enable':`. It returns `{ pathParams: { id }, pinned: { id } }` from the cached `fx.disposableIdentity()`, or skips with 'no username-less, non-console identity to lock and unlock in this database'. The new `disposableIdentity` fixture is a `scalar` cached per run, with no status filter, ordered `created_at desc, id desc`. Both ops were added to STATE_TOGGLE_OPS with a comment."
+    },
+    {
+     "amendment": "(c) user.enabled joins DOS-109's typed vocabulary: PLATFORM_AUDIT_ACTIONS gains it, the insert names it through PlatformAuditAction, and strings gain word.user.enabled 'Login unlocked'.",
+     "done": true,
+     "how": "admin.ts PLATFORM_AUDIT_ACTIONS gains 'user.enabled', and the comment now says 'six writers'. enableUser's raw insert uses `${'user.enabled' satisfies PlatformAuditAction}`. strings.ts gains 'word.user.enabled': 'Login unlocked'. DOS-109's core case 1 is still green, and the new core test asserts that PLATFORM_AUDIT_ACTIONS contains 'user.enabled'."
+    },
+    {
+     "amendment": "(d) The audit row is written only when the UPDATE returned a row: update … where id = :id and status = 'disabled' returning.",
+     "done": true,
+     "how": "enableUser runs `run()` only when `target.status === 'disabled'` (read under the row lock). It then runs `update(users).set({status:'active', updatedAt}).where(and(eq(users.id,input.id), eq(users.status,'disabled'))).returning()` and inserts `user.enabled` only `if (row)`. The core tests prove the no-op path twice. A new-key repeat on a member and a same-key or new-key repeat on a console account leave `users.updated_at` unchanged, and the `user.enabled` count stays 1."
+    },
+    {
+     "amendment": "(e) DOS-164 is an iOS-walk dependency, not a build blocker. Build the unlock Dialog exactly as the lock Dialog (same kit component, same placement beside the Sheet).",
+     "done": true,
+     "how": "The unlock `<Dialog>` (testID enable-dialog) is a sibling right after the lock Dialog, outside the Sheet, with the same props shape. It is not destructive. iOS was not walked (no simulators allowed in this lane); it is recorded as NOT TESTED, blocked by DOS-164."
+    },
+    {
+     "amendment": "(f) The docs' disposable pick prefers a locked identity: drop eq(users.status,'active') and order by (status = 'disabled') desc, created_at desc. The disable note keeps its DESTRUCTIVE wording.",
+     "done": true,
+     "how": "In examples.ts `collectPlatform`, the query is now `.where(and(isNull(users.username), NOT IN platform_admins)).orderBy(sql`(${users.status} = 'disabled') desc`, desc(users.createdAt))`. Its comment and the `disposableUserId` interface comment name enable. The disable note is unchanged. A new OVERRIDES entry and a NOTES entry for 'admin.users.enable' use the same identity. The equivalent SQL was run read-only on dos_test_b2_h10 and returned a row."
+    }
+   ],
+   "deviations": "None in behaviour. Things the plan named that were not done, or were done slightly differently:\n- **Fail-first and implementation in one commit.** STEP 4 asks for a single commit, so the plan's split into a fail-first commit and an implementation commit was not kept. The DOS-106 pins (15 to 16, the httpPath pin, `superOnly`, the `probes()` row) were edited only after the red run was recorded, so DOS-106 stayed green during it.\n- **Unlock dialog error.** The dialog shows `ErrorState` whenever `enable.error` is set. Without `reset()` (amendment a), an error from a failed attempt is still shown if the dialog is reopened, until the next confirm clears it.\n- **Buttons.** The panel draws the two buttons as two separate conditions (locked and `can('admin.users.enable')`; not locked and `can('admin.users.disable')`), not as a nested ternary. Both buttons clear `reason` when pressed.\n- **Contracts test.** It fails at `allProcedures().find(...)?.method` being undefined, one assertion before `permissionFor('admin.users.enable')`. The cause is the same: the procedure did not exist. It also asserts that enable is declared directly after disable, the verdict's ordering decision.\n- **Extra spec assertion.** Beyond the plan, the member case checks `failed_login_count` and `locked_until` are unchanged, per the architect's decision that the unlock leaves them alone.\n- **Comment and count updates.** The controller header now says sixteen procedures, and `PlatformAuditEntrySchema`'s comment says a user lock or unlock.\n- **Not done here.** QA/tools/e2e/dos-107-unlock-login.mjs was not created, READMEs were not regenerated, and docs/18 and docs/22 were not edited: this lane may not touch QA/, run `pnpm docs:readme`, or edit those docs.",
+   "followUps": "1. **docs/22 (main session).** Add a §8 register row as a dated precision to the 2026-09-12 row, plus a §11 change-log row, then run `python3 docs/tools/render-source-of-truth.py` and republish. Suggested text: \"A super administrator can unlock a login (QA DOS-107): the reason is mandatory, 1-500 characters, and audited as user.enabled; unlocking a login that is not locked answers 200 with no update and no audit row; an unlock restores users.status only — the sessions the lock ended stay ended, and memberships, platform_admins.disabled_at and the 5-failure password lock are untouched.\"\n2. **docs/18.** Add a build-log row for DOS-107.\n3. **READMEs.** In the lane or after merge, run `pnpm --filter @dos/contracts build && pnpm docs:readme && pnpm docs:readme:check`. backend/admin-service/README.md and frontend/admin-app/README.md need the POST /admin/users/{id}/enable row; `docs:readme:check` fails until they are regenerated.\n4. **E2E script.** Create QA/tools/e2e/dos-107-unlock-login.mjs as the plan describes, including the lock, unlock, lock, unlock replay step with the same reason. It must refuse dos, dos_qa and both templates, and fall back to an SQL pick when fatima.shaikh is absent.\n5. **Verifier walks, not done here.**\n   - API and SQL on a dos_test_* copy; smoke `--service admin` and `--destructive`, checking the body id equals the path id for both calls.\n   - Web :5179 at 1400×900 and 375×812, as dos.admin and dos.support.\n   - Android Pixel_7_API_36 with `-memory 3072`.\n   - iOS: NOT TESTED, blocked by DOS-164; walk it in the A.12 regression.\n6. **Audit Change column.** frontend/admin-app/src/lib/audit.ts `auditChange` has a `user.disabled` case that prints the username but none for `user.enabled`. Unlock rows get an empty Change cell; the reason still shows under Why. Adding `case 'user.enabled':` next to `user.disabled` is a one-line P3 follow-up.\n7. **DOS-112.** Its path-id versus body-id sweep must include admin.users.enable.\n8. **Architect's new findings, still open.**\n   - disableUser writes a second user.disabled audit row on every new-key call against an already locked identity (P3).\n   - There is no admin.admins.close/reopen for platform_admins.disabled_at (P2).\n   - A locked identity with the right password gets FORBIDDEN rather than the credentials error, which confirms the password (P3).\n9. **Pre-existing type errors.** backend/tools/smoke-endpoints.mts has 2 `PermissionRole` vs MembershipRole errors (they exist on HEAD too; the tools tsconfig is not in CI's turbo typecheck).\n10. **Merge overlap.** Lane h9-desk also edits permissions.ts, permissions.test.ts, examples.ts and smoke-endpoints.mts. My edits are confined to the admin rows, the admin examples and the new platform smoke case.",
+   "platformCheck": "- **API:** covered by the DB-backed core spec through the real Nest/Fastify app (auth, tenancy, platform-admin and retailers modules), on dos_test_b2_h10, plus the admin-service permission-matrix spec. No live services were started (the lane forbids dev servers).\n- **Web:** admin-app typecheck, lint and vitest are green; the browser walk was not done.\n- **Android:** not walked; no emulator in this lane.\n- **iOS:** NOT TESTED, blocked by DOS-164. The unlock Dialog is built exactly like the lock Dialog, so DOS-164's kit fix covers both."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-107",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) The app mints uuidv7() per unlock call, as disable does; not meta.idempotencyKey + enable.reset()",
+     "satisfied": true,
+     "detail": "frontend/admin-app/app/users.tsx:138-156: the `enable` useMutation calls api.api.admin.users.enable({ idempotencyKey: uuidv7(), id, reason: reason.trim() }), the same shape as disable at :116-134. There is no reset() anywhere and no meta.idempotencyKey. The dialog is busy while enable.status === 'pending' (:374). The same-reason replay e2e step was not run: the lane forbids QA/ and dev servers, and the implementer lists it in followUps."
+    },
+    {
+     "amendment": "(b) The smoke planFor case returns { pathParams: { id }, pinned: { id } }, never pathParams alone",
+     "satisfied": true,
+     "detail": "backend/tools/smoke-endpoints.mts:1437-1443: `case 'admin.users.disable': case 'admin.users.enable':` returns { pathParams: { id }, pinned: { id } } from the cached fx.disposableIdentity(), or a skip. The pinned body is spread into the example body (:2513), so the body id equals the path id. Both ops were added to STATE_TOGGLE_OPS (:82-87), so sealIdempotency uses RUN_NONCE (:215). The disposableIdentity scalar (:818-823) is cached per run and has no status filter. I ran the fixture SQL read-only on dos_test_b2_h10 and it returned an identity. I did not run the smoke itself (no services allowed)."
+    },
+    {
+     "amendment": "(c) user.enabled joins DOS-109's typed vocabulary: PLATFORM_AUDIT_ACTIONS, an insert typed through PlatformAuditAction, and word.user.enabled 'Login unlocked'",
+     "satisfied": true,
+     "detail": "admin.ts PLATFORM_AUDIT_ACTIONS gains 'user.enabled'. console.service.ts enableUser inserts `${'user.enabled' satisfies PlatformAuditAction}`. strings.ts gains 'word.user.enabled': 'Login unlocked', which audit.tsx:172 needs for its action chips. DOS-109's core case 1 passed in my green run (23/23). DOS-107 case 1 asserts PLATFORM_AUDIT_ACTIONS contains 'user.enabled'."
+    },
+    {
+     "amendment": "(d) The audit row is written iff the UPDATE returned a row (update ... where id = :id and status = 'disabled' returning)",
+     "satisfied": true,
+     "detail": "In console.service.ts enableUser run(), inside `if (target.status === 'disabled')` (read under the FOR UPDATE row lock): update(users).set({status:'active'}).where(and(eq(users.id,input.id), eq(users.status,'disabled'))).returning(), then the insert only `if (row)`. A not-locked login gets no UPDATE and no audit row, as the architect decided. The spec proves this: after a same-key replay and a new-key repeat, users.updated_at is unchanged and unlocksOf() stays 1. For the console account with no membership, the same holds for both keys."
+    },
+    {
+     "amendment": "(e) DOS-164 is an iOS-walk dependency; build the unlock Dialog exactly like the lock Dialog (same kit component, same placement beside the Sheet)",
+     "satisfied": true,
+     "detail": "users.tsx:345-380: the unlock <Dialog testID='enable-dialog'> is a sibling directly after the lock Dialog (:310-343), outside the <Sheet> (:244-308), with the same props shape and not destructive. It imports only @dos/ui (admin-app lint exit 0). The iOS walk is recorded NOT TESTED in the report."
+    },
+    {
+     "amendment": "(f) The docs' disposable pick prefers a locked identity: drop eq(users.status,'active'), order (status = 'disabled') desc, created_at desc; the disable note keeps its DESTRUCTIVE wording",
+     "satisfied": true,
+     "detail": "examples.ts collectPlatform now uses where(and(isNull(users.username), NOT IN platform_admins)).orderBy(sql`(status = 'disabled') desc`, desc(users.createdAt)). The disable NOTE is unchanged (still DESTRUCTIVE). A new OVERRIDES entry and NOTES entry for admin.users.enable use ctx.platform.disposableUserId. buildExamples moves the top-level body id into the path parameter (examples.ts:5209-5214, 5399-5402), so the docs' path id equals the body id. I ran the equivalent SQL read-only on dos_test_b2_h10 and it returned a row. examples.spec.ts: 31/31."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "detail": "The spec file is not Prettier-clean at lines 298-305. The DOS-107 fixture `await db.insert(memberships).values({...unlockTenantTwoId...})` is split into a .insert/.values chain that Prettier collapses. The whole-backend `pnpm exec prettier --check .` flags only this file, so CI's first backend step (`pnpm format:check`) fails on this commit. HEAD^'s copy is clean. The report says `pnpm format` ran in backend/, which is not true of the committed state. Precedent (h1-money slice 2) handled the same drift at merge: run `pnpm format` in backend on the merged tree, or reformat these 6 lines, before format:check."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/admin-app/src/lib/audit.ts",
+     "detail": "auditChange has a `case 'user.disabled'` (it prints the username) but no `user.enabled` case. Unlock rows show an empty Change cell; the reason still shows under Why. The implementer disclosed this in followUps #6; neither the plan nor the amendments name this file."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/admin-app/app/users.tsx",
+     "detail": "The unlock dialog shows ErrorState whenever enable.error is set (:368-370). With no reset() (amendment a), an error from a failed attempt is shown again when the dialog is reopened, until the next confirm clears it. The implementer disclosed this as a deviation. It is cosmetic: the server's no-op guard makes any retry safe."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/admin-service/src/service.spec.ts",
+     "detail": "A stale comment at :65 still says \"all fifteen procedures\"; the console now has sixteen. It is comment only; the matrix sweep derives from the contract and passes (24/24)."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/admin-service/README.md",
+     "detail": "READMEs were not regenerated, because the lane forbids `pnpm docs:readme`. backend/admin-service/README.md and frontend/admin-app/README.md lack POST /admin/users/{id}/enable, so `pnpm docs:readme:check` fails until the main session regenerates them after merge. Also still to do after merge: the API/SQL/smoke --destructive checks, the web :5179 walk and the Android walk (NOT TESTED in this lane); iOS is NOT TESTED, blocked by DOS-164; plus the QA e2e script and the docs/22 §8/§11 and docs/18 rows."
+    }
+   ],
+   "evidence": "Worktree .claude/worktrees/b2-h10-console, branch qa/b2-h10-console, HEAD 388987a on top of DOS-109 4201823. The DB is dos_test_b2_h10 (backend/.env), with 48 migrations applied through 0047 (drizzle.__drizzle_migrations count 48 = journal).\n\n**1. Scope.** `git show --stat 388987a` lists 12 files, all named by the plan as amended:\n- admin.ts, permissions.ts, permissions.test.ts\n- console.service.ts, the controller, internals.ts (comment only), platform-admin.spec.ts\n- examples.ts, smoke-endpoints.mts\n- docs/23 (row 14 only)\n- users.tsx, strings.ts\n\nIt has no READMEs, no QA/ files, no docs/22 or docs/18 edits, and no migration. disableUser is byte-identical. In permissions.ts, permissions.test.ts, examples.ts and smoke-endpoints.mts the edits are confined to admin rows, so they are line-disjoint from lane h9-desk.\n\n**2. Fail before.** I reversed only the non-test changes (`git diff 388987a^ 388987a -- . ':(exclude)**/*.spec.ts' … | git apply -R`), rebuilt with `turbo run build --filter=@dos/contracts --filter=@dos/core`, and confirmed dist had no enable route and no enableUser.\n- contracts `vitest run src/permissions.test.ts`: 3 failed, 44 passed.\n  - The DOS-107 case failed with `expected undefined to be 'POST'`: the procedure is missing.\n  - The two corrected DOS-106 pins failed with `length of 16 but got 15`, as expected: they moved with the implementation.\n- core `vitest run src/modules/platform-admin/platform-admin.spec.ts`: 4 failed, 19 passed.\n  - DOS-107 case 1: `Cannot POST /admin/users/<id>/enable … expected 404 to be 200`.\n  - DOS-107 case 2: the same 404 against 200.\n  - DOS-107 case 3: `support → admin.users.enable: … 404 to be 403`.\n  - DOS-106's sweep failed only on the added probes() row: 16 keys against a 15-path contract.\n  - Every other DOS-106 and DOS-109 case passed.\n\nI restored with `git checkout -- .`; git status showed 0 lines, including untracked files. I then rebuilt and confirmed dist contains enable.\n\n**3. Pass after.**\n- contracts permissions.test.ts: 47/47.\n- core platform-admin.spec.ts: 23/23. `vitest list` shows the 3 DOS-107, 2 DOS-109 and 8 DOS-106 cases.\n- core src/docs/examples.spec.ts: 31/31.\n- `pnpm --filter @dos/admin-service test`: 24/24.\n- admin-app `vitest run`: 6/6.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core`: 7/7 tasks.\n- admin-app `pnpm typecheck` exit 0; `pnpm lint` exit 0.\n- `tsc -p tools/tsconfig.json`: 2 PermissionRole errors at smoke-endpoints.mts:2437 and :2558. git blame dates both lines to 8ea449a1 (2026-09-05), so they predate this fix.\n- Prettier: every touched frontend file and all of admin-app are clean. On the backend, `prettier --check .` flags only platform-admin.spec.ts lines 298-305, which this commit introduced (HEAD^ copy clean).\n\n**4. Amendments.** Each of (a)-(f) is located in code and spec (see amendmentsChecked). I ran the docs pick and the smoke disposableIdentity SQL read-only inside `begin read only … rollback` on dos_test_b2_h10, and each returned an identity.\n\n**5. Diff hunt.**\n- Tests: no weakened or deleted assertions. The corrected pins (15→16, the httpPath pin, superOnly, the probes() row) are additive and tighten DOS-106's coverage.\n- Contract and permissions: one new input schema, one POST route, PERMISSIONS PLATFORM and ADMIN_LEVELS CONSOLE_SUPER, nothing else.\n- Idempotency: the mutation extends MutationBase and uses platformIdempotent against the first membership's tenant, or the row lock plus the state guard for a console account.\n- Ordering: the level gate and the id-ordered FOR UPDATE of actor and target run before the stored-reply lookup.\n- withSystem: the same justification as the lock (users has no platform UPDATE policy).\n- Ruled out:\n  - no module-boundary violation (only the platform-admin module's own files and @dos/db tables it already used);\n  - no money, quantity or state-machine code;\n  - no react-native or react-dom import in the screen, and no fetch;\n  - no offline or sync path;\n  - no leftover temporary files.\n\n**6. End state.** `git status --porcelain --untracked-files=all` is empty, and libraries are rebuilt at the fix state. I started no dev servers or emulators, so smoke, the web :5179 walk and the Android walk were not executed; iOS remains NOT TESTED (DOS-164)."
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "id": "DOS-109",
+ "runs": [
+  "wf_12400ce1-eae"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-109",
+   "status": "fixed",
+   "commits": [
+    "4201823"
+   ],
+   "failBefore": "Backend, before the fix. Contracts carried only the new PLATFORM_AUDIT_ACTIONS export, so the spec's import resolved. Command: `pnpm --filter @dos/core exec vitest run src/modules/platform-admin/platform-admin.spec.ts -t DOS-109` → 2 failed | 18 skipped.\n  Case 1: AssertionError: expected [ undefined, undefined, …(3) ] to deeply equal [ 'DOS-109 audit fixture', …(4) ] (platform-admin.spec.ts:889, `items.map((i) => i.tenantName)`). Vitest stops at the first failing assertion, so the later actorName and amendment (a) `from.status: 'trialing'` checks were never reached in the red run.\n  Case 2: expected [[grantId, otherAdminUserId, \"Console colleague\"]], received [[…, …, \"Distribution OS support\"]] (spec:981). In the same run, admin.support.list already named \"Console colleague\".\nFrontend, against a stub audit.ts where auditWho returns the role word and the other two helpers return null. Command: `pnpm --filter @dos/admin-app exec vitest run src/lib/audit.test.ts` → 6 tests | 6 failed.\n  e.g. AssertionError: expected 'Distribution OS staff' to be 'Rohit Nair (Distribution OS)'\n  expected null to be 'Active → Suspended'\n  expected null to be 'Standard · On trial · ₹1999.00 → Pro · Active · ₹4999.00'\n  expected null to be 'GET /retailers · Answered'\n  expected null to be 'Waiting for their owner → Handed back'\n  expected null to be 'Read only · 4 h'",
+   "passAfter": "Backend, after rebuilding contracts and core:\n- `vitest run platform-admin.spec.ts -t DOS-109` → 2 passed.\n- The whole platform-admin.spec.ts → Test Files 1 passed, Tests 20 passed. Every DOS-106 case is still green.\n- `pnpm --filter @dos/admin-service test` → 23 passed.\n- `pnpm exec turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core` → 7/7 tasks successful. Output was only the existing boundaries deprecation warnings.\n- Amendment (d) probe: a throwaway core file called writePlatformAudit with action 'user.zapped'. `pnpm --filter @dos/core typecheck` failed with TS2322 (\"'user.zapped' is not assignable to type 'tenant.onboarded' | … | 'user.disabled'\"). The file was deleted in the same command and git status confirmed it was gone.\n\nFrontend:\n- `pnpm install` added 3 lines to frontend/pnpm-lock.yaml (vitest 4.1.11 under admin-app).\n- `pnpm --filter @dos/admin-app exec vitest run src/lib/audit.test.ts` → 6 passed, re-run after pnpm format → 6 passed.\n- `pnpm --filter @dos/admin-app typecheck` and `lint` both clean.\n\npnpm format ran in backend and in frontend; it reformatted only tenants.service.ts and audit.test.ts, both mine. git status is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-109: the audit trail names the staff member who acted and the distributorship, keeps the reason and the from/to in the row, and narrows by distributorship, action and staff member"
+    },
+    {
+     "file": "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "name": "DOS-109: a distributorship’s detail names the staff member who asked for each support window, exactly as the support register does"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: Who is the staff member's name from the row, never \"Distribution OS staff\"; the role word only when the service sent no name"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: a suspension reads \"Active → Suspended\" and carries the reason typed into the dialog; a reactivation without a note has no reason"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: a plan change reads the old plan, state and price before the new ones, and the stored \"trial\" reads as On trial"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: a support read names its route and outcome, a withdrawal reads \"Open → Handed back\" with its reason, and a lock names the login"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: withdrawing an ask the owner never answered reads \"Waiting for their owner → Handed back\", never that the owner refused"
+    },
+    {
+     "file": "frontend/admin-app/src/lib/audit.test.ts",
+     "name": "DOS-109: an action the console does not know, or a payload missing a field the line needs (support.requested with only a grantId), gives no change line instead of throwing or printing undefined"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/admin.ts",
+    "backend/libs/core/src/modules/platform-admin/internals.ts",
+    "backend/libs/core/src/modules/platform-admin/support.service.ts",
+    "backend/libs/core/src/modules/platform-admin/tenants.service.ts",
+    "backend/libs/core/src/modules/platform-admin/console.service.ts",
+    "backend/libs/core/src/modules/platform-admin/subscriptions.service.ts",
+    "backend/libs/core/src/service/support-audit.interceptor.ts",
+    "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+    "frontend/admin-app/src/lib/audit.ts",
+    "frontend/admin-app/src/lib/audit.test.ts",
+    "frontend/admin-app/app/audit.tsx",
+    "frontend/admin-app/src/strings.ts",
+    "frontend/admin-app/package.json",
+    "frontend/pnpm-lock.yaml",
+    "docs/23-app-screens-and-api-gaps.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Write the wire word, not the column word, into the plan-change payload",
+     "done": true,
+     "how": "In subscriptions.service.ts, the upsert's audit payload now records `from.status` as `statusToWire(before.status)` (helper imported from internals), with a comment. strings.ts keeps `word.trial` = 'On trial' for rows already on disk. audit.test.ts has one fixture with `from.status: 'trial'` (the dos_qa shape) and one with `'trialing'`; both must read 'Standard · On trial · ₹1999.00 → Pro · Active · ₹4999.00'. Core spec case 1 also asserts that a `subscription.updated` row after a trialing→active change carries `from: { plan: 'pro', status: 'trialing', amountPaise: 199900 }`."
+    },
+    {
+     "amendment": "(b) A support.withdrawn line never says the owner refused",
+     "done": true,
+     "how": "In `auditChange`, a `support.withdrawn` row reads `${word(was)} → ${word('revoked')}` and needs only `was`; `now` stays visible in the 'Everything recorded' panel. The shared `word.rejected` is untouched. A dedicated test uses `{was:'requested', now:'rejected'}` and expects 'Waiting for their owner → Handed back' with no 'Refused'; the `was:'approved'` case reads 'Open → Handed back'."
+    },
+    {
+     "amendment": "(c) actorName is never a guess",
+     "done": true,
+     "how": "`platformAdminNames` returns only the rows the 0037 function answers. The audit mapper writes `names.get(id) ?? null`, and the app falls back to `word(actorRole)` through `auditWho`. The audit screen has no client-side directory and makes no admin.users.list call. `admin.tenants.get` uses the same helper with the same 'Distribution OS support' fallback that support.list uses."
+    },
+    {
+     "amendment": "(d) Typed vocabulary is complete or the build fails",
+     "done": true,
+     "how": "contracts/admin.ts exports `PLATFORM_AUDIT_ACTIONS` (the nine actions) and `PlatformAuditAction`. Typed writers:\n- `writePlatformAudit` (internals)\n- `insertPlatformAuditUnderSystem` and `setStatus`'s `audit.action` (tenants.service)\n- the raw disableUser insert, which now binds `${'user.disabled' satisfies PlatformAuditAction}` (console.service)\n- `'support.read' satisfies PlatformAuditAction` (support-audit.interceptor)\n\nCore spec case 1 asserts every returned action is in the array. A scratch writer with 'user.zapped' failed core typecheck with TS2322 and was then removed."
+    },
+    {
+     "amendment": "(e) The raw inserts keep gen_random_uuid() in this fix",
+     "done": true,
+     "how": "Both raw `platform_audit` inserts still mint `gen_random_uuid()::text`: console.service disableUser and tenants.service insertPlatformAuditUnderSystem. The only edit to them is the typed action. The audit() keyset cursor is untouched."
+    }
+   ],
+   "deviations": "1. subscriptions.service.ts was edited although the plan's file list does not name it: amendment (a) requires it.\n\n2. Test additions beyond the plan's list:\n   - A sixth frontend test for amendment (b).\n   - Core case 1 also asserts amendment (a) (`from.status` 'trialing') and that the reactivation's `after.reason` is null.\n   - The frontend 'partial payload' test also checks the complete support.requested ('Read only · 4 h') and tenant.onboarded ('Standard · 30-day trial') lines as the counterpart to the partial rows.\n\n3. Red-first order: the vocabulary export (`PLATFORM_AUDIT_ACTIONS`) went into contracts before the red run, so the spec's import resolved. `actorName` and `tenantName` were added to the output schema only in step 2, so the red came from the missing data and not from output validation. The committed frontend stub was replaced by the real helper in the same single commit; there is no separate red commit.\n\n4. `platformAdminNames` is not byte-for-byte the removed `requesterNames`. It takes ids rather than grant rows, as the plan's signature says, dedupes, and its comment gains a note about the no-guess and sequential-await rules.\n\n5. Screen details the plan left open:\n   - The active-filter chips use ids 'tenant' and 'actor'.\n   - The two ghost buttons sit in a Stack, placed after the Sheet's fields and before the payload panels.\n   - The Sheet's Why and Change values render as `Txt` elements carrying `testID` 'audit-reason' / 'audit-change', because `Field` in src/lib/ui.tsx has no testID prop and that file is outside the plan.\n   - The two new register columns pass `priority: 'detail'` explicitly.\n\n6. Integer check: `auditChange` requires integers for `hours`, `trialDays` and `amountPaise`. That is its reading of \"present with the right type\"; a non-integer gives no line.\n\n7. docs/23 had no convention for closing a §10 row, so row 13's last cell gains a '**Done (DOS-109):** …' note, in the way row 8 cites DOS-098.\n\n8. Not run, as instructed or out of scope: `pnpm docs:readme` / `docs:readme:check`, `pnpm smoke --service admin`, the whole frontend `pnpm test` / `pnpm build`, dev servers, emulator, and any live web or Android walk.",
+   "followUps": "- **README.** Regenerate before merge: `pnpm --filter @dos/contracts build && pnpm docs:readme && pnpm docs:readme:check`. The `GET /admin/audit` sample in backend/admin-service/README.md gains `actorName` and `tenantName`. docs:readme:check will fail on this branch until then.\n- **docs/18.** After merge, add a build-log row for DOS-109. The plan names no docs/22 change for DOS-109. Per the lane note, the §8/§11 rows for DOS-107's decisions belong to the main session: mandatory 1-500 character reason, unlocking an unlocked login is a 200 no-op with no audit row, and unlock restores only `users.status`.\n- **DOS-107.** It must add `'user.enabled'` to `PLATFORM_AUDIT_ACTIONS` and a `word.user.enabled` key. Its enable insert should copy the typed `${'user.enabled' satisfies PlatformAuditAction}` form, or typecheck fails; that failure is intended. It may also want an `auditChange` branch for the new action (payload shape to be decided there).\n- **Lockfile.** If DOS-108 (owner-app vitest) merges first, re-run `pnpm install` in frontend/ on this branch before merging and commit the lockfile.\n- **Verifier, live after merge** (plan §verify and the verdict's list):\n  - Who names dos.admin and dos.support.\n  - The network shows `action=`, `actorId=` and `tenantId=` on `GET /admin/audit`.\n  - `admin.tenants.get` and `support-grants?tenantId=` give the same `requestedByName`.\n  - Read-only SQL shows a new `subscription.updated` row has `from.status` as a wire word.\n  - With an action chip selected, asking for support access from a distributor detail refetches the trail.\n  - Android Pixel 7 (`-memory 3072`): action chips scroll sideways and 'Only this person' narrows.\n  - Web at 390 px: chips wrap.\n  - `pnpm smoke --service admin` ends 0 BROKEN.\n  - frontend `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.\n- **New findings from the verdict, not fixed here:**\n  - The audit() keyset cursor compares id while ordering by created_at, and two raw inserts mint v4 ids.\n  - `entityType`/`entityId` are filtered in memory after LIMIT.\n  - The 0037 lookup now exists twice: platform-admin/internals.ts and tenancy/support.service.ts.\n  - `word.tenant.created`, `word.support.revoked` and `word.support.approve` are dead keys in admin-app strings.ts.\n- **UX P3 (from the verdict).** A distributorship or staff search picker for the audit filters.",
+   "platformCheck": "API: verified by the DB-backed core spec. It covers platform-admin.spec.ts' two DOS-109 cases, the whole file (20/20) and the admin-service spec (23/23), all against dos_test_b2_h10 migrated through main's migrations.\n\nWeb / Android / iOS: not run live; dev servers, emulators and simulators were out of scope for this lane. The admin-app screen is universal:\n- audit.tsx imports only @dos/ui, @dos/api-client/react, @dos/contracts (the `PLATFORM_AUDIT_ACTIONS` value plus types) and ../src/lib.\n- The row rules live in the pure src/lib/audit.ts, unit-tested under vitest.\n- admin-app `tsc --noEmit` and `eslint .` are clean, which covers the only-@dos/ui import rule.\n- The layout uses only kit components already used elsewhere in the app: Chips, Button variant=\"ghost\", Sheet, Register, Field, Panel. No Dialog opens from the Sheet (DOS-164).\n\nThe desk/phone and Android checks remain for the verifier's live pass."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-109",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Write the wire word, not the column word, into the plan-change payload",
+     "satisfied": true,
+     "detail": "subscriptions.service.ts: from.status = statusToWire(before.status). strings.ts keeps word.trial = 'On trial'. audit.test.ts has a 'trial' fixture and a 'trialing' fixture, and both must read 'Standard · On trial · ₹1999.00 → Pro · Active · ₹4999.00'. Core case 1 asserts from: {plan:'pro', status:'trialing', amountPaise:199900}. Probe: I reversed ONLY the subscriptions.service.ts hunk, rebuilt core and ran -t DOS-109. Case 1 failed at spec:912 (the subscription.updated from match) and case 2 passed; the file was then restored."
+    },
+    {
+     "amendment": "(b) A support.withdrawn line never says the owner refused",
+     "satisfied": true,
+     "detail": "auditChange's support.withdrawn branch returns `${word(was)} → ${word('revoked')}` and needs only `was`. word.rejected is untouched. A dedicated test uses {was:'requested', now:'rejected'} and expects 'Waiting for their owner → Handed back' with no 'Refused'. Probe: I put back the plan's original `${word(was)} → ${word(now)}`. That test failed with \"expected 'Waiting for their owner → Refused'\" (1 failed, 5 passed); the file was then restored."
+    },
+    {
+     "amendment": "(c) actorName is never a guess",
+     "satisfied": true,
+     "detail": "platformAdminNames returns a Map of only the rows the 0037 function answers. The audit() mapper writes names.get(id) ?? null, and auditWho falls back to word(actorRole). audit.tsx contains no users.list, platformOnly or client directory (grep: none). tenants.get uses the same helper with the 'Distribution OS support' fallback that support.list uses."
+    },
+    {
+     "amendment": "(d) Typed vocabulary is complete or the build fails",
+     "satisfied": true,
+     "detail": "PLATFORM_AUDIT_ACTIONS lists the 9 actions. The typed writers are: writePlatformAudit entry.action, setStatus audit.action, insertPlatformAuditUnderSystem entry.action, the disableUser raw insert (`${'user.disabled' satisfies PlatformAuditAction}`) and the interceptor ('support.read' satisfies). A grep found no other production platform_audit writer; the rest are rls.test fixtures. Core case 1 loops `expect(PLATFORM_AUDIT_ACTIONS).toContain(item.action)`. My own probe file used writePlatformAudit({action:'user.zapped'}) plus `'user.zapped' satisfies PlatformAuditAction`. `pnpm --filter @dos/core typecheck` failed with TS2322 and TS1360; the file was deleted and git status was clean."
+    },
+    {
+     "amendment": "(e) The raw inserts keep gen_random_uuid() in this fix",
+     "satisfied": true,
+     "detail": "console.service.ts:185 and tenants.service.ts:399 both still mint gen_random_uuid()::text. The only change to either statement is the typed action. The commit diff touches no cursor or lt( lines in audit()."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/admin-service/README.md",
+     "detail": "Not regenerated, as lane rules require. `pnpm docs:readme:check` will fail on qa/b2-h10-console until someone runs `pnpm --filter @dos/contracts build && pnpm docs:readme` before the merge, because the GET /admin/audit sample now carries actorName and tenantName. This is a merge prerequisite, not a defect in the fix."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/admin-app/app/audit.tsx",
+     "detail": "Not exercised live, since dev servers and emulators are out of scope for this lane. Still open for the post-merge live pass in the verdict: web at 1440 px and 390 px, Android Pixel 7 (chip scroll, the Sheet's Why/Change, 'Only this person'), the network query params, and `pnpm smoke --service admin`. The frontend-wide `pnpm test && pnpm build` was not run either. Screen correctness rests on admin-app tsc and eslint (clean, including the rule that screens import only @dos/ui) plus the pure-helper unit tests."
+    }
+   ],
+   "evidence": "SCOPE\n- `git log`: HEAD = 4201823 on top of main 43824b0.\n- `git show --stat` lists 15 files: every file in the plan's list, plus subscriptions.service.ts, which amendment (a) requires.\n- Not in the commit: generated READMEs, QA/, docs/22, migrations, permissions.ts.\n- docs/23 changes only §10 row 13.\n- The lockfile's admin-app vitest entry is identical to the other apps' entries (catalog 4.1.11).\n\nFAIL BEFORE\nThe reversal command given in the brief applied cleanly: 10 files modified, audit.ts deleted. I then rebuilt @dos/core... (4/4). The dist had 0 PLATFORM_AUDIT_ACTIONS and 0 platformAdminNames.\n- Core, `vitest run platform-admin.spec.ts -t DOS-109`: 2 failed, 18 skipped.\n  - Case 1: \"expected [undefined ×5] to deeply equal ['DOS-109 audit fixture' ×5]\" (spec:889, tenantName).\n  - Case 2: expected 'Console colleague', received 'Distribution OS support' (spec:981). This is exactly the finding's step 4.\n- Frontend, `vitest run src/lib/audit.test.ts`:\n  - With audit.ts removed, the suite fails with \"Cannot find module './audit'\".\n  - I then wrote a temporary stub copying the pre-fix screen: Who = word(actorRole), no reason, no change line. Result: 6 of 6 failed, e.g. \"expected 'Distribution OS staff' to be 'Rohit Nair (Distribution OS)'\" and \"expected null to be 'Active → Suspended'\".\n- Restore: `git checkout -- .`, git status empty, `git diff 4201823` empty, libs rebuilt (dist has both symbols).\n\nExtra probes, each restored and rebuilt afterwards:\n- actorName: the full-reversal run stopped at tenantName, so I forced `actorName: null` with the rest of the fix in place. Case 1 failed at spec:899, \"expected null to be 'Console super'\".\n- (a) failed at spec:912.\n- (b) and (d): see amendmentsChecked.\n\nPASS AFTER, on dos_test_b2_h10 (48/48 migrations, matching `_journal.json`)\n- platform-admin.spec.ts whole file: 20/20 passed.\n- `pnpm --filter @dos/admin-service test`: 23/23.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core`: 7/7 successful. Only the existing boundaries deprecation warnings.\n- admin-app `vitest run src/lib/audit.test.ts`: 6/6.\n- `pnpm --filter @dos/admin-app typecheck` and `lint`: clean.\n- `prettier --check` on every touched file in both workspaces: clean.\n\nDIFF HUNT\n- Tests: the spec diff is additions only, plus the import line. No test was deleted or weakened. testsCorrected is empty and correctly so.\n- Contract, permissions, schema:\n  - PlatformAuditEntrySchema gains nullable output fields actorName and tenantName.\n  - New exports PLATFORM_AUDIT_ACTIONS and PlatformAuditAction.\n  - AdminAuditListInput.action and the row's action stay z.string().\n  - No permission change, no migration.\n- Module boundary: platformAdminNames lives in platform-admin/internals.ts, and the tenancy copy is untouched. The interceptor imports a type only. The boundaries lint passes.\n- Order of reads: requireActiveAdminLevel is still the first statement. The name lookups are awaited sequentially on tx, never inside Promise.all.\n- Sibling call sites: all three toSupportGrant calls (support list, decorate, tenants.get) now pass the looked-up name.\n- Payload keys the helper reads, checked against the real writers:\n  - support.requested: hours, scope, reason\n  - support.withdrawn: was ('approved'|'requested'), now, reason\n  - tenant.onboarded: plan, trialDays\n  - setStatus: from, to, reason\n  - interceptor: route, outcome ('ok'|'refused'), which the new word.ok and word.refused keys cover\n  - user.disabled: username\n  - subscription: plan, status, amountPaise, from\n- Money is integer paise through formatMoney, and the helper requires integers.\n- No state or mutation change beyond payload wording. No RLS bypass: the lookup uses the existing SECURITY DEFINER function from 0037.\n- Screen imports: only @dos/ui, @dos/api-client/react, @dos/contracts, react and ../src/lib.\n- Invalidation: the cache invalidates by key prefix (api-client cache.ts). support.tsx:260 and distributors/[id].tsx:77,97 invalidate ['admin','audit'], which still matches the longer audit key.\n- No temp or debug files remain. Final git status is clean at 4201823."
+  }
+ ]
+}

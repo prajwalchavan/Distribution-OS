@@ -1,0 +1,1086 @@
+{
+ "run": "wf_c2b9844d-877",
+ "note": "Opus planner + Opus completeness critic; this is the critic-corrected plan",
+ "plan": {
+  "groups": [
+   {
+    "name": "lean-sales-entry",
+    "app": "sales",
+    "items": [
+     "DOS-128",
+     "DOS-147",
+     "DOS-161",
+     "DOS-085",
+     "DOS-082",
+     "DOS-129"
+    ],
+    "model": "opus",
+    "waitsFor": [],
+    "ownsFiles": [
+     "frontend/libs/ui/src/native/money.tsx",
+     "frontend/libs/ui/src/qty.test.ts",
+     "frontend/libs/ui/src/qty.ts",
+     "frontend/libs/ui/src/web/money.tsx",
+     "frontend/sales-app/app/orders/new.tsx",
+     "frontend/sales-app/src/lib/pricing.ts",
+     "frontend/sales-app/src/order-entry-layout.test.ts",
+     "frontend/sales-app/src/strings.ts"
+    ],
+    "order": 1,
+    "notes": "Builds on merged DOS-074+097 (stock chip) and DOS-096 (quote GST). DOS-128 and DOS-147 are one SuggestionRow layout fix (useViewport; availability moves to the meta line below desk width); prove at web 390x844 AND on the Pixel 7. DOS-161: a compact one-row phone footer, and the header chips move into the scroll content. Do not change the kit Screen (native/layout.tsx is out of bounds). Prove on the iOS simulator (xcrun simctl + QA/tools/ios-drive.mjs, never the simulator panel). DOS-129: move the case-summary helper under sales-app/src (vitest runs --dir src) and sum splitQty per line, each with its own case size. DOS-085: wire QtyStepperProps.onOpenPieces to a pieces pad with parsePieces. Follow the manager credit-notes pattern, but do not edit credit-notes.tsx (h8-billing owns it). Add piece-minus, and make 'one case less' at 0 cs ask instead of deleting. No types.ts change. That kit stepper change reaches every QtyStepper caller: delivery D4 and van sale, manager M20 and credit notes, retailer R7. The verifier re-walks D4 and M20 once on web. If this group merges first, lean-delivery-door and lean-manager-billing rebase and re-walk their steppers. DOS-082: compare the orders.create reply with the device quote before submit and show what changed. No contract change (contracts orders.ts is out of bounds) and no re-pricing at submit (the DOS-126 verdict's draft-date rule stands). The online bill total (DOS-083) waits for the DOS-079 design and is not in this group."
+   },
+   {
+    "name": "lean-delivery-door",
+    "app": "delivery",
+    "items": [
+     "DOS-063",
+     "DOS-149",
+     "DOS-148",
+     "DOS-064",
+     "DOS-070",
+     "DOS-163"
+    ],
+    "model": "opus",
+    "waitsFor": [],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/delivery/deliveries.service.ts",
+     "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "frontend/delivery-app/app/_layout.tsx",
+     "frontend/delivery-app/app/stop/[id]/collect.tsx",
+     "frontend/delivery-app/app/stop/[id]/deliver.tsx",
+     "frontend/delivery-app/app/stop/[id]/index.tsx",
+     "frontend/delivery-app/src/lib/local.ts",
+     "frontend/delivery-app/src/strings.ts",
+     "frontend/libs/offline/src/react.tsx"
+    ],
+    "order": 2,
+    "notes": "No kit file and no engine file. frontend/libs/offline/src/engine.ts belongs to running lane h11-syncpull (commit 38032df changed it), then to lean-libs-offline-boot. deliver.tsx was changed by merged DOS-056 (3d7cb36) and DOS-146; rebase on main. DOS-063 + DOS-149: after a successful delivery or collection, refresh the SQLite stop through the public useSyncEngine().sync() (react.tsx:144). Do not add an engine method to write server rows locally. Show the toast on the stop screen, not on D4 before router.replace; item.creditNote gives the note ref. DOS-148: deliveries.record refuses an undispatched order BEFORE applyFulfilmentEvent and before the photo step, with a driver sentence (never 'cannot apply deliver_partial'). An online pre-check via orders.get is allowed; the spec goes in delivery.spec.ts. DOS-064: pass onOpenPieces + parsePieces. The zero word is an app-level override of the kit's qty.notOrdered and must also read right on van-sale.tsx. No kit qty.ts or money.tsx edit, and a per-instance label (types.ts) is out of bounds. If lean-sales-entry's DOS-085 stepper change merged first, rebase and re-walk. DOS-070: say what the geo proof is (arrival point and time) or send no geo line; no platform location change. DOS-163: do not shorten the shared word.refused key. Do not change kit Segments or Chips (native/controls.tsx belongs to lean-kit-overlays); fit the card at app level on iOS (ios-drive labels) and on the Pixel 7. Walks: web, Android, and iOS for DOS-163/149."
+   },
+   {
+    "name": "lean-kit-overlays",
+    "app": "kit/libs",
+    "items": [
+     "DOS-152",
+     "DOS-157",
+     "DOS-162",
+     "DOS-158",
+     "DOS-159"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h12-kit"
+    ],
+    "ownsFiles": [
+     "frontend/libs/ui/src/native/controls.tsx",
+     "frontend/libs/ui/src/native/feedback.tsx",
+     "frontend/libs/ui/src/native/list.tsx",
+     "frontend/libs/ui/src/parity.test.ts",
+     "frontend/libs/ui/src/platform/documents.native.test.ts",
+     "frontend/libs/ui/src/platform/documents.native.ts",
+     "frontend/libs/ui/src/platform/types.ts",
+     "frontend/warehouse-app/app/pick/[id].tsx"
+    ],
+    "order": 3,
+    "notes": "Five kit items, all on the DOS-164 overlay host (h12-kit merged at 146eed2, so the wait is already met). Edit inside SheetPanel/DialogPanel in native/feedback.tsx; the native-overlays guard fails any raw <Modal visible={open}>. DOS-152 + DOS-159 land together: DOS-159's record says so, and lanes.md L19 paired them. That means the W5 Short sheet footer/scroll fix plus keyboard avoidance inside the native Sheet only, with no types.ts change. DOS-158 moved here from the Sonnet group because it is a Fabric accessibility-state bug, not copy or layout. The native/controls.tsx Button gets an accessibilityLabel so 'busy' clears after the write settles; DOS-150 (lean-kit-polish) reuses this pattern. DOS-157: native ListRow never puts a ReactNode secondary inside a numberOfLines Txt. It touches every native Register with a chip column, so re-check M7 Load-out plus two other registers on Android, and add the source-reading parity spec. DOS-162: swallow PrintIncompleteException inside documents.native.ts only and keep Promise<void> in platform/types.ts; on iOS, Print then Cancel shows no red toast. Screens owned elsewhere are walk-only, never edited: manager fulfilment/load-out.tsx and Waves (lean-manager-billing), and credit-notes.tsx (h8-billing). Prove with uiautomator on Pixel_7_API_36 (-memory 3072) and on iOS via simctl/ios-drive. lanes.md L12/L19/L20 dependencies are stale after the DOS-164 design."
+   },
+   {
+    "name": "lean-manager-billing",
+    "app": "manager",
+    "items": [
+     "DOS-022",
+     "DOS-026",
+     "DOS-024",
+     "DOS-134"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h8-billing"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/billing/billing.spec.ts",
+     "backend/libs/core/src/modules/billing/invoices.service.ts",
+     "frontend/manager-app/app/_layout.tsx",
+     "frontend/manager-app/app/billing/index.tsx",
+     "frontend/manager-app/app/fulfilment/index.tsx",
+     "frontend/manager-app/app/fulfilment/load-out.tsx",
+     "frontend/manager-app/app/fulfilment/pack.tsx",
+     "frontend/manager-app/app/index.tsx",
+     "frontend/manager-app/src/strings.ts"
+    ],
+    "order": 4,
+    "notes": "Four items (size exception). The other manager P2s are split between lean-manager-money (shared strings, sequential) and the design-gated lean-manager-order-lifecycle. It waits for h8-billing (rebased on 146eed2, integrating) only because DOS-116 edits billing.spec.ts (different hunks). DOS-022: on the server, narrow billing.invoices.queue to packed orders with no live bill (only manager-app calls it). Bill via packs.list({orderId}) + issueForPack, which already re-bills a pack whose bill was cancelled. The home tile, rail badge and 'left to bill' must agree (SO-9001). The sort-key question stays with DOS-009 (lean-manager-order-lifecycle); packs.list is already newest-first after merged DOS-133. DOS-026: a queued note, a bounded poll until the challan PDF is ready, and a rejection handler (the billing desk m6.pdfQueued pattern). Build it inside the manager app, with no cross-app helper shared with DOS-008 (lean-owner-desk runs after this group). DOS-024: warehouse.queue.list with state 'confirmed' + unpicklistedOnly, the warehouse-app pick/index.tsx pattern (reference only). DOS-134: pieces entry capped at requestedQtyPcs with an 'asks for N pc' helper. Leave the kit 'Not ordered' word and money.tsx alone. If lean-sales-entry's DOS-085 stepper change merged first, rebase and re-walk M20. Walk web desk + phone and Android."
+   },
+   {
+    "name": "lean-libs-offline-boot",
+    "app": "kit/libs",
+    "items": [
+     "DOS-046",
+     "DOS-068",
+     "DOS-053",
+     "DOS-089",
+     "DOS-055"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h13-owner-support",
+     "h11-syncpull",
+     "h10-console",
+     "lean-delivery-door",
+     "lean-manager-billing"
+    ],
+    "ownsFiles": [
+     "docs/27-offline-sync-client.md",
+     "frontend/delivery-app/app/_layout.tsx",
+     "frontend/delivery-app/app/trips.tsx",
+     "frontend/delivery-app/package.json",
+     "frontend/delivery-app/src/lib/ui.tsx",
+     "frontend/libs/api-client/src/client.test.ts",
+     "frontend/libs/api-client/src/client.ts",
+     "frontend/libs/api-client/src/errors.ts",
+     "frontend/libs/api-client/src/session.ts",
+     "frontend/libs/app-template/app/_layout.tsx",
+     "frontend/libs/offline/src/connection.ts",
+     "frontend/libs/offline/src/engine.test.ts",
+     "frontend/libs/offline/src/engine.ts",
+     "frontend/libs/offline/src/react.tsx",
+     "frontend/libs/ui/src/root-layout-redirects.test.ts",
+     "frontend/manager-app/app/_layout.tsx",
+     "frontend/owner-app/app/_layout.tsx",
+     "frontend/pnpm-lock.yaml",
+     "frontend/pnpm-workspace.yaml",
+     "frontend/sales-app/app/_layout.tsx",
+     "frontend/warehouse-app/app/_layout.tsx",
+     "frontend/warehouse-app/app/pick/attention.tsx",
+     "frontend/warehouse-app/app/settings.tsx"
+    ],
+    "order": 5,
+    "notes": "Waits for h11-syncpull (38032df changed engine.ts, docs/27 and docs/07), for h13 (owner _layout.tsx and the lockfile), and for h10-console (4201823 committed a frontend/pnpm-lock.yaml hunk). DOS-046 WAITS FOR its architect decision (architectQueue), because docs/27 §4 and §11 bind a retry to the same opId. Build DOS-053, DOS-055, DOS-068 and DOS-089 first. If the design confirms the direction: a user retry mints a NEW opId and clears the pulled sync_error; ADR 0007's durable outcomes stay (no sync.service.ts change; h11 owns it); the 'SAME opId' engine.test case (:481) flips; docs/27 lines ~71 and ~168 change. DOS-053: status.rejected must equal needsAttention().length; warehouse settings prints deviceLabel like manager/sales/retailer (reference only). DOS-068: merged DOS-056 already classifies Expo FetchError as network. Add the native radio hint feeding setNetworkHint with @react-native-community/netinfo through the catalog (docs/27:145 names NetInfo; 12.0.1 is in Expo's bundledNativeModules), and stop printing error.kind in delivery ui.tsx. This group owns the pnpm-workspace.yaml and lockfile change; lean-owner-desk waits for it. DOS-089: start the sales engine only after !hydrating (check the _layout comment against session.ts, which sets hydrating only at boot) and refresh proactively from accessExpiresIn. DOS-055: delay router.replace with setTimeout(0) in the sales, owner, manager and warehouse layouts, as the template does. The vitest guard is a NEW file, frontend/libs/ui/src/root-layout-redirects.test.ts; document-urls.test.ts belongs to lean-retailer-shop for DOS-123. Tell the main session to retire the QA/ENV.md:151 workaround (QA/ is not lane-owned). Walks: Android airplane mode and API cut (a-34, a-39), cold start without LogBox, web redirects."
+   },
+   {
+    "name": "lean-retailer-shop",
+    "app": "retailer",
+    "items": [
+     "DOS-101",
+     "DOS-123",
+     "DOS-124",
+     "DOS-154",
+     "DOS-105",
+     "DOS-143",
+     "DOS-144"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "lean-sales-entry"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/notifications/events.ts",
+     "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+     "backend/libs/database/src/seed-demo/delivery.ts",
+     "backend/libs/database/src/seed-demo/notifications.ts",
+     "frontend/libs/ui/src/document-urls.test.ts",
+     "frontend/libs/ui/src/native/money.tsx",
+     "frontend/retailer-app/app/bills/[id].tsx",
+     "frontend/retailer-app/app/deals.tsx",
+     "frontend/retailer-app/app/dues.tsx",
+     "frontend/retailer-app/app/index.tsx",
+     "frontend/retailer-app/app/order.tsx",
+     "frontend/retailer-app/app/orders/[id].tsx",
+     "frontend/retailer-app/app/orders/index.tsx",
+     "frontend/retailer-app/app/pay.tsx",
+     "frontend/retailer-app/app/returns.tsx",
+     "frontend/retailer-app/src/config.ts",
+     "frontend/retailer-app/src/lib/dates.ts",
+     "frontend/retailer-app/src/strings.ts"
+    ],
+    "order": 6,
+    "notes": "Paired items from earlier lanes that were never built: DOS-123 (paired with DOS-031; h9 did not touch it) and DOS-124 + DOS-154. The DOS-146 verdict says: fix Pay as ONE slice, not with '?? 0'. An emptied amount must not snap back to owed, Start must not disable with the wrong reason, and the retailer strings.ts helper (~:191) changes with it. R7 was reworked by merged DOS-096/097/098. DOS-101 wires onOpenPieces + parsePieces on top of lean-sales-entry's DOS-085 stepper change; the stepper warns and never blocks, and inner packs are out of scope. DOS-123: pass the Img source through absoluteUrl(readUrl), and null the seed's demo POD keys or make them real. Extend frontend/libs/ui/src/document-urls.test.ts (owned here; DOS-055 adds its own new file). DOS-124: pay.tsx reads useLocalSearchParams (bill) and seeds `chosen` (delivery day.tsx:75 is reference only). DOS-154: the native field-density RupeeInput gets a disabled look (kit-internal, no types.ts). DOS-105: a returns word for issued notes, no 'You pay' on cancelled orders, 'the salesperson asked' when requestedBy is not the user, cancelLabel 'Keep it' (DialogProps already has it), and events.ts formats oldestDueDate (notifications.spec). DOS-143: a long date built on businessDate in retailer dates.ts. The admin/owner/sales/warehouse slice-on-instant sweep is left out, because those files belong to other groups. DOS-144: after a short pick, picked/delivered pieces and the bill's amount due replace 'You pay'. retailer-app has no vitest script, so the proofs are the libs/ui and backend specs plus walks. Seed data changes (DOS-123, DOS-105): re-run pnpm db:seed on dos_qa after merge. Walk web and Android; iOS for the Pay slice."
+   },
+   {
+    "name": "lean-owner-desk",
+    "app": "owner",
+    "items": [
+     "DOS-002",
+     "DOS-012",
+     "DOS-017",
+     "DOS-008",
+     "DOS-015",
+     "DOS-018"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h13-owner-support",
+     "h10-console",
+     "h12-kit",
+     "lean-retailer-shop",
+     "lean-libs-offline-boot"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/reporting/registers.service.ts",
+     "backend/libs/core/src/modules/reporting/reporting.spec.ts",
+     "backend/libs/core/src/modules/reporting/rollup.ts",
+     "backend/libs/database/src/seed-demo.test.ts",
+     "backend/libs/database/src/seed-demo/delivery-road.ts",
+     "backend/libs/database/src/seed-demo/delivery.ts",
+     "frontend/libs/ui/src/charts/geometry.test.ts",
+     "frontend/libs/ui/src/charts/geometry.ts",
+     "frontend/libs/ui/src/tokens.ts",
+     "frontend/owner-app/app.json",
+     "frontend/owner-app/app/billing/index.tsx",
+     "frontend/owner-app/app/index.tsx",
+     "frontend/owner-app/app/map.tsx",
+     "frontend/owner-app/app/money/index.tsx",
+     "frontend/owner-app/app/orders/index.tsx",
+     "frontend/owner-app/app/orders/trips.tsx",
+     "frontend/owner-app/app/reports/index.tsx",
+     "frontend/owner-app/app/staff/index.tsx",
+     "frontend/owner-app/package.json",
+     "frontend/owner-app/src/lib/ui.tsx",
+     "frontend/owner-app/src/strings.ts",
+     "frontend/pnpm-lock.yaml"
+    ],
+    "order": 7,
+    "notes": "Starts after h13-owner-support (DOS-108) merges and after lean-libs-offline-boot (frontend/pnpm-lock.yaml). Through lean-manager-billing, that wait also orders DOS-008 after DOS-026. DOS-012 imports Refusal/stayOpen from the NEW frontend/owner-app/src/lib/refusal.tsx (DOS-108 amendment (a)), never a copy. If the .then(done, done) confirms are swept, sweep only this group's files: billing/index.tsx, orders/index.tsx, money/index.tsx, staff/index.tsx. Leave money/receipts.tsx to DOS-136 (lean-manager-money, per the h1-money-slice2 review), settings/index.tsx to h13, and shops/index.tsx to lean-sales-rep; record the decision. DOS-015: DOS-007 and DOS-117 are merged. Show RebuildAgeingOutput or the refusal instead of closing silently (app-only, no receivables change). DOS-008: a bounded poll or a 'ready, open' button on invoices.pdf, inside the owner app (no backend change, no shared helper). DOS-002: request topGroups 4 and make mixSegments merge an existing Other; no types.ts change. DOS-017: use the existing kit <MapView>. react-native-maps 1.27.2 and maplibre-gl are ALREADY in the frontend catalog (pnpm-workspace.yaml:72-74, :94). Add them to owner-app package.json only: that is an owner-app importer hunk in pnpm-lock.yaml, rebased on h10's and h13's hunks, then pnpm install. Android tiles need a founder-supplied Google Maps key (docs/26). Prove web and iOS tiles and the Android list fallback. DOS-018 (its approvals-wording cause was closed by merged DOS-004): the terms word; TRIP series numbers in the seed, with a seed-demo.test.ts check that no trip_no is TRIP-ACTIVE or TRIP-NEXT; scheme spend filtered to kind scheme in reporting registers.service.ts; the Trips column label; activeTrips = state active in rollup.ts (this also fixes the manager's m1.trips, no manager file); the stock-turns axis. reporting.spec.ts carries the two red cases. Seed change (DOS-018): re-run pnpm db:seed on dos_qa. The iOS in-Sheet dialog check uses the merged DOS-164. Walk web desk + phone and Android; iOS home for the map."
+   },
+   {
+    "name": "lean-backend-platform",
+    "app": "backend-only",
+    "items": [
+     "DOS-127",
+     "DOS-160",
+     "DOS-028",
+     "DOS-112",
+     "DOS-151"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h10-console",
+     "h13-owner-support"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/docs/readme.ts",
+     "backend/libs/core/src/documents/documents.spec.ts",
+     "backend/libs/core/src/documents/pdf.ts",
+     "backend/libs/core/src/modules/orders/approvals.service.ts",
+     "backend/libs/core/src/modules/orders/orders.internals.ts",
+     "backend/libs/core/src/modules/orders/orders.service.ts",
+     "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "backend/libs/core/src/modules/platform-admin/console.service.ts",
+     "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "backend/libs/core/src/modules/platform-admin/tenants.service.ts",
+     "backend/libs/core/src/modules/tenancy/support.spec.ts",
+     "backend/libs/core/src/modules/tenancy/tenant.guard.ts",
+     "backend/libs/core/src/platform/audit.ts",
+     "backend/libs/core/src/platform/idempotency.ts",
+     "backend/libs/core/src/service/bootstrap.ts",
+     "backend/libs/core/src/testing/app.ts",
+     "backend/tools/smoke-endpoints.mts",
+     "frontend/owner-app/app/settings/audit.tsx"
+    ],
+    "order": 8,
+    "notes": "Waits for h10-console (console.service.ts, tenants.service.ts, platform-admin.spec.ts and smoke-endpoints.mts are in its diff) and h13 (tenancy support.spec.ts); h9-desk is already merged (d521f84). DOS-127 was paired with DOS-126 but not built. cancelInTx (orders.service.ts ~:484) still expires approvals under the retailer context, which approvals_read hides. Wrap the expiry in the sanctioned asSystem() from orders.internals.ts. A decide on a gate whose order is cancelled expires it instead of answering 409 (h5 merge review). No rls.test.ts change. DOS-160 has an architect design (QA/evidence/batch1/held-review-brief.md:363 + DOS-003 verdict (b)). The implementer picks one of the two designed options: skip output validation for a replayed reply, or store the domain result and re-render. The spec strips a required field from a stored reply and replays the same key: 500 today, 200 after. DOS-003 already merged without it, so every same-day pnpm smoke needs --run-tag until this lands. lean-delivery-collect and every design-gated group wait for this group. DOS-028: writeAudit inside decide and confirmInTx, in the same transaction; owner Settings > Audit lists the rows. DOS-112: reject a path/body id mismatch centrally with 400 (bootstrap.ts / tenant.guard.ts), and move setStatus's existence check before platformIdempotent. Include admin.users.enable in the sweep (DOS-107 verdict). After h10 merges, DOS-107 amendment (b)'s smoke planFor pins the body id; run pnpm smoke with --run-tag. DOS-151: a WinAnsi byte map plus AFM widths for cp1252 punctuation; stored PDFs keep '?' until re-rendered. Even after contract-neutral changes, run pnpm docs:readme:check."
+   },
+   {
+    "name": "lean-warehouse-pick",
+    "app": "warehouse",
+    "items": [
+     "DOS-047",
+     "DOS-051",
+     "DOS-165",
+     "DOS-118",
+     "DOS-119",
+     "DOS-120"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "lean-kit-overlays",
+     "lean-delivery-door"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "backend/libs/core/src/modules/warehouse/warehouse.sync.ts",
+     "frontend/warehouse-app/app/inbound/[id].tsx",
+     "frontend/warehouse-app/app/load/index.tsx",
+     "frontend/warehouse-app/app/pick/[id].tsx",
+     "frontend/warehouse-app/app/pick/index.tsx",
+     "frontend/warehouse-app/src/lib/ui.tsx",
+     "frontend/warehouse-app/src/strings.ts"
+    ],
+    "order": 9,
+    "notes": "Waits for lean-kit-overlays, because DOS-152 rewrites the Short sheet footer on the same pick/[id].tsx and the Android Short proof is impossible before it. Also waits for h9-desk (merged d521f84: DOS-044 edited warehouse strings.ts and inbound/[id].tsx). lean-delivery-door is a semantic wait: DOS-163's choice should match DOS-165. It is ordered ahead of the P2-heavy groups because lean-manager-money and lean-warehouse-stock wait on its warehouse.spec.ts and pick files. DOS-051 + DOS-165 land together. The reason chips have NO preselected reason, with no kit Segments/Chips change (native/controls.tsx belongs to lean-kit-overlays). warehouse.sync.ts rejects a device pick below requested with no short_reason as a sync_error, never a 4xx. Fix the gate-count wording (w3.countLabel 'good pieces'), not the reconciled enum. DOS-118: move the over-ask line above the pad (NumberPadProps has no disabled prop; no types.ts change). DOS-119: call the public useSyncEngine().sync() after making a wave, and hide Scan/confirm while the status is unknown (no offline lib edit). DOS-120: use the Start reply only while the local row is still open or undefined. DOS-047: query open/picking and draft first, then finished. Walk web desk + 390, Pixel 7, iOS (ios-drive labels for DOS-165)."
+   },
+   {
+    "name": "lean-manager-money",
+    "app": "manager",
+    "items": [
+     "DOS-035",
+     "DOS-036",
+     "DOS-038",
+     "DOS-136",
+     "DOS-141"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h8-billing",
+     "lean-manager-billing",
+     "lean-libs-offline-boot",
+     "lean-backend-platform",
+     "lean-warehouse-pick",
+     "h12-kit",
+     "lean-delivery-door"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/docint/review.service.ts",
+     "backend/libs/core/src/modules/orders/approvals.service.ts",
+     "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "backend/libs/core/src/modules/warehouse/load-sheets.service.ts",
+     "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "frontend/libs/api-client/src/errors.ts",
+     "frontend/libs/api-client/src/react/index.tsx",
+     "frontend/libs/api-client/src/react/refusal.test.ts",
+     "frontend/manager-app/app/billing/credit-notes.tsx",
+     "frontend/manager-app/app/inbound/documents.tsx",
+     "frontend/manager-app/app/money/day-end.tsx",
+     "frontend/manager-app/app/money/index.tsx",
+     "frontend/manager-app/app/shops/index.tsx",
+     "frontend/manager-app/src/lib/ui.tsx",
+     "frontend/manager-app/src/strings.ts",
+     "frontend/owner-app/app/money/receipts.tsx"
+    ],
+    "order": 10,
+    "notes": "Rebase first: the money and day-end screens were changed by merged DOS-132/117, credit-notes.tsx by h8 (DOS-116), and documents.tsx and review.service.ts by h9 (DOS-031/037, merged d521f84). DOS-035: formatINR(paise()) like the manager home (reference only). DOS-036: an opening row plus debit/credit/balance columns from RetailerLedgerOutput (no contract change). DOS-038: name is the identity column. Pull the column set into a pure helper with a vitest (the load-out.test.ts pattern); kit list.tsx is unchanged. DOS-136: fix depositedAt, bouncedAt and the line uuidv7 values when the dialog opens, not inside the mutation run. Refetch after a network error, and map the idempotency 409 to a sentence. Repeat on Day-end and on owner receipts, where the O11 .then(done, done) confirms use Refusal from h13's owner refusal.tsx (h1-money-slice2 review). DOS-141: server refusal messages name the SO no, vehicle + date, approver name and IST time (no UUID, no ISO-Z). Both bounce dialogs refuse an empty reason locally through TextInput error. The 'idempotencyKey already used' step belongs to DOS-136. The four DOS-031 sign-off defects in documents.tsx (R1-R4) are not in the inventory and not in scope. Dialogs inside Sheets: iOS walk on the merged DOS-164. Walk web desk + phone and Android."
+   },
+   {
+    "name": "lean-sales-rep",
+    "app": "sales",
+    "items": [
+     "DOS-086",
+     "DOS-084",
+     "DOS-142",
+     "DOS-092",
+     "DOS-088",
+     "DOS-091",
+     "DOS-093"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h10-console",
+     "lean-sales-entry",
+     "lean-delivery-door",
+     "lean-libs-offline-boot",
+     "h11-syncpull"
+    ],
+    "ownsFiles": [
+     "docs/23-app-screens-and-api-gaps.md",
+     "frontend/libs/offline/src/engine.test.ts",
+     "frontend/libs/offline/src/engine.ts",
+     "frontend/libs/offline/src/react.tsx",
+     "frontend/owner-app/app/shops/index.tsx",
+     "frontend/sales-app/app/index.tsx",
+     "frontend/sales-app/app/orders/[id].tsx",
+     "frontend/sales-app/app/orders/index.tsx",
+     "frontend/sales-app/app/orders/new.tsx",
+     "frontend/sales-app/app/shops/[id].tsx",
+     "frontend/sales-app/app/shops/catalog.tsx",
+     "frontend/sales-app/src/lib/dates.ts",
+     "frontend/sales-app/src/lib/local.ts",
+     "frontend/sales-app/src/lib/queue.ts",
+     "frontend/sales-app/src/lib/ui.tsx",
+     "frontend/sales-app/src/nav.ts",
+     "frontend/sales-app/src/strings.ts"
+    ],
+    "order": 11,
+    "notes": "DOS-086 builds on DOS-080 (h11 pull rewrite) and on lean-libs-offline-boot's engine changes. When the draft op is accepted, the device calls the online orders.submit with key `${id}:submit`. orders.sync stays draft-only, so orders.sync.ts is not edited. Expose the accepted-op signal through engine.ts/react.tsx, with an engine.test.ts case (both owned here). Android offline proof. DOS-084: pick the beat for the IST weekday from beat_assignments + beats.visit_days, which are already on the device (screen-only, no schema change). A manual chip sticks for the day (vitest). DOS-142: add cancel_reason to LocalOrder and render it. The pull already carries it (orders.module.ts unchanged); who cancelled is out of scope. DOS-092: cancelLabel 'Keep it' / 'Cancel the order' (DialogProps already has it; no kit change) and a 'say why' line for an empty reason. DOS-088: all live schemes, newest valid_from first. DOS-091: the backend already serves /invoices/{id} and /pdf to the salesperson. Add a bill-detail route modelled on retailer bills/[id].tsx (reference only), with copy that reads the sign of ageDays. Fix the stale docs/23 S12 line (docs/23 was also edited by h9 and h10). DOS-093: in the sales card, handle a 404 behaviour_not_computed as 'new shop'. In the owner shops panel, show '—' as lastOrder already does, with no new owner string key: owner strings.ts belongs to h13 and the owner groups. The DOS-012 confirm sweep does not cover owner shops/index.tsx unless this group takes it with h13's refusal.tsx. The sign-off finding on 'Repeat last order' sorting by _local_rev is not in the inventory. Walk web and Pixel 7; iOS for DOS-091/092/093."
+   },
+   {
+    "name": "lean-warehouse-stock",
+    "app": "warehouse",
+    "items": [
+     "DOS-048",
+     "DOS-121",
+     "DOS-140",
+     "DOS-049",
+     "DOS-052",
+     "DOS-072"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h10-console",
+     "h11-syncpull",
+     "lean-libs-offline-boot",
+     "lean-retailer-shop",
+     "lean-warehouse-pick",
+     "lean-sales-rep"
+    ],
+    "ownsFiles": [
+     "backend/libs/core/src/modules/inventory/inventory.service.ts",
+     "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+     "backend/libs/core/src/modules/inventory/stock.service.ts",
+     "backend/libs/core/src/modules/notifications/messages.service.ts",
+     "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+     "backend/libs/core/src/modules/retailers/retailers.mappers.ts",
+     "backend/libs/core/src/modules/retailers/retailers.module.ts",
+     "backend/libs/core/src/modules/retailers/retailers.service.ts",
+     "backend/libs/core/src/modules/retailers/retailers.spec.ts",
+     "backend/libs/core/src/modules/sync/sync.coverage.spec.ts",
+     "docs/23-app-screens-and-api-gaps.md",
+     "frontend/warehouse-app/app/load/[id].tsx",
+     "frontend/warehouse-app/app/load/check-in.tsx",
+     "frontend/warehouse-app/app/load/index.tsx",
+     "frontend/warehouse-app/app/load/trips.tsx",
+     "frontend/warehouse-app/app/pack/[orderId].tsx",
+     "frontend/warehouse-app/app/settings.tsx",
+     "frontend/warehouse-app/app/stock/index.tsx",
+     "frontend/warehouse-app/src/strings.ts"
+    ],
+    "order": 12,
+    "notes": "stock.service.ts, inventory.spec.ts and the W8 stock screen were changed by h9 (merged d521f84; DOS-044/037, founder default: only owner/manager add stock). DOS-140: only the raw sellable half is open; the rep/shop half shipped with merged DOS-074+097 (verdict (d), h4 merge review). Filter out damaged, in_transit and customer locations in stock.service.sellable, and keep vehicle rows when a vehicle locationId is asked (no view migration). DOS-048: read the product, batch and location names before the write (the transaction is already aborted after the constraint fires); keep lotId/locationId in data. DOS-121 is app-only: W7 counts van lots and sends countedVanStock (ConfirmLoadSheetInput already has it). Build the van-stock sheet fixture through the API in the walk. Do NOT edit warehouse.spec.ts or load-sheets.service.ts: lean-warehouse-pick and lean-manager-money own them, and lean-manager-money runs unordered with this group. DOS-049: hide per-order cartons until the crew count is keyed. DOS-052 + DOS-072 land together (same toView rule). Return the public retailer shape to warehouse and delivery (RetailerViewSchema is already a union; no contract change). Add a delivery omit on the retailers pull that keeps credit_mode; schemaHash changes and devices re-snapshot. The messages scope narrows the warehouse inbox. The creditCheck output and the retailer-role pull gaps stay out of scope. lean-kit-polish waits on this group because DOS-122 changes the W7 load-out confirm dialog. Walk web and Android."
+   },
+   {
+    "name": "lean-orders-panels",
+    "app": "owner",
+    "items": [
+     "DOS-010",
+     "DOS-027",
+     "DOS-130",
+     "DOS-153",
+     "DOS-155",
+     "DOS-019"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h13-owner-support",
+     "lean-manager-billing",
+     "lean-libs-offline-boot",
+     "lean-owner-desk",
+     "lean-manager-money",
+     "h12-kit"
+    ],
+    "ownsFiles": [
+     "frontend/manager-app/app/billing/index.tsx",
+     "frontend/manager-app/app/orders/index.tsx",
+     "frontend/manager-app/src/strings.ts",
+     "frontend/owner-app/app/_layout.tsx",
+     "frontend/owner-app/app/approvals.tsx",
+     "frontend/owner-app/app/index.tsx",
+     "frontend/owner-app/app/orders/index.tsx",
+     "frontend/owner-app/src/strings.ts"
+    ],
+    "order": 13,
+    "notes": "Owner + manager order and approval panels, all on screens rewritten by merged DOS-003 (variantName) and DOS-004 (approvals name shop, order and amount). DOS-010: put the shop into the identity cell on owner Orders, manager Confirmed orders and Billing desk rows. Do NOT make the kit render 'detail' (a shared-kit change). DOS-027: derive 'Waiting on' from orders.approvals.list pending (plus the shop-level credit_limit by retailer), with a pure helper test, not from stored approvalFlags. DOS-130: sum reservation qtyPcs across pages. DOS-153: clear the note on Sheet close or row change (owner) and on Dialog close (manager). DOS-155: on the last pending gate, say that it confirms the order and holds stock, then show a toast from DecideApprovalOutput.order; bargains decided outside a gate never confirm. DOS-019: take the Today count and the rail badge from the same live reads (bounded with '+'), not from the 15-minute owner_summary; no rollup.ts change. The manager decision dialog sits in a Sheet: iOS walk on the merged DOS-164. Walk web, Android, iOS."
+   },
+   {
+    "name": "lean-delivery-collect",
+    "app": "delivery",
+    "items": [
+     "DOS-062",
+     "DOS-065",
+     "DOS-067",
+     "DOS-066",
+     "DOS-071"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "lean-delivery-door",
+     "lean-libs-offline-boot",
+     "lean-retailer-shop",
+     "lean-owner-desk",
+     "lean-warehouse-stock",
+     "lean-backend-platform"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/delivery.ts",
+     "backend/libs/core/src/modules/delivery/deliveries.service.ts",
+     "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "backend/libs/core/src/modules/delivery/performance.ts",
+     "backend/libs/core/src/modules/receivables/credit.ts",
+     "backend/libs/core/src/modules/reporting/registers.service.ts",
+     "backend/libs/core/src/modules/reporting/reporting.spec.ts",
+     "backend/libs/database/src/seed-demo/delivery.ts",
+     "frontend/delivery-app/app/expenses.tsx",
+     "frontend/delivery-app/app/settings.tsx",
+     "frontend/delivery-app/app/share/[invoiceId].tsx",
+     "frontend/delivery-app/app/stop/[id]/collect.tsx",
+     "frontend/delivery-app/app/stop/[id]/deliver.tsx",
+     "frontend/delivery-app/app/stop/[id]/index.tsx",
+     "frontend/delivery-app/app/trips.tsx",
+     "frontend/delivery-app/src/lib/local.ts",
+     "frontend/delivery-app/src/lib/queue.ts",
+     "frontend/delivery-app/src/strings.ts"
+    ],
+    "order": 14,
+    "notes": "WAITS FOR the architect designs of DOS-066 and DOS-071 (architectQueue); build DOS-062, DOS-065 and DOS-067 first inside the group. It waits for lean-backend-platform so the DOS-160 replay fix is on main before any additive output the designs bring. lean-warehouse-stock is a semantic wait: DOS-072 narrows what the crew device holds (credit_mode is kept), and DOS-066's door line may use only what remains (retailer_outstanding_summary overdue_paise/oldest_due_date + credit_mode). DOS-062 is app-only. RecordCollectionInput already takes explicit allocations (contracts delivery.ts:1038) and the output carries invoices[]. Tagging a bill sends allocations; show which bills the money went to, oldest first unless tagged (docs/22:178). The offline receipts op stays FIFO. DOS-065: messages.list with mine=true, receipts.list with tripId. DOS-067: label the KPI as on-time; a stop with no ETA is not late (reporting.spec). The trips list includes future-dated trips. Seed arrival times so the rate is not 0%, then re-run pnpm db:seed on dos_qa. DOS-071 items 2-3 (the stale 'photo required' text, the inert Record button) are app-only; item 1 (the expense proof rule) follows the design, with a delivery.spec.ts case. Walk web and Android."
+   },
+   {
+    "name": "lean-admin-support",
+    "app": "admin",
+    "items": [
+     "DOS-110",
+     "DOS-111",
+     "DOS-113",
+     "DOS-114"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h10-console",
+     "h13-owner-support",
+     "lean-owner-desk",
+     "lean-backend-platform",
+     "lean-orders-panels"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/tenancy.ts",
+     "backend/libs/core/src/modules/platform-admin/console.service.ts",
+     "backend/libs/core/src/modules/platform-admin/platform-admin.spec.ts",
+     "backend/libs/core/src/modules/platform-admin/support-grants.ts",
+     "backend/libs/core/src/modules/platform-admin/support.service.ts",
+     "backend/libs/core/src/modules/tenancy/support.service.ts",
+     "backend/libs/core/src/modules/tenancy/support.spec.ts",
+     "backend/libs/core/src/service/support-audit.interceptor.ts",
+     "backend/libs/database/src/seed-demo.test.ts",
+     "backend/libs/database/src/seed-demo/platform-admin.ts",
+     "backend/libs/database/src/seed-demo/tenants.ts",
+     "backend/libs/database/src/seed.ts",
+     "frontend/admin-app/app/distributors/[id].tsx",
+     "frontend/admin-app/app/distributors/index.tsx",
+     "frontend/admin-app/app/index.tsx",
+     "frontend/admin-app/app/subscriptions.tsx",
+     "frontend/admin-app/app/support.tsx",
+     "frontend/admin-app/app/users.tsx",
+     "frontend/admin-app/src/lib/subscription.tsx",
+     "frontend/admin-app/src/lib/support.tsx",
+     "frontend/admin-app/src/lib/ui.tsx",
+     "frontend/admin-app/src/strings.ts",
+     "frontend/owner-app/app/settings/audit.tsx",
+     "frontend/owner-app/app/settings/index.tsx",
+     "frontend/owner-app/src/lib/ui.tsx",
+     "frontend/owner-app/src/strings.ts"
+    ],
+    "order": 15,
+    "notes": "Four items (size exception): the admin app has few findings, and DOS-112 sits in lean-backend-platform with the other central platform change. DOS-110 WAITS FOR its lean design. The DOS-108 verdict direction: statusOf() derives lapsed on both services, lapsed is excluded from openOnly and status=requested, and READMEs are regenerated. Then delete the askLapsed copies in admin-app and in the owner app (DOS-108 amendment (c)). Contracts tenancy.ts is owned for that design. Build DOS-111, DOS-113 and DOS-114 first. Starts after h10 (4201823 already edits platform-admin support.service.ts and support-audit.interceptor.ts; DOS-114 and DOS-111 build on DOS-109's actor names and DOS-107's unlock). Also after h13 (DOS-108's support-card panels, which DOS-111's read list hangs under). DOS-111: a second insert into the tenant audit_log from support-audit.interceptor under withSystem (no migration). The owner reads it through tenancy.audit.list under the grant, labelled by role or requestedByName. DOS-113: the seed upserts one plan into both columns, and the detail page shows the subscription plan once (seed-demo.test; re-run pnpm db:seed on dos_qa). DOS-114: no entityId '' audit query after hand-back (use useQuery's existing enabled option; no api-client change), a count-aware plural, a name-ordered users keyset on the existing string cursor, and a Subscriptions row that opens the plan dialog. Walk web and Android."
+   },
+   {
+    "name": "lean-sales-orders-pricing",
+    "app": "sales",
+    "items": [
+     "DOS-079",
+     "DOS-083",
+     "DOS-078",
+     "DOS-081",
+     "DOS-087",
+     "DOS-090"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "lean-sales-entry",
+     "lean-backend-platform",
+     "lean-manager-money",
+     "lean-sales-rep",
+     "lean-orders-panels",
+     "lean-delivery-collect",
+     "lean-admin-support"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/orders.ts",
+     "backend/libs/contracts/src/pricing.ts",
+     "backend/libs/contracts/src/receivables.ts",
+     "backend/libs/core/src/modules/billing/billing.internals.ts",
+     "backend/libs/core/src/modules/billing/billing.spec.ts",
+     "backend/libs/core/src/modules/orders/orders.internals.ts",
+     "backend/libs/core/src/modules/orders/orders.service.ts",
+     "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "backend/libs/core/src/modules/orders/orders.sync.ts",
+     "backend/libs/core/src/modules/orders/pricing-lines.ts",
+     "backend/libs/core/src/modules/pricing/bargains.service.ts",
+     "backend/libs/core/src/modules/pricing/pricing.spec.ts",
+     "backend/libs/core/src/modules/pricing/quote.service.ts",
+     "backend/libs/core/src/modules/receivables/credit.ts",
+     "backend/libs/database/migrations/meta/_journal.json",
+     "backend/libs/database/src/schema/orders.ts",
+     "backend/libs/database/src/schema/pricing.ts",
+     "backend/libs/database/src/seed-demo/pricing.ts",
+     "backend/libs/domain/src/pricing/schemes.test.ts",
+     "backend/libs/domain/src/pricing/schemes.ts",
+     "docs/22-source-of-truth.md",
+     "docs/adr/0008-pricing-engine.md",
+     "frontend/libs/ui/src/qty.ts",
+     "frontend/manager-app/app/orders/index.tsx",
+     "frontend/manager-app/src/strings.ts",
+     "frontend/owner-app/app/approvals.tsx",
+     "frontend/owner-app/src/strings.ts",
+     "frontend/sales-app/app/orders/new.tsx",
+     "frontend/sales-app/app/shops/[id].tsx",
+     "frontend/sales-app/src/lib/pricing.ts",
+     "frontend/sales-app/src/strings.ts"
+    ],
+    "order": 16,
+    "notes": "WAITS FOR the architect designs of DOS-078, DOS-079, DOS-081, DOS-087 and DOS-090. Build DOS-079 before DOS-083 (DOS-083 dependsOn DOS-079). DOS-096's quote deliberately left cess out, so extend that one GST path, never a second pricing engine. pricing.spec.ts and billing.spec.ts prove that a fully packed invoice equals the order total. A migration takes the next free index from _journal.json, with a hand-written guarantees sibling only if grants or policies change; regenerate READMEs after contract changes. Owner and manager strings.ts are owned for the approval-kind and credit-notice wording on owner approvals.tsx and manager orders/index.tsx. That is why this group waits on lean-admin-support, which also owns owner strings. qty.ts (DOS-078), receivables.ts (DOS-081) and schema/pricing.ts (DOS-087) are owned for the designs. DOS-081's rep-side 'held for credit' sentence can be built before the manager-notice decision. The DOS-126 founder defaults apply: confirm applies only rates approved since the draft, and a shop's standalone approved rate is charged at confirm. The docs/22 §8/§11 rows for these decisions are written in-slice; the main session renders and republishes. DOS-087's seed rename or new rule: re-run pnpm db:seed on dos_qa. The DOS-126 sign-off finding (standalone bargains never expire) is not in the inventory. Walk web and Android; iOS for DOS-090's rep flow."
+   },
+   {
+    "name": "lean-owner-money-approvals",
+    "app": "owner",
+    "items": [
+     "DOS-006",
+     "DOS-013",
+     "DOS-014",
+     "DOS-016",
+     "DOS-011",
+     "DOS-033"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h13-owner-support",
+     "lean-owner-desk",
+     "lean-backend-platform",
+     "lean-manager-money",
+     "lean-warehouse-stock",
+     "lean-orders-panels",
+     "lean-delivery-collect",
+     "lean-admin-support",
+     "lean-sales-orders-pricing"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/pricing.ts",
+     "backend/libs/contracts/src/receivables.ts",
+     "backend/libs/contracts/src/reporting.ts",
+     "backend/libs/core/src/modules/orders/approvals.service.ts",
+     "backend/libs/core/src/modules/orders/orders.internals.ts",
+     "backend/libs/core/src/modules/orders/orders.service.ts",
+     "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "backend/libs/core/src/modules/pricing/pricing.service.ts",
+     "backend/libs/core/src/modules/pricing/pricing.spec.ts",
+     "backend/libs/core/src/modules/receivables/outstanding.ts",
+     "backend/libs/core/src/modules/receivables/receivables.service.ts",
+     "backend/libs/core/src/modules/receivables/receivables.spec.ts",
+     "backend/libs/core/src/modules/reporting/register-specs.ts",
+     "backend/libs/core/src/modules/reporting/registers.service.ts",
+     "backend/libs/core/src/modules/reporting/renderers.ts",
+     "backend/libs/core/src/modules/reporting/reporting.service.ts",
+     "backend/libs/core/src/modules/reporting/reporting.spec.ts",
+     "backend/libs/core/src/modules/reporting/rollup.ts",
+     "backend/libs/core/src/modules/retailers/retailers.service.ts",
+     "backend/libs/database/migrations/meta/_journal.json",
+     "backend/libs/database/src/schema/reporting.ts",
+     "backend/libs/database/src/seed-demo/reporting.ts",
+     "frontend/manager-app/app/money/index.tsx",
+     "frontend/manager-app/app/orders/index.tsx",
+     "frontend/owner-app/app/approvals.tsx",
+     "frontend/owner-app/app/index.tsx",
+     "frontend/owner-app/app/money/index.tsx",
+     "frontend/owner-app/app/money/receipts.tsx",
+     "frontend/owner-app/app/orders/index.tsx",
+     "frontend/owner-app/app/prices/index.tsx",
+     "frontend/owner-app/app/reports/exports.tsx",
+     "frontend/owner-app/src/lib/ui.tsx",
+     "frontend/owner-app/src/strings.ts"
+    ],
+    "order": 17,
+    "notes": "WAITS FOR the architect designs of DOS-006, DOS-011 (which also decides DOS-033), DOS-013, DOS-014 and DOS-016. DOS-004 and DOS-003 are merged (DOS-006 and DOS-013 depended on them). DOS-013 reuses the tenant-catalog variantNames export that DOS-003 added (reference; do not edit tenant-catalog/index.ts). DOS-033 is fixed by DOS-011's additive settled-bill read; the per-allocation invoices.get fallback is the N+1 read DOS-004's design refused. DOS-016: DOS-117 (nightly ageing) and DOS-007 are merged. The net-vs-gross answer must reconcile with Books > Trial balance AR and keep the rollup.ts dues-block precedence (DOS-117 amendment (e)). Any schema/reporting.ts column takes the next _journal.json index. DOS-014: ExportButton needs polling until the job is ready (useQuery has no refetch interval); register specs go in reporting.spec.ts. Any additive output field is exposed to the DOS-160 replay 500 unless lean-backend-platform's DOS-160 fix is merged first; that group is ordered earlier and waited on. Seed change (DOS-006 requestedLimitPaise): re-run pnpm db:seed on dos_qa. Walk web and Android."
+   },
+   {
+    "name": "lean-manager-order-lifecycle",
+    "app": "manager",
+    "items": [
+     "DOS-009",
+     "DOS-145",
+     "DOS-139",
+     "DOS-138",
+     "DOS-030"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h8-billing",
+     "lean-delivery-door",
+     "lean-kit-overlays",
+     "lean-manager-billing",
+     "lean-libs-offline-boot",
+     "lean-owner-desk",
+     "lean-backend-platform",
+     "lean-warehouse-pick",
+     "lean-manager-money",
+     "lean-orders-panels",
+     "lean-sales-orders-pricing",
+     "lean-owner-money-approvals",
+     "h12-kit",
+     "lean-warehouse-stock"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/billing.ts",
+     "backend/libs/contracts/src/docint.ts",
+     "backend/libs/core/src/modules/billing/billing.spec.ts",
+     "backend/libs/core/src/modules/billing/invoices.service.ts",
+     "backend/libs/core/src/modules/delivery/delivery.spec.ts",
+     "backend/libs/core/src/modules/delivery/trips.service.ts",
+     "backend/libs/core/src/modules/docint/docint.spec.ts",
+     "backend/libs/core/src/modules/docint/documents.service.ts",
+     "backend/libs/core/src/modules/orders/orders.internals.ts",
+     "backend/libs/core/src/modules/orders/orders.service.ts",
+     "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "backend/libs/core/src/modules/warehouse/picklists.service.ts",
+     "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "backend/libs/database/migrations/meta/_journal.json",
+     "backend/libs/database/src/schema/billing.ts",
+     "backend/libs/database/src/schema/orders.ts",
+     "backend/libs/database/src/schema/warehouse.ts",
+     "backend/libs/domain/src/state-machines/order.ts",
+     "backend/libs/domain/src/state-machines/state-machines.test.ts",
+     "docs/22-source-of-truth.md",
+     "frontend/manager-app/app/_layout.tsx",
+     "frontend/manager-app/app/billing/brand-dms.tsx",
+     "frontend/manager-app/app/billing/index.tsx",
+     "frontend/manager-app/app/inbound/documents.tsx",
+     "frontend/manager-app/app/orders/index.tsx",
+     "frontend/manager-app/app/registers/index.tsx",
+     "frontend/manager-app/src/strings.ts",
+     "frontend/owner-app/app/orders/index.tsx",
+     "frontend/owner-app/src/strings.ts",
+     "frontend/warehouse-app/app/pick/[id].tsx",
+     "frontend/warehouse-app/src/strings.ts"
+    ],
+    "order": 18,
+    "notes": "WAITS FOR the architect designs of DOS-009, DOS-030, DOS-138 and DOS-139. DOS-145 is grouped here because its newest-first bill register and cursor must use the sort key and (date, id) cursor convention that DOS-009's design picks (DOS-133 used created_at desc, id desc with a row-value cursor). Its global-search routing half is app-only. DOS-139: run the P1 re-bill probe first (reloading or re-billing after cancel could double-sell after DOS-039); if it reproduces, stop and escalate to the full P1 process. DOS-138's interim fix (hide Cancel on picking/packed orders and state the route) needs no design and may ship if the design keeps docs/22's 'cancel up to confirmed'. Put-back lines on W5 pick/[id].tsx use warehouse strings.ts and the warehouse.spec.ts picklist cases, and the owner Orders wording uses owner strings.ts; that is why this group waits on lean-warehouse-stock. DOS-030: an app-only stopgap (hide Book for brand_dms documents, with a reason) can ship first; h9-desk (DOS-031/037, merged) edited the same documents.tsx block. Index or column migrations take the next free _journal.json index. The docs/22 §4/§8 rows for DOS-138/139 are written in-slice; the main session renders and republishes. Cancel dialogs inside Sheets: iOS walk on the merged DOS-164. Walk web and Android."
+   },
+   {
+    "name": "lean-retailer-platform",
+    "app": "retailer",
+    "items": [
+     "DOS-100",
+     "DOS-102",
+     "DOS-103",
+     "DOS-104",
+     "DOS-125"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h10-console",
+     "h13-owner-support",
+     "lean-kit-overlays",
+     "lean-retailer-shop",
+     "lean-warehouse-stock",
+     "lean-admin-support",
+     "lean-sales-orders-pricing",
+     "lean-owner-money-approvals",
+     "lean-manager-order-lifecycle"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/auth.ts",
+     "backend/libs/contracts/src/catalog.ts",
+     "backend/libs/contracts/src/notifications.ts",
+     "backend/libs/contracts/src/permissions.ts",
+     "backend/libs/contracts/src/pricing.ts",
+     "backend/libs/contracts/src/tenancy.ts",
+     "backend/libs/core/src/modules/auth/auth.controller.ts",
+     "backend/libs/core/src/modules/auth/auth.service.ts",
+     "backend/libs/core/src/modules/auth/auth.spec.ts",
+     "backend/libs/core/src/modules/notifications/events.ts",
+     "backend/libs/core/src/modules/notifications/inbound.service.ts",
+     "backend/libs/core/src/modules/notifications/notifications.spec.ts",
+     "backend/libs/core/src/modules/orders/orders.mappers.ts",
+     "backend/libs/core/src/modules/pricing/pricing.spec.ts",
+     "backend/libs/core/src/modules/pricing/quote.service.ts",
+     "backend/libs/core/src/modules/receivables/outstanding.ts",
+     "backend/libs/core/src/modules/tenant-catalog/tenant-catalog.service.ts",
+     "backend/libs/database/migrations/meta/_journal.json",
+     "backend/libs/database/src/rls.test.ts",
+     "backend/libs/database/src/schema/notifications.ts",
+     "backend/libs/database/src/seed-demo/notifications.ts",
+     "backend/libs/database/src/tenant-bootstrap.ts",
+     "frontend/libs/ui/package.json",
+     "frontend/libs/ui/src/native/charts.tsx",
+     "frontend/libs/ui/src/parity.test.ts",
+     "frontend/libs/ui/src/platform/links.web.ts",
+     "frontend/libs/ui/src/platform/types.ts",
+     "frontend/libs/ui/src/types.ts",
+     "frontend/libs/ui/src/web/charts.tsx",
+     "frontend/owner-app/app/settings/index.tsx",
+     "frontend/owner-app/src/strings.ts",
+     "frontend/pnpm-lock.yaml",
+     "frontend/pnpm-workspace.yaml",
+     "frontend/retailer-app/app/bills/[id].tsx",
+     "frontend/retailer-app/app/dues.tsx",
+     "frontend/retailer-app/app/index.tsx",
+     "frontend/retailer-app/app/order.tsx",
+     "frontend/retailer-app/app/orders/[id].tsx",
+     "frontend/retailer-app/app/pay.tsx",
+     "frontend/retailer-app/app/returns.tsx",
+     "frontend/retailer-app/app/sign-in.tsx",
+     "frontend/retailer-app/src/strings.ts"
+    ],
+    "order": 19,
+    "notes": "WAITS FOR the architect designs of all five items (contracts, permissions, schema, kit types.ts). permissions.ts is edited by h9 (merged) and h10 (admin rows, uncommitted in 4201823): rebase. Every new route needs a PERMISSIONS row plus the describePermissionMatrix spec. ADR 0006 keeps the credit limit off the retailer app (CREDIT_CHECKERS excludes retailer), so DOS-100's 'credit left' part must respect it; the on-order hold sentence needs no contract change. DOS-102's cross-tenant memberships summary is an auth-service read, with the module boundary and host service set by the design; never switchTenant behind the user's back. DOS-103 adds a retailer write path. Extend backend/libs/database/src/rls.test.ts for any new role-restricted table or policy, and never join retailer_identities from a tenant table (42P17). A new table takes the next _journal.json index plus its FORCE RLS line. The owner setting label uses owner strings.ts, which is why this group waits on lean-manager-order-lifecycle. DOS-104 must not create a second pricing path: priceOrder stays the only engine, with a parity case in pricing.spec.ts. DOS-125: a new kit QR component in types.ts, with web and native renderers on react-native-svg (already in the catalog), parity.test.ts, and a static web hint (links.web.open always reports true). If the design needs a QR encoder dependency, it goes through frontend/pnpm-workspace.yaml, libs/ui package.json and pnpm-lock.yaml; this group owns them and comes after lean-libs-offline-boot and lean-owner-desk. Seed change (DOS-100 template): re-run pnpm db:seed on dos_qa. Walk web, Android, iOS (R2 and pay)."
+   },
+   {
+    "name": "lean-warehouse-rules",
+    "app": "warehouse",
+    "items": [
+     "DOS-045",
+     "DOS-050",
+     "DOS-054"
+    ],
+    "model": "opus",
+    "waitsFor": [
+     "h9-desk",
+     "h13-owner-support",
+     "lean-kit-overlays",
+     "lean-warehouse-pick",
+     "lean-warehouse-stock",
+     "lean-admin-support",
+     "lean-manager-order-lifecycle",
+     "lean-retailer-platform"
+    ],
+    "ownsFiles": [
+     "backend/libs/contracts/src/inventory.ts",
+     "backend/libs/contracts/src/procurement.ts",
+     "backend/libs/contracts/src/tenancy.ts",
+     "backend/libs/contracts/src/warehouse.ts",
+     "backend/libs/core/src/modules/inventory/cycle-counts.service.ts",
+     "backend/libs/core/src/modules/inventory/inventory.service.ts",
+     "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+     "backend/libs/core/src/modules/procurement/grn.service.ts",
+     "backend/libs/core/src/modules/procurement/procurement.spec.ts",
+     "backend/libs/core/src/modules/warehouse/picklists.service.ts",
+     "backend/libs/core/src/modules/warehouse/warehouse.spec.ts",
+     "backend/libs/database/migrations/meta/_journal.json",
+     "backend/libs/database/src/tenant-bootstrap.ts",
+     "frontend/manager-app/app/inbound/gate.tsx",
+     "frontend/owner-app/app/settings/index.tsx",
+     "frontend/owner-app/src/strings.ts",
+     "frontend/warehouse-app/app/index.tsx",
+     "frontend/warehouse-app/app/pack/[orderId].tsx",
+     "frontend/warehouse-app/app/pack/index.tsx",
+     "frontend/warehouse-app/app/pick/[id].tsx",
+     "frontend/warehouse-app/app/stock/counts/[id].tsx",
+     "frontend/warehouse-app/app/stock/reservations.tsx",
+     "frontend/warehouse-app/src/strings.ts"
+    ],
+    "order": 20,
+    "notes": "Three items (size exception): all three need contract decisions and share files with every other warehouse group, so they run last in the warehouse chain. WAITS FOR the architect designs of DOS-045, DOS-050 and DOS-054. h9 (DOS-044/037, merged d521f84) changed contracts inventory.ts/procurement.ts, cycle-counts.service.ts, grn.service.ts and the stock specs: rebase. DOS-045: the warehouse reply must carry no expected figure or variance, while the manager gate still reads expectedQtyPcs. DOS-050: GRN rows for the warehouse carry the supplier name and bill number but never cost (purchase cost stays behind back-office RLS). Verify the reservations orderNo rendering first; new row words go in warehouse strings.ts. DOS-054: contracts warehouse.ts says 'FEFO warns, it never blocks' (design R03), so the shelf-life rule follows the design. The owner sets it in owner settings/index.tsx and owner strings.ts (reworked by h13 DOS-108), and picking obeys it (warehouse.spec.ts). A column or setting migration takes the next free _journal.json index. Walk web and Android."
+   },
+   {
+    "name": "lean-kit-polish",
+    "app": "kit/libs",
+    "items": [
+     "DOS-122",
+     "DOS-069",
+     "DOS-150"
+    ],
+    "model": "sonnet",
+    "waitsFor": [
+     "h12-kit",
+     "lean-sales-entry",
+     "lean-kit-overlays",
+     "lean-retailer-shop",
+     "lean-owner-desk",
+     "lean-warehouse-stock"
+    ],
+    "ownsFiles": [
+     "frontend/libs/ui/src/money.test.ts",
+     "frontend/libs/ui/src/native/feedback.tsx",
+     "frontend/libs/ui/src/native/money.tsx",
+     "frontend/libs/ui/src/native/shell.tsx",
+     "frontend/libs/ui/src/strings.ts",
+     "frontend/libs/ui/src/tokens.ts",
+     "frontend/libs/ui/src/web/feedback.tsx",
+     "frontend/libs/ui/src/web/render.test.tsx",
+     "frontend/libs/ui/src/web/viewport.ts"
+    ],
+    "order": 21,
+    "notes": "P3-only: three kit layout and accessibility-label fixes with no types.ts, contract, logic or money change. Sonnet builder, Opus verifier. Size exception: DOS-158 and DOS-159 moved to lean-kit-overlays (one is a behaviour bug, the other must land with DOS-152). These three cannot join that Opus group without making it wait for the money.tsx and tokens.ts owners. Build on the DOS-164 overlay host (merged 146eed2) and on lean-kit-overlays' Sheet and Button changes. DOS-069: a safe-area inset for the RupeeInput pad Modal. Check on device that the insets context reaches inside an RN Modal. Do not move the pad into the overlay stack; that is the DOS-164 sign-off hazard, which is not in the inventory. DOS-150: an accessibilityLabel on Money's null branch ('not entered', a new kit string), reusing DOS-158's fix for the same Fabric prop-retention class. DOS-122: below 1024 px, stack web Dialog buttons full-width at touch size, keyed on theme.touch because the SSR snapshot is desk. This changes every web app's dialogs at phone width, including the W7 load-out confirm that DOS-121 (lean-warehouse-stock, waited on) touches. There is no native render harness. Prove DOS-069 and DOS-150 with uiautomator dumps and screenshots on Pixel_7_API_36 (-memory 3072) and simctl screenshots on iOS. Prove DOS-122 with render.test.tsx plus a web 390x844 measurement."
+   }
+  ],
+  "architectQueue": [
+   {
+    "id": "DOS-006",
+    "question": "When the owner or manager approves an 'Over credit limit' gate, does it release only this order (today's behaviour, so only the wording and the seed's fake requested limit change)? Or does it raise the shop's credit limit through retailers.setCredit, permanently or until a date, and to what figure?",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-009",
+    "question": "Which business key orders the Orders, Bills and Trips lists (created or submitted time, invoice_date, trip_date)? With which single (key, id) row-value cursor convention and which (tenant_id, date) indexes, given that UUIDv7 id order is wrong for seeded, imported and pre-planned rows? DOS-145's bill register follows the same answer.",
+    "group": "lean-manager-order-lifecycle"
+   },
+   {
+    "id": "DOS-011",
+    "question": "Should receipts.get carry the settled bills (invoice number, amount applied, cash discount) as the same additive SettledInvoice list that CreateReceiptOutput already returns? Or should AllocationSchema gain invoiceNo/dueDate? Keep the DOS-160 replay exposure in mind.",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-033",
+    "question": "Is the manager receipt panel's raw invoice UUID fixed by DOS-011's additive settled-bill fields (the record's preference), rather than by the per-allocation invoices.get read that DOS-004's design refused as N+1?",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-013",
+    "question": "Should PriceListItemSchema gain a variantName resolved through the tenant-catalog variantNames export (a contract change), so the Default price list never falls back to an id slice for items the tenant does not list?",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-014",
+    "question": "Should Orders > Export CSV download the orders list itself, through a new orders register the worker renders (contract + register spec)? Or should it be renamed for the Daily sales register it exports today? And which register and period choice does Reports > Request export offer?",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-016",
+    "question": "Should the owner's headline Outstanding stay as gross open bills with 'on account' shown beside it, or become the net figure equal to Sundry Debtors? Is on-account credit carried as a new output field or inside owner_summary.detail?",
+    "group": "lean-owner-money-approvals"
+   },
+   {
+    "id": "DOS-030",
+    "question": "When the desk reviews a photographed brand-DMS (Too Yumm/FieldAssist) bill, does Book commit it on the spot as a brand_dms_import sales bill against the matched shop (receivable in, no stock, the brand's number)? Or is the photo only a reference until the FieldAssist export is imported?",
+    "group": "lean-manager-order-lifecycle"
+   },
+   {
+    "id": "DOS-045",
+    "question": "Should a cycle-count or GRN line compare against on-hand at count time? And how is expected/variance kept off the warehouse device when expectedPcs and expectedQtyPcs are required fields: optional fields, a role-shaped output, or a separate desk read?",
+    "group": "lean-warehouse-rules"
+   },
+   {
+    "id": "DOS-050",
+    "question": "Which additive fields do the warehouse queue, reservation and GRN rows gain, and on which contracts? Candidates: picked and short pieces or an all-picked flag, the shop on reservations, and the supplier name and bill number without cost.",
+    "group": "lean-warehouse-rules"
+   },
+   {
+    "id": "DOS-054",
+    "question": "Should a distributor set a minimum remaining shelf life (one number for the business, or one per category) below which reservation and picking skip a lot? Is it a hard block a manager can override with a reason, or only a picker warning, and what is the default N?",
+    "group": "lean-warehouse-rules"
+   },
+   {
+    "id": "DOS-066",
+    "question": "When a shop on today's trip is on credit mode 'stop' (or past its credit days), is the driver blocked from handing over already-invoiced goods, only warned, or required to collect first? And does 'strict' differ from 'stop' at the door?",
+    "group": "lean-delivery-collect"
+   },
+   {
+    "id": "DOS-071",
+    "question": "Must a trip expense carry a photo of its bill always, only above an amount, or per a distributor setting like the POD policy (always / credit_only / never)? Today TripPolicySchema holds only podRequired, and the proof on RecordExpenseInput is optional.",
+    "group": "lean-delivery-collect"
+   },
+   {
+    "id": "DOS-078",
+    "question": "When a rep's order asks for more than the godown can promise (including zero-stock items), what happens? It could confirm with a short reservation the office sees on the order, wait for a manager stock approval (a new approval_kind value and migration), or be capped on the rep's phone.",
+    "group": "lean-sales-orders-pricing"
+   },
+   {
+    "id": "DOS-079",
+    "question": "How does compensation cess enter orders (cess_bps/cess_paise columns on sales_order_lines by migration, and cess on the quote and order totals through the single DOS-096 GST path), so that a placed order's total equals its fully packed invoice?",
+    "group": "lean-sales-orders-pricing"
+   },
+   {
+    "id": "DOS-081",
+    "question": "For a shop in 'indicate' (warn) credit mode, is warning the rep on the order screen enough, or must the manager/owner also be told by an approval row or an inbox message? docs/22 §4 draws an approval for every mode, while the code raises one only for strict and stop.",
+    "group": "lean-sales-orders-pricing"
+   },
+   {
+    "id": "DOS-087",
+    "question": "Does '₹15 off per case on 2+' mean ₹15 for every case once two cases are bought (a new per-unit reward rule in the engine, contract and schema)? Or does it mean ₹15 per multiple of two cases (today's rule, so the seeded scheme is renamed)?",
+    "group": "lean-sales-orders-pricing"
+   },
+   {
+    "id": "DOS-090",
+    "question": "When a rep asks for a lower rate on a draft that is still on the phone, is the draft saved to the server first so the request is tied to it (and dies with an abandoned draft)? Or does the request travel unattached and link at submit? And what happens to it if the rep never submits?",
+    "group": "lean-sales-orders-pricing"
+   },
+   {
+    "id": "DOS-100",
+    "question": "When a shop's order is held for credit approval, does the shop get an 'order received, waiting for approval' message, and is it in-app only or a paid WhatsApp template via a new PLATFORM_TEMPLATE_KEYS entry? And may the shop see credit left at all, given ADR 0006 keeps the limit off the retailer app?",
+    "group": "lean-retailer-platform"
+   },
+   {
+    "id": "DOS-102",
+    "question": "Where does a shop that buys from several distributors land after sign-in: one combined home with every distributor's dues and deliveries, the distributor used last, or a chooser? And which module, service and permission row host the cross-tenant memberships summary read?",
+    "group": "lean-retailer-platform"
+   },
+   {
+    "id": "DOS-103",
+    "question": "Which contact does the shop see and tap: the distributor office number, the owner, or its own salesperson (needing a new setting key)? And does 'report a problem / ask for a return' create a message in the office's inbound queue (a retailer write path and RLS) or a return request the crew acts on at the next visit?",
+    "group": "lean-retailer-platform"
+   },
+   {
+    "id": "DOS-104",
+    "question": "How should R7 get the shop's standing rate without a 171-line qty-1 quote (a rate on the catalogue call, or a slim rate read), while priceOrder stays the only pricing engine?",
+    "group": "lean-retailer-platform"
+   },
+   {
+    "id": "DOS-110",
+    "question": "Should a lapsed support ask become a new 'lapsed' SupportGrantStatus value, derived by statusOf() on both services and excluded from openOnly and status=requested? That is the DOS-108 verdict's direction and a contract change. Or should it be derived as the existing 'expired' with decidedAt null, so the wire stays unchanged?",
+    "group": "lean-admin-support"
+   },
+   {
+    "id": "DOS-125",
+    "question": "What is the kit contract for a UPI QR component (a types.ts entry with web and native renderers on react-native-svg, and any QR encoder dependency)? And what is the contract for the web pay hint or copy action, given the platform layer offers only links and share, and links.web.open always reports true?",
+    "group": "lean-retailer-platform"
+   },
+   {
+    "id": "DOS-138",
+    "question": "Once picking has started, may the manager cancel an order (release reservations, show put-back lines, which needs a pick_lines status column, and issue no invoice)? Or does docs/22's 'cancel only up to confirmed' stand, so the desk hides Cancel on picking and packed orders and states the route?",
+    "group": "lean-manager-order-lifecycle"
+   },
+   {
+    "id": "DOS-139",
+    "question": "When a bill is cancelled before dispatch, is its order cancelled with it (goods back, nothing left to bill or load)? Or is it returned to 'confirmed' to be picked, packed and billed again, which collides with pack_confirmations_order_uniq? Decide after the P1 re-bill probe is run.",
+    "group": "lean-manager-order-lifecycle"
+   },
+   {
+    "id": "DOS-046",
+    "question": "When the user presses 'Try it again' on a rejected op, should the device re-enqueue it under a NEW opId and idempotencyKey? The old sync_ops rejection would stay durable per ADR 0007 and the pulled sync_error would be cleared locally, which amends docs/27 §4 ('a retry of the same op reuses both') and the §11 retry(opId) contract. Or does a same-opId retry stay, with the server re-evaluating a known opId whose stored outcome is a rejection? The h3 lane result (DOS-056.json) already calls this a protocol decision.",
+    "group": "lean-libs-offline-boot"
+   }
+  ],
+  "excluded": [
+   {
+    "id": "DOS-137",
+    "reason": "P2 folded into DOS-131, and the parent really covers it. The h2-trips merge b11697e is on main, and W7 load/index.tsx passes tripId at loadSheets.create. The lane's test 'DOS-137: a load sheet built on W7 carries the trip it is built for…' is at frontend/warehouse-app/src/lib/trip-plan.test.ts:39, and delivery.spec.ts covers the unlinked-sheet case (:2340). The lane-results/DOS-131+DOS-137.json verdict is pass. Only the web/Android/iOS platform walk is still owed, in the A.12 regression."
+   },
+   {
+    "id": "DOS-156",
+    "reason": "P2 folded into DOS-056 (architect amendment (c)), and the parent really covers it. The h3-doorstep merge 3d7cb36 is on main: errors.ts isNativeFetchFailure (:100, :168) maps an Expo FetchError to kind 'network'. errors.test.ts:108 and client.test.ts:435-458 carry the named DOS-156 tests. Only the Android manager-app no-connection walk is still owed, in the A.12 regression."
+   }
+  ],
+  "coverage": {
+   "openP2": 64,
+   "openP3": 47,
+   "grouped": 111,
+   "excluded": 2,
+   "problems": [
+    "FIXED, running-lane violation. h11-syncpull (38032df) changed frontend/libs/offline/src/engine.ts (comment block ~:432) and docs/07, but lean-delivery-door owned engine.ts with no wait on h11. engine.ts is removed from that group: DOS-063/149 must refresh through the public useSyncEngine().sync() (react.tsx:144), with no new engine method for local row writes. Rechecked: every file in the h8/h10/h11 diffs, and in the h13 plan plus brief, now sits only in groups that wait for that lane.",
+    "FIXED, running-lane violation. h10-console (4201823) committed a frontend/pnpm-lock.yaml hunk and admin-app package.json, and holds uncommitted permissions.ts, permissions.test.ts, examples.ts, smoke-endpoints.mts and users.tsx. The groups that add dependencies now own pnpm-lock.yaml explicitly and wait for h10 and h13: lean-libs-offline-boot (DOS-068) and lean-owner-desk (DOS-017), and lean-retailer-platform (DOS-125) if the QR design needs an encoder. lean-owner-desk now waits for lean-libs-offline-boot. This replaces the plan's 'disjoint hunks, re-run pnpm install' exception with real ordering, and through lean-manager-billing it also orders the DOS-008/DOS-026 overlap, which was unordered.",
+    "CORRECTED, DOS-017. react-native-maps 1.27.2 and maplibre-gl are already in the frontend catalog (pnpm-workspace.yaml:72-74, :94) and in libs/ui package.json. DOS-017 changes only owner-app package.json and its lockfile importer, not pnpm-workspace.yaml as the plan said.",
+    "FIXED, Sonnet rule. DOS-158 and DOS-159 moved from Sonnet lean-kit-polish to Opus lean-kit-overlays. DOS-159's record says it lands together with DOS-152's footer inset in the same Sheet (lanes.md L19 paired them). DOS-158 is a Fabric accessibility-state bug, not copy or layout. The h12 merge review names both as edits inside SheetPanel/DialogPanel. lean-kit-overlays is now 5 items and owns native/controls.tsx. lean-kit-polish keeps DOS-122, DOS-069 and DOS-150: layout and label-only kit P3s with no types.ts, contract or logic change.",
+    "FIXED, architect rule. DOS-046 was added to architectQueue. docs/27 is binding for @dos/offline, and its §4 says a retry reuses the opId and idempotencyKey, with retry(opId) in §11. Flipping that is a design decision (the h3 lane result calls it a protocol decision), even though the inventory marks needsArchitect false. lean-libs-offline-boot builds DOS-053/055/068/089 first. DOS-033 (decided inside DOS-011's design) and DOS-110 (needs its own lean design per the DOS-108 verdict) stay queued although their records say needsArchitect false.",
+    "FIXED, hidden conflicts: files an item's own note or test plan edits, which the plan had not owned. document-urls.test.ts goes to lean-retailer-shop (DOS-123 extends it); DOS-055's guard becomes a NEW file, frontend/libs/ui/src/root-layout-redirects.test.ts, so the two never share one. engine.test.ts and react.tsx go to lean-sales-rep (DOS-086 needs an engine.test case). seed-demo.test.ts, reporting.spec.ts and owner staff/index.tsx go to lean-owner-desk (the DOS-018 test plan and the DOS-012 sweep). delivery.spec.ts goes to lean-delivery-collect (DOS-071 expense-rule spec). Strings files next to screens the design-gated groups edit: owner and manager strings for lean-sales-orders-pricing, owner and warehouse strings for lean-manager-order-lifecycle, owner strings for lean-retailer-platform, warehouse and owner strings for lean-warehouse-rules. Specs and _journal.json for design-gated schema/rule changes: pricing.spec and billing.spec (DOS-079), warehouse.spec (DOS-138/050/054), pricing.spec, parity.test and rls.test (DOS-104/125/103), reporting.spec and schema/reporting.ts (DOS-014/016). likelyFiles the plan dropped silently from design-gated groups: qty.ts and receivables.ts (DOS-078/081), schema/pricing.ts (DOS-087), docs/22 (DOS-081/087/138/139).",
+    "FIXED, new waits that keep those files serial. lean-sales-orders-pricing waits for lean-admin-support (owner strings). lean-manager-order-lifecycle waits for lean-warehouse-stock (warehouse strings). lean-retailer-platform waits for lean-manager-order-lifecycle (owner strings). lean-delivery-collect waits for lean-backend-platform: DOS-160's replay fix before DOS-066/071's possible additive outputs, which is the plan's own rule. lean-kit-polish waits for lean-warehouse-stock: DOS-121 and DOS-122 overlap on the W7 load-out confirm, which was unordered. Script recheck: all 111 open P2/P3 appear exactly once, there are no cycles, every waitsFor points to an earlier order or a running lane, and no two unordered groups share a file.",
+    "STATED, the plan's silent prunes are now explicit out-of-bounds notes rather than owned files. The plan listed only some of its prunes. Also pruned: DOS-161 kit native/layout.tsx; DOS-082 contracts orders.ts (and no re-pricing at submit, per the DOS-126 verdict); DOS-064 and DOS-134 kit qty.ts/money.tsx; DOS-070 platform location files; DOS-163 and DOS-165 kit controls.tsx; DOS-157 manager load-out.tsx (walk only); DOS-162's callers; DOS-046 sync.service.ts (h11); DOS-012 api-client react/index.tsx; DOS-008 and DOS-015 contracts and receivables.service.ts; DOS-127 rls.test.ts; DOS-119 offline react.tsx; DOS-038 and DOS-010 kit list.tsx; DOS-086 orders.sync.ts; DOS-084 schema retailers.ts (beats are already on the device); DOS-142 orders.module.ts (cancel_reason is already pulled); DOS-092 kit types.ts/feedback.tsx (cancelLabel exists); DOS-093 contracts/reporting.service/errors.ts; DOS-048 errors.ts; DOS-121 contracts warehouse.ts, load-sheets.service.ts and warehouse.spec.ts (app-only; lean-manager-money owns both backend files and runs unordered with lean-warehouse-stock); DOS-140 rls.test.ts and app screens; DOS-072 contracts retailers.ts and the delivery stop screen; DOS-019 rollup.ts; DOS-114 api-client (useQuery already has enabled); DOS-150 delivery collect.tsx; DOS-159 credit-notes.tsx. Re-add any of these if a builder must edit one.",
+    "UNRESOLVED BY DESIGN, semantic overlap not serialized. DOS-085 (lean-sales-entry) changes the kit QtyStepper for every caller: delivery D4 and van sale, manager M20 and credit notes, retailer R7. lean-delivery-door and lean-manager-billing run unordered with it and own no kit file, so whichever merges after lean-sales-entry rebases and re-walks its stepper once (stated in the three groups' notes). lean-retailer-shop already waits.",
+    "SCOPE, DOS-012 sweep. The seven owner files with .then(done, done) split as follows: billing, orders, money and staff (lean-owner-desk); receipts (lean-manager-money with DOS-136, as the h1-money-slice2 review asks); settings (h13 DOS-108); shops (lean-sales-rep, which owns it for DOS-093 and sweeps it only if it takes h13's refusal.tsx). DOS-093's owner half shows '—' rather than adding an owner string key.",
+    "STATE DRIFT since the brief. On main c6f09e7, h9-desk is merged (d521f84) and h12-kit is merged (146eed2), so waits on them are already met. h8-billing is rebased on 146eed2 and integrating. h11-syncpull is verified (38032df) with its merge review running. h13-owner-support has no commits yet: its file list comes from the DOS-108 plan (support.ts, support.test.ts, settings-views.test.ts, settings/index.tsx, ui.tsx→refusal.tsx, strings.ts, package.json, pnpm-lock.yaml) plus the brief (_layout, nav.ts, tenancy support service/spec). Recheck h10 and h13 with git diff before a waiting group starts.",
+    "ORDER. lean-warehouse-pick (1 P2 of 6) stays at 9, ahead of P2-heavy groups, because lean-manager-money (4 of 5 P2) and lean-warehouse-stock wait on its warehouse.spec.ts and pick files, and it can run while h10 and h13 are still building. Otherwise ready groups come before design-gated groups, and the only P3-only group (lean-kit-polish, Sonnet) is last. The first wave that can start now is lean-sales-entry, lean-delivery-door and lean-kit-overlays; lean-manager-billing follows as soon as h8 merges.",
+    "SIZE EXCEPTIONS, each justified in its notes: lean-kit-polish 3 (Sonnet-only items; joining the Opus kit group would make it wait for the money.tsx and tokens.ts owners), lean-manager-billing 4, lean-admin-support 4, lean-warehouse-rules 3.",
+    "GENERATED AND MAIN-SESSION FILES are not listed as owned. backend/*-service/README.md and frontend/*-app/README.md are regenerated with pnpm docs:readme on the merged tree at each integration (STATE merge procedure). New migration SQL and snapshot files take the next index at merge; never hand-renumber. docs/22 is listed for the two design-gated groups that write decision rows in-slice (the DOS-098 precedent), but the render and republish stay with the main session.",
+    "UNRESOLVED, carried from the planner. Sign-off and merge-review findings not in inventory.json still need filing and approval before a lean group can take them: Segments dropping a fourth item (DOS-108 sign-off), S-73..S-97, DOS-080's sign-out never wiping the device store (called P1), DOS-031 R1-R4, the DOS-164 RupeeInput pad Modal hazard, DOS-126's standalone bargains never expiring, and the DOS-116 claims and delivery.sync findings. DOS-139 may be re-rated P1 after its re-bill probe and would then leave lean mode. DOS-017's Android tiles need a founder-supplied Google Maps key. pnpm smoke needs --run-tag until lean-backend-platform (DOS-160) merges. Groups that must re-run pnpm db:seed on dos_qa after merge: lean-retailer-shop, lean-owner-desk, lean-delivery-collect, lean-admin-support, lean-sales-orders-pricing, lean-owner-money-approvals, lean-retailer-platform.",
+    "NOTE. retailer-app and owner-app have no vitest script today; owner-app gains one with h13. Retailer proofs therefore stay as libs/ui and backend specs plus walks. DOS-068 should use @react-native-community/netinfo 12.0.1 (in Expo's bundledNativeModules, and docs/27:145 names NetInfo) rather than expo-network. lanes.md L16-L69 is superseded by this plan."
+   ]
+  }
+ },
+ "draftCoverage": {
+  "openP2": 64,
+  "openP3": 47,
+  "grouped": 111,
+  "excluded": 2,
+  "problems": [
+   "Reference-only likelyFiles were left out of ownsFiles because the record's own note names them as a pattern or an already-correct sibling, not a change. Without this, five groups would queue behind a file none of them edits. Pruned: manager credit-notes.tsx for DOS-085, 101, 134, 163 and 165 (kept for DOS-136, which edits it); warehouse pick/index.tsx for DOS-024; manager app/index.tsx for DOS-035; owner shops/index.tsx and manager load-out.test.ts for DOS-038; manager src/lib/ui.tsx for DOS-012 (Refusal now comes from h13's owner refusal.tsx); manager inbound/documents.tsx for DOS-123; delivery day.tsx for DOS-124; retailer bills/[id].tsx and delivery share/[invoiceId].tsx for DOS-091; manager strings.ts for DOS-142; manager settings.tsx for DOS-053; tenant-catalog/index.ts for DOS-013; warehouse pack/[orderId].tsx for DOS-064; the optional date sweep files for DOS-143 (warehouse pack/index.tsx and index.tsx, sales me/index.tsx, owner reports/incentives.tsx, admin distributors/index.tsx). Re-add any of these if a builder must edit one.",
+   "Added beyond likelyFiles: backend/libs/contracts/src/tenancy.ts for DOS-110 (the DOS-108 verdict says DOS-110 adds 'lapsed' there). Not added: frontend/pnpm-lock.yaml for DOS-017 and DOS-068, and pnpm-workspace.yaml for DOS-017. Both add dependencies, so these files change. They are treated as disjoint hunks (the precedent of DOS-108 amendment (b)) and re-run with pnpm install on rebase; the group notes say so.",
+   "Running-lane ownership rests partly on plans, not diffs. h10-console has only uncommitted admin.ts, platform-admin.spec.ts, admin-app package.json and lib/audit files so far; the rest comes from the DOS-107/109 plans' changes lists. h13-owner-support and h11-syncpull have no changes yet; their lists come from the DOS-108/080 plans plus the task brief. Recheck with git diff before a waiting group starts. The h13 plan still lists owner src/lib/ui.tsx, although amendment (a) moves Refusal to refusal.tsx; groups owning owner ui.tsx wait for h13 either way.",
+   "Size exceptions: lean-kit-overlays (3), lean-manager-billing (4), lean-admin-support (4) and lean-warehouse-rules (3) are below five. Each reason is in its group's notes: a model split, file sequencing, few items for the app, or all items design-gated.",
+   "Order interpretation: 'P2-heavy before P3-only' is read as groups containing any P2 before the one P3-only group, lean-kit-polish. Ready groups come before design-gated groups that share their files, so ready work is never blocked behind a design. waitsFor lists only direct file conflicts with earlier groups and running lanes, plus semantic waits from overlapsWith/dependsOn: DOS-086 on DOS-080 (h11); DOS-012/130/136/138/141/153/155 on DOS-164 (h12); DOS-114/111 on DOS-107/109 (h10); DOS-110/111 on DOS-108 (h13); DOS-066 on DOS-072; DOS-165 on DOS-163; DOS-148 on DOS-141. Every waitsFor points to an earlier order or a running lane, so there are no cycles, and every pair of groups sharing a file has a direct wait (checked by script).",
+   "Seed-changing groups must re-run pnpm db:seed on dos_qa after merging (lanes.md rule 6): lean-retailer-shop (DOS-123, 105), lean-owner-desk (DOS-018), lean-delivery-collect (DOS-067), lean-admin-support (DOS-113), lean-sales-orders-pricing (DOS-087), lean-owner-money-approvals (DOS-006), lean-retailer-platform (DOS-100).",
+   "DOS-160 was meant to land with or before DOS-003, which is already merged, so the smoke --run-tag workaround stays until lean-backend-platform merges. DOS-139 may be re-rated P1 after its re-bill probe and would then leave lean mode. DOS-017's Android map tiles need a founder-supplied Google Maps key.",
+   "Not grouped because they are not in inventory.json: the sign-off and merge-review new findings, which are unapproved and not tested (QA/findings/12 S-73..S-91 class). Examples: <Segments> silently dropping a fourth view on owner screens (DOS-108 sign-off, called P2 'arguably P1'); the claims damaged-line candidates (DOS-116); an offline delivery missing returned_saleable (DOS-116); fulfilmentQueue and loadSheets.list id order (DOS-133); DOS-031 R1-R4 in documents.tsx; the DOS-132 money findings; DOS-080's sign-out never wiping the device store (called P1). They need filing and approval before a lean group can take them.",
+   "lanes.md is stale for the P2/P3 lanes. L08 (DOS-123), L04 (DOS-127), L06 (DOS-151), L09 (DOS-110) and L11 (DOS-124, DOS-154) paired these items with P1s that were built without them. The DOS-164 verdict also says L12/L20's dependencies are outdated. This plan supersedes lanes.md L16-L69."
+  ]
+ }
+}

@@ -281,7 +281,10 @@ remove`, `incentives.statements.approve/reopen` (planned).
   `warehouse.reservations.release`, `warehouse.challans.recordEwb`, `delivery.trips.settle` (planned), `claims.*` writes (planned).
   docs/22 §2 says the accountant is "read + exports". Either an `ACCOUNTANT_READS` narrowing lands in `permissions.ts` before the
   frontend (recommended: keep `receipts.*`, `allocations.*`, `deposit`, `bounce`, `trips.settle`, `creditNotes.*`, exports; drop the
-  rest) or docs/22 is amended to say the accountant may write. Flagged, not decided here.
+  rest) or docs/22 is amended to say the accountant may write. Stock, procurement and inbound review are settled (QA DOS-037):
+  the inventory writes (`locations.upsert`, `stock.adjust/transfer`, `lots.upsert`) are STOCK_KEEPERS, and
+  `inventory.cycleCounts.post`, the `procurement.*` writes and the docint decisions (review, matches, `extractions.run`,
+  `reject`, `approve`) are MANAGEMENT; the accountant reads them. The other items above stay as listed.
 - Accountant deliberately ✗: `warehouse.picklists.*`, `warehouse.packs.confirm`, `loadSheets.confirm/cancel`, `billing.invoices.cancel`,
   `retailers.linkIdentity`, `tenancy.staff.create/setPassword/setStatus`, `procurement.grns.count`. The app hides these.
 
@@ -403,6 +406,7 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
+  Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
   warehouse) — the warehouse app shows expected van stock from balances instead.
@@ -876,12 +880,12 @@ pcsPerCase, code }` — M3/M4 (buy-side pack sizes for the GRN) — `supplier_pa
 
 ### 8.18 inventory (built) — 2 · DONE
 
-- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (BACK_OFFICE; one `cycle_count` ledger row
+- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (owner, manager; one `cycle_count` ledger row
   per non-zero variance, keyed `cycle_count:<countId>:<lotId>`), `list` / `get` (STOCK_VIEWERS);
   `StockBalancesInput.expiringBefore` and `nearExpiryOnly` (60-day window).
 
 - `inventory.cycleCounts.open` / `.count` / `.post` / `.list` — POST/GET `/inventory/cycle-counts` — `{ id, locationId, lotIds? }`
-  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, BACK_OFFICE post) — W8, M16, O15 —
+  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, owner/manager post) — W8, M16, O15 —
   `cycle_counts` / `cycle_count_lines` exist; `stock.adjust` reason `cycle_count` is one lot at a time.
 - field: `StockBalancesInput.expiringBefore: IsoDate` and `nearExpiryOnly` — W8, O15 — the near-expiry list is a client-side
   filter over pages today.
@@ -903,7 +907,8 @@ id, reason }` → `{ item }` — M4 — the `disputed` / `cancelled` statuses in
 
 1. Accountant write scope (§2.3) — **DECIDED and DONE** (docs/22 2026-09-05): the accountant is the money desk
    (`ROLE_GROUPS.MONEY_DESK`: receipts, reversals, deposits, bounces, allocations, write-offs, statements) and reads
-   everything else; no price, scheme, credit limit, approval, catalog write or setting.
+   everything else; no price, scheme, credit limit, approval, catalog write or setting (stock, procurement and
+   inbound-review writes enforced 2026-09-13, QA DOS-037).
 2. Manager's PIN on the warehouse device (§4.3) — **DECIDED and DONE** (docs/22 2026-09-05): the manager app
    approves the load sheet (`loadSheets.approve`), the warehouse phone confirms it (`loadSheets.confirm`); no
    `auth.stepUp`. W7 shows "waiting for the manager" until `approvedBy` is set.

@@ -16,6 +16,7 @@ import type {
   IssueCreditNoteInput,
   IssueCreditNoteOutput,
 } from '@dos/contracts'
+import { isSaleableCreditNoteReason } from '@dos/contracts'
 import {
   financialYear,
   paise,
@@ -112,6 +113,10 @@ export interface RaiseForDeliveryInput {
   restockLocationId?: string | null | undefined
   note?: string | null | undefined
   noteDate?: string | undefined
+  /**
+   * When a line omits `saleable` it follows the reason (`isSaleableCreditNoteReason`): a `return_damaged`
+   * line goes to the damaged bin, and one marked saleable is refused.
+   */
   lines: readonly { id: string; invoiceLineId: string; qtyPcs: number; saleable?: boolean }[]
 }
 
@@ -146,7 +151,7 @@ export class CreditNotesService {
         id: l.id,
         invoiceLineId: l.invoiceLineId,
         qtyPcs: l.qtyPcs,
-        saleable: l.saleable ?? true,
+        saleable: l.saleable,
       })),
     })
     return this.issueInTx(tx, drafted, input.restockLocationId ?? null, null)
@@ -258,7 +263,8 @@ export class CreditNotesService {
   /**
    * A draft note: quantities capped by what the bill still has left to credit, rates capped by the
    * invoice line's own, tax at the line's FROZEN `gst_bps` / `cess_bps` and the invoice's own
-   * intra/inter split. It writes no stock and no journal — those happen at issue.
+   * intra/inter split. It writes no stock and no journal — those happen at issue. A line that omits
+   * `saleable` takes its disposition from the reason, and a damaged return is never saleable (DOS-116).
    */
   private async draft(
     tx: Db,
@@ -274,7 +280,7 @@ export class CreditNotesService {
         id: string
         invoiceLineId: string
         qtyPcs: number
-        saleable: boolean
+        saleable?: boolean | undefined
         ratePaise?: number | undefined
       }[]
     },
@@ -326,6 +332,14 @@ export class CreditNotesService {
           message: `a credit note may not exceed the invoiced rate of ${String(source.ratePaise)} paise`,
           data: { invoiceLineId: source.id, invoicedRatePaise: source.ratePaise },
         })
+      // DOS-116: an omitted flag follows the reason, and a damaged return never goes back on sale — the
+      // credit-note side of the doorstep rule (DOS-058), read from the one list in @dos/contracts.
+      const saleable = line.saleable ?? isSaleableCreditNoteReason(input.reason)
+      if (saleable && !isSaleableCreditNoteReason(input.reason))
+        throw new ORPCError('BAD_REQUEST', {
+          message: `${source.description}: damaged goods go to the damaged bin, not back on sale`,
+          data: { code: 'return_not_saleable', invoiceLineId: source.id, reason: input.reason },
+        })
       // Intra-state halves are each `percentOf(taxable, bps/2)`, so the two are exact and their sum is
       // what the line prints — never `percentOf(taxable, bps)`, which can differ by a paisa.
       const lineTaxable = rate * line.qtyPcs
@@ -344,7 +358,7 @@ export class CreditNotesService {
         creditNoteId: input.id,
         invoiceLineId: source.id,
         qtyPcs: line.qtyPcs,
-        saleable: line.saleable,
+        saleable,
         ratePaise: rate,
         taxablePaise: lineTaxable,
         gstBps: source.gstBps,
