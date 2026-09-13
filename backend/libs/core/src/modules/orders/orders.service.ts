@@ -83,7 +83,12 @@ import {
   type FillRateLineRow,
 } from './fill-rate.js'
 import { loadDetail, type OrderRow } from './orders.mappers.js'
-import { priceOrderLines, type EnteredLine } from './pricing-lines.js'
+import {
+  priceOrderLines,
+  repriceApprovedBargains,
+  type EnteredLine,
+  type RepricedLines,
+} from './pricing-lines.js'
 
 type CreateIn = z.infer<typeof CreateOrderInput>
 type CreateOut = z.infer<typeof CreateOrderOutput>
@@ -330,9 +335,14 @@ export class OrdersService {
    * Confirm. It never decides an approval: while any approval on the order is still pending it is refused with
    * 409 `approval_required` naming each one, because an approval is decided only through
    * `ApprovalsService.decide` (DOS-020). The gate reads the `approvals` rows, not `approval_flags`, and lives
-   * here rather than in `confirm()` so no caller can bring back a silent decision. Then the authoritative stock
-   * check runs (the ATP the rep saw was only a hint). A line the location cannot cover is reserved short and
-   * reported — never refused, because the warehouse decides what to do with a shortage, not the API.
+   * here rather than in `confirm()` so no caller can bring back a silent decision.
+   *
+   * Then the rate the shop was granted is charged (DOS-126): a rate approved after the draft — on Approvals, on
+   * Rate requests, before submit, or by the very decision that confirms — re-prices the line it prices, through the
+   * engine on this transaction, and the header totals follow. The drafted prices plus that rate, and nothing else
+   * (`repriceApprovedBargains`). Then the authoritative stock check runs on those lines (the ATP the rep saw was
+   * only a hint). A line the location cannot cover is reserved short and reported — never refused, because the
+   * warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
     if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
@@ -350,12 +360,33 @@ export class OrdersService {
       })
     }
     const now = new Date()
-    const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
-    const lines = await tx
+    const stored = await tx
       .select()
       .from(salesOrderLines)
       .where(eq(salesOrderLines.orderId, order.id))
       .orderBy(asc(salesOrderLines.lineNo))
+    // Only a line an approved rate now prices lower is written, in place: its id stays, so the reservation below
+    // follows it, and the 0040 touch trigger moves `updated_at`, so the rep's and the shop's devices pull it.
+    const repriced = await this.chargeApprovedRates(tx, order, stored)
+    for (const line of repriced?.changed ?? [])
+      await tx
+        .update(salesOrderLines)
+        .set({
+          listRatePaise: line.listRatePaise,
+          ratePaise: line.ratePaise,
+          discountBps: line.discountBps,
+          discountPaise: line.discountPaise,
+          gstBps: line.gstBps,
+          taxPaise: line.taxPaise,
+          lineTotalPaise: line.lineTotalPaise,
+          freeQtyPcs: line.freeQtyPcs,
+          appliedRules: line.appliedRules,
+          priceLocked: line.priceLocked,
+          updatedAt: now,
+        })
+        .where(eq(salesOrderLines.id, line.id))
+    const lines = repriced?.lines ?? stored
+    const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
     const shortages: Shortage[] = []
     for (const line of lines) {
       // Free pieces of the same variant ship with the order, so they are held too.
@@ -381,13 +412,43 @@ export class OrdersService {
     }
     const [confirmed] = await tx
       .update(salesOrders)
-      .set({ state: to, fulfilFromLocationId: locationId, confirmedAt: now, updatedAt: now })
+      .set({
+        ...(repriced?.totals ?? {}),
+        state: to,
+        fulfilFromLocationId: locationId,
+        confirmedAt: now,
+        updatedAt: now,
+      })
       .where(eq(salesOrders.id, order.id))
       .returning()
+    // the row WITH the charged totals: the transition, `OrderConfirmed` and the reply all carry them
     const next = confirmed ?? order
     await recordTransition(tx, next, order.state, to, 'confirm', deviceId, null)
     await emitOrderEvent(tx, next, 'OrderConfirmed')
     return { item: await this.detail(tx, next), shortages }
+  }
+
+  /**
+   * `repriceApprovedBargains` for confirm, with the engine's refusal said so the desk can act on it (DOS-126): an
+   * approved rate that cannot be priced (the draft's price list switched off, the item's price or GST rate gone)
+   * rolls the decision back with a sentence naming the order, and never confirms at the wrong rate.
+   */
+  private async chargeApprovedRates(
+    tx: Db,
+    order: OrderRow,
+    lines: readonly (typeof salesOrderLines.$inferSelect)[],
+  ): Promise<RepricedLines | null> {
+    try {
+      return await repriceApprovedBargains(tx, this.quotes, { order, lines })
+    } catch (err) {
+      if (err instanceof ORPCError && err.code === 'BAD_REQUEST')
+        throw new ORPCError('BAD_REQUEST', {
+          message: `${order.orderNo ?? order.id} holds an approved rate that cannot be priced today (${err.message}); fix the price list or reject the rate request`,
+          data: { code: 'reprice_failed' },
+          cause: err,
+        })
+      throw err
+    }
   }
 
   async cancel(input: CancelIn): Promise<CancelOut> {
