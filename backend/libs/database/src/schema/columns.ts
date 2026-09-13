@@ -65,6 +65,19 @@ export const CURATOR_ROLES = ['curator', 'system'] as const
  */
 export const STOCK_KEEPER_ROLES = ['owner', 'manager', 'warehouse', 'system'] as const
 /**
+ * Who may bring money into the books: the money desk at the office and the crew at the shop door, plus
+ * the worker — `MONEY_COLLECTORS` in `permissions.ts`, as a database guarantee. Never a salesperson
+ * (docs/17 §D4, never-list #2) and never the godown. DOS-166: the offline upload proved an application
+ * path can skip the matrix, so `receipts` INSERT is narrowed to these roles in the policy itself.
+ */
+export const MONEY_COLLECTOR_ROLES = [
+  'owner',
+  'manager',
+  'accountant',
+  'delivery',
+  'system',
+] as const
+/**
  * The two people who RUN the distributorship, plus the worker. Founder decision 2026-09-05 (docs/22 §8):
  * the accountant is a money desk — office receipts, deposits, bounces, write-offs, reads and exports —
  * and has NO say over prices, schemes, credit limits, approvals or settings. So every table that holds
@@ -223,13 +236,18 @@ export const staffReadPolicy = (name: string) =>
     ),
   })
 
-/** Writes on a tenant table are staff-only (retailer role is read-only there). */
-export const staffWritePolicy = (name: string) => {
+/**
+ * Writes on a tenant table are staff-only (retailer role is read-only there). `insert` narrows the INSERT
+ * policy alone to the roles listed (DOS-166: `receipts` takes new money only from `MONEY_COLLECTOR_ROLES`);
+ * update and delete keep the staff-wide predicate.
+ */
+export const staffWritePolicy = (name: string, options: { insert?: readonly string[] } = {}) => {
   const predicate = sql.raw(
     `tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'`,
   )
+  const insertCheck = options.insert ? tenantAndRoles(options.insert) : predicate
   return [
-    pgPolicy(`${name}_insert`, { for: 'insert', to: appRw, withCheck: predicate }),
+    pgPolicy(`${name}_insert`, { for: 'insert', to: appRw, withCheck: insertCheck }),
     pgPolicy(`${name}_update`, {
       for: 'update',
       to: appRw,

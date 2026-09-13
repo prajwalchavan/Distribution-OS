@@ -132,15 +132,31 @@ export default function NeedsAttention(): React.JSX.Element {
                       entry.error.createdAt,
                     )}`}
                   </Txt>
-                  <Row gap={8} wrap>
-                    <Button
-                      label={t('tray.retry')}
-                      variant="primary"
-                      onPress={() => {
-                        void outbox.retry(entry.error.opId)
-                      }}
-                      testID={`tray-retry-${entry.error.opId}`}
-                    />
+                  <Row gap={8} wrap align="center">
+                    {entry.op === null ? (
+                      /*
+                       * The phone no longer holds this write — a reload emptied the web's memory store
+                       * and the tray was refilled from the office — so "Send it again" would send
+                       * nothing. Say so; "Throw it away" stays (DOS-056).
+                       */
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.secondary}
+                        testID={`tray-not-held-${entry.error.opId}`}
+                      >
+                        {t('tray.notOnPhone')}
+                      </Txt>
+                    ) : (
+                      <Button
+                        label={t('tray.retry')}
+                        variant="primary"
+                        onPress={() => {
+                          void outbox.retry(entry.error.opId)
+                        }}
+                        testID={`tray-retry-${entry.error.opId}`}
+                      />
+                    )}
                     <Button
                       label={t('tray.discard')}
                       variant="destructive"

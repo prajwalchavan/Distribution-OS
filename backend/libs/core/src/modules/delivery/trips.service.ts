@@ -32,11 +32,13 @@ import type {
   TripDetail,
   TripGetInput,
   TripGetOutput,
+  TripPlanningInput,
+  TripPlanningOutput,
   TripsListInput,
   TripsListOutput,
   TripStopInput,
 } from '@dos/contracts'
-import type { StopState as MachineStopState } from '@dos/domain'
+import { businessDate, type StopState as MachineStopState } from '@dos/domain'
 import {
   deliveries,
   deliveryLines,
@@ -59,6 +61,7 @@ import {
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
 import { OrdersService } from '../orders/index.js'
+import { activeMembersWithRole } from '../tenancy/index.js'
 import { LoadSheetsService } from '../warehouse/index.js'
 import {
   assertCrewOrDesk,
@@ -78,11 +81,13 @@ import {
   lockStop,
   lockTrip,
   PIN_HOLDERS,
+  plannedOnOpenTrips,
   STOCK_VIEWERS,
   STOP_TERMINAL,
   stopEventsTo,
   stopTransition,
   stopsOf,
+  TRIP_BOARD,
   TRIP_PLANNERS,
   TRIP_TERMINAL,
   tripEventPayload,
@@ -316,6 +321,98 @@ export class TripsService {
       )
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
+    })
+  }
+
+  /**
+   * The trip planning board (QA DOS-131): the crew on `date` and the packed bills no open trip carries
+   * yet — what the godown (W10) and the desk (M7) plan a trip from, and what W7 narrows a load with.
+   *
+   * The crew is named through tenancy (`activeMembersWithRole`: ids and names, no phone, no username); a
+   * member is busy when it is the driver or the helper of a trip that day that is not settled, settled
+   * with variance or cancelled — `create`'s own rule. The bills are one page of orders' packed queue
+   * (newest first, the cursor an order id), each order's live bill from billing, minus the bills
+   * `plannedOnOpenTrips` finds: the very predicate `insertStop` refuses with 409, so the board never
+   * offers a bill a plan would be refused. One bounded page (≤ 200 orders) plus three batched lookups
+   * per call (docs/20 rule 3); a page may carry fewer bills than `limit` while `nextCursor` is set.
+   */
+  async planning(
+    input: z.infer<typeof TripPlanningInput>,
+  ): Promise<z.infer<typeof TripPlanningOutput>> {
+    requireRole(TRIP_BOARD)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      const date = input.date ?? businessDate().date
+      // The output caps the crew at 200, the same bound as every list here.
+      const members = await activeMembersWithRole(tx, 'delivery', 200)
+      const onDate = await tx
+        .select({
+          id: trips.id,
+          tripNo: trips.tripNo,
+          driverId: trips.driverId,
+          helperId: trips.helperId,
+        })
+        .from(trips)
+        .where(
+          and(
+            eq(trips.tenantId, ctx.tenantId),
+            eq(trips.tripDate, date),
+            sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
+          ),
+        )
+        .orderBy(asc(trips.id))
+      const busy = new Map<string, { onTripId: string; onTripNo: string | null }>()
+      for (const trip of onDate)
+        for (const userId of [trip.driverId, trip.helperId])
+          if (userId !== null && !busy.has(userId))
+            busy.set(userId, { onTripId: trip.id, onTripNo: trip.tripNo })
+      const crew = members.map((member) => ({
+        userId: member.userId,
+        name: member.name,
+        onTripId: busy.get(member.userId)?.onTripId ?? null,
+        onTripNo: busy.get(member.userId)?.onTripNo ?? null,
+      }))
+
+      const rows = await this.orders.fulfilmentQueue(tx, {
+        state: 'packed',
+        beatId: input.beatId,
+        limit: input.limit + 1,
+        cursor: input.cursor,
+      })
+      const page = rows.slice(0, input.limit)
+      const live = await this.billing.liveInvoicesForOrders(
+        tx,
+        page.map((order) => order.orderId),
+      )
+      const planned = await plannedOnOpenTrips(
+        tx,
+        [...live.values()].map((bill) => bill.id),
+      )
+      const bills = page.flatMap((order) => {
+        const bill = live.get(order.orderId)
+        if (bill === undefined || planned.has(bill.id)) return []
+        return [
+          {
+            invoiceId: bill.id,
+            invoiceNo: bill.invoiceNo,
+            invoiceTotalPaise: bill.totalPaise,
+            orderId: order.orderId,
+            orderNo: order.orderNo,
+            retailerId: order.retailerId,
+            retailerName: order.retailerName,
+            beatId: order.beatId,
+            beatName: order.beatName,
+          },
+        ]
+      })
+      const last = page[page.length - 1]
+      return {
+        date,
+        crew,
+        bills,
+        nextCursor: rows.length > input.limit && last ? last.orderId : null,
+      }
     })
   }
 
@@ -986,7 +1083,10 @@ export class TripsService {
   /**
    * A stop and the planned `deliveries` row (outcome null) per bill on it, so `depart`, `fail` and
    * `record` know which documents ride on the van. Each bill must be the shop's own, issued, and not
-   * already planned on another open stop.
+   * already planned on another open stop — asked through `plannedOnOpenTrips`, the one ids-only
+   * predicate the trip planning board shares, whatever the planner's role (QA DOS-131). Two planners of
+   * one bill take turns: each bill of the stop is held by a transaction-scoped advisory lock before the
+   * guard runs, so the second planner's guard sees the first planner's committed row.
    */
   private async insertStop(
     tx: Db,
@@ -998,6 +1098,13 @@ export class TripsService {
     const retailer = await findRetailer(tx, stop.retailerId)
     const invoiceIds = [...new Set(stop.invoiceIds)]
     const refs = await this.billing.invoiceRefs(tx, invoiceIds)
+    // QA DOS-131: one advisory lock per bill, deduped and taken in id order, released at commit or
+    // rollback. Without it two planners pressing at the same instant both passed the guard below. The
+    // planning board never locks.
+    for (const invoiceId of [...invoiceIds].sort())
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${ctx.tenantId}::text || ':' || ${invoiceId}::text, 0))`,
+      )
     const orderIds = new Map<string, string | null>()
     for (const invoiceId of invoiceIds) {
       const ref = refs.get(invoiceId)
@@ -1012,21 +1119,12 @@ export class TripsService {
           message: `invoice ${ref.invoiceNo ?? invoiceId} belongs to another shop than stop ${String(sequence)}`,
         })
       orderIds.set(invoiceId, bill.orderId)
-      const [open] = await tx
-        .select({ id: deliveries.id, tripId: deliveries.tripId })
-        .from(deliveries)
-        .innerJoin(trips, eq(trips.id, deliveries.tripId))
-        .where(
-          and(
-            eq(deliveries.invoiceId, invoiceId),
-            sql`${deliveries.outcome} is null`,
-            sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
-          ),
-        )
-        .limit(1)
-      if (open)
+      // QA DOS-131: under the caller's own RLS a warehouse planner, or another crew, saw no planned row
+      // and this 409 never fired; the shared ids-only predicate runs as `system`.
+      const openTrip = (await plannedOnOpenTrips(tx, [invoiceId])).get(invoiceId)
+      if (openTrip !== undefined)
         throw new ORPCError('CONFLICT', {
-          message: `invoice ${ref.invoiceNo ?? invoiceId} is already planned on trip ${open.tripId}`,
+          message: `invoice ${ref.invoiceNo ?? invoiceId} is already planned on trip ${openTrip}`,
         })
     }
     try {

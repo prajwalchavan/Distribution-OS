@@ -79,8 +79,9 @@ import { SellerBrandingSchema } from './tenancy.js'
  * are SALE values. No shape below carries a purchase cost, a landed cost, a PTD or a margin: a picker
  * must never be able to back a purchase rate out of a screen. Dates are IST (`businessDate()`,
  * `financialYear()`), ids are client-generated UUIDv7, every list caps `limit` at 200 and takes the last
- * row's id as its cursor. `picklists.list` is ordered newest first by server creation time
- * (`created_at desc, id desc`, DOS-023); the other lists are ordered by id descending.
+ * row's id as its cursor. `picklists.list` and `packs.list` are ordered newest first by server creation
+ * time (`created_at desc, id desc`, DOS-023, DOS-133), and their cursor is still the last row's id; the
+ * other lists are ordered by id descending.
  */
 
 const IsoDateSchema = z.iso.date()
@@ -103,6 +104,15 @@ export type PicklistStatus = z.infer<typeof PicklistStatusSchema>
 /** A sheet is built (`draft`), checked out (`confirmed`) or abandoned before anything moved. */
 export const LoadSheetStatusSchema = z.enum(['draft', 'confirmed', 'cancelled'])
 export type LoadSheetStatus = z.infer<typeof LoadSheetStatusSchema>
+
+/**
+ * Where a pack stands on its way to a vehicle. `awaiting_load`: the order is still `packed` and is on no
+ * draft or confirmed load sheet — exactly the orders `loadSheets.create` accepts (DOS-133). So a
+ * dispatched, delivered or cancelled order never appears, and neither does one returned undelivered
+ * while its confirmed sheet still lists it.
+ */
+export const PackListStatusSchema = z.enum(['awaiting_load'])
+export type PackListStatus = z.infer<typeof PackListStatusSchema>
 
 /** The three order states the godown floor ever sees. Derived from `orderMachine`'s enum, not retyped. */
 export const FulfilmentQueueStateSchema = OrderStateSchema.extract([
@@ -166,7 +176,10 @@ export const PicklistSummarySchema = z.object({
   locationId: IdSchema,
   /** IST business date the wave is picked for. */
   pickDate: z.string(),
-  /** Plain labels: delivery is downstream, so warehouse never joins a trip or reads its stops. */
+  /**
+   * Plain labels, stored as the caller named them at create and never validated or attached later:
+   * warehouse is upstream of delivery, so it never joins a trip or reads its stops.
+   */
   tripId: IdSchema.nullable(),
   beatId: IdSchema.nullable(),
   note: z.string().nullable(),
@@ -344,7 +357,11 @@ export const LoadSheetSummarySchema = z.object({
   status: LoadSheetStatusSchema,
   /** IST business date of the load-out. */
   sheetDate: z.string(),
-  /** Plain label; delivery attaches the real trip. Null until it does. */
+  /**
+   * The trip the sheet was built for, as the caller named it at create — W7 always names one (QA DOS-137).
+   * A plain label: the server stores it and never validates it or attaches one later (warehouse is
+   * upstream of delivery). Null for a sheet built without a trip (the seed, a direct API call).
+   */
   tripId: IdSchema.nullable(),
   fromLocationId: IdSchema,
   toLocationId: IdSchema,
@@ -627,6 +644,8 @@ export const PacksListInput = z.object({
   orderId: IdSchema.optional(),
   /** False lists the backlog: packed, not yet billed. */
   invoiced: QueryBoolSchema.optional(),
+  /** `awaiting_load` lists only what `loadSheets.create` accepts: packed, on no draft or confirmed sheet. */
+  status: PackListStatusSchema.optional(),
   ...CursorInput,
 })
 export const PacksListOutput = z.object({

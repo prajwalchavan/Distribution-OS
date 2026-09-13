@@ -3857,6 +3857,7 @@ const OVERRIDES: Record<
     to: DROP,
     mine: DROP,
   }),
+  'delivery.trips.planning': () => ({ date: DROP, beatId: DROP, cursor: DROP }),
   'delivery.trips.get': (ctx) => ({ id: ctx.activeTripId ?? ctx.plannedTripId }),
   'delivery.trips.startLoading': (ctx) => ({
     id: ctx.plannedTripId ?? ctx.activeTripId,

@@ -29,8 +29,17 @@ export class ReceivablesModule implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.register('receipts', (tx, op) => applyReceiptSync(tx, op, this.receivables))
-    this.registry.register('allocations', (tx, op) => applyAllocationSync(tx, op, this.receivables))
+    // Each upload table names the online procedure it stands for, and the uploader asks PERMISSIONS
+    // about that procedure before this handler runs (DOS-166): a receipt from a device is exactly as
+    // closed to a salesperson as `POST /receipts`, and a device allocation is the money desk's alone.
+    this.registry.register('receipts', (tx, op) => applyReceiptSync(tx, op, this.receivables), {
+      standsFor: ['receivables.receipts.create'],
+    })
+    this.registry.register(
+      'allocations',
+      (tx, op) => applyAllocationSync(tx, op, this.receivables),
+      { standsFor: ['receivables.allocations.create'] },
+    )
     // The pull side. `receipts` is the one WRITABLE money table on a device — the crew records it at
     // the door — so it is both registered above and pulled here: the crew's own receipts of the last
     // 90 days come back with their server numbers, and the shop sees the receipt for money it paid.

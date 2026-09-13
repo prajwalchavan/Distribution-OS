@@ -34,7 +34,13 @@ export class DocintModule implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.registry) return
-    this.registry.register('documents', (tx, op) => applyDocumentSync(tx, op, currentTenant()))
-    this.registry.register('document_pages', (tx, op) => applyPageSync(tx, op, currentTenant()))
+    // The online doors a captured document and its pages stand for; the uploader checks PERMISSIONS
+    // for them before either handler runs (DOS-166).
+    this.registry.register('documents', (tx, op) => applyDocumentSync(tx, op, currentTenant()), {
+      standsFor: ['docint.documents.create'],
+    })
+    this.registry.register('document_pages', (tx, op) => applyPageSync(tx, op, currentTenant()), {
+      standsFor: ['docint.documents.addPage'],
+    })
   }
 }

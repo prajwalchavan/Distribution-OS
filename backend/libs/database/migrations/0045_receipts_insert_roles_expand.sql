@@ -1,0 +1,1 @@
+ALTER POLICY "receipts_write_insert" ON "receipts" TO app_rw WITH CHECK (tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'accountant', 'delivery', 'system'));

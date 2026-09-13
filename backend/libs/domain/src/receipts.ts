@@ -6,7 +6,9 @@
  *
  * `mode` and `status` are plain strings because this library cannot import the contracts, and because a
  * row written before `ReceiptModeSchema` narrowed (a legacy `credit_note` mode) still reaches a screen.
- * Nothing here reads `tripId`: the server's deposit does not either.
+ * Nothing here reads `tripId`: whether a trip's money has been handed over is a server fact, not a rule a
+ * screen can compute (DOS-132) — `receipts.get` answers `withCrew`, `receipts.list` takes `withCrew=false`,
+ * and `receipts.deposit` refuses a receipt from a trip that is not settled with 409 `trip_cash_not_settled`.
  */
 
 /** Cash and cheques are the only money a desk carries to the bank; UPI and bank transfers are already there. */

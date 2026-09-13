@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { ORPCError } from '@orpc/server'
-import { permissionFor, type Quote } from '@dos/contracts'
+import { permissionFor, SYNC_REJECTION_CODES, type Quote } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
@@ -33,9 +33,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
-import { SyncModule } from '../sync/index.js'
+import { SyncModule, SyncRejection } from '../sync/index.js'
 import { OrdersModule, OrdersService } from './index.js'
 import { ORDER_PLACERS } from './orders.internals.js'
+import { requirePlacer } from './orders.sync.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -2063,7 +2064,8 @@ describeDb('orders (DATABASE_URL)', () => {
   // DOS-115: an order is placed, re-lined, repeated, submitted and cancelled by the owner, the manager, the rep
   // and the shop (ORDER_PLACERS). The godown and the crew take no order — the crew sells from the van through
   // `delivery.vanSales.create` — so the gate refuses them the five procedures, the handler refuses them again in
-  // process, and the device-upload doors answer them 2xx `forbidden`. Both still read orders. Last in the file:
+  // process, the upload door answers them 2xx `role_not_allowed` (DOS-166) before any handler, and the handlers'
+  // `requirePlacer` stays behind it as defence in depth (`forbidden`). Both still read orders. Last in the file:
   // its own opening stock cannot move an earlier test's reservation or shortage arithmetic.
 
   describe('DOS-115 the godown and the crew take no order', () => {
@@ -2325,6 +2327,8 @@ describeDb('orders (DATABASE_URL)', () => {
           ],
         })
         expect(res.status, actor.role).toBe(200)
+        // The upload door (DOS-166, `SyncRegistry.mayUploadTable`) refuses a non-placer before the savepoint,
+        // so over upload the handlers' `requirePlacer` is never reached; it is pinned directly below.
         expect(
           {
             accepted: res.body.accepted,
@@ -2334,8 +2338,8 @@ describeDb('orders (DATABASE_URL)', () => {
         ).toEqual({
           accepted: 0,
           rejected: [
-            [`dos115-so-${tag}`, 'forbidden'],
-            [`dos115-sol-${tag}`, 'forbidden'],
+            [`dos115-so-${tag}`, SYNC_REJECTION_CODES.roleNotAllowed],
+            [`dos115-sol-${tag}`, SYNC_REJECTION_CODES.roleNotAllowed],
           ],
         })
       }
@@ -2357,9 +2361,28 @@ describeDb('orders (DATABASE_URL)', () => {
       ).rows as { device_id: string; table_name: string; code: string }[]
       expect(errors.map((e) => `${e.device_id} ${e.table_name} ${e.code}`).sort()).toEqual(
         trays
-          .flatMap((t) => [`${t} sales_order_lines forbidden`, `${t} sales_orders forbidden`])
+          .flatMap((t) => [
+            `${t} sales_order_lines ${SYNC_REJECTION_CODES.roleNotAllowed}`,
+            `${t} sales_orders ${SYNC_REJECTION_CODES.roleNotAllowed}`,
+          ])
           .sort(),
       )
+
+      // Defence in depth: the handlers' own rule still refuses the godown `forbidden` and lets a rep through.
+      const storeCtx: TenantContext = { tenantId, actorId: storeId, actorRole: 'warehouse' }
+      const thrown = (() => {
+        try {
+          tenantStorage.run(storeCtx, () => requirePlacer())
+          return null
+        } catch (error: unknown) {
+          return error
+        }
+      })()
+      expect(thrown).toBeInstanceOf(SyncRejection)
+      expect(thrown).toMatchObject({ code: 'forbidden' })
+      expect(() =>
+        tenantStorage.run({ ...storeCtx, actorRole: 'salesperson' }, () => requirePlacer()),
+      ).not.toThrow()
     })
 
     it('DOS-115: the godown and the crew still read an order, a rep still cancels its own draft, and ORDER_PLACERS equals the matrix plus system', async () => {

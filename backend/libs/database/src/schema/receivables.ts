@@ -18,6 +18,7 @@ import {
   bps,
   id,
   invoiceScopedReadPolicy,
+  MONEY_COLLECTOR_ROLES,
   paise,
   roleInsertPolicy,
   roleReadPolicy,
@@ -228,7 +229,10 @@ export const receipts = pgTable(
     // Nonzero, not positive: a reversal and a bounce are the same row shape with a negative amount.
     check('receipts_amount_nonzero', sql`amount_paise <> 0`),
     tenantOrOwnRetailerPolicy('receipts_read', 'retailer_id'),
-    ...staffWritePolicy('receipts_write'),
+    // DOS-166: only the money collectors (and the worker) INSERT a receipt — never a salesperson or the
+    // godown, whatever application path they reach it by. Reads are untouched (the receipt-number self-heal
+    // reads the register under the actor's own read policy); updates and deletes stay staff-wide.
+    ...staffWritePolicy('receipts_write', { insert: MONEY_COLLECTOR_ROLES }),
   ],
 ).enableRLS()
 

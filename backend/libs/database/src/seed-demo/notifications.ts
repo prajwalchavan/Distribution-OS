@@ -158,6 +158,32 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplate[] = [
     body: 'Reminder: {{overdueRupees}} overdue since {{oldestDueDate}}. Please pay on the next visit or by UPI. {{distributorName}}',
     variables: ['overdueRupees', 'oldestDueDate'],
   },
+  // The statement of account (DOS-007): with the pay link for today's dues, and the same statement when
+  // there is nothing to link to (no dues, no UPI id, or no link asked for) — never an empty parameter.
+  {
+    key: 'statement',
+    channel: 'whatsapp',
+    body: 'Your statement {{fromDate}} to {{toDate}}: opening {{openingRupees}}, closing balance {{closingRupees}}, overdue {{overdueRupees}}. Pay by UPI: {{upiLink}} — {{distributorName}}',
+    variables: ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees', 'upiLink'],
+  },
+  {
+    key: 'statement',
+    channel: 'sms',
+    body: 'Statement {{fromDate}} to {{toDate}}: balance {{closingRupees}}, overdue {{overdueRupees}}. UPI: {{upiLink}} {{distributorName}}',
+    variables: ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees', 'upiLink'],
+  },
+  {
+    key: 'statement_no_upi',
+    channel: 'whatsapp',
+    body: 'Your statement {{fromDate}} to {{toDate}}: opening {{openingRupees}}, closing balance {{closingRupees}}, overdue {{overdueRupees}}. — {{distributorName}}',
+    variables: ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees'],
+  },
+  {
+    key: 'statement_no_upi',
+    channel: 'sms',
+    body: 'Statement {{fromDate}} to {{toDate}}: balance {{closingRupees}}, overdue {{overdueRupees}}. {{distributorName}}',
+    variables: ['fromDate', 'toDate', 'openingRupees', 'closingRupees', 'overdueRupees'],
+  },
   {
     key: 'delivery_today',
     channel: 'whatsapp',
