@@ -8,6 +8,7 @@ import type {
   DecideApprovalInput,
   DecideApprovalOutput,
 } from '@dos/contracts'
+import { orderMachine } from '@dos/domain'
 import { approvals, salesOrders, withTenant, type Db } from '@dos/db'
 import {
   BACK_OFFICE,
@@ -110,6 +111,29 @@ export class ApprovalsService {
             message: `approval ${approval.id} was already ${approval.status}`,
           })
         const now = new Date()
+
+        // The order this gate waits on may already be terminal — the shop cancelled it, or another gate on the
+        // same order was rejected first — before this decision lands (DOS-127). `cancelInTx`/`confirmInTx` would
+        // answer 409 for a move `orderMachine` no longer allows; a stale gate would then be undecidable forever.
+        // Expire it instead, exactly as the order's own cancel would have, and leave the order as it is.
+        const order = approval.orderId ? await this.orders.lockOrder(tx, approval.orderId) : null
+        if (order && orderMachine.isTerminal(order.state)) {
+          const [expired] = await tx
+            .update(approvals)
+            .set({
+              status: 'expired',
+              decisionNote: input.note ?? null,
+              decidedAt: now,
+              updatedAt: now,
+            })
+            .where(eq(approvals.id, approval.id))
+            .returning()
+          return {
+            item: toApproval(expired ?? approval),
+            order: await this.orders.detail(tx, order),
+          }
+        }
+
         const [decided] = await tx
           .update(approvals)
           .set({
@@ -136,9 +160,8 @@ export class ApprovalsService {
             { ifStillRequested: true },
           )
         const item = toApproval(decided ?? approval)
-        if (!approval.orderId) return { item, order: null }
+        if (!approval.orderId || !order) return { item, order: null }
 
-        const order = await this.orders.lockOrder(tx, approval.orderId)
         if (input.decision === 'reject') {
           const cancelled = await this.orders.cancelInTx(
             tx,

@@ -479,10 +479,15 @@ export class OrdersService {
       .from(salesOrderLines)
       .where(eq(salesOrderLines.orderId, order.id))
     for (const line of lines) await this.inventory.releaseReservation(tx, line.id)
-    await tx
-      .update(approvals)
-      .set({ status: 'expired', decisionNote: reason, decidedAt: now, updatedAt: now })
-      .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending')))
+    // `approvals_read` hides the queue from the retailer role (owner/manager decide it, never the shop), so a
+    // shop's own cancel — a legal write under `approvals_update` — still needs `system` visibility to find the
+    // rows it must expire (DOS-127); without it the UPDATE matches nothing and the gate is stuck pending forever.
+    await asSystem(tx, () =>
+      tx
+        .update(approvals)
+        .set({ status: 'expired', decisionNote: reason, decidedAt: now, updatedAt: now })
+        .where(and(eq(approvals.orderId, order.id), eq(approvals.status, 'pending'))),
+    )
     const [cancelled] = await tx
       .update(salesOrders)
       .set({ state: to, cancelledAt: now, cancelReason: reason, updatedAt: now })

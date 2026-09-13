@@ -1793,6 +1793,102 @@ describeDb('orders (DATABASE_URL)', () => {
   })
 
   // -----------------------------------------------------------------------------------------------------
+  // DOS-127: a shop's own cancel must expire the approvals waiting on it exactly as a rep's cancel does, and
+  // a decision that arrives after the order went terminal by some other path must not answer 409 forever.
+
+  it('DOS-127: a shop cancelling its own held order expires the bargain gate waiting on it, and it leaves the pending queue', async () => {
+    const orderId = uuidv7()
+    const bargainId = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `dos127-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    expect(drafted.status).toBe(200)
+
+    const asked = await call<{ item: { status: string } }>(app, shop, 'POST', '/pricing/bargains', {
+      idempotencyKey: `dos127-ask-${run}`,
+      id: bargainId,
+      retailerId: retailerA,
+      variantId: variantA,
+      askedRatePaise: 900,
+      qtyPcs: 12,
+      orderId,
+    })
+    expect(asked.status).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+
+    const submitted = await call<{ item: Detail }>(app, shop, 'POST', `/orders/${orderId}/submit`, {
+      idempotencyKey: `dos127-submit-${run}`,
+    })
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['bargain'])
+
+    const cancelled = await call<{ item: Detail }>(app, shop, 'POST', `/orders/${orderId}/cancel`, {
+      idempotencyKey: `dos127-cancel-${run}`,
+      reason: 'ordered by mistake',
+    })
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // `approvals_read` hides the queue from the retailer role, so the shop's own cancel used to leave the gate
+    // 'pending' forever — the owner's queue must not still list it, and the row itself must read 'expired'.
+    const queue = await call<{ items: Gate[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      orderId,
+    })
+    expect(queue.status).toBe(200)
+    expect(queue.body.items).toEqual([])
+
+    const [row] = await asOwner((tx) =>
+      tx.select({ status: approvals.status }).from(approvals).where(eq(approvals.orderId, orderId)),
+    )
+    expect(row?.status).toBe('expired')
+  })
+
+  it('DOS-127: deciding a pending gate whose order is already cancelled expires it instead of answering 409', async () => {
+    const orderId = uuidv7()
+    const approvalId = uuidv7()
+    // simulates a gate left behind by some other path (a stale dos_qa row, or a race): the order is already
+    // terminal, so `confirmInTx`/`cancelInTx` would refuse the move `orderMachine` no longer allows.
+    await db.insert(salesOrders).values({
+      id: orderId,
+      tenantId,
+      retailerId: retailerA,
+      state: 'cancelled',
+      source: 'salesperson',
+      createdBy: repId,
+      salespersonId: repId,
+      paymentTerms: 'ON',
+      approvalFlags: ['bargain'],
+      cancelledAt: new Date(),
+      cancelReason: 'test setup: cancelled by another path',
+    })
+    await db.insert(approvals).values({
+      id: approvalId,
+      tenantId,
+      kind: 'bargain',
+      orderId,
+      entityType: 'sales_order',
+      entityId: orderId,
+      requestedBy: repId,
+      status: 'pending',
+      payload: {},
+    })
+
+    const decided = await call<Decided>(app, owner, 'POST', `/approvals/${approvalId}/decide`, {
+      idempotencyKey: `dos127-stale-decide-${run}`,
+      decision: 'approve',
+    })
+    expect(decided.status).toBe(200)
+    expect(decided.body.item.status).toBe('expired')
+    expect(decided.body.order).toMatchObject({ state: 'cancelled' })
+  })
+
+  // -----------------------------------------------------------------------------------------------------
   // DOS-003: an order line names its item the way the bill line does — the tenant's alias first, the global
   // variant name otherwise — read when the order is fetched, so an item delisted after ordering keeps its name.
   // Its own variants and listings, and last in the file, so no other test sees a listing switched off.
