@@ -251,3 +251,9 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
 - NOT TESTED: the delivery, sales and warehouse app offline-sync walks. They run in the A.12 regression.
 
 **h9-desk verified** (run `wf_ac1e794b-9d1`): DOS-044 `8798c18`, DOS-037 `d59c8fe`, DOS-031 `dd722a5`. Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. The Fable merge review is running.
+
+**h12-kit and h8-billing verified** (run `wf_1bfa433f-83b`):
+- DOS-164 `de8f6bd`: native overlays now go through a JS overlay stack; the web renderer is untouched.
+- DOS-116 `1ea7cfe`: damaged desk returns go to the damaged bin, and saleable:true is refused.
+
+Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. Fable merge reviews are running (`wf_5363c388-c3f`). Lean-mode grouping of every open P2 and P3 has started (`wf_c2b9844d-877`).
