@@ -324,9 +324,21 @@ export const QuotedLineSchema = z.object({
     }),
   ),
   appliedRules: z.array(AppliedRuleSchema),
+  /** Before GST. */
   lineNetPaise: PaiseSchema,
+  /** GST rate of the item's HSN on `pricingDate`: the rate the order stores on this line. */
+  gstBps: BpsSchema,
+  /** GST on `lineNetPaise` at `gstBps`. Cess is not included (DOS-079). */
+  taxPaise: PaiseSchema,
+  /** `lineNetPaise + taxPaise`: the line as the placed order carries it. */
+  lineTotalPaise: PaiseSchema,
 })
 export type QuotedLine = z.infer<typeof QuotedLineSchema>
+/**
+ * GST is part of the quote (DOS-096): each line's tax at its HSN rate dated to `pricingDate`, and a payable
+ * total rounded to the rupee — the same figures the order stores when it is written from this quote. An item
+ * whose HSN has no rate on that date is a 400 naming the HSN codes (`data.hsnCodes`), never a silent 0%.
+ */
 export const QuoteOutput = z.object({
   retailerId: IdSchema,
   pricingDate: IsoDateSchema,
@@ -339,7 +351,14 @@ export const QuoteOutput = z.object({
     grossPaise: PaiseSchema,
     discountPaise: PaiseSchema,
     bargainPaise: PaiseSchema,
+    /** Before GST. */
     netPaise: PaiseSchema,
+    /** Sum of the lines' `taxPaise`. */
+    taxPaise: PaiseSchema,
+    /** Signed residue of rounding `netPaise + taxPaise` to the rupee. */
+    roundOffPaise: PaiseSchema,
+    /** What the shop pays: `netPaise + taxPaise + roundOffPaise`, a whole number of rupees. */
+    totalPaise: PaiseSchema,
   }),
 })
 export type Quote = z.infer<typeof QuoteOutput>

@@ -11,10 +11,12 @@ import {
 
 /**
  * Inventory (ADR 0003): append-only stock ledger in pieces, derived balances, lots carry batch/MRP/expiry.
- * Nothing here carries cost. `stock.sellable` (ATP = on_hand - reserved) is the ONLY stock surface reps and
- * retailers see; per-lot balances, adjustments, transfers and the ledger are for the people who keep the stock.
+ * Nothing here carries cost. Reps and retailers see two stock reads and nothing else: `stock.availability`
+ * (one ATP total per item at the godown orders reserve from — the order screens' stock hint) and
+ * `stock.sellable` (ATP = on_hand - reserved, per lot per location); per-lot balances, adjustments, transfers
+ * and the ledger are for the people who keep the stock.
  *
- * WHICH SERVICES MOUNT `inventory`: all six (`stock.sellable` is the shop's ATP hint). A cycle count
+ * WHICH SERVICES MOUNT `inventory`: all six (`stock.availability` is the shop's and the rep's ATP hint). A cycle count
  * (`cycleCounts.*`, docs/23 §8.18) is the godown's paperwork: the stock keepers open and count it, the
  * desk posts the differences as `cycle_count` ledger rows — one lot at a time through `stock.adjust`
  * was the only way before.
@@ -125,6 +127,28 @@ export const SellableStockInput = z.object({
 })
 export const SellableStockOutput = z.object({
   items: z.array(SellableStockRowSchema),
+  nextCursor: z.string().nullable(),
+})
+
+/**
+ * One item's available-to-promise at the godown orders reserve from (the first active warehouse by id): the
+ * order screens' stock hint (DOS-074, DOS-097). Pieces only — no lot, batch, MRP, expiry, location,
+ * on-hand/reserved split or cost. An item with nothing left to promise there has no row.
+ */
+export const StockAvailabilityRowSchema = z.object({
+  variantId: IdSchema,
+  available: PiecesSchema,
+})
+export type StockAvailabilityRow = z.infer<typeof StockAvailabilityRowSchema>
+
+export const StockAvailabilityInput = z.object({
+  variantId: IdSchema.optional(),
+  limit: QueryIntSchema.min(1).max(500).default(500),
+  /** `variantId` of the last row. */
+  cursor: IdSchema.optional(),
+})
+export const StockAvailabilityOutput = z.object({
+  items: z.array(StockAvailabilityRowSchema),
   nextCursor: z.string().nullable(),
 })
 
@@ -338,10 +362,19 @@ export const inventoryContract = {
       .route({
         method: 'GET',
         path: '/inventory/sellable',
-        summary: 'Available-to-promise stock (the only stock surface for reps and retailers)',
+        summary: 'Available-to-promise stock per lot per location',
       })
       .input(SellableStockInput)
       .output(SellableStockOutput),
+    availability: oc
+      .route({
+        method: 'GET',
+        path: '/inventory/availability',
+        summary:
+          "Available-to-promise per item at the godown orders reserve from (the order screens' stock hint)",
+      })
+      .input(StockAvailabilityInput)
+      .output(StockAvailabilityOutput),
     balances: oc
       .route({
         method: 'GET',
