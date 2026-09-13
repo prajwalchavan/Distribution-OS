@@ -160,6 +160,8 @@ export const strings = {
   's3.schemeTotal': 'Schemes {amount}',
   's3.schemeFooter': 'Schemes on this order −{amount}',
   's3.summary': 'Items {lines} · {qty}',
+  /* DOS-161: the phone footer's one line — the desk stack's "Items · qty · money · before GST" said as one sentence. */
+  's3.summaryCompact': 'Items {lines} · {amount} before GST',
   's3.beforeGst': 'before GST',
   's3.place': 'Place order',
   's3.placed': 'Order placed',

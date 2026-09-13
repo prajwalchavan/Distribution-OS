@@ -87,3 +87,39 @@ describe('S3 order entry: SuggestionRow keeps the name column wide below desk wi
     expect(code).toMatch(/!phone[\s\S]{0,80}<StatusChip/)
   })
 })
+
+/**
+ * DOS-161 (iOS, 267-pt scroll window): the native `Screen` pins its header (context, title, chips)
+ * and `bottomBar` around the `ScrollView` (kit `native/layout.tsx`, out of bounds here). With that
+ * fixed, the app-level fix is to shrink what is pinned: off desk the header carries only the shop
+ * name and the title (the status chips move into the scrolling body) and the footer becomes a
+ * single row instead of a 3-line "Items · money · before GST" stack.
+ */
+describe('S3 order entry: the phone footer is one compact row and header chips scroll (DOS-161)', () => {
+  it('keeps the desk footer\'s 3-line stack but gives the phone one compact row, decided before "before GST" is reached', async () => {
+    const code = withoutComments(await readScreen())
+
+    const bottomBarStart = code.indexOf('bottomBar={')
+    expect(bottomBarStart, 'Screen has no bottomBar prop').toBeGreaterThan(-1)
+    const beforeGstAt = code.indexOf("t('s3.beforeGst')", bottomBarStart)
+    expect(beforeGstAt, 's3.beforeGst is no longer rendered in the bottom bar').toBeGreaterThan(-1)
+    const bottomBarBlock = code.slice(bottomBarStart, beforeGstAt)
+
+    // The phone/desk split must be decided before the 3-line desk stack (with "before GST") is reached.
+    expect(bottomBarBlock).toMatch(/phone\s*\?/)
+    expect(bottomBarBlock).toContain("t('s3.summaryCompact'")
+  })
+
+  it('moves the header status chips into the scroll content off desk, instead of the pinned header', async () => {
+    const code = withoutComments(await readScreen())
+
+    const chipsAt = code.indexOf('chips={')
+    expect(chipsAt, 'Screen has no chips prop').toBeGreaterThan(-1)
+    expect(code.slice(chipsAt, chipsAt + 40)).toMatch(/chips=\{phone \? undefined/)
+
+    // The same chip row is declared once and used twice: the (now conditional) header prop, and
+    // again inside the scrolling children — never duplicated markup.
+    const occurrences = code.split('orderChips').length - 1
+    expect(occurrences).toBeGreaterThanOrEqual(3)
+  })
+})

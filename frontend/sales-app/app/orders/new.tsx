@@ -149,6 +149,15 @@ export default function OrderEntry(): React.JSX.Element {
 
   const enqueueOrder = useEnqueueOrder()
   const engine = useSyncEngine()
+  /*
+   * DOS-161: the native Screen pins its header and bottomBar around the ScrollView, so on an iPhone
+   * the header (context, title, chips) and a 3-line footer between them left only a 267-pt window —
+   * about one catalog row — and the line being edited slid under the footer. `native/layout.tsx` is
+   * out of bounds, so the fix shrinks what is pinned: off desk the header keeps only the shop name
+   * and the title (the status chips move down into the scrolling body) and the footer becomes one
+   * compact row instead of "Items · money · before GST".
+   */
+  const phone = useViewport().kind !== 'desk'
 
   const place = useMutation(
     async (_input: null, meta) => {
@@ -228,80 +237,105 @@ export default function OrderEntry(): React.JSX.Element {
   const netPaise = quote.result?.totals.netPaise ?? 0
   const discountPaise = quote.result?.totals.discountPaise ?? 0
 
+  /** The header's status row (DOS-161): pinned above the scroll at desk width, scrolled with the body off it. */
+  const orderChips = (
+    <Row gap={2} wrap>
+      <StatusChip
+        label={t('s3.linesCount', { count: draft.lines.length })}
+        family="neutral"
+        figure
+      />
+      {discountPaise > 0 ? (
+        <StatusChip
+          label={t('s3.schemeTotal', { amount: formatINR(paise(discountPaise)) })}
+          family="clay"
+          figure
+        />
+      ) : null}
+      {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
+    </Row>
+  )
+
+  const placeButton = (
+    <Button
+      testID="place-order"
+      variant="primary"
+      /*
+       * The verb is the truth about what this tap does, and it changes with the radio: with
+       * signal it PLACES the order (numbered, credit-checked); without one it saves it on the
+       * phone and nothing has reached the office. `successLabel` is deliberately not used —
+       * the kit renders it in place of the label from the first frame, so a button that
+       * declares one reads "Order placed" before anybody has tapped it.
+       */
+      label={
+        placed !== null
+          ? local.online
+            ? t('s3.placed')
+            : t('s3.queued')
+          : local.online
+            ? t('s3.place')
+            : t('s3.queue')
+      }
+      disabled={draft.lines.length === 0 || placed !== null}
+      disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
+      loading={place.status === 'pending'}
+      onPress={() => {
+        place.mutate(null)
+      }}
+    />
+  )
+
   return (
     <Screen
       title={t('s3.title')}
       context={shop.name}
-      chips={
-        <Row gap={2} wrap>
-          <StatusChip
-            label={t('s3.linesCount', { count: draft.lines.length })}
-            family="neutral"
-            figure
-          />
-          {discountPaise > 0 ? (
-            <StatusChip
-              label={t('s3.schemeTotal', { amount: formatINR(paise(discountPaise)) })}
-              family="clay"
-              figure
-            />
-          ) : null}
-          {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
-        </Row>
-      }
+      chips={phone ? undefined : orderChips}
       bottomBar={
-        <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
-          <Stack gap={1}>
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('s3.summary', {
+        phone ? (
+          /*
+           * DOS-161: one row, not the desk's 3-line stack — the fixed header and footer around the
+           * native ScrollView already cost 267 pt on an iPhone with the old footer, one catalog row.
+           * The "before GST" caution (see the desk branch) still applies; it is said inline here.
+           */
+          <Row gap={3} justify="between" align="center" padX={4} padY={2}>
+            <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
+              {t('s3.summaryCompact', {
                 lines: draft.lines.length,
-                qty: formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)),
+                amount: formatINR(paise(netPaise)),
               })}
             </Txt>
-            <Money value={netPaise} size="moneyL" />
-            {/*
-              BEFORE GST, AND IT SAYS SO.
+            {placeButton}
+          </Row>
+        ) : (
+          <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
+            <Stack gap={1}>
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('s3.summary', {
+                  lines: draft.lines.length,
+                  qty: formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)),
+                })}
+              </Txt>
+              <Money value={netPaise} size="moneyL" />
+              {/*
+                BEFORE GST, AND IT SAYS SO.
 
-              `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
-              SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
-              HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
-              compute the tax. Printing the net as if it were the total is what a rep would read out
-              across the counter, and it would be ₹2,285 short of the bill.
-            */}
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('s3.beforeGst')}
-            </Txt>
-          </Stack>
-          <Button
-            testID="place-order"
-            variant="primary"
-            /*
-             * The verb is the truth about what this tap does, and it changes with the radio: with
-             * signal it PLACES the order (numbered, credit-checked); without one it saves it on the
-             * phone and nothing has reached the office. `successLabel` is deliberately not used —
-             * the kit renders it in place of the label from the first frame, so a button that
-             * declares one reads "Order placed" before anybody has tapped it.
-             */
-            label={
-              placed !== null
-                ? local.online
-                  ? t('s3.placed')
-                  : t('s3.queued')
-                : local.online
-                  ? t('s3.place')
-                  : t('s3.queue')
-            }
-            disabled={draft.lines.length === 0 || placed !== null}
-            disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
-            loading={place.status === 'pending'}
-            onPress={() => {
-              place.mutate(null)
-            }}
-          />
-        </Row>
+                `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
+                SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
+                HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
+                compute the tax. Printing the net as if it were the total is what a rep would read out
+                across the counter, and it would be ₹2,285 short of the bill.
+              */}
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('s3.beforeGst')}
+              </Txt>
+            </Stack>
+            {placeButton}
+          </Row>
+        )
       }
     >
       <Stack gap={5}>
+        {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
             title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
