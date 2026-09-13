@@ -994,3 +994,26 @@ Suggested fix: In frontend/libs/ui/src/native/feedback.tsx Sheet, avoid the keyb
 
 Found by: batch 1 regression, Android manager-app pass.
 
+### DOS-160 — An idempotent replay is re-validated against the newer contract, so any additive output field answers 500 for 24 hours after a deploy
+Category: tech-debt | Priority: P2 | Role: every app (any client that retries a mutation after a lost reply) | Platform: Backend platform (idempotency + oRPC output validation)
+
+```
+User: any role retrying a mutation with the same idempotencyKey and payload after a lost reply
+Platform: backend/libs/core/src/platform/idempotency.ts + oRPC validateOutput
+Environment: found by the DOS-003 plan reviewer (code reading, not executed); dos_qa holds 24 stored replies containing order lines
+Steps:
+  1. A client calls orders.create; the reply is stored under its idempotencyKey (24 h retention).
+  2. Deploy a contract whose OrderLineSchema gains a required output field (DOS-003 variantName).
+  3. The client replays the same key and payload (lost reply, app restart).
+Expected: the stored reply is returned as-is (the whole point of the key).
+Actual: runIdempotent returns the stored JSON through the handler, oRPC re-validates it against the new contract, the missing field fails
+        validation → 500 "Output validation failed" instead of the stored reply, until retention drops the row.
+Business impact: every additive output change (a normal, expand-only evolution) turns lost-reply retries into 500s for a day after each deploy;
+        the app shows a failure for something that already happened.
+Severity: P2
+Evidence: QA/evidence/batch1/held-review-brief.md (DOS-003 risk + reviewer notes); backend/libs/core/src/platform/idempotency.ts:61-73
+Suggested fix: return stored replies without output re-validation (mark them as trusted), or store the domain result and re-render through the
+        mapper; spec: an additive output field must not make a same-key replay answer 500. Until then smoke runs with --run-tag.
+```
+
+Found by: architect review of the DOS-003 plan (Fable, 2026-09-13). Not executed against a running service.

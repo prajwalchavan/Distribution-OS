@@ -121,3 +121,14 @@ other app. `git merge-tree` against main: clean. Merge waits only for the last r
 058, 060 (web), 057, 061, 094, 095, 099, 073, 075, 076, 001, 005, 020 and DOS-029 (a–d). **DOS-034 PASS within its approved scope** — actions in sight and working; trip cash in the in-hand list is the companion finding DOS-132 (pre-existing root cause, made reachable by DOS-034; its plan asked for it to be filed at the same gate and QA missed that). **DOS-029 residual** — refusal dropped while another write is pending (DOS-135, a defect in DOS-029's own code; repaired on the DOS-029 branch before merge). **DOS-077** — web
 desk PASS; web phone clipping predates the fix (DOS-128); Android result pending. Cross-role chain completes only through the API for trip creation and
 load-sheet building (DOS-131 P0, DOS-133 P1); money sanity PASS.
+
+### Architect review of the nine held plans (Fable, 2026-09-13 07:40 IST)
+
+All nine approved; amendments are conditions and live in `QA/evidence/batch1/held-review-brief.md` §Architect verdicts. The ones that change
+the design: DOS-032+059 — a server-assigned number collision self-heals (counter → max+1, retry once, audit row) instead of halting money
+recording; FY is IST everywhere via `@dos/domain`. DOS-056 — the inline photo is stored through the files platform inside the sync handler
+(object key only in rows), device compresses to ≤ 300 KB, the sync route gets an 8 MiB body limit and an oversize op becomes a sync_error,
+never 413; DOS-156 folds in. DOS-106 — one in-transaction level+status check on every admin.* handler (reads included). DOS-043 — the draft
+load-sheet gate also matches sheets by the trip's stop orders (DOS-137 makes `trip_id` unreliable). DOS-074+097 — `reservableLocationId()`
+exported from inventory, used by orders and warehouse too. DOS-003 — name lookup exported by tenant-catalog; replay 500 logged as DOS-160.
+Designs for the new P0/P1 (DOS-115, 131, 126, 117, 132, 133, 116, 146) are in the same file for the approval gate.
