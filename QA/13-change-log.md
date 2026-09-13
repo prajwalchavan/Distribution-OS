@@ -152,3 +152,8 @@ architect design it already has, whether it needs one, its files and its test. O
 `fable-brief.md`. Findings that already have an architect design (the nine held plans, and DOS-115, 131, 126, 117, 132, 133, 116, 146 in
 `QA/evidence/batch1/held-review-brief.md`) go to Opus implementation in worktree lanes, test-first with an adversarial verifier. The rest
 wait for the architect (Fable) to answer `fable-brief.md`, DOS-164 first. Then the five A.12 regressions.
+
+Process change (founder, 2026-09-13, option "A"): Fable runs as helper agents from the Opus session. Every batch-2 plan gets a Fable
+sign-off before it is built (`QA/evidence/batch2/verdicts/<id>.md`: approve / approve with lettered binding amendments / reject). Every
+lane gets a Fable review of its combined diff before it merges into main. Planners, builders, verifiers and walkers stay on Opus. The nine
+held plans already carry Fable's 2026-09-13 07:40 verdicts, so they went straight to build (run `wf_beb0d5ef-504`).
