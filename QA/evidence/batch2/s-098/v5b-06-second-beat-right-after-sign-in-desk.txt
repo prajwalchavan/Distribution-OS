@@ -1,0 +1,19 @@
+SD
+Sai Distributors, Dombivli
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+KM
+Kiran Mhatre
+salesperson
+No beat today
+Today's beat
+Shops: 0
+Visited: 0
+Ordered: 0
+No shops on this beat yet

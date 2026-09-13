@@ -1,0 +1,19 @@
+TE
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+AP
+Amit Pawar
+salesperson
+No beat today
+Today's beat
+Shops: 0
+Visited: 0
+Ordered: 0
+No shops on this beat yet

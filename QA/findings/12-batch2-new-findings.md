@@ -43,6 +43,48 @@ QA/evidence/batch2/verdicts/DOS-166-design.md. The architect first suspected thi
 Side effects in dos_qa: RCPT-0707 and RCPT-0708 (100 paise each, with journal entries, allocations and PDFs) and one sync_errors row.
 Ledgers are append-only, so they stay until dos_qa is rebuilt after DOS-032+059 merges.
 
+### DOS-167 — After sign-out, the next user on the same device sees the previous user's shops, orders and dues, including another distributor's after an app restart
+Category: security | Priority: P0 | Role: Sales Rep (any field app on a shared device) | Platform: Web with a persistent store; Android and iOS NOT TESTED
+
+User: Sales Rep. First rahul.deshmukh (tarsun), then kiran.mhatre (sai-distributors). Same-tenant variant: amit.pawar (tarsun).
+Platform: Web. The sales app (expo start --web :5175) ran in Chromium with COOP/COEP headers, so its offline store persists in OPFS. That is the kind of store a hosted web build keeps, and the native apps persist theirs in expo-sqlite. Tested at desk 1280x800 and phone 390x844.
+Environment: local, database dos_qa (fixed seed, rebuilt 2026-09-13 16:11), services on main 3d7cb36. Probe run wf_ca15a053-341, 2026-09-13 17:23–18:05 IST.
+Steps:
+  1. Sign in as rahul.deshmukh. Wait for sync ("Updated just now"). Confirm Chavan Kirana Stores and SO-0875 are on the phone.
+  2. Sign out through the app's own menu.
+  3. (V5C) Reload the page (an app restart). Sign in as kiran.mhatre of Sai Distributors on the same device.
+  4. (V5A) Same tab, no reload. Sign in as amit.pawar of the same distributor.
+Expected: the next user starts from an empty device store and sees only their own data. Sign-out removes the previous user's rows and sync cursor.
+Actual:
+  - V5C, cross-tenant after a restart (both runs):
+    - Within 0.4 s of kiran's sign-in, under the header "Sai Distributors, Dombivli / salesperson", Shops listed 30 Tarsun shops with codes, beats and outstanding dues. Examples: Balaji Wholesale Stores R-0010 ₹7,20,804.00; Chavan Kirana Stores R-0024 ₹21,892.00.
+    - It cleared once the manifest handshake re-snapshotted. kiran then held 24 shops, matching SQL.
+  - V5A, same tenant, no reload:
+    - amit inherited rahul's store and sync cursor. His first pull carried rahul's since, and 0 rows came back.
+    - Shops showed 30, rahul's list, including Chavan Kirana, which is never on amit's beat.
+    - Orders read "newest 100 of 363", which is rahul's count; amit's own count in SQL is 380.
+    - Rahul's SO-0875 detail rendered with its lines and a total of ₹1,01,531.00, while the server answered 404 to amit.
+    - amit's beat read "No beat today" and none of his own 29 shops arrived, while the screen said "Updated just now".
+  - Not reproduced:
+    - V1–V4 on the plain dev web build: its store is in memory and new at each sign-in.
+    - V5B, cross-tenant in the same tab with no reload: the tenant check re-snapshotted before any row showed.
+Business impact:
+  - A shared or reassigned phone shows one distributor's customer book and receivables to another distributor's rep. That is tenant data leaking on the device (the never-list).
+  - Within one distributor, a rep silently gets a colleague's shops and orders and never receives his own beat. He cannot work his route, and nothing on screen tells him.
+Severity: P0
+Evidence: QA/evidence/batch2/s-098/SUMMARY.md, which lists every screenshot and results JSON of V1–V5 (the v5 runs are the confirmed ones). Script: QA/tools/e2e/s-098-shared-device.mjs.
+Root cause (architect's code reading at the DOS-080 merge review, consistent with the probe):
+  - frontend/libs/offline/src/engine.ts:200: wipe() has no caller, so sign-out keeps the rows and the cursor.
+  - The local store is named per app, not per user or tenant: sales-app/app/_layout.tsx:299, delivery-app :299, warehouse-app :305.
+  - The tenant check re-snapshots only after the first manifest, so rows render before it.
+Suggested fix (for the architect to design):
+  - Wipe the device store and cursor on sign-out, and on any user or tenant change, before the first render.
+  - Key the store by user and tenant.
+  - Render nothing from the store until the manifest handshake confirms the same user and tenant.
+  - Do the same in all three field apps (sales, delivery, warehouse).
+  - Prove the fix on Android and iOS as well as web.
+Not tested: Android (expo-sqlite) and iOS. They run the same engine code, but per Charter A.4 that result is not inferred.
+
 
 ## Suspected by the architect's plan sign-offs — NOT TESTED
 
@@ -154,7 +196,7 @@ Raised by the Fable merge reviews (run wf_a8e3a6c2-fdd, 2026-09-13), from code r
 | S-95 | h9-desk | P3 docs/23-app-screens-and-api-gaps.md:891 still labels dispute/cancel BACK_OFFICE after DOS-037 (doc miss). | NOT TESTED |
 | S-96 | h8-billing | P3 credit-notes.service.ts:289-294: draft() returns an existing note by id whatever the new payload, so a create with a NEW idempotencyKey and a reused id answers 200 with the earlier note instead of 409 (a convention shared by other modules). | NOT TESTED |
 | S-97 | h12-kit | P3 frontend/libs/ui/README.md:214: the "71 of them" token-test count is stale. (S-70 web useEscape and S-71 native RupeeInput pad are still open after DOS-164.) | NOT TESTED |
-| S-98 | h11-syncpull | **P1, possibly P0 (verify first)** frontend/libs/offline/src/engine.ts:200: wipe() has no caller. Sign-out keeps the previous user's rows and cursor, and the store is named per app, not per user (sales-app/app/_layout.tsx:299, delivery :299, warehouse :305). A second user on the same phone therefore inherits the first user's local rows and cursor. If that user belongs to another distributor, this is cross-tenant data on the device. | NOT TESTED |
+| S-98 | h11-syncpull | **P1, possibly P0 (verify first)** frontend/libs/offline/src/engine.ts:200: wipe() has no caller. Sign-out keeps the previous user's rows and cursor, and the store is named per app, not per user (sales-app/app/_layout.tsx:299, delivery :299, warehouse :305). A second user on the same phone therefore inherits the first user's local rows and cursor. If that user belongs to another distributor, this is cross-tenant data on the device. | CONFIRMED on web with a persistent store, filed as DOS-167 (P0) |
 | S-99 | h11-syncpull | P2 scale catalog.module.ts:30-33: the four global catalog tables are pulled unnarrowed by every device; at lakhs of SKUs this dominates every first sync. | NOT TESTED |
 | S-100 | h11-syncpull | P2 sync.service.ts:385: a mid-pass cut carries no overlap. A row stamped by an in-flight transaction before the cut and committed after the read is skipped unless the pass ends within 5 s of it (pre-existing watermark gap). | NOT TESTED |
 | S-101 | h11-syncpull | P3 docs/27-offline-sync-client.md:36 says the dev server sends COOP/COEP, but nothing in frontend/ sets it, so every expo start --web walk runs the memory store and re-snapshots on reload. | NOT TESTED |

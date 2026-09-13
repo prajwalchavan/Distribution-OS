@@ -1,0 +1,63 @@
+{
+  "startedAt": "2026-09-13T12:12:02.787Z",
+  "app": "http://localhost:5175",
+  "sqlExpect": {
+    "A": {
+      "shops": 30,
+      "orders90d": 363
+    },
+    "B": {
+      "shops": 24,
+      "orders90d": 218
+    },
+    "A2": {
+      "shops": 29,
+      "orders90d": 380
+    }
+  },
+  "variants": {
+    "V5A": {
+      "name": "V5A",
+      "startedAt": "2026-09-13T12:12:02.828Z",
+      "shots": [],
+      "checks": [],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301524227"
+      },
+      "error": "page.waitForFunction: Timeout 60000ms exceeded.\n    at signIn (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:238:14)\n    at async v5 (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:622:17)\n    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/QA/tools/e2e/s-098-shared-device.mjs:705:7"
+    },
+    "V5B": {
+      "name": "V5B",
+      "startedAt": "2026-09-13T12:13:04.350Z",
+      "shots": [],
+      "checks": [],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301585383"
+      },
+      "error": "page.waitForFunction: Timeout 60000ms exceeded.\n    at signIn (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:238:14)\n    at async v5 (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:622:17)\n    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/QA/tools/e2e/s-098-shared-device.mjs:705:7"
+    },
+    "V5C": {
+      "name": "V5C",
+      "startedAt": "2026-09-13T12:14:05.479Z",
+      "shots": [],
+      "checks": [],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301646489"
+      },
+      "error": "page.waitForFunction: Timeout 60000ms exceeded.\n    at signIn (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:238:14)\n    at async v5 (/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/e2e/s-098-shared-device.mjs:622:17)\n    at async file:///Users/prajwalchavan/Desktop/Distribution%20OS/QA/tools/e2e/s-098-shared-device.mjs:705:7"
+    }
+  },
+  "finishedAt": "2026-09-13T12:15:06.595Z"
+}

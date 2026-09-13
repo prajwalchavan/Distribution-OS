@@ -1,0 +1,1477 @@
+{
+  "startedAt": "2026-09-13T12:18:03.634Z",
+  "app": "http://localhost:5175",
+  "sqlExpect": {
+    "A": {
+      "shops": 30,
+      "orders90d": 363
+    },
+    "B": {
+      "shops": 24,
+      "orders90d": 218
+    },
+    "A2": {
+      "shops": 29,
+      "orders90d": 380
+    }
+  },
+  "variants": {
+    "V5A": {
+      "name": "V5A",
+      "startedAt": "2026-09-13T12:18:03.675Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-01-a-rahul-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "A on the beat screen; the not-persisted line appears only for the memory store"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-02-a-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "A (rahul) shops search \"Chavan Kirana\" — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-03-a-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "A (rahul) orders, All — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-04-signed-out-desk.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": "after the app’s own Sign out"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-06-second-beat-right-after-sign-in-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "amit.pawar beat, right after sign-in"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-07-second-shops-early-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "amit.pawar shops list, early"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-08-second-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "amit.pawar beat, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-09-second-shops-synced-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "amit.pawar shops list, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-10-second-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "amit.pawar shops search \"Chavan Kirana\", after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-11-second-search-own-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "amit.pawar shops search own \"Anand Bhavan Provision\" — completeness"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-12-second-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "amit.pawar orders, All, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5a-13-second-A-order-detail-desk.png",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "note": "amit.pawar opens rahul’s order SO-0875 route"
+        }
+      ],
+      "checks": [
+        {
+          "where": "A (rahul) shops search \"Chavan Kirana\" — positive control",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "A (rahul) orders, All — positive control",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A order SO-0875 (rahul.deshmukh, tarsun)",
+              "visibleText": [
+                "SO-0875"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a86e7342-f6e0-7ece-997b-43b810e33630"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "amit.pawar beat, right after sign-in",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "amit.pawar shops list, early",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            },
+            {
+              "marker": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+              "visibleText": [
+                "Iyer Provision Store"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "21789c58-876b-7bc3-9071-34d79086c32f"
+              ]
+            }
+          ],
+          "counts": {
+            "chip": 30,
+            "rowsDrawn": 30,
+            "capped": null
+          }
+        },
+        {
+          "where": "amit.pawar beat, after sync",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "amit.pawar shops list, after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            },
+            {
+              "marker": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+              "visibleText": [
+                "Iyer Provision Store"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "21789c58-876b-7bc3-9071-34d79086c32f"
+              ]
+            }
+          ],
+          "counts": {
+            "chip": 30,
+            "rowsDrawn": 30,
+            "capped": null
+          }
+        },
+        {
+          "where": "amit.pawar shops search \"Chavan Kirana\", after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "amit.pawar shops search own \"Anand Bhavan Provision\" — completeness",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A2 own shop Anand Bhavan Provision (tarsun R-0043, Kolsewadi)",
+              "visibleText": [
+                "Anand Bhavan Provision"
+              ],
+              "hiddenText": [],
+              "testIdHits": []
+            }
+          ]
+        },
+        {
+          "where": "amit.pawar orders, All, after sync",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 1,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A order SO-0875 (rahul.deshmukh, tarsun)",
+              "visibleText": [
+                "SO-0875"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a86e7342-f6e0-7ece-997b-43b810e33630"
+              ]
+            }
+          ],
+          "counts": {
+            "rowsDrawn": 100,
+            "cappedShown": 100,
+            "cappedTotal": 363
+          }
+        },
+        {
+          "where": "amit.pawar opens rahul’s order SO-0875 route",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 2,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A order SO-0875 (rahul.deshmukh, tarsun)",
+              "visibleText": [
+                "SO-0875"
+              ],
+              "hiddenText": [],
+              "testIdHits": []
+            }
+          ]
+        }
+      ],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301884696"
+      },
+      "aSync": {
+        "syncedAfterMs": 37863,
+        "strip": "Updated just now",
+        "pullRequests": 254,
+        "pullResponses": 254,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 260,
+        "salesOrdersRowsPulled": 1824
+      },
+      "storeAfterA": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301884696"
+      },
+      "aShops": {
+        "chip": 30,
+        "rowsDrawn": 30,
+        "capped": null
+      },
+      "aOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 363
+      },
+      "storeSignedOut": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301884696"
+      },
+      "storeSecondAtHome": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301884696"
+      },
+      "secondSync": {
+        "syncedAfterMs": 2934,
+        "strip": "Updated just now",
+        "pullRequests": 1,
+        "pullResponses": 1,
+        "finished": true,
+        "firstPullHadSince": true,
+        "firstPullInput": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMjoxODozNC45OTVaIn0 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 0,
+        "salesOrdersRowsPulled": 0
+      },
+      "storeSecondSynced": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301884696"
+      },
+      "secondShops": {
+        "chip": 30,
+        "rowsDrawn": 30,
+        "capped": null
+      },
+      "secondOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 363
+      },
+      "watcher": {
+        "hits": [
+          {
+            "label": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+            "what": "Chavan Kirana Stores",
+            "atMs": 256,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+            "what": "Iyer Provision Store",
+            "atMs": 256,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+            "what": "a029f31b-2c6c-707b-b580-889125d3ee07",
+            "atMs": 256,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+            "what": "21789c58-876b-7bc3-9071-34d79086c32f",
+            "atMs": 256,
+            "path": "/shops"
+          },
+          {
+            "label": "A order SO-0875 (rahul.deshmukh, tarsun)",
+            "what": "SO-0875",
+            "atMs": 7902,
+            "path": "/orders"
+          },
+          {
+            "label": "A order SO-0875 (rahul.deshmukh, tarsun)",
+            "what": "a86e7342-f6e0-7ece-997b-43b810e33630",
+            "atMs": 7902,
+            "path": "/orders"
+          }
+        ],
+        "watchedMs": 11969
+      },
+      "secondFirstPull": {
+        "pullRequests": 2,
+        "pullResponses": 2,
+        "finished": true,
+        "firstPullHadSince": true,
+        "firstPullInput": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMjoxODozNC45OTVaIn0 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 0,
+        "salesOrdersRowsPulled": 0
+      },
+      "secondFirstSyncCalls": [
+        {
+          "at": 1789301929976,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789301929980,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789301930021,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMjoxODozNC45OTVaIn0 "
+        },
+        {
+          "at": 1789301930059,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789301930072,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789301939922,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789301939929,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789301939973,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab4-06ca-71bf-ac47-cb3c3a688bea&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMjoxODo0NS4wMjJaIn0 "
+        }
+      ],
+      "sqlExpectSecond": {
+        "shops": 29,
+        "orders90d": 380
+      },
+      "envEnd": {
+        "href": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+        "crossOriginIsolated": true,
+        "opfs": true,
+        "sameDocumentMarker": "document-1789301884696",
+        "localStorageKeys": [
+          "dos.auth.refresh",
+          "dos.auth.session",
+          "dos.device"
+        ]
+      },
+      "console": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "failed": [
+        "404 GET http://127.0.0.1:3003/orders/a86e7342-f6e0-7ece-997b-43b810e33630"
+      ]
+    },
+    "V5B": {
+      "name": "V5B",
+      "startedAt": "2026-09-13T12:19:01.811Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-01-a-rahul-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "A on the beat screen; the not-persisted line appears only for the memory store"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-02-a-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "A (rahul) shops search \"Chavan Kirana\" — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-03-a-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "A (rahul) orders, All — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-04-signed-out-desk.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": "after the app’s own Sign out"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-06-second-beat-right-after-sign-in-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre beat, right after sign-in"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-07-second-shops-early-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops list, early"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-08-second-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre beat, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-09-second-shops-synced-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops list, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-10-second-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops search \"Chavan Kirana\", after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-11-second-search-own-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops search own \"Aditya Provision\" — completeness"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-12-second-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre orders, All, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5b-13-second-A-order-detail-desk.png",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre opens rahul’s order SO-0875 route"
+        }
+      ],
+      "checks": [
+        {
+          "where": "A (rahul) shops search \"Chavan Kirana\" — positive control",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "A (rahul) orders, All — positive control",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A order SO-0875 (rahul.deshmukh, tarsun)",
+              "visibleText": [
+                "SO-0875"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a86e7342-f6e0-7ece-997b-43b810e33630"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "kiran.mhatre beat, right after sign-in",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops list, early",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 0,
+            "rowsDrawn": 0,
+            "capped": null
+          }
+        },
+        {
+          "where": "kiran.mhatre beat, after sync",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops list, after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 24,
+            "rowsDrawn": 24,
+            "capped": null
+          }
+        },
+        {
+          "where": "kiran.mhatre shops search \"Chavan Kirana\", after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops search own \"Aditya Provision\" — completeness",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "B own shop Aditya Provision (sai SD-0023)",
+              "visibleText": [
+                "Aditya Provision"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "33b28ccd-e140-77ad-a1a2-d5893bdaf3c6"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "kiran.mhatre orders, All, after sync",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "B own order row 9e4c2819 (sai SO-0455)",
+              "visibleText": [],
+              "hiddenText": [],
+              "testIdHits": [
+                "9e4c2819-569e-7640-815d-c4bdd7e0f962"
+              ]
+            }
+          ],
+          "counts": {
+            "rowsDrawn": 100,
+            "cappedShown": 100,
+            "cappedTotal": 218
+          }
+        },
+        {
+          "where": "kiran.mhatre opens rahul’s order SO-0875 route",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 161,
+          "inflightPull": 0,
+          "hits": []
+        }
+      ],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301942802"
+      },
+      "aSync": {
+        "syncedAfterMs": 35346,
+        "strip": "Updated just now",
+        "pullRequests": 254,
+        "pullResponses": 254,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab4-e9cf-7735-99a9-b51b6dc67ab3&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 260,
+        "salesOrdersRowsPulled": 1824
+      },
+      "storeAfterA": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301942802"
+      },
+      "aShops": {
+        "chip": 30,
+        "rowsDrawn": 30,
+        "capped": null
+      },
+      "aOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 363
+      },
+      "storeSignedOut": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301942802"
+      },
+      "storeSecondAtHome": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301942802"
+      },
+      "secondSync": {
+        "syncedAfterMs": 81841,
+        "strip": "Updated just now",
+        "pullRequests": 160,
+        "pullResponses": 160,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab4-e9cf-7735-99a9-b51b6dc67ab3&limit=500 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 254,
+        "salesOrdersRowsPulled": 1003
+      },
+      "storeSecondSynced": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789301942802"
+      },
+      "secondShops": {
+        "chip": 24,
+        "rowsDrawn": 24,
+        "capped": null
+      },
+      "secondOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 218
+      },
+      "watcher": {
+        "hits": [],
+        "watchedMs": 90837
+      },
+      "secondFirstPull": {
+        "pullRequests": 161,
+        "pullResponses": 161,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab4-e9cf-7735-99a9-b51b6dc67ab3&limit=500 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 254,
+        "salesOrdersRowsPulled": 1003
+      },
+      "secondFirstSyncCalls": [
+        {
+          "at": 1789301985575,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789301985578,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789302045693,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789302045705,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789302046066,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab4-e9cf-7735-99a9-b51b6dc67ab3&limit=500 "
+        },
+        {
+          "at": 1789302046208,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 23,
+            "sales_orders": 23,
+            "beats": 5
+          }
+        },
+        {
+          "at": 1789302046297,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab4-e9cf-7735-99a9-b51b6dc67ab3&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS42OTE2MDJaIn0 "
+        },
+        {
+          "at": 1789302046406,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 23,
+            "sales_orders": 23,
+            "beats": 5
+          }
+        }
+      ],
+      "sqlExpectSecond": {
+        "shops": 24,
+        "orders90d": 218
+      },
+      "envEnd": {
+        "href": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+        "crossOriginIsolated": true,
+        "opfs": true,
+        "sameDocumentMarker": "document-1789301942802",
+        "localStorageKeys": [
+          "dos.auth.refresh",
+          "dos.auth.session",
+          "dos.device"
+        ]
+      },
+      "console": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "failed": [
+        "401 GET http://127.0.0.1:3003/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+        "404 GET http://127.0.0.1:3003/orders/a86e7342-f6e0-7ece-997b-43b810e33630"
+      ]
+    },
+    "V5C": {
+      "name": "V5C",
+      "startedAt": "2026-09-13T12:21:16.268Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-01-a-rahul-beat-synced-phone.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "A on the beat screen; the not-persisted line appears only for the memory store"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-02-a-search-chavan-phone.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "A (rahul) shops search \"Chavan Kirana\" — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-03-a-orders-all-phone.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "A (rahul) orders, All — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-04-signed-out-phone.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": "after the app’s own Sign out"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-05-after-reload-phone.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": null
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-06-second-beat-right-after-sign-in-phone.png",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "note": "kiran.mhatre beat, right after sign-in"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-07-second-shops-early-phone.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops list, early"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-08-second-beat-synced-phone.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre beat, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-09-second-shops-synced-phone.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops list, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-10-second-search-chavan-phone.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops search \"Chavan Kirana\", after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-11-second-search-own-phone.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre shops search own \"Aditya Provision\" — completeness"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-12-second-orders-all-phone.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre orders, All, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/s-098/v5c-13-second-A-order-detail-phone.png",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "note": "kiran.mhatre opens rahul’s order SO-0875 route"
+        }
+      ],
+      "checks": [
+        {
+          "where": "A (rahul) shops search \"Chavan Kirana\" — positive control",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+              "visibleText": [
+                "Chavan Kirana Stores"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a029f31b-2c6c-707b-b580-889125d3ee07"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "A (rahul) orders, All — positive control",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 254,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A order SO-0875 (rahul.deshmukh, tarsun)",
+              "visibleText": [
+                "SO-0875"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "a86e7342-f6e0-7ece-997b-43b810e33630"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "kiran.mhatre beat, right after sign-in",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops list, early",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 3,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 23,
+            "rowsDrawn": 23,
+            "capped": null
+          }
+        },
+        {
+          "where": "kiran.mhatre beat, after sync",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops list, after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 24,
+            "rowsDrawn": 24,
+            "capped": null
+          }
+        },
+        {
+          "where": "kiran.mhatre shops search \"Chavan Kirana\", after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": []
+        },
+        {
+          "where": "kiran.mhatre shops search own \"Aditya Provision\" — completeness",
+          "url": "http://localhost:5175/shops",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "B own shop Aditya Provision (sai SD-0023)",
+              "visibleText": [
+                "Aditya Provision"
+              ],
+              "hiddenText": [],
+              "testIdHits": [
+                "33b28ccd-e140-77ad-a1a2-d5893bdaf3c6"
+              ]
+            }
+          ]
+        },
+        {
+          "where": "kiran.mhatre orders, All, after sync",
+          "url": "http://localhost:5175/orders",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 160,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "B own order row 9e4c2819 (sai SO-0455)",
+              "visibleText": [],
+              "hiddenText": [],
+              "testIdHits": [
+                "9e4c2819-569e-7640-815d-c4bdd7e0f962"
+              ]
+            }
+          ],
+          "counts": {
+            "rowsDrawn": 100,
+            "cappedShown": 100,
+            "cappedTotal": 218
+          }
+        },
+        {
+          "where": "kiran.mhatre opens rahul’s order SO-0875 route",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 161,
+          "inflightPull": 0,
+          "hits": []
+        }
+      ],
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789302077279"
+      },
+      "aSync": {
+        "syncedAfterMs": 36240,
+        "strip": "Updated just now",
+        "pullRequests": 254,
+        "pullResponses": 254,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 260,
+        "salesOrdersRowsPulled": 1824
+      },
+      "storeAfterA": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789302077279"
+      },
+      "aShops": {
+        "chip": 30,
+        "rowsDrawn": 30,
+        "capped": null
+      },
+      "aOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 363
+      },
+      "storeSignedOut": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789302077279"
+      },
+      "storeAfterReload": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": null
+      },
+      "storeSecondAtHome": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": true,
+        "sameDocumentMarker": null
+      },
+      "secondSync": {
+        "syncedAfterMs": 21144,
+        "strip": "Updated just now",
+        "pullRequests": 160,
+        "pullResponses": 160,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 254,
+        "salesOrdersRowsPulled": 1003
+      },
+      "storeSecondSynced": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": null
+      },
+      "secondShops": {
+        "chip": 24,
+        "rowsDrawn": 24,
+        "capped": null
+      },
+      "secondOrders": {
+        "rowsDrawn": 100,
+        "cappedShown": 100,
+        "cappedTotal": 218
+      },
+      "watcher": {
+        "hits": [
+          {
+            "label": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+            "what": "Chavan Kirana Stores",
+            "atMs": 362,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+            "what": "Iyer Provision Store",
+            "atMs": 362,
+            "path": "/shops"
+          },
+          {
+            "label": "A tenant beat names (tarsun)",
+            "what": "Khadakpada",
+            "atMs": 362,
+            "path": "/shops"
+          },
+          {
+            "label": "A tenant beat names (tarsun)",
+            "what": "Kalyan West Market",
+            "atMs": 362,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Chavan Kirana Stores (tarsun R-0024, Khadakpada)",
+            "what": "a029f31b-2c6c-707b-b580-889125d3ee07",
+            "atMs": 362,
+            "path": "/shops"
+          },
+          {
+            "label": "A shop Iyer Provision Store (tarsun R-0029, Khadakpada)",
+            "what": "21789c58-876b-7bc3-9071-34d79086c32f",
+            "atMs": 362,
+            "path": "/shops"
+          }
+        ],
+        "watchedMs": 30112
+      },
+      "secondFirstPull": {
+        "pullRequests": 161,
+        "pullResponses": 161,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500 ",
+        "firstManifestKnownSchemaVersion": "36957a3c3b8da665",
+        "firstManifestInput": "knownSchemaVersion=36957a3c3b8da665 ",
+        "retailersRowsPulled": 254,
+        "salesOrdersRowsPulled": 1003
+      },
+      "secondFirstSyncCalls": [
+        {
+          "at": 1789302121995,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789302122012,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789302122443,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500 "
+        },
+        {
+          "at": 1789302122533,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 23,
+            "sales_orders": 23,
+            "beats": 5
+          }
+        },
+        {
+          "at": 1789302122626,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS42OTE2MDJaIn0 "
+        },
+        {
+          "at": 1789302122709,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 23,
+            "sales_orders": 23,
+            "beats": 5
+          }
+        },
+        {
+          "at": 1789302122812,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09ab6-f719-7475-b67f-542644454d20&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS42OTMyNDZaIn0 "
+        },
+        {
+          "at": 1789302122911,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 23,
+            "sales_orders": 23,
+            "beats": 5
+          }
+        }
+      ],
+      "sqlExpectSecond": {
+        "shops": 24,
+        "orders90d": 218
+      },
+      "envEnd": {
+        "href": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+        "crossOriginIsolated": true,
+        "opfs": true,
+        "sameDocumentMarker": null,
+        "localStorageKeys": [
+          "dos.auth.refresh",
+          "dos.auth.session",
+          "dos.device"
+        ]
+      },
+      "console": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "failed": [
+        "401 GET http://127.0.0.1:3003/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+        "404 GET http://127.0.0.1:3003/orders/a86e7342-f6e0-7ece-997b-43b810e33630"
+      ]
+    }
+  },
+  "finishedAt": "2026-09-13T12:22:31.768Z"
+}

@@ -1,0 +1,19 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Not updated yet
+AP
+Amit Pawar
+salesperson
+No beat today
+Today's beat
+Shops: 0
+Visited: 0
+Ordered: 0
+Still loading the beat onto this phone
+This browser will not keep the offline copy after you close it
