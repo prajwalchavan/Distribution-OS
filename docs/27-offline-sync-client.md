@@ -37,10 +37,18 @@ interface SyncStore {
 - `memory`: an in-memory SQL-compatible store (better-sqlite3-style API over `sql.js` is acceptable on web only). It is honest:
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
 
-One file per (app, user, distributor): `<prefix>__u-<userId>__t-<tenantId>.db` (`storeNameFor`, prefix `dos-sales`,
-`dos-delivery`, `dos-warehouse`). The ids go in unhashed after a character check, so two people, or one person at two
-distributors, never open the same file; a person signing in on a phone somebody else used starts with no rows and no cursor
-(DOS-167). The fixed `<prefix>.db` of earlier builds is deleted once at mount.
+One file per (app, user, distributor): `<app><user><distributor>` (`storeNameFor`), exactly 51 characters of `[0-9a-z]`, no
+separator and no extension — the app's letter (`dos-sales` → `s`, `dos-delivery` → `d`, `dos-warehouse` → `w`, `dos-harness` →
+`h`; any other prefix has no file), then the user's and the distributor's UUID, each as its 128-bit number in base 36
+zero-padded to 25 digits; e.g. `s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft`. The LIMIT is web SQLite's: expo-sqlite
+opens `./<name>` through wa-sqlite, whose VFS allows 64 characters of path, less 8 SQLite keeps for the journal suffix, so a
+name longer than 54 does not open in a browser (the 92-character `<prefix>__u-<userId>__t-<tenantId>.db` of 199952b never did);
+`./` + 51 = 53. No hash anywhere: the name is lossless (`parseStoreName` reads it back), fixed-width and single-case, so two
+people, or one person at two distributors, never open the same file on any file system, a case-folding one included; a person
+signing in on a phone somebody else used starts with no rows and no cursor (DOS-167; ruling 2, 2026-09-14). The fixed
+`<prefix>.db` of earlier builds is deleted once at mount; the 199952b name is swept once per person, deleted when it holds nothing
+unsent and kept (and logged) when it does. To read a name in a QA listing:
+`node -e 'const n=process.argv[1],id=g=>{let v=0n;for(const c of g)v=v*36n+BigInt(parseInt(c,36));return v.toString(16).padStart(32,"0").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")};console.log({s:"dos-sales",d:"dos-delivery",w:"dos-warehouse",h:"dos-harness"}[n[0]],id(n.slice(1,26)),id(n.slice(26)))' <name>`.
 
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
@@ -225,7 +233,9 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 9. No cost/margin column ever exists in the local schema for a field role (walk the manifest).
 10. Status object transitions: offline → online → pulling → synced; pending counts.
 11. Memory adapter reports `persistent=false` and the strip text follows.
-12. One store per app, person and distributor (DOS-167): `storeNameFor` is lossless and refuses an unsafe id; a second person on
+12. One store per app, person and distributor (DOS-167): `storeNameFor` writes the 51-character `<app><user><distributor>` name
+    web SQLite opens, `parseStoreName` reads back every id (200 spread UUIDs, all-zero, all-f), one case only, and a non-UUID id
+    or an unknown app prefix is refused; the 199952b file is swept once for the person signing in; a second person on
     the same store sees no row and pulls with no cursor, even before the handshake; another distributor's store after a restart is
     wiped before any table is published and its queue is never uploaded; the same person keeps rows, cursor and queue.
 13. `end()` at sign-out: with nothing queued it drops the read set, tells every table and deletes the file; `keepQueue` keeps the

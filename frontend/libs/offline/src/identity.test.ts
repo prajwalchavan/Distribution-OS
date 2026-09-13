@@ -12,10 +12,17 @@
 import { describe, expect, it } from 'vitest'
 
 import { ERRORS_CHANNEL, OUTBOX_CHANNEL } from './bus.js'
-import { legacyStoreName, storeNameFor, SyncEngine, type SyncEngineOptions } from './engine.js'
-import { leaveDecision } from './react.js'
-import { OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
-import { readAllState, readState } from './state.js'
+import {
+  interimStoreName,
+  legacyStoreName,
+  parseStoreName,
+  storeNameFor,
+  SyncEngine,
+  type SyncEngineOptions,
+} from './engine.js'
+import { leaveDecision, sweepInterimStore } from './react.js'
+import { createSystemTables, OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
+import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
@@ -41,6 +48,32 @@ const TABLES = [RETAILERS, ORDERS]
 const RAHUL: SyncIdentity = { userId: 'rahul', tenantId: 'tarsun', role: 'salesperson' }
 const AMIT: SyncIdentity = { userId: 'amit', tenantId: 'tarsun', role: 'salesperson' }
 const KIRAN: SyncIdentity = { userId: 'kiran', tenantId: 'sai', role: 'salesperson' }
+
+/**
+ * Where a test needs a FILE NAME, the ids are UUIDs, as every id in this system is (ruling 2 (s)): Rahul and Tarsun
+ * as the QA data gives them, and the other people and distributors made up in the same shape.
+ */
+const RAHUL_ID = '8760e17e-4830-7395-a946-1e02fffa1ad7'
+const TARSUN_ID = '01a09a5b-3c58-71c1-a34d-b93c569b0099'
+const AMIT_ID = '0192f3c4-8a1b-7c2d-9e3f-4a5b6c7d8e9f'
+const SAI_ID = '82f5c562-b7eb-7521-8e19-4aa6befc64f8'
+const BALAJI_ID = '0192f3c4-0000-7000-8000-0000000000aa'
+const RAHUL_AT_TARSUN: SyncIdentity = { userId: RAHUL_ID, tenantId: TARSUN_ID, role: 'salesperson' }
+
+/** 128-bit ids across the whole range, the same ones on every run. */
+function spreadOfUuids(count: number): string[] {
+  let seed = 0x1a2b3c4d
+  const next = (): number => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return (t ^ (t >>> 14)) >>> 0
+  }
+  return Array.from({ length: count }, () => {
+    const hex = Array.from({ length: 4 }, () => next().toString(16).padStart(8, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  })
+}
 
 /** Rahul's shop, never on Amit's beat and never Sai's. */
 const CHAVAN = { id: 'r-chavan', name: 'Chavan Kirana Stores' }
@@ -127,33 +160,149 @@ function watched(
 // 12 -------------------------------------------------------------------------------------------------------------
 
 describe('DOS-167 one file per app, person and distributor', () => {
+  /*
+   * Ruling 2 (s). The web proof of 199952b: `dos-sales__u-<uuid>__t-<uuid>.db` is 92 characters, expo-sqlite's web
+   * build opens `./<name>` through wa-sqlite, whose VFS allows 64 characters of path and SQLite keeps 8 of them for
+   * the journal suffix, so nothing longer than 54 opens — and the open fell back, silently, to a store in memory.
+   */
   it('DOS-167 storeNameFor keys the file by app, user and distributor', () => {
-    const rahul = storeNameFor('dos-sales', RAHUL)
-    expect(rahul).toBe('dos-sales__u-rahul__t-tarsun.db')
+    const rahul = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    expect(rahul).toBe('s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft')
 
-    // A colleague at the same distributor, and the same rep at another one, each get their own file.
-    expect(storeNameFor('dos-sales', AMIT)).not.toBe(rahul)
-    expect(storeNameFor('dos-sales', { ...RAHUL, tenantId: 'sai' })).not.toBe(rahul)
-    expect(storeNameFor('dos-delivery', RAHUL)).not.toBe(rahul)
-    // The same pair is the same file: a role change on one membership is not a new person.
-    expect(storeNameFor('dos-sales', { ...RAHUL, role: 'delivery' })).toBe(rahul)
-
-    const real = storeNameFor('dos-warehouse', {
-      userId: '0192f3c4-8a1b-7c2d-9e3f-4a5b6c7d8e9f',
-      tenantId: '0192f3c4-0000-7000-8000-0000000000aa',
-      role: 'warehouse',
+    // Every name is one app letter and two 25-digit base-36 ids, which web SQLite opens, and reads back exactly.
+    const ids = [
+      ...spreadOfUuids(200),
+      '00000000-0000-0000-0000-000000000000',
+      'ffffffff-ffff-ffff-ffff-ffffffffffff',
+    ]
+    const APPS = ['dos-sales', 'dos-delivery', 'dos-warehouse'] as const
+    const wrong: unknown[] = []
+    ids.forEach((userId, index) => {
+      const tenantId = ids[ids.length - 1 - index] ?? userId
+      const prefix = APPS[index % APPS.length] ?? 'dos-sales'
+      const name = storeNameFor(prefix, { userId, tenantId, role: 'salesperson' })
+      const back = parseStoreName(name)
+      const fits = /^[sdw][0-9a-z]{50}$/.test(name) && `./${name}`.length <= 56
+      if (!fits || back?.prefix !== prefix || back.userId !== userId || back.tenantId !== tenantId)
+        wrong.push({ userId, tenantId, prefix, name, back })
     })
-    for (const name of [rahul, real]) expect(name).toMatch(/^[A-Za-z0-9_.-]+$/)
+    expect(wrong).toEqual([])
+    // A listing also holds `-wal` and `-shm` files and other apps' names: those are not store names.
+    expect(parseStoreName(`${rahul}-wal`)).toBeNull()
+    expect(parseStoreName('dos-sales.db')).toBeNull()
+
+    // A colleague at the same distributor, the same rep at another one, and another app each get their own file.
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, userId: AMIT_ID })).not.toBe(rahul)
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, tenantId: SAI_ID })).not.toBe(rahul)
+    expect(storeNameFor('dos-delivery', RAHUL_AT_TARSUN)).not.toBe(rahul)
+    // The same pair is the same file: a role change on one membership is not a new person.
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, role: 'delivery' })).toBe(rahul)
+    // One case only, so no case-folding file system can take two people's files for one.
+    expect(
+      storeNameFor('dos-sales', {
+        ...RAHUL_AT_TARSUN,
+        userId: RAHUL_ID.toUpperCase(),
+        tenantId: TARSUN_ID.toUpperCase(),
+      }),
+    ).toBe(rahul)
 
     // A file name never carries an unchecked string.
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: 'a/b' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: '../rahul' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, tenantId: 'tarsun:sai' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: '' })).toThrow()
-    expect(() => storeNameFor('dos/sales', RAHUL)).toThrow()
+    for (const userId of ['a', 'a/b', '../rahul', ''])
+      expect(() => storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, userId }), userId).toThrow()
+    for (const prefix of ['dos/sales', 'dos-shop'])
+      expect(() => storeNameFor(prefix, RAHUL_AT_TARSUN), prefix).toThrow()
 
     // The fixed name every build before DOS-167 used, which the provider deletes once.
     expect(legacyStoreName('dos-sales')).toBe('dos-sales.db')
+  })
+
+  /*
+   * Ruling 2 (s). The QA phones hold files under the name 199952b gave them. The provider sweeps that file once for
+   * the person signing in, by the sibling rule: nothing unsent in it and it goes; anything unsent and it stays, said.
+   */
+  it('DOS-167 the 199952b store is swept once for the signed-in person: deleted when empty, kept and logged with a queue', async () => {
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    // What the Android proof listed on the Pixel 7 under 199952b.
+    expect(interim).toBe(`dos-sales__u-${RAHUL_ID}__t-${TARSUN_ID}.db`)
+
+    async function signsInAfter199952b(queued: boolean): Promise<unknown> {
+      const files = new Map<string, SyncStore>()
+      const asked: string[] = []
+      const factory: StoreFactory = async (name) => {
+        asked.push(name)
+        const held = files.get(name) ?? createMemoryStore()
+        files.set(name, held)
+        return held
+      }
+      const server = new FakeServer(TABLES)
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+      // The 199952b build, on its long name.
+      const before = new SyncEngine({
+        transport: server.transport(),
+        deviceId: 'device-1',
+        storeFactory: factory,
+        databaseName: interim,
+        identity: RAHUL_AT_TARSUN,
+        pullIntervalMs: 0,
+        now,
+      })
+      await before.start()
+      if (queued) {
+        server.offline = true
+        await before.enqueue({
+          table: 'sales_orders',
+          id: 'o-before-ruling-2',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+        })
+        await before.flush()
+      }
+      await before.stop()
+      // This build's own file for him, stamped already.
+      const current = createMemoryStore()
+      await createSystemTables(current)
+      await writeState(current, 'userId', RAHUL_ID)
+      files.set(storeNameFor('dos-sales', RAHUL_AT_TARSUN), current)
+
+      asked.length = 0
+      const log: string[] = []
+      await sweepInterimStore(factory, 'dos-sales', RAHUL_AT_TARSUN, (line) => {
+        log.push(line)
+      })
+      return {
+        asked,
+        log,
+        // A deleted file has no tables left to read.
+        interim: await files
+          .get(interim)
+          ?.query(`SELECT row_id, status FROM ${OUTBOX_TABLE}`)
+          .catch((error: unknown) =>
+            /no such table/.test(String(error)) ? 'deleted' : String(error),
+          ),
+        current: await readState(current, 'userId'),
+      }
+    }
+
+    expect({
+      empty: await signsInAfter199952b(false),
+      holding: await signsInAfter199952b(true),
+    }).toEqual({
+      empty: {
+        asked: [interim],
+        log: [],
+        interim: 'deleted',
+        current: RAHUL_ID,
+      },
+      holding: {
+        asked: [interim],
+        log: ['offline: kept the store from before ruling 2'],
+        interim: [{ row_id: 'o-before-ruling-2', status: 'queued' }],
+        current: RAHUL_ID,
+      },
+    })
   })
 
   it("DOS-167 a second user on the same store never renders the first user's rows and starts with no cursor", async () => {
@@ -1027,8 +1176,8 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
       files.set(name, held)
       return held
     }
-    const AT_SAI: SyncIdentity = { ...RAHUL, tenantId: 'sai' }
-    const AT_BALAJI: SyncIdentity = { ...RAHUL, tenantId: 'balaji' }
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
     const server = new FakeServer(TABLES)
     server.queuePull({
       changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
@@ -1074,8 +1223,8 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
    * count it refuses every later delete of that file for the life of the process ("currently open").
    */
   it('DOS-167 sweepIdentityStores closes a store it could not count and never deletes it', async () => {
-    const AT_SAI: SyncIdentity = { ...RAHUL, tenantId: 'sai' }
-    const AT_BALAJI: SyncIdentity = { ...RAHUL, tenantId: 'balaji' }
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
     const events: string[] = []
     const corrupt = { closed: 0, destroyed: 0 }
     const clean = createMemoryStore()
@@ -1156,13 +1305,16 @@ describe('DOS-167 the SQLite file itself', () => {
   }
 
   it("DOS-167 the SQLite adapter's destroy closes then deletes the file by name", async () => {
-    const name = storeNameFor('dos-sales', { userId: 'a', tenantId: 't1', role: 'salesperson' })
-    expect(name).toBe('dos-sales__u-a__t-t1.db')
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    expect(name).toBe('s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft')
 
     const phone = fakeSqlite({ canDelete: true })
     const store = await openExpoSqlite(phone.sqlite, name, 'sqlite-native')
     await store.destroy?.()
-    expect(phone.calls).toEqual(['closeAsync', 'deleteDatabaseAsync dos-sales__u-a__t-t1.db'])
+    expect(phone.calls).toEqual([
+      'closeAsync',
+      'deleteDatabaseAsync s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft',
+    ])
 
     // A module without deleteDatabaseAsync only closes.
     const older = fakeSqlite({ canDelete: false })

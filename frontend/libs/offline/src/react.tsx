@@ -19,6 +19,7 @@ import {
 
 import { OUTBOX_CHANNEL, ERRORS_CHANNEL } from './bus.js'
 import {
+  interimStoreName,
   legacyStoreName,
   storeNameFor,
   SyncEngine,
@@ -65,6 +66,28 @@ export interface OfflineProviderProps {
   enabled?: boolean
   onLog?: (line: string, detail?: unknown) => void
   children: ReactNode
+}
+
+/**
+ * THE FILE 199952b NAMED (DOS-167 ruling 2 (s)). That build gave each person's file a name no browser could open,
+ * and on the QA phones it opened and still holds what it kept: the provider sweeps it once for the person signing
+ * in, by the sibling rule — deleted when nothing in it is queued, sending or refused; kept, and said, when something
+ * is, because nothing unsent is ever thrown away. An id that could not have been in that name has no such file.
+ */
+export async function sweepInterimStore(
+  storeFactory: StoreFactory,
+  storePrefix: string,
+  identity: SyncIdentity,
+  onLog?: (line: string, detail?: unknown) => void,
+): Promise<void> {
+  let name: string
+  try {
+    name = interimStoreName(storePrefix, identity)
+  } catch {
+    return
+  }
+  const swept = await SyncEngine.sweepStores(storeFactory, [name], onLog)
+  for (const file of swept.kept) onLog?.('offline: kept the store from before ruling 2', file)
 }
 
 /** The file the engine opens: the explicit name, else this person's file in this distributorship. */
@@ -182,6 +205,20 @@ export function OfflineProvider({
       }
     })()
   }, [storeFactory, storePrefix, databaseName])
+
+  /*
+   * THE FILE 199952b NAMED, swept once per person per mount (ruling 2 (s)): `sweepInterimStore`. Its name is not the
+   * engine's, so the two never open one file; on a browser it never existed and the open simply finds nothing.
+   */
+  const sweptInterim = useRef(new Set<string>())
+  useEffect(() => {
+    if (storePrefix === undefined || identity === null || idKey === null) return
+    if (sweptInterim.current.has(idKey)) return
+    sweptInterim.current.add(idKey)
+    void sweepInterimStore(storeFactory, storePrefix, identity, onLog).catch((error: unknown) => {
+      onLog?.('offline: could not sweep the store from before ruling 2', error)
+    })
+  }, [storeFactory, storePrefix, idKey])
 
   /*
    * The radio, told to the engine rather than guessed at. On web these are the browser's own events;

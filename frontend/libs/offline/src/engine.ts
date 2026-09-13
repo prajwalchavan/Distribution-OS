@@ -52,14 +52,86 @@ const STORE_PREFIX = /^[A-Za-z0-9-]+$/
 const STORE_ID = /^[A-Za-z0-9-]{1,64}$/
 
 /**
+ * The letter that names the app in its store file (DOS-167 ruling 2 (s)). `storePrefix` is a literal per app,
+ * so a prefix outside this table is a bug, and it gets no file rather than a guessed one.
+ */
+const STORE_APP_LETTERS: ReadonlyMap<string, string> = new Map([
+  ['dos-sales', 's'],
+  ['dos-delivery', 'd'],
+  ['dos-warehouse', 'w'],
+  ['dos-harness', 'h'],
+])
+const STORE_APP_PREFIXES: ReadonlyMap<string, string> = new Map(
+  [...STORE_APP_LETTERS].map(([prefix, letter]) => [letter, prefix]),
+)
+/** Every id in this system is a UUID; a file name never carries an unchecked string. Any case goes in. */
+const CANONICAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/** 36^24 < 2^128 < 36^25: twenty-five base-36 digits hold every UUID, zero-padded to a fixed width. */
+const ID_DIGITS = 25
+const STORE_NAME = /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/
+
+/**
  * The device database of one person inside one distributorship, for one app (DOS-167, docs/27 §2):
- * `dos-sales__u-<userId>__t-<tenantId>.db`. Two identities can never open the same file, so a person who
- * signs in on a phone somebody else used starts with no rows and no cursor by construction.
+ * `<app><user><distributor>` — the app's letter, then each id's 128 bits in base 36, zero-padded to 25 digits —
+ * exactly 51 characters of `[0-9a-z]`, e.g. `s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft`. Two identities can
+ * never open the same file, so a person who signs in on a phone somebody else used starts with no rows and no
+ * cursor by construction.
  *
- * LOSSLESS ON PURPOSE: the ids go in as they are, never hashed, so two identities share a file only when
- * both ids are equal. And CHECKED: a file name never carries an unchecked string.
+ * SHORT BECAUSE IT HAS TO OPEN (ruling 2 (s)). expo-sqlite's web build opens `./<name>` through wa-sqlite, whose
+ * VFS allows 64 characters of path, and SQLite keeps 8 of those for the journal suffix: a name longer than 54
+ * does not open at all. The 199952b name (`dos-sales__u-<uuid>__t-<uuid>.db`, 92 characters) failed on every
+ * browser, and the open fell back to a store in memory. This one leaves `./` + 51 = 53.
+ *
+ * LOSSLESS AND COLLISION-FREE, with no hash anywhere: a canonical UUID and its 128-bit number are the same thing,
+ * a number has one zero-padded base-36 spelling, the widths are fixed so the parts cannot run into each other,
+ * and the alphabet has ONE case, so no case-folding file system (the iOS simulator's container sits on one) can
+ * take two people's files for one. `parseStoreName` reads a name back.
  */
 export function storeNameFor(prefix: string, identity: SyncIdentity): string {
+  const letter = STORE_APP_LETTERS.get(prefix)
+  if (letter === undefined) throw new Error(`offline: no store file for the app prefix ${prefix}`)
+  return `${letter}${idDigits(identity.userId)}${idDigits(identity.tenantId)}`
+}
+
+function idDigits(id: string): string {
+  if (!CANONICAL_UUID.test(id))
+    throw new Error('offline: a store name takes a user id and a distributor id that are UUIDs')
+  return BigInt(`0x${id.toLowerCase().replaceAll('-', '')}`)
+    .toString(36)
+    .padStart(ID_DIGITS, '0')
+}
+
+/**
+ * Whose file a name is — the app prefix and the two ids, as `storeNameFor` wrote them — or null for anything that
+ * is not a store name (a `-wal` or `-shm` beside it, another app's file). For a QA listing of a phone or a browser.
+ */
+export function parseStoreName(
+  name: string,
+): { prefix: string; userId: string; tenantId: string } | null {
+  const match = STORE_NAME.exec(name)
+  if (match === null) return null
+  const prefix = STORE_APP_PREFIXES.get(match[1] ?? '')
+  const userId = uuidOfDigits(match[2] ?? '')
+  const tenantId = uuidOfDigits(match[3] ?? '')
+  if (prefix === undefined || userId === null || tenantId === null) return null
+  return { prefix, userId, tenantId }
+}
+
+function uuidOfDigits(digits: string): string | null {
+  let value = 0n
+  for (const digit of digits) value = value * 36n + BigInt(Number.parseInt(digit, 36))
+  const hex = value.toString(16).padStart(32, '0')
+  // Twenty-five base-36 digits reach past 128 bits; a group that does is nobody's id.
+  if (hex.length > 32) return null
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/**
+ * The name 199952b gave the file (`<prefix>__u-<userId>__t-<tenantId>.db`, 92-96 characters). No browser ever
+ * opened it; on the QA phones it did, and still holds what that build kept. It is named here only so the
+ * provider can sweep it once for the person signing in (ruling 2 (s)); nothing opens it to use it.
+ */
+export function interimStoreName(prefix: string, identity: SyncIdentity): string {
   assertStorePrefix(prefix)
   if (!STORE_ID.test(identity.userId) || !STORE_ID.test(identity.tenantId))
     throw new Error(
@@ -535,11 +607,39 @@ export class SyncEngine {
     identities: readonly SyncIdentity[],
     onLog?: (line: string, detail?: unknown) => void,
   ): Promise<{ destroyed: number; kept: { identity: SyncIdentity; pending: number }[] }> {
-    let destroyed = 0
-    const kept: { identity: SyncIdentity; pending: number }[] = []
+    const owners = new Map<string, SyncIdentity>()
     for (const identity of identities) {
       try {
-        const store = await storeFactory(storeNameFor(prefix, identity))
+        owners.set(storeNameFor(prefix, identity), identity)
+      } catch (error) {
+        onLog?.('offline: sweep skipped a store', error)
+      }
+    }
+    const swept = await SyncEngine.sweepStores(storeFactory, [...owners.keys()], onLog)
+    const kept: { identity: SyncIdentity; pending: number }[] = []
+    for (const file of swept.kept) {
+      const identity = owners.get(file.name)
+      if (identity !== undefined) kept.push({ identity, pending: file.pending })
+    }
+    return { destroyed: swept.destroyed, kept }
+  }
+
+  /**
+   * The sibling rule, by file name (DOS-167 ruling 2 (s)): each file is opened in turn, one with nothing queued,
+   * sending or refused is deleted, and one still holding unsent work is kept and reported. Best effort, file by
+   * file — a file that cannot be opened or counted is logged, closed and skipped, never deleted.
+   * `sweepIdentityStores` runs it over a person's other distributorships; the provider over the file 199952b named.
+   */
+  static async sweepStores(
+    storeFactory: StoreFactory,
+    names: readonly string[],
+    onLog?: (line: string, detail?: unknown) => void,
+  ): Promise<{ destroyed: number; kept: { name: string; pending: number }[] }> {
+    let destroyed = 0
+    const kept: { name: string; pending: number }[] = []
+    for (const name of names) {
+      try {
+        const store = await storeFactory(name)
         let pending: number
         try {
           await createSystemTables(store)
@@ -558,7 +658,7 @@ export class SyncEngine {
         }
         if (pending > 0) {
           await store.close()
-          kept.push({ identity, pending })
+          kept.push({ name, pending })
         } else if (store.destroy === undefined) {
           await store.close()
         } else {
