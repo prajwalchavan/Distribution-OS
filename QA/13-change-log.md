@@ -483,3 +483,29 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
   - Founder question: may a trip leave the godown with a bill no load sheet counted? Recommended: no.
 
 **The cross-design critic failed:** "You've reached your Fable limit". Fable is unavailable until the Saturday 11:30 IST reset. Opus now stands in, labelled as such, for the critic, the revision pass, the DOS-167 ruling-2 merge review and judge, and lean merge reviews. The design run was resumed on that basis, with the designs replayed from cache.
+
+### Batch 2 — designs revised; the DOS-167 Android keep-path crash; approval request (2026-09-14 02:04 IST)
+
+**Designs.** The Opus stand-in critic said NEEDS-CHANGES (8 overlaps, 16 gaps). One Opus revision per design followed.
+- Main gaps fixed:
+  - the D8 hand-over heuristic is replaced;
+  - trip detail reads the same receipt money as settlement;
+  - trip_settled refuses only cash and cheque (UPI is accepted);
+  - allocations lock the receipt too;
+  - late collections ops get the same refusal as receipts ops;
+  - a desk check-in follow-up;
+  - the repair queries are made exact;
+  - the van-sale repair is one-shot;
+  - the godown holds a returned bill until check-in;
+  - a binding rule that every new spec loads out through a confirmed sheet.
+- The founder questions were merged into three, all recommending A. The cess question was dropped: the architect builds DOS-171 now and recommends moving DOS-079's cess earlier.
+
+**DOS-167 Android delivery and warehouse proof: FAIL.**
+- **P1 (S-128), 2 of 2:** the delivery app crashes natively right after "Sign out, keep here". SIGSEGV in expo-sqlite `sqlite3_reset`, most likely a store call racing the close.
+  - No data was lost: the kept file is intact and the op was sent once at the owner's next sign-in.
+  - One-tap sign-outs did not crash.
+- **P2 (S-126):** one warehouse cold-start crash in the React Native Fabric renderer, seen once and not attributed to DOS-167.
+- **P3 (S-127):** delivery says "Still filling this phone" after a completed pull.
+- **Repair:** addendum (x) (`verdicts/DOS-167-ruling-2-addendum.md`, written by the main session as the Opus stand-in). end() drains every store call before it closes the store, and the adapter refuses calls after close. It is folded into the prepared ruling-2 build. Its re-proof adds the keep path three times on delivery, once on warehouse and once on iOS, plus the S-126 and S-127 checks.
+
+**Approval request sent:** add DOS-168..DOS-173 to batch 2, with questions Q1–Q3.
