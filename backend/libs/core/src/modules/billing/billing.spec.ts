@@ -1207,6 +1207,90 @@ describeDb('billing (DATABASE_URL)', () => {
     expect((await call(app, null, 'GET', '/invoices', {})).status).toBe(401)
   })
 
+  it('DOS-126: a bill for a line charged at an approved rate takes that rate off once — invoice taxable equals the order line’s taxable', async () => {
+    // The owner files a rate for this order already approved (₹9 against the ₹10 list), so the draft prices with
+    // it: the order line stores the approved rate AND a discount that holds the bargain (pricing-lines). The bill
+    // charges that rate and takes off only what came off it — nothing here: 24 × ₹9 = ₹216.00 taxable.
+    const orderId = uuidv7()
+    const lineId = uuidv7()
+    const asked = await call<{ item: { status: string } }>(
+      app,
+      owner,
+      'POST',
+      '/pricing/bargains',
+      {
+        idempotencyKey: `dos126-ask-${run}`,
+        id: uuidv7(),
+        retailerId: shopMh,
+        variantId: variantA,
+        askedRatePaise: 900,
+        qtyPcs: 24,
+        orderId,
+      },
+    )
+    expect(asked.status).toBe(200)
+    expect(asked.body.item.status).toBe('approved')
+
+    type OrderBody = {
+      state: string
+      totalPaise: number
+      lines: {
+        id: string
+        qtyPcs: number
+        ratePaise: number
+        discountPaise: number
+        taxPaise: number
+        lineTotalPaise: number
+      }[]
+    }
+    const created = await call<{ item: OrderBody }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos126-order-${run}`,
+      id: orderId,
+      retailerId: shopMh,
+      source: 'salesperson',
+      lines: [{ id: lineId, variantId: variantA, enteredQty: 2, enteredUnit: 'case' }],
+    })
+    expect(created.status).toBe(200)
+    const submitted = await call<{ item: OrderBody }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${orderId}/submit`,
+      { idempotencyKey: `dos126-submit-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('confirmed')
+    // 24 × ₹9 = 21 600 + 2 592 GST = 24 192 → ₹242.00; the stored discount (2 400) is the bargain itself
+    expect(submitted.body.item.lines).toEqual([
+      expect.objectContaining({
+        id: lineId,
+        qtyPcs: 24,
+        ratePaise: 900,
+        discountPaise: 2_400,
+        taxPaise: 2_592,
+        lineTotalPaise: 24_192,
+      }),
+    ])
+    expect(submitted.body.item.totalPaise).toBe(24_200)
+
+    const { res } = await issueFor(orderId, 'dos126')
+    expect(res.status).toBe(200)
+    const bill = res.body.item
+    expect(bill.lines).toHaveLength(1)
+    expect(bill.lines[0]).toMatchObject({
+      ratePaise: 900,
+      qtyPcs: 24,
+      discountPaise: 0,
+      taxablePaise: 21_600,
+      cgstPaise: 1_296,
+      sgstPaise: 1_296,
+      igstPaise: 0,
+      lineTotalPaise: 24_192,
+    })
+    expect(bill).toMatchObject({ discountPaise: 0, taxablePaise: 21_600, totalPaise: 24_200 })
+    expect(bill.totalPaise).toBe(submitted.body.item.totalPaise)
+  })
+
   // ---------------------------------------------------------------------------------------------------------------
 
   async function reservedFor(orderLineId: string): Promise<number> {

@@ -24,6 +24,7 @@ import type {
   UpsertLotInput,
   UpsertLotOutput,
 } from '@dos/contracts'
+import { mayPostAdjustment } from '@dos/contracts'
 import {
   locations,
   products,
@@ -36,7 +37,6 @@ import {
   type Db,
 } from '@dos/db'
 import {
-  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
@@ -82,8 +82,12 @@ type LedgerOut = z.infer<typeof LedgerListOutput>
 type LotIn = z.infer<typeof UpsertLotInput>
 type LotOut = z.infer<typeof UpsertLotOutput>
 
-/** Who may see per-lot balances and the ledger: everyone who physically keeps stock (a van counts). Reps and retailers get `availability` and `sellable` only. */
-export const STOCK_KEEPERS: readonly ActorRole[] = [
+/**
+ * Who may see per-lot balances and the ledger (permissions.ts STOCK_VIEWERS): everyone who physically keeps
+ * stock (a van counts) and the accountant, who reads it. Reps and retailers get `availability` and
+ * `sellable` only.
+ */
+export const STOCK_VIEWERS: readonly ActorRole[] = [
   'owner',
   'manager',
   'warehouse',
@@ -92,8 +96,13 @@ export const STOCK_KEEPERS: readonly ActorRole[] = [
   'system',
 ]
 
-/** Who may move stock and maintain locations/lots: the desk plus the godown. None of this touches a rate. */
-const STOCK_WRITERS: readonly ActorRole[] = [...BACK_OFFICE, 'warehouse']
+/**
+ * Who may move stock and maintain locations/lots: ROLE_GROUPS.STOCK_KEEPERS plus system. The accountant
+ * reads stock and writes none of it (docs/23 §2 M16, QA DOS-037). None of this touches a rate. Adding
+ * stock by an adjustment is narrower (owner or manager only), checked in `adjust()` through
+ * `mayPostAdjustment` (DOS-044).
+ */
+const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
 
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
@@ -237,7 +246,7 @@ export class StockService {
   }
 
   async balances(input: BalancesIn): Promise<BalancesOut> {
-    requireRole(STOCK_KEEPERS)
+    requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const after = splitCursor(input.cursor)
@@ -287,8 +296,17 @@ export class StockService {
 
   async adjust(input: AdjustIn): Promise<AdjustOut> {
     requireRole(STOCK_WRITERS)
-    const db = requireDb(this.db)
     const ctx = currentTenant()
+    // DOS-044: only the owner or a manager puts pieces INTO the books by hand; every other role only
+    // takes stock off. Refused before the transaction and before `idempotent()`, so nothing is written
+    // and a replayed key is refused the same way.
+    if (!mayPostAdjustment(ctx.actorRole, input.reason, input.qtyDelta))
+      throw new ORPCError('FORBIDDEN', {
+        message:
+          'Only the owner or a manager can add stock or post opening stock. If the rack holds more than the books show, record a count and tell the desk; goods arriving come in on a GRN.',
+        data: { code: 'stock_add_desk_only', reason: input.reason, qtyDelta: input.qtyDelta },
+      })
+    const db = requireDb(this.db)
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
@@ -360,7 +378,7 @@ export class StockService {
 
   /** Newest first; `cursor` is the id of the last row seen (UUIDv7 orders by time). */
   async ledger(input: LedgerIn): Promise<LedgerOut> {
-    requireRole(STOCK_KEEPERS)
+    requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
       const filters: (SQL | undefined)[] = [

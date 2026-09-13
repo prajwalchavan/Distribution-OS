@@ -1,0 +1,125 @@
+# dos_qa DOS-115 check for step 11   since: 2026-09-13T10:52:52.629Z   attempted new order ids: 01a09a66-064c-7170-b7d2-16feef5d4d3d,01a09a66-064c-78fd-aa40-8d7e1d53796e   created: -   device: qa-b2-dos115-after-warehouse-11   run at: 2026-09-13T10:52:52Z
+== 0. BEFORE: the three real orders (draft 876d0028 R-0008, submitted SO-0868, confirmed SO-0877) and tenant counts
+-- snapshot at 2026-09-13T10:52:52Z
+select o.id, o.order_no, o.state, o.source, o.total_paise, o.updated_at, o.cancelled_at,
+       (select count(*) from sales_order_lines l where l.order_id = o.id) as lines,
+       (select count(*) from order_state_transitions s where s.order_id = o.id) as transitions,
+       (select string_agg(r.state::text || ':' || r.qty, ',' order by r.id)
+          from reservations r join sales_order_lines l on l.id = r.order_line_id where l.order_id = o.id) as reservations,
+       (select count(*) from outbox_events e where e.aggregate_id = o.id) as outbox_events
+  from sales_orders o
+ where o.id in ('876d0028-e59c-77b8-9c0f-afae52c229cc', '3efdbf77-02ab-745b-92d0-a175744f6761', 'ce2350c7-770c-78dd-901b-3206d37d6182')
+ order by o.state, o.id;
+                  id                  | order_no |   state   |   source    | total_paise |            updated_at            | cancelled_at | lines | transitions | reservations | outbox_events 
+--------------------------------------+----------+-----------+-------------+-------------+----------------------------------+--------------+-------+-------------+--------------+---------------
+ 876d0028-e59c-77b8-9c0f-afae52c229cc |          | draft     | salesperson |      159800 | 2026-09-13 16:11:06.688023+05:30 |              |     2 |           0 |              |             0
+ 3efdbf77-02ab-745b-92d0-a175744f6761 | SO-0868  | submitted | salesperson |     1773600 | 2026-09-13 16:11:06.687884+05:30 |              |     5 |           1 |              |             0
+ ce2350c7-770c-78dd-901b-3206d37d6182 | SO-0877  | confirmed | salesperson |     1753100 | 2026-09-13 16:11:06.688171+05:30 |              |     3 |           2 |              |             0
+(3 rows)
+
+select (select count(*) from sales_orders where tenant_id = :'t') as sales_orders_tenant,
+       (select count(*) from sales_order_lines where tenant_id = :'t') as sales_order_lines_tenant,
+       (select count(*) from order_state_transitions where tenant_id = :'t') as order_state_transitions_tenant,
+       (select count(*) from outbox_events where tenant_id = :'t' and aggregate_type = 'order') as outbox_order_events_tenant;
+ sales_orders_tenant | sales_order_lines_tenant | order_state_transitions_tenant | outbox_order_events_tenant 
+---------------------+--------------------------+--------------------------------+----------------------------
+                 888 |                     3714 |                           5192 |                          0
+(1 row)
+
+
+== 1. AFTER: the same snapshot
+-- snapshot at 2026-09-13T10:52:52Z
+select o.id, o.order_no, o.state, o.source, o.total_paise, o.updated_at, o.cancelled_at,
+       (select count(*) from sales_order_lines l where l.order_id = o.id) as lines,
+       (select count(*) from order_state_transitions s where s.order_id = o.id) as transitions,
+       (select string_agg(r.state::text || ':' || r.qty, ',' order by r.id)
+          from reservations r join sales_order_lines l on l.id = r.order_line_id where l.order_id = o.id) as reservations,
+       (select count(*) from outbox_events e where e.aggregate_id = o.id) as outbox_events
+  from sales_orders o
+ where o.id in ('876d0028-e59c-77b8-9c0f-afae52c229cc', '3efdbf77-02ab-745b-92d0-a175744f6761', 'ce2350c7-770c-78dd-901b-3206d37d6182')
+ order by o.state, o.id;
+                  id                  | order_no |   state   |   source    | total_paise |            updated_at            | cancelled_at | lines | transitions | reservations | outbox_events 
+--------------------------------------+----------+-----------+-------------+-------------+----------------------------------+--------------+-------+-------------+--------------+---------------
+ 876d0028-e59c-77b8-9c0f-afae52c229cc |          | draft     | salesperson |      159800 | 2026-09-13 16:11:06.688023+05:30 |              |     2 |           0 |              |             0
+ 3efdbf77-02ab-745b-92d0-a175744f6761 | SO-0868  | submitted | salesperson |     1773600 | 2026-09-13 16:11:06.687884+05:30 |              |     5 |           1 |              |             0
+ ce2350c7-770c-78dd-901b-3206d37d6182 | SO-0877  | confirmed | salesperson |     1753100 | 2026-09-13 16:11:06.688171+05:30 |              |     3 |           2 |              |             0
+(3 rows)
+
+select (select count(*) from sales_orders where tenant_id = :'t') as sales_orders_tenant,
+       (select count(*) from sales_order_lines where tenant_id = :'t') as sales_order_lines_tenant,
+       (select count(*) from order_state_transitions where tenant_id = :'t') as order_state_transitions_tenant,
+       (select count(*) from outbox_events where tenant_id = :'t' and aggregate_type = 'order') as outbox_order_events_tenant;
+ sales_orders_tenant | sales_order_lines_tenant | order_state_transitions_tenant | outbox_order_events_tenant 
+---------------------+--------------------------+--------------------------------+----------------------------
+                 888 |                     3714 |                           5192 |                          0
+(1 row)
+
+
+\echo == 2. sales_orders rows for the attempted (refused) new ids: expect 0 rows
+== 2. sales_orders rows for the attempted (refused) new ids: expect 0 rows
+select id, order_no, state, source, created_by, created_at from sales_orders where id = any(string_to_array(:'ids', ','));
+ id | order_no | state | source | created_by | created_at 
+----+----------+-------+--------+------------+------------
+(0 rows)
+
+\echo == 3. order_state_transitions since the probe started by dinesh.patil (5b6fbe87) / ganesh.more (7b2db500) / amol.vaidya (9be27e0e): expect 0 rows
+== 3. order_state_transitions since the probe started by dinesh.patil (5b6fbe87) / ganesh.more (7b2db500) / amol.vaidya (9be27e0e): expect 0 rows
+select s.id, s.order_id, s.event, s.from_state, s.to_state, u.username, s.occurred_at
+  from order_state_transitions s left join users u on u.id = s.actor_id
+ where s.tenant_id = :'t' and s.occurred_at >= :'since'::timestamptz
+   and s.actor_id in ('5b6fbe87-cb70-7195-8de1-a4f5046c3675', '7b2db500-02d5-7aa7-a1dc-005a3e89ff63', '9be27e0e-9211-7be6-9497-4bee998843a3');
+ id | order_id | event | from_state | to_state | username | occurred_at 
+----+----------+-------+------------+----------+----------+-------------
+(0 rows)
+
+\echo == 4. every order outbox event since the probe started (tenant tarsun)
+== 4. every order outbox event since the probe started (tenant tarsun)
+select id, aggregate_id, event_type, created_at from outbox_events
+ where tenant_id = :'t' and aggregate_type = 'order' and created_at >= :'since'::timestamptz order by created_at;
+ id | aggregate_id | event_type | created_at 
+----+--------------+------------+------------
+(0 rows)
+
+\echo == 5. the control order created by the salesperson (step 10 only): header, lines, transitions
+== 5. the control order created by the salesperson (step 10 only): header, lines, transitions
+select o.id, o.order_no, o.state, o.source, o.retailer_id, r.code as retailer_code, o.salesperson_id, u.username as created_by, o.total_paise, o.note, o.created_at
+  from sales_orders o join retailers r on r.id = o.retailer_id left join users u on u.id = o.created_by
+ where o.id = :'created';
+ id | order_no | state | source | retailer_id | retailer_code | salesperson_id | created_by | total_paise | note | created_at 
+----+----------+-------+--------+-------------+---------------+----------------+------------+-------------+------+------------
+(0 rows)
+
+select l.id, l.variant_id, l.entered_qty, l.entered_unit from sales_order_lines l where l.order_id = :'created';
+ id | variant_id | entered_qty | entered_unit 
+----+------------+-------------+--------------
+(0 rows)
+
+select s.event, s.from_state, s.to_state, u.username, s.occurred_at from order_state_transitions s left join users u on u.id = s.actor_id where s.order_id = :'created';
+ event | from_state | to_state | username | occurred_at 
+-------+------------+----------+----------+-------------
+(0 rows)
+
+\echo == 6. sync_ops and sync_errors for the probe device (step 11 only)
+== 6. sync_ops and sync_errors for the probe device (step 11 only)
+select tenant_id, device_id, op_id, outcome, created_at from sync_ops where device_id = :'dev' order by created_at;
+              tenant_id               |            device_id            |                op_id                 |                                                                                                                                                    outcome                                                                                                                                                     |            created_at            
+--------------------------------------+---------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ 01a09a5b-3c58-71c1-a34d-b93c569b0099 | qa-b2-dos115-after-warehouse-11 | 01a09a66-064c-741f-b069-f07a801d742e | {"ok": false, "rejection": {"code": "role_not_allowed", "opId": "01a09a66-064c-741f-b069-f07a801d742e", "rowId": "01a09a66-064c-7170-b7d2-16feef5d4d3d", "table": "sales_orders", "messageEn": "A warehouse may not send sales_orders from a device", "messageHi": "यह काम आपकी भूमिका के लिए नहीं है"}}           | 2026-09-13 16:22:52.689561+05:30
+ 01a09a5b-3c58-71c1-a34d-b93c569b0099 | qa-b2-dos115-after-warehouse-11 | 01a09a66-064c-732f-ad21-6550462fde60 | {"ok": false, "rejection": {"code": "role_not_allowed", "opId": "01a09a66-064c-732f-ad21-6550462fde60", "rowId": "01a09a66-064c-78fd-aa40-8d7e1d53796e", "table": "sales_order_lines", "messageEn": "A warehouse may not send sales_order_lines from a device", "messageHi": "यह काम आपकी भूमिका के लिए नहीं है"}} | 2026-09-13 16:22:52.699158+05:30
+(2 rows)
+
+select se.id, se.user_id, u.username, se.device_id, se.op_id, se.table_name, se.row_id, se.code, se.message_en, se.created_at
+  from sync_errors se left join users u on u.id = se.user_id where se.device_id = :'dev' order by se.created_at;
+                  id                  |               user_id                |   username   |            device_id            |                op_id                 |    table_name     |                row_id                |       code       |                        message_en                        |            created_at            
+--------------------------------------+--------------------------------------+--------------+---------------------------------+--------------------------------------+-------------------+--------------------------------------+------------------+----------------------------------------------------------+----------------------------------
+ 01a09a66-0655-7442-b627-efe57ae16c6c | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | dinesh.patil | qa-b2-dos115-after-warehouse-11 | 01a09a66-064c-741f-b069-f07a801d742e | sales_orders      | 01a09a66-064c-7170-b7d2-16feef5d4d3d | role_not_allowed | A warehouse may not send sales_orders from a device      | 2026-09-13 16:22:52.689561+05:30
+ 01a09a66-065c-74d3-9c50-84dc9242fe58 | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | dinesh.patil | qa-b2-dos115-after-warehouse-11 | 01a09a66-064c-732f-ad21-6550462fde60 | sales_order_lines | 01a09a66-064c-78fd-aa40-8d7e1d53796e | role_not_allowed | A warehouse may not send sales_order_lines from a device | 2026-09-13 16:22:52.699158+05:30
+(2 rows)
+
+\echo == 7. sales_order_lines rows for the attempted line ids (step 11 only): expect 0 rows
+== 7. sales_order_lines rows for the attempted line ids (step 11 only): expect 0 rows
+select id, order_id from sales_order_lines where id = any(string_to_array(:'ids', ','));
+ id | order_id 
+----+----------
+(0 rows)
+

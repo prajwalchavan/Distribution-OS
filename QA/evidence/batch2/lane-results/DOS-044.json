@@ -1,0 +1,158 @@
+{
+ "id": "DOS-044",
+ "runs": [
+  "wf_ac1e794b-9d1"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-044",
+   "status": "fixed",
+   "commits": [
+    "8798c18"
+   ],
+   "failBefore": "All three new tests failed on the unfixed tree, each for the finding's reason (each file run on its own, filtered with -t \"DOS-044\"):\n1. backend/libs/contracts/src/permissions.test.ts: \"TypeError: STOCK_ADDERS is not iterable\" at permissions.test.ts:1515. The exports did not exist yet.\n2. backend/libs/core/src/modules/inventory/inventory.spec.ts: \"AssertionError: warehouse opening 100000: expected 200 to be 403\" at inventory.spec.ts:556. The server accepted +100000 'opening' from a warehouse login.\n3. backend/libs/core/src/docs/examples.spec.ts: \"AssertionError: warehouse qtyDelta: expected 1 to be less than 0\" at examples.spec.ts:575. The warehouse-service /docs example published +1.",
+   "passAfter": "Run after the fix, with contracts and core rebuilt, one file per command:\n- **Tests:**\n  - backend/libs/contracts/src/permissions.test.ts: 45/45 passed.\n  - backend/libs/core/src/modules/inventory/inventory.spec.ts: 13/13 passed, DOS-044 included.\n  - backend/libs/core/src/docs/examples.spec.ts: 32/32 passed.\n  - backend/warehouse-service/src/service.spec.ts (openapi.json and the permission matrix): 253/253 passed.\n- **Typecheck and lint:**\n  - `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core --concurrency=1`: 7/7 tasks successful. The only output was deprecation warnings from the boundaries plugin.\n  - Frontend `pnpm --filter @dos/warehouse-app typecheck` and `lint`: no errors and no pnpm failure.\n- **Formatting:** prettier --check is clean on all 10 changed backend and frontend files (docs/23 is outside prettier's scope).\n- **Commit:** 8798c18 on qa/b2-h9-desk; git status is clean.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-044: only the owner and a manager may add stock or post opening stock by an adjustment; every other role only takes stock off, and every stock adder can reach inventory.stock.adjust"
+    },
+    {
+     "file": "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+     "name": "DOS-044: a warehouse login cannot add stock by an adjustment or post opening stock (403 stock_add_desk_only, no ledger row, balance unchanged, replay refused) and still takes damaged stock off; a manager still adds"
+    },
+    {
+     "file": "backend/libs/core/src/docs/examples.spec.ts",
+     "name": "DOS-044: the published inventory.stock.adjust example on warehouse-service takes a piece off; owner-service and manager-service still add one"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/contracts/src/inventory.ts",
+    "backend/libs/core/src/modules/inventory/stock.service.ts",
+    "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+    "backend/libs/core/src/docs/examples.ts",
+    "backend/libs/core/src/docs/examples.spec.ts",
+    "backend/tools/smoke-endpoints.mts",
+    "frontend/warehouse-app/app/stock/index.tsx",
+    "frontend/warehouse-app/src/strings.ts",
+    "docs/23-app-screens-and-api-gaps.md"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Copy must not promise a desk step that has no screen",
+     "done": true,
+     "how": "- The server message in StockService.adjust() is verbatim: 'Only the owner or a manager can add stock or post opening stock. If the rack holds more than the books show, record a count and tell the desk; goods arriving come in on a GRN.'\n- 'w8.addIsDesk' is verbatim: 'More on the rack than the books show? Record it under Counts and tell the desk — only the owner or a manager can add stock. Goods arriving come in on a GRN.' W8 renders it as testID w8-add-is-desk.\n- The spec asserts /owner or a manager/ and that the message contains no UUID.\n- Not done: the e2e script's verbatim assertion. That script is under QA/, which this lane may not edit (see deviations)."
+    },
+    {
+     "amendment": "(b) Smoke pins qtyDelta on target.role",
+     "done": true,
+     "how": "In backend/tools/smoke-endpoints.mts, planFor case 'inventory.stock.adjust' pins { lotId, locationId, reason: 'adjustment', qtyDelta: mayPostAdjustment(target.role, 'adjustment', 1) ? 1 : -1 }. `mayPostAdjustment` is imported next to isAllowed and permissionFor. classify() is unchanged."
+    },
+    {
+     "amendment": "(c) mayPostAdjustment JSDoc: guards the HTTP door only; system is not an adder; test asserts system cases",
+     "done": true,
+     "how": "- The JSDoc in permissions.ts says the predicate guards only the one handler, StockService.adjust(). Internal modules post through InventoryService.post, so `system` is deliberately not an adder.\n- permissions.test.ts asserts mayPostAdjustment('system','opening',1) === false and mayPostAdjustment('system','damage',-1) === true.\n- The same test covers the membership roles, null and undefined."
+    },
+    {
+     "amendment": "(d) W8 REASONS as useMemo on session role inside the component; reason state AdjustmentReason default 'adjustment'; keyboard decimal stays; w8.qtyNeeded untouched",
+     "done": true,
+     "how": "- The module-level list is ADJUSTMENT_REASONS (the four godown reasons). Inside Stock(), `reasons = useMemo(() => ADJUSTMENT_REASONS.filter(one => mayPostAdjustment(role, one.id, -1)), [role])`, with `role = session?.role`.\n- `useState<AdjustmentReason>('adjustment')` is unchanged, and `keyboard=\"decimal\"` is kept.\n- 'w8.qtyNeeded' is unchanged and still used by the Move sheet. The adjust field's helper and the Post button's disabledReason use the new key 'w8.adjustQtyNeeded'."
+    },
+    {
+     "amendment": "(e) inventory.spec asserts idempotency_keys count = 0 for the probe key after the probe and its replay",
+     "done": true,
+     "how": "- After the +100000 probe and its replay, the test asserts `select count(*)::int as n from idempotency_keys where tenant_id = … and key = <probe key>` is 0.\n- The ledger count for all four probe keys is 0, and on_hand is still 10.\n- Positive control: the same query returns 1 for the accepted warehouse −2 damage key, so the zero is not vacuous."
+    },
+    {
+     "amendment": "(f) Lane and order: after DOS-074+097, before DOS-096; drop DOS-043/DOS-106 from dependsOn; DOS-037 follows in this lane",
+     "done": true,
+     "how": "- No code change. The branch already carried DOS-074+097: the `stock.availability` row and `availability()` in stock.service.ts are both present, so no rebase was needed.\n- In permissions.ts the edits are the type import, the new STOCK_ADDERS/mayPostAdjustment exports right after BACK_OFFICE_OR_WAREHOUSE, and a comment on the inventory row. DOS-115's ORDER_PLACERS block and the DOS-131+137 delivery rows are untouched.\n- permissions.test.ts:1066, which ties fillRate to stock.adjust, is left for DOS-037."
+    },
+    {
+     "amendment": "(g) NOTES receives ctx only; reworded note names both signs in one sentence; do not widen the NOTES signature",
+     "done": true,
+     "how": "- The NOTES entry keeps its `() =>` signature.\n- New text: 'Writes one real stock-ledger row: +1 piece where the service serves the owner or a manager, −1 on warehouse-service, whose login only takes stock off. The fixed idempotencyKey means a second Execute is replayed, not added.'\n- The sign itself comes from OVERRIDES `(ctx, options)` through the new `addsStock(options)` beside `servesBackOffice`. Undefined or empty roles give +1."
+    }
+   ],
+   "deviations": "- **CHANGE 13 not written.** The e2e script QA/tools/e2e/dos-044-warehouse-adjust.mjs is not in this commit, because the lane environment forbids editing anything under QA/.\n- **CHANGE 10 and CHANGE 11 left to the main session**, as the brief says. READMEs were not regenerated, so `pnpm docs:readme:check` will fail on this branch until `pnpm docs:readme` runs, because the stock.adjust summary text changed. docs/22 was not edited.\n- **W8 reason list.** The plan deletes the 'w8.reasonOpening' string, so the 'opening' entry is removed from the list itself. The remaining list is still filtered through mayPostAdjustment in the useMemo. The names are ADJUSTMENT_REASONS (module const) and `reasons` (memo) rather than REASONS.\n- **W8 desk line position.** The 'w8.addIsDesk' line sits after the note field and before the error text and the Post button, so the server's refusal stays next to the button. It is still before the Post button, as the plan asks.\n- **Extra assertions in the DOS-044 tests.**\n  - inventory.spec: a positive control (the accepted −2 damage key shows 1 idempotency_keys row) and a closing on_hand check.\n  - permissions.test: more magnitudes (±5, +100000, −100).\n  - All stay inside the plan's cases.\n- **Test commands.** The brief's `pnpm --filter <pkg> test -- <file>` form ran all six contracts test files; the `--` defeated the file filter. Single files were therefore run with `pnpm exec vitest run <file>` inside the package.\n- **Unrelated formatting.** `pnpm format` in backend reformatted backend/libs/core/src/modules/pricing/pricing.spec.ts, a pre-existing drift on the base that I never edited. I restored it with `git checkout -- <file>` and did not commit it.\n- **Pre-existing tools errors.** `tsc -p backend/tools/tsconfig.json` shows two errors (TS2322/TS2345, PermissionRole vs the membership roles) at lines 2408 and 2529, away from both edits. A HEAD copy of the file shows the same two errors at 2395/2516, the same lines before my +13-line shift. I made no new errors there, and tools are not part of the turbo typecheck.\n- **No migration**, no matrix row change, and no input or output schema change.",
+   "followUps": "1. **Main session, after merging:**\n   - Run `pnpm docs:readme` in backend and commit the regenerated service READMEs and app README tables (the stock.adjust summary changed). Never merge README hunks by hand.\n   - Write docs/22 (CHANGE 11): the §8 register row, the stock-section note, the §11 change-log row. Then run `python3 docs/tools/render-source-of-truth.py` and republish.\n   - Run `pnpm format` in backend: pricing.spec.ts already drifts from prettier on the base.\n2. **QA side:** write QA/tools/e2e/dos-044-warehouse-adjust.mjs (CHANGE 13), asserting the amendment (a) W8 line verbatim. Also check that the Move sheet helper still reads 'Enter a number of pieces', that no w8-reason-opening appears, and that '-5' and '0' keep w8-adjust-do disabled.\n3. **Verifier walk, per the verdict (not run here: no dev servers, emulators or simulators allowed):**\n   - **API:** probes on :3004; docs example −1 on :3004 and +1 on :3001/:3002.\n   - **Smoke:** `pnpm smoke --service warehouse|manager|owner --run-tag dos044`, each ending 0 BROKEN.\n   - **Web:** W8 at 1280×800 and 390×844.\n   - **Android:** Pixel_7_API_36 with -memory 3072.\n   - **iOS:** xcrun simctl.\n   - **DB:** the step-8 query after the walk.\n4. **Q2 is transitional until DOS-037**, the next item in this lane: M16 still opens the adjust dialog for the accountant, and +N shows the server's sentence.\n5. **New findings from the verdict**, not fixed here:\n   - P1: a warehouse Move out of a negative_allowed damaged bin creates sellable stock (transfer has no floor).\n   - P1: inventory.locations.upsert accepts negativeAllowed from a warehouse token.\n   - P2: no desk screen calls inventory.cycleCounts.post.\n   - P3: permissions.test.ts:1066 couples the fillRate rows to stock.adjust; DOS-037 will break it.\n6. **Pre-existing:** backend/tools/smoke-endpoints.mts fails its own tsconfig with 2 PermissionRole type errors, and CI does not typecheck tools. Worth a separate item.",
+   "platformCheck": "- **API:** covered by the core inventory spec against a real Nest app and dos_test_b2_h9. Warehouse −2 damage and manager +5 are accepted. Every warehouse addition or opening post gets 403 stock_add_desk_only with the readable sentence, and writes no ledger or idempotency row. The warehouse-service spec (openapi.json, permission matrix) passes 253/253.\n- **Web, Android, iOS:** the W8 screen is universal. It imports @dos/ui plus a runtime helper from @dos/contracts, as delivery-app's deliver.tsx already does, and it passes typecheck and lint with contracts dist rebuilt. It was NOT rendered in a browser, the Pixel 7 emulator or the iOS simulator, because the brief forbids dev servers and emulators.\n- **By construction:**\n  - The field takes a positive \"pieces going out\" and sends it negative, so iOS's decimal-pad (no minus key) can now post reductions and cannot post additions.\n  - \"Opening stock\" is gone from the list.\n  - '0' and negative entries keep Post disabled with 'Enter the pieces going out'.\n  - The Move sheet keeps 'Enter a number of pieces'.\n  - Metro may need `--clear` if mayPostAdjustment is undefined at runtime."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-044",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Copy must not promise a desk step that has no screen: verbatim server sentence, verbatim w8.addIsDesk, spec asserts /owner or a manager/ and no UUID, e2e asserts the W8 line verbatim",
+     "satisfied": true,
+     "detail": "- A python byte-compare against the verdict text returned True for both strings:\n  - The server message in stock.service.ts adjust().\n  - 'w8.addIsDesk' in frontend/warehouse-app/src/strings.ts. W8 renders it as testID w8-add-is-desk, before the Post button.\n- inventory.spec.ts asserts toMatch(/owner or a manager/) and not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i) for all four probes.\n- The e2e verbatim assertion belongs to QA/tools/e2e/dos-044-warehouse-adjust.mjs. The lane environment forbids editing QA/, so it is a QA-side follow-up (minor problem below), not a code gap."
+    },
+    {
+     "amendment": "(b) Smoke pins qtyDelta on target.role",
+     "satisfied": true,
+     "detail": "- backend/tools/smoke-endpoints.mts planFor case 'inventory.stock.adjust' pins { lotId, locationId, reason: 'adjustment', qtyDelta: mayPostAdjustment(target.role, 'adjustment', 1) ? 1 : -1 }. `target` is the ServiceTarget parameter (:1267) carrying `role`.\n- classify() is not touched by the diff: no classify hunk.\n- fx.lotBalance selects (on_hand - reserved) > 0 and prefers non-damaged locations, so −1 cannot go below zero."
+    },
+    {
+     "amendment": "(c) mayPostAdjustment JSDoc: guards the HTTP door only, system not an adder; test asserts system cases",
+     "satisfied": true,
+     "detail": "- The JSDoc in permissions.ts says it guards the HTTP door only, that internal modules post through InventoryService.post, and that `system` is deliberately NOT an adder.\n- permissions.test.ts asserts mayPostAdjustment('system','opening',1) === false and mayPostAdjustment('system','damage',-1) === true.\n- `system` is also in the takersOnly loop next to accountant/warehouse/delivery/salesperson/retailer/null/undefined."
+    },
+    {
+     "amendment": "(d) W8 REASONS as useMemo on session role inside the component; reason state AdjustmentReason default 'adjustment'; keyboard decimal stays; w8.qtyNeeded untouched",
+     "satisfied": true,
+     "detail": "- Inside Stock(): `role = session?.role` and `reasons = useMemo(() => ADJUSTMENT_REASONS.filter(one => mayPostAdjustment(role, one.id, -1)), [role])`.\n- `useState<AdjustmentReason>('adjustment')` is unchanged, and `keyboard=\"decimal\"` stays on the adjust field.\n- 'w8.qtyNeeded' ('Enter a number of pieces') is unchanged and still the Move sheet helper (index.tsx:397). The adjust field and the Post disabledReason use the new 'w8.adjustQtyNeeded'.\n- The 'opening' entry was removed from the module list because the plan deletes 'w8.reasonOpening'. The memo filter is still applied, so this is a justified naming/placement deviation."
+    },
+    {
+     "amendment": "(e) inventory.spec asserts idempotency_keys count = 0 for the probe key after the probe and its replay",
+     "satisfied": true,
+     "detail": "- After the four probes and the replay of the +100000 key, the spec asserts `idempotencyRows(huge.idempotencyKey)` is 0 (select count(*)::int from idempotency_keys where tenant_id and key). It also asserts a stock_ledger count of 0 for all four probe keys and on_hand still 10.\n- Positive control: the accepted −2 damage key shows 1 row.\n- Before the fix the spec fails earlier, at the first probe (200 vs 403)."
+    },
+    {
+     "amendment": "(f) Lane and order: after DOS-074+097, before DOS-096; drop DOS-043/DOS-106 from dependsOn; DOS-037 follows; permissions.test fillRate coupling left for DOS-037",
+     "satisfied": true,
+     "detail": "- The branch already carries DOS-074+097: the `'inventory.stock.availability': ANY_MEMBER` row sits in the diff context of permissions.ts.\n- permissions.test.ts:1066 (warehouseMay fillRate rows) is untouched by the diff.\n- The permissions.ts edits are confined to the type import, the STOCK_ADDERS/mayPostAdjustment block after BACK_OFFICE_OR_WAREHOUSE, and a comment on the inventory.stock.adjust row. No orders or delivery rows were touched."
+    },
+    {
+     "amendment": "(g) NOTES receives ctx only; reworded note names both signs in one sentence; NOTES signature not widened",
+     "satisfied": true,
+     "detail": "- The NOTES 'inventory.stock.adjust' entry keeps its `() =>` form under `Record<string, (ctx: ExampleContext) => string | undefined>`.\n- The text is one sentence naming +1 where the owner or a manager is served and −1 on warehouse-service.\n- The sign itself comes from OVERRIDES `(ctx, options)` via the new addsStock(options), which returns true for undefined or empty roles."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "QA/tools/e2e/dos-044-warehouse-adjust.mjs",
+     "detail": "- The plan's CHANGE 13 e2e script is not in the commit. It carries amendment (a)'s verbatim W8-line assertion, no w8-reason-opening, the Move helper, '-5'/'0' disabled, and the +100000 opening probe on :3004.\n- The lane environment forbids editing anything under QA/, so this is a QA-side follow-up, not an implementer defect."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/*-service/README.md",
+     "detail": "- The stock.adjust route summary changed, but READMEs were not regenerated (the brief forbids running pnpm docs:readme in the lane).\n- `pnpm docs:readme:check` will fail on this branch until the main session runs `pnpm docs:readme` after the merge."
+    },
+    {
+     "severity": "minor",
+     "file": "docs/22-source-of-truth.md",
+     "detail": "CHANGE 11 is left to the main session, as the brief requires: the §8 register row, the stock-section note, the §11 change-log row, the render and the republish."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/warehouse-app/app/stock/index.tsx",
+     "detail": "- The verdict's platform walk was not executed, by the implementer or by this verifier; the lane forbids dev servers, emulators and simulators. That covers:\n  - Live API probes on :3004/:3002/:3001.\n  - `pnpm smoke --service warehouse|manager|owner` ending 0 BROKEN.\n  - The W8 web walk at 1280×800 and 390×844.\n  - Pixel_7_API_36 and the iOS simulator.\n  - The step-8 DB query.\n- The server behaviour is covered by the core spec against a real Nest app. The W8 screen is proven only by typecheck and lint."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/tools/smoke-endpoints.mts",
+     "detail": "- Pre-existing, not introduced by this commit: `tsc -p tools/tsconfig.json` reports TS2322 at 2408 and TS2345 at 2529 (PermissionRole vs membership roles). That code is identical at HEAD^ 2395/2516, a +13-line shift from the edit.\n- CI does not typecheck tools. Worth a separate item."
+    }
+   ],
+   "evidence": "SCOPE\n- `git show --stat 8798c18` lists exactly the plan's 11 files: contracts inventory.ts, permissions.ts and permissions.test.ts; core stock.service.ts, inventory.spec.ts, examples.ts and examples.spec.ts; tools/smoke-endpoints.mts; warehouse-app stock/index.tsx and strings.ts; docs/23.\n- No README, nothing under QA/, no docs/22, no migration, no package.json or lockfile.\n- Branch HEAD is 8798c18 on base e5f29ae.\n\nFAIL BEFORE\n- Non-test hunks were reversed with `git diff 8798c18^ 8798c18 -- . ':(exclude)**/*.spec.ts' ... | git apply -R`, and `turbo build --filter=@dos/core... --concurrency=1` rebuilt 4 tasks (cache miss). grep found no mayPostAdjustment or STOCK_ADDERS in contracts/dist.\n- Each file was then run on its own:\n  1. contracts `vitest run src/permissions.test.ts`: 1 failed, 44 passed. \"TypeError: STOCK_ADDERS is not iterable\".\n  2. core `vitest run src/docs/examples.spec.ts`: 1 failed, 31 passed. \"AssertionError: warehouse qtyDelta: expected 1 to be less than 0\".\n  3. core `vitest run src/modules/inventory/inventory.spec.ts` (DATABASE_URL = dos_test_b2_h9, migrations through 45): 1 failed, 12 passed. \"AssertionError: warehouse opening 100000: expected 200 to be 403\" at inventory.spec.ts:556, which is the finding's defect.\n- `git checkout -- .` restored the tree and git status was clean. The rebuild came back from the turbo cache, and dist again contains mayPostAdjustment (contracts permissions.js: 6 hits; core stock.service.js: 3 hits).\n\nPASS AFTER (one file per command)\n- **Tests:**\n  - permissions.test.ts: 45/45.\n  - examples.spec.ts: 32/32.\n  - inventory.spec.ts: 13/13.\n  - `pnpm --filter @dos/warehouse-service test` (openapi.json and the permission matrix): 253/253.\n- **Typecheck and lint:**\n  - `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/core --concurrency=1`: 7/7 successful.\n  - frontend `pnpm --filter @dos/warehouse-app typecheck`: exit 0.\n  - frontend `pnpm --filter @dos/warehouse-app lint`: exit 0.\n- **Formatting:** prettier --check is clean on all 10 changed code files (backend and frontend).\n- **tools tsc:** only the 2 pre-existing errors, at 2408 and 2529, on code identical at HEAD^ 2395/2516.\n\nDIFF HUNT\n- **Tests only add.** The imports grew (`and, eq, inArray` next to `sql`; mayPostAdjustment/AdjustmentReason/STOCK_ADDERS), no assertion was removed or weakened, and testsCorrected is empty.\n- **No matrix row changed.** `inventory.stock.adjust` stays BACK_OFFICE_OR_WAREHOUSE with a comment only. No input or output schema change; AdjustmentReason is an additive type, and the import in permissions.ts is type-only.\n- **Handler order.** requireRole(STOCK_WRITERS), then currentTenant(), then the mayPostAdjustment check throwing ORPCError FORBIDDEN with data.code stock_add_desk_only, then requireDb/withTenant/idempotent. The refusal precedes any write, as the spec proves (0 ledger rows, 0 idempotency_keys rows, replay refused, on_hand unchanged; the accepted damage key shows 1 row as a control).\n- **Integer quantities, append-only ledger.** Nothing is posted outside InventoryService.post.\n- **No sibling door.** InventoryModule registers sync pulls only (locations, stock_lots, stock_balances), and the sync module has no stock handler.\n- **Error text reaches the screen.** api-client toApiError/serviceMessage prefers the server's sentence over the code, so W8 and M16 show it.\n- **W8 stays universal.** It imports @dos/ui and a runtime helper from @dos/contracts, as delivery-app already does, with no platform branch.\n  - It sends -deltaValue with deltaOk requiring > 0, and 'Opening stock' is gone.\n  - The Move sheet still uses w8.qtyNeeded.\n- **The −1 examples stay above zero.** The docs example builder's lot has gt(AVAILABLE, 0), and smoke's lot has available > 0.\n- **Out of scope per the plan.** transfer() and upsertLocation() are untouched, and the owner/manager screens are unchanged.\n- **No leftovers.** No debug or temp files.\n\nFINAL STATE: git status --short is empty on qa/b2-h9-desk at 8798c18."
+  }
+ ]
+}

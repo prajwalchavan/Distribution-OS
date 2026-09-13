@@ -92,17 +92,17 @@ Full request/response samples for each are in `backend-services/delivery-service
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
 | GET | `/pricing/bounds` | Rep auto-approve bounds (a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
+| POST | `/inventory/locations` | Create or update a stock location | owner, manager, warehouse |
 | GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
+| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
 | POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
@@ -111,6 +111,7 @@ Full request/response samples for each are in `backend-services/delivery-service
 | POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -189,6 +190,7 @@ Full request/response samples for each are in `backend-services/delivery-service
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |

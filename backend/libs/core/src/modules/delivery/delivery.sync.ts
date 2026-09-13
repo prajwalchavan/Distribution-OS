@@ -40,12 +40,31 @@ function putOnly(op: SyncOp, table: string): void {
     )
 }
 
-/** Zod's own message when a device row is malformed — the app shows it in the tray. */
+/**
+ * A malformed device row, refused in the rule's own sentence — the app shows it in the tray, where
+ * Zod 4's `error.message` (the JSON array of issues) is unreadable. A refine (`custom`) or a
+ * whole-row issue keeps its message exactly; any other issue names the field it is about
+ * (`lines.0.deliveredQtyPcs: …`). Several issues are joined with '; '.
+ */
 function parsed<T>(
-  result: { success: true; data: T } | { success: false; error: { message: string } },
+  result:
+    | { success: true; data: T }
+    | {
+        success: false
+        error: {
+          issues: readonly { code: string; path: readonly PropertyKey[]; message: string }[]
+        }
+      },
 ): T {
   if (result.success) return result.data
-  throw new SyncRejection('row_invalid', result.error.message.slice(0, 500))
+  const sentence = result.error.issues
+    .map((issue) =>
+      issue.code === 'custom' || issue.path.length === 0
+        ? issue.message
+        : `${issue.path.map((segment) => String(segment)).join('.')}: ${issue.message}`,
+    )
+    .join('; ')
+  throw new SyncRejection('row_invalid', sentence.slice(0, 500))
 }
 
 /** `trip_stops`: PATCH `{ state: started | arrived | failed, occurred_at, lat, lng, failure_reason, failure_note }`. */
@@ -215,11 +234,29 @@ export async function applyExpenseSync(
   await collections.recordExpenseInTx(tx, input)
 }
 
+/**
+ * One device proof entry, in the shape `PodEvidenceInput` validates.
+ *
+ * `inline` is the photo a phone with no signal carries IN the op (DOS-056; docs/27 §15): the device
+ * has nowhere to PUT the bytes, so they ride with the delivery. They are never kept in a row — the
+ * handler's `recordInTx` → `writePod` stores them through the files platform (`storeInline`: object
+ * storage plus a `file_objects` row, keyed on the delivery the stop really completes) and
+ * `pod_evidence` holds only the object key, so no pull ever carries a photo back to a phone. The mime
+ * allow-list, the base64 check and the 700 000-character cap are `InlineFileInput`'s.
+ */
 function podFromDevice(p: Record<string, unknown>): Record<string, unknown> {
+  const inline =
+    typeof p.inline === 'object' && p.inline !== null
+      ? (p.inline as Record<string, unknown>)
+      : undefined
   return {
     id: p.id,
     kind: p.kind,
     objectKey: str(p.object_key),
+    inline:
+      inline === undefined
+        ? undefined
+        : { mimeType: inline.mimeType, contentBase64: inline.contentBase64 },
     payload: p.payload,
     lat: typeof p.lat === 'number' ? p.lat : undefined,
     lng: typeof p.lng === 'number' ? p.lng : undefined,

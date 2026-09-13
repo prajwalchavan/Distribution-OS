@@ -1,0 +1,140 @@
+{
+ "id": "DOS-098",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-098",
+   "status": "fixed",
+   "commits": [
+    "7d67f9c fix(DOS-098): Order again repeats the shop's most recently placed order and builds the basket on the device, writing nothing until Place order"
+   ],
+   "failBefore": "Run before the fix, on dos_test_b2_h5 with the tests already written:\n- orders.spec.ts › DOS-098: repeat-last copies the shop's most recently placed order… — FAIL at orders.spec.ts:1941: expected [[\"01a099fc-8601-74d6-8165-08314c3aa23b\", 3]] (variant B ×3, the placed order), received [[\"01a099fc-8601-74d5-af55-76fb65b5fb92\", 5]] (variant A ×5, the newer unsent draft). repeat-last copied the highest-id non-cancelled order.\n- orders.spec.ts › DOS-098: GET /orders/last-placed answers the shop's newest placed order… — FAIL: \"AssertionError: expected 400 to be 200\". The request fell through to GET /orders/{id} and failed id validation, because no read existed.\n- permissions.test.ts › lets a shop place, submit and cancel its own order and read its deals — FAIL: \"orders.lastPlaced must allow retailer: expected false to be true\".",
+   "passAfter": "All run after the fix:\n- `vitest run src/modules/orders/orders.spec.ts -t DOS-098`: 2 passed.\n- Whole orders.spec.ts: 33/33 passed. docs/examples.spec.ts: 31/31. contracts permissions.test.ts: 45/45.\n- Service specs, one command each: owner 345 passed, manager 345, sales 204, warehouse 255, delivery 261, retailer 191.\n- The verbose runs for manager, sales, warehouse, delivery and retailer each show \"GET /orders/last-placed [orders.lastPlaced: …]\" passing. The retailer run also shows GET /orders/{id} passing. The owner run was not verbose, so I did not see its row.\n- Build contracts + core: OK. `turbo typecheck lint` for @dos/contracts and @dos/core: 7/7 tasks successful.\n- @dos/retailer-app typecheck and lint: clean.\n- `tsc -p tools/tsconfig.json`: only two errors remain (PermissionRole vs membership role, now lines 2402/2523). The same two appear when a HEAD copy of the file is typechecked, so they predate this fix.\n- `pnpm format` run in both workspaces. `git status` is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-098: repeat-last copies the shop's most recently placed order, never a newer draft and never an older order with a higher id"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-098: GET /orders/last-placed answers the shop's newest placed order with its lines, writes nothing, and keeps a salesperson to its own orders"
+    },
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "lets a shop place, submit and cancel its own order and read its deals (existing test; 'orders.lastPlaced' added to its shop allow-list, as the plan requires)"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/contracts/src/orders.ts",
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/core/src/modules/orders/orders.internals.ts",
+    "backend/libs/core/src/modules/orders/orders.service.ts",
+    "backend/libs/core/src/modules/orders/orders.controller.ts",
+    "backend/libs/core/src/modules/orders/orders.spec.ts",
+    "backend/libs/core/src/docs/examples.ts",
+    "backend/tools/smoke-endpoints.mts",
+    "docs/23-app-screens-and-api-gaps.md",
+    "frontend/retailer-app/app/index.tsx",
+    "frontend/retailer-app/app/order.tsx",
+    "frontend/retailer-app/src/strings.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) The seed never carries a line the shop cannot see",
+     "done": true,
+     "how": "In order.tsx, a new `repeat` nonce resets query, lines, the left-out count and failure. The seed waits for `lastPlaced.data`, `catalog.data` and `query === ''` (the unfiltered ['catalog',''] page). It keeps only variants on that page. It counts the distinct items left out and shows `r7-repeat-partial` with the one new string `r7.repeatPartial`."
+    },
+    {
+     "amendment": "(b) No stepper before the basket exists",
+     "done": true,
+     "how": "`awaitingSeed` = signedIn && repeat && retailerId && seededFor !== repeat && no read error. It is passed to `<Async>` as `{ isLoading: awaitingSeed }` with no error field, so R7 shows its Skeleton. A lastPlaced failure sets `r7-failure` = `r7.repeatFailed` and opens the price list, never ErrorState. The seed merges into the current basket and never replaces a line already there. Place order is disabled and guarded while awaitingSeed."
+    },
+    {
+     "amendment": "(c) Controller registers lastPlaced before get; spec asserts both routes and unchanged order and line counts",
+     "done": true,
+     "how": "In orders.controller.ts, `@Implement(contract.orders.lastPlaced)` comes before `get`. The second DOS-098 test asserts GET /orders/last-placed → 200 with the shop's order, and GET /orders/<that id> → 200 with an equal body. It counts sales_orders and sales_order_lines for the tenant before and after eight lastPlaced calls and asserts they are unchanged."
+    },
+    {
+     "amendment": "(d) Walker step 5 asserts qty_pcs per variant, entered_unit in {case, piece}, and pack_size_at_entry = current case size for case lines",
+     "done": false,
+     "how": "Not done. The walker is QA/tools/e2e/dos-098-order-again.mjs, and this lane may not write under QA/. Listed in followUps. The app side it checks is in place: the seed goes through `enteredFor`, which only yields 'case' or 'piece' with today's case size, and DraftLine.enteredUnit is narrowed to those two."
+    },
+    {
+     "amendment": "(e) docs/22 §8 row + §11 line and docs/23 §6.1 R7 / §10 #8 in the same slice; render and republish",
+     "done": false,
+     "how": "Partly done. docs/23 §6.1 R7 now lists `orders.lastPlaced` ✓ with the on-device, nothing-written note, and its closing sentence names `orders.lastPlaced`. §10 row 8 notes that lastPlaced answers by placement time while orders.list still pages by id. docs/22 (§8 row marked FOUNDER DEFAULT for decision 3, §11 line, render-source-of-truth.py, republish) is outside this lane's write scope and is in followUps."
+    }
+   ],
+   "deviations": "1. Smoke case. The plan's snippet `{ query: { retailerId: a ?? b ?? fx.retailerId() } }` does not typecheck (TS2322): `query` is `Record<string,string>` and `fx.retailerId()` can be null. The case now resolves the id first and returns `{ skip: 'no retailer in this tenant' }` when there is none. Same call whenever a shop exists.\n2. Seed per item. The plan said each placed line becomes a new basket line. R7 keeps one line per variant, so lines of the same variant are summed in pieces. Seven test-DB orders carry a duplicate variant line; all are drafts, so no placed order is affected today.\n3. What a new nonce resets. It also clears `failure` and the left-out count, so a message from an earlier tap cannot linger. Place order is disabled and guarded while the seed is pending (amendment b).\n4. DraftLine.enteredUnit narrowed to `Extract<OrderLine['enteredUnit'], 'case' | 'piece'>` and its comment rewritten: the repeat-draft `inner` path is gone.\n5. Spec placement. The DOS-098 describe sits after the DOS-003 test and before the DOS-115 describe. DOS-003 was appended after DOS-005 after the plan was written, so this still satisfies \"before any DOS-115/DOS-126 describe\".\n6. Second test extras. The rep's own order is placed inside the test, so the reach rule is proven without other tests' ids (rep → its own order, shop and owner → the shop's newer order). It also asserts a 404 for an unknown retailer.\n7. Extra comment updates: the permissions.ts orders comment, the ORDER_ROLES comment and the spec's phone-suffix comment (suffix 8 = DOS-098's rep).\n8. `pnpm format` in backend also rewrote backend/libs/core/src/modules/pricing/pricing.spec.ts, a DOS-096 test merged from main that is not prettier-clean there. It is unrelated, so I restored it and did not commit it.\n9. Lane rules kept out: regenerated READMEs, docs/22, and the QA walker.",
+   "followUps": "1. After merging, run `pnpm docs:readme`. The six services that mount orders (owner, manager, sales, warehouse, delivery, retailer) and the app READMEs gain GET /orders/last-placed, so `pnpm docs:readme:check` fails on this branch until then.\n2. docs/22 (amendment e): add the §8 register row, marked FOUNDER DEFAULT for decision 3 — Order again = the shop's most recently placed order by placement time, any author and any placed source, basket built on the device, nothing written until Place order. Add the §11 change-log line, run `python3 docs/tools/render-source-of-truth.py`, and republish.\n3. Walker (amendment d): write QA/tools/e2e/dos-098-order-again.mjs per the plan's reviewNotes steps 1-6, with step 5 asserting qty_pcs per variant, entered_unit ∈ {case, piece} and pack_size_at_entry = current case size for case lines. Run it only on a copy of the batch-2 template.\n4. Not run here (no dev servers or emulators in this lane):\n   - web desk and phone walk on dos_qa, checking no POST to /orders, /orders/repeat-last or /orders/{id}/lines, the skeleton, and a delisted line producing r7-repeat-partial;\n   - Android on Pixel_7_API_36;\n   - iOS via ios-drive.mjs;\n   - `pnpm smoke --run-tag` (orders.lastPlaced for every service);\n   - the API GET checks on dos_qa.\n5. docs/23 §6.1 R7 still lists `orders.setLines` ✓, which R7 no longer calls. I left it because the plan named only the repeatLast replacements.\n6. backend/libs/core/src/modules/pricing/pricing.spec.ts on main is not prettier-formatted (from the DOS-096 merge); `pnpm format:check` will flag it.\n7. backend/tools/smoke-endpoints.mts has two TypeScript errors that predate this fix: PermissionRole (includes platform_admin) assigned to the membership-role type, lines ~2402 and ~2523.\n8. From the verdict, still open:\n   - `orders.repeatLast` inflates `inner` lines on the server;\n   - `repeatLast` ignores the DOS-073 reach rule;\n   - the sales app's \"Repeat last order\" sorts `_local_rev` before `created_at` and keeps an `inner` count;\n   - R7 places lines it does not show for a hand-built basket;\n   - `repeatLast` writes a 'Repeat of <uuid>' note.\n9. Lane order: DOS-126 appends its describe at the orders.spec.ts tail after DOS-115. The DOS-098 block sits before DOS-115 and is stock-neutral.",
+   "platformCheck": "- API: covered. Core spec over HTTP (Fastify inject) on dos_test_b2_h5, whose migration journal has 45 rows (0000-0044); no migration added. Service specs, with their permission matrices, green for owner, manager, sales, warehouse, delivery and retailer.\n- Web, Android, iOS: not exercised. Only the retailer app's typecheck and lint were run, both clean; this lane may not start dev servers, emulators or simulators. The retailer screens import only @dos/ui, @dos/api-client/react, @dos/domain and expo-router, so the universal-app rule holds."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-098",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) The seed never carries a line the shop cannot see: on a new repeat nonce reset query to '' and lines to []; seed only variants on the unfiltered catalog page; when lines were left out show r7-repeat-partial with ONE new string r7.repeatPartial",
+     "satisfied": true,
+     "detail": "frontend/retailer-app/app/order.tsx.\n- Reset on a new nonce: an effect keyed on `repeat` sets query to '', lines to [], leftOut to 0 and failure to null (:164-170).\n- The seed waits for `query === ''` and `catalog.data`, so it reads the ['catalog',''] key (:180).\n- No stale data from another key: useQuery reads `cache.get(key)` per key hash (api-client react/index.tsx:254-255).\n- Only variants in `catalog.data.items` are seeded; the rest are counted in `missing` (:187-202). The catalog is fetched with listedOnly: true, limit 200.\n- r7-repeat-partial renders `t('r7.repeatPartial', {count})` when leftOut > 0 (:456-465).\n- strings.ts gains exactly one string, with the verdict's wording.\n- With query '', every seeded line is in byVariant, so `chosen` draws every line `priced` sends: nothing hidden is placed on the seed path."
+    },
+    {
+     "amendment": "(b) No stepper before the basket exists: skeleton while repeat !== null && seededFor !== repeat and the read has not failed; not through Async's ErrorState; a failed seed opens the price list with r7-failure = r7.repeatFailed; a tap before the seed is not overwritten",
+     "satisfied": true,
+     "detail": "- `awaitingSeed` = signedIn && repeat && retailerId && seededFor !== repeat && no lastPlaced error (:156-161).\n- It is passed to Async as `{ isLoading: awaitingSeed }` with no error field. Async checks errors first, then `isLoading` → Skeleton (ui.tsx:144-164), so the stepper, search and Place order content are not drawn.\n- The lastPlaced error never reaches Async. The seed effect sets failure = t('r7.repeatFailed') and seededFor, so the price list opens with r7-failure (:174-178).\n- Place order is disabled and guarded while awaitingSeed (:342, :433).\n- The seed merges into `current` and never replaces a line already there (:204-207)."
+    },
+    {
+     "amendment": "(c) Controller registers lastPlaced BEFORE get; the core spec asserts GET /orders/last-placed → 200 and GET /orders/<real id> → the same order in one test, and that sales_orders AND sales_order_lines counts are unchanged after three lastPlaced calls",
+     "satisfied": true,
+     "detail": "- orders.controller.ts: `@Implement(contract.orders.lastPlaced)` is declared right before `get`, with a comment saying why.\n- The second DOS-098 test asserts:\n  - last-placed as the shop → 200 with the shop's order, lines [variantB, 2] and approvals [];\n  - GET /orders/{that id} → 200 with a body `toEqual` the lastPlaced item;\n  - tenant counts of sales_orders and sales_order_lines taken before, and `toEqual` after seven lastPlaced calls and one get (more than three).\n- It also pins the reach rule (rep → own order, a rep with none → null), owner → null for a shop with no orders, 404 for an unknown retailer and 403 for an unlinked shop.\n- The verbose retailer-service run lists both GET /orders/last-placed and GET /orders/{id} passing."
+    },
+    {
+     "amendment": "(d) Walker step 5 asserts per variant qty_pcs equals the seeded pieces, entered_unit ∈ {case, piece}, pack_size_at_entry = current case size for a case line",
+     "satisfied": true,
+     "detail": "Satisfied for this lane's scope only. The walker (QA/tools/e2e/dos-098-order-again.mjs) does NOT exist, and nothing under QA/ was written:\n- lane rules forbid QA/ edits;\n- verifier step 1 requires no QA/ files in the commit;\n- it is carried in followUps item 3, the same treatment DOS-132's verifier gave its walker.\n\nWhat step 5 would assert holds in code (read, not walked):\n- `enteredFor` returns only 'case' or 'piece', and DraftLine.enteredUnit is narrowed to those two.\n- A case line sends enteredQty = pieces / caseSize, where caseSize is the catalog's `coalesce(case_size_override, default_case_size)` (tenant-catalog.service.ts:135).\n- The server derives qtyPcs = enteredQty × packSizeFor(unit, coalesce(case_size_override, default_case_size)) (pricing-lines.ts:69, :93-95, :119-120). So qty_pcs equals the seeded pieces, and pack_size_at_entry equals today's case size for a case line (1 for a piece line).\n- The old line's enteredQty/enteredUnit are never forwarded.\n\nThe walker still has to be written and run on a template copy."
+    },
+    {
+     "amendment": "(e) docs/22 §8 row (FOUNDER DEFAULT decision 3) + §11 line and docs/23 §6.1 R7 / §10 #8 in the same slice; render and republish",
+     "satisfied": true,
+     "detail": "The docs/23 half is done.\n- §6.1 R7 calls `orders.lastPlaced` ✓, with the note that the basket is built on the device and nothing is written until Place order; the closing sentence names `orders.lastPlaced`.\n- §10 row 8 notes that lastPlaced answers by placement time while orders.list still pages by id.\n\nThe docs/22 half is not in the commit, by lane rule (verifier step 1 requires no docs/22). It is carried in followUps item 2: the §8 row marked FOUNDER DEFAULT for decision 3, the §11 line, render-source-of-truth.py and the republish. This matches how the DOS-115 and DOS-131+137 verifiers marked their docs/22 halves. Logged below as a minor problem so it is not lost."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "docs/22-source-of-truth.md",
+     "detail": "Amendment (e)'s docs/22 half is not done in this lane (lane rule). After merge the main session must:\n- add the §8 register row, marked FOUNDER DEFAULT for decision 3: Order again = the shop's most recently placed order by coalesce(submitted_at, created_at), any author and any placed source, basket built on the device, nothing written until Place order;\n- add the §11 change-log line;\n- run `python3 docs/tools/render-source-of-truth.py` and republish."
+    },
+    {
+     "severity": "minor",
+     "file": "QA/tools/e2e/dos-098-order-again.mjs",
+     "detail": "Amendment (d) and the plan's walker are not created, because this lane may not write under QA/. Still to do:\n- write the walker per the plan's reviewNotes steps 1-6, with step 5 asserting qty_pcs per variant, entered_unit ∈ {case, piece} and pack_size_at_entry = current case size for case lines;\n- run it on a copy of the batch-2 template.\nThe code-side properties were verified by reading only."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/retailer-service/README.md",
+     "detail": "GET /orders/last-placed is added to all six services that mount orders, but the generated service and app READMEs are not regenerated in this lane. `pnpm docs:readme:check` fails on this branch until the main session runs `pnpm docs:readme` on the merged tree."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/retailer-app/app/order.tsx",
+     "detail": "Neither implementer nor verifier ran anything live, since this lane may not start servers, emulators or simulators. Not run:\n- the web desk 1280×800 and phone 390×844 walk on dos_qa: no POST to /orders, /orders/repeat-last or /orders/{id}/lines; SQL C unchanged; basket = SQL A for tarsun, sai and kalyan; skeleton until the basket; r7-repeat-partial for a delisted line;\n- Android on Pixel_7_API_36 and iOS via ios-drive.mjs;\n- the API GET checks on dos_qa;\n- `pnpm smoke --run-tag`.\nAll the architect's verdict asks for before sign-off."
+    },
+    {
+     "severity": "minor",
+     "file": "docs/23-app-screens-and-api-gaps.md",
+     "detail": "§6.1 R7 still lists `orders.setLines` ✓ among R7's calls, but R7 no longer calls it: this commit removed the `replace` mutation from order.tsx. The plan named only the repeatLast replacement, so this is a stale doc line, not a scope breach. The implementer noted it in followUps item 5."
+    }
+   ],
+   "evidence": "SCOPE\n- HEAD is 7d67f9c on qa/b2-h5-orders, on top of 2ec9583 (DOS-115).\n- `git show --stat` lists 13 files, all named by the plan:\n  - contracts: orders.ts, permissions.ts, permissions.test.ts\n  - core orders: internals, service, controller, spec\n  - core docs/examples.ts\n  - tools/smoke-endpoints.mts\n  - docs/23\n  - retailer-app: index.tsx, order.tsx, strings.ts\n- Not in the commit: generated READMEs, QA/, docs/22, schema or migrations.\n- Contract change: only the additive `orders.lastPlaced` (GET /orders/last-placed, `{ retailerId }` → `{ item: OrderDetail | null }`) plus a comment on RepeatLastOrderInput.\n- Permission change: only the `'orders.lastPlaced': ANY_MEMBER` row after `orders.list`, plus a comment.\n- Spec and test diffs are additions only. The one changed line is the phone-suffix comment; no assertion was weakened or removed. `testsCorrected` is empty, which is correct.\n\nFAIL BEFORE\n- I reversed all non-test changes with the prescribed `git diff 7d67f9c^ 7d67f9c -- . ':(exclude)…' | git apply -R` (11 files), then rebuilt @dos/contracts and @dos/core. The contracts dist then had 0 `lastPlaced` references.\n- `vitest run src/modules/orders/orders.spec.ts -t DOS-098` (full output in scratchpad/dos098-failbefore.txt): 2 failed.\n  - Test 1 at orders.spec.ts:1941 expected [[\"01a09a0d-…-7236…\", 3]] (variant B ×3, the placed order) but received [[\"01a09a0d-…-7235…\", 5]] (variant A ×5, the newer unsent draft). That is the finding's cause: highest id, drafts counted.\n  - Test 2 at :2024 got \"expected 400 to be 200\": no read existed, so /orders/last-placed fell to /orders/{id} and failed id validation.\n- `vitest run src/permissions.test.ts`: 1 failed, \"orders.lastPlaced must allow retailer: expected false to be true\".\n- Test 1 fails at step (c), before step (e) (the 45-day-old delivered order with id ffffffff-…). By reading, the pre-fix `ORDER BY id DESC` would pick that id at (e) too.\n- Disclosure: my first attempt, `pnpm --filter @dos/core test -- <file> -t DOS-098`, actually ran all 36 core spec files at the reversed state (36 files, 554 tests). Its only failures were the same 2 DOS-098 tests. Every later run used `pnpm exec vitest run <one file>`.\n- Restored with `git checkout -- .` (git status: 0 changes, nothing untracked) and rebuilt contracts and core (dist has lastPlaced again).\n\nPASS AFTER (all on dos_test_b2_h5, fixed tree)\n- Touched spec and test files:\n  - orders.spec.ts whole file: 33/33 passed.\n  - contracts permissions.test.ts whole file: 45/45.\n  - core docs/examples.spec.ts: 31/31.\n- Service specs, one command each, verbose; every run lists GET /orders/last-placed [orders.lastPlaced: all seven roles] passing:\n  - owner 345/345, manager 345/345, sales 204/204, warehouse 255/255, delivery 261/261\n  - retailer 191/191, which also shows GET /orders/{id} passing\n- `turbo run typecheck lint` for @dos/contracts and @dos/core: 7/7 successful (only eslint-plugin-boundaries deprecation warnings).\n- @dos/retailer-app typecheck exit 0, lint exit 0. The ESLint import rule holds: screens import only @dos/ui, @dos/api-client/react, @dos/domain, expo-router and react.\n- `tsc -p tools/tsconfig.json`: the same two PermissionRole errors before (lines 2395/2516 at the reversed state) and after (2402/2523, shifted by the 7 added lines). They predate this fix.\n- Prettier: all 12 touched backend and frontend files are clean. docs/23 is flagged, but it was already flagged at 7d67f9c^ and lies outside both workspaces' `prettier --check .`.\n\nCODE REVIEW\n- lastPlacedOrder (orders.internals.ts):\n  - filters on tenant, retailer and `state NOT IN ('draft','cancelled')`, plus salesperson_id when given;\n  - orders by `coalesce(submitted_at, created_at) DESC, id DESC`, limit 1, the verdict's decisions 2(a) and 3(a);\n  - is module-internal and not exported from index.ts;\n  - runs inside the caller's withTenant tx (RLS applies); sales_orders_retailer_idx exists.\n- repeatLast uses it with no salesperson (author-agnostic, as the verdict decided) and keeps ORDER_PLACERS, idempotent(), insertDraft and writeLines.\n- lastPlaced is a read with no idempotency, and follows requireRole(ORDER_ROLES) → requireDb → withTenant → quotes.loadRetailer → detail():\n  - loadRetailer gives the retailer-role link check (403) and unknown shop (404);\n  - the salesperson reach rule mirrors callerReaches;\n  - detail() strips approvals for the shop.\n- No state change, ledger write, money or quantity arithmetic on the server; no module-boundary violation (the boundaries lint passes).\n- The smoke case resolves the retailer and returns the existing `{ skip }` shape when none exists (deviation 1 is sound). examples.ts adds OVERRIDES and QUERY_FILL entries.\n- Frontend:\n  - Home no longer calls a mutation. The only remaining `/order?` link is index.tsx:137 `?repeat=${uuidv7()}`; grep finds no other `orderId=` link into R7.\n  - R7 reads `orders.lastPlaced` under ['orders','last-placed', retailerId, nonce] with staleTime 0 and places only through create + submit; the setLines path is removed.\n  - The seed sums lines of the same item (deviation 2). This is justified: R7 keeps one line per item (setQty finds by variantId; chosenIds is a Set). It preserves pieces, since `qtyPcs` excludes free pieces (freeQtyPcs is its own column).\n- Sibling paths:\n  - the server repeatLast selection is fixed through the shared helper;\n  - the sales-app repeat and repeatLast's inner inflation, reach gap and uuid note are explicitly out of scope per the verdict's \"New findings\";\n  - the retailer app is online only, with no offline or sync path; orders.sync.ts only mentions repeatLast in a comment.\n- No leftover temporary files: every scratch output is in the scratchpad, not the worktree. `git status` is clean at the end (0 entries, HEAD 7d67f9c)."
+  }
+ ]
+}

@@ -66,6 +66,7 @@ export const PAGE_TABS: Readonly<Record<string, readonly PageTab[]>> = {
     { href: '/fulfilment', labelKey: 'm5.tab', permission: 'warehouse.picklists.list' },
     { href: '/fulfilment/pack', labelKey: 'm20.tab', permission: 'warehouse.packs.confirm' },
     { href: '/fulfilment/load-out', labelKey: 'm7.tab', permission: 'warehouse.loadSheets.list' },
+    { href: '/fulfilment/trips', labelKey: 'm7t.tab', permission: 'delivery.trips.list' },
   ],
   '/billing': [
     { href: '/billing', labelKey: 'm6.tab', permission: 'billing.invoices.queue' },

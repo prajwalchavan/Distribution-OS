@@ -1,0 +1,153 @@
+# dos_qa side effects of the AFTER probe (DOS-166 steps 01-08, DOS-115 steps 09-11)   run at: 2026-09-13T10:53:49Z
+\echo == 1. every receipt whose note carries the probe tag (old pre-rebuild RCPT-0707/0708 and the new AFTER one)
+== 1. every receipt whose note carries the probe tag (old pre-rebuild RCPT-0707/0708 and the new AFTER one)
+select r.id, r.receipt_no, r.series_code, r.fy, r.amount_paise, u.username as received_by, r.device_id, r.note, r.pdf_object_key, r.created_at
+  from receipts r left join users u on u.id = r.received_by
+ where r.note like 'QA batch2 sync-role-probe%' or r.id in ('01a09919-ed3d-7388-be23-0d84e98b21b5','01a0991a-2d76-76c5-b612-dc8f51e30adf') order by r.created_at;
+                  id                  | receipt_no | series_code |   fy    | amount_paise | received_by |             device_id             |                    note                     |                                             pdf_object_key                                             |           created_at            
+--------------------------------------+------------+-------------+---------+--------------+-------------+-----------------------------------+---------------------------------------------+--------------------------------------------------------------------------------------------------------+---------------------------------
+ 01a09a63-1f2a-75be-b38f-e7e21930e147 | RCPT-9005  | RCPT        | 2026-27 |          100 | ganesh.more | qa-b2-syncprobe-after-delivery-01 | QA batch2 sync-role-probe AFTER 01 delivery | tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/documents/receipt/01a09a63-1f2a-75be-b38f-e7e21930e147.pdf | 2026-09-13 16:19:42.47266+05:30
+(1 row)
+
+\echo == 2. allocations of those receipts
+== 2. allocations of those receipts
+select al.id, al.invoice_id, al.receipt_id, al.amount_paise, u.username as allocated_by, al.allocated_at
+  from allocations al left join users u on u.id = al.allocated_by
+ where al.receipt_id in (select id from receipts where note like 'QA batch2 sync-role-probe%') order by al.id;
+                  id                  |              invoice_id              |              receipt_id              | amount_paise | allocated_by |          allocated_at           
+--------------------------------------+--------------------------------------+--------------------------------------+--------------+--------------+---------------------------------
+ 01a09a63-1f7c-75e7-a1cc-9e97e40aafe6 | 52c9311a-af62-7a65-bdd3-27f4b771fee4 | 01a09a63-1f2a-75be-b38f-e7e21930e147 |          100 | ganesh.more  | 2026-09-13 16:19:42.47266+05:30
+(1 row)
+
+\echo == 3. journal entries and lines of those receipts (and each entry's balance)
+== 3. journal entries and lines of those receipts (and eachunterminated quoted string
+
+select e.id as entry_id, e.narration, l.id as line_id, a.code, l.amount_paise, l.party_type, l.party_id
+  from journal_entries e join journal_lines l on l.entry_id = e.id join accounts a on a.id = l.account_id
+ where e.ref_type = 'receipt' and e.ref_id in (select id from receipts where note like 'QA batch2 sync-role-probe%') order by e.id, l.amount_paise desc;
+               entry_id               |     narration     |               line_id                | code | amount_paise | party_type |               party_id               
+--------------------------------------+-------------------+--------------------------------------+------+--------------+------------+--------------------------------------
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 | receipt RCPT-9005 | 01a09a63-1f92-760c-a0c3-8a7bafcd15cd | CASH |          100 |            | 
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 | receipt RCPT-9005 | 01a09a63-1f92-760d-a787-71d73ff4ed48 | AR   |         -100 | retailer   | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8
+(2 rows)
+
+select e.id as entry_id, sum(l.amount_paise) as balance_paise from journal_entries e join journal_lines l on l.entry_id = e.id
+ where e.ref_type = 'receipt' and e.ref_id in (select id from receipts where note like 'QA batch2 sync-role-probe%') group by e.id;
+               entry_id               | balance_paise 
+--------------------------------------+---------------
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 |             0
+(1 row)
+
+\echo == 4. outbox events for those receipts (published by the worker relay?)
+== 4. outbox events for those receipts (published by the worker relay?)
+select o.id, o.aggregate_type, o.aggregate_id, o.event_type, o.published_at, o.attempts, o.dead_lettered_at
+  from outbox_events o where exists (select 1 from receipts r where r.note like 'QA batch2 sync-role-probe%' and o::text like '%' || r.id || '%') order by o.id;
+                  id                  | aggregate_type |                       aggregate_id                       |       event_type        |         published_at          | attempts | dead_lettered_at 
+--------------------------------------+----------------+----------------------------------------------------------+-------------------------+-------------------------------+----------+------------------
+ 01a09a63-1fa9-761b-b5c7-6b08f1024fd5 | receipt        | 01a09a63-1f2a-75be-b38f-e7e21930e147                     | ReceiptRecorded         | 2026-09-13 16:20:08.258+05:30 |        0 | 
+ 01a09a63-1fac-7367-82a5-03be4cc6ee51 | document       | receipt:01a09a63-1f2a-75be-b38f-e7e21930e147:a5:original | DocumentRenderRequested | 2026-09-13 16:20:08.29+05:30  |        0 | 
+(2 rows)
+
+\echo == 5. the bill the accepted receipt allocated to: state and allocation total now
+== 5. the bill the accepted receipt allocated to: state and allocation total now
+select i.id, i.invoice_no, i.state, i.total_paise, (select sum(amount_paise) from allocations where invoice_id = i.id) as allocated_now,
+       (select sum(amount_paise) from allocations where invoice_id = i.id and receipt_id not in (select id from receipts where note like 'QA batch2 sync-role-probe%')) as allocated_without_probe
+  from invoices i where i.id = '52c9311a-af62-7a65-bdd3-27f4b771fee4';
+                  id                  | invoice_no |     state      | total_paise | allocated_now | allocated_without_probe 
+--------------------------------------+------------+----------------+-------------+---------------+-------------------------
+ 52c9311a-af62-7a65-bdd3-27f4b771fee4 | INV/0244   | partially_paid |     3211100 |       1620100 |                 1601000
+(1 row)
+
+\echo == 6. derived rollup for the shop (re-derived, not appended)
+== 6. derived rollup for the shop (re-derived, not appended)
+select retailer_id, outstanding_paise, last_receipt_at, last_receipt_paise, updated_at from retailer_outstanding_summary where tenant_id = :'t' and retailer_id = '8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8';
+             retailer_id              | outstanding_paise |        last_receipt_at        | last_receipt_paise |            updated_at            
+--------------------------------------+-------------------+-------------------------------+--------------------+----------------------------------
+ 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 |          39433400 | 2026-09-13 16:19:42.442+05:30 |                100 | 2026-09-13 16:19:42.564293+05:30
+(1 row)
+
+\echo == 7. RCPT counter now
+== 7. RCPT counter now
+select series_code, fy, next_no, updated_at from numbering_series where tenant_id = :'t' and series_code = 'RCPT';
+ series_code |   fy    | next_no |          updated_at           
+-------------+---------+---------+-------------------------------
+ RCPT        | 2026-27 |    9006 | 2026-09-13 16:19:42.491+05:30
+(1 row)
+
+\echo == 8. sync_ops rows from the AFTER probe devices
+== 8. sync_ops rows from the AFTER probe devices
+select device_id, op_id, outcome->>'ok' as ok, outcome->'rejection'->>'code' as code, outcome->'rejection'->>'table' as tbl, created_at
+  from sync_ops where tenant_id = :'t' and (device_id like 'qa-b2-syncprobe-after-%' or device_id like 'qa-b2-dos115-after-%') order by created_at;
+              device_id               |                op_id                 |  ok   |       code       |        tbl        |            created_at            
+--------------------------------------+--------------------------------------+-------+------------------+-------------------+----------------------------------
+ qa-b2-syncprobe-after-delivery-01    | 01a09a63-1f2a-745c-b2bb-9f39dff042d0 | true  |                  |                   | 2026-09-13 16:19:42.47266+05:30
+ qa-b2-syncprobe-after-salesperson-02 | 01a09a65-4497-7036-a200-0b5a0852f8ab | false | role_not_allowed | receipts          | 2026-09-13 16:22:03.122226+05:30
+ qa-b2-syncprobe-after-warehouse-03   | 01a09a65-45b8-7b64-bfde-a655d1504f44 | false | role_not_allowed | receipts          | 2026-09-13 16:22:03.414481+05:30
+ qa-b2-syncprobe-after-salesperson-06 | 01a09a65-48e1-707e-9a04-4b456331d9dd | false | role_not_allowed | trip_expenses     | 2026-09-13 16:22:04.195654+05:30
+ qa-b2-dos115-after-warehouse-11      | 01a09a66-064c-741f-b069-f07a801d742e | false | role_not_allowed | sales_orders      | 2026-09-13 16:22:52.689561+05:30
+ qa-b2-dos115-after-warehouse-11      | 01a09a66-064c-732f-ad21-6550462fde60 | false | role_not_allowed | sales_order_lines | 2026-09-13 16:22:52.699158+05:30
+(6 rows)
+
+\echo == 9. sync_errors rows from the AFTER probe devices (the "Needs attention" tray)
+== 9. sync_errors rows from the AFTER probe devices (the "Needs attention" tray)
+select se.id, u.username, se.device_id, se.table_name, se.row_id, se.code, se.resolved_at, se.created_at
+  from sync_errors se left join users u on u.id = se.user_id
+ where se.tenant_id = :'t' and (se.device_id like 'qa-b2-syncprobe-after-%' or se.device_id like 'qa-b2-dos115-after-%') order by se.created_at;
+                  id                  |    username    |              device_id               |    table_name     |                row_id                |       code       | resolved_at |            created_at            
+--------------------------------------+----------------+--------------------------------------+-------------------+--------------------------------------+------------------+-------------+----------------------------------
+ 01a09a65-44b8-7252-b3ba-4d9e2acbe926 | rahul.deshmukh | qa-b2-syncprobe-after-salesperson-02 | receipts          | 01a09a65-4497-7cb1-a8b3-851224ebd2d2 | role_not_allowed |             | 2026-09-13 16:22:03.122226+05:30
+ 01a09a65-45dc-700e-8c23-fa88183273ee | dinesh.patil   | qa-b2-syncprobe-after-warehouse-03   | receipts          | 01a09a65-45b8-79d5-a681-bb1038bcac8c | role_not_allowed |             | 2026-09-13 16:22:03.414481+05:30
+ 01a09a65-48e5-7327-b975-ff700cc48912 | rahul.deshmukh | qa-b2-syncprobe-after-salesperson-06 | trip_expenses     | 01a09a65-48e0-7daa-94fe-cc67057b580d | role_not_allowed |             | 2026-09-13 16:22:04.195654+05:30
+ 01a09a66-0655-7442-b627-efe57ae16c6c | dinesh.patil   | qa-b2-dos115-after-warehouse-11      | sales_orders      | 01a09a66-064c-7170-b7d2-16feef5d4d3d | role_not_allowed |             | 2026-09-13 16:22:52.689561+05:30
+ 01a09a66-065c-74d3-9c50-84dc9242fe58 | dinesh.patil   | qa-b2-dos115-after-warehouse-11      | sales_order_lines | 01a09a66-064c-78fd-aa40-8d7e1d53796e | role_not_allowed |             | 2026-09-13 16:22:52.699158+05:30
+(5 rows)
+
+\echo == 10. sales_orders created by the probe (step 10 control) and their lines
+== 10. sales_orders created by the probe (step 10 control) and their lines
+select o.id, o.order_no, o.state, o.source, o.retailer_id, u.username as created_by, o.total_paise, o.note, o.created_at
+  from sales_orders o left join users u on u.id = o.created_by where o.tenant_id = :'t' and o.note like 'QA batch2 DOS-115%';
+                  id                  | order_no | state |   source    |             retailer_id              |   created_by   | total_paise |                             note                             |            created_at            
+--------------------------------------+----------+-------+-------------+--------------------------------------+----------------+-------------+--------------------------------------------------------------+----------------------------------
+ 01a09a66-049d-7917-a8f6-0fbc8d84a115 |          | draft | salesperson | 75659f5a-19d1-7d52-8b43-4c3d6777a33c | rahul.deshmukh |       30500 | QA batch2 DOS-115 after-probe 10 control (salesperson draft) | 2026-09-13 16:22:52.262855+05:30
+(1 row)
+
+select l.id, l.order_id, l.variant_id, l.entered_qty, l.entered_unit from sales_order_lines l where l.order_id in (select id from sales_orders where note like 'QA batch2 DOS-115%');
+                  id                  |               order_id               |              variant_id              | entered_qty | entered_unit 
+--------------------------------------+--------------------------------------+--------------------------------------+-------------+--------------
+ 01a09a66-049d-7e5c-ad4f-751c34970856 | 01a09a66-049d-7917-a8f6-0fbc8d84a115 | 677c774f-86aa-79c6-b755-702a61b92ca2 |           1 | piece
+(1 row)
+
+\echo == 11. auth sessions opened by the probe logins since 16:19 IST (columns first)
+== 11. auth sessions opened by the probe logins since 16:19 IST (columns first)
+select column_name from information_schema.columns where table_schema = 'public' and table_name = 'auth_sessions' order by ordinal_position;
+         column_name         
+-----------------------------
+ id
+ user_id
+ tenant_id
+ role
+ device_id
+ device_name
+ platform
+ refresh_token_hash
+ previous_refresh_token_hash
+ refresh_expires_at
+ last_used_at
+ revoked_at
+ revoked_reason
+ ip
+ user_agent
+ created_at
+(16 rows)
+
+select u.username, count(*) as sessions from auth_sessions s join users u on u.id = s.user_id
+ where s.created_at >= '2026-09-13 10:49:00+00' and u.username in ('ganesh.more','rahul.deshmukh','dinesh.patil','ramesh.gupta','amol.vaidya') group by 1 order by 1;
+    username    | sessions 
+----------------+----------
+ amol.vaidya    |        2
+ dinesh.patil   |        3
+ ganesh.more    |        3
+ rahul.deshmukh |        5
+ ramesh.gupta   |        1
+(5 rows)
+

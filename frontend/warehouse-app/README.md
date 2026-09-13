@@ -77,33 +77,33 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | POST | `/visits` | Record a shop visit (own) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/visits` | Visits by retailer / rep / period | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/inventory/locations` | Stock locations: godown, vehicles, damaged bin | owner, manager, accountant, salesperson, warehouse, delivery |
-| POST | `/inventory/locations` | Create or update a stock location | owner, manager, accountant, warehouse |
+| POST | `/inventory/locations` | Create or update a stock location | owner, manager, warehouse |
 | GET | `/inventory/sellable` | Available-to-promise stock per lot per location | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row | owner, manager, accountant, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, accountant, warehouse |
+| POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, accountant, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager, accountant |
+| POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
 | GET | `/inventory/cycle-counts/{id}` | One cycle count with its lines | owner, manager, accountant, warehouse, delivery |
-| POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices` | Record a reviewed supplier invoice with its lines (back office) | owner, manager |
 | GET | `/procurement/supplier-invoices` | Supplier invoices (back office) | owner, manager, accountant |
 | GET | `/procurement/supplier-invoices/{id}` | One supplier invoice with lines and rates (back office) | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager, accountant |
-| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager, accountant |
-| POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager, accountant |
+| POST | `/procurement/supplier-invoices/{id}/lines/{lineId}/match` | Resolve a printed line to a catalog variant | owner, manager |
+| POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager |
+| POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager |
+| POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager |
 | POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line | owner, manager, warehouse |
-| POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager, accountant |
+| POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager |
 | GET | `/procurement/grns` | Goods receipts | owner, manager, accountant, warehouse |
 | GET | `/procurement/grns/{id}` | One GRN with lines and discrepancies | owner, manager, accountant, warehouse |
 | GET | `/procurement/discrepancies` | Short/excess/damaged findings from gate counts | owner, manager, accountant, warehouse |
 | POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
-| POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
+| POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
 | POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
@@ -111,6 +111,7 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -168,6 +169,7 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
@@ -202,21 +204,21 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | GET | `/docint/documents/{id}` | One document with its pages (signed read URLs), QR result and pipeline status | owner, manager, accountant, warehouse |
 | GET | `/docint/documents/{id}/status` | Pipeline status only: the cheap poll after submit | owner, manager, accountant, warehouse |
 | GET | `/docint/documents/{id}/page-url` | A fresh signed read URL for one page image (object storage getUrl) | owner, manager, accountant, warehouse |
-| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager, accountant |
+| POST | `/docint/documents/{id}/reject` | Reject a document with a reason (never a committed one) | owner, manager |
+| POST | `/docint/documents/{id}/approve` | Book the reviewed reading as a supplier invoice DRAFT for procurement.grns (never a GRN) | owner, manager |
+| POST | `/docint/documents/{id}/extract` | Retry or escalate the extraction by hand | owner, manager |
 | GET | `/docint/documents/{id}/extractions` | Every engine reading of a document with its checks (back office: carries rates) | owner, manager, accountant |
 | GET | `/docint/extractions/{id}` | One reading in full: header, lines with evidence, confidence per field | owner, manager, accountant |
 | GET | `/docint/extractions/{extractionId}/candidates` | SKU match candidates per printed line, best first | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager, accountant |
-| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager, accountant |
-| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager, accountant |
-| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager, accountant |
+| POST | `/docint/extractions/{id}/matches/accept` | Accept a listed candidate for a line (remembers the alias and the pack) | owner, manager |
+| POST | `/docint/extractions/{id}/matches/reject` | Reject a candidate, or the line's match as a whole, with a reason | owner, manager |
+| POST | `/docint/extractions/{id}/matches/choose` | Pick another variant from the catalog for a line | owner, manager |
+| POST | `/docint/extractions/{id}/rematch` | Re-run the SKU cascade for every unmatched line (after catalog.propose) | owner, manager |
+| POST | `/docint/documents/{id}/review` | Open a review session and take the single-writer lock | owner, manager |
+| POST | `/docint/review-sessions/{id}/heartbeat` | Keep the review lock alive | owner, manager |
+| POST | `/docint/review-sessions/{id}` | Save corrections; every changed path is logged and the validators re-run | owner, manager |
+| POST | `/docint/review-sessions/{id}/release` | Give the document up so another reviewer may take it | owner, manager |
+| POST | `/docint/review-sessions/{id}/submit` | Assert the reading is right (refused while any red check stands) | owner, manager |
 | GET | `/docint/queue` | The inbound review worklist, oldest first (back office) | owner, manager, accountant |
 | GET | `/docint/stats` | Extraction quality, latency, cost and edits per invoice for a date range | owner, manager, accountant |
 | GET | `/notifications/messages` | Message log (staff) and inbox (a shop sees only messages to its own shop) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |

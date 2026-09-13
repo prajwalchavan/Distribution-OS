@@ -13,7 +13,8 @@
  *   each printed line with the SKU we think it is and the other candidates.
  *
  * The review LOCK is single-writer (`review.start` … `release`), so two people cannot correct the
- * same bill; the screen says who holds it.
+ * same bill; the screen says who holds it. Start reviewing is offered only where the document machine
+ * allows `start_review` (DOS-031).
  *
  * Approving books a supplier invoice DRAFT — never a goods receipt. Stock arrives at the gate, and
  * the gate counts it blind.
@@ -57,6 +58,7 @@ import {
 } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf } from '../../src/lib/dates'
+import { mayStartReview } from '../../src/lib/review-desk'
 import { useWord } from '../../src/lib/words'
 
 const DOC_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -478,17 +480,19 @@ export default function Documents(): React.JSX.Element {
                     testID="docint-panel-refusal"
                   />
                   {sessionId === null ? (
-                    <Button
-                      label={t('m3.startReview')}
-                      variant="primary"
-                      loading={startReview.status === 'pending'}
-                      onPress={() => {
-                        void startReview.mutateAsync(selected ?? '').then((result) => {
-                          setSessionId(result.session.id)
-                        }, stayOpen)
-                      }}
-                      testID="docint-start"
-                    />
+                    mayStartReview(doc.status) ? (
+                      <Button
+                        label={t('m3.startReview')}
+                        variant="primary"
+                        loading={startReview.status === 'pending'}
+                        onPress={() => {
+                          void startReview.mutateAsync(selected ?? '').then((result) => {
+                            setSessionId(result.session.id)
+                          }, stayOpen)
+                        }}
+                        testID="docint-start"
+                      />
+                    ) : null
                   ) : (
                     <>
                       <Button

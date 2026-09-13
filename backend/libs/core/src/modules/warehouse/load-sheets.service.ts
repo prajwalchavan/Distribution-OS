@@ -784,7 +784,14 @@ export class LoadSheetsService {
     return { valuePaise }
   }
 
-  /** Which live sheet each of these orders is already on. A confirmed sheet counts: the goods left. */
+  /**
+   * Which live sheet each of these orders is already on. A confirmed sheet counts: the goods left.
+   *
+   * The same live-sheet rule exists a second time as `onLiveLoadSheet` in packing.service.ts, which
+   * `packs.list?status=awaiting_load` filters with (DOS-133). The DOS-133 spec in warehouse.spec.ts ties
+   * the two (create accepts every row that list offers and refuses the returned bill it leaves out), so a
+   * change here — letting a bill returned undelivered be loaded again, say — changes both.
+   */
   private async onALiveSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
     if (orderIds.length === 0) return new Map()
     const { tenantId } = currentTenant()

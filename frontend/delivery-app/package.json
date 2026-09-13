@@ -37,6 +37,7 @@
     "expo-file-system": "catalog:",
     "expo-font": "catalog:",
     "expo-haptics": "catalog:",
+    "expo-image-manipulator": "catalog:",
     "expo-image-picker": "catalog:",
     "expo-linking": "catalog:",
     "expo-location": "catalog:",

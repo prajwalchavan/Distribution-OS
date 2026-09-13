@@ -36,6 +36,7 @@
     "expo-document-picker": "*",
     "expo-file-system": "*",
     "expo-haptics": "*",
+    "expo-image-manipulator": "*",
     "expo-image-picker": "*",
     "expo-location": "*",
     "expo-print": "*",
@@ -63,6 +64,9 @@
       "optional": true
     },
     "expo-haptics": {
+      "optional": true
+    },
+    "expo-image-manipulator": {
       "optional": true
     },
     "expo-image-picker": {
@@ -111,6 +115,7 @@
     "expo-document-picker": "catalog:",
     "expo-file-system": "catalog:",
     "expo-haptics": "catalog:",
+    "expo-image-manipulator": "catalog:",
     "expo-image-picker": "catalog:",
     "expo-location": "catalog:",
     "expo-print": "catalog:",

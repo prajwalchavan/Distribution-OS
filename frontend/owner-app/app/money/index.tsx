@@ -22,6 +22,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   TrendChart,
   Txt,
   useColors,
@@ -73,6 +74,7 @@ export default function OutstandingListItem(): React.JSX.Element {
   const [amount, setAmount] = useState<number | null>(null)
   const [billId, setBillId] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const span = rangeOf(range)
   const list = useQuery(
@@ -428,13 +430,31 @@ export default function OutstandingListItem(): React.JSX.Element {
           if (dialog === 'statement')
             void statements
               .mutateAsync({ retailerIds: rows.slice(0, 200).map((row) => row.retailerId) })
-              .then(done, done)
+              .then(
+                (result) => {
+                  done()
+                  setToast(t('o10.statementsSent', { count: result.queued }))
+                },
+                (error: unknown) => {
+                  done()
+                  setToast(error instanceof Error ? error.message : t('app.retry'))
+                },
+              )
           if (dialog === 'writeOff' && billId !== null && amount !== null && amount > 0)
             void writeOff
               .mutateAsync({ invoiceId: billId, amountPaise: amount, note: note.trim() })
               .then(done, done)
         }}
         testID="money-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="money-toast"
       />
     </Screen>
   )

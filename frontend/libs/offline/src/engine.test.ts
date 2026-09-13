@@ -354,6 +354,59 @@ describe('4. the outbox is FIFO', () => {
   })
 })
 
+describe('DOS-056 a batch is bounded in bytes as well as in ops', () => {
+  it('DOS-056 sends photo-carrying ops in smaller FIFO batches under the byte budget, and an op larger than the budget still goes on its own', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = new SyncEngine({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: fixedStoreFactory(store),
+      pullIntervalMs: 0,
+      uploadBatchBytes: 1_000_000,
+      now,
+    })
+    await engine.start()
+
+    // A dead-spot afternoon: three doorstep writes with a compressed photo inline, one that is bigger
+    // than a whole batch, and a small one behind it.
+    server.offline = true
+    const photo = 'A'.repeat(400_000)
+    for (const id of ['o1', 'o2', 'o3'])
+      await engine.enqueue({ table: 'sales_orders', id, op: 'PUT', data: { retailer_id: photo } })
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o4',
+      op: 'PUT',
+      data: { retailer_id: 'A'.repeat(1_500_000) },
+    })
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o5',
+      op: 'PUT',
+      data: { retailer_id: 'r5' },
+    })
+    await engine.flush()
+    expect(server.uploadCalls).toHaveLength(0)
+
+    server.offline = false
+    await engine.flush()
+
+    expect(server.uploadCalls.map((call) => call.ops.map((op) => op.id))).toEqual([
+      ['o1', 'o2'],
+      ['o3'],
+      ['o4'],
+      ['o5'],
+    ])
+    for (const call of server.uploadCalls)
+      if (call.ops.length > 1)
+        expect(JSON.stringify(call.ops).length).toBeLessThanOrEqual(1_000_000)
+    expect(engine.status().pending).toBe(0)
+    await engine.stop()
+  })
+})
+
 // 5 --------------------------------------------------------------------------------------------------------------
 
 describe('5. a replay is free', () => {

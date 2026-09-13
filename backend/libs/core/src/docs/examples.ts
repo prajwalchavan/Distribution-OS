@@ -80,7 +80,12 @@ import {
   writeOffs,
   type Db,
 } from '@dos/db'
-import { contract, MAX_CLAIM_BUILD_LINES, type ProcedureSummary } from '@dos/contracts'
+import {
+  contract,
+  MAX_CLAIM_BUILD_LINES,
+  mayPostAdjustment,
+  type ProcedureSummary,
+} from '@dos/contracts'
 import { businessDate } from '@dos/domain'
 import { BACK_OFFICE } from '../platform/authz.js'
 import { DB } from '../platform/db.module.js'
@@ -2895,6 +2900,17 @@ function servesBackOffice(options: BuildExamplesOptions): boolean {
     : roles.some((role) => (BACK_OFFICE as readonly string[]).includes(role))
 }
 
+/**
+ * Does this service serve anyone who may ADD stock by an adjustment (DOS-044: the owner or a manager)?
+ * With no roles at all — a document built outside a service — the adding example is shown.
+ */
+function addsStock(options: BuildExamplesOptions): boolean {
+  const roles = options.roles
+  return roles === undefined || roles.length === 0
+    ? true
+    : roles.some((role) => mayPostAdjustment(role, 'adjustment', 1))
+}
+
 /** True only for the shopkeeper's own service: every example there stays inside the linked shop. */
 function servesOnlyRetailer(options: BuildExamplesOptions): boolean {
   const roles = options.roles ?? []
@@ -3567,10 +3583,14 @@ const OVERRIDES: Record<
     batchNo: DOCS_BATCH_NO,
     mrpPaise: DOCS_BATCH_MRP_PAISE,
   }),
-  'inventory.stock.adjust': (ctx) => ({
+  // The sign follows the service's roles (DOS-044): +1 where the owner or a manager is served, −1 where
+  // no adder is (warehouse-service), so Execute sends a call that login may send. The lot is read with
+  // free stock (`collectStock`, `ctx.lotQty`), so −1 never takes it below zero.
+  'inventory.stock.adjust': (ctx, options) => ({
     lotId: ctx.lotId,
     locationId: ctx.lotLocationId ?? ctx.locationId,
-    qtyDelta: 1, // a positive delta is always legal; a negative one could go below zero
+    reason: 'adjustment',
+    qtyDelta: addsStock(options) ? 1 : -1,
   }),
   'inventory.stock.transfer': (ctx) => ({
     lotId: ctx.lotId,
@@ -3623,6 +3643,7 @@ const OVERRIDES: Record<
     reason: 'Shop asked to cancel before dispatch',
   }),
   'orders.get': (ctx) => ({ id: ctx.orderId }),
+  'orders.lastPlaced': (ctx) => ({ retailerId: ctx.retailerId }),
   'orders.approvals.decide': (ctx) => ({
     id: ctx.approvalId,
     decision: 'approve',
@@ -3856,6 +3877,7 @@ const OVERRIDES: Record<
     to: DROP,
     mine: DROP,
   }),
+  'delivery.trips.planning': () => ({ date: DROP, beatId: DROP, cursor: DROP }),
   'delivery.trips.get': (ctx) => ({ id: ctx.activeTripId ?? ctx.plannedTripId }),
   'delivery.trips.startLoading': (ctx) => ({
     id: ctx.plannedTripId ?? ctx.activeTripId,
@@ -4943,7 +4965,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'pricing.schemes.upsert': () =>
     'The example scheme is created `active: false` and scoped to one product, so it cannot change what the demo orders cost until you activate it.',
   'inventory.stock.adjust': () =>
-    'Writes one real stock-ledger row (+1 piece). The fixed idempotencyKey means a second Execute is replayed, not added.',
+    'Writes one real stock-ledger row: +1 piece where the service serves the owner or a manager, −1 on warehouse-service, whose login only takes stock off. The fixed idempotencyKey means a second Execute is replayed, not added.',
   'inventory.stock.transfer': () =>
     'Really moves stock from the godown to the van. The fixed idempotencyKey means a second Execute is replayed, not added.',
   'procurement.supplierInvoices.create': (ctx) =>
@@ -5135,6 +5157,7 @@ const QUERY_FILL: Record<string, readonly string[]> = {
   'retailers.list': ['q'],
   'retailers.visits.list': ['retailerId'],
   'orders.list': ['retailerId'],
+  'orders.lastPlaced': ['retailerId'],
   'inventory.stock.sellable': ['variantId'],
   'inventory.stock.balances': ['lotId'],
   'inventory.stock.ledger': ['lotId'],

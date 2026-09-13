@@ -1,0 +1,64 @@
+{
+  "probe": "03",
+  "phase": "after DOS-166 merge (main 3d7cb36)",
+  "role": "warehouse",
+  "username": "dinesh.patil",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T10:52:03.384Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "warehouse"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3004/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-after-warehouse-03",
+      "ops": [
+        {
+          "opId": "01a09a65-45b8-7b64-bfde-a655d1504f44",
+          "op": "PUT",
+          "table": "receipts",
+          "id": "01a09a65-45b8-79d5-a681-bb1038bcac8c",
+          "clientTime": "2026-09-13T10:52:03.384Z",
+          "data": {
+            "retailer_id": "8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8",
+            "mode": "cash",
+            "amount_paise": 100,
+            "received_at": "2026-09-13T10:52:03.384Z",
+            "received_by": null,
+            "device_id": "qa-b2-syncprobe-after-warehouse-03",
+            "status": "collected",
+            "note": "QA batch2 sync-role-probe AFTER 03 warehouse"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "accepted": 0,
+      "replayed": 0,
+      "rejected": [
+        {
+          "opId": "01a09a65-45b8-7b64-bfde-a655d1504f44",
+          "table": "receipts",
+          "rowId": "01a09a65-45b8-79d5-a681-bb1038bcac8c",
+          "code": "role_not_allowed",
+          "messageHi": "यह काम आपकी भूमिका के लिए नहीं है",
+          "messageEn": "A warehouse may not send receipts from a device"
+        }
+      ],
+      "warnings": [],
+      "upgradeRequired": false
+    }
+  }
+}

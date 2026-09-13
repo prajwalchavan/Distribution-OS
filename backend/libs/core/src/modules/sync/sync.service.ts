@@ -51,6 +51,27 @@ const TRIAGE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'system'
  */
 const PULL_OVERLAP_MS = 5_000
 
+/**
+ * The most one offline op may weigh, as JSON (DOS-056). A doorstep write carries its proof photo
+ * inline — squeezed on the phone to ≤ 300 KB of JPEG, ~400 KB as base64 — so a real op is well under
+ * this. A bigger one (an uncompressed photo, an old build) is refused `row_too_large` into the tray,
+ * never answered 413, which would wedge the whole queue (docs/22 never-list #8). The route itself
+ * takes up to `SYNC_UPLOAD_BODY_LIMIT_BYTES` (8 MiB) and the device keeps a batch under 4 MiB
+ * (docs/27 §6), so an oversize op reaches this check rather than the transport's limit.
+ */
+const MAX_SYNC_OP_BYTES = 1024 * 1024
+
+/** Thrown inside the op's savepoint, so it lands like any refusal: 2xx, `sync_errors`, `sync_ops`. */
+function refuseOversizeOp(op: SyncOp): void {
+  const bytes = Buffer.byteLength(JSON.stringify(op), 'utf8')
+  if (bytes <= MAX_SYNC_OP_BYTES) return
+  throw new SyncRejection(
+    'row_too_large',
+    `This write is too large to send (${(bytes / 1_048_576).toFixed(1)} MB; the office takes up to 1 MB in one write). Record it again with a smaller photo.`,
+    'यह रिकॉर्ड भेजने के लिए बहुत बड़ा है; छोटी फ़ोटो के साथ दोबारा दर्ज करें',
+  )
+}
+
 @Injectable()
 export class SyncService {
   constructor(
@@ -137,6 +158,7 @@ export class SyncService {
           try {
             // Savepoint so a rejected op leaves no partial writes but the sync_ops/sync_errors rows still commit.
             await tx.transaction(async (inner) => {
+              refuseOversizeOp(op) // DOS-056: an op over 1 MiB is `row_too_large`, before any read
               // The LWW veto, applied to every table by the uploader rather than remembered by each
               // module's handler (sync.registry.ts `vetoIfStale`): an edit whose base is older than
               // the server's row is refused `stale`, still 2xx, and the tray tells the user why.

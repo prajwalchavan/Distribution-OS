@@ -31,8 +31,10 @@ import { addDays } from './reporting.internals.js'
  *     tables directly, and it is authorised by the brief (§7: "grouped queries over `sales_orders`,
  *     `invoices`, `receipts`, `trip_stops`"): a rollup cannot go through six Nest services in a worker
  *     that has no DI. It writes ONLY reporting's own six tables.
- *  4. A PAST DAY IS NEVER ZEROED. Dues are a stock, not a flow: for a day whose ageing snapshot is
- *     gone, the recompute keeps the value already stored rather than replacing a real number with 0.
+ *  4. A PAST DAY IS NEVER ZEROED. Dues are a stock, not a flow: today's figure is the live dues rows;
+ *     a past day keeps the closing figure its last rollup stored, and falls back to that day's own
+ *     ageing snapshot only when it was never rolled up (else 0). The nightly snapshot is written at
+ *     00:20 IST, so it is a day's OPENING figure and never replaces a stored closing one (DOS-117).
  */
 
 /** IST midnight of a business date as an instant, `plusDays` later. */
@@ -177,7 +179,8 @@ export async function rollupTenantDay(
          group by 1`,
       )
 
-      // --- dues: today's from the live rollup, a past day's from its own snapshot, else keep -------
+      // --- dues: today's from the live rows; a past day keeps the closing figure it stored, and only a
+      //     day that was never rolled up falls back to its own snapshot, else 0 ---------------------
       const existing = await tx.execute(sql`
         select outstanding_paise, overdue_paise
           from daily_tenant_stats where tenant_id = ${tenantId} and day = ${day}`)
@@ -200,15 +203,13 @@ export async function rollupTenantDay(
       const liveRow = live.rows[0]
       const existingRow = existing.rows[0]
       const isToday = day === businessDate().date
-      const dues =
-        n(snapRow?.rows) > 0
-          ? { outstanding: n(snapRow?.outstanding_paise), overdue: n(snapRow?.overdue_paise) }
-          : isToday
-            ? { outstanding: n(liveRow?.outstanding_paise), overdue: n(liveRow?.overdue_paise) }
-            : {
-                outstanding: n(existingRow?.outstanding_paise),
-                overdue: n(existingRow?.overdue_paise),
-              }
+      const dues = isToday
+        ? { outstanding: n(liveRow?.outstanding_paise), overdue: n(liveRow?.overdue_paise) }
+        : existingRow !== undefined
+          ? { outstanding: n(existingRow.outstanding_paise), overdue: n(existingRow.overdue_paise) }
+          : n(snapRow?.rows) > 0
+            ? { outstanding: n(snapRow?.outstanding_paise), overdue: n(snapRow?.overdue_paise) }
+            : { outstanding: 0, overdue: 0 }
 
       const orderRow = orders.rows[0]
       const stopRow = stops.rows[0]

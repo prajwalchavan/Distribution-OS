@@ -41,7 +41,7 @@ import { SupplierInvoiceService } from '../procurement/index.js'
 import {
   asCaller,
   CAPTURE,
-  DESK,
+  DESK_WRITERS,
   isUniqueViolation,
   listRow,
   loadDetail,
@@ -490,10 +490,10 @@ export class DocumentsService {
   }
 
   // -------------------------------------------------------------------------------------------------
-  // the desk (BACK_OFFICE)
+  // the desk's decisions (DESK_WRITERS: the owner or a manager; the accountant reads, QA DOS-037)
 
   async reject(input: RejectIn): Promise<RejectOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -529,7 +529,7 @@ export class DocumentsService {
    * no cost, no journal — `procurement.grns.open → count → post` does that, by a human, later.
    */
   async approve(input: ApproveIn): Promise<ApproveOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

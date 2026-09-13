@@ -10,6 +10,7 @@
  * Android WebView do) and answers `null` where it does not, with `available` telling the screen in
  * advance. No 200 KB decoder library rides along for a capability the phone builds already have.
  */
+import { fitJpeg, type JpegAttempt } from './jpeg-budget.js'
 import type { CapturedPhoto, PlatformCamera, ScannedCode } from './types.js'
 
 interface BarcodeDetectorLike {
@@ -58,8 +59,11 @@ function pickFile(accept: string, capture: boolean): Promise<File | null> {
   })
 }
 
-/** Down to `maxWidth` and out as JPEG — the ~200 KB budget of UX-00 section 8.2. */
-async function compress(file: File, maxWidth: number): Promise<CapturedPhoto> {
+/**
+ * Down to `maxWidth` and out as JPEG — the ~200 KB budget of UX-00 section 8.2. With `maxBytes` the
+ * JPEG is walked down the ladder of `jpeg-budget.ts` until it fits (DOS-056).
+ */
+async function compress(file: File, maxWidth: number, maxBytes?: number): Promise<CapturedPhoto> {
   /*
    * `createImageBitmap` THROWS on anything it cannot decode — a HEIC from an iPhone in a browser
    * that has no decoder for it, a truncated file, a `.jpg` that is not one. Unguarded, that
@@ -80,29 +84,41 @@ async function compress(file: File, maxWidth: number): Promise<CapturedPhoto> {
     return { uri: URL.createObjectURL(file), mimeType: file.type, bytes: file.size }
   }
   const scale = Math.min(1, maxWidth / bitmap.width)
-  const width = Math.round(bitmap.width * scale)
-  const height = Math.round(bitmap.height * scale)
+  const baseWidth = Math.round(bitmap.width * scale)
+  const baseHeight = Math.round(bitmap.height * scale)
   const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
   const context = canvas.getContext('2d')
   if (!context) {
+    bitmap.close()
     return { uri: URL.createObjectURL(file), mimeType: file.type, bytes: file.size }
   }
-  context.drawImage(bitmap, 0, 0, width, height)
+  const encode = async (
+    attempt: JpegAttempt,
+  ): Promise<{ blob: Blob; width: number; height: number; bytes: number } | null> => {
+    const width = Math.max(1, Math.round(baseWidth * attempt.scale))
+    const height = Math.max(1, Math.round(baseHeight * attempt.scale))
+    canvas.width = width
+    canvas.height = height
+    context.drawImage(bitmap, 0, 0, width, height)
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', attempt.quality)
+    })
+    return blob === null ? null : { blob, width, height, bytes: blob.size }
+  }
+  const encoded =
+    maxBytes === undefined
+      ? await encode({ scale: 1, quality: QUALITY })
+      : await fitJpeg(maxBytes, encode)
   bitmap.close()
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, 'image/jpeg', QUALITY)
-  })
-  if (!blob) {
+  if (!encoded) {
     return { uri: URL.createObjectURL(file), mimeType: file.type, bytes: file.size }
   }
   return {
-    uri: URL.createObjectURL(blob),
+    uri: URL.createObjectURL(encoded.blob),
     mimeType: 'image/jpeg',
-    width,
-    height,
-    bytes: blob.size,
+    width: encoded.width,
+    height: encoded.height,
+    bytes: encoded.bytes,
   }
 }
 
@@ -129,7 +145,7 @@ export const camera: PlatformCamera = {
   photograph: async (options) => {
     const file = await pickFile('image/*', true)
     if (!file) return null
-    return compress(file, options?.maxWidth ?? MAX_WIDTH)
+    return compress(file, options?.maxWidth ?? MAX_WIDTH, options?.maxBytes)
   },
 
   available: typeof document !== 'undefined',

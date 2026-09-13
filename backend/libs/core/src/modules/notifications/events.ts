@@ -434,3 +434,60 @@ export async function queueDuesReminders(
     return { queued, cooled, skipped }
   })
 }
+
+/**
+ * `statement` (DOS-007): one shop's statement of account, off receivables' `StatementRequested`. The
+ * worker supplies every figure (receivables' `loadStatementSummary`); this module never reads the ledger
+ * or the rollup. The pay link asks for TODAY's dues, never the window's closing. When there is nothing to
+ * link to — no dues today, no UPI id configured, or the desk asked for no link — the `statement_no_upi`
+ * wording goes instead, so no template parameter is ever empty (WhatsApp refuses one). Keyed by the
+ * outbox event, so a relay replay finds the row already there.
+ */
+export async function queueStatement(
+  db: Db,
+  tenantId: string,
+  i: {
+    eventId: string
+    retailerId: string
+    from: string
+    to: string
+    includeUpiQr: boolean
+    openingPaise: number
+    closingPaise: number
+    overduePaise: number
+    duePaise: number
+  },
+): Promise<HandledEvent> {
+  return asTenantSystem(db, tenantId, async (tx) => {
+    const sender = await senderIdentity(tx)
+    const contact = await contactPreferences(tx, i.retailerId)
+    const upiLink = i.includeUpiQr
+      ? upiPayLink({
+          vpa: sender.upiVpa,
+          payeeName: sender.displayName,
+          amountPaise: i.duePaise,
+          reference: null,
+        })
+      : ''
+    const outcome = await queueShopMessage(
+      tx,
+      { contact, sender },
+      {
+        retailerId: i.retailerId,
+        templateKey: upiLink === '' ? 'statement_no_upi' : 'statement',
+        refType: 'retailer',
+        refId: i.retailerId,
+        variables: {
+          fromDate: i.from,
+          toDate: i.to,
+          openingRupees: rupees(i.openingPaise),
+          closingRupees: rupees(i.closingPaise),
+          overdueRupees: rupees(i.overduePaise),
+          ...(upiLink === '' ? {} : { upiLink }),
+        },
+        idempotencyKey: `Statement:${i.eventId}`,
+      },
+    )
+    return fromOutcome(outcome)
+  })
+}

@@ -262,7 +262,7 @@ export async function seedStock(
           reason: 'grn',
           refType: 'grn',
           refId: grnId,
-          actorId: people.accountant.id,
+          actorId: people.manager.id,
           idempotencyKey: `grn:${inv.invoiceKey}:${line.variantKey}`,
         })
       }
@@ -305,7 +305,7 @@ export async function seedStock(
       freightPaise,
       totalPaise,
       dueDate: isoDate(new Date(inv.invoiceDate.getTime() + inv.paymentTermsDays * 86_400_000)),
-      approvedBy: people.accountant.id,
+      approvedBy: people.manager.id,
       approvedAt: occurred(atIstTime(inv.invoiceDate, 18, 0)),
       createdAt: occurred(atIstTime(inv.invoiceDate, 9, 45)),
     })
@@ -318,7 +318,7 @@ export async function seedStock(
       status: 'posted',
       countedBy: people.warehouse.id,
       countedAt: occurred(atIstTime(inv.invoiceDate, 10, 30)),
-      postedBy: people.accountant.id,
+      postedBy: people.manager.id,
       postedAt: occurred(atIstTime(inv.invoiceDate, 11, 0)),
       createdAt: occurred(atIstTime(inv.invoiceDate, 10, 30)),
     })

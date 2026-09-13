@@ -182,7 +182,7 @@ export default function OrderDetail(): React.JSX.Element {
                       key={line.id}
                       primary={names.nameOf(line.variantId) ?? t('r8.itemUnknown')}
                       secondary={`${billLineQty(line, t)} · ${formatMoney(line.ratePaise)}${
-                        line.discountPaise > 0 ? ` · −${formatMoney(line.discountPaise)}` : ''
+                        offRate(line) > 0 ? ` · −${formatMoney(offRate(line))}` : ''
                       }${
                         line.taxPaise > 0
                           ? ` · ${t('r8.lineGst', { amount: formatMoney(line.taxPaise) })}`
@@ -357,4 +357,19 @@ function noteOf(note: string | null): string | null {
   const raw = (note ?? '').trim()
   if (raw === '') return null
   return /^Repeat of [0-9a-f-]{36}$/i.test(raw) ? REPEAT : raw
+}
+
+/**
+ * What came off the rate a line is charged at: rate × pieces less the line's own taxable (DOS-126, the same
+ * expression the bill uses). A line charged at an approved rate already prints that rate, and its stored
+ * `discountPaise` also holds the bargain, so printing that beside the rate showed the shop its bargain twice.
+ * Zero for a line whose only change is an approved rate; a scheme's discount for every other line.
+ */
+function offRate(line: {
+  ratePaise: number
+  qtyPcs: number
+  lineTotalPaise: number
+  taxPaise: number
+}): number {
+  return line.ratePaise * line.qtyPcs - (line.lineTotalPaise - line.taxPaise)
 }

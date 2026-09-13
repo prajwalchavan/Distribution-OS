@@ -1,5 +1,18 @@
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  lte,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -323,4 +336,36 @@ export async function listOrders(
   const items = rows.slice(0, input.limit).map(toOrder)
   const last = items[items.length - 1]
   return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
+}
+
+/**
+ * The shop's most recently PLACED order (DOS-098): by when it was placed, `coalesce(submitted_at, created_at)`,
+ * never a draft or a cancelled order, and never by id — a seeded or imported id is not a date, and even a client
+ * UUIDv7 is minted when the draft starts, not when it is sent. Any author and any placed source counts. The
+ * explicit tenant predicate lets `sales_orders_retailer_idx (tenant_id, retailer_id, created_at)` narrow to one
+ * shop before the top-1 sort; RLS still applies through the caller's `withTenant` transaction. `salespersonId`
+ * keeps a rep to the orders credited to it (the DOS-073 reach rule of `callerReaches`); `repeatLast` passes none.
+ */
+export async function lastPlacedOrder(
+  tx: Db,
+  retailerId: string,
+  salespersonId?: string,
+): Promise<OrderRow | undefined> {
+  const [row] = await tx
+    .select()
+    .from(salesOrders)
+    .where(
+      and(
+        eq(salesOrders.tenantId, currentTenant().tenantId),
+        eq(salesOrders.retailerId, retailerId),
+        notInArray(salesOrders.state, ['draft', 'cancelled']),
+        salespersonId === undefined ? undefined : eq(salesOrders.salespersonId, salespersonId),
+      ),
+    )
+    .orderBy(
+      desc(sql`coalesce(${salesOrders.submittedAt}, ${salesOrders.createdAt})`),
+      desc(salesOrders.id),
+    )
+    .limit(1)
+  return row
 }
