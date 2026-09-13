@@ -110,6 +110,7 @@ Full request/response samples for each are in `backend-services/retailer-service
 | POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
 | POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
