@@ -496,3 +496,62 @@ describe('DOS-156 a phone whose native fetch cannot reach the service', () => {
     }
   })
 })
+
+describe('DOS-112 the wire request of a Day-end settle', () => {
+  /**
+   * `trips.settle` CREATES a `trip_settlements` row, so its input carries two ids: the new row's own
+   * client-generated `id` and the `tripId` it settles. The link fills every `{param}` of the route from
+   * the input field of that name and drops the field from the body, so the route has to name the TRIP,
+   * or the new settlement id lands in the URL and the service's path/body check refuses every settle.
+   * The input below is exactly what manager-app/app/money/day-end.tsx sends.
+   */
+  const TRIP = '01924f9a-0000-7000-8000-0000000000d1'
+
+  it('DOS-112 Day-end settle: the client link puts the trip in the path and the settlement id in the body', async () => {
+    const sent: { method: string; url: string; body: unknown }[] = []
+    vi.stubGlobal('fetch', async (input: unknown, init?: RequestInit): Promise<Response> => {
+      const request = input instanceof Request ? input : new Request(String(input), init)
+      const url = new URL(request.url)
+      if (url.pathname === '/auth/login') return json(tokenPair('a1', 'r1'))
+      const text = await request.clone().text()
+      sent.push({
+        method: request.method,
+        url: `${url.pathname}${url.search}`,
+        body: text === '' ? undefined : JSON.parse(text),
+      })
+      return json({
+        item: { id: 'stub', tripId: TRIP },
+        tripState: 'settled',
+        stockAdjustments: [],
+      })
+    })
+    const desk = client()
+    await desk.signIn({ username: 'vikas.kadam', password: 'Dos@1234' })
+    const meta = desk.newMutation()
+
+    const answer = await desk.api.delivery.trips.settle({
+      id: meta.id,
+      idempotencyKey: meta.idempotencyKey,
+      tripId: TRIP,
+      handedOverCashPaise: 195_000,
+      acceptVariance: false,
+      note: 'counted with the crew',
+    })
+
+    expect(answer.tripState).toBe('settled')
+    expect(sent, `trip ${TRIP}, new settlement id ${meta.id}`).toEqual([
+      {
+        method: 'POST',
+        url: `/delivery/trips/${TRIP}/settle`,
+        body: {
+          id: meta.id,
+          idempotencyKey: meta.idempotencyKey,
+          handedOverCashPaise: 195_000,
+          acceptVariance: false,
+          note: 'counted with the crew',
+        },
+      },
+    ])
+    expect(sent[0]?.url).not.toContain(meta.id)
+  })
+})
