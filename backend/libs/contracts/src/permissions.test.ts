@@ -903,15 +903,10 @@ describe('permission matrix', () => {
       'auth.resetPassword',
       'auth.revokeSession',
       'auth.switchTenant',
-      // every member or every staff member: the order pad, a quote, a bargain request, a proposed
+      // every member or every staff member: a quote, a bargain request, a proposed
       // product, a shop and its visit, an upload slot, the offline queue
       'catalog.propose',
       'files.uploadUrl',
-      'orders.cancel',
-      'orders.create',
-      'orders.repeatLast',
-      'orders.setLines',
-      'orders.submit',
       'pricing.bargains.request',
       'pricing.quote',
       'retailers.upsert',
