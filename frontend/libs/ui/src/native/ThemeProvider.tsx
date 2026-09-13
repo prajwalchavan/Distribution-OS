@@ -10,6 +10,7 @@ import { View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { ThemeContextProvider, buildTheme, type ThemeProviderProps } from '../theme.js'
+import { OverlayStackProvider } from './overlay-host.js'
 import { useViewport } from './viewport.js'
 
 export interface NativeThemeProviderProps extends ThemeProviderProps {
@@ -21,6 +22,10 @@ export interface NativeThemeProviderProps extends ThemeProviderProps {
  * stylesheet lives in the web provider: `<Screen>` reads insets from the first frame (UX-00 section
  * 8.2 — a hard-coded `paddingTop` is a bug), and an app that forgot the wrapper would lay out
  * correctly in a simulator and wrongly on a notched phone.
+ *
+ * The overlay stack lives here for the same reason (DOS-164): a Sheet or Dialog opened while another
+ * is presented must render inside that one's modal, and an app that forgot the provider would work on
+ * web and Android and leave that dialog dead on an iPhone.
  */
 export function ThemeProvider({ children, ...props }: NativeThemeProviderProps): React.JSX.Element {
   // The touch floor follows the SHELL, and the shell follows the viewport (docs/08 §0, UX-00 §5.2):
@@ -30,7 +35,9 @@ export function ThemeProvider({ children, ...props }: NativeThemeProviderProps):
   return (
     <SafeAreaProvider>
       <ThemeContextProvider {...rest}>
-        <View style={{ flex: 1, backgroundColor: theme.colors.bg.ground }}>{children}</View>
+        <OverlayStackProvider>
+          <View style={{ flex: 1, backgroundColor: theme.colors.bg.ground }}>{children}</View>
+        </OverlayStackProvider>
       </ThemeContextProvider>
     </SafeAreaProvider>
   )
