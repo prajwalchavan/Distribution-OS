@@ -19,7 +19,9 @@
  * role's manifest, so the phone could not show one if a screen asked (docs/22 §9 rule 1).
  */
 import {
+  paise,
   priceOrder,
+  toRupees,
   type PriceBargainInput,
   type PriceOrderInput,
   type PriceOrderResult,
@@ -232,4 +234,83 @@ export function quoteOnDevice(
   } catch (raw) {
     return { result: null, unpriced, error: raw instanceof Error ? raw.message : String(raw) }
   }
+}
+
+/** A rate the office changed between the device's quote and the server's `orders.create` reply. */
+export interface PriceChange {
+  variantId: string
+  name: string
+  fromRatePaise: number
+  toRatePaise: number
+}
+
+/**
+ * DOS-082: the device quotes at one set of rates and `orders.create` re-prices moments later from
+ * the same price-list tables — correct, because the office may have edited a price list while the
+ * draft sat open, and the server's answer is what the order, the bill and the shop carry (docs/22).
+ * But nothing told the rep when the two disagreed: "Neelam Neem Soap 100 g" was quoted at ₹26.08
+ * across the counter and the order went through at ₹27.50 with no notice at all (SO-0882).
+ *
+ * This never re-prices — `priceOrder()` stays the only engine, and the server has already decided —
+ * it only NAMES what moved, from the two replies the screen already holds.
+ */
+export function diffQuoteVsOrder(
+  deviceLines: readonly { variantId: string; ratePaise: number }[],
+  serverLines: readonly { variantId: string; variantName: string; ratePaise: number }[],
+): PriceChange[] {
+  const quotedRate = new Map(deviceLines.map((line) => [line.variantId, line.ratePaise]))
+  const changes: PriceChange[] = []
+  for (const line of serverLines) {
+    const before = quotedRate.get(line.variantId)
+    if (before === undefined || before === line.ratePaise) continue
+    changes.push({
+      variantId: line.variantId,
+      name: line.variantName,
+      fromRatePaise: before,
+      toRatePaise: line.ratePaise,
+    })
+  }
+  return changes
+}
+
+/** "Neelam Neem Soap 100 g 26.08 → 27.50" — the sentence a rep reads before the order goes further. */
+export function describePriceChange(change: PriceChange): string {
+  return `${change.name} ${toRupees(paise(change.fromRatePaise))} → ${toRupees(paise(change.toRatePaise))}`
+}
+
+export interface CaseSummary {
+  cases: number
+  pieces: number
+}
+
+/**
+ * Sum whole cases and loose pieces across the order's lines, each in ITS OWN case size (DOS-129).
+ * `new.tsx:266` used to format the footer's total pieces against `caseSizeOf()` — the FIRST line's
+ * case size — so 2 cs of a 24-pc case plus 1 cs of a 48-pc case (96 pc total) read "4 cs" (96 / 24)
+ * instead of "3 cs", and a 21-line order of mixed case sizes read "45 cs + 3 pcs" for what was really
+ * 21 single cases. Moved out of `app/` because sales vitest runs `--dir src`.
+ */
+export function summarizeCases(
+  lines: readonly { qtyPcs: number; caseSize: number }[],
+): CaseSummary {
+  let cases = 0
+  let loosePieces = 0
+  for (const line of lines) {
+    const qty = Math.max(0, Math.trunc(line.qtyPcs))
+    if (!Number.isSafeInteger(line.caseSize) || line.caseSize <= 0) {
+      loosePieces += qty
+      continue
+    }
+    cases += Math.floor(qty / line.caseSize)
+    loosePieces += qty % line.caseSize
+  }
+  return { cases, pieces: loosePieces }
+}
+
+/** "3 cs", "3 cs + 31 pcs", or "5 pcs" with no whole case anywhere — mirrors `formatQty`'s own shape. */
+export function formatCaseSummary(summary: CaseSummary): string {
+  const parts: string[] = []
+  if (summary.cases > 0) parts.push(`${String(summary.cases)} cs`)
+  if (summary.pieces > 0 || summary.cases === 0) parts.push(`${String(summary.pieces)} pcs`)
+  return parts.join(' + ')
 }

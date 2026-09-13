@@ -4,12 +4,14 @@ import {
   availableLine,
   billLineQty,
   caseLine,
+  caseStepNeedsConfirm,
   formatCount,
   joinQty,
   parsePieces,
   qtyState,
   splitQty,
   stepByCase,
+  stepPiece,
 } from './qty.js'
 
 describe('cases and pieces', () => {
@@ -74,6 +76,33 @@ describe('stepByCase — the + and - of the stepper', () => {
   it('refuses to divide by an impossible case size instead of producing NaN', () => {
     expect(stepByCase(48, 1, 0)).toBe(48)
     expect(stepByCase(48, 1, -3)).toBe(48)
+  })
+})
+
+/**
+ * DOS-085: "Pieces" only ever added one piece (no minus), and "one case less" at zero whole cases
+ * silently zeroed the line — "Campa Cola 750 ml — 0 cs + 18 pcs" gone with one tap, no confirmation.
+ */
+describe('DOS-085: stepPiece and caseStepNeedsConfirm', () => {
+  it('stepPiece is the piece twin of stepByCase — one piece at a time, never below zero', () => {
+    expect(stepPiece(5, 1)).toBe(6)
+    expect(stepPiece(5, -1)).toBe(4)
+    expect(stepPiece(0, -1)).toBe(0)
+    expect(stepPiece(0, 1)).toBe(1)
+  })
+
+  it('DOS-085: asks before "one case less" wipes loose pieces sitting under zero whole cases', () => {
+    // 18 pc of a 24-pc case is 0 cs + 18 pc: stepByCase already lands on zero...
+    expect(stepByCase(18, -1, 24)).toBe(0)
+    // ...and the caller's onChange(0) removes the whole line — so this must ask first.
+    expect(caseStepNeedsConfirm(18, -1, 24)).toBe(true)
+  })
+
+  it('never asks for a genuine whole-case decrement, "one case more", or when there is nothing to remove', () => {
+    expect(caseStepNeedsConfirm(24, -1, 24)).toBe(false) // exactly 1 cs: removing it IS the ask
+    expect(caseStepNeedsConfirm(48, -1, 24)).toBe(false) // 2 cs -> 1 cs, a normal decrement
+    expect(caseStepNeedsConfirm(18, 1, 24)).toBe(false) // "one case more" never asks
+    expect(caseStepNeedsConfirm(0, -1, 24)).toBe(false) // already at zero
   })
 })
 

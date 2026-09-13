@@ -160,6 +160,8 @@ export const strings = {
   's3.schemeTotal': 'Schemes {amount}',
   's3.schemeFooter': 'Schemes on this order −{amount}',
   's3.summary': 'Items {lines} · {qty}',
+  /* DOS-161: the phone footer's one line — the desk stack's "Items · qty · money · before GST" said as one sentence. */
+  's3.summaryCompact': 'Items {lines} · {amount} before GST',
   's3.beforeGst': 'before GST',
   's3.place': 'Place order',
   's3.placed': 'Order placed',
@@ -167,6 +169,8 @@ export const strings = {
   's3.queued': 'Saved on this phone',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
+  /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
+  's3.pricesChanged': 'Prices changed since you built this order:',
   's3.queuedTitle': 'Saved on this phone',
   's3.queuedBody':
     'It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.',
