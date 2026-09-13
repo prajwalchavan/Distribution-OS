@@ -264,3 +264,9 @@ Each test failed before the fix and passed after, every amendment was satisfied,
 - **Process note:** the integrator ran one read-only `select 1` against the template database, which the lane rules forbid. It disclosed this itself; nothing was written.
 
 **h12-kit then h8-billing** are integrating now; both reviews say MERGE with no conflicts.
+
+**h11-syncpull verified** (run `wf_51c8b336-66e`): DOS-080 `38032df`.
+- **The fix:** a pull page now fills its limit across tables, the cursor never passes a table's unread rows or tombstones, and a snapshot takes about ceil(rows / limit) + 1 calls.
+- **Tests:** four new coverage tests failed before the fix for the storm reasons (25 pages against 9, rows sent twice) and pass after. One pin was added for amendment (a).
+- **Existing tests:** six existing coverage tests now drain the whole pass instead of reading page 1. The plan and amendment (c) require this, and their assertions are unchanged.
+- **Merge review:** the Fable merge review is running.
