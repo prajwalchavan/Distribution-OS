@@ -28,11 +28,9 @@ import {
   caseLine,
   caseStepNeedsConfirm,
   formatCount,
-  parsePieces,
   qtyState,
   splitQty,
   stepByCase,
-  stepPiece,
 } from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
@@ -53,8 +51,8 @@ import type {
   RupeeInputProps,
 } from '../types.js'
 import { Txt, typeStyle, useTypeStyle } from './base.js'
-import { Button, TextInput } from './controls.js'
-import { Dialog, Sheet } from './feedback.js'
+import { Button } from './controls.js'
+import { Dialog } from './feedback.js'
 
 const FIELD_SIZE: Record<MoneySize, TypeToken> = {
   hero: typeField.hero,
@@ -477,16 +475,15 @@ export function QtyStepper({
   const inactive = state === 'disabled'
 
   /*
-   * DOS-085: the loose-pieces pad and the "one case less at zero" confirm live HERE, in the kit, so
-   * every `QtyStepper` caller gets them the moment it opts in — a manager credit note, a delivery van
-   * sale, a retailer's own order, not just this screen. `onOpenPieces` stays the opt-in flag ("this
-   * stepper offers pieces entry") and an optional notification; the pad reads and writes through the
-   * stepper's own `pieces` / `onChange`, exactly like the case buttons — no new prop.
+   * DOS-085: "one case less at zero" asks before it wipes loose pieces, HERE in the kit, so every
+   * `QtyStepper` caller gets it the moment it opts in — a manager credit note, a delivery van sale, a
+   * retailer's own order, not just this screen. The loose-pieces PAD itself is the caller's own (the
+   * "Pieces" button below only calls `onOpenPieces`, unchanged from before this fix): typing an exact
+   * count is a different unit than a case step (docs/17 A3, "the unit is the rep's choice, not
+   * arithmetic"), and this component's single `onChange(pieces)` cannot say which one just happened —
+   * only the caller, which owns both code paths, can label the two differently downstream.
    */
-  const [piecesOpen, setPiecesOpen] = useState(false)
-  const [piecesText, setPiecesText] = useState(() => String(pieces))
   const [confirmZero, setConfirmZero] = useState(false)
-  const parsedPieces = parsePieces(piecesText)
 
   const stepper = (
     direction: 1 | -1,
@@ -549,11 +546,7 @@ export function QtyStepper({
         {onOpenPieces ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => {
-              setPiecesText(String(pieces))
-              setPiecesOpen(true)
-              onOpenPieces()
-            }}
+            onPress={onOpenPieces}
             style={{
               height,
               justifyContent: 'center',
@@ -606,60 +599,6 @@ export function QtyStepper({
           </Txt>
         </View>
       ) : null}
-
-      {/* DOS-085: type an exact count ("18"), or nudge it a single piece at a time — never only +1. */}
-      <Sheet
-        open={piecesOpen}
-        onClose={() => {
-          setPiecesOpen(false)
-        }}
-        title={theme.t('qty.piecesTitle')}
-        testID={testID ? `${testID}-pieces-sheet` : undefined}
-      >
-        <View style={{ gap: space[4] }}>
-          <TextInput
-            testID={testID ? `${testID}-pieces-input` : undefined}
-            label={theme.t('qty.piecesLabel')}
-            value={piecesText}
-            onChange={setPiecesText}
-            keyboard="decimal"
-            autoFocus
-            error={
-              piecesText.trim() !== '' && !parsedPieces.ok
-                ? theme.t('qty.piecesInvalid')
-                : undefined
-            }
-          />
-          <View style={{ flexDirection: 'row', gap: space[3] }}>
-            <Button
-              label={theme.t('qty.pieceLess')}
-              variant="secondary"
-              disabled={!parsedPieces.ok || parsedPieces.pieces <= 0}
-              onPress={() => {
-                if (parsedPieces.ok) setPiecesText(String(stepPiece(parsedPieces.pieces, -1)))
-              }}
-            />
-            <Button
-              label={theme.t('qty.pieceMore')}
-              variant="secondary"
-              onPress={() => {
-                if (parsedPieces.ok) setPiecesText(String(stepPiece(parsedPieces.pieces, 1)))
-              }}
-            />
-          </View>
-          <Button
-            testID={testID ? `${testID}-pieces-set` : undefined}
-            variant="primary"
-            label={theme.t('qty.piecesSet')}
-            disabled={!parsedPieces.ok}
-            onPress={() => {
-              if (!parsedPieces.ok) return
-              onChange(parsedPieces.pieces)
-              setPiecesOpen(false)
-            }}
-          />
-        </View>
-      </Sheet>
 
       {/* DOS-085: "one case less" at zero whole cases asks before it wipes the loose pieces. */}
       <Dialog

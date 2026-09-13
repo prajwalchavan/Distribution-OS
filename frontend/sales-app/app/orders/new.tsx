@@ -29,6 +29,7 @@ import {
   EmptyState,
   Group,
   Money,
+  parsePieces,
   QtyStepper,
   Row,
   Screen,
@@ -36,6 +37,7 @@ import {
   Sheet,
   Stack,
   StatusChip,
+  stepPiece,
   TextInput,
   Txt,
   useColors,
@@ -43,7 +45,7 @@ import {
   useViewport,
 } from '@dos/ui'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../src/api'
 import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
@@ -96,6 +98,8 @@ export default function OrderEntry(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [bargainFor, setBargainFor] = useState<string | null>(null)
+  /** The variant whose "Pieces" sheet is open (DOS-085) — a typed exact count, not a case step. */
+  const [piecesFor, setPiecesFor] = useState<string | null>(null)
   const [placed, setPlaced] = useState<string | null>(null)
 
   /**
@@ -496,13 +500,16 @@ export default function OrderEntry(): React.JSX.Element {
                             setQty(line.variantId, pieces, 'case', caseSize)
                           }}
                           /*
-                           * DOS-085: the pad itself — typing an exact count, a piece-minus, and
-                           * committing through `onChange` — now lives in the kit's own `QtyStepper`
-                           * (frontend/libs/ui/src/{web,native}/money.tsx), so every caller gets it
-                           * for free. This callback is only the opt-in flag that makes the "Pieces"
-                           * button appear; it used to add exactly one piece per tap and never go down.
+                           * DOS-085: opens THIS screen's own pieces sheet (below), rather than
+                           * routing an exact typed count through `onChange` — that prop is shared
+                           * with the case +/- buttons, which must stay labelled "case" downstream
+                           * (docs/17 A3), so a count the rep TYPED has to commit through a different
+                           * path to be labelled "piece" instead. The kit's stepper still gets the
+                           * "one case less asks first" behaviour for free either way.
                            */
-                          onOpenPieces={() => {}}
+                          onOpenPieces={() => {
+                            setPiecesFor(line.variantId)
+                          }}
                         />
                         <Row gap={2} wrap>
                           <Button
@@ -584,6 +591,23 @@ export default function OrderEntry(): React.JSX.Element {
         }
         qtyPcs={draft.lines.find((line) => line.variantId === bargainFor)?.qtyPcs ?? 0}
         online={local.online}
+      />
+
+      <PiecesSheet
+        open={piecesFor !== null}
+        onClose={() => {
+          setPiecesFor(null)
+        }}
+        itemName={
+          piecesFor === null ? '' : (byVariant.get(piecesFor)?.name ?? piecesFor.slice(0, 8))
+        }
+        initialPieces={draft.lines.find((line) => line.variantId === piecesFor)?.qtyPcs ?? 0}
+        onSet={(qtyPcs) => {
+          if (piecesFor === null) return
+          const caseSize = byVariant.get(piecesFor)?.caseSize ?? 1
+          setQty(piecesFor, qtyPcs, 'piece', caseSize)
+          setPiecesFor(null)
+        }}
       />
     </Screen>
   )
@@ -832,6 +856,85 @@ function BargainSheet({
           loading={request.status === 'pending'}
           onPress={() => {
             request.mutate({ askedRatePaise: askedPaise })
+          }}
+        />
+      </Stack>
+    </Sheet>
+  )
+}
+
+interface PiecesSheetProps {
+  open: boolean
+  onClose: () => void
+  itemName: string
+  /** This line's committed pieces at the moment the sheet opens — never live-updated while open. */
+  initialPieces: number
+  onSet: (qtyPcs: number) => void
+}
+
+/**
+ * S3 · the "Pieces" sheet (DOS-085): type an exact count ("18"), or nudge it a piece at a time —
+ * never only +1, and never routed through the stepper's shared `onChange` (see the comment beside
+ * `onOpenPieces` above). Follows the manager credit-notes pattern — a `TextInput` parsed with
+ * `parsePieces`, whole pieces only — rather than a bespoke keypad.
+ */
+function PiecesSheet({
+  open,
+  onClose,
+  itemName,
+  initialPieces,
+  onSet,
+}: PiecesSheetProps): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState(() => String(initialPieces))
+
+  // Fresh text every time the sheet opens — for THIS line's current count, never a stale value left
+  // over from a cancelled edit or from whichever line was open before.
+  useEffect(() => {
+    if (open) setText(String(initialPieces))
+  }, [open, initialPieces])
+
+  const parsed = parsePieces(text)
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('qty.piecesTitle')} testID="pieces-sheet">
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {itemName}
+        </Txt>
+        <TextInput
+          testID="pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          error={text.trim() !== '' && !parsed.ok ? t('qty.piecesInvalid') : undefined}
+        />
+        <Row gap={3}>
+          <Button
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!parsed.ok || parsed.pieces <= 0}
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, -1)))
+            }}
+          />
+          <Button
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="pieces-set"
+          variant="primary"
+          label={t('qty.piecesSet')}
+          disabled={!parsed.ok}
+          onPress={() => {
+            if (parsed.ok) onSet(parsed.pieces)
           }}
         />
       </Stack>
