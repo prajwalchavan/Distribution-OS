@@ -265,6 +265,8 @@ Each test failed before the fix and passed after, every amendment was satisfied,
 
 **h12-kit and h8-billing merged** (run `wf_f2eaa16e-1a9`), both clean with no merge-time fix: DOS-164 as `146eed2`, DOS-116 as `73b120c`. No generated README changed. One contract note: `/docs/openapi.json` for owner, manager and delivery no longer carries `default: true` on `lines[].saleable`. Batch 2 now has 18 approved findings on main (3 P0, 15 P1).
 
+**h11-syncpull merged** as `be5c40f` at 18:10 (run `wf_c0a9229d-d52`): DOS-080. The merge was clean, and the sync specs pass on the merged tree (coverage 25/25, sync 9/9). The review raised a suspect, S-98: sign-out never wipes the device store. It is being probed on the sales web app now.
+
 **h11-syncpull verified** (run `wf_51c8b336-66e`): DOS-080 `38032df`.
 - **The fix:** a pull page now fills its limit across tables, the cursor never passes a table's unread rows or tombstones, and a snapshot takes about ceil(rows / limit) + 1 calls.
 - **Tests:** four new coverage tests failed before the fix for the storm reasons (25 pages against 9, rows sent twice) and pass after. One pin was added for amendment (a).
