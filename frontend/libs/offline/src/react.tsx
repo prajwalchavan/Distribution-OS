@@ -426,9 +426,12 @@ export function useOutbox(): OutboxApi {
     }
     let live = true
     const run = (): void => {
-      void engine.outbox().then((result) => {
-        if (live) setRows(result)
-      })
+      void engine
+        .outbox()
+        .then((result) => {
+          if (live) setRows(result)
+        })
+        .catch(() => {})
     }
     run()
     const off = engine.onTables((changed) => {
@@ -478,11 +481,14 @@ export function useNeedsAttention(): { items: NeedsAttentionItem[]; loading: boo
     }
     let live = true
     const run = (): void => {
-      void engine.needsAttention().then((result) => {
-        if (!live) return
-        setItems(result)
-        setLoading(false)
-      })
+      void engine
+        .needsAttention()
+        .then((result) => {
+          if (!live) return
+          setItems(result)
+          setLoading(false)
+        })
+        .catch(() => {})
     }
     run()
     const off = engine.onTables((changed) => {
