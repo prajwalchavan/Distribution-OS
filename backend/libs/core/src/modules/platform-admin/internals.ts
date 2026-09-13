@@ -32,13 +32,14 @@ import { PLATFORM_SCOPE } from '../tenancy/index.js'
  * that strays into a business table reads ZERO rows rather than somebody's — the guarantee is the
  * policy, not this code.
  *
- * `withSystem()` — `app_worker`, BYPASSRLS. Used by exactly two procedures, each with a comment at the
- * call site saying why: `admin.tenants.create` (which writes `users`, `memberships` and the tenant's
- * chart of accounts through `bootstrapTenant`) and `admin.users.disable` (which writes `users` and
- * `auth_sessions`). Those tables deliberately have NO platform policy: a platform administrator who
- * could mint a membership would not need an owner-approved support grant, and the whole founder rule
- * would be theatre. Onboarding is the one moment the console legitimately creates a distributor's
- * first login, so it is the one place that reaches past RLS, under a named function, audited.
+ * `withSystem()` — `app_worker`, BYPASSRLS. Used by exactly three procedures, each with a comment at
+ * the call site saying why: `admin.tenants.create` (which writes `users`, `memberships` and the
+ * tenant's chart of accounts through `bootstrapTenant`), `admin.users.disable` (which writes `users`
+ * and `auth_sessions`) and its undo `admin.users.enable` (which writes `users`). Those tables
+ * deliberately have NO platform policy: a platform administrator who could mint a membership would
+ * not need an owner-approved support grant, and the whole founder rule would be theatre. Onboarding
+ * is the one moment the console legitimately creates a distributor's first login, so it is the one
+ * place that reaches past RLS, under a named function, audited.
  *
  * Cross-tenant COUNTS (`admin.metrics.overview`, the sizes on `admin.tenants.list/get`) also run under
  * `withSystem` — see `counts.ts`, where every query is a COUNT or a MAX and no row of a distributor's

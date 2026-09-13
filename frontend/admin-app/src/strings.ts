@@ -313,7 +313,7 @@ export const strings = {
   'p7.disable': 'Lock this login',
   'p7.disableTitle': 'Lock {name} out?',
   'p7.disableBody':
-    'This login stops working in every distributorship at once and every open session is ended. It does not remove them from any distributorship — that is their own owner’s to do. Nothing in this console puts it back.',
+    'This login stops working in every distributorship at once and every open session is ended. It does not remove them from any distributorship — that is their own owner’s to do. A super administrator can unlock it again from this panel.',
   'p7.disableReason': 'Why (goes into the audit trail)',
   'p7.disableNeedsReason': 'Say why. This locks them out everywhere.',
   'p7.disabled': 'Locked out',
@@ -321,11 +321,19 @@ export const strings = {
   'p7.membershipCount': '{count} distributorships',
   'p7.membershipOne': '1 distributorship',
   'p7.membershipNone': 'No distributorship',
+  'p7.lockSpans': 'It locks them out of',
+  'p7.enable': 'Unlock this login',
+  'p7.enableTitle': 'Let {name} sign in again?',
+  'p7.enableBody':
+    'This login works again from their next sign-in, in each distributorship below that still has them active. Sessions the lock ended stay ended.',
+  'p7.unlockSpans': 'It lets them back into',
+  'p7.enableReason': 'Why (goes into the audit trail)',
+  'p7.enableFailed': 'Could not unlock this login',
 
   // --- P8 audit ------------------------------------------------------------
   'p8.title': 'Audit trail',
   'p8.intro':
-    'Every platform action: onboarding, suspension, plans, support windows and what was read through them, and locked logins.',
+    'Every platform action: onboarding, suspension, plans, support windows and what was read through them, and locked and unlocked logins.',
   'p8.when': 'When',
   'p8.who': 'Who',
   'p8.action': 'What',
@@ -417,5 +425,6 @@ export const strings = {
   'word.support.read': 'Read under a support window',
   'word.support.approve': 'Support window opened',
   'word.user.disabled': 'Login locked',
+  'word.user.enabled': 'Login unlocked',
   'word.yes': 'Yes',
 } as const

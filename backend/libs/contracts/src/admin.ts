@@ -415,6 +415,20 @@ export const AdminUserDisableInput = MutationBase.extend({
 })
 export type AdminUserDisableIn = z.infer<typeof AdminUserDisableInput>
 
+/**
+ * The undo of `users.disable` (DOS-107): `users.status` goes back to `active`, so the identity signs in
+ * again from its next attempt — in every distributorship whose own membership is still active, or at
+ * the console for a console account. Nothing else is restored: the sessions the lock ended stay ended,
+ * memberships and `platform_admins` are untouched, and so is the password-failure lock. `reason` is
+ * mandatory and audited as `user.enabled`. On a login that is not locked it changes nothing and writes
+ * no audit row.
+ */
+export const AdminUserEnableInput = MutationBase.extend({
+  id: IdSchema,
+  reason: z.string().trim().min(1).max(500),
+})
+export type AdminUserEnableIn = z.infer<typeof AdminUserEnableInput>
+
 export const AdminUserItemOutput = z.object({ item: AdminUserSchema })
 export type AdminUserItem = z.infer<typeof AdminUserItemOutput>
 
@@ -481,7 +495,7 @@ export type AdminMetrics = z.infer<typeof AdminMetricsOutput>
  * it by (DOS-109): who acted and which distributorship. A platform action that belongs to no distributor
  * (creating a tenant, disabling a global user) carries `tenantId: null`. Every mutation in this file
  * writes one of these: onboarding, suspension, reactivation, a subscription change, a support request
- * or withdrawal, a user disable.
+ * or withdrawal, a user lock or unlock.
  */
 export const PlatformAuditEntrySchema = AuditEntrySchema.extend({
   tenantId: IdSchema.nullable(),
@@ -500,7 +514,7 @@ export type PlatformAuditEntry = z.infer<typeof PlatformAuditEntrySchema>
 
 /**
  * THE PLATFORM'S AUDIT VOCABULARY (DOS-109): every `action` a `platform_audit` row is written with, in
- * one list. Two readers share it — the five writers type their action as `PlatformAuditAction`, so a new
+ * one list. Two readers share it — the six writers type their action as `PlatformAuditAction`, so a new
  * action that is not added here fails typecheck, and the console builds its action filter from it, so the
  * app never carries a second list.
  *
@@ -519,6 +533,7 @@ export const PLATFORM_AUDIT_ACTIONS = [
   'support.withdrawn',
   'support.read',
   'user.disabled',
+  'user.enabled',
 ] as const
 export type PlatformAuditAction = (typeof PLATFORM_AUDIT_ACTIONS)[number]
 
@@ -668,6 +683,17 @@ export const adminContract = {
       })
       .input(AdminUserDisableInput)
       .output(AdminUserItemOutput),
+    // Declared directly after `disable`: document order is run order for the smoke harness, and the
+    // undo has to run after the lock it undoes.
+    enable: oc
+      .route({
+        method: 'POST',
+        path: '/admin/users/{id}/enable',
+        summary:
+          'Let an identity locked by disable sign in again; ended sessions stay ended (audited) · console level: super',
+      })
+      .input(AdminUserEnableInput)
+      .output(AdminUserItemOutput),
   },
   metrics: {
     overview: oc
@@ -686,7 +712,7 @@ export const adminContract = {
         method: 'GET',
         path: '/admin/audit',
         summary:
-          'Every platform action: onboarding, suspension, plans, support, user locks · console levels: super, support, billing',
+          'Every platform action: onboarding, suspension, plans, support, user locks and unlocks · console levels: super, support, billing',
       })
       .input(AdminAuditListInput)
       .output(AdminAuditListOutput),

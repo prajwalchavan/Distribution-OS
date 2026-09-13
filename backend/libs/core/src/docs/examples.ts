@@ -404,7 +404,10 @@ export interface PlatformExamples {
   pendingGrantId?: string | undefined
   /** An APPROVED, live window — the one `auth.supportPass` can actually exchange. */
   activeGrantId?: string | undefined
-  /** A user who is NOT the console account and not a demo sign-in: safe for `users.disable`. */
+  /**
+   * A user who is NOT the console account and not a demo sign-in: safe for `users.disable` and for its
+   * undo `users.enable` (DOS-107), which both point at it.
+   */
   disposableUserId?: string | undefined
   disposableUsername?: string | undefined
 }
@@ -772,22 +775,20 @@ async function collectPlatform(tx: Db, tenantId: string, ctx: ExampleContext): P
     .where(eq(supportGrants.tenantId, tenantId))
     .orderBy(desc(supportGrants.requestedAt))
     .limit(50)
-  // A user this console may safely lock out in a demo: never a seeded sign-in (the six apps and every
-  // other tool depend on those), never the console account itself, and never somebody who is already
-  // disabled. In a freshly seeded database there is usually none, and the example is then left
-  // pointing at the sampler's uuid with a note — `users.disable` is destructive by name, so
+  // A user this console may safely lock out, and unlock again, in a demo: never a seeded sign-in (the
+  // six apps and every other tool depend on those) and never the console account itself. A LOCKED one
+  // comes first (DOS-107): the `users.enable` example then undoes exactly the identity the
+  // `users.disable` example locked, and a database an interrupted run left locked is repaired by
+  // pressing Execute once. In a freshly seeded database there is usually none, and both examples are
+  // then left pointing at the sampler's uuid with a note — `users.disable` is destructive by name, so
   // `pnpm smoke` skips it unless `--destructive` is asked for.
   const [disposable] = await tx
     .select({ id: users.id, username: users.username })
     .from(users)
     .where(
-      and(
-        eq(users.status, 'active'),
-        isNull(users.username),
-        sql`${users.id} NOT IN (SELECT user_id FROM platform_admins)`,
-      ),
+      and(isNull(users.username), sql`${users.id} NOT IN (SELECT user_id FROM platform_admins)`),
     )
-    .orderBy(desc(users.createdAt))
+    .orderBy(sql`(${users.status} = 'disabled') desc`, desc(users.createdAt))
     .limit(1)
   ctx.platform = {
     adminUserId: admin.userId,
@@ -3398,6 +3399,10 @@ const OVERRIDES: Record<
     id: ctx.platform?.disposableUserId,
     reason: 'Account reported compromised by the distributor.',
   }),
+  'admin.users.enable': (ctx) => ({
+    id: ctx.platform?.disposableUserId,
+    reason: 'Locked by mistake; the distributor confirmed it is the right person.',
+  }),
   'admin.audit.list': (ctx) => ({ tenantId: ctx.tenantId }),
   // A NEW person: reusing a seeded id, username or phone collides on three separate unique indexes,
   // so all three walk the free slot together — otherwise the first Execute takes the only person the
@@ -4869,6 +4874,10 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
     ctx.platform?.disposableUserId
       ? 'DESTRUCTIVE: locks ONE global identity out of every distributor it belongs to and revokes its live sessions. The id here is a demo shopkeeper identity with no login of its own, chosen so no seeded sign-in breaks. Memberships are untouched — removing somebody from a distributorship is the owner’s own `tenancy.staff.setStatus`.'
       : 'DESTRUCTIVE: locks ONE global identity out of every distributor. No safe demo id was found, so replace the id before pressing Execute — do NOT point it at a seeded sign-in.',
+  'admin.users.enable': (ctx) =>
+    ctx.platform?.disposableUserId
+      ? 'The undo of the lock example above: the same identity signs in again from its next attempt; sessions the lock ended stay ended and memberships are untouched. On a login that is not locked it changes nothing and writes no audit row.'
+      : 'No safe demo id was found; replace the id with a locked identity before pressing Execute.',
   'admin.metrics.overview': () =>
     'Counts and storage bytes for the whole platform. There is deliberately no rupee of any distributor’s turnover, outstanding, cost or margin in this answer.',
   'claims.open': (ctx) =>

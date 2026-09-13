@@ -9,12 +9,15 @@
  *
  * The one action is the platform kill switch: `admin.users.disable` stops this login working in
  * every distributorship at once and ends every open session. It does NOT remove anyone from a
- * distributorship — that is their own owner's to do, through `tenancy.staff.setStatus`.
+ * distributorship — that is their own owner's to do, through `tenancy.staff.setStatus`. Its undo is
+ * `admin.users.enable` (DOS-107), super-only and audited like the lock: the login works again from
+ * its next sign-in, and the sessions the lock ended stay ended.
  */
 import { usePlatformApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
   Dialog,
+  ErrorState,
   Register,
   Row,
   Screen,
@@ -30,7 +33,7 @@ import {
   type RegisterColumn,
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
-import type { AdminUser } from '@dos/contracts'
+import type { AdminMembership, AdminUser } from '@dos/contracts'
 import { useState } from 'react'
 
 import {
@@ -46,6 +49,41 @@ import {
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
+/**
+ * Every distributorship a person belongs to, one line each: the Sheet's "Member of", and the lock and
+ * unlock confirmations, which name exactly what the press spans.
+ */
+function MembershipLines({
+  memberships,
+}: {
+  memberships: readonly AdminMembership[]
+}): React.JSX.Element {
+  const t = useStrings()
+  const word = useWord()
+  const colors = useColors()
+  if (memberships.length === 0) {
+    return (
+      <Txt field="body" desk="body">
+        {t('p7.membershipNone')}
+      </Txt>
+    )
+  }
+  return (
+    <Stack gap={2}>
+      {memberships.map((membership) => (
+        <Row key={`${membership.tenantId}-${membership.role}`} justify="between" gap={3}>
+          <Txt field="body" desk="cell" numberOfLines={1}>
+            {membership.tenantName}
+          </Txt>
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {`${word(membership.role)} · ${word(membership.status)}`}
+          </Txt>
+        </Row>
+      ))}
+    </Stack>
+  )
+}
+
 export default function People(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
@@ -57,6 +95,7 @@ export default function People(): React.JSX.Element {
   const [scope, setScope] = useState<'all' | 'platform' | 'disabled'>('all')
   const [selected, setSelected] = useState<string | null>(null)
   const [locking, setLocking] = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
   const [reason, setReason] = useState('')
 
   const term = query.trim()
@@ -89,6 +128,28 @@ export default function People(): React.JSX.Element {
       ],
       onSuccess: () => {
         setLocking(false)
+        setReason('')
+      },
+    },
+  )
+
+  // A fresh idempotency key on every unlock, exactly as the lock mints one (DOS-107): lock, unlock,
+  // lock, unlock with the same reason must run the second unlock, never replay the first one's reply.
+  const enable = useMutation(
+    (input: { id: string; reason: string }) =>
+      api.api.admin.users.enable({
+        idempotencyKey: uuidv7(),
+        id: input.id,
+        reason: input.reason.trim(),
+      }),
+    {
+      invalidates: [
+        ['admin', 'users'],
+        ['admin', 'audit'],
+        ['admin', 'metrics'],
+      ],
+      onSuccess: () => {
+        setUnlocking(false)
         setReason('')
       },
     },
@@ -217,38 +278,31 @@ export default function People(): React.JSX.Element {
                 : instantWithClock(current.lastLoginAt)}
             </Field>
             <Field label={t('p7.membershipsIn')}>
-              {current.memberships.length === 0 ? (
-                t('p7.membershipNone')
-              ) : (
-                <Stack gap={2}>
-                  {current.memberships.map((membership) => (
-                    <Row
-                      key={`${membership.tenantId}-${membership.role}`}
-                      justify="between"
-                      gap={3}
-                    >
-                      <Txt field="body" desk="cell" numberOfLines={1}>
-                        {membership.tenantName}
-                      </Txt>
-                      <Txt field="label" desk="meta" color={colors.text.secondary}>
-                        {`${word(membership.role)} · ${word(membership.status)}`}
-                      </Txt>
-                    </Row>
-                  ))}
-                </Stack>
-              )}
+              <MembershipLines memberships={current.memberships} />
             </Field>
-            {/* Locking a login is a super administrator's (DOS-106). */}
-            {current.status === 'disabled' || !can('admin.users.disable') ? null : (
+            {/* Locking a login, and unlocking it again, is a super administrator's (DOS-106, DOS-107). */}
+            {current.status === 'disabled' && can('admin.users.enable') ? (
+              <Button
+                label={t('p7.enable')}
+                variant="primary"
+                testID="enable-user"
+                onPress={() => {
+                  setReason('')
+                  setUnlocking(true)
+                }}
+              />
+            ) : null}
+            {current.status !== 'disabled' && can('admin.users.disable') ? (
               <Button
                 label={t('p7.disable')}
                 variant="destructive"
                 testID="disable-user"
                 onPress={() => {
+                  setReason('')
                   setLocking(true)
                 }}
               />
-            )}
+            ) : null}
           </Stack>
         )}
       </Sheet>
@@ -264,6 +318,10 @@ export default function People(): React.JSX.Element {
             <Txt field="body" desk="body">
               {t('p7.disableBody')}
             </Txt>
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('p7.lockSpans')}
+            </Txt>
+            <MembershipLines memberships={current?.memberships ?? []} />
             <TextInput
               label={t('p7.disableReason')}
               value={reason}
@@ -282,6 +340,43 @@ export default function People(): React.JSX.Element {
           disable.mutate({ id: current.id, reason })
         }}
         testID="disable-dialog"
+      />
+
+      <Dialog
+        open={unlocking && current !== null && current.status === 'disabled'}
+        onClose={() => {
+          setUnlocking(false)
+        }}
+        title={t('p7.enableTitle', { name: current?.name ?? '' })}
+        body={
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('p7.enableBody')}
+            </Txt>
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('p7.unlockSpans')}
+            </Txt>
+            <MembershipLines memberships={current?.memberships ?? []} />
+            <TextInput
+              label={t('p7.enableReason')}
+              value={reason}
+              onChange={setReason}
+              capitalize="sentences"
+              maxLength={500}
+              testID="enable-reason"
+            />
+            {enable.error === undefined ? null : (
+              <ErrorState message={t('p7.enableFailed')} detail={enable.error.message} />
+            )}
+          </Stack>
+        }
+        confirmLabel={t('p7.enable')}
+        busy={enable.status === 'pending'}
+        onConfirm={() => {
+          if (current === null || reason.trim() === '') return
+          enable.mutate({ id: current.id, reason })
+        }}
+        testID="enable-dialog"
       />
     </Screen>
   )
