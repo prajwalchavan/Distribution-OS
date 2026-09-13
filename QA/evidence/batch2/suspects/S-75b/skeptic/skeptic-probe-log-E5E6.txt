@@ -1,0 +1,9 @@
+[S-75b-skeptic] database={"d":"dos_test_b2_sus","iso":"read committed"}
+[S-75b-skeptic] tenant=01a09bfe-73b4-70aa-b823-cfd259da23d3 slug=s75bsk-7db291ce apps: manager-service x2 (A, B) + owner-service x1
+[S-75b-skeptic] E5 attempt 1 not doubled (200(16ms) 409(21ms receipt RCPT-0001 is deposited, not collected)); retrying
+[S-75b-skeptic] E5 attempt 2 deposits 200(11ms) 200(21ms); bounce 200(27ms) | receipt status=bounced; entries(receipt+2 deposits+reversal)=4 net lines={"AR":0,"BANK":10000,"CHEQUES":-10000}
+[S-75b-skeptic] E6 receipts by mode: [{"mode":"cheque","n":2,"collected":"20000"}]
+[S-75b-skeptic] E6 journal balances (paise): [{"code":"AR","balance":"-10000"},{"code":"BANK","balance":"20000"},{"code":"CHEQUES","balance":"-10000"}]
+[S-75b-skeptic] E6 journal entries by ref_type: [{"ref_type":"deposit","n":3},{"ref_type":"receipt","n":2},{"ref_type":"receipt_reversal","n":1}]
+[S-75b-skeptic] E6 unbalanced entries: {"n":0}
+[S-75b-skeptic] E6 GET /receivables/accounts as owner@owner-service -> 200; around BANK: d":"expense","tallyLedgerName":null,"active":true,"balancePaise":0},{"id":"01a09bfe-73cd-7511-bde1-bafb66910ef2","code":"BANK","name":"Bank","kind":"asset","tallyLedgerName":null,"active":true,"balancePaise":20000},{"id":"01a09bfe-73cd-7526-b472-05ec97325f72","code":"BANK_CHARGES","name":"Bank charges","kind":"expense"

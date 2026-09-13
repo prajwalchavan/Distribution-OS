@@ -1,0 +1,75 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] tenantId: "01a09c2f-ba0c-73e5-9586-f586e18b6c28"
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] bills: {"g1":{"orderId":"01a09c2f-bb0d-7419-8a62-938271f0179e","invoiceId":"01a09c2f-bbcd-7240-bd47-c4c1aab2145e","totalPaise":13400},"g2":{"orderId":"01a09c2f-bbee-77f4-ab86-763c7ec36467","invoiceId":"01a09c2f-bc5e-75c0-90b6-6be2b210e74c","totalPaise":13400},"g3":{"orderId":"01a09c2f-bc78-76fc-bf65-985887318948","invoiceId":"01a09c2f-bcee-7358-8615-ffbf0e7bfa7c","totalPaise":13400}}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1 load-out (create/approve/confirm): {"create":200,"approve":200,"confirm":200,"sheetStatus":"confirmed","challanNo":"DC-0001"}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1 depart (delivery): {"status":200}
+
+(node:17538) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] POST /sync/upload (delivery) offline: stop A fail shop_closed; stop B refused at door: {"status":200,"accepted":6,"rejected":[]}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v]    G1 state after offline stop fail: "packed"
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v]    G2 state after refused-at-door delivery: "packed"
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1 return + settle: {"return":200,"settle":200,"tripState":"settled"}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1b create (manager): {"status":200}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1b load-out (create/approve/confirm): {"create":200,"approve":200,"confirm":200,"sheetStatus":"confirmed","challanNo":"DC-0002"}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1b depart + return with the stop still open (trips.return): {"depart":200,"return":200}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v]    G3 state after trips.return: "packed"
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip1b settle: {"status":200,"tripState":"settled"}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] GET /warehouse/packs?status=awaiting_load (W7): {"status":200,"offersG1":false,"offersG2":false,"offersG3":false,"count":0}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] GET /delivery/trip-planning (M7, manager): {"status":200,"offersG1":true,"offersG2":true,"offersG3":true}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip2 create (manager) [G1, G3 @A; G2 @B]: {"status":200}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip2 start-loading (warehouse): {"status":200}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] POST /warehouse/load-sheets (warehouse) trip2, one bill each: {"G1-offline-fail":{"status":409,"message":"order(s) already on load sheet 01a09c2f-bd77-728e-b0d0-13036dac38c7"},"G2-refused-door":{"status":409,"message":"order(s) already on load sheet 01a09c2f-bd77-728e-b0d0-13036dac38c7"},"G3-trip-return":{"status":409,"message":"order(s) already on load sheet 01a09c2f-bf21-7414-90f7-436955ed1e48"}}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] trip2 depart (delivery) with no load sheet at all: {"status":200,"state":"active","loadSheetIds":[]}
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] ROWS order_state_transitions dispatch/return_undelivered for G1..G3: [{"order_no":"SO-0001","event":"dispatch","reason":null},{"order_no":"SO-0001","event":"return_undelivered","reason":"shop_closed"},{"order_no":"SO-0001","event":"dispatch","reason":"trip depart"},{"order_no":"SO-0002","event":"dispatch","reason":null},{"order_no":"SO-0002","event":"return_undelivered","reason":"refused at the door"},{"order_no":"SO-0002","event":"dispatch","reason":"trip depart"},{"order_no":"SO-0003","event":"dispatch","reason":null},{"order_no":"SO-0003","event":"return_undelivered","reason":"other"},{"order_no":"SO-0003","event":"dispatch","reason":"trip depart"}]
+
+stdout | src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create
+[S-03v] ROWS load_sheets: [{"trip2":false,"status":"confirmed","orders":2,"challan_no":"DC-0001"},{"trip2":false,"status":"confirmed","orders":1,"challan_no":"DC-0002"}]
+
+ ✓ src/modules/delivery/zz-skeptic-S-03-variants.spec.ts > S-03 skeptic variants (DATABASE_URL) > S-03 variants: offline stop fail, refused at the door, trips.return — each bill then refused by loadSheets.create 1436ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:42:46
+   Duration  3.93s (transform 1.35s, setup 556ms, import 1.61s, tests 1.69s, environment 0ms)
+

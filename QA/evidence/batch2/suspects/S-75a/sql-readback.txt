@@ -1,0 +1,36 @@
+     slug      | entry_date |     ref_type     |   code   | amount_paise | orig_stamped_reversed 
+---------------+------------+------------------+----------+--------------+-----------------------
+ s75a-21993993 | 2026-09-13 | invoice          | AR       |        13400 | f
+ s75a-21993993 | 2026-09-13 | receipt          | AR       |       -13400 | t
+ s75a-21993993 | 2026-09-13 | receipt          | CASH_VAN |        13400 | t
+ s75a-21993993 | 2026-09-13 | trip_settlement  | CASH     |        13400 | f
+ s75a-21993993 | 2026-09-13 | trip_settlement  | CASH_VAN |       -13400 | f
+ s75a-21993993 | 2026-09-13 | receipt_reversal | AR       |        13400 | f
+ s75a-21993993 | 2026-09-13 | receipt_reversal | CASH_VAN |       -13400 | f
+ s75a-22028645 | 2026-09-13 | invoice          | AR       |        13400 | f
+ s75a-22028645 | 2026-09-13 | receipt          | AR       |       -13400 | t
+ s75a-22028645 | 2026-09-13 | receipt          | CASH_VAN |        13400 | t
+ s75a-22028645 | 2026-09-13 | trip_settlement  | CASH     |        13400 | f
+ s75a-22028645 | 2026-09-13 | trip_settlement  | CASH_VAN |       -13400 | f
+ s75a-22028645 | 2026-09-13 | receipt_reversal | AR       |        13400 | f
+ s75a-22028645 | 2026-09-13 | receipt_reversal | CASH_VAN |       -13400 | f
+(14 rows)
+
+     slug      |   code   | balance_paise 
+---------------+----------+---------------
+ s75a-21993993 | AR       |         13400
+ s75a-21993993 | CASH     |         13400
+ s75a-21993993 | CASH_VAN |        -13400
+ s75a-22028645 | AR       |         13400
+ s75a-22028645 | CASH     |         13400
+ s75a-22028645 | CASH_VAN |        -13400
+(6 rows)
+
+     slug      | receipt_no | mode | amount_paise |  status   | on_trip | deposited_at | trip_state 
+---------------+------------+------+--------------+-----------+---------+--------------+------------
+ s75a-21993993 | RCPT-0001  | cash |        13400 | cancelled | t       |              | settled
+ s75a-21993993 | RCPT-0002  | cash |       -13400 | cancelled | t       |              | settled
+ s75a-22028645 | RCPT-0001  | cash |        13400 | cancelled | t       |              | settled
+ s75a-22028645 | RCPT-0002  | cash |       -13400 | cancelled | t       |              | settled
+(4 rows)
+

@@ -1,0 +1,119 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] tenantId: "01a09c2b-ae16-71c8-abb5-376c3c68c19e"
+[S-03] today (IST): "2026-09-14"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] billR: {"orderId":"01a09c2b-af23-71d2-b04b-2291cd611e44","invoiceId":"01a09c2b-aff0-77c5-8eb0-21630bb04b77","totalPaise":13400,"orderNo":"SO-0001"}
+[S-03] billF: {"orderId":"01a09c2b-b025-71e2-a401-a29941bbfed3","invoiceId":"01a09c2b-b0a4-770d-9243-84107027d0e8","totalPaise":13400,"orderNo":"SO-0002"}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ewb threshold paise (tenant setting): 26800
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 1. POST /delivery/trips (manager) trip1: {"status":200,"state":"planned","tripNo":"TRIP-0001"}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 2. POST start-loading trip1 (warehouse): {"status":200}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 3. POST /warehouse/load-sheets (warehouse) sheet1 [R]: {"status":200,"sheetStatus":"draft","loadValuePaise":13400,"ewbRequired":false,"expectedPackages":1}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 4. POST approve sheet1 (manager): {"status":200}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 5. POST confirm sheet1 (warehouse): {"status":200,"sheetStatus":"confirmed","challanNo":"DC-0001","dispatched":["01a09c2b-af23-71d2-b04b-2291cd611e44"]}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order R state after confirm: "dispatched"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 6. POST depart trip1 (delivery): {"status":200,"state":"active","loadSheetIds":["01a09c2b-b128-75e4-9dee-f2a555f66331"]}
+
+(node:16832) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 7. POST stop start/arrive/fail shop_closed (delivery): {"start":200,"arrive":200,"fail":200,"stopState":"failed","failureReason":"shop_closed"}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order R state after the failed stop: "packed"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 8. POST return trip1 (delivery): {"status":200,"state":"closing"}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 9. POST settle trip1 (accountant): {"status":200,"tripState":"settled","hasVariance":false}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order R state after settlement: "packed"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 10. GET /warehouse/packs?status=awaiting_load (W7): {"status":200,"offersR":false,"offersF":true,"count":1}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 11. GET /delivery/trip-planning (W10/M7 board): {"status":200,"offersR":true,"offersF":true}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 12. POST /delivery/trips (warehouse) trip2 [R, F]: {"status":200,"state":"planned","tripNo":"TRIP-0002"}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 13. POST start-loading trip2 (warehouse): {"status":200}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 14. POST /warehouse/load-sheets (warehouse) trip2 [R, F]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c2b-b128-75e4-9dee-f2a555f66331"}}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 15. POST /warehouse/load-sheets (warehouse) trip2 [R]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c2b-b128-75e4-9dee-f2a555f66331"}}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 16. POST /warehouse/load-sheets (manager) trip2 [R]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c2b-b128-75e4-9dee-f2a555f66331"}}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 17. POST cancel sheet1 (manager) — the old confirmed sheet: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"load sheet 01a09c2b-b128-75e4-9dee-f2a555f66331 is confirmed; the goods have left with challan DC-0001 and come back through delivery, not here"}}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 18. POST /warehouse/load-sheets (warehouse) trip2 [F]: {"status":200,"sheetStatus":"draft","loadValuePaise":13400,"ewbRequired":false,"expectedPackages":1}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 19. approve (manager) + confirm (warehouse) sheet2 [F] with NO e-way bill number: {"approve":200,"confirm":200,"sheetStatus":"confirmed","challanNo":"DC-0002","challanValuePaise":13400,"dispatched":["01a09c2b-b025-71e2-a401-a29941bbfed3"]}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order R state before trip2 departs: "packed"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] 20. POST depart trip2 (delivery): {"status":200,"state":"active","loadSheetIds":["01a09c2b-b2f1-76d3-89e4-d4b1d8a67234"]}
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order R state after trip2 departs: "dispatched"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03]    order F state after trip2 departs: "dispatched"
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS load_sheets: [{"id":"01a09c2b-b128-75e4-9dee-f2a555f66331","trip_id":"01a09c2b-b0c4-7319-a1a8-d10eb3165c8d","status":"confirmed","order_ids":["01a09c2b-af23-71d2-b04b-2291cd611e44"],"expected_packages":1,"counted_packages":1,"load_value_paise":"13400","ewb_required":false,"ewb_no":null,"challan_no":"DC-0001","approved":true},{"id":"01a09c2b-b2f1-76d3-89e4-d4b1d8a67234","trip_id":"01a09c2b-b28f-70d3-8f86-ebc1c15f08a4","status":"confirmed","order_ids":["01a09c2b-b025-71e2-a401-a29941bbfed3"],"expected_packages":1,"counted_packages":1,"load_value_paise":"13400","ewb_required":false,"ewb_no":null,"challan_no":"DC-0002","approved":true}]
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS delivery_challans: [{"challan_no":"DC-0001","load_sheet_id":"01a09c2b-b128-75e4-9dee-f2a555f66331","value_paise":"13400","ewb_no":null,"line_count":1},{"challan_no":"DC-0002","load_sheet_id":"01a09c2b-b2f1-76d3-89e4-d4b1d8a67234","value_paise":"13400","ewb_no":null,"line_count":1}]
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS deliveries (R/F per trip): [{"is_r":true,"trip1":true,"trip2":false,"outcome":"failed","trip_state":"settled"},{"is_r":false,"trip1":false,"trip2":true,"outcome":null,"trip_state":"active"},{"is_r":true,"trip1":false,"trip2":true,"outcome":null,"trip_state":"active"}]
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS outbox_events for order R: [{"event_type":"OrderSubmitted"},{"event_type":"OrderConfirmed"},{"event_type":"OrderPicking"},{"event_type":"OrderPacked"},{"event_type":"OrderDispatched"},{"event_type":"OrderReturnedUndelivered"},{"event_type":"OrderDispatched"}]
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS order_state_transitions for order R: [{"from":"draft","to":"submitted","event":"submit","reason":null,"at":"2026-09-14 00:38:23.804311+05:30"},{"from":"submitted","to":"confirmed","event":"confirm","reason":null,"at":"2026-09-14 00:38:23.804311+05:30"},{"from":"confirmed","to":"picking","event":"start_picking","reason":null,"at":"2026-09-14 00:38:23.865077+05:30"},{"from":"picking","to":"packed","event":"pack","reason":null,"at":"2026-09-14 00:38:23.865077+05:30"},{"from":"packed","to":"dispatched","event":"dispatch","reason":null,"at":"2026-09-14 00:38:24.30291+05:30"},{"from":"dispatched","to":"packed","event":"return_undelivered","reason":"shop_closed","at":"2026-09-14 00:38:24.423559+05:30"},{"from":"packed","to":"dispatched","event":"dispatch","reason":"trip depart","at":"2026-09-14 00:38:24.781524+05:30"}]
+
+stdout | src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip?
+[S-03] ROWS onALiveSheet query for R (the create guard): [{"id":"01a09c2b-b128-75e4-9dee-f2a555f66331","status":"confirmed"}]
+
+ ✓ src/modules/delivery/zz-probe-S-03.spec.ts > S-03 probe (DATABASE_URL) > S-03: a bill returned undelivered after its CONFIRMED load sheet — can it go on a load sheet for the next trip? 1120ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:38:21
+   Duration  3.61s (transform 1.34s, setup 542ms, import 1.60s, tests 1.39s, environment 0ms)
+

@@ -1,0 +1,23 @@
+ receipt_no |  mode  | amount_paise |  status   | deposit_ref |         deposited_at          
+------------+--------+--------------+-----------+-------------+-------------------------------
+ RCPT-0001  | cash   |        10000 | deposited | DEP-B-1     | 2026-09-13 23:36:38.284+05:30
+ RCPT-0002  | cheque |        10000 | deposited | DEP-B-2     | 2026-09-13 23:36:38.376+05:30
+
+ deposit_ref | ref_type |               batch_id               |              posted_by               |  code   | amount_paise 
+-------------+----------+--------------------------------------+--------------------------------------+---------+--------------
+ DEP-A-1     | deposit  | 01a09bf3-24cc-75ec-a6cb-707b8e006f99 | 01a09bf3-23f5-73c1-90e8-69383b7cbd6c | BANK    |        10000
+ DEP-A-1     | deposit  | 01a09bf3-24cc-75ec-a6cb-707b8e006f99 | 01a09bf3-23f5-73c1-90e8-69383b7cbd6c | CASH    |       -10000
+ DEP-A-2     | deposit  | 01a09bf3-2528-717a-a36b-24b0137a86d4 | 01a09bf3-23f5-73c1-90e8-69383b7cbd6c | BANK    |        10000
+ DEP-A-2     | deposit  | 01a09bf3-2528-717a-a36b-24b0137a86d4 | 01a09bf3-23f5-73c1-90e8-69383b7cbd6c | CHEQUES |       -10000
+ DEP-B-1     | deposit  | 01a09bf3-24cc-75ed-abdf-7b29558ff6e5 | 01a09bf3-23f5-73c0-a575-720796ff419a | BANK    |        10000
+ DEP-B-1     | deposit  | 01a09bf3-24cc-75ed-abdf-7b29558ff6e5 | 01a09bf3-23f5-73c0-a575-720796ff419a | CASH    |       -10000
+ DEP-B-2     | deposit  | 01a09bf3-2528-717b-a1f8-8187fdf80d4f | 01a09bf3-23f5-73c0-a575-720796ff419a | BANK    |        10000
+ DEP-B-2     | deposit  | 01a09bf3-2528-717b-a1f8-8187fdf80d4f | 01a09bf3-23f5-73c0-a575-720796ff419a | CHEQUES |       -10000
+
+             aggregate_id             |   event_type    | deposit_ref 
+--------------------------------------+-----------------+-------------
+ 01a09bf3-2471-7402-add0-61932ae34695 | ChequeDeposited | DEP-A-1
+ 01a09bf3-2471-7402-add0-61932ae34695 | ChequeDeposited | DEP-B-1
+ 01a09bf3-250e-7457-94bd-ff7631aff509 | ChequeDeposited | DEP-A-2
+ 01a09bf3-250e-7457-94bd-ff7631aff509 | ChequeDeposited | DEP-B-2
+

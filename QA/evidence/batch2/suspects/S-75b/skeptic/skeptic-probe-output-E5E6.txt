@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/manager-service
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 4 skipped (6)
+   Start at  23:48:56
+   Duration  2.92s (transform 1.62s, setup 454ms, import 1.95s, tests 443ms, environment 0ms)
+

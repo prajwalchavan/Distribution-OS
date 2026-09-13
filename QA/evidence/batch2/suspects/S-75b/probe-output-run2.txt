@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:36:35
+   Duration  10.98s (transform 1.37s, setup 497ms, import 1.64s, tests 8.78s, environment 0ms)
+

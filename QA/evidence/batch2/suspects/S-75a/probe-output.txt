@@ -1,0 +1,49 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] bill: {"invoiceId":"01a09be7-67dc-74b6-b3c6-d55eaa750f02","totalPaise":13400}
+
+(node:7009) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] receipt journal lines (collection): [{"code":"AR","amount":-13400},{"code":"CASH_VAN","amount":13400}]
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] book after collection: {"AR":0,"BANK":0,"CASH":0,"CASH_VAN":13400}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] settlement preview: {"expectedCashPaise":13400,"cashCollectedPaise":13400,"expectedVanStock":[]}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] settle response: {"tripState":"settled","hasVariance":false}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] settlement journal lines: [{"code":"CASH","amount":13400},{"code":"CASH_VAN","amount":-13400}]
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] book after settle (SQL): {"AR":0,"BANK":0,"CASH":13400,"CASH_VAN":0}
+[S-75a] desk trial balance after settle (GET /receivables/accounts): {"AR":0,"BANK":0,"CASH":13400,"CASH_VAN":0}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] receipt before undo (desk GET /receipts/{id}): {"receiptNo":"RCPT-0001","status":"collected","tripId":"01a09be7-6841-77c6-be72-4b8b09ee1505","depositedAt":null,"withCrew":false}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] reverse response: {"status":200,"body":{"item":{"id":"01a09be7-69b4-7060-9a48-dad3e1f7198e","receiptNo":"RCPT-0002","retailerId":"01a09be7-6665-75e1-9455-dad913efb4bf","mode":"cash","amountPaise":-13400,"allocatedPaise":-13400,"unallocatedPaise":0,"cashDiscountPaise":0,"status":"cancelled","receivedAt":"2026-09-13T17:53:49.495Z","receivedBy":"01a09be7-6665-75dc-ae3f-7dcde964030c","tripId":"01a09be7-6841-77c6-be72-4b8b09ee1505","reference":null,"upiVpa":null,"chequeDate":null,"bankName":null,"deviceId":null,"clientReceiptNo":null,"reversesReceiptId":"01a09be7-6931-776e-92f7-95d98c6a9302","depositedAt":null,"depositRef":null,"depositAccountId":null,"bouncedAt":null,"bounceReason":null,"bankChargesPaise":0,"proofObjectKey":null,"pdfObjectKey":null,"note":"entered against the wrong shop","createdAt":"2026-09-13T17:53:49.493Z"},"original":{"id":"01a09be7-6931-776e-92f7-95d98c6a9302","receiptNo":"RCPT-0001","retailerId":"01a09be7-6665-75e1-9455-dad913efb4bf","mode":"cash","amountPaise":13400,"allocatedPaise":13400,"unallocatedPaise":0,"cashDiscountPaise":0,"status":"cancelled","receivedAt":"2026-09-13T17:53:49.372Z","receivedBy":"01a09be7-6665-75df-b6c4-9ee08a4ef768","tripId":"01a09be7-6841-77c6-be72-4b8b09ee1505","reference":null,"upiVpa":null,"chequeDate":null,"bankName":null,"deviceId":null,"clientReceiptNo":null,"reversesReceiptId":null,"depositedAt":null,"depositRef":null,"depositAccountId":null,"bouncedAt":null,"bounceReason":null,"bankChargesPaise":0,"proofObjectKey":null,"pdfObjectKey":null,"note":null,"createdAt":"2026-09-13T17:53:49.364Z"},"invoices":[{"id":"01a09be7-67dc-74b6-b3c6-d55eaa750f02","invoiceNo":"INV/0001","state":"issued","openPaise":13400}],"outstanding":{"retailerId":"01a09be7-6665-75e1-9455-dad913efb4bf","outstandingPaise":13400,"overduePaise":0,"unallocatedCreditPaise":0,"openBills":1,"oldestDueDate":"2026-09-28","oldestInvoiceDate":"2026-09-13","lastReceiptAt":"2026-09-13T17:53:49.372Z","lastReceiptPaise":13400,"buckets":{"b0_7":13400,"b8_15":0,"b16_30":0,"b31_60":0,"b61_90":0,"b90plus":0},"asOf":"2026-09-13"}}}
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] reversal journal lines: [{"code":"AR","amount":13400},{"code":"CASH_VAN","amount":-13400}]
+
+stdout | src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits
+[S-75a] book after undo (SQL): {"AR":13400,"BANK":0,"CASH":13400,"CASH_VAN":-13400}
+[S-75a] desk trial balance after undo (GET /receivables/accounts): {"AR":13400,"BANK":0,"CASH":13400,"CASH_VAN":-13400}
+[S-75a] delta CASH_VAN (undo): -13400
+[S-75a] delta CASH (undo): 0
+
+ ✓ src/modules/receivables/zz-probe-S-75a.spec.ts > QA probe S-75a: undo a trip cash receipt after the trip settled > reverses a settled trip cash receipt and shows which cash account the reversal credits 755ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  23:23:46
+   Duration  2.75s (transform 1.16s, setup 431ms, import 1.35s, tests 900ms, environment 0ms)
+

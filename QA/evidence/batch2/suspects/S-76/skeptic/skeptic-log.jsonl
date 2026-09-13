@@ -1,0 +1,28 @@
+SKEPTIC A.plannedDelivery [{"id":"157d7575-fcb9-7c42-8f19-87c27b19b6a9"}]
+SKEPTIC A.sync.upload {"status":200,"body":{"accepted":4,"replayed":0,"rejected":[],"warnings":[],"upgradeRequired":false},"tables":["PATCH trip_stops","PATCH trip_stops","PUT deliveries","PUT receipts"]}
+SKEPTIC A.db.stop+delivery [{"stop_state":"delivered","outcome":"delivered"}]
+SKEPTIC A.db.receipts [{"id":"01a09c13-778e-7502-b33d-ea1ca5ef7a7d","receipt_no":"RCPT-0001","amount_paise":"67200","trip_id":"01a09c13-770e-7471-ae85-0f7ab192816e"}]
+SKEPTIC A.db.collections []
+SKEPTIC A.return {"status":200}
+SKEPTIC A.preview {"tripId":"01a09c13-770e-7471-ae85-0f7ab192816e","tripState":"closing","openingCashPaise":30000,"cashCollectedPaise":0,"upiCollectedPaise":0,"chequeCollectedPaise":0,"expensesPaise":0,"expectedCashPaise":30000,"tolerancePaise":10000,"expectedVanStock":[],"stopsPlanned":1,"stopsDelivered":1,"stopsPartial":0,"stopsFailed":0,"collectionsCount":0,"settlement":null}
+SKEPTIC A.settle.accountant {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"cash is 67200 paise off (tolerance 10000) or the van stock does not tally; the owner has to accept the variance","data":{"code":"settlement_needs_owner","approvalId":"01a09c13-7876-75a9-9a0e-829516528f12","cashVariancePaise":67200,"tolerancePaise":10000,"stockVariance":[]}}}
+SKEPTIC A.settle.manager {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"cash is 67200 paise off (tolerance 10000) or the van stock does not tally; the owner has to accept the variance","data":{"code":"settlement_needs_owner","approvalId":"01a09c13-7876-75a9-9a0e-829516528f12","cashVariancePaise":67200,"tolerancePaise":10000,"stockVariance":[]}}}
+SKEPTIC A.settle.owner {"status":200,"body":{"item":{"id":"01a09c13-7885-753b-aab4-6853bd4913e5","tripId":"01a09c13-770e-7471-ae85-0f7ab192816e","expectedCashPaise":30000,"handedOverCashPaise":97200,"cashVariancePaise":67200,"upiCollectedPaise":0,"chequeCollectedPaise":0,"expensesPaise":0,"stockVariance":[],"hasVariance":true,"settledBy":"01a09c13-7559-77f2-8ef2-290ca6412580","settledAt":"2026-09-13T18:41:56.893Z","approvedBy":"01a09c13-7559-77f2-8ef2-290ca6412580","approvedAt":"2026-09-13T18:41:56.893Z","note":"skeptic S-76 A"},"tripState":"settled_with_variance","stockAdjustments":[]}}
+SKEPTIC A.settlement.journal [{"code":"CASH","amount_paise":"67200","memo":"cash handed over, net of the float"},{"code":"CASH_SHORT","amount_paise":"-67200","memo":"cash over"}]
+SKEPTIC A.office.cash {"status":200,"ids":["01a09c13-778e-7502-b33d-ea1ca5ef7a7d"]}
+SKEPTIC A.deposit {"status":200,"body":{"updated":1,"journalEntryId":"01a09c13-78d1-702a-a700-cd213fc037e6","totalPaise":67200}}
+SKEPTIC A.deposit.journal [{"code":"BANK","amount_paise":"67200","memo":null},{"code":"CASH","amount_paise":"-67200","memo":null}]
+SKEPTIC A.books.delta(before settle -> after deposit) {"CASH_VAN":0,"CASH":0,"CASH_SHORT":-67200,"BANK":67200,"AR":0}
+SKEPTIC A.books.tenant {"CASH_VAN":67200,"CASH":0,"CASH_SHORT":-67200,"BANK":67200,"AR":0}
+SKEPTIC B.deliver {"status":200}
+SKEPTIC B.sync.upload {"status":200,"body":{"accepted":1,"replayed":0,"rejected":[],"warnings":[],"upgradeRequired":false}}
+SKEPTIC B.preview {"tripId":"01a09c13-7978-712b-b95d-f12148bb4194","tripState":"closing","openingCashPaise":20000,"cashCollectedPaise":0,"upiCollectedPaise":0,"chequeCollectedPaise":0,"expensesPaise":0,"expectedCashPaise":20000,"tolerancePaise":10000,"expectedVanStock":[],"stopsPlanned":1,"stopsDelivered":1,"stopsPartial":0,"stopsFailed":0,"collectionsCount":0,"settlement":null}
+SKEPTIC B.settle.accountant {"status":200,"body":{"item":{"id":"01a09c13-7a4d-7794-b5b2-2dec5cd1ef89","tripId":"01a09c13-7978-712b-b95d-f12148bb4194","expectedCashPaise":20000,"handedOverCashPaise":20000,"cashVariancePaise":0,"upiCollectedPaise":0,"chequeCollectedPaise":0,"expensesPaise":0,"stockVariance":[],"hasVariance":false,"settledBy":"01a09c13-7559-77f4-8553-7dc68220b39d","settledAt":"2026-09-13T18:41:57.338Z","approvedBy":null,"approvedAt":null,"note":"skeptic S-76 B"},"tripState":"settled","stockAdjustments":[]}}
+SKEPTIC B.approvals []
+SKEPTIC B.office.cash(desk register, all trips) {"status":200,"items":[{"id":"01a09c13-79fa-743a-b53b-9e5675e5dc0a","receiptNo":"RCPT-0002","retailerId":"01a09c13-7559-77fa-848c-90285de86ee7","mode":"cash","amountPaise":67200,"allocatedPaise":67200,"unallocatedPaise":0,"cashDiscountPaise":0,"status":"collected","receivedAt":"2026-09-13T18:41:57.242Z","receivedBy":"01a09c13-7559-77f8-890c-31ce5a14ebd1","tripId":"01a09c13-7978-712b-b95d-f12148bb4194","reference":null,"upiVpa":null,"chequeDate":null,"bankName":null,"deviceId":"skeptic-phone-B-24916057","clientReceiptNo":"BOOK-B-24916057","reversesReceiptId":null,"depositedAt":null,"depositRef":null,"depositAccountId":null,"bouncedAt":null,"bounceReason":null,"bankChargesPaise":0,"proofObjectKey":null,"pdfObjectKey":null,"note":null,"createdAt":"2026-09-13T18:41:57.244Z"}],"totals":{"countedPaise":67200,"unallocatedPaise":0}}
+SKEPTIC B.receipt.get.withCrew {"status":200,"withCrew":false}
+SKEPTIC B.deposit {"status":200,"body":{"updated":1,"journalEntryId":"01a09c13-7a7d-768b-9cd0-4a4c38c8f455","totalPaise":67200}}
+SKEPTIC B.deposit.journal [{"code":"BANK","amount_paise":"67200","memo":null},{"code":"CASH","amount_paise":"-67200","memo":null}]
+SKEPTIC B.books.delta(before settle -> after deposit) {"CASH_VAN":0,"CASH":-67200,"CASH_SHORT":0,"BANK":67200,"AR":0}
+SKEPTIC B.books.tenant {"CASH_VAN":134400,"CASH":-67200,"CASH_SHORT":-67200,"BANK":134400,"AR":0}
+SKEPTIC tenant {"tenantId":"01a09c13-7559-77f1-a1ba-89312dfc95c5","run":"24916057"}

@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:41:55
+   Duration  10.63s (transform 1.09s, setup 469ms, import 1.32s, tests 8.77s, environment 0ms)
+
+pnpm --filter @dos/core exec vitest run  --silent=false  3.22s user 0.51s system 33% cpu 11.166 total

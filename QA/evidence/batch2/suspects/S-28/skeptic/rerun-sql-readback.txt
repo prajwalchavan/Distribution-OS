@@ -1,0 +1,15 @@
+     slug     | sequence | planned_collection_paise | stop_state | stops_on_trip 
+--------------+----------+--------------------------+------------+---------------
+ s28-25564994 |        1 |                        0 | delivered  |             1
+(1 row)
+
+ invoice_no |  source  | taxable_paise | cgst_paise | sgst_paise | round_off_paise | total_paise |     state      
+------------+----------+---------------+------------+------------+-----------------+-------------+----------------
+ INV/0001   | van_sale |         22140 |       1328 |       1328 |               4 |       24800 | partially_paid
+(1 row)
+
+ outstanding_paise | open_bills 
+-------------------+------------
+              2660 |          1
+(1 row)
+

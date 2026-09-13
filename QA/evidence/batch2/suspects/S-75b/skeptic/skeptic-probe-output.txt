@@ -1,0 +1,10 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/manager-service
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  23:47:06
+   Duration  13.22s (transform 1.54s, setup 456ms, import 1.87s, tests 10.83s, environment 0ms)
+
+pnpm --filter @dos/manager-service exec vitest run  --silent=false  6.07s user 0.86s system 50% cpu 13.706 total

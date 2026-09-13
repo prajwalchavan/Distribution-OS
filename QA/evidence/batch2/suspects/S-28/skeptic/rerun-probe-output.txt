@@ -1,0 +1,51 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] trip after depart: {"state":"active","vanSalesAllowed":true}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] pricing.quote status: 200
+[S-28] pricing.quote lines: [{"lineId":"01a09c1d-5c44-74b1-8310-aed1e35bb6a8","variantId":"01a09c1d-5c44-74b1-8310-aed1e35bb6a8","qtyPcs":12,"caseSize":12,"listRatePaise":1845,"ratePaise":1845,"grossPaise":22140,"discountPaise":0,"bargainPaise":0,"freeQtyPcs":0,"freeItems":[],"appliedRules":[],"lineNetPaise":22140,"gstBps":1200,"taxPaise":2657,"lineTotalPaise":24797}]
+[S-28] pricing.quote totals: {"grossPaise":22140,"discountPaise":0,"bargainPaise":0,"netPaise":22140,"taxPaise":2657,"roundOffPaise":3,"totalPaise":24800}
+[S-28] screen "Sale total" (totals.netPaise): 22140
+
+(node:14419) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] van sale status: 200
+[S-28] van sale order: {"state":"delivered","totalPaise":24800}
+[S-28] van sale invoice: {"invoiceNo":"INV/0001","subtotalPaise":22140,"taxablePaise":22140,"cgstPaise":1328,"sgstPaise":1328,"igstPaise":0,"roundOffPaise":4,"totalPaise":24800,"upiQrPayload":null}
+[S-28] van sale collection (screen sends no collect): null
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL invoices row: {"invoice_no":"INV/0001","source":"van_sale","subtotal_paise":"22140","taxable_paise":"22140","cgst_paise":"1328","sgst_paise":"1328","round_off_paise":"4","total_paise":"24800"}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL sales_orders row: {"state":"delivered","total_paise":"24800"}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL retailer_outstanding_summary after sale: {"outstanding_paise":"24800","open_bills":1}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL outbox VanSaleInvoiced: {"event_type":"VanSaleInvoiced","total_paise":"24800"}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] collections.record status: 200
+[S-28] collections.record: {"amountPaise":22140,"receiptNo":"RCPT-0001"}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL retailer_outstanding_summary after collecting the shown figure: {"outstanding_paise":"2660","open_bills":1}
+
+stdout | src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills
+[S-28] SQL invoice after collecting the shown figure: {"total_paise":"24800","state":"partially_paid"}
+[S-28] gap between the bill and "Sale total" (paise): 2660
+
+ ✓ src/modules/delivery/zz-probe-S-28.spec.ts > S-28 probe: van sale "Sale total" vs the bill > the figure under "Sale total" is not what the van sale bills 3922ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:22:40
+   Duration  10.53s (transform 3.29s, setup 780ms, import 4.08s, tests 5.57s, environment 0ms)
+
+exit=0

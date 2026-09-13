@@ -402,3 +402,19 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - A manager Day-end settle walk on web and Android.
 - `pnpm smoke --run-tag`.
 - A pre-existing minor stays open: the path/body check runs before the bearer check, so an anonymous mismatched call gets 400 instead of 401.
+
+### Batch 2 — six suspects confirmed, two of them P0 (2026-09-14 01:01 IST)
+
+**Run `wf_309501e5-2f5`** — 12 agents, about 1 h 40 min. Each suspect got an executed probe on current main, then a skeptic who re-ran the probe and tried to refute it. All six were confirmed and all six upheld. No product code was changed. Evidence: `QA/evidence/batch2/suspects/<S-id>/`; result: `lane-results/suspects-money.json`. The blocks are in `QA/findings/12`.
+
+| New id | Suspect | Priority | What happens |
+|---|---|---|---|
+| DOS-168 | S-75b | P0 | Two desks bank the same receipt at the same moment and both calls return 200: BANK doubles and CASH/CHEQUES go negative. The window is under 5 ms for one receipt and about 25–50 ms for a 200-receipt batch (measured locally). |
+| DOS-169 | S-76 = S-09 | P0 | Settlement counts collections rows only, and a cash receipt uploaded offline has none. An honest crew shows as cash over and needs the owner; cash a crew keeps settles green. Banking later makes the error permanent. |
+| DOS-170 | S-75a | P1 | Undoing a trip cash receipt after its trip settled credits CASH_VAN again (-₹134 with the crew), and office CASH stays overstated. |
+| DOS-171 | S-28 | P1 | The van sale's 'Sale total' shows the pre-GST net: ₹221.40, while the bill issued is ₹248.00. |
+| DOS-172 | S-03 | P1 | A bill returned undelivered after its load sheet was confirmed can never go on another load sheet (409), and the next trip carries it with no count, no challan and no e-way bill check. |
+| DOS-173 | S-106 | P3 | A pack parked without a bill is counted twice in 'left to bill' until dispatch. |
+
+**NOT TESTED:** every screen and device (all proofs are API-level).
+**Next:** Fable designs, then one approval request to the founder. Nothing is built before approval.

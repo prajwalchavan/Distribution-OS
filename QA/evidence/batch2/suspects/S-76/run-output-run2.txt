@@ -1,0 +1,13 @@
+HEAD 199952b
+$ pnpm --filter @dos/core exec vitest run src/modules/delivery/zz-probe-S-76.spec.ts
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+(node:11971) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:01:34
+   Duration  4.30s (transform 1.30s, setup 547ms, import 1.53s, tests 2.14s, environment 0ms)
+

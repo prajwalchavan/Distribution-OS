@@ -1,0 +1,97 @@
+[S-75b-skeptic] database={"d":"dos_test_b2_sus","iso":"read committed"}
+[S-75b-skeptic] tenant=01a09bfc-c509-7e06-815e-a96e0e9cc8cd slug=s75bsk-495bb67d apps: manager-service x2 (A, B) + owner-service x1
+[S-75b-skeptic] E1 01 cash   accountant@mgrA/manager@mgrB A=200(13ms) B=409(18ms receipt RCPT-0001 is deposited, not collected) | status=deposited ref=SK-E1-A-1 depositEntries=1 lines={"BANK":10000,"CASH":-10000} events=1
+[S-75b-skeptic] E1 02 cash   manager@mgrA/owner@owner  A=200(13ms) B=409(19ms receipt RCPT-0002 is deposited, not collected) | status=deposited ref=SK-E1-A-2 depositEntries=1 lines={"BANK":10000,"CASH":-10000} events=1
+[S-75b-skeptic] E1 03 cheque accountant@mgrA/manager@mgrB A=200(9ms) B=200(25ms) | status=deposited ref=SK-E1-B-3 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 04 cheque manager@mgrA/owner@owner  A=200(11ms) B=200(22ms) | status=deposited ref=SK-E1-B-4 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 05 cash   accountant@mgrA/manager@mgrB A=200(10ms) B=200(18ms) | status=deposited ref=SK-E1-B-5 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 06 cash   manager@mgrA/owner@owner  A=200(12ms) B=200(19ms) | status=deposited ref=SK-E1-B-6 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 07 cheque accountant@mgrA/manager@mgrB A=200(12ms) B=200(19ms) | status=deposited ref=SK-E1-B-7 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 08 cheque manager@mgrA/owner@owner  A=200(12ms) B=200(17ms) | status=deposited ref=SK-E1-B-8 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 09 cash   accountant@mgrA/manager@mgrB A=200(14ms) B=200(19ms) | status=deposited ref=SK-E1-B-9 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 10 cash   manager@mgrA/owner@owner  A=200(13ms) B=200(18ms) | status=deposited ref=SK-E1-B-10 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 11 cheque accountant@mgrA/manager@mgrB A=200(13ms) B=200(19ms) | status=deposited ref=SK-E1-B-11 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 12 cheque manager@mgrA/owner@owner  A=200(9ms) B=200(15ms) | status=deposited ref=SK-E1-B-12 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 13 cash   accountant@mgrA/manager@mgrB A=200(10ms) B=200(15ms) | status=deposited ref=SK-E1-B-13 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 14 cash   manager@mgrA/owner@owner  A=200(10ms) B=200(14ms) | status=deposited ref=SK-E1-B-14 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 15 cheque accountant@mgrA/manager@mgrB A=200(8ms) B=200(11ms) | status=deposited ref=SK-E1-B-15 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 16 cheque manager@mgrA/owner@owner  A=200(7ms) B=200(11ms) | status=deposited ref=SK-E1-B-16 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 17 cash   accountant@mgrA/manager@mgrB A=200(8ms) B=200(12ms) | status=deposited ref=SK-E1-B-17 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 18 cash   manager@mgrA/owner@owner  A=200(7ms) B=200(11ms) | status=deposited ref=SK-E1-B-18 depositEntries=2 lines={"BANK":20000,"CASH":-20000} events=2
+[S-75b-skeptic] E1 19 cheque accountant@mgrA/manager@mgrB A=200(7ms) B=200(10ms) | status=deposited ref=SK-E1-B-19 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 20 cheque manager@mgrA/owner@owner  A=200(8ms) B=200(10ms) | status=deposited ref=SK-E1-B-20 depositEntries=2 lines={"BANK":20000,"CHEQUES":-20000} events=2
+[S-75b-skeptic] E1 summary: pairs=20 bothBanked=18 one200one409=2 other=0
+[S-75b-skeptic] E2 d=  0ms k=1 A=200(9ms) B=200(12ms) depositEntries=2 BANK=20000
+[S-75b-skeptic] E2 d=  0ms k=2 A=200(8ms) B=200(11ms) depositEntries=2 BANK=20000
+[S-75b-skeptic] E2 d=  0ms k=3 A=200(8ms) B=200(12ms) depositEntries=2 BANK=20000
+[S-75b-skeptic] E2 d=  0ms k=4 A=200(7ms) B=200(10ms) depositEntries=2 BANK=20000
+[S-75b-skeptic] E2 summary d=0ms: bothBanked=4/4 A durations ms=[9,8,8,7]
+[S-75b-skeptic] E2 d=  5ms k=1 A=200(7ms) B=409(3ms receipt RCPT-0025 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=  5ms k=2 A=200(7ms) B=409(3ms receipt RCPT-0026 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=  5ms k=3 A=200(4ms) B=409(2ms receipt RCPT-0027 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=  5ms k=4 A=200(5ms) B=409(2ms receipt RCPT-0028 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=5ms: bothBanked=0/4 A durations ms=[7,7,4,5]
+[S-75b-skeptic] E2 d= 10ms k=1 A=200(5ms) B=409(2ms receipt RCPT-0029 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 10ms k=2 A=200(6ms) B=409(2ms receipt RCPT-0030 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 10ms k=3 A=200(6ms) B=409(2ms receipt RCPT-0031 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 10ms k=4 A=200(9ms) B=409(3ms receipt RCPT-0032 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=10ms: bothBanked=0/4 A durations ms=[5,6,6,9]
+[S-75b-skeptic] E2 d= 20ms k=1 A=200(6ms) B=409(3ms receipt RCPT-0033 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 20ms k=2 A=200(7ms) B=409(4ms receipt RCPT-0034 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 20ms k=3 A=200(7ms) B=409(4ms receipt RCPT-0035 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 20ms k=4 A=200(9ms) B=409(5ms receipt RCPT-0036 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=20ms: bothBanked=0/4 A durations ms=[6,7,7,9]
+[S-75b-skeptic] E2 d= 40ms k=1 A=200(9ms) B=409(6ms receipt RCPT-0037 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 40ms k=2 A=200(11ms) B=409(6ms receipt RCPT-0038 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 40ms k=3 A=200(10ms) B=409(6ms receipt RCPT-0039 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 40ms k=4 A=200(11ms) B=409(6ms receipt RCPT-0040 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=40ms: bothBanked=0/4 A durations ms=[9,11,10,11]
+[S-75b-skeptic] E2 d= 80ms k=1 A=200(8ms) B=409(6ms receipt RCPT-0041 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 80ms k=2 A=200(10ms) B=409(5ms receipt RCPT-0042 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 80ms k=3 A=200(6ms) B=409(4ms receipt RCPT-0043 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d= 80ms k=4 A=200(5ms) B=409(3ms receipt RCPT-0044 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=80ms: bothBanked=0/4 A durations ms=[8,10,6,5]
+[S-75b-skeptic] E2 d=160ms k=1 A=200(6ms) B=409(4ms receipt RCPT-0045 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=160ms k=2 A=200(17ms) B=409(4ms receipt RCPT-0046 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=160ms k=3 A=200(7ms) B=409(4ms receipt RCPT-0047 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=160ms k=4 A=200(5ms) B=409(4ms receipt RCPT-0048 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=160ms: bothBanked=0/4 A durations ms=[6,17,7,5]
+[S-75b-skeptic] E2 d=320ms k=1 A=200(7ms) B=409(7ms receipt RCPT-0049 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=320ms k=2 A=200(8ms) B=409(10ms receipt RCPT-0050 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=320ms k=3 A=200(10ms) B=409(8ms receipt RCPT-0051 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 d=320ms k=4 A=200(10ms) B=409(10ms receipt RCPT-0052 is deposited, not collected) depositEntries=1 BANK=10000
+[S-75b-skeptic] E2 summary d=320ms: bothBanked=0/4 A durations ms=[7,8,10,10]
+[S-75b-skeptic] E3 batch of 200: 200(47ms) updated=200 total=2000000 replyAt=47ms
+[S-75b-skeptic] E3 single offset=0ms sentAt=1ms -> 200(6ms) | receipt status=deposited ref=SK-E3-DAYEND events=2
+[S-75b-skeptic] E3 single offset=25ms sentAt=25ms -> 200(24ms) | receipt status=deposited ref=SK-E3-ONE-25 events=2
+[S-75b-skeptic] E3 single offset=50ms sentAt=50ms -> 409(2ms receipt RCPT-0100 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=100ms sentAt=103ms -> 409(2ms receipt RCPT-0120 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=150ms sentAt=153ms -> 409(2ms receipt RCPT-0140 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=200ms sentAt=203ms -> 409(4ms receipt RCPT-0160 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=300ms sentAt=302ms -> 409(7ms receipt RCPT-0180 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=450ms sentAt=453ms -> 409(7ms receipt RCPT-0200 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=700ms sentAt=702ms -> 409(6ms receipt RCPT-0220 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 single offset=1000ms sentAt=1002ms -> 409(7ms receipt RCPT-0240 is deposited, not collected) | receipt status=deposited ref=SK-E3-DAYEND events=1
+[S-75b-skeptic] E3 summary: singles banked a second time=2/10; BANK moved by 2020000 paise for 2 000 000 paise of receipts
+[S-75b-skeptic] E4 01 sameKey depositedAt 2026-09-13T18:17:18.909Z vs 2026-09-13T18:17:18.912Z -> 200(12ms) 409(14ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 02 sameKey depositedAt 2026-09-13T18:17:18.993Z vs 2026-09-13T18:17:18.996Z -> 200(9ms) 409(10ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 03 sameKey depositedAt 2026-09-13T18:17:19.053Z vs 2026-09-13T18:17:19.055Z -> 200(8ms) 409(9ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 04 sameKey depositedAt 2026-09-13T18:17:19.102Z vs 2026-09-13T18:17:19.105Z -> 200(7ms) 409(8ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 05 sameKey depositedAt 2026-09-13T18:17:19.148Z vs 2026-09-13T18:17:19.150Z -> 200(6ms) 409(7ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 06 sameKey depositedAt 2026-09-13T18:17:19.191Z vs 2026-09-13T18:17:19.194Z -> 409(7ms idempotencyKey was already used with a different request) 200(6ms) | depositEntries=1 events=1
+[S-75b-skeptic] E4 07 sameKey depositedAt 2026-09-13T18:17:19.239Z vs 2026-09-13T18:17:19.241Z -> 200(5ms) 409(6ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 08 sameKey depositedAt 2026-09-13T18:17:19.280Z vs 2026-09-13T18:17:19.282Z -> 409(7ms idempotencyKey was already used with a different request) 200(6ms) | depositEntries=1 events=1
+[S-75b-skeptic] E4 09 sameKey depositedAt 2026-09-13T18:17:19.323Z vs 2026-09-13T18:17:19.326Z -> 409(7ms idempotencyKey was already used with a different request) 200(6ms) | depositEntries=1 events=1
+[S-75b-skeptic] E4 10 sameKey depositedAt 2026-09-13T18:17:19.372Z vs 2026-09-13T18:17:19.375Z -> 200(7ms) 409(8ms idempotencyKey was already used with a different request) | depositEntries=1 events=1
+[S-75b-skeptic] E4 identical 1 -> 200(6ms) 200(6ms) journalEntryIds=01a09bfc-ed3d-70fa-9c56-0b0d4f1193f5/01a09bfc-ed3d-70fa-9c56-0b0d4f1193f5 | depositEntries=1 events=1
+[S-75b-skeptic] E4 identical 2 -> 200(6ms) 200(7ms) journalEntryIds=01a09bfc-ed64-753d-9655-345d08cec6b2/01a09bfc-ed64-753d-9655-345d08cec6b2 | depositEntries=1 events=1
+[S-75b-skeptic] E4 identical 3 -> 200(6ms) 200(6ms) journalEntryIds=01a09bfc-ed8d-708d-8a6d-1cf8383e1db8/01a09bfc-ed8d-708d-8a6d-1cf8383e1db8 | depositEntries=1 events=1
+[S-75b-skeptic] E4 identical 4 -> 200(6ms) 200(7ms) journalEntryIds=01a09bfc-edb7-738b-8084-9274aad6fae6/01a09bfc-edb7-738b-8084-9274aad6fae6 | depositEntries=1 events=1
+[S-75b-skeptic] E4 identical 5 -> 200(7ms) 200(8ms) journalEntryIds=01a09bfc-ede0-77b5-ad7b-7eed24368367/01a09bfc-ede0-77b5-ad7b-7eed24368367 | depositEntries=1 events=1
+[S-75b-skeptic] E4 summary: sameKey pairs one200one409=10/10 bothBanked=0/10; identical pairs banked once=5/5
+[S-75b-skeptic] E5 attempt 1 deposits 200(6ms) 200(9ms); bounce 404(2ms Cannot POST /receipts/bounce) | receipt status=deposited; entries(receipt+2 deposits+reversal)=3 net lines={"AR":-10000,"BANK":20000,"CHEQUES":-10000}
+[S-75b-skeptic] E6 receipts by mode: [{"mode":"cash","n":257,"collected":"2570000"},{"mode":"cheque","n":11,"collected":"110000"}]
+[S-75b-skeptic] E6 journal balances (paise): [{"code":"AR","balance":"-2680000"},{"code":"BANK","balance":"2930000"},{"code":"CASH","balance":"-140000"},{"code":"CHEQUES","balance":"-110000"}]
+[S-75b-skeptic] E6 journal entries by ref_type: [{"ref_type":"deposit","n":94},{"ref_type":"receipt","n":268}]
+[S-75b-skeptic] E6 unbalanced entries: {"n":0}
+[S-75b-skeptic] E6 GET /receivables/accounts as owner@owner-service -> 200; around BANK: d":"expense","tallyLedgerName":null,"active":true,"balancePaise":0},{"id":"01a09bfc-c51f-7091-acce-96f39aa70493","code":"BANK","name":"Bank","kind":"asset","tallyLedgerName":null,"active":true,"balancePaise":2930000},{"id":"01a09bfc-c520-75d1-8e26-4947bf77cb14","code":"BANK_CHARGES","name":"Bank charges","kind":"expens

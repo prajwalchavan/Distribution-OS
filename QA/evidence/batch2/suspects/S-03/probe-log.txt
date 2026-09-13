@@ -1,0 +1,37 @@
+[S-03] tenantId: "01a09c27-5a3a-7157-bda8-3fa640d0a6cb"
+[S-03] today (IST): "2026-09-14"
+[S-03] billR: {"orderId":"01a09c27-5b3a-76e4-ba5b-34a93e4dc2bf","invoiceId":"01a09c27-5c0b-72bc-8165-eafd228f4e52","totalPaise":13400,"orderNo":"SO-0001"}
+[S-03] billF: {"orderId":"01a09c27-5c44-77be-afe4-a36609f2888a","invoiceId":"01a09c27-5cce-7555-8eb3-cd381f00f890","totalPaise":13400,"orderNo":"SO-0002"}
+[S-03] ewb threshold paise (tenant setting): 26800
+[S-03] 1. POST /delivery/trips (manager) trip1: {"status":200,"state":"planned","tripNo":"TRIP-0001"}
+[S-03] 2. POST start-loading trip1 (warehouse): {"status":200}
+[S-03] 3. POST /warehouse/load-sheets (warehouse) sheet1 [R]: {"status":200,"sheetStatus":"draft","loadValuePaise":13400,"ewbRequired":false,"expectedPackages":1}
+[S-03] 4. POST approve sheet1 (manager): {"status":200}
+[S-03] 5. POST confirm sheet1 (warehouse): {"status":200,"sheetStatus":"confirmed","challanNo":"DC-0001","dispatched":["01a09c27-5b3a-76e4-ba5b-34a93e4dc2bf"]}
+[S-03]    order R state after confirm: "dispatched"
+[S-03] 6. POST depart trip1 (delivery): {"status":200,"state":"active","loadSheetIds":["01a09c27-5d71-7216-afcf-c2b9b348543c"]}
+[S-03] 7. POST stop start/arrive/fail shop_closed (delivery): {"start":200,"arrive":200,"fail":200,"stopState":"failed","failureReason":"shop_closed"}
+[S-03]    order R state after the failed stop: "packed"
+[S-03] 8. POST return trip1 (delivery): {"status":200,"state":"closing"}
+[S-03] 9. POST settle trip1 (accountant): {"status":200,"tripState":"settled","hasVariance":false}
+[S-03]    order R state after settlement: "packed"
+[S-03] 10. GET /warehouse/packs?status=awaiting_load (W7): {"status":200,"offersR":false,"offersF":true,"count":1}
+[S-03] 11. GET /delivery/trip-planning (W10/M7 board): {"status":200,"offersR":true,"offersF":true}
+[S-03] 12. POST /delivery/trips (warehouse) trip2 [R, F]: {"status":200,"state":"planned","tripNo":"TRIP-0002"}
+[S-03] 13. POST start-loading trip2 (warehouse): {"status":200}
+[S-03] 14. POST /warehouse/load-sheets (warehouse) trip2 [R, F]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c27-5d71-7216-afcf-c2b9b348543c"}}
+[S-03] 15. POST /warehouse/load-sheets (warehouse) trip2 [R]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c27-5d71-7216-afcf-c2b9b348543c"}}
+[S-03] 16. POST /warehouse/load-sheets (manager) trip2 [R]: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"order(s) already on load sheet 01a09c27-5d71-7216-afcf-c2b9b348543c"}}
+[S-03] 17. POST cancel sheet1 (manager) — the old confirmed sheet: {"status":409,"body":{"defined":false,"code":"CONFLICT","status":409,"message":"load sheet 01a09c27-5d71-7216-afcf-c2b9b348543c is confirmed; the goods have left with challan DC-0001 and come back through delivery, not here"}}
+[S-03] 18. POST /warehouse/load-sheets (warehouse) trip2 [F]: {"status":200,"sheetStatus":"draft","loadValuePaise":13400,"ewbRequired":false,"expectedPackages":1}
+[S-03] 19. approve (manager) + confirm (warehouse) sheet2 [F] with NO e-way bill number: {"approve":200,"confirm":200,"sheetStatus":"confirmed","challanNo":"DC-0002","challanValuePaise":13400,"dispatched":["01a09c27-5c44-77be-afe4-a36609f2888a"]}
+[S-03]    order R state before trip2 departs: "packed"
+[S-03] 20. POST depart trip2 (delivery): {"status":200,"state":"active","loadSheetIds":["01a09c27-5ec0-7649-a12a-18c29548e27e"]}
+[S-03]    order R state after trip2 departs: "dispatched"
+[S-03]    order F state after trip2 departs: "dispatched"
+[S-03] ROWS load_sheets: [{"id":"01a09c27-5d71-7216-afcf-c2b9b348543c","trip_id":"01a09c27-5cfa-70f0-9fe6-f3167252b5fb","status":"confirmed","order_ids":["01a09c27-5b3a-76e4-ba5b-34a93e4dc2bf"],"expected_packages":1,"counted_packages":1,"load_value_paise":"13400","ewb_required":false,"ewb_no":null,"challan_no":"DC-0001","approved":true},{"id":"01a09c27-5ec0-7649-a12a-18c29548e27e","trip_id":"01a09c27-5e7a-748b-adb6-f2952e41672f","status":"confirmed","order_ids":["01a09c27-5c44-77be-afe4-a36609f2888a"],"expected_packages":1,"counted_packages":1,"load_value_paise":"13400","ewb_required":false,"ewb_no":null,"challan_no":"DC-0002","approved":true}]
+[S-03] ROWS delivery_challans: [{"challan_no":"DC-0001","load_sheet_id":"01a09c27-5d71-7216-afcf-c2b9b348543c","value_paise":"13400","ewb_no":null,"line_count":1},{"challan_no":"DC-0002","load_sheet_id":"01a09c27-5ec0-7649-a12a-18c29548e27e","value_paise":"13400","ewb_no":null,"line_count":1}]
+[S-03] ROWS deliveries (R/F per trip): [{"is_r":true,"trip1":false,"trip2":true,"outcome":null,"trip_state":"active"},{"is_r":false,"trip1":false,"trip2":true,"outcome":null,"trip_state":"active"},{"is_r":true,"trip1":true,"trip2":false,"outcome":"failed","trip_state":"settled"}]
+[S-03] ROWS outbox_events for order R: [{"event_type":"OrderSubmitted"},{"event_type":"OrderConfirmed"},{"event_type":"OrderPicking"},{"event_type":"OrderPacked"},{"event_type":"OrderDispatched"},{"event_type":"OrderReturnedUndelivered"},{"event_type":"OrderDispatched"}]
+[S-03] ROWS order_state_transitions for order R: [{"from":"draft","to":"submitted","event":"submit","reason":null,"at":"2026-09-14 00:33:40.166023+05:30"},{"from":"submitted","to":"confirmed","event":"confirm","reason":null,"at":"2026-09-14 00:33:40.166023+05:30"},{"from":"confirmed","to":"picking","event":"start_picking","reason":null,"at":"2026-09-14 00:33:40.225746+05:30"},{"from":"picking","to":"packed","event":"pack","reason":null,"at":"2026-09-14 00:33:40.225746+05:30"},{"from":"packed","to":"dispatched","event":"dispatch","reason":null,"at":"2026-09-14 00:33:40.730971+05:30"},{"from":"dispatched","to":"packed","event":"return_undelivered","reason":"shop_closed","at":"2026-09-14 00:33:40.822102+05:30"},{"from":"packed","to":"dispatched","event":"dispatch","reason":"trip depart","at":"2026-09-14 00:33:41.047785+05:30"}]
+[S-03] ROWS onALiveSheet query for R (the create guard): [{"id":"01a09c27-5d71-7216-afcf-c2b9b348543c","status":"confirmed"}]

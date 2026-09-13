@@ -1,0 +1,33 @@
+S-75b probe, run 1 (vitest 23:35:18 IST, 2026-09-13), read-only SQL on dos_test_b2_sus after the run.
+Probe tenant: 01a09bf1-f60f-75cc-93b6-6f57287a3b60 slug s75b-5ce32634
+Contents: A = 30 unassisted concurrent pairs (15 cash, 15 cheque), B = 5 forced-interleave pairs (cash), C = 1 sequential control (cash).
+Every receipt is 10 000 paise (Rs 100). Vitest suppressed the console lines of run 1 (0 captured), so run 2 adds a file log.
+
+$ psql ... -c "select id, slug, created_at from tenants where slug like 's75b-%'"
+ 01a09bf1-f60f-75cc-93b6-6f57287a3b60 | s75b-5ce32634 | 2026-09-13 23:35:20.809157+05:30
+
+-- receipts by mode
+  mode  | receipts | collected_paise | deposited
+ cash   |       21 |          210000 |        21
+ cheque |       15 |          150000 |        15
+
+-- account balances (sum of journal_lines)
+  code   | balance_paise
+ AR      |       -360000
+ BANK    |        700000
+ CASH    |       -190000
+ CHEQUES |       -150000
+
+-- journal entries by ref_type
+ ref_type | count
+ deposit  |    70
+ receipt  |    36
+
+-- ChequeDeposited outbox events per receipt
+  mode  | deposited_events | receipts
+ cash   |                1 |        2     <- the sequential control C + one A/B cash pair where the guard held
+ cash   |                2 |       19
+ cheque |                2 |       15
+
+Reading: Rs 3 600 collected (36 receipts), Rs 7 000 banked (70 deposit entries). 34 of 35 concurrent pairs banked
+the same receipt twice. CASH is Rs -1 900 and CHEQUES Rs -1 500 (cash in hand / cheques in hand below zero).

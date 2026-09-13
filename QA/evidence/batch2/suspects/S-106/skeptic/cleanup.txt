@@ -1,0 +1,6 @@
+git status lines:        0
+s106 tenants before recreate: 1
+$ pnpm --filter @dos/db migrate
+$ tsx src/migrate.ts
+migrations applied
+s106 tenants after recreate: 0

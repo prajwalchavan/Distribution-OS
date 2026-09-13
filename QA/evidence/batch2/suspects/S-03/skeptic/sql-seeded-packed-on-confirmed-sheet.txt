@@ -1,0 +1,8 @@
+       slug       | order_no | order_state | sheet_status | challan_no |                               moves                                | open_plans 
+------------------+----------+-------------+--------------+------------+--------------------------------------------------------------------+------------
+ kalyan-agencies  | SO-0169  | packed      | confirmed    | DC-0037    | dispatch > return_undelivered(Stop failed; goods back on the dock) |          0
+ sai-distributors | SO-0435  | packed      | confirmed    | DC-0050    | dispatch > return_undelivered(Stop failed; goods back on the dock) |          0
+ tarsun           | SO-0845  | packed      | confirmed    | DC-0080    | dispatch > return_undelivered(Stop failed; goods back on the dock) |          0
+ tarsun           | SO-0850  | packed      | confirmed    | DC-0080    | dispatch > return_undelivered(Stop failed; goods back on the dock) |          0
+(4 rows)
+

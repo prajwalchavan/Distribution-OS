@@ -1,0 +1,49 @@
+
+ RUN  v4.1.11 /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core
+
+stdout | src/modules/billing/zz-probe-S-106.spec.ts > QA probe S-106: a parked pack counted twice in the billing desk "left to bill" > reads the desk around a parked pack and compares the header to the true count
+[S-106] source guards: {"screenLinesFound":5,"uiLinesFound":3,"m6remaining":"{count} left to bill"}
+
+stdout | src/modules/billing/zz-probe-S-106.spec.ts > QA probe S-106: a parked pack counted twice in the billing desk "left to bill" > reads the desk around a parked pack and compares the header to the true count
+[S-106] fixture 1: {"orderP":"01a09c36-9e84-77f2-80f7-09d55d553a35","packP":"01a09c36-9f30-70f4-abd3-1cd0632e9f0c","orderN":"01a09c36-9f68-709c-84b1-c09d97b0861e","packN":"01a09c36-9fba-774b-b0c9-1177d586db85","invoiceN":"01a09c36-9ff9-732d-b6c8-7071b6f0f485"}
+
+ ❯ src/modules/billing/zz-probe-S-106.spec.ts (1 test | 1 failed) 691ms
+     × reads the desk around a parked pack and compares the header to the true count 449ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/billing/zz-probe-S-106.spec.ts > QA probe S-106: a parked pack counted twice in the billing desk "left to bill" > reads the desk around a parked pack and compares the header to the true count
+Error: Failed query: 
+          select so.id as order_id, so.order_no, so.state, pc.id as pack_id, pc.invoice_id,
+                 (select string_agg(i.state, ',') from invoices i where i.tenant_id = so.tenant_id and i.order_id = so.id) as invoice_states
+            from sales_orders so left join pack_confirmations pc on pc.order_id = so.id and pc.tenant_id = so.tenant_id
+           where so.tenant_id = $1 order by so.created_at
+params: 01a09c36-9d89-7415-8f41-e8a8ddbbe835
+ ❯ NodePgPreparedQuery.queryWithCache ../../../../../../../Distribution%20OS/.claude/worktrees/b2-suspects/backend/node_modules/drizzle-orm/pg-core/session.js:41:15
+ ❯ src/modules/billing/zz-probe-S-106.spec.ts:348:9
+    346|       'SQL orders + packs after fixture 1',
+    347|       (
+    348|         await db.execute(sql`
+       |         ^
+    349|           select so.id as order_id, so.order_no, so.state, pc.id as pa…
+    350|                  (select string_agg(i.state, ',') from invoices i wher…
+
+Caused by: error: function string_agg(invoice_state, unknown) does not exist
+ ❯ ../../node_modules/pg-pool/index.js:45:11
+ ❯ ../../../../../../../Distribution%20OS/.claude/worktrees/b2-suspects/backend/node_modules/drizzle-orm/node-postgres/session.js:113:20
+ ❯ NodePgPreparedQuery.queryWithCache ../../../../../../../Distribution%20OS/.claude/worktrees/b2-suspects/backend/node_modules/drizzle-orm/pg-core/session.js:39:16
+ ❯ src/modules/billing/zz-probe-S-106.spec.ts:348:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 228, severity: 'ERROR', code: '42883', detail: undefined, hint: 'No function matches the given name and argument types. You might need to add explicit type casts.', position: '119', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'parse_func.c', routine: 'ParseFuncOrColumn' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  00:50:17
+   Duration  2.97s (transform 1.34s, setup 597ms, import 1.61s, tests 691ms, environment 0ms)
+
+undefined
+/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-suspects/backend/libs/core:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/modules/billing/zz-probe-S-106.spec.ts
