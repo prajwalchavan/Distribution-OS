@@ -289,6 +289,7 @@ describe('permission matrix', () => {
       'orders.cancel',
       'orders.get',
       'orders.list',
+      'orders.lastPlaced',
       'pricing.quote',
       'pricing.schemes.list',
       'pricing.bargains.request',

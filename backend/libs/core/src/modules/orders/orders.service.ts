@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -10,6 +10,8 @@ import type {
   ConfirmOrderOutput,
   CreateOrderInput,
   CreateOrderOutput,
+  LastPlacedOrderInput,
+  LastPlacedOrderOutput,
   OrderDetail,
   OrderGetInput,
   OrderGetOutput,
@@ -51,6 +53,7 @@ import {
   createDraft,
   emitOrderEvent,
   isUniqueViolation,
+  lastPlacedOrder,
   listOrders,
   ORDER_PLACERS,
   recordTransition,
@@ -98,8 +101,10 @@ type GetIn = z.infer<typeof OrderGetInput>
 type GetOut = z.infer<typeof OrderGetOutput>
 type ListIn = z.infer<typeof OrdersListInput>
 type ListOut = z.infer<typeof OrdersListOutput>
+type LastPlacedIn = z.infer<typeof LastPlacedOrderInput>
+type LastPlacedOut = z.infer<typeof LastPlacedOrderOutput>
 
-/** Who reads an order (`get`, `list`): every member. The five writes are ORDER_PLACERS (DOS-115). */
+/** Who reads an order (`get`, `list`, `lastPlaced`): every member. The five writes are ORDER_PLACERS (DOS-115). */
 const ORDER_ROLES: readonly ActorRole[] = [...STAFF, 'retailer']
 export type Shortage = ConfirmOut['shortages'][number]
 
@@ -171,7 +176,10 @@ export class OrdersService {
     )
   }
 
-  /** A repeat order is the retailer's last non-cancelled order, re-priced today (docs/06 "Reorder last order"). */
+  /**
+   * A repeat order copies the retailer's most recently PLACED order, by when it was placed and never a draft
+   * (`lastPlacedOrder`, DOS-098), re-priced today (docs/06 "Reorder last order").
+   */
   async repeatLast(input: RepeatIn): Promise<RepeatOut> {
     requireRole(ORDER_PLACERS)
     const db = requireDb(this.db)
@@ -179,17 +187,7 @@ export class OrdersService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.quotes.loadRetailer(tx, ctx, input.retailerId)
-        const [previous] = await tx
-          .select({ id: salesOrders.id })
-          .from(salesOrders)
-          .where(
-            and(
-              eq(salesOrders.retailerId, input.retailerId),
-              sql`${salesOrders.state} <> 'cancelled'`,
-            ),
-          )
-          .orderBy(desc(salesOrders.id))
-          .limit(1)
+        const previous = await lastPlacedOrder(tx, input.retailerId)
         if (!previous)
           throw new ORPCError('NOT_FOUND', {
             message: `retailer ${input.retailerId} has no order to repeat`,
@@ -555,6 +553,26 @@ export class OrdersService {
     requireRole(ORDER_ROLES)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), (tx) => listOrders(tx, input))
+  }
+
+  /**
+   * The shop's most recently placed order with its lines — what "Order again" repeats — and nothing is written
+   * (DOS-098, `lastPlacedOrder`). A retailer reads only a shop linked to its login and an unknown shop is a 404
+   * (`loadRetailer`, as for `repeatLast`); a salesperson reads only an order credited to it (DOS-073), else null.
+   */
+  async lastPlaced(input: LastPlacedIn): Promise<LastPlacedOut> {
+    requireRole(ORDER_ROLES)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      await this.quotes.loadRetailer(tx, ctx, input.retailerId)
+      const row = await lastPlacedOrder(
+        tx,
+        input.retailerId,
+        ctx.actorRole === 'salesperson' ? ctx.actorId : undefined,
+      )
+      return { item: row ? await this.detail(tx, row) : null }
+    })
   }
 
   // -------------------------------------------------------------------------------------------------------------

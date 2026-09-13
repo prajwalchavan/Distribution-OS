@@ -14,9 +14,12 @@
  * to this role. This screen therefore has no field that could carry one.
  *
  * SUBMIT IS THE SHOP'S OWN (founder decision, docs/22 §8 2026-09-05). `orders.submit` accepts the
- * retailer role for its own draft: two calls, `create` (or `setLines` on a repeat draft) then
- * `submit`, each with its own client-generated id and idempotency key, so a double tap on a bad
- * connection writes one order.
+ * retailer role for its own draft: two calls, `create` then `submit`, each with its own
+ * client-generated id and idempotency key, so a double tap on a bad connection writes one order.
+ *
+ * "ORDER AGAIN" WRITES NOTHING UNTIL "PLACE ORDER" (DOS-098). Home opens this screen with a fresh
+ * `?repeat=` id per tap; the basket is built HERE from `orders.lastPlaced` — the shop's most recently
+ * placed order — in the pieces that order carried, and placed through the same two calls.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import type { OrderLine, QuotedLine, TenantProduct } from '@dos/contracts'
@@ -57,8 +60,21 @@ interface DraftLine {
   qtyPcs: number
   /** What the shop typed, and in what — carried to the order so the bill reprints it (docs/17 A3). */
   enteredQty: number
-  /** The contract's own unit, so a repeat draft's `inner` pack entry survives being loaded here. */
-  enteredUnit: OrderLine['enteredUnit']
+  /** Whole cases or pieces, the two units this screen enters (`enteredFor`); never an old order's `inner`. */
+  enteredUnit: Extract<OrderLine['enteredUnit'], 'case' | 'piece'>
+}
+
+/**
+ * How this screen records a quantity: whole cases where the pieces divide by the case size, else pieces. The
+ * stepper and "Order again" both go through it, so a repeated line is entered exactly as a tapped one.
+ */
+function enteredFor(
+  pieces: number,
+  caseSize: number,
+): Pick<DraftLine, 'enteredQty' | 'enteredUnit'> {
+  return caseSize > 1 && pieces % caseSize === 0
+    ? { enteredQty: pieces / caseSize, enteredUnit: 'case' }
+    : { enteredQty: Math.max(pieces, 1), enteredUnit: 'piece' }
 }
 
 export default function PlaceOrder(): React.JSX.Element {
@@ -69,15 +85,19 @@ export default function PlaceOrder(): React.JSX.Element {
   const { session } = useSession()
   const signedIn = session !== null
   const distributor = session?.tenant.displayName ?? ''
-  const params = useLocalSearchParams<{ orderId?: string }>()
-  const seedOrderId = typeof params.orderId === 'string' ? params.orderId : null
+  const params = useLocalSearchParams<{ repeat?: string }>()
+  /** "Order again": a fresh id per tap on Home, so every tap is its own read of the last placed order. */
+  const repeat = typeof params.repeat === 'string' ? params.repeat : null
 
   const my = useMyShop()
   const retailerId = my.retailerId
 
   const [query, setQuery] = useState('')
   const [lines, setLines] = useState<readonly DraftLine[]>([])
-  const [seeded, setSeeded] = useState(false)
+  /** The `repeat` id whose basket has been built (or refused), so a tap is seeded exactly once. */
+  const [seededFor, setSeededFor] = useState<string | null>(null)
+  /** Items of the repeated order left out because they are no longer on the price list. */
+  const [leftOut, setLeftOut] = useState(0)
   const [note, setNote] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
@@ -105,25 +125,89 @@ export default function PlaceOrder(): React.JSX.Element {
     return map
   }, [items])
 
-  // --- a repeat draft: the server already copied and re-priced the lines ----------------------
-  const seed = useQuery(
-    ['order', seedOrderId],
-    () => api.api.orders.get({ id: seedOrderId ?? '' }),
-    { enabled: signedIn && seedOrderId !== null && !seeded },
+  // --- "Order again": the basket of the shop's last placed order, built on the device ----------
+  /*
+   * NOTHING IS WRITTEN UNTIL "PLACE ORDER" (DOS-098).
+   *
+   * `orders.lastPlaced` names the shop's most recently PLACED order — by when it was placed, by whoever
+   * placed it, never a draft — and writes nothing. The basket is built from it here and re-priced by the
+   * quote below like any other basket. The tap's own id is in the key and `staleTime` is 0, so a second
+   * "Order again" after a placement never seeds from a cached answer naming the order before it.
+   *
+   * THE PIECES, NOT THE UNIT. Each item keeps the pieces that order carried, entered the way this
+   * screen's own stepper enters them (`enteredFor`, with TODAY's case size). The old line's entered
+   * quantity and unit are never forwarded: `orders.create` re-derives pieces as entered quantity × case
+   * size and counts an `inner` entry as a case, so a forwarded one would quote the old pieces on this
+   * screen and place up to five times as many.
+   *
+   * NOTHING HIDDEN IS PLACED. The order panel draws only lines whose item is on the price list, while
+   * "Place order" sends every line, so the seed keeps only items on the unfiltered price list and says
+   * how many of that order's items it left out. Until the basket exists there is no stepper to tap: the
+   * screen shows its skeleton, and a failed read opens the price list with the reason instead.
+   */
+  const lastPlaced = useQuery(
+    ['orders', 'last-placed', retailerId, repeat],
+    () => api.api.orders.lastPlaced({ retailerId: retailerId ?? '' }),
+    {
+      enabled: signedIn && repeat !== null && retailerId !== null && seededFor !== repeat,
+      staleTime: 0,
+    },
   )
+  const awaitingSeed =
+    signedIn &&
+    repeat !== null &&
+    retailerId !== null &&
+    seededFor !== repeat &&
+    lastPlaced.error === undefined
+
+  // A new tap starts from nothing: no search filter, no basket, no message from the last attempt.
   useEffect(() => {
-    if (seeded || seed.data === undefined) return
-    setLines(
-      seed.data.item.lines.map((line) => ({
-        id: line.id,
-        variantId: line.variantId,
-        qtyPcs: line.qtyPcs,
-        enteredQty: line.enteredQty,
-        enteredUnit: line.enteredUnit,
-      })),
-    )
-    setSeeded(true)
-  }, [seed.data, seeded])
+    if (repeat === null) return
+    setQuery('')
+    setLines([])
+    setLeftOut(0)
+    setFailure(null)
+  }, [repeat])
+
+  useEffect(() => {
+    if (repeat === null || seededFor === repeat) return
+    if (lastPlaced.error !== undefined) {
+      setFailure(t('r7.repeatFailed'))
+      setSeededFor(repeat)
+      return
+    }
+    // The UNFILTERED price list decides what can be shown, and it carries today's case size.
+    if (lastPlaced.data === undefined || catalog.data === undefined || query !== '') return
+    const { item } = lastPlaced.data
+    if (item === null) {
+      setFailure(t('r7.repeatEmpty'))
+      setSeededFor(repeat)
+      return
+    }
+    const listed = new Map(catalog.data.items.map((entry) => [entry.variantId, entry]))
+    // One line per item, as the stepper keeps it: two lines of one item come back as their pieces together.
+    const piecesOf = new Map<string, number>()
+    for (const line of item.lines)
+      piecesOf.set(line.variantId, (piecesOf.get(line.variantId) ?? 0) + line.qtyPcs)
+    const seeded: DraftLine[] = []
+    let missing = 0
+    for (const [variantId, qtyPcs] of piecesOf) {
+      const entry = listed.get(variantId)
+      if (entry === undefined) {
+        missing += 1
+        continue
+      }
+      if (qtyPcs > 0)
+        seeded.push({ id: uuidv7(), variantId, qtyPcs, ...enteredFor(qtyPcs, entry.caseSize) })
+    }
+    // A tap that landed before the basket keeps its line; the seed only adds the items not there yet.
+    setLines((current) => [
+      ...current,
+      ...seeded.filter((line) => !current.some((mine) => mine.variantId === line.variantId)),
+    ])
+    setLeftOut(missing)
+    setSeededFor(repeat)
+  }, [repeat, seededFor, lastPlaced.data, lastPlaced.error, catalog.data, query, t])
 
   // --- the live price -------------------------------------------------------------------------
   /*
@@ -210,12 +294,12 @@ export default function PlaceOrder(): React.JSX.Element {
   /*
    * `['order']` IS ON EVERY ONE OF THESE, AND THAT IS NOT A DETAIL.
    *
-   * The cache invalidates by key PREFIX, and this screen reads the repeat draft under `['order', id]`
-   * while `/orders/[id]` reads the very same key. `['orders']` does not prefix `['order', id]` — a
-   * different first element — so after "Place order" the detail screen this one navigates to served
-   * the cached DRAFT for its 30-second freshness window. Measured: `setLines` 200, `submit` 200, and
-   * the shop landed on a screen headed "Not sent yet" with a live "Send this order" button under an
-   * order the distributor had already accepted.
+   * The cache invalidates by key PREFIX, and `/orders/[id]` — where "Place order" lands — reads the
+   * order under `['order', id]`. `['orders']` does not prefix `['order', id]` — a different first
+   * element — so without `['order']` the detail screen could serve a cached copy of the order from
+   * before it was sent, for its 30-second freshness window. Measured once: `submit` 200, and the shop
+   * landed on a screen headed "Not sent yet" with a live "Send this order" button under an order the
+   * distributor had already accepted.
    */
   const create = useMutation(
     (input: { retailerId: string; lines: readonly DraftLine[]; note: string }, meta) =>
@@ -225,20 +309,6 @@ export default function PlaceOrder(): React.JSX.Element {
         retailerId: input.retailerId,
         source: 'retailer_app',
         ...(input.note === '' ? {} : { note: input.note }),
-        lines: input.lines.map((line) => ({
-          id: line.id,
-          variantId: line.variantId,
-          enteredQty: line.enteredQty,
-          enteredUnit: line.enteredUnit,
-        })),
-      }),
-    { invalidates: [['orders'], ['order']] },
-  )
-  const replace = useMutation(
-    (input: { orderId: string; lines: readonly DraftLine[] }, meta) =>
-      api.api.orders.setLines({
-        id: input.orderId,
-        idempotencyKey: meta.idempotencyKey,
         lines: input.lines.map((line) => ({
           id: line.id,
           variantId: line.variantId,
@@ -266,17 +336,12 @@ export default function PlaceOrder(): React.JSX.Element {
     { invalidates: [['bargains']] },
   )
 
-  const busy =
-    create.status === 'pending' || replace.status === 'pending' || submit.status === 'pending'
+  const busy = create.status === 'pending' || submit.status === 'pending'
 
   const place = (): void => {
-    if (retailerId === null || priced.length === 0 || busy) return
+    if (retailerId === null || priced.length === 0 || busy || awaitingSeed) return
     setFailure(null)
-    const first =
-      seedOrderId === null
-        ? create.mutateAsync({ retailerId, lines: priced, note: note.trim() })
-        : replace.mutateAsync({ orderId: seedOrderId, lines: priced })
-    void first.then(
+    void create.mutateAsync({ retailerId, lines: priced, note: note.trim() }).then(
       (result) =>
         submit.mutateAsync({ orderId: result.item.id }).then(
           (done) => {
@@ -304,10 +369,7 @@ export default function PlaceOrder(): React.JSX.Element {
     const caseSize = item?.caseSize ?? 1
     setLines((current) => {
       const existing = current.find((line) => line.variantId === variantId)
-      const entered =
-        caseSize > 1 && pieces % caseSize === 0
-          ? { enteredQty: pieces / caseSize, enteredUnit: 'case' as const }
-          : { enteredQty: Math.max(pieces, 1), enteredUnit: 'piece' as const }
+      const entered = enteredFor(pieces, caseSize)
       if (existing === undefined) {
         if (pieces <= 0) return current
         return [...current, { id: uuidv7(), variantId, qtyPcs: pieces, ...entered }]
@@ -368,7 +430,7 @@ export default function PlaceOrder(): React.JSX.Element {
             label={t('r7.place')}
             variant="primary"
             loading={busy}
-            disabled={priced.length === 0 || retailerId === null}
+            disabled={priced.length === 0 || retailerId === null || awaitingSeed}
             {...(priced.length === 0 ? { disabledReason: t('r7.empty') } : {})}
             onPress={place}
             testID="r7-place"
@@ -377,7 +439,9 @@ export default function PlaceOrder(): React.JSX.Element {
       }
     >
       <Stack gap={6}>
-        <Async state={[my, catalog]} rows={4}>
+        {/* While "Order again" builds its basket the skeleton stands in for the steppers; its failure is not
+            an error state here — the price list opens with `r7-failure` saying why (DOS-098). */}
+        <Async state={[my, catalog, { isLoading: awaitingSeed }]} rows={4}>
           {my.unlinked ? (
             <Txt field="body" desk="body" testID="r7-unlinked">
               {t('r2.noShopBody', { name: distributor })}
@@ -387,6 +451,16 @@ export default function PlaceOrder(): React.JSX.Element {
               {failure === null ? null : (
                 <Txt field="body" desk="body" color={colors.status.brick.fg} testID="r7-failure">
                   {failure}
+                </Txt>
+              )}
+              {leftOut === 0 ? null : (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.status.ochre.fg}
+                  testID="r7-repeat-partial"
+                >
+                  {t('r7.repeatPartial', { count: String(leftOut) })}
                 </Txt>
               )}
               {listQuote.error === undefined || listGstMissing !== null ? null : (

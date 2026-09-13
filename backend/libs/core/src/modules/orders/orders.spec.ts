@@ -20,6 +20,8 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  salesOrderLines,
+  salesOrders,
   tenantProducts,
   tenants,
   users,
@@ -122,8 +124,8 @@ describeDb('orders (DATABASE_URL)', () => {
       { id: ownerId, phone: `+91904${run}1`, name: 'Owner' },
       { id: repId, phone: `+91904${run}2`, name: 'Rep' },
       { id: shopUserId, phone: `+91904${run}3`, name: 'Shopkeeper' },
-      // `+91904${run}4` is the DOS-073 block's second rep, `6` and `7` the DOS-115 block's godown and crew;
-      // phones are unique platform-wide
+      // `+91904${run}4` is the DOS-073 block's second rep, `6` and `7` the DOS-115 block's godown and crew,
+      // `8` the DOS-098 block's rep with no order; phones are unique platform-wide
       { id: managerId, phone: `+91904${run}5`, name: 'Manager' },
     ])
     await db.insert(memberships).values([
@@ -1880,6 +1882,178 @@ describeDb('orders (DATABASE_URL)', () => {
       expect(got.status).toBe(200)
       expect(named(got.body.item.lines)).toEqual(expected)
     }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-098: "Order again" repeats the shop's most recently PLACED order — by when it was placed
+  // (`coalesce(submitted_at, created_at)`), never a draft, and never an older order whose id happens to sort
+  // higher (a seeded or imported id is not a date). `GET /orders/last-placed` names that order without writing
+  // anything, so the retailer app builds the basket on the device. Stock-neutral: every order placed here is on
+  // variant B (no stock, so nothing is held), and the draft and the hand-written delivered order hold nothing
+  // either, so no later block's reservation or shortage arithmetic moves. No test uses another test's ids.
+
+  describe('DOS-098 Order again repeats the most recently placed order', () => {
+    const pieces = (lines: readonly Line[]) => lines.map((l) => [l.variantId, l.qtyPcs])
+
+    /** Draft and submit a one-line order on Shop A; it leaves draft (Shop A is `indicate`). */
+    const place = async (actor: Actor, tag: string, variantId: string, qty: number) => {
+      const id = uuidv7()
+      const drafted = await call<{ item: Detail }>(app, actor, 'POST', '/orders', {
+        idempotencyKey: `dos098-create-${tag}-${run}`,
+        id,
+        retailerId: retailerA,
+        source: actor.role === 'retailer' ? 'retailer_app' : 'salesperson',
+        lines: [{ id: uuidv7(), variantId, enteredQty: qty, enteredUnit: 'piece' }],
+      })
+      expect(drafted.status, tag).toBe(200)
+      const submitted = await call<{ item: Detail }>(app, actor, 'POST', `/orders/${id}/submit`, {
+        idempotencyKey: `dos098-submit-${tag}-${run}`,
+      })
+      expect(submitted.status, tag).toBe(200)
+      expect(['submitted', 'confirmed'], tag).toContain(submitted.body.item.state)
+      return id
+    }
+
+    it("DOS-098: repeat-last copies the shop's most recently placed order, never a newer draft and never an older order with a higher id", async () => {
+      // (a) the shop's newest PLACED order: 3 pieces of variant B
+      await place(rep, 'placed', variantB, 3)
+
+      // (b) a draft started after it, so the highest id this shop has, that nobody has sent
+      const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos098-draft-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 5, enteredUnit: 'piece' }],
+      })
+      expect(draft.status).toBe(200)
+      expect(draft.body.item.state).toBe('draft')
+
+      // (c) Order again copies the placed order, not the draft
+      const first = await call<{ item: Detail }>(app, rep, 'POST', '/orders/repeat-last', {
+        idempotencyKey: `dos098-repeat-1-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+      })
+      expect(first.status).toBe(200)
+      expect(first.body.item.state).toBe('draft')
+      expect(pieces(first.body.item.lines)).toEqual([[variantB, 3]])
+
+      // (d) a delivered order placed 45 days ago whose id sorts above every real one, as seeded and imported
+      // ids do, written straight to the table (the owner pool bypasses RLS)
+      const oldId = `ffffffff-ffff-7fff-bfff-0000${run}`
+      const placedAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)
+      await db.insert(salesOrders).values({
+        id: oldId,
+        tenantId,
+        orderNo: `SO-D098-${run}`,
+        retailerId: retailerA,
+        state: 'delivered',
+        source: 'salesperson',
+        createdBy: repId,
+        salespersonId: repId,
+        paymentTerms: 'ON',
+        submittedAt: placedAt,
+        createdAt: placedAt,
+      })
+      await db.insert(salesOrderLines).values({
+        id: uuidv7(),
+        tenantId,
+        orderId: oldId,
+        lineNo: 1,
+        variantId: variantA,
+        enteredQty: 40,
+        enteredUnit: 'piece',
+        packSizeAtEntry: 1,
+        qtyPcs: 40,
+        listRatePaise: 1000,
+        ratePaise: 1000,
+        gstBps: 1200,
+      })
+
+      // (e) still the placed order: not the older order with the higher id, and not (c)'s own draft
+      const again = await call<{ item: Detail }>(app, rep, 'POST', '/orders/repeat-last', {
+        idempotencyKey: `dos098-repeat-2-${run}`,
+        id: uuidv7(),
+        retailerId: retailerA,
+        source: 'salesperson',
+      })
+      expect(again.status).toBe(200)
+      expect(pieces(again.body.item.lines)).toEqual([[variantB, 3]])
+    })
+
+    it("DOS-098: GET /orders/last-placed answers the shop's newest placed order with its lines, writes nothing, and keeps a salesperson to its own orders", async () => {
+      // the rep's own order first, then the shop's: the shop's is the newest placed order of Shop A
+      const repPlaced = await place(rep, 'lp-rep', variantB, 1)
+      const shopPlaced = await place(shop, 'lp-shop', variantB, 2)
+
+      // a salesperson with no order on Shop A, and a shop with no order at all
+      const rep3Id = uuidv7()
+      const rep3: Actor = { tenantId, actorId: rep3Id, role: 'salesperson' }
+      await db.insert(users).values({ id: rep3Id, phone: `+91904${run}8`, name: 'Third rep' })
+      await db
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId, userId: rep3Id, role: 'salesperson' })
+      const quiet = uuidv7()
+      await db.insert(retailers).values({
+        id: quiet,
+        tenantId,
+        code: `R9-${run}`,
+        name: `Shop Q ${run}`,
+        phone: `+91905${run}9`,
+        stateCode: '27',
+        tier: 'C',
+        creditMode: 'indicate',
+        creditLimitPaise: 0,
+      })
+
+      const counts = async () =>
+        (
+          await db.execute(
+            sql`select (select count(*) from sales_orders where tenant_id = ${tenantId})::int as orders,
+                       (select count(*) from sales_order_lines where tenant_id = ${tenantId})::int as lines`,
+          )
+        ).rows[0] as { orders: number; lines: number }
+      const before = await counts()
+      const lastPlaced = (actor: Actor, retailerId: string) =>
+        call<{ item: Detail | null }>(app, actor, 'GET', '/orders/last-placed', { retailerId })
+
+      // the shop reads its newest placed order with its lines, and none of the approvals
+      const mine = await lastPlaced(shop, retailerA)
+      expect(mine.status).toBe(200)
+      expect(mine.body.item?.id).toBe(shopPlaced)
+      expect(pieces(mine.body.item?.lines ?? [])).toEqual([[variantB, 2]])
+      expect(mine.body.item?.approvals).toEqual([])
+
+      // the desk reads the same order; a rep reads only an order credited to it (DOS-073), else nothing
+      const desk = await lastPlaced(owner, retailerA)
+      expect(desk.status).toBe(200)
+      expect(desk.body.item?.id).toBe(shopPlaced)
+      const own = await lastPlaced(rep, retailerA)
+      expect(own.status).toBe(200)
+      expect(own.body.item?.id).toBe(repPlaced)
+      expect(pieces(own.body.item?.lines ?? [])).toEqual([[variantB, 1]])
+      const none = await lastPlaced(rep3, retailerA)
+      expect(none.status).toBe(200)
+      expect(none.body).toEqual({ item: null })
+
+      // a shop with no placed order, a shop that does not exist, and a shop not linked to this login
+      const quietShop = await lastPlaced(owner, quiet)
+      expect(quietShop.status).toBe(200)
+      expect(quietShop.body).toEqual({ item: null })
+      expect((await lastPlaced(owner, uuidv7())).status).toBe(404)
+      expect((await lastPlaced(shop, retailerB)).status).toBe(403)
+
+      // the static route did not shadow the param route: GET /orders/{id} still answers the same order
+      const got = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${shopPlaced}`)
+      expect(got.status).toBe(200)
+      expect(got.body.item.id).toBe(shopPlaced)
+      expect(got.body.item).toEqual(mine.body.item)
+
+      // none of those reads wrote an order or a line
+      expect(await counts()).toEqual(before)
+    })
   })
 
   // -----------------------------------------------------------------------------------------------------

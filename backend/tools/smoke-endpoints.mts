@@ -1383,6 +1383,13 @@ async function planFor(
           ...(ctx.role === 'retailer' ? { source: 'retailer_app' } : {}),
         },
       }
+    case 'orders.lastPlaced': {
+      // The shopkeeper's own shop (any other is a 403), else a shop with history. A salesperson answers
+      // `{ item: null }` when no order of that shop is credited to it, which is a 200 all the same.
+      const retailerId =
+        ctx.scopeRetailerId ?? (await fx.retailerWithHistory()) ?? (await fx.retailerId())
+      return retailerId ? { query: { retailerId } } : { skip: 'no retailer in this tenant' }
+    }
 
     // --- pricing: `scope` is an all-optional object with a cross-field rule ----------------------
     case 'pricing.schemes.upsert':

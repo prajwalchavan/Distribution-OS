@@ -132,6 +132,8 @@ export const strings = {
   'r7.askSent': 'Asked. You will see the answer under Offers.',
   'r7.repeatFailed': 'Could not build a repeat of your last order',
   'r7.repeatEmpty': 'You have no earlier order to repeat',
+  'r7.repeatPartial':
+    '{count} items of that order are no longer on the price list and were left out',
   'r7.lines': '{count} items',
   'r7.linesOne': '1 item',
   'r7.clear': 'Empty this order',
