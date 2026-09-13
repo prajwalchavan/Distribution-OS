@@ -46,7 +46,7 @@ class FakeVisitsSync implements OnModuleInit {
     // A table only the desk holds on its device.
     this.registry.registerPull('desk_only', {
       roles: ['owner', 'manager'],
-      handler: async () => ({ rows: [{ id: 'x' }], deleted: [] }),
+      handler: async () => ({ rows: [{ id: 'x' }], at: [''], deleted: [], deletedAt: [] }),
       describe: () => [{ name: 'id', type: 'string', nullable: false }],
     })
   }
@@ -378,5 +378,57 @@ describeDb('sync upload (ADR 0007)', () => {
     expect(again.status).toBe(200)
     expect(again.body.replayed).toBe(1)
     expect(again.body.rejected.map((r) => r.code)).toEqual(['not_permitted'])
+  })
+
+  it('DOS-080 a page holding a row with no instant (the desk_only stub) issues a cursor the next pull accepts', async () => {
+    // A handler that cannot say WHEN its row changed stays outside the page budget, rides along on
+    // every page, and never becomes the cursor: a cursor that is not a microsecond instant is one the
+    // next call answers 400 on, and a device on a 400 never finishes its read set.
+    type PullBody = {
+      changes: { table: string; rows: Record<string, unknown>[] }[]
+      cursor: string
+      hasMore: boolean
+    }
+    const only = await call<PullBody>(app, manager, 'GET', '/sync/pull', {
+      deviceId,
+      'tables[0]': 'desk_only',
+      limit: 1,
+    })
+    expect(only.status).toBe(200)
+    expect(only.body.changes).toEqual([{ table: 'desk_only', rows: [{ id: 'x' }], deleted: [] }])
+    const again = await call(app, manager, 'GET', '/sync/pull', {
+      deviceId,
+      'tables[0]': 'desk_only',
+      since: only.body.cursor,
+      limit: 1,
+    })
+    expect(again.status).toBe(200)
+
+    // ...and beside a table that fills a one-row page, every cursor of the pass is accepted and the
+    // pass delivers each beat once.
+    const names = (
+      (await db.execute(sql`select name from beats where tenant_id = ${tenantId}`)).rows as {
+        name: string
+      }[]
+    ).map((r) => r.name)
+    let since: string | undefined
+    const seen: string[] = []
+    for (let page = 1; ; page += 1) {
+      expect(page, 'pages in the pass').toBeLessThanOrEqual(names.length + 2)
+      const res = await call<PullBody>(app, manager, 'GET', '/sync/pull', {
+        deviceId,
+        'tables[0]': 'beats',
+        'tables[1]': 'desk_only',
+        limit: 1,
+        ...(since === undefined ? {} : { since }),
+      })
+      expect(res.status, `page ${page}`).toBe(200)
+      expect(res.body.changes.find((c) => c.table === 'desk_only')?.rows).toEqual([{ id: 'x' }])
+      const beatRows = res.body.changes.find((c) => c.table === 'beats')?.rows ?? []
+      seen.push(...beatRows.map((r) => String(r.name)))
+      since = res.body.cursor
+      if (!res.body.hasMore) break
+    }
+    expect(seen.sort()).toEqual(names.sort())
   })
 })

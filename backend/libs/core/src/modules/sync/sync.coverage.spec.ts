@@ -325,6 +325,88 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
   const manifestOf = (actor: Actor) => call<Manifest>(app, actor, 'GET', '/sync/manifest')
   const pullOf = (actor: Actor, query: Record<string, string> = {}) =>
     call<Pull>(app, actor, 'GET', '/sync/pull', { deviceId, ...query })
+  /** The query keys that name the tables a pull reads: `tables[0]`, `tables[1]`, … */
+  const tablesOf = (...names: string[]): Record<string, string> =>
+    Object.fromEntries(names.map((name, i) => [`tables[${i}]`, name]))
+
+  /**
+   * Every page of ONE pass (DOS-080): the query as given, then the same query carrying the cursor the
+   * LAST response gave, while `hasMore` — rule 3 of docs/07, which is what the device's loop does.
+   */
+  const pagesOf = async (actor: Actor, query: Record<string, string> = {}): Promise<Pull[]> => {
+    const pages: Pull[] = []
+    let since = query.since
+    for (;;) {
+      if (pages.length >= 200)
+        throw new Error(`sync.pull did not finish within 200 pages: ${JSON.stringify(query)}`)
+      const res = await pullOf(actor, { ...query, ...(since === undefined ? {} : { since }) })
+      expect(res.status, `page ${pages.length + 1}`).toBe(200)
+      pages.push(res.body)
+      if (!res.body.hasMore) return pages
+      since = res.body.cursor
+    }
+  }
+
+  /**
+   * What a device HOLDS after one whole pass, in the shape of a single pull: every page (limit 500
+   * unless the query names one) merged per table the way the device applies them — rows upserted by
+   * the table's manifest key, a later copy replacing an earlier one, and deleted ids as a set in
+   * arrival order. A page is the `limit` earliest changes of the read set, so what one page holds says
+   * nothing about a fixture; what the pass holds does.
+   */
+  const drainOf = async (actor: Actor, query: Record<string, string> = {}) => {
+    const keys = new Map((await manifestOf(actor)).body.tables.map((t) => [t.table, t.primaryKey]))
+    const pages = await pagesOf(actor, { limit: '500', ...query })
+    const merged = new Map<
+      string,
+      { rows: Map<string, Record<string, unknown>>; deleted: Set<string> }
+    >()
+    for (const page of pages)
+      for (const change of page.changes) {
+        const into = merged.get(change.table) ?? { rows: new Map(), deleted: new Set<string>() }
+        merged.set(change.table, into)
+        const key = keys.get(change.table) ?? ['id']
+        for (const row of change.rows) into.rows.set(key.map((k) => String(row[k])).join(':'), row)
+        for (const id of change.deleted) into.deleted.add(id)
+      }
+    const last = pages[pages.length - 1]
+    const body: Pull = {
+      changes: [...merged].map(([table, { rows, deleted }]) => ({
+        table,
+        rows: [...rows.values()],
+        deleted: [...deleted],
+      })),
+      cursor: last?.cursor ?? '',
+      hasMore: false,
+      asOf: last?.asOf ?? '',
+    }
+    // Every page answered 200: `pagesOf` asserts it page by page.
+    return { status: 200, body }
+  }
+
+  /**
+   * A cursor at the database clock NOW, to the microsecond, in the `{v:1,t}` form `sync.service.ts`
+   * issues — so a delta starts exactly after a fixture, without the 5 s overlap a drained cursor has.
+   */
+  const markCursor = async (): Promise<string> => {
+    const row = (
+      await db.execute(
+        sql`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`,
+      )
+    ).rows[0] as { t: string }
+    return Buffer.from(JSON.stringify({ v: 1, t: row.t })).toString('base64url')
+  }
+
+  /** The ids a pass delivered as rows (optionally of one table), in delivery order, repeats kept. */
+  const rowIdsOf = (pages: Pull[], table?: string): string[] =>
+    pages.flatMap((page) =>
+      page.changes
+        .filter((change) => table === undefined || change.table === table)
+        .flatMap((change) => change.rows.map((row) => String(row.id))),
+    )
+  /** The ids a pass delivered as deleted, in delivery order, repeats kept. */
+  const deletedOf = (pages: Pull[]): string[] =>
+    pages.flatMap((page) => page.changes.flatMap((change) => change.deleted))
 
   it('registers a pull for all 37 tables the database publishes, and for nothing else', async () => {
     const desk = await manifestOf(owner)
@@ -367,7 +449,10 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     //  - `price_lists` / `price_list_items` are `tenantReadPolicy` because the engine runs on the
     //    rep's phone, while `pricing.priceLists.list` is STAFF — so an unfiltered pull is a
     //    shopkeeper reading every tier's rate card, which is what the shop down the road pays.
-    const shopPull = await pullOf(shop)
+    const shopPull = await drainOf(
+      shop,
+      tablesOf('retailer_links', 'price_lists', 'price_list_items'),
+    )
     const links = shopPull.body.changes.find((c) => c.table === 'retailer_links')?.rows ?? []
     expect(links.length).toBeGreaterThan(0)
     expect([...new Set(links.map((r) => r.retailer_id))]).toEqual([shopId])
@@ -385,7 +470,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
 
     // The desk still holds the whole distributorship: the fix is a predicate for the shop, not a
     // narrowing of everyone's read set.
-    const deskPull = await pullOf(owner)
+    const deskPull = await drainOf(owner, tablesOf('price_lists', 'retailer_links'))
     const deskLists = deskPull.body.changes.find((c) => c.table === 'price_lists')?.rows ?? []
     expect(deskLists.map((r) => r.id)).toContain(otherTierListId)
     const deskLinks = deskPull.body.changes.find((c) => c.table === 'retailer_links')?.rows ?? []
@@ -403,7 +488,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     const declared = new Map(
       manifest.body.tables.map((t) => [t.table, new Map(t.columns.map((c) => [c.name, c.type]))]),
     )
-    const pull = await pullOf(shop)
+    const pull = await drainOf(shop)
     for (const change of pull.body.changes)
       for (const row of change.rows)
         for (const [key, value] of Object.entries(row)) {
@@ -477,7 +562,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       for (const column of table.columns)
         expect(forbidden(column.name), `${table.table}.${column.name}`).toBe(false)
     // ...and the rows themselves, for the tables that have any in this fixture.
-    const snapshot = await pullOf(actor)
+    const snapshot = await drainOf(actor)
     for (const change of snapshot.body.changes)
       for (const row of change.rows)
         for (const key of Object.keys(row))
@@ -491,24 +576,25 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
   })
 
   it('gives the shop its own bill and the desk both shops, and the rep only its own beat', async () => {
-    const shopPull = await pullOf(shop)
+    const shopPull = await drainOf(shop, tablesOf('retailers', 'invoices'))
     const shopRetailers = shopPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
     expect(shopRetailers.map((r) => r.id)).toEqual([shopId])
     const shopInvoices = shopPull.body.changes.find((c) => c.table === 'invoices')?.rows ?? []
     expect(shopInvoices.map((r) => r.id)).toContain(invoiceId)
 
-    const repPull = await pullOf(rep)
+    const repPull = await drainOf(rep, tablesOf('retailers'))
     const repRetailers = repPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
     expect(repRetailers.map((r) => r.id)).toContain(shopId)
     expect(repRetailers.map((r) => r.id)).not.toContain(offBeatShopId)
 
-    const deskPull = await pullOf(owner)
+    const deskPull = await drainOf(owner, tablesOf('retailers'))
     const deskRetailers = deskPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
     expect(deskRetailers.map((r) => r.id)).toEqual(expect.arrayContaining([shopId, offBeatShopId]))
   })
 
   it('sends a delta after a change, and a tombstone after a delete', async () => {
-    const first = await pullOf(store, { limit: '500' })
+    const held = tablesOf('locations', 'stock_balances')
+    const first = await drainOf(store, { ...held, limit: '500' })
     await new Promise((r) => setTimeout(r, 20))
 
     // one change per shape: a tenant table keyed by id, a composite-key table, a global table
@@ -516,7 +602,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     await db.execute(
       sql`update stock_balances set on_hand = 130 where tenant_id = ${tenantId} and lot_id = ${lotId}`,
     )
-    const delta = await pullOf(store, { since: first.body.cursor })
+    const delta = await drainOf(store, { ...held, since: first.body.cursor })
     const changed = (table: string) => delta.body.changes.find((c) => c.table === table)?.rows ?? []
     expect(changed('locations').map((r) => r.id)).toContain(locationId)
     expect(changed('stock_balances').map((r) => r.on_hand)).toContain(130)
@@ -527,29 +613,29 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     await db
       .insert(locations)
       .values({ id: doomed, tenantId, name: `Temp ${run}`, kind: 'warehouse' })
-    const before = await pullOf(store)
+    const before = await drainOf(store, held)
     await db.execute(sql`delete from locations where id = ${doomed}`)
-    const after = await pullOf(store, { since: before.body.cursor })
+    const after = await drainOf(store, { ...held, since: before.body.cursor })
     expect(after.body.changes.find((c) => c.table === 'locations')?.deleted).toContain(doomed)
 
     // ...and the composite key travels as the tombstone writes it: `lot_id:location_id`.
     await db.execute(
       sql`delete from stock_balances where tenant_id = ${tenantId} and lot_id = ${lotId}`,
     )
-    const gone = await pullOf(store, { since: before.body.cursor })
+    const gone = await drainOf(store, { ...held, since: before.body.cursor })
     expect(gone.body.changes.find((c) => c.table === 'stock_balances')?.deleted).toContain(
       `${lotId}:${locationId}`,
     )
   })
 
   it('does not report a row that merely moved to another reader as deleted for the one that still holds it', async () => {
-    const before = await pullOf(owner)
+    const before = await drainOf(owner, tablesOf('retailers'))
     await new Promise((r) => setTimeout(r, 20))
     // The shop leaves the rep's beat: `dos_sync_soft_hide` files a `beat_changed` tombstone, because
     // the rep's device must forget it. The DESK still holds the shop, so the same tombstone must not
     // make the desk drop it — the pull subtracts the ids the caller can still see.
     await db.execute(sql`update retailers set beat_id = ${spareBeatId} where id = ${offBeatShopId}`)
-    const desk = await pullOf(owner, { since: before.body.cursor })
+    const desk = await drainOf(owner, { ...tablesOf('retailers'), since: before.body.cursor })
     expect(desk.body.changes.find((c) => c.table === 'retailers')?.deleted ?? []).not.toContain(
       offBeatShopId,
     )
@@ -852,5 +938,140 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       }),
     ).toThrow(/nope\.never/)
     expect(() => new SyncRegistry().register('x_table', noop, { standsFor: [] })).toThrow(/x_table/)
+  })
+
+  // DOS-080: a page is the `limit` EARLIEST changes across the whole read set, ties completed, and the
+  // cursor is the last instant the page delivered. These four come last: their beats and locations
+  // would otherwise land in the fixtures the tests above count.
+
+  it('DOS-080 fills the page limit across tables: a snapshot of a 60-beat burst takes at most ceil((rows+tombstones)/limit)+1 calls and delivers every row exactly once', async () => {
+    // One INSERT per row, so each row carries its own clock_timestamp(). The locations land after the
+    // beats, so `stock_lots` is read after `locations` has overflowed the page: the `untilText` path.
+    for (let i = 0; i < 60; i += 1)
+      await db
+        .insert(beats)
+        .values({ id: uuidv7(), tenantId, name: `Burst ${run} ${i}`, visitDays: [] })
+    await new Promise((r) => setTimeout(r, 20))
+    for (let i = 0; i < 12; i += 1)
+      await db
+        .insert(locations)
+        .values({ id: uuidv7(), tenantId, name: `Burst godown ${run} ${i}`, kind: 'warehouse' })
+
+    const ids = (
+      (
+        await db.execute(sql`
+          select id from beats where tenant_id = ${tenantId}
+          union all select id from locations where tenant_id = ${tenantId}
+          union all select id from stock_lots where tenant_id = ${tenantId}`)
+      ).rows as { id: string }[]
+    ).map((r) => r.id)
+    const { n: tombstones } = (
+      await db.execute(sql`
+        select count(*)::int as n from sync_tombstones
+         where tenant_id = ${tenantId} and table_name in ('beats', 'locations', 'stock_lots')`)
+    ).rows[0] as { n: number }
+
+    const pages = await pagesOf(owner, {
+      ...tablesOf('beats', 'locations', 'stock_lots'),
+      limit: '10',
+    })
+    expect(pages.length).toBeLessThanOrEqual(Math.ceil((ids.length + tombstones) / 10) + 1)
+    for (const [i, page] of pages.entries())
+      if (page.hasMore)
+        expect(
+          page.changes.reduce((n, c) => n + c.rows.length + c.deleted.length, 0),
+          `page ${i + 1} of ${pages.length}`,
+        ).toBeGreaterThanOrEqual(10)
+    // Every row of the three tables exactly once — nothing missing, nothing sent twice.
+    expect(rowIdsOf(pages).sort()).toEqual([...ids].sort())
+    const deleted = deletedOf(pages)
+    expect(new Set(deleted).size).toBe(deleted.length)
+  })
+
+  it('DOS-080 a delta whose updates and tombstones overflow the page delivers each of them exactly once across the pages', async () => {
+    const burst: string[] = []
+    for (let i = 0; i < 30; i += 1) {
+      const id = uuidv7()
+      burst.push(id)
+      await db
+        .insert(beats)
+        .values({ id, tenantId, name: `Interleaved ${run} ${i}`, visitDays: [] })
+    }
+    const since = await markCursor()
+    // delete beat[2i], then rename beat[2i+1]: a tombstone and an update, turn and turn about
+    const gone: string[] = []
+    const renamed = new Map<string, string>()
+    for (const [i, id] of burst.entries()) {
+      if (i % 2 === 0) {
+        await db.execute(sql`delete from beats where id = ${id}`)
+        gone.push(id)
+      } else {
+        const name = `Interleaved ${run} ${i} renamed`
+        await db.execute(sql`update beats set name = ${name} where id = ${id}`)
+        renamed.set(id, name)
+      }
+    }
+
+    const pages = await pagesOf(owner, { ...tablesOf('beats'), limit: '10', since })
+    const deleted = deletedOf(pages)
+    expect([...deleted].sort()).toEqual([...gone].sort())
+    const rows = pages.flatMap((p) => p.changes.flatMap((c) => c.rows))
+    expect(rows.map((r) => `${String(r.id)}=${String(r.name)}`).sort()).toEqual(
+      [...renamed].map(([id, name]) => `${id}=${name}`).sort(),
+    )
+    expect(rows.filter((r) => deleted.includes(String(r.id)))).toEqual([])
+  })
+
+  it("DOS-080 a first table that fills the page exactly does not hide a later table's changes", async () => {
+    const places: string[] = []
+    for (let i = 0; i < 10; i += 1) {
+      const id = uuidv7()
+      places.push(id)
+      await db
+        .insert(locations)
+        .values({ id, tenantId, name: `Exact ${run} ${i}`, kind: 'warehouse' })
+    }
+    const since = await markCursor()
+    for (const [i, id] of places.entries())
+      await db.execute(sql`update locations set name = ${`Exact ${run} ${i} B`} where id = ${id}`)
+    await new Promise((r) => setTimeout(r, 20))
+    const later: string[] = []
+    for (let i = 0; i < 5; i += 1) {
+      const id = uuidv7()
+      later.push(id)
+      await db.insert(beats).values({ id, tenantId, name: `Later ${run} ${i}`, visitDays: [] })
+    }
+
+    // `locations` answers exactly ten rows (it reads eleven and gets ten): the page is full without
+    // the table being full, so the beats after it must still come — on this page or the next.
+    const pages = await pagesOf(owner, { ...tablesOf('locations', 'beats'), limit: '10', since })
+    expect(rowIdsOf(pages, 'locations').sort()).toEqual([...places].sort())
+    expect(rowIdsOf(pages, 'beats').sort()).toEqual([...later].sort())
+    expect(pages[pages.length - 1]?.hasMore).toBe(false)
+  })
+
+  it("DOS-080 a tombstone page thinned by the still-visible filter does not let the cursor pass that table's unread tombstones", async () => {
+    const places = Array.from({ length: 11 }, (_, i) => ({
+      id: uuidv7(),
+      name: `Thinned ${run} L${i + 1}`,
+    }))
+    for (const place of places)
+      await db.insert(locations).values({ ...place, tenantId, kind: 'warehouse' })
+    const since = await markCursor()
+    // L1..L10 one statement each, then L11; then L1..L10 come back with the same ids and names. Their
+    // tombstones stay (the tombstone writer upserts, and nothing clears one on insert), so the first
+    // eleven tombstones after the cursor are ten rows that are alive and one that is gone.
+    for (const place of places) await db.execute(sql`delete from locations where id = ${place.id}`)
+    await new Promise((r) => setTimeout(r, 20))
+    const back = places.slice(0, 10)
+    for (const place of back)
+      await db.insert(locations).values({ ...place, tenantId, kind: 'warehouse' })
+    const lastId = places[10]?.id ?? ''
+
+    const pages = await pagesOf(owner, { ...tablesOf('locations'), limit: '10', since })
+    const deleted = deletedOf(pages)
+    expect(deleted.filter((id) => id === lastId)).toEqual([lastId])
+    expect(rowIdsOf(pages, 'locations').sort()).toEqual(back.map((p) => p.id).sort())
+    expect(deleted.filter((id) => back.some((p) => p.id === id))).toEqual([])
   })
 })

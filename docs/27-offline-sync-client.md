@@ -79,7 +79,7 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
    ROLE's tables — so a rep who works for two distributors gets an identical `schemaVersion` from both, and without the tenant in
    the comparison the second one's delta lands on top of the first one's rows (gate, 2026-09-06).
 2. No cursor → **snapshot**: `sync.pull({ deviceId, limit: 500 })` in a loop while `hasMore`, always echoing the cursor the last
-   response gave. Snapshots carry no tombstones.
+   response gave. The first page of a snapshot carries no tombstones; later pages carry a cursor and may.
 3. With a cursor → **delta**, same loop. For each response, in ONE transaction: apply every `deleted` id of every table first, then
    upsert `rows` by the manifest primary key. Rows never overwrite a local row whose `_pending` is `queued|sending` (the local edit
    wins locally until the server answers; the veto decides on the server).
