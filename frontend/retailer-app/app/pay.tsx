@@ -160,9 +160,11 @@ export default function Pay(): React.JSX.Element {
               <Stack gap={5}>
                 <RupeeInput
                   label={t('r5.amount')}
-                  value={amount ?? owed}
+                  // DOS-154 (DOS-146 class): the field must show what is actually payable, not the
+                  // raw typed amount — `payable` already agrees with the bottom bar and Start.
+                  value={payable}
                   onChange={setAmount}
-                  helper={t('r5.amountHelper')}
+                  helper={chosen.length > 0 ? t('r5.chosenHelper') : t('r5.amountHelper')}
                   bound={owed}
                   boundMessage={t('r5.overDues')}
                   disabled={chosen.length > 0}

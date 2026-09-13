@@ -197,6 +197,7 @@ export const strings = {
   'r5.title': 'Pay',
   'r5.amount': 'How much are you paying',
   'r5.amountHelper': 'Leave it as it is to pay everything you owe',
+  'r5.chosenHelper': 'Total of the bills you ticked',
   'r5.choose': 'WHICH BILLS',
   'r5.chooseBody': 'Choose nothing and it goes against your oldest bills first.',
   'r5.start': 'Start the payment',
