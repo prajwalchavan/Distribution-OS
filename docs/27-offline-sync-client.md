@@ -74,7 +74,8 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 - `deviceId`: UUIDv7 generated once per install, kept in `platform.storage` (secure store) and mirrored in `_sync_state`. Sign-out
   wipes the read set and deletes the file, and keeps the `deviceId`. With unsent changes (queued or refused) the app asks, and
   what it offers is decided (founder, 2026-09-13): send them now while there is a signal, or sign out keeping them — the file
-  and its queue stay on the phone for that person only and go out the next time that person signs in there (§12).
+  and its queue stay on the phone for that person only; the queued ones go out the next time that person signs in there;
+  refused ones wait in Needs attention (§12).
 - Row `id`: UUIDv7 generated on the device at creation (the contract's `MutationBase` shape).
 - `opId`: UUIDv7 per queued op. `idempotencyKey = opId`. A retry of the same op reuses both; the server's `sync_ops`
   `(tenant_id, device_id, op_id)` makes a replay return the stored outcome.
@@ -206,7 +207,8 @@ cleared: with nothing queued or refused it is one tap, the read set is dropped a
 other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
-that person only, and they go out the next time that person signs in on this phone, before the re-snapshot. Discarding is never
+that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
+refused ones wait in Needs attention for that person to fix or discard. Discarding is never
 offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
 queue in that person's file the same way (§14). Decided by the founder, 2026-09-13.
 
