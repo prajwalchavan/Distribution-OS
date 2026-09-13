@@ -40,6 +40,8 @@ import {
   RupeeInput,
   caseLine,
   formatMoney,
+  parsePieces,
+  stepPiece,
   useColors,
   useStrings,
 } from '@dos/ui'
@@ -103,6 +105,8 @@ export default function PlaceOrder(): React.JSX.Element {
   const [failure, setFailure] = useState<string | null>(null)
   const [askVariant, setAskVariant] = useState<string | null>(null)
   const [askRate, setAskRate] = useState<number | null>(null)
+  /** DOS-101: the item the "Pieces" sheet is open for, so a shop can type an exact count below a case. */
+  const [piecesFor, setPiecesFor] = useState<string | null>(null)
 
   // --- what this distributor sells, and what is on the shelf --------------------------------
   const catalog = useQuery(
@@ -413,6 +417,9 @@ export default function PlaceOrder(): React.JSX.Element {
   const askLine = priced.find((line) => line.variantId === askVariant)
   const askQuoted = askLine === undefined ? undefined : quoted.get(askLine.id)
 
+  const piecesItem = piecesFor === null ? undefined : byVariant.get(piecesFor)
+  const piecesLine = piecesFor === null ? undefined : lines.find((l) => l.variantId === piecesFor)
+
   return (
     <Screen
       title={t('r7.title')}
@@ -519,6 +526,9 @@ export default function PlaceOrder(): React.JSX.Element {
                         standing={listRates.get(item.variantId)}
                         onChange={(pieces) => {
                           setQty(item.variantId, pieces)
+                        }}
+                        onOpenPieces={() => {
+                          setPiecesFor(item.variantId)
                         }}
                         onAsk={() => {
                           setAskVariant(item.variantId)
@@ -627,6 +637,9 @@ export default function PlaceOrder(): React.JSX.Element {
                           onChange={(pieces) => {
                             setQty(item.variantId, pieces)
                           }}
+                          onOpenPieces={() => {
+                            setPiecesFor(item.variantId)
+                          }}
                           onAsk={undefined}
                         />
                       ))}
@@ -703,6 +716,23 @@ export default function PlaceOrder(): React.JSX.Element {
         </Stack>
       </Sheet>
 
+      {/* DOS-101: type an exact piece count, for an item this shop buys below a whole case ("Only 9 pc
+          left") or just wants an odd amount of. The kit stepper already asks before it wipes loose
+          pieces on "one case less"; this is the loose-pieces PAD itself, same as sales-app's DOS-085. */}
+      <PiecesSheet
+        open={piecesFor !== null}
+        onClose={() => {
+          setPiecesFor(null)
+        }}
+        itemName={piecesItem?.name ?? ''}
+        initialPieces={piecesLine?.qtyPcs ?? 0}
+        onSet={(qtyPcs) => {
+          if (piecesFor === null) return
+          setQty(piecesFor, qtyPcs)
+          setPiecesFor(null)
+        }}
+      />
+
       <Toast
         open={toast !== null}
         message={toast ?? ''}
@@ -770,6 +800,7 @@ function OrderRow({
   quoted,
   standing,
   onChange,
+  onOpenPieces,
   onAsk,
 }: {
   item: TenantProduct
@@ -778,6 +809,7 @@ function OrderRow({
   quoted: QuotedLine | undefined
   standing: QuotedLine | undefined
   onChange: (pieces: number) => void
+  onOpenPieces: () => void
   onAsk: (() => void) | undefined
 }): React.JSX.Element {
   const t = useStrings()
@@ -865,6 +897,7 @@ function OrderRow({
         caseSize={caseSize}
         onChange={onChange}
         availablePieces={availablePieces}
+        onOpenPieces={onOpenPieces}
         testID={`r7-qty-${item.variantId}`}
       />
       {onAsk === undefined ? null : (
@@ -878,5 +911,85 @@ function OrderRow({
         </Row>
       )}
     </Stack>
+  )
+}
+
+interface PiecesSheetProps {
+  open: boolean
+  onClose: () => void
+  itemName: string
+  /** This item's committed pieces at the moment the sheet opens — never live-updated while open. */
+  initialPieces: number
+  onSet: (qtyPcs: number) => void
+}
+
+/**
+ * DOS-101 — the "Pieces" sheet, following the sales app's own (DOS-085): type an exact count, or
+ * nudge it a piece at a time. Never routed through the stepper's shared `onChange` — that stays
+ * labelled "case" for a case +/- tap (docs/17 A3) — so a typed count commits through this sheet's own
+ * `onSet`, which R7's `setQty` already labels "piece" whenever it does not divide by the case size
+ * (`enteredFor`).
+ */
+function PiecesSheet({
+  open,
+  onClose,
+  itemName,
+  initialPieces,
+  onSet,
+}: PiecesSheetProps): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState(() => String(initialPieces))
+
+  // Fresh text every time the sheet opens — for THIS item's current count, never a stale value left
+  // over from a cancelled edit or from whichever item was open before.
+  useEffect(() => {
+    if (open) setText(String(initialPieces))
+  }, [open, initialPieces])
+
+  const parsed = parsePieces(text)
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('qty.piecesTitle')} testID="r7-pieces">
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {itemName}
+        </Txt>
+        <TextInput
+          testID="r7-pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          error={text.trim() !== '' && !parsed.ok ? t('qty.piecesInvalid') : undefined}
+        />
+        <Row gap={3}>
+          <Button
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!parsed.ok || parsed.pieces <= 0}
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, -1)))
+            }}
+          />
+          <Button
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="r7-pieces-set"
+          variant="primary"
+          label={t('qty.piecesSet')}
+          disabled={!parsed.ok}
+          onPress={() => {
+            if (parsed.ok) onSet(parsed.pieces)
+          }}
+        />
+      </Stack>
+    </Sheet>
   )
 }
