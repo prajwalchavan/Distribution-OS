@@ -1,0 +1,378 @@
+{
+ "walks": [
+  {
+   "group": "android-manager",
+   "checks": [
+    {
+     "id": "DOS-020",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam (tenant tarsun)",
+     "steps": "1. Created my own order SO-0911 through the sales API as rahul.deshmukh: Mahalaxmi General Stores R-0003, 1 cs Campa Cola 2 L, rate request \u20b945.54 against list \u20b951.17. Submit returned gates credit_limit + bargain.\n2. ./android-login.sh manager 5274 vikas.kadam Manager, then Orders \u2192 SO-0911 (row 1) \u2192 order Sheet.\n3. Scrolled the Sheet to Confirm order and tapped the disabled button.\n4. Decided the bargain gate from the queue (see the DOS-005 check).\n5. Reopened SO-0911. Waiting on 'Over credit limit' \u2192 Approve inside the Sheet \u2192 decision dialog (native Modal over the Sheet) \u2192 typed a note \u2192 Approve.",
+     "expected": "The Sheet lists the pending gates, each with Approve/Reject. Confirm is disabled with 'Waiting on \u2026 the last approval confirms the order'. The decision dialog renders on top of the Sheet on Android. The last approval confirms the order without a reload.",
+     "actual": "Sheet showed 'Waiting on: Over credit limit [Approve][Reject] \u00b7 Bargain [Approve][Reject]', State Submitted.\n\nConfirm order was en=false, with 'Waiting on Over credit limit \u00b7 Bargain. Approve or reject each one first; the last approval confirms the order.' directly under it. Tapping it opened nothing, and manager-service logged 0 POST /orders/\u2026/confirm.\n\nThe decision dialog appeared over the dimmed Sheet: 'Approve \u2014 SO-0911 \u00b7 Over credit limit \u00b7 Owes \u20b937,634.00 \u00b7 limit \u20b950,000.00 \u00b7 This order takes it \u20b90.00 over the limit', an empty note field (no carry-over), Approve and Cancel.\n\nPOST /approvals/01a097ef-99a2-704f\u2026/decide \u2192 200. The Sheet refetched without a reload (GET /orders/{id} 200) and showed:\n- State Confirmed, 'Held for this order 2';\n- Confirm disabled with 'Only a submitted order can be confirmed';\n- 'Free the held stock' enabled;\n- no Waiting-on list.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-020-api-A-mahalaxmi-create-bargain-submit.txt",
+      "QA/evidence/batch1/regression/android/manager-020-db-SO-0911-before.txt",
+      "QA/evidence/batch1/regression/android/manager-020-02-SO-0911-sheet-open.png",
+      "QA/evidence/batch1/regression/android/manager-020-05-SO-0911-scroll-end-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-020-06-SO-0911-after-fast-fling.png",
+      "QA/evidence/batch1/regression/android/manager-020-07-SO-0911-tap-disabled-confirm.png",
+      "QA/evidence/batch1/regression/android/manager-020-08-SO-0911-sheet-one-gate-left.png",
+      "QA/evidence/batch1/regression/android/manager-020-09-decision-dialog-from-inside-sheet.png",
+      "QA/evidence/batch1/regression/android/manager-020-10-decision-dialog-credit-note-typed.png",
+      "QA/evidence/batch1/regression/android/manager-020-11-sheet-after-last-approval.png",
+      "QA/evidence/batch1/regression/android/manager-020-12-sheet-after-last-approval-bottom.png",
+      "QA/evidence/batch1/regression/android/manager-020-db-SO-0911-after-last-approval.txt",
+      "QA/evidence/batch1/regression/android/manager-api-log-android-walk.txt"
+     ],
+     "dbOrApi": "Before: SO-0911 submitted. Approvals credit_limit 01a097ef-99a2-704f and bargain 01a097ef-99a2-7050 pending. bargain_request 01a097ef-9961 requested.\n\nAfter:\n- SO-0911 confirmed at 2026-09-13 05:03:40.748 IST.\n- Transitions: draft\u2192submitted (rahul 8760e17e), submitted\u2192confirmed (vikas a1cbd424).\n- credit_limit approved by vikas.kadam with note 'QA android DOS-020 credit ok'.\n- Reservations: 6 pc on lot 1da5cced and 18 pc on lot 8cee081b.\n\nmanager-service: POST \u2026/decide 200 (299 ms).",
+     "note": "Confirm and its reason were laid out below the Sheet's scroll viewport, behind the pinned Close. Two slow drags did not reveal them; only a fast fling (1150\u2192450 in 250 ms) did. This is the kit Sheet defect DOS-152, seen here on the manager order Sheet; not re-logged.\n\nKnown, not re-logged:\n- 'Held for this order 2' counts reservation rows, not pieces (DOS-130).\n- The line kept the list rate after the bargain was approved (DOS-126)."
+    },
+    {
+     "id": "DOS-005",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Orders \u2192 'Waiting for a decision': walked the whole panel and saved every card title.\n2. On the 'SO-0911 \u00b7 Asked rate \u20b945.54' card: Approve \u2192 decision dialog \u2192 note \u2192 Approve.\n3. Re-read the queue.\n4. Ran SQL on approvals and bargain_requests.",
+     "expected": "The bargain shows once in the queue, with no unnamed 'Bargain / \u2014' card. One decision goes to /approvals/{id}/decide and closes both the approval gate and the rate request.",
+     "actual": "Queue cards, top to bottom:\n- \u20b939.58 (no order)\n- SO-0911 Asked rate \u20b945.54\n- SO-0911 Over credit limit \u20b91,375.00\n- SO-0898 \u20b920.14\n- SO-0887, SO-0886, SO-0885, SO-0882, SO-0879 (credit)\n- \u20b913.00, \u20b922.28\n\nSO-0911's bargain appears once, and there is no unnamed card.\n\nThe dialog read 'Approve \u00b7 SO-0911 \u00b7 Note for the person who asked'. POST /approvals/01a097ef-99a2-7050-a2aa-86189e9e4d4d/decide \u2192 200 (not /pricing/bargains). The \u20b945.54 card left the queue. SO-0911 kept only its 'Over credit limit' card and stayed Submitted.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-005-02-queue-SO-0911-cards.png",
+      "QA/evidence/batch1/regression/android/manager-005-03-queue-walk-titles.txt",
+      "QA/evidence/batch1/regression/android/manager-005-05-decision-dialog-bargain.png",
+      "QA/evidence/batch1/regression/android/manager-005-06b-after-esc-dialog-state.png",
+      "QA/evidence/batch1/regression/android/manager-005-06-decision-dialog-note-typed-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-005-07-queue-after-bargain-approved.png",
+      "QA/evidence/batch1/regression/android/manager-020-db-SO-0911-before.txt",
+      "QA/evidence/batch1/regression/android/manager-005-db-SO-0911-after-queue-decision.txt"
+     ],
+     "dbOrApi": "Before: approval 01a097ef-99a2-7050 (bargain, entity bargain_request 01a097ef-9961) pending; the bargain_request requested.\n\nAfter:\n- The approval is approved by vikas.kadam at 05:02:02.268.\n- bargain_request 01a097ef-9961 is approved with approved_rate_paise 4554, decided_by vikas at 05:02:02.3, same note.\n- SO-0911 is still submitted, with credit_limit pending.",
+     "note": "Harness artefact: the first dialog attempt was closed by `adb keyevent 111` (ESC is the Modal's onRequestClose), and nothing was sent (0 /decide calls). The reopened dialog kept that draft note and adb typed into the middle of it. So the stored note reads 'QA android DOS-005 bQA android DOS-005 bargain okargain ok'; the same text is on both rows, which is what this check proves.\n\nPending gates of cancelled SO-0898/0887/0886 still in the queue are DOS-127 (known)."
+    },
+    {
+     "id": "DOS-021",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam (plus a host API call as vikas.kadam for the race)",
+     "steps": "1. Billing \u2192 Credit notes \u2192 Draft a credit note. Typed INV/0634 in Bill, closed the keyboard, picked 'INV/0634 \u00b7 Sharma Kirana Stores \u00b7 \u20b910,187.00'.\n2. Sunbake Glucose 55 g \u2192 Pieces to credit 41. Read it with the decimal keypad up, then down, then flung to Draft.\n3. Changed it to 2 (valid against the 40 pc left shown).\n4. From the host, drafted 39 pc on the same invoice line through POST :3002/credit-notes as vikas.kadam.\n5. Pressed Draft a credit note on Android.\n6. Changed it to 1 pc and pressed Draft.\n7. Cleanup: cancelled both drafts through the API.",
+     "expected": "Each line shows its billed pieces, a Pieces to credit field and 'N pc left to credit', with no 'Not ordered' or 'cs available'. More than is left gives a red line and a disabled Draft, with no POST. A server refusal shows its sentence above Draft and writes nothing. Drafting up to what is left succeeds.",
+     "actual": "Lines:\n- Sunbake Glucose 55 g \u00b7 40 pc \u00b7 40 pc left to credit\n- Campa Lemon 750 ml \u00b7 2 cs \u00b7 48 pc \u00b7 2 pc free \u00b7 50 pc left to credit\n- Godavari Cow Ghee 200 ml \u00b7 20 pc left\n- Konkan Farsan Mix 400 g \u00b7 2 cs \u00b7 40 pc left\n- Annapurna Basmati Classic 1 kg \u00b7 9 pc left\n\nNo 'Not ordered' or 'cs available' anywhere.\n\nTyping 41: the decimal keypad opened, and 'Only 40 pc left to credit on this line' showed in red directly under the field, visible with the keypad up. Draft was disabled with 'Fix the pieces marked in red first'. manager-service logged 0 POST /credit-notes.\n\n2 pc after the race draft: POST /credit-notes \u2192 400. The sheet stayed open with 'only 1 pcs of Sunbake Glucose 55 g are left to credit on INV/0634' directly above Draft.\n\n1 pc: POST /credit-notes \u2192 200, and the sheet closed back to the register.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-021-02-draft-sheet-open.png",
+      "QA/evidence/batch1/regression/android/manager-021-db-INV0634-before.txt",
+      "QA/evidence/batch1/regression/android/manager-021-05-bill-picked-lines-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-021-06-typed-41-keypad-up.png",
+      "QA/evidence/batch1/regression/android/manager-021-08-draft-disabled-fix-red.png",
+      "QA/evidence/batch1/regression/android/manager-021-10-typed-2-draft-enabled-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-021-api-race-draft-39pc.txt",
+      "QA/evidence/batch1/regression/android/manager-021-11-server-refusal-above-draft.png",
+      "QA/evidence/batch1/regression/android/manager-021-db-after-race.txt",
+      "QA/evidence/batch1/regression/android/manager-021-12-refusal-draft-after-fling.png",
+      "QA/evidence/batch1/regression/android/manager-021-14-after-draft-1pc.png",
+      "QA/evidence/batch1/regression/android/manager-021-db-after-android-draft.txt",
+      "QA/evidence/batch1/regression/android/manager-021-api-cleanup-cancel-drafts-2.txt",
+      "QA/evidence/batch1/regression/android/manager-021-db-after-cleanup.txt"
+     ],
+     "dbOrApi": "Before: no live credit notes on INV/0634 (3 cancelled). All 5 lines had 0 pc credited.\n\nAfter the refused 2-pc press: only the API draft 01a0981a (39 pc) was live, so the refusal wrote nothing.\n\nAfter the 1-pc press: draft 01a0981c (return_saleable, 1 pc, \u20b99.00) was created.\n\nCleanup: POST /credit-notes/{id}/cancel \u2192 200 for both, leaving 0 live notes on INV/0634.\n\nmanager-service log: 05:41:12 POST 200 (host race draft), 05:41:15 POST 400 (Android), 05:42:50 POST 200 (Android).",
+     "note": "When the refusal line appears, Draft is pushed under the Sheet's pinned Close until a fling (kit Sheet, DOS-152, not re-logged). After typing a bill number, the soft keyboard hides the matching bill row (new P3 below).\n\nMy first cleanup call joined both ids into one path: 400, no effect, redone correctly."
+    },
+    {
+     "id": "DOS-023",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Fulfilment \u2192 Waves: read the Picking sheets rows.\n2. Ticked my confirmed SO-0911 \u2192 Make a picking sheet \u2192 confirmed in the dialog.\n3. Read the top rows.\n4. Tapped the top row.\n5. Start picking \u2192 confirmed.\n6. Closed the panel, force-stopped and relaunched the app, then Fulfilment \u2192 Picking sheets again.",
+     "expected": "Sheets are newest first. The sheet I make is row 1 and stays on top after a reload. Tapping it opens its panel, with Start picking and Cancel the sheet live.",
+     "actual": "Before: PICK-0089, 0088, 0087, 0086, 0085, 0084, 0083 (same order as the DB).\n\nPOST /warehouse/picklists \u2192 200. Row 1 became 'PICK-0090 Open', above PICK-0089.\n\nThe tap fired GET /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e \u2192 200 and opened 'Sheet PICK-0090':\n- State Open, Where Godown, Picker \u2014, Pick date 13 Sep;\n- SO-0911 \u00b7 Mahalaxmi General Stores \u00b7 Confirmed;\n- By item: RCP20260731 \u00b7 0 / 6 pc and B20260902 \u00b7 0 / 18 pc;\n- Start picking and Cancel the sheet enabled.\n\nStart \u2192 POST \u2026/start \u2192 200. The panel showed 'Being picked', with both buttons disabled: 'Only a sheet that has not started can be started or cancelled'.\n\nAfter the relaunch, PICK-0090 (Being picked) was still row 1.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-023-02-picking-sheets-before.png",
+      "QA/evidence/batch1/regression/android/manager-023-db-picklists-before.txt",
+      "QA/evidence/batch1/regression/android/manager-023-04-wave-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-023-06-new-sheet-top-row.png",
+      "QA/evidence/batch1/regression/android/manager-023-07-sheet-PICK-0090-panel.png",
+      "QA/evidence/batch1/regression/android/manager-023-08-sheet-panel-actions-visible-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-041-01-start-picking-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-041-02-sheet-after-start-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-023-09-after-relaunch-top-row-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-023-db-picklists-after.txt"
+     ],
+     "dbOrApi": "picklists went 89 \u2192 90. The newest is PICK-0090 (01a097f8-e09f), open, created 05:06:25, order_ids [SO-0911], assigned_to null. After Start it is status picking.\n\nmanager-service: POST /warehouse/picklists 200 (152 ms), POST \u2026/start 200.",
+     "note": "Start picking / Cancel the sheet were partly behind the pinned Close until a fling (DOS-152). PICK-0090 was then used for DOS-041."
+    },
+    {
+     "id": "DOS-025",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. SQL: tarsun has exactly one draft load sheet, 01a0976e-bbaf (the web walker's SO-0899 sheet, already approved by vikas), so there was nothing to approve.\n2. Fulfilment \u2192 Load-out: read the panels.\n3. Opened the row in the first panel and flung to its actions.\n4. Closed without approving or cancelling.",
+     "expected": "Sheets not yet out of the godown sit in their own first panel, reachable. A draft opens with its approval state and actions: Approve disabled with a reason when already approved, Cancel live.",
+     "actual": "Network: GET /warehouse/load-sheets?status=draft&limit=100 \u2192 200 and ?limit=100 \u2192 200.\n\nUnder the PIN hint the first panel is 'Not out of the godown yet', with one row '13 Sep \u00b7 \u2026 \u00b7 1,375.00' and footer 1. Below it, 'Checked out and cancelled' lists Confirmed rows.\n\nThe row opened 'Load sheet \u00b7 MH-05-CD-5678':\n- State 'Approved \u00b7 the godown may check it out'\n- From Godown, To Vehicle MH-05-CD-5678, Packages 1, Orders 1, On board \u20b91,375.00\n- 'Approved by Vikas Kadam', 13 Sep\n- '1. Mahalaxmi General Stores / SO-0899 \u00b7 INV/9009'\n- 'Approve the load-out' disabled with 'This sheet is already approved'\n- 'Cancel the sheet' enabled\n\nGET \u2026/load-sheets/01a0976e-bbaf-7dbe-9bb3-f6ed587bd574 \u2192 200.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-025-029-db-before.txt",
+      "QA/evidence/batch1/regression/android/manager-025-01-load-out-waiting-panel.png",
+      "QA/evidence/batch1/regression/android/manager-025-01b-waiting-row-chip-crop.png",
+      "QA/evidence/batch1/regression/android/manager-025-02-draft-sheet-panel.png",
+      "QA/evidence/batch1/regression/android/manager-025-03-draft-sheet-panel-actions-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-api-log-android-walk.txt"
+     ],
+     "dbOrApi": "load_sheets in tarsun: 1 draft (01a0976e-bbaf, approved_by vikas at 02:35:01, order SO-0899) and 84 confirmed. Unchanged after the walk: still draft, approved_by set.",
+     "note": "Nothing was approved or cancelled: there is no tarsun draft that nobody else uses.\n\nOn Android the row's status chip collapses to '\u2026', so the panel never says 'Waiting for your approval' or 'Approved' without opening the sheet. The web phone viewport shows the label. Logged as a new P2 below. The history panel is not newest-first (server order, as the DOS-025 verifier noted)."
+    },
+    {
+     "id": "DOS-041",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Fulfilment \u2192 Pick & pack \u2192 PICK-0090 (Being picked). Rows: Campa Cola 2 L 'Batch RCP20260731 \u00b7 Asked 6' and 'Batch B20260902 \u00b7 Asked 18', case size 24.\n2. On the 6-pc row pressed One case more, so the stepper showed 1 cs (1 cs = 24 pc).\n3. Pressed 'Record what was picked' in the bottom bar \u2192 dialog '1 rows' \u2192 confirmed.\n4. Re-dumped the dialog 3 s later, then Cancel.",
+     "expected": "A pick above the row's own ask is refused by the server, with its sentence visible in the still-open dialog, and the pick row is unchanged (no split row).",
+     "actual": "POST /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e/pick \u2192 400 (61 ms).\n\nThe dialog stayed open with 'batch RCP20260731 on PICK-0090 asks for 6 pcs; 24 were picked' in red at y 1081\u20131197, above the button. It was still shown 3 s later.\n\nNo LogBox or error overlay. Cancel returned to M20 with the stepper still at 1 cs.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-041-db-PICK-0090-before.txt",
+      "QA/evidence/batch1/regression/android/manager-041-04-PICK-0090-rows.png",
+      "QA/evidence/batch1/regression/android/manager-041-05-row6-one-case-more-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-041-06-record-pick-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-041-07-over-ask-refusal-in-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-041-08-refusal-dialog-settled-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-041-db-PICK-0090-after-over-ask.txt"
+     ],
+     "dbOrApi": "pick_lines of PICK-0090, before and after: 01a097fa-b851-766a RCP20260731 6/0 and 01a097fa-b851-766b B20260902 18/0. Still 2 rows (no split row), picked_by/picked_at null. The sheet is still picking.",
+     "note": "The request body's line id cannot be read on the device. The 400 names the row's own batch, and the row count stayed 2.\n\nKnown, not re-logged: the stepper counts whole cases only (DOS-134). New P3 below: the confirm button's accessibility description stayed 'busy' after the 400."
+    },
+    {
+     "id": "DOS-029a",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Fulfilment \u2192 Waves: ticked packed SO-0850 (still offered, DOS-024) \u2192 Make a picking sheet \u2192 confirmed.\n2. Cancel. Unticked SO-0850 and ticked SO-0845.\n3. Reopened the dialog.\n4. Cancel and untick.",
+     "expected": "The wave for an already-packed order is refused with 409. The dialog stays open with the service's sentence in view. A reopened dialog shows no stale sentence.",
+     "actual": "POST /warehouse/picklists \u2192 409 (33 ms). The dialog '1 orders \u00b7 390 pc' stayed open with 'only a confirmed order can be waved; SO-0850 is packed' in red at y 1104\u20131220, above the button. No redbox or LogBox.\n\nThe reopened dialog ('1 orders \u00b7 256 pc', SO-0845) had no refusal line.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-029a-01-wave-dialog-SO-0850.png",
+      "QA/evidence/batch1/regression/android/manager-029a-02-wave-409-refusal-in-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-029a-03-wave-reopen-SO-0845-no-stale-line.png",
+      "QA/evidence/batch1/regression/android/manager-025-029-db-before.txt",
+      "QA/evidence/batch1/regression/android/manager-029a-db-after.txt"
+     ],
+     "dbOrApi": "picklists 90 \u2192 90 (newest still PICK-0090). SO-0850 and SO-0845 are still packed. manager-service: 05:13:25 POST /warehouse/picklists 409.",
+     "note": "Packed orders offered on the Waves queue (DOS-024) are what make this refusal reachable. The confirm button's accessibility description stayed 'busy' (new P3)."
+    },
+    {
+     "id": "DOS-029b",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "Credit-note race on INV/0634, Sunbake Glucose 55 g. Android held 2 pc as valid; a host API draft of 39 pc left 1 pc; then Draft was pressed on Android. Same run as the DOS-021 check.",
+     "expected": "The 400 sentence shows above Draft, the sheet stays open, and nothing is written.",
+     "actual": "POST /credit-notes \u2192 400. 'only 1 pcs of Sunbake Glucose 55 g are left to credit on INV/0634' showed directly above Draft (y 1943\u20132059), and the sheet stayed open.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-021-11-server-refusal-above-draft.png",
+      "QA/evidence/batch1/regression/android/manager-021-db-after-race.txt"
+     ],
+     "dbOrApi": "Only the host race draft 01a0981a (39 pc) was live afterwards. The refused press wrote no credit_notes row.",
+     "note": "See DOS-021 for the full steps and cleanup."
+    },
+    {
+     "id": "DOS-029c",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. More \u2192 Inbound \u2192 Documents.\n2. Opened the 'Guiltfree Industries \u2014 Gurugram \u20b99,854' row. Per extractions this is FA/TY/26-27/1187, document 0400aea1, needs_review; the panel title confirms it.\n3. Book it as a supplier bill \u2192 dialog \u2192 confirmed.",
+     "expected": "The 501 refusal keeps the dialog open with the service's sentence in view, and the document is unchanged.",
+     "actual": "Panel title 'Guiltfree Industries \u2014 Gurugram \u00b7 FA/TY/26-27/1187'.\n\nPOST /docint/documents/0400aea1-7e63-7119-af27-05db2a4307ad/approve \u2192 501 (86 ms). The dialog stayed open with 'a brand-DMS bill is committed through billing.invoices.importBrandDms (never a second legal invoice); docint keeps it reviewed' in red above the button. No redbox.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-029c-135-db-documents-before.txt",
+      "QA/evidence/batch1/regression/android/manager-029c-01-documents-register.png",
+      "QA/evidence/batch1/regression/android/manager-029c-02-FA-TY-1187-panel-buttons-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-029c-03-book-it-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-029c-04-brand-dms-501-refusal-in-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-029c-db-document-after.txt"
+     ],
+     "dbOrApi": "documents 0400aea1: brand_dms_invoice, needs_review, committed_entity_id null, updated_at 2026-09-12 14:12:17.672 both before and after. 0 supplier_invoices created in the previous 15 min.",
+     "note": ""
+    },
+    {
+     "id": "DOS-029d",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "FAIL",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Waves: ticked packed SO-0850 and opened the Make a picking sheet dialog. A packed order means any request that did get through would only be refused.\n2. Cut 1:\n   - :3002 was routed through a host forwarder (adb reverse tcp:3002 tcp:3902) and the app relaunched, so no pooled socket bypassed it.\n   - adb shell svc wifi disable; svc data disable. Result: Wi-Fi disabled, mobile_data 0, ping 10.0.2.2 'Network is unreachable'.\n   - The forwarder was killed, then Make a picking sheet was pressed.\n   - Screenshots at +3 s and +8 s, and about +28 s.\n3. Cut 2 (repeat): the same, plus adb reverse --remove tcp:3002, so nothing listens on the device port. Pressed; screenshots at +3.3 s and +25.6 s, past the 20 s request deadline.\n4. Restored: svc wifi/data enable, adb reverse tcp:3002 tcp:3002. Pressed the same dialog again.\n5. Cancel and untick.",
+     "expected": "'No connection. Check the signal, then press again.' in the open dialog, with no 'will send later' promise. After the signal returns, pressing again reaches the server.",
+     "actual": "Both cuts: the dialog stayed open but showed 'Something could not be completed. Try again.' (the api-client's 'unknown' default). It was there at +3 s and still at +25 s. The no-connection sentence never appeared.\n\nNo POST reached the forwarder or manager-service during either cut.\n\nAfter restoring, the retry reached the server: POST /warehouse/picklists \u2192 409. The line changed to 'only a confirmed order can be waved; SO-0850 is packed'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-029d-01-wave-dialog-before-cut.png",
+      "QA/evidence/batch1/regression/android/manager-029d-network-at-cut.txt",
+      "QA/evidence/batch1/regression/android/manager-029d-02-no-connection-in-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-029d-04-press-again-after-restore.png",
+      "QA/evidence/batch1/regression/android/manager-029d-forwarder.log",
+      "QA/evidence/batch1/regression/android/manager-029d-network-at-cut2.txt",
+      "QA/evidence/batch1/regression/android/manager-029d-10-cut2-dialog-open.png",
+      "QA/evidence/batch1/regression/android/manager-029d-11-cut2-after-press-3s.png",
+      "QA/evidence/batch1/regression/android/manager-029d-12-cut2-after-press-25s.png",
+      "QA/evidence/batch1/regression/android/manager-029d-13-cut2-press-again-after-restore.png",
+      "QA/evidence/batch1/regression/android/manager-029d-forwarder-cut2.log",
+      "QA/evidence/batch1/regression/android/manager-api-log-android-walk.txt"
+     ],
+     "dbOrApi": "manager-service logged no POST /warehouse/picklists during either cut; after the restore, 05:32:50 POST /warehouse/picklists 409. picklists stayed at 90.\n\nCode (read-only):\n- frontend/libs/api-client/src/errors.ts:153-161 maps only AbortError/TimeoutError (isAbort) and TypeError to kind 'network'; anything else becomes 'unknown'.\n- On native, Expo's runtime installs expo/fetch as the global fetch (frontend/node_modules/expo/src/winter/runtime.native.ts:52, unless EXPO_PUBLIC_USE_RN_FETCH).\n- expo/fetch rejects with `class FetchError extends Error` ('fetch failed: \u2026'), per expo/src/winter/fetch/FetchErrors.ts:1 and fetch.ts:78-92. That falls through to 'unknown'.",
+     "note": "The web check passed because Chrome rejects with a TypeError. Radios off alone does not cut the API on this emulator: its API calls ride adb reverse (ENV \u00a78). Both cuts fail at the socket, the same class of IOException a phone without signal gets, so the result stands for real devices.\n\nThe rest of the dialog behaves correctly: it stays open, promises nothing, and the retry works. Logged as a new P2 below; it shares its root cause with DOS-068 (delivery reads fail as 'unknown')."
+    },
+    {
+     "id": "DOS-135",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. Inbound \u2192 Documents \u2192 ALA/26-27/00491 (document 2254e884, review lock held by Sunil Tarsun until 2026-10-12).\n2. Control: Start reviewing on its own.\n3. Overlap setup: a host HTTP forwarder on :3902 held only POST /docint/extractions/*/rematch for 8 s (adb reverse tcp:3002 tcp:3902). The app was relaunched so every socket used it, and the panel reopened.\n4. Tapped Match the items again, then Start reviewing about 0.1 s later.\n5. Screenshots at +2.2 s (rematch pending), +11.2 s (after rematch returned) and +20.3 s.\n6. Removed the forwarder and restored adb reverse tcp:3002 tcp:3002.",
+     "expected": "A Start reviewing refusal that arrives while the sibling rematch is pending is shown once the rematch settles, and stays.",
+     "actual": "Control: POST \u2026/review \u2192 409, and 'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)' showed above Start reviewing.\n\nOverlap timing (forwarder log): rematch arrived 23:52:33.724Z, was held 8000 ms, and returned 200 (8152 ms total). review arrived 23:52:33.846Z and returned 409 in 100 ms, so the refusal came back while the rematch was pending.\n\nOn screen:\n- +2.2 s: spinner on Match the items again, no sentence.\n- +11.2 s: the 409 sentence above Start reviewing.\n- +20.3 s: still shown.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-135-02-ALA-panel-buttons-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-135-03-control-start-review-409.png",
+      "QA/evidence/batch1/regression/android/manager-135-10-ALA-panel-before-overlap-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-135-11-refusal-while-rematch-pending.png",
+      "QA/evidence/batch1/regression/android/manager-135-12-after-rematch-settled.png",
+      "QA/evidence/batch1/regression/android/manager-135-13-6s-later.png",
+      "QA/evidence/batch1/regression/android/manager-135-proxy-delay3002.log",
+      "QA/evidence/batch1/regression/android/manager-135-proxy-delay3002.mjs.txt",
+      "QA/evidence/batch1/regression/android/manager-029c-135-db-documents-before.txt",
+      "QA/evidence/batch1/regression/android/manager-135-db-document-after.txt"
+     ],
+     "dbOrApi": "review_sessions for 2254e884: one session, 89f90df9, sunil.tarsun, open until 2026-10-12 05:30 IST, unchanged. documents 2254e884: needs_review, committed null, updated_at unchanged. Extraction 32b0dd16 updated_at unchanged.\n\nmanager-service: 05:18:59 review 409 (control); 05:22:33 review 409 and 05:22:41 rematch 200 (overlap).",
+     "note": "The same overlap showed nothing on the web before the repair (DOS-135). The repair (8161f21) holds on Android. The accessibility description of both panel buttons stayed 'busy' after they settled (new P3)."
+    },
+    {
+     "id": "DOS-034-manager",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Manager vikas.kadam",
+     "steps": "1. More \u2192 Money \u2192 Day-end: read the KPIs and cheque cards.\n2. In the 'Cash and cheques in hand' register, ticked RCPT-0690 (office cash \u20b91,818, id f287d6a2, trip_id null, confirmed unique in the DB) \u2192 bottom bar \u2192 Bank this batch \u2192 slip DEP-QA-AND-034-M \u2192 confirmed.\n3. Money \u2192 Receipts \u2192 RCPT-0691 (office cash \u20b93,716, id 437b1495) \u2192 receipt Sheet \u2192 Bank it \u2192 dialog over the Sheet \u2192 slip DEP-QA-AND-034-MR \u2192 confirmed.\n4. Receipts \u2192 RCPT-CHQ-0001 (collected cheque) \u2192 Sheet \u2192 Mark bounced \u2192 'Cheque returned' dialog \u2192 Cancel.",
+     "expected": "Day-end shows the cheques in hand and a reachable 'Bank this batch' bar. The receipt Sheet shows Bank it and Mark bounced, each disabled with a reason when it does not apply. Dialogs opened from inside a Sheet render. Deposits post BANK/CASH.",
+     "actual": "Day-end: CASH TO BANK \u20b941,07,486.52 'more than 200 rows', CHEQUES IN HAND \u20b91,46,305.98 '4 rows', TRIPS COMING BACK 0. Cheque cards carry 'Tap a cheque the bank returned to mark it bounced'; the register says 'Tick the cash and cheques you are banking'.\n\nBank this batch:\n- Ticking showed the bar '1 receipts \u00b7 \u20b91,818.00 | Bank this batch' at y 1974\u20132139, above the tab bar.\n- Dialog: 'Bank the day \u00b7 1 receipts \u00b7 \u20b91,818.00 \u00b7 Every ticked receipt is marked banked with this slip number \u00b7 Bank slip number'.\n- POST /receipts/deposit \u2192 200, and RCPT-0690 left the register.\n\nRCPT-0691 Sheet:\n- Bank it enabled and in view; Mark bounced disabled with 'Only a cheque in hand or banked can bounce'.\n- The Bank it dialog drew over the dimmed Sheet. POST /receipts/deposit \u2192 200.\n- The Sheet then showed State Banked, with Bank it disabled: 'Only cash or a cheque in hand goes to the bank'.\n\nRCPT-CHQ-0001: Bank it and Mark bounced both enabled. The 'Cheque returned \u00b7 \u20b929,952.00 \u00b7 The shop's outstanding comes back exactly as it was \u00b7 What did the bank say? \u00b7 Bank charges' dialog drew over the Sheet. Cancelled; the cheque is still Collected.\n\nLater, as accountant, CASH TO BANK read \u20b941,01,952.52, which is \u2212\u20b95,534 (= \u20b91,818 + \u20b93,716).",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-034-db-receipts-before.txt",
+      "QA/evidence/batch1/regression/android/manager-034-01-manager-day-end-top.png",
+      "QA/evidence/batch1/regression/android/manager-034-02-manager-register-RCPT-0690-before-tick.png",
+      "QA/evidence/batch1/regression/android/manager-034-03-manager-ticked-bank-bar.png",
+      "QA/evidence/batch1/regression/android/manager-034-04-manager-deposit-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-034-06-manager-after-bank-batch.png",
+      "QA/evidence/batch1/regression/android/manager-034-07-manager-receipt-sheet-RCPT-0691.png",
+      "QA/evidence/batch1/regression/android/manager-034-08-manager-bank-it-dialog-over-sheet.png",
+      "QA/evidence/batch1/regression/android/manager-034-09-manager-receipt-sheet-after-bank-it.png",
+      "QA/evidence/batch1/regression/android/manager-034-10-manager-cheque-sheet-RCPT-CHQ-0001.png",
+      "QA/evidence/batch1/regression/android/manager-034-11-manager-bounce-dialog-over-sheet.png",
+      "QA/evidence/batch1/regression/android/manager-034-db-manager-bank-batch-after.txt",
+      "QA/evidence/batch1/regression/android/manager-034-db-manager-deposits-after.txt"
+     ],
+     "dbOrApi": "- RCPT-0690: collected \u2192 deposited, DEP-QA-AND-034-M at 05:46:30.\n- RCPT-0691: collected \u2192 deposited, DEP-QA-AND-034-MR at 05:48:26.\n- deposit journal_entries went 95 \u2192 97: BANK +181800 / CASH \u2212181800, and BANK +371600 / CASH \u2212371600. Both posted_by vikas.kadam, net 0, credited CASH (not CASH_VAN).\n- RCPT-CHQ-0001 unchanged (collected).",
+     "note": "No trip cash was banked. The register still lists trip receipts (RCPT-0698 \u20b97,856, RCPT-0701, RCPT-VAN-0001): DOS-132, known. Register rows hide the shop name ('\ufffc' column)."
+    },
+    {
+     "id": "DOS-034-accountant",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36) \u2014 manager build :5274",
+     "status": "PASS",
+     "user": "Accountant meena.joshi",
+     "steps": "1. ./android-login.sh manager 5274 meena.joshi Manager. Shell role 'accountant', tabs Today/Orders/Billing.\n2. More \u2192 Money \u2192 Day-end \u2192 tapped the cheque card 'Prerna Super Market \u00b7 RCPT-0676 \u00b7 Bank of Maharashtra \u20b913,299' (unique collected cheque, trip null) \u2192 'Cheque returned' \u2192 reason 'QA android DOS-034 refer to drawer' \u2192 Return a bounced cheque.\n3. In the register, ticked RCPT-0689 \u2192 read the bar \u2192 unticked.\n4. Receipts \u2192 RCPT-0689 (office cash \u20b95,281, id 97b22d6a) \u2192 Sheet \u2192 Bank it \u2192 dialog over the Sheet \u2192 slip DEP-QA-AND-034-ACC \u2192 confirmed.",
+     "expected": "The accountant can mark a cheque bounced from Day-end and bank office cash from the receipt Sheet. The 'Bank this batch' bar is reachable. Dialogs render over their Sheet or screen. Journals balance.",
+     "actual": "Bounce: POST /receipts/ab309aeb-5f40-7bc0-a9c3-e558891f5157/bounce \u2192 200. The card left, and CHEQUES IN HAND went from \u20b91,46,305.98 \u00b7 4 rows to \u20b91,33,006.98 \u00b7 3 rows.\n\nBar: ticking RCPT-0689 showed '1 receipts \u00b7 \u20b95,281.00 | Bank this batch' in view above the tabs; unticking removed it.\n\nRCPT-0689 Sheet:\n- Bank it enabled; Mark bounced disabled with 'Only a cheque in hand or banked can bounce'.\n- The Bank it dialog drew over the Sheet. POST /receipts/deposit \u2192 200, exactly once.\n- The Sheet then showed Banked, with Bank it disabled: 'Only cash or a cheque in hand goes to the bank'.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-034-20-accountant-signed-in-home.png",
+      "QA/evidence/batch1/regression/android/manager-034-db-accountant-before.txt",
+      "QA/evidence/batch1/regression/android/manager-034-21-accountant-day-end-top.png",
+      "QA/evidence/batch1/regression/android/manager-034-22-accountant-cheque-returned-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-034-23-accountant-bounce-reason-typed.png",
+      "QA/evidence/batch1/regression/android/manager-034-24-accountant-day-end-after-bounce.png",
+      "QA/evidence/batch1/regression/android/manager-034-db-accountant-bounce-after.txt",
+      "QA/evidence/batch1/regression/android/manager-034-25-accountant-ticked-bank-bar.png",
+      "QA/evidence/batch1/regression/android/manager-034-26-accountant-unticked-no-bar.png",
+      "QA/evidence/batch1/regression/android/manager-034-27-accountant-receipt-sheet-RCPT-0689.png",
+      "QA/evidence/batch1/regression/android/manager-034-28-accountant-bank-it-dialog-over-sheet.png",
+      "QA/evidence/batch1/regression/android/manager-034-29-accountant-receipt-sheet-after-bank-it.png",
+      "QA/evidence/batch1/regression/android/manager-034-db-accountant-bank-it-after.txt"
+     ],
+     "dbOrApi": "- RCPT-0676: collected \u2192 bounced at 05:56:21, bounce_reason 'QA android DOS-034 refer to drawer', bank_charges 0.\n- Reversal receipt RCPT-0705 (\u22121329900, reverses ab309aeb) written.\n- journal receipt_reversal by meena.joshi: AR +1329900 / CHEQUES \u22121329900.\n- RCPT-0689: collected \u2192 deposited, DEP-QA-AND-034-ACC at 06:09:28.\n- journal deposit by meena.joshi: BANK +528100 / CASH \u2212528100. Deposit entries 97 \u2192 98.",
+     "note": "A first bounce attempt was undone by the harness, not the product. A Back loop pressed twice because `dumpsys mInputShown` stayed 'true' after the keyboard hid. The dialog closed and the app went Day-end \u2192 Today. Nothing was sent (0 bounce POSTs, RCPT-0676 still collected); it was redone with a single guarded Back.\n\nTrip-cash rows on the accountant's register are DOS-132 (known)."
+    }
+   ],
+   "newFindings": [
+    {
+     "title": "Android manager app: a write pressed with no connection says 'Something could not be completed. Try again.' instead of 'No connection. Check the signal, then press again.' (expo/fetch rejects with FetchError, which the api-client does not treat as network)",
+     "category": "bug",
+     "priority": "P2",
+     "role": "Manager, Accountant (every manager-app write)",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36), manager build :5274 (branch qa/b1-l5-manager-errors, 8161f21). By code also iOS native (not run).",
+     "steps": "1. Sign in as vikas.kadam in the Android manager app. Fulfilment \u2192 Waves \u2192 tick SO-0850 \u2192 'Make a picking sheet' (dialog open).\n2. Take the API away from the phone:\n   - adb shell svc wifi disable; adb shell svc data disable.\n   - Cut the :3002 path the emulator uses: stop the host forwarder and/or `adb reverse --remove tcp:3002`. The radio switch alone does not cut adb-reverse traffic.\n3. Press 'Make a picking sheet' in the dialog.\n4. Look at the dialog after 3 s and after 25 s (past the 20 s request deadline).\n5. Restore the network and press again.",
+     "expected": "The DOS-029 sentence 'No connection. Check the signal, then press again.' in the open dialog, as the web build shows. Pressing again once the signal is back reaches the service.",
+     "actual": "The dialog stays open, but shows the generic 'Something could not be completed. Try again.' at +3 s and still at +25 s. No request reaches manager-service. It reproduced with two different cuts (forwarder killed; device port reverse removed).\n\nAfter restoring, the retry returns 409 and shows the service's sentence.\n\nCause (read-only code):\n- Expo installs expo/fetch as the global fetch on native (node_modules/expo/src/winter/runtime.native.ts:52).\n- It rejects with `FetchError extends Error` ('fetch failed: \u2026', FetchErrors.ts:1; fetch.ts:78-92).\n- frontend/libs/api-client/src/errors.ts:153-161 counts only AbortError/TimeoutError/TypeError as kind 'network', so the error becomes 'unknown'.",
+     "businessImpact": "A manager or accountant using the phone in a weak-signal godown or on the road cannot tell a lost signal from a system fault. The sentence does not say that the write never left the phone. They may call the office, retry blindly, or decide the system is broken, which is exactly the uncertainty DOS-029 was approved to remove. The same misclassification makes native reads fail as 'unknown' (DOS-068, delivery app).",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-029d-02-no-connection-in-dialog.png",
+      "QA/evidence/batch1/regression/android/manager-029d-11-cut2-after-press-3s.png",
+      "QA/evidence/batch1/regression/android/manager-029d-12-cut2-after-press-25s.png",
+      "QA/evidence/batch1/regression/android/manager-029d-13-cut2-press-again-after-restore.png",
+      "QA/evidence/batch1/regression/android/manager-029d-network-at-cut.txt",
+      "QA/evidence/batch1/regression/android/manager-029d-network-at-cut2.txt",
+      "QA/evidence/batch1/regression/android/manager-029d-forwarder-cut2.log",
+      "QA/evidence/batch1/regression/android/manager-api-log-android-walk.txt"
+     ],
+     "suggestedFix": "In frontend/libs/api-client/src/errors.ts toApiError, before the 'unknown' fallback, classify as kind 'network':\n- expo/fetch's FetchError (err.name === 'FetchError' or message starting 'fetch failed:');\n- any error whose `cause` chain holds an AbortError, TimeoutError or TypeError.\nMap FetchError('The operation was aborted.') from the deadline signal to network as well.\n\nAdd errors/refusal unit cases for a FetchError from a refused connection and from the deadline. Re-run the Android and iOS no-connection check. The same change should turn DOS-068's 'unknown' reads into the offline wording."
+    },
+    {
+     "title": "Android Load-out: the 'Not out of the godown yet' row collapses its status chip to '\u2026', so the list never says 'Waiting for your approval' or 'Approved'",
+     "category": "ux",
+     "priority": "P2",
+     "role": "Manager",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36, 1080x2400), manager build :5274",
+     "steps": "1. Sign in as vikas.kadam \u2192 Fulfilment \u2192 Load-out.\n2. Read the first panel 'Not out of the godown yet'. It holds draft sheet 01a0976e-bbaf (MH-05-CD-5678, \u20b91,375, approved by vikas).\n3. The row reads '13 Sep' / '\u2026' / '1,375.00'; uiautomator gives content-desc '13 Sep, \ufffc, 1375 rupees'.\n4. Open the row: State 'Approved \u00b7 the godown may check it out'.",
+     "expected": "As on web at 390 px ('13 Sep | Waiting for your approval | 1,375.00', or 'Approved \u00b7 the godown may check it out'): the row says whether the sheet still needs the manager, without opening it.",
+     "actual": "The status chip renders as a lone ellipsis '\u2026', so a sheet waiting for approval looks the same as one already approved. The short 'Confirmed' chips in the history panel render fine.",
+     "businessImpact": "DOS-025 added this panel so the manager sees at a glance which van is waiting for his approval. On the Android phone he has to open every sheet to find out, so at a busy morning load-out a van can wait at the gate behind a sheet nobody noticed needed approval. Workaround: open each row.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-025-01-load-out-waiting-panel.png",
+      "QA/evidence/batch1/regression/android/manager-025-01b-waiting-row-chip-crop.png",
+      "QA/evidence/batch1/regression/android/manager-025-01-load-out-waiting-panel-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-025-02-draft-sheet-panel.png"
+     ],
+     "suggestedFix": "In the native register row used by frontend/manager-app/app/fulfilment/load-out.tsx (the frontend/libs/ui native List/Register chip cell), let a status chip wrap or take the full row width instead of ellipsizing in a zero-width column. Or render the status as the row's secondary text, or shorten the labels (for example 'Needs your approval' / 'Approved'). Verify at 1080x2400 and on a 360 dp phone."
+    },
+    {
+     "title": "Android: a dialog's confirm button keeps the accessibility description 'busy' after its write has settled, instead of its label",
+     "category": "bug",
+     "priority": "P3",
+     "role": "Manager, Accountant",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36), manager build :5274",
+     "steps": "1. Fulfilment \u2192 Waves \u2192 tick packed SO-0850 \u2192 'Make a picking sheet'. uiautomator shows the confirm Pressable with content-desc 'Make a picking sheet'.\n2. Press it. The service answers 409 and the dialog shows the refusal.\n3. uiautomator dump: the same Pressable now has content-desc 'busy'. Its visible label 'Make a picking sheet' is shown with no spinner.\n4. The same happens after:\n   - Record what was picked (400, still 'busy' 3 s later);\n   - Book it as a supplier bill (501);\n   - Start reviewing (409) and Match the items again (200) on the documents panel;\n   - the offline press.",
+     "expected": "Once nothing is pending, the button's accessibility name is its label again (e.g. 'Make a picking sheet, button').",
+     "actual": "content-desc stays 'busy' until the dialog is remounted. TalkBack speech was not recorded; the accessibility node itself carries 'busy'.",
+     "businessImpact": "A user on TalkBack hears 'busy' on the one button that retries or confirms, right after a refusal, and may think the app is still working. Minor, but it undoes part of DOS-029's point for screen-reader users.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-029a-02-wave-409-refusal-in-dialog-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-041-08-refusal-dialog-settled-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-029c-04-brand-dms-501-refusal-in-dialog-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-135-12-after-rematch-settled-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-029d-02-no-connection-in-dialog-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-029a-03-wave-reopen-SO-0845-no-stale-line-nodes.txt"
+     ],
+     "suggestedFix": "In frontend/libs/ui/src/native/controls.tsx Button:\n- set an explicit accessibilityLabel={successLabel ?? label};\n- pass accessibilityState.busy only while loading (omit it otherwise), so Fabric clears the description when loading turns false.\nVerify with a uiautomator dump after a refused write."
+    },
+    {
+     "title": "Android credit-note Sheet: after typing a bill number the matching bill row sits under the soft keyboard, and a tap where it is shown hits the keyboard",
+     "category": "ux",
+     "priority": "P3",
+     "role": "Manager, Accountant",
+     "platform": "Android (Pixel_7_API_36 emulator, API 36, Gboard), manager build :5274",
+     "steps": "1. Billing \u2192 Credit notes \u2192 Draft a credit note.\n2. Tap Bill and type INV/0634.\n3. The suggestion 'INV/0634 \u00b7 Sharma Kirana Stores \u00b7 \u20b910,187.00' is laid out at y 1622\u20131811, while the keyboard covers the lower half of the screen. A tap there opened Gboard's Clipboard panel.\n4. Only after closing the keyboard is the row visible and tappable.",
+     "expected": "The Sheet lifts above the keyboard, or the suggestion list shows above the field, so the typed bill can be picked straight away.",
+     "actual": "The bottom Sheet stays anchored under the keyboard. Nothing below the Bill field can be seen or tapped until the keyboard is closed.",
+     "businessImpact": "Every credit note starts by picking a bill. On a phone the manager types the number, sees no match, and may retype it or close the sheet. Workaround: close the keyboard first.",
+     "evidence": [
+      "QA/evidence/batch1/regression/android/manager-021-03b-keyboard-covers-bill-suggestion.png",
+      "QA/evidence/batch1/regression/android/manager-021-03-bill-typed-suggestions-nodes.txt",
+      "QA/evidence/batch1/regression/android/manager-021-04-sheet-keyboard-closed.png"
+     ],
+     "suggestedFix": "In frontend/libs/ui/src/native/feedback.tsx Sheet, avoid the keyboard: wrap the sheet in KeyboardAvoidingView (behavior 'height' on Android), or add bottom padding equal to the keyboard height from Keyboard events. Then re-check with the decimal keypad open on the last credit-note line (Annapurna) together with its red error."
+    }
+   ],
+   "dataTouched": "All changes went through the Android app or the product API on dos_qa, tenant tarsun. No SQL writes.\n\n**Orders**\n- SO-0911 was created through the sales API as rahul.deshmukh: Mahalaxmi General Stores R-0003, 1 cs Campa Cola 2 L, rate request 01a097ef-9961 at 4554.\n- On Android as vikas: the bargain gate was approved from the queue and the credit gate from the order Sheet, which confirmed the order at 05:03:40 IST.\n  - Harness artefact: the stored note on the bargain approval and bargain_request is garbled.\n  - Reservations 6 pc + 18 pc.\n- PICK-0090 was made and started from Android. It is left in picking with rows 6/0 and 18/0, so SO-0911 is now picking; per DOS-138 a started sheet cannot be cancelled.\n\n**Refused writes (nothing written)**\n- 1 over-ask pick (400).\n- 2 waves of packed SO-0850 (409), plus 2 offline presses that never left the device.\n- 1 brand-DMS approve on 0400aea1 (501).\n- 3 Start reviewing on 2254e884 (409).\n- 1 credit-note draft (400).\n- One rematch on extraction 32b0dd16 returned 200; documents are unchanged.\n\n**Credit notes on INV/0634**\n- A 39-pc race draft (01a0981a) created through the API as vikas and a 1-pc draft (01a0981c) from Android.\n- Both cancelled through the API with the reason 'QA regression android walk: test draft withdrawn'.\n- One malformed cancel returned 400 with no effect. 0 live notes remain.\n\n**Receipts**\n- RCPT-0690 deposited DEP-QA-AND-034-M (manager, Bank this batch).\n- RCPT-0691 deposited DEP-QA-AND-034-MR (manager, Bank it from the Sheet).\n- RCPT-0689 deposited DEP-QA-AND-034-ACC (accountant, Bank it from the Sheet).\n- Three balanced BANK/CASH deposit journals.\n- RCPT-0676 cheque (Prerna Super Market \u20b913,299) bounced by meena.joshi. This wrote reversal receipt RCPT-0705 (\u2212\u20b913,299) and journal AR +1329900 / CHEQUES \u22121329900, so Prerna's outstanding rose by \u20b913,299.\n- RCPT-CHQ-0001's bounce dialog was opened and cancelled; unchanged.\n- No trip cash was banked or bounced.\n\n**Load sheet**\n01a0976e-bbaf was opened only; not approved or cancelled.\n\n**Sessions**\n- android-login.sh wiped and re-signed the manager app twice (vikas.kadam, meena.joshi). It overwrote QA/evidence/phase0/android/manager-vikas.kadam-* and manager-meena.joshi-*.\n- API logins: rahul.deshmukh \u00d71 and vikas.kadam \u00d72 (new device rows).\n\n**Stock**\nAfter the walk: 0 stock_balances with on_hand < 0, reserved < 0 or reserved > on_hand.\n\n**Environment left**\n- The :8081 proxy is stopped (pkill -f proxy8081.mjs) and `adb reverse --remove-all` is done.\n- The host forwarder on :3902 is stopped.\n- Emulator emulator-5554 is left running, Wi-Fi and data re-enabled.\n- Metro :5274 and the services were not touched.",
+   "environmentProblems": "**Offline simulation**\n- Radios off (svc wifi/data disable) does not cut the app's API calls on this emulator, because they ride adb reverse on localhost (ENV \u00a78).\n- DOS-029(d) was simulated by routing :3002 through a host forwarder (adb reverse tcp:3002 tcp:3902) and relaunching the app, then turning the radios off and killing the forwarder. A second run also removed the :3002 reverse. The forwarder script is saved as manager-135-proxy-delay3002.mjs.txt.\n\n**DOS-135 overlap**\nThe same forwarder held only POST \u2026/rematch for 8 s, the device equivalent of the web walk's page.route. The app was relaunched first so pooled keep-alive sockets could not bypass it.\n\n**Harness artefacts, none of them product defects**\n- ESC (keyevent 111) and Back close an RN Modal. The first DOS-005 decision dialog closed unsent, and the reopened dialog kept the draft note, so adb typed into its middle (garbled note stored).\n- `dumpsys input_method mInputShown` stayed 'true' after the keyboard hid. A Back loop closed the first bounce dialog and navigated Day-end \u2192 Today; nothing was sent and it was redone.\n- uiautomator lists app nodes that are hidden behind the soft keyboard. A tap on the 'visible' bill suggestion opened Gboard's clipboard.\n- The React Native dev LogBox ('Can't perform a React state update on a component that hasn't mounted yet') opened full screen after a relaunch and swallowed taps; dismissed (dev-build artefact, ENV \u00a78). Its screenshot is manager-029d-env-logbox-dev-build-artefact.png.\n\n**Scrolling and node dumps**\n- On the accountant's Receipts screen the list is a nested scroll region under a pinned header. uiautomator reports off-viewport rows with clamped bounds, so my first scans overshot RCPT-0689.\n- The kit Sheet needs a fast fling to scroll to its last actions (DOS-152).\n\n**My own script mistakes**\n- The first credit-note cleanup call joined two ids into one path (400, no effect; redone).\n- Several read-only SQL snapshots failed on wrong column names and were re-run.\n\n**Other**\n- Three docint requests at 04:53 IST on manager-service came from another walker; they are excluded from manager-api-log-android-walk.txt.\n- The 'failed exit 144' background-task notices are my own pkill of the forwarder.\n- iOS and web were not part of this group."
+  }
+ ]
+}

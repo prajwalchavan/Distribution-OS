@@ -213,7 +213,29 @@ The two defects that existed only on native are fixed on Android: DOS-077 (catal
 
 Every merged fix outside the manager app holds on Android: 16 of 16. The emulator went down once more from the same proxy-kill command and the watchdog restarted it within 30 s (04:29:45 → 04:30:14).
 
-**Android manager app (DOS-020/005/021/023/025/029/034/041 M20) and iOS (all apps):** walked against the DOS-029 manager build served from its branch on :5274 (DOS-029 + the DOS-135 repair), so no walker loses its app to a reload; the branch is merged into main after the last device walk — the merged manager-app files are the same files that were walked.
+**Android manager app — DOS-029 build on :5274, manager vikas.kadam and accountant meena.joshi, 2026-09-13 ~04:55–05:25 IST.** 12 PASS · 1 FAIL. Results: `QA/evidence/batch1/regression/android-manager-results.json`.
+
+| Check | Status | What was seen | First evidence |
+|---|---|---|---|
+| DOS-020 | **PASS** | Sheet showed 'Waiting on: Over credit limit [Approve][Reject] · Bargain [Approve][Reject]', State Submitted. Confirm order was en=false, with … | `QA/evidence/batch1/regression/android/manager-020-api-A-mahalaxmi-create-bargain-submit.txt` |
+| DOS-005 | **PASS** | Queue cards, top to bottom: - ₹39.58 (no order) - SO-0911 Asked rate ₹45.54 - SO-0911 Over credit limit ₹1,375.00 - SO-0898 ₹20.14 - SO-0887, … | `QA/evidence/batch1/regression/android/manager-005-02-queue-SO-0911-cards.png` |
+| DOS-021 | **PASS** | Lines: - Sunbake Glucose 55 g · 40 pc · 40 pc left to credit - Campa Lemon 750 ml · 2 cs · 48 pc · 2 pc free · 50 pc left to credit - Godavari Cow … | `QA/evidence/batch1/regression/android/manager-021-02-draft-sheet-open.png` |
+| DOS-023 | **PASS** | Before: PICK-0089, 0088, 0087, 0086, 0085, 0084, 0083 (same order as the DB). POST /warehouse/picklists → 200. Row 1 became 'PICK-0090 Open', above … | `QA/evidence/batch1/regression/android/manager-023-02-picking-sheets-before.png` |
+| DOS-025 | **PASS** | Network: GET /warehouse/load-sheets?status=draft&limit=100 → 200 and ?limit=100 → 200. Under the PIN hint the first panel is 'Not out of the godown … | `QA/evidence/batch1/regression/android/manager-025-029-db-before.txt` |
+| DOS-041 | **PASS** | POST /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e/pick → 400 (61 ms). The dialog stayed open with 'batch RCP20260731 on PICK-0090 asks … | `QA/evidence/batch1/regression/android/manager-041-db-PICK-0090-before.txt` |
+| DOS-029a | **PASS** | POST /warehouse/picklists → 409 (33 ms). The dialog '1 orders · 390 pc' stayed open with 'only a confirmed order can be waved; SO-0850 is packed' in … | `QA/evidence/batch1/regression/android/manager-029a-01-wave-dialog-SO-0850.png` |
+| DOS-029b | **PASS** | POST /credit-notes → 400. 'only 1 pcs of Sunbake Glucose 55 g are left to credit on INV/0634' showed directly above Draft (y 1943–2059), and the … | `QA/evidence/batch1/regression/android/manager-021-11-server-refusal-above-draft.png` |
+| DOS-029c | **PASS** | Panel title 'Guiltfree Industries — Gurugram · FA/TY/26-27/1187'. POST /docint/documents/0400aea1-7e63-7119-af27-05db2a4307ad/approve → 501 (86 ms). … | `QA/evidence/batch1/regression/android/manager-029c-135-db-documents-before.txt` |
+| DOS-029d | **FAIL** | Both cuts: the dialog stayed open but showed 'Something could not be completed. Try again.' (the api-client's 'unknown' default). It was there at +3 … | `QA/evidence/batch1/regression/android/manager-029d-01-wave-dialog-before-cut.png` |
+| DOS-135 | **PASS** | Control: POST …/review → 409, and 'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)' showed above Start reviewing. Overlap … | `QA/evidence/batch1/regression/android/manager-135-02-ALA-panel-buttons-nodes.txt` |
+| DOS-034-manager | **PASS** | Day-end: CASH TO BANK ₹41,07,486.52 'more than 200 rows', CHEQUES IN HAND ₹1,46,305.98 '4 rows', TRIPS COMING BACK 0. Cheque cards carry 'Tap a … | `QA/evidence/batch1/regression/android/manager-034-db-receipts-before.txt` |
+| DOS-034-accountant | **PASS** | Bounce: POST /receipts/ab309aeb-5f40-7bc0-a9c3-e558891f5157/bounce → 200. The card left, and CHEQUES IN HAND went from ₹1,46,305.98 · 4 rows to … | `QA/evidence/batch1/regression/android/manager-034-20-accountant-signed-in-home.png` |
+
+- **DOS-029d FAIL on Android only:** with the connection cut (the walker routed :3002 through a host forwarder and killed it, because radios-off does not cut adb-reverse traffic), the dialog stayed open but said "Something could not be completed. Try again." instead of "No connection. Check the signal, then press again." Web PASSES. Root cause is the one the held DOS-056 plan fixes in the api-client (native fetch failure not recognised as no signal) → DOS-156, folded into DOS-056 for the Fable review.
+- **DOS-135 PASS on Android, with a provenance caveat:** the :5274 Metro had been started at 02:14 on d600ab8 in CI mode, and its Android bundle was first built during this walk, after 8161f21 was committed; which of the two the Android bundle carried cannot be proven afterwards. The DOS-135 repair itself is proven by the unit spec and the web before/after; iOS walks it on the :5274 server restarted on 8161f21 (served bundle verified to contain the repaired rule).
+- Nested dialogs open from inside Sheets render on Android (DOS-020 decision dialog, DOS-034 Bank it / Mark bounced).
+
+**iOS (all apps):** running next, manager app from the :5274 server restarted on 8161f21; then the DOS-029 branch is merged into main.
 
 ### 4. Business regression — orders, inventory, payments, outstanding, delivery and reports reconcile
 

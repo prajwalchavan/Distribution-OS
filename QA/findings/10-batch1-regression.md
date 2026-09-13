@@ -882,3 +882,115 @@ Suggested fix: In frontend/owner-app/app/approvals.tsx (and the manager order sh
 
 Found by: batch 1 regression, Android pass (retailer + warehouse + owner).
 
+### DOS-156 — Android manager app: a write pressed with no connection says 'Something could not be completed. Try again.' instead of 'No connection. Check the signal, then press again.' (expo/fetch rejects with FetchError, which the api-client does not treat as network)
+Category: bug | Priority: P2 | Role: Manager, Accountant (every manager-app write) | Platform: Android (Pixel_7_API_36 emulator, API 36), manager build :5274 (branch qa/b1-l5-manager-errors, 8161f21). By code also iOS native (not run).
+
+```
+User: Manager, Accountant (every manager-app write)
+Platform: Android (Pixel_7_API_36 emulator, API 36), manager build :5274 (branch qa/b1-l5-manager-errors, 8161f21). By code also iOS native (not run).
+Environment: local dev, DOS-029 manager build (:5274, d600ab8 Metro start) on dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as vikas.kadam in the Android manager app. Fulfilment → Waves → tick SO-0850 → 'Make a picking sheet' (dialog open).
+  2. Take the API away from the phone:
+     - adb shell svc wifi disable; adb shell svc data disable.
+     - Cut the :3002 path the emulator uses: stop the host forwarder and/or `adb reverse --remove tcp:3002`. The radio switch alone does not cut adb-reverse traffic.
+  3. Press 'Make a picking sheet' in the dialog.
+  4. Look at the dialog after 3 s and after 25 s (past the 20 s request deadline).
+  5. Restore the network and press again.
+Expected: The DOS-029 sentence 'No connection. Check the signal, then press again.' in the open dialog, as the web build shows. Pressing again once the signal is back reaches the service.
+Actual: The dialog stays open, but shows the generic 'Something could not be completed. Try again.' at +3 s and still at +25 s. No request reaches manager-service. It reproduced with two different cuts (forwarder killed; device port reverse removed).
+
+After restoring, the retry returns 409 and shows the service's sentence.
+
+Cause (read-only code):
+- Expo installs expo/fetch as the global fetch on native (node_modules/expo/src/winter/runtime.native.ts:52).
+- It rejects with `FetchError extends Error` ('fetch failed: …', FetchErrors.ts:1; fetch.ts:78-92).
+- frontend/libs/api-client/src/errors.ts:153-161 counts only AbortError/TimeoutError/TypeError as kind 'network', so the error becomes 'unknown'.
+Business impact: A manager or accountant using the phone in a weak-signal godown or on the road cannot tell a lost signal from a system fault. The sentence does not say that the write never left the phone. They may call the office, retry blindly, or decide the system is broken, which is exactly the uncertainty DOS-029 was approved to remove. The same misclassification makes native reads fail as 'unknown' (DOS-068, delivery app).
+Severity: P2
+Evidence: QA/evidence/batch1/regression/android/manager-029d-02-no-connection-in-dialog.png; QA/evidence/batch1/regression/android/manager-029d-11-cut2-after-press-3s.png; QA/evidence/batch1/regression/android/manager-029d-12-cut2-after-press-25s.png; QA/evidence/batch1/regression/android/manager-029d-13-cut2-press-again-after-restore.png; QA/evidence/batch1/regression/android/manager-029d-network-at-cut.txt; QA/evidence/batch1/regression/android/manager-029d-network-at-cut2.txt; QA/evidence/batch1/regression/android/manager-029d-forwarder-cut2.log; QA/evidence/batch1/regression/android/manager-api-log-android-walk.txt
+Suggested fix: In frontend/libs/api-client/src/errors.ts toApiError, before the 'unknown' fallback, classify as kind 'network':
+- expo/fetch's FetchError (err.name === 'FetchError' or message starting 'fetch failed:');
+- any error whose `cause` chain holds an AbortError, TimeoutError or TypeError.
+Map FetchError('The operation was aborted.') from the deadline signal to network as well.
+
+Add errors/refusal unit cases for a FetchError from a refused connection and from the deadline. Re-run the Android and iOS no-connection check. The same change should turn DOS-068's 'unknown' reads into the offline wording.
+```
+
+Relation: the web build shows the no-connection sentence (DOS-029d PASS on web). On Android the native fetch failure is not recognised as "no signal" by the api-client — the same root cause the HELD DOS-056 plan fixes ("Expo's native fetch failure counts as no signal"). Not a regression of batch 1 (the Android manager app had no refusal line at all before DOS-029). Fold into DOS-056 at the Fable review.
+
+Found by: batch 1 regression, Android manager-app pass.
+
+### DOS-157 — Android Load-out: the 'Not out of the godown yet' row collapses its status chip to '…', so the list never says 'Waiting for your approval' or 'Approved'
+Category: ux | Priority: P2 | Role: Manager | Platform: Android (Pixel_7_API_36 emulator, API 36, 1080x2400), manager build :5274
+
+```
+User: Manager
+Platform: Android (Pixel_7_API_36 emulator, API 36, 1080x2400), manager build :5274
+Environment: local dev, DOS-029 manager build (:5274, d600ab8 Metro start) on dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Sign in as vikas.kadam → Fulfilment → Load-out.
+  2. Read the first panel 'Not out of the godown yet'. It holds draft sheet 01a0976e-bbaf (MH-05-CD-5678, ₹1,375, approved by vikas).
+  3. The row reads '13 Sep' / '…' / '1,375.00'; uiautomator gives content-desc '13 Sep, ￼, 1375 rupees'.
+  4. Open the row: State 'Approved · the godown may check it out'.
+Expected: As on web at 390 px ('13 Sep | Waiting for your approval | 1,375.00', or 'Approved · the godown may check it out'): the row says whether the sheet still needs the manager, without opening it.
+Actual: The status chip renders as a lone ellipsis '…', so a sheet waiting for approval looks the same as one already approved. The short 'Confirmed' chips in the history panel render fine.
+Business impact: DOS-025 added this panel so the manager sees at a glance which van is waiting for his approval. On the Android phone he has to open every sheet to find out, so at a busy morning load-out a van can wait at the gate behind a sheet nobody noticed needed approval. Workaround: open each row.
+Severity: P2
+Evidence: QA/evidence/batch1/regression/android/manager-025-01-load-out-waiting-panel.png; QA/evidence/batch1/regression/android/manager-025-01b-waiting-row-chip-crop.png; QA/evidence/batch1/regression/android/manager-025-01-load-out-waiting-panel-nodes.txt; QA/evidence/batch1/regression/android/manager-025-02-draft-sheet-panel.png
+Suggested fix: In the native register row used by frontend/manager-app/app/fulfilment/load-out.tsx (the frontend/libs/ui native List/Register chip cell), let a status chip wrap or take the full row width instead of ellipsizing in a zero-width column. Or render the status as the row's secondary text, or shorten the labels (for example 'Needs your approval' / 'Approved'). Verify at 1080x2400 and on a 360 dp phone.
+```
+
+Found by: batch 1 regression, Android manager-app pass.
+
+### DOS-158 — Android: a dialog's confirm button keeps the accessibility description 'busy' after its write has settled, instead of its label
+Category: bug | Priority: P3 | Role: Manager, Accountant | Platform: Android (Pixel_7_API_36 emulator, API 36), manager build :5274
+
+```
+User: Manager, Accountant
+Platform: Android (Pixel_7_API_36 emulator, API 36), manager build :5274
+Environment: local dev, DOS-029 manager build (:5274, d600ab8 Metro start) on dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Fulfilment → Waves → tick packed SO-0850 → 'Make a picking sheet'. uiautomator shows the confirm Pressable with content-desc 'Make a picking sheet'.
+  2. Press it. The service answers 409 and the dialog shows the refusal.
+  3. uiautomator dump: the same Pressable now has content-desc 'busy'. Its visible label 'Make a picking sheet' is shown with no spinner.
+  4. The same happens after:
+     - Record what was picked (400, still 'busy' 3 s later);
+     - Book it as a supplier bill (501);
+     - Start reviewing (409) and Match the items again (200) on the documents panel;
+     - the offline press.
+Expected: Once nothing is pending, the button's accessibility name is its label again (e.g. 'Make a picking sheet, button').
+Actual: content-desc stays 'busy' until the dialog is remounted. TalkBack speech was not recorded; the accessibility node itself carries 'busy'.
+Business impact: A user on TalkBack hears 'busy' on the one button that retries or confirms, right after a refusal, and may think the app is still working. Minor, but it undoes part of DOS-029's point for screen-reader users.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/manager-029a-02-wave-409-refusal-in-dialog-nodes.txt; QA/evidence/batch1/regression/android/manager-041-08-refusal-dialog-settled-nodes.txt; QA/evidence/batch1/regression/android/manager-029c-04-brand-dms-501-refusal-in-dialog-nodes.txt; QA/evidence/batch1/regression/android/manager-135-12-after-rematch-settled-nodes.txt; QA/evidence/batch1/regression/android/manager-029d-02-no-connection-in-dialog-nodes.txt; QA/evidence/batch1/regression/android/manager-029a-03-wave-reopen-SO-0845-no-stale-line-nodes.txt
+Suggested fix: In frontend/libs/ui/src/native/controls.tsx Button:
+- set an explicit accessibilityLabel={successLabel ?? label};
+- pass accessibilityState.busy only while loading (omit it otherwise), so Fabric clears the description when loading turns false.
+Verify with a uiautomator dump after a refused write.
+```
+
+Found by: batch 1 regression, Android manager-app pass.
+
+### DOS-159 — Android credit-note Sheet: after typing a bill number the matching bill row sits under the soft keyboard, and a tap where it is shown hits the keyboard
+Category: ux | Priority: P3 | Role: Manager, Accountant | Platform: Android (Pixel_7_API_36 emulator, API 36, Gboard), manager build :5274
+
+```
+User: Manager, Accountant
+Platform: Android (Pixel_7_API_36 emulator, API 36, Gboard), manager build :5274
+Environment: local dev, DOS-029 manager build (:5274, d600ab8 Metro start) on dos_qa, Android emulator Pixel_7_API_36 (API 36), 2026-09-13
+Steps:
+  1. Billing → Credit notes → Draft a credit note.
+  2. Tap Bill and type INV/0634.
+  3. The suggestion 'INV/0634 · Sharma Kirana Stores · ₹10,187.00' is laid out at y 1622–1811, while the keyboard covers the lower half of the screen. A tap there opened Gboard's Clipboard panel.
+  4. Only after closing the keyboard is the row visible and tappable.
+Expected: The Sheet lifts above the keyboard, or the suggestion list shows above the field, so the typed bill can be picked straight away.
+Actual: The bottom Sheet stays anchored under the keyboard. Nothing below the Bill field can be seen or tapped until the keyboard is closed.
+Business impact: Every credit note starts by picking a bill. On a phone the manager types the number, sees no match, and may retype it or close the sheet. Workaround: close the keyboard first.
+Severity: P3
+Evidence: QA/evidence/batch1/regression/android/manager-021-03b-keyboard-covers-bill-suggestion.png; QA/evidence/batch1/regression/android/manager-021-03-bill-typed-suggestions-nodes.txt; QA/evidence/batch1/regression/android/manager-021-04-sheet-keyboard-closed.png
+Suggested fix: In frontend/libs/ui/src/native/feedback.tsx Sheet, avoid the keyboard: wrap the sheet in KeyboardAvoidingView (behavior 'height' on Android), or add bottom padding equal to the keyboard height from Keyboard events. Then re-check with the decimal keypad open on the last credit-note line (Annapurna) together with its red error.
+```
+
+Found by: batch 1 regression, Android manager-app pass.
+
