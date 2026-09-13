@@ -37,7 +37,9 @@ const describeDb = url ? describe : describe.skip
 
 type Line = {
   id: string
+  lineNo: number
   variantId: string
+  variantName: string
   enteredQty: number
   enteredUnit: string
   packSizeAtEntry: number
@@ -1616,6 +1618,102 @@ describeDb('orders (DATABASE_URL)', () => {
         idempotencyKey: `dos005-two-cleanup-${run}`,
         reason: 'test cleanup',
       })
+    }
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-003: an order line names its item the way the bill line does — the tenant's alias first, the global
+  // variant name otherwise — read when the order is fetched, so an item delisted after ordering keeps its name.
+  // Its own variants and listings, and last in the file, so no other test sees a listing switched off.
+
+  it('DOS-003: order lines carry variantName — tenant alias first, global name otherwise, and an item delisted after ordering is still named (create reply, owner GET, retailer GET)', async () => {
+    const manufacturerId = uuidv7()
+    const productId = uuidv7()
+    const aliased = uuidv7()
+    const plain = uuidv7()
+    const plainListing = uuidv7()
+    const orderId = uuidv7()
+    await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker dos003 ${run}` })
+    await db
+      .insert(products)
+      .values({ id: productId, manufacturerId, name: 'Snacks', category: 'snacks' })
+    await db.insert(productVariants).values([
+      {
+        id: aliased,
+        productId,
+        name: 'Kurkure Masala Munch 90 g',
+        netQty: 90,
+        netUnit: 'g',
+        defaultCaseSize: 60,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+      {
+        id: plain,
+        productId,
+        name: 'Lays Classic 52 g',
+        netQty: 52,
+        netUnit: 'g',
+        defaultCaseSize: 48,
+        hsnCode: hsn,
+        mrpPaise: 2000,
+      },
+    ])
+    await db.insert(tenantProducts).values([
+      { id: uuidv7(), tenantId, variantId: aliased, localAlias: 'Kurkure 90' },
+      { id: plainListing, tenantId, variantId: plain },
+    ])
+    // `priceListId` is local to beforeAll; bootstrapTenant creates no price list, so the spec's is the only one
+    const [priceList] = await db
+      .select()
+      .from(priceLists)
+      .where(sql`${priceLists.tenantId} = ${tenantId}`)
+    expect(priceList).toBeDefined()
+    await db.insert(priceListItems).values([
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: aliased,
+        ratePaise: 1800,
+      },
+      {
+        id: uuidv7(),
+        tenantId,
+        priceListId: priceList?.id ?? '',
+        variantId: plain,
+        ratePaise: 1800,
+      },
+    ])
+    const expected = [
+      [1, aliased, 'Kurkure 90'],
+      [2, plain, 'Lays Classic 52 g'],
+    ]
+    const named = (lines: Line[]) => lines.map((l) => [l.lineNo, l.variantId, l.variantName])
+
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos003-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: aliased, enteredQty: 1, enteredUnit: 'piece' },
+        { id: uuidv7(), variantId: plain, enteredQty: 1, enteredUnit: 'piece' },
+      ],
+    })
+    expect(created.status).toBe(200)
+    expect(named(created.body.item.lines)).toEqual(expected)
+
+    // the Lays listing is switched off after the order was taken (the owner pool bypasses RLS)
+    await db
+      .update(tenantProducts)
+      .set({ listed: false })
+      .where(eq(tenantProducts.id, plainListing))
+
+    for (const actor of [owner, shop]) {
+      const got = await call<{ item: Detail }>(app, actor, 'GET', `/orders/${orderId}`)
+      expect(got.status).toBe(200)
+      expect(named(got.body.item.lines)).toEqual(expected)
     }
   })
 })

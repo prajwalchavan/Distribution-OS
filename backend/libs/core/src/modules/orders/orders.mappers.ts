@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm'
 import type { Approval, Order, OrderDetail, OrderLine } from '@dos/contracts'
 import type { salesOrders } from '@dos/db'
 import { approvals, orderStateTransitions, salesOrderLines, type Db } from '@dos/db'
+import { variantNames } from '../tenant-catalog/index.js'
 
 /** Drizzle rows in, contract shapes out (docs/16 §2): no Drizzle row ever leaves the module. */
 
@@ -41,11 +42,12 @@ export function toOrder(row: OrderRow): Order {
   }
 }
 
-export function toOrderLine(row: OrderLineRow): OrderLine {
+export function toOrderLine(row: OrderLineRow, variantName: string): OrderLine {
   return {
     id: row.id,
     lineNo: row.lineNo,
     variantId: row.variantId,
+    variantName,
     enteredQty: row.enteredQty,
     enteredUnit: row.enteredUnit,
     packSizeAtEntry: row.packSizeAtEntry,
@@ -109,6 +111,12 @@ export async function loadDetail(
     .from(salesOrderLines)
     .where(eq(salesOrderLines.orderId, order.id))
     .orderBy(asc(salesOrderLines.lineNo))
+  // One lookup for every line, owned by tenant-catalog: the alias first, the global name otherwise. The
+  // fallback is unreachable while `sales_order_lines.variant_id` references `product_variants`.
+  const names = await variantNames(
+    tx,
+    lines.map((l) => l.variantId),
+  )
   const transitions = await tx
     .select()
     .from(orderStateTransitions)
@@ -123,7 +131,7 @@ export async function loadDetail(
     : []
   return {
     ...toOrder(order),
-    lines: lines.map(toOrderLine),
+    lines: lines.map((l) => toOrderLine(l, names.get(l.variantId) ?? l.variantId)),
     transitions: transitions.map(toTransition),
     approvals: pending.map(toApproval),
   }

@@ -21,6 +21,7 @@ export {
   tallyExportSourceByVariant,
   variantBrands,
   variantLabels,
+  variantNames,
   type ListingImportResult,
   type ListingImportValues,
   type ListingSnapshot,

@@ -9,6 +9,7 @@
 import type { Order } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
+  billLineQty,
   Button,
   Chips,
   Dialog,
@@ -295,8 +296,11 @@ export default function Orders(): React.JSX.Element {
                 <Stack gap={2}>
                   {order.lines.map((line) => (
                     <Stack key={line.id} gap={1} border="bottom" borderTone="faint" padY={2}>
-                      <Txt field="body" desk="cell" numberOfLines={1}>
-                        {`${String(line.enteredQty)} ${line.enteredUnit} · ${String(line.qtyPcs)} pc`}
+                      <Txt field="body" desk="cell" numberOfLines={2}>
+                        {line.variantName}
+                      </Txt>
+                      <Txt field="label" desk="meta" color={colors.text.secondary}>
+                        {billLineQty(line, t)}
                       </Txt>
                       <Money value={line.lineTotalPaise} size="cell" />
                     </Stack>
