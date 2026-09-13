@@ -1,0 +1,135 @@
+{
+ "id": "DOS-108",
+ "runs": [
+  "wf_12400ce1-eae"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-108",
+   "status": "fixed",
+   "commits": [
+    "e10bab1 test(DOS-108): owner Settings support-access specs, red against a stub of today's screen",
+    "038c09c fix(DOS-108): owner Settings reaches Support access; approve for the hours asked or fewer, or refuse, on desk and phone"
+   ],
+   "failBefore": "Red commit e10bab1: the stub reproduces today's screen and SETTINGS_VIEWS is real data. All four DOS-108 specs failed on assertions, not on imports; owner-app typecheck and lint were clean.\n- src/settings-views.test.ts: \"AssertionError: expected 'Segments' to be 'Chips'\" at control.tag. The element carrying testID=\"settings-view\" is still the <Segments> that draws three items.\n- support.test.ts spec 1: \"expected { kind: 'waiting', …(3) } to match object\" / \"actions\": [\"approve\", - \"refuse\"]. No Refuse is offered.\n- support.test.ts spec 2: \"expected [ 4 ] to deeply equal [ 1, 2 ]\". The screen always sends a fixed 4 h.\n- support.test.ts spec 3: \"expected '2026-09-13T09:00:00.000Z' to be '2026-09-13T08:30:00.000Z'\". The window was counted from the approval, not from the ask.",
+   "passAfter": "On fix commit 038c09c:\n- `pnpm --filter @dos/owner-app exec vitest run src/lib/support.test.ts`: 3 passed.\n- `pnpm --filter @dos/owner-app exec vitest run src/settings-views.test.ts`: 1 passed.\n- `pnpm --filter @dos/owner-app typecheck` (tsc --noEmit): exit 0.\n- `pnpm --filter @dos/owner-app lint`: exit 0.\n- `pnpm format:check` in frontend: all files formatted. `pnpm format` changed nothing else.\n- `turbo run test --filter=@dos/owner-app --dry=json` lists `@dos/owner-app#test -> vitest run --dir src`.\n- git status is clean. The diff from 43824b0 touches only frontend/owner-app plus the owner-app importer hunk of frontend/pnpm-lock.yaml (vitest 4.1.11): no backend, contract, README or migration change.",
+   "testsAdded": [
+    {
+     "file": "frontend/owner-app/src/settings-views.test.ts",
+     "name": "DOS-108: the Settings view switch is a chip row carrying all four views (Business profile, Numbering series, Feature flags, Support access), not a <Segments> that renders three"
+    },
+    {
+     "file": "frontend/owner-app/src/lib/support.test.ts",
+     "name": "DOS-108: a request waiting for the owner offers Approve and Refuse, an open window offers Revoke, and a refused, revoked, expired or lapsed request (still 'requested' on the wire after its own hours) offers nothing"
+    },
+    {
+     "file": "frontend/owner-app/src/lib/support.test.ts",
+     "name": "DOS-108: the owner approves for the hours support asked or fewer; a 2-hour ask offers 1 h and 2 h, never the fixed 4 h owner-service refuses, and a choice no longer offered falls back to the hours asked"
+    },
+    {
+     "file": "frontend/owner-app/src/lib/support.test.ts",
+     "name": "DOS-108: Approve for N h closes the window at requestedAt + N h, as owner-service measures it, and an hour choice whose window would already have closed is not offered"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "frontend/owner-app/app/settings/index.tsx",
+    "frontend/owner-app/src/lib/support.ts",
+    "frontend/owner-app/src/lib/support.test.ts",
+    "frontend/owner-app/src/settings-views.test.ts",
+    "frontend/owner-app/src/lib/refusal.tsx",
+    "frontend/owner-app/src/strings.ts",
+    "frontend/owner-app/package.json",
+    "frontend/pnpm-lock.yaml"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Refusal, RefusalProps and stayOpen go in a new file, frontend/owner-app/src/lib/refusal.tsx, never in owner-app/src/lib/ui.tsx",
+     "done": true,
+     "how": "Created src/lib/refusal.tsx. The manager app's code and DOS-029 comment are copied word for word, under a short provenance header saying that 'manager' there reads 'owner'. settings/index.tsx imports from '../../src/lib/refusal'. owner-app/src/lib/ui.tsx is untouched."
+    },
+    {
+     "amendment": "(b) owner-app/package.json: only the scripts.test 'vitest run --dir src' and devDependencies.vitest 'catalog:' hunk, plus the owner-app importer hunk of pnpm-lock.yaml",
+     "done": true,
+     "how": "Red commit e10bab1 adds exactly those two package.json lines. `pnpm install` produced only the 3-line owner-app importer hunk in frontend/pnpm-lock.yaml. There is no other package.json change. lanes.md lives under QA/, which this lane may not edit, so the transfer record is listed in followUps."
+    },
+    {
+     "amendment": "(c) supportDecision is DOS-110-ready: 'waiting' only when status is 'requested' and not lapsed; 'open' only when active AND Date.parse(expiresAt) > now; everything else 'closed' by default",
+     "done": true,
+     "how": "supportDecision returns open only if grant.active && expiresAt !== null && Date.parse(expiresAt) > now. It returns waiting only if status === 'requested' && !askLapsed(grant, now); askLapsed is the console's rule. Anything else falls through to { kind: 'closed', actions: [] }. Spec 1 asserts four cases: an active grant read after its expiresAt is closed; one with a null expiresAt is closed; an unknown 'lapsed' status is closed; and the lapse instant is exact (waiting at lapse-1 ms, closed at lapse)."
+    },
+    {
+     "amendment": "(d) The dialog computes chosen for the grant found by grantId, never from a row closure, and the sentence, confirm label and hours sent all come from that one value",
+     "done": true,
+     "how": "The dialog finds dialogGrant in grants.data.items by grantId. It sets dialogHours = chosenHours(supportDecision(dialogGrant, now), hoursById[dialogGrant.id]) while that decision is waiting. confirmApprove's until, the 'Approve for N h' label and the approve body's hours all read dialogHours."
+    },
+    {
+     "amendment": "(e) Drop empty= from the support <Async>: o24.noneWaiting renders whenever no card is open (zero grants included), and the history <Register> shows its own empty state",
+     "done": true,
+     "how": "The support view is now <Async state={[grants]} rows={5}> with no empty prop. Inside a Stack it renders one card per non-closed grant, or the Txt 'Nobody from Distribution OS is waiting on you' (testID support-none-waiting) when there are none. The settings-support Register always renders and draws its own register.empty state when it has no rows."
+    },
+    {
+     "amendment": "(f) Verify step 2: the live Tarsun grant expires at requested_at + 29 days; the card must print the row's expires_at, read from psql, not from +72 h",
+     "done": true,
+     "how": "The open card prints decision.closesAt, which is the row's own expiresAt; nothing adds 72 h. psql on my private DB copy dos_test_b2_h13 shows dc9b8792: requested_hours 72, requested_at 2026-09-13 12:40:29.663+05:30, expires_at 2026-10-12 12:40:29.663+05:30. Spec 1's LIVE_WINDOW fixture uses that expiresAt and asserts closesAt equals it. The live walk that compares against psql is still the verifier's job."
+    }
+   ],
+   "deviations": "1. There are two commits, not one: the red stub/test commit e10bab1, then the fix 038c09c. The plan and the verdict ('Stub commit … fix commit') require the red-first commit.\n2. chosenHours takes a WaitingDecision (plan: chosenHours(decision, picked): number). The dialog calls it through supportDecision(grant, now) while the grant is still waiting. If the grant has stopped waiting since its card was pressed (answered in another tab, or lapsed), dialogHours falls back to grant.requestedHours. The server then refuses with 409 already_approved, grant_closed or request_expired before the hours are checked, and <Refusal> prints that sentence. That keeps one value for sentence, label and body, per amendment (d).\n3. askLapsed copies the console's body word for word, but `now` is a required parameter here (the console defaults it to Date.now()). This follows the verdict's 'pass now explicitly through the pure lib'.\n4. Additions within scope: a testID support-none-waiting on the empty line, and short comments on approveGrant and revokeGrant.\n5. Not done: QA/tools/e2e/dos-108-owner-support-access.mjs (the plan's 'optional proof') was not written, because this lane may not edit anything under QA/.\n6. Not run: pnpm build (expo export) and the frontend-wide pnpm lint/typecheck/test. The lane limits checks to the touched package on this 8 GB machine; owner-app typecheck, lint and both test files were run.",
+   "followUps": "- lanes.md (QA/, which this lane may not edit): record amendment (a), that L28 (DOS-012/008/015) should import frontend/owner-app/src/lib/refusal.tsx instead of copying Refusal again. Also record amendment (b), that L33 rebases on the owner-app package.json test-script and vitest hunk and the owner-app importer hunk in pnpm-lock.yaml.\n- The verifier should run the full frontend gate: pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check. It should also do the browser walk at 1280 and 390, the Android and iOS walks, and the stale second-tab approve (409 'this support window is already open' stays in settings-support-refusal), taking expires_at from psql per amendment (f).\n- The optional e2e script QA/tools/e2e/dos-108-owner-support-access.mjs is not written (the QA/ path is off-limits here).\n- DOS-110 (P2, not this lane): add a server 'lapsed' status. Then delete askLapsed from owner-app/src/lib/support.ts and admin-app/src/lib/ui.tsx; supportDecision needs no change.\n- New findings from the verdict, still to file:\n  - The kit's <Segments> silently drops options past three; the owner surfaces prices 'quote', staff 'bounds', stock/catalog 'brands' and the RangeSegments 'This FY' still lose them.\n  - The seed-demo live grant asks for 72 h but is inserted approved for 29 days.\n  - tenancy revoke on an already-expired grant records 'revoked'.\n- No docs/23 or docs/27 change was listed in the plan, so none was made. If docs/23 §1.5 describes owner Settings support access, it may need a line on the cards, hour chips and Refuse.",
+   "platformCheck": "Web, Android and iOS are covered by source only; none was driven, because this lane may not start dev servers, emulators or simulators. The screen imports only @dos/ui plus app-local libs, and lint enforces the no-renderer rule. The view switch and hour choices use the kit's <Chips> (web: wrapping button row; native: horizontal ScrollView placed full-width in a Stack, not inside a growing Row). The decision controls are page-level Panel/Stack/Button, not a Register column, so desk, 390 px web and native all get the same Approve for N h, Refuse and Revoke controls. The confirm is a page-level Dialog with no Sheet, so DOS-164 does not apply. Live walks at 1280 and 390 and on Android and iOS are left to the verifier."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-108",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) RefusalProps, Refusal and stayOpen go in a new file frontend/owner-app/src/lib/refusal.tsx, never in owner-app/src/lib/ui.tsx; settings/index.tsx imports from there",
+     "satisfied": true,
+     "detail": "refusal.tsx is new, and settings/index.tsx:36 imports { Refusal, stayOpen } from '../../src/lib/refusal'. Diffing its code against frontend/manager-app/src/lib/ui.tsx:190-234 (the DOS-029 comment included) gives identical output; only a provenance header is added. `git diff 43824b0 HEAD --stat -- frontend/owner-app/src/lib/ui.tsx` is empty. The lanes.md note under L28 is not written, because the lane may not edit QA/ (listed under problems)."
+    },
+    {
+     "amendment": "(b) owner-app/package.json: only the scripts.test 'vitest run --dir src' and devDependencies.vitest 'catalog:' hunk, plus the owner-app importer hunk of frontend/pnpm-lock.yaml",
+     "satisfied": true,
+     "detail": "Commit e10bab1's package.json diff adds exactly \"test\": \"vitest run --dir src\" and \"vitest\": \"catalog:\" (the typescript line gains only a trailing comma). pnpm-lock.yaml gets one 3-line hunk in the owner-app importer (vitest 4.1.11). There is no other package.json change in either commit. `turbo run test --filter=@dos/owner-app --dry=json` lists @dos/owner-app#test -> vitest run --dir src. The transfer record for L33 in lanes.md is not written (QA/ is off-limits; listed under problems)."
+    },
+    {
+     "amendment": "(c) supportDecision is DOS-110-ready: 'waiting' only when requested and not lapsed; 'open' only when active AND Date.parse(expiresAt) > now; everything else 'closed' by default",
+     "satisfied": true,
+     "detail": "support.ts: `if (grant.active && grant.expiresAt !== null && Date.parse(grant.expiresAt) > now)` returns open. `if (grant.status === 'requested' && !askLapsed(grant, now))` returns waiting. The fall-through returns { kind: 'closed', actions: [] }, with no enumerated statuses. Spec 1 pins five cases: lapse-1 ms is waiting and the lapse instant is closed; active read at its expiresAt is closed; a null expiresAt is closed; an unknown 'lapsed' status is closed. I proved the specs guard this with two mutation probes. Removing `Date.parse(expiresAt) > now` makes spec 1 fail: \"expected { kind: 'open', …(2) } to deeply equal { kind: 'closed', actions: [] }\". Removing `!askLapsed(grant, now)` makes it fail: \"expected { kind: 'waiting', …(3) } to deeply equal { kind: 'closed', … }\". Both probes were restored. askLapsed has the same body as admin-app/src/lib/ui.tsx:365-372, except that now is required, as the verdict's risk note asks."
+    },
+    {
+     "amendment": "(d) The dialog computes chosen for the grant found by grantId, never from a row closure; sentence, confirm label and hours sent come from that single value",
+     "satisfied": true,
+     "detail": "index.tsx:325-333 finds dialogGrant by grantId in supportItems. dialogHours = chosenHours(supportDecision(dialogGrant, now), hoursById[dialogGrant.id]) while the decision is waiting. That one value feeds the sentence's until (windowClosesAt(requestedAt, dialogHours), :346), the confirm label t('o24.approveFor', { count: dialogHours }) (:603) and the approve body { id: grantId, hours: dialogHours } (:616). Deviation 2 (fallback to requestedHours once the grant is no longer waiting) holds against the code. owner-service approve checks grant_closed, then already_approved, then window_too_long (hours > requestedHours, impossible with requestedHours), then request_expired. So a stale or lapsed grant is refused 409 before the hours matter, and <Refusal> prints it."
+    },
+    {
+     "amendment": "(e) Drop empty= from the support <Async>; o24.noneWaiting renders whenever no card is open (zero grants included) and the history <Register> shows its own empty state",
+     "satisfied": true,
+     "detail": "index.tsx:552 is `<Async state={[grants]} rows={5}>` with no empty prop. At :554-562, when cards.length === 0 (which includes zero grants) it renders the Txt t('o24.noneWaiting') with testID support-none-waiting; otherwise it renders the cards. The settings-support Register always renders with rows={supportItems}. The kit draws register.empty for rows.length === 0 in both renderers (web/list.tsx:496-500, native/list.tsx:377-378)."
+    },
+    {
+     "amendment": "(f) Verify step 2: the live Tarsun grant expires at requested_at + 29 days; the card prints the row's expires_at read from psql, not +72 h",
+     "satisfied": true,
+     "detail": "The open card prints instantWithClock(decision.closesAt), and closesAt is the row's own expiresAt; nothing adds 72 h. A SELECT on dos_test_b2_h13 returns dc9b8792: requested_hours 72, requested_at 2026-09-13 12:40:29.663+05:30, approved_at equal to requested_at, expires_at 2026-10-12 12:40:29.663+05:30, revoked_at null. Spec 1's LIVE_WINDOW fixture (expiresAt 2026-10-12T07:10:29.663Z) matches to the millisecond and asserts closesAt equals it. TEMPLATE_ASK matches 7232298a (4 h, 12:40:21.398 IST). The on-screen comparison in a running owner app was not done (no dev servers allowed)."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "QA/evidence/batch2/lanes.md",
+     "detail": "The verdict requires two lanes.md records, and neither exists (grep for refusal.tsx and for the owner-app/package.json transfer finds nothing in L28 or L33). The first is amendment (a): L28 (DOS-012/008/015) imports frontend/owner-app/src/lib/refusal.tsx instead of copying Refusal again. The second is amendment (b): L33 rebases on the owner-app test-script and vitest hunk and the owner-app importer hunk of pnpm-lock.yaml. The lane was forbidden from editing QA/, so the orchestrator must add both before merging L28 or L33."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/owner-app/app/settings/index.tsx",
+     "detail": "Nothing was proven in a running product, because this lane and this verifier may not start dev servers, emulators or simulators. Not run: the web walk at 1280 and 390 (4 chip buttons; the seeded card's Open until against psql expires_at; the 2 h ask offering only 1 h and 2 h with POST body hours 1; refuse at 390 giving approved_at null; the stale second-tab 409 'this support window is already open' staying in settings-support-refusal), the Android walk and the iOS walk. The frontend-wide lint/typecheck/test/build gate was also not run (8 GB memory rule). Owner-app typecheck, lint, build and both test files were run instead. All of this belongs in the merge and regression pass."
+    }
+   ],
+   "evidence": "SCOPE\n- git log: 038c09c (fix) on e10bab1 (red: stub plus specs) on 43824b0.\n- `git diff 43824b0 HEAD --stat` lists 8 files: owner-app/app/settings/index.tsx, package.json (+2), src/lib/refusal.tsx (new), src/lib/support.ts (new), src/lib/support.test.ts, src/settings-views.test.ts, src/strings.ts, frontend/pnpm-lock.yaml (+3, owner-app importer).\n- `git diff 43824b0 HEAD --stat -- backend docs QA CLAUDE.md frontend/libs '**/README.md'` is empty. owner-app/src/lib/ui.tsx is untouched.\n- No contract, permission, schema, migration or README change.\n\nFAIL BEFORE\n- Reversed 038c09c's non-test changes with `git diff 038c09c^ 038c09c -- . <excludes> | git apply -R`: index.tsx back to <Segments>, refusal.tsx deleted, support.ts back to the stub, strings.ts reverted.\n- `vitest run src/lib/support.test.ts`: 3 failed on assertions.\n  - \"expected { kind: 'waiting', …(3) } to match object { kind: 'waiting', …(1) }\" (no Refuse).\n  - \"expected [ 4 ] to deeply equal [ 1, 2 ]\".\n  - \"expected '2026-09-13T09:00:00.000Z' to be '2026-09-13T08:30:00.000Z'\" (counted from the press, not the ask).\n- `vitest run src/settings-views.test.ts`: 1 failed, \"expected 'Segments' to be 'Chips'\".\n- Also reversed e10bab1's non-test change (the stub support.ts). Both files then fail with \"Cannot find module './support'\" / './lib/support', as expected for a new module.\n- `git checkout -- .` restored the tree and `git status` was clean. No library rebuild was needed: frontend only, and support.ts imports only a type.\n\nPASS AFTER (038c09c)\n- support.test.ts: 3 passed. settings-views.test.ts: 1 passed.\n- `pnpm --filter @dos/owner-app typecheck` exit 0; `lint` exit 0.\n- `pnpm --filter @dos/owner-app build` (sync-fonts plus expo export --platform web) exit 0, 1023 modules bundled. Outputs dist/, .expo/ and public/fonts/ are gitignored.\n- `prettier --check` on the 7 touched source files: clean.\n\nMUTATION PROBES (each restored)\n- Dropping `Date.parse(expiresAt) > now` fails spec 1.\n- Dropping `!askLapsed(grant, now)` fails spec 1. My first attempt at this probe did not match its pattern and proved nothing; it was re-run with a diff showing the edit.\n\nSOURCE CHECKS\n- Refusal code is identical to manager-app/src/lib/ui.tsx:190-234 (diff).\n- owner-service approve order (tenancy/support.service.ts): grant_closed, already_approved, window_too_long (hours > requestedHours), request_expired (requestedAt + hours <= now). The client offers only h <= requestedHours with requestedAt + h > now, and always sends hours. The contract allows hours 1-72.\n- psql on dos_test_b2_h13 (SELECT only): dc9b8792 expires 2026-10-12 12:40:29.663 IST; 7232298a is a 4 h ask, not approved; a6b5683f is expired. The fixtures match.\n\nHUNT\n- No test deleted, weakened or corrected.\n- The screen imports only @dos/ui, @dos/api-client/react and app-local libs; lint is clean.\n- Approve and revoke go through useMutation with meta.idempotencyKey. Approve's input includes hours, so a different hour is a new intent.\n- Refuse and Revoke both call tenancy.support.revoke; there is no client-side status.\n- The decision controls are page-level Panel, Stack and Button with no Sheet. Chips is used on both renderers (web: wrapping button row; native: horizontal ScrollView as a Screen-body child, the same placement manager Inbound uses). The Segments import stays for settings-pod.\n- Chip ids are String(h) out and Number(id) in; hoursById is keyed by grant id. Refusal is the last dialog child, and its scope is null while the dialog is closed.\n- `{count}` is plain interpolation. The QA/tools e2e script is optional and QA/ is off-limits.\n- Observation, not a defect: per the plan, chosenHours falls back to the hours asked when a pick's window closes while the page stays open. The confirm label and sentence show that value before confirm.\n\nNOT RUN: browser, Android and iOS walks, and the frontend-wide gate (see problems).\n\nFINAL: `git status` clean at 038c09c; nothing committed by the verifier."
+  }
+ ]
+}
