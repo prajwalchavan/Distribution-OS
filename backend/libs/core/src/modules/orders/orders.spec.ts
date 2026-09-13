@@ -330,6 +330,37 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(first.body.item.totalPaise).toBe(replay.body.item.totalPaise)
   })
 
+  it('DOS-160: a stored reply survives an additive output-schema change instead of answering 500 on replay', async () => {
+    // simulates a reply stored before DOS-003 added the required `variantName` field to every order line: the
+    // client already holds this exact body (or would, on a lost reply), so a same-key, same-payload retry must
+    // hand it back untouched rather than being re-validated against the contract as it stands today.
+    const id = uuidv7()
+    const lineId = uuidv7()
+    const key = `dos160-replay-${run}`
+    const body = {
+      idempotencyKey: key,
+      id,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    }
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', body)
+    expect(created.status).toBe(200)
+    expect(created.body.item.lines[0]?.variantName).toBeTruthy()
+
+    await db.execute(sql`
+      update idempotency_keys
+      set response = jsonb_set(response, '{item,lines,0}', (response #> '{item,lines,0}') - 'variantName')
+      where tenant_id = ${tenantId} and key = ${key}
+    `)
+
+    const replay = await call<{ item: Detail }>(app, rep, 'POST', '/orders', body)
+    expect(replay.status).toBe(200)
+    expect(replay.body.item.id).toBe(id)
+    // the stale, field-missing row comes back byte-for-byte — that is what "replay" means — not a fresh detail
+    expect((replay.body.item.lines[0] as { variantName?: string }).variantName).toBeUndefined()
+  })
+
   it('submits: SO-0001, no flags so it confirms itself, and the 24 pieces are held', async () => {
     const res = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${orderOne}/submit`, {
       idempotencyKey: `submit-${run}`,
