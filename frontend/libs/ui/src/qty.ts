@@ -70,6 +70,28 @@ export function stepByCase(pieces: number, direction: 1 | -1, caseSize: number):
 }
 
 /**
+ * One tap of the pieces pad's quick +/- (DOS-085) — the piece twin of `stepByCase`: a single piece
+ * at a time, never below zero. Unlike `stepByCase` there is no upper step size to validate.
+ */
+export function stepPiece(pieces: number, direction: 1 | -1): number {
+  return Math.max(0, Math.trunc(pieces) + direction)
+}
+
+/**
+ * True when "one case less" would silently wipe LOOSE pieces rather than remove a whole case
+ * (DOS-085): "Campa Cola 750 ml — 0 cs + 18 pcs", tapping "−", removed the whole line with no
+ * confirmation, because `stepByCase(18, -1, 24)` is already 0 — there was no whole case to take
+ * off, only the odd pieces under it. A genuine whole-case decrement (>= 1 case today) still needs
+ * no asking, because emptying it is exactly what the button says it will do.
+ */
+export function caseStepNeedsConfirm(pieces: number, direction: 1 | -1, caseSize: number): boolean {
+  if (direction !== -1) return false
+  const whole = Math.max(0, Math.trunc(pieces))
+  if (whole <= 0) return false
+  return splitQty(whole, caseSize).cases === 0
+}
+
+/**
  * The stepper's state (UX-00 section 6.4). `overAvailable` is ACCEPTED, not blocked — the row says what
  * happens ("Only 14 cs available — rest short-supplied"); `blocked` is set by the caller from a
  * business rule (credit stop, minimum order) and always carries a reason.

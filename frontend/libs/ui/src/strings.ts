@@ -46,6 +46,16 @@ export const en = {
   'qty.decrease': 'One case less',
   'qty.increase': 'One case more',
   'qty.onlyAvailable': 'Only {cases} cs available — rest short-supplied',
+  // DOS-085: the loose-pieces pad and the "one case less at zero" confirm, on every QtyStepper.
+  'qty.piecesTitle': 'Pieces',
+  'qty.piecesLabel': 'How many pieces',
+  'qty.piecesInvalid': 'Enter a whole number of pieces',
+  'qty.pieceLess': 'One piece less',
+  'qty.pieceMore': 'One piece more',
+  'qty.piecesSet': 'Set pieces',
+  'qty.removeTitle': 'Remove this item',
+  'qty.removeBody': 'There is no whole case here, only {pieces} pc. Remove it from the order?',
+  'qty.remove': 'Remove',
 
   // Search (UX-00 section 6.5).
   'search.placeholder': 'Search items',

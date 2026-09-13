@@ -25,10 +25,12 @@ import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import { useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
+  Box,
   Button,
   EmptyState,
   Group,
   Money,
+  parsePieces,
   QtyStepper,
   Row,
   Screen,
@@ -36,13 +38,15 @@ import {
   Sheet,
   Stack,
   StatusChip,
+  stepPiece,
   TextInput,
   Txt,
   useColors,
   useStrings,
+  useViewport,
 } from '@dos/ui'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../src/api'
 import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
@@ -59,7 +63,15 @@ import {
   useShop,
   type CatalogItem,
 } from '../../src/lib/local'
-import { quoteOnDevice, type DraftLine } from '../../src/lib/pricing'
+import {
+  describePriceChange,
+  diffQuoteVsOrder,
+  formatCaseSummary,
+  quoteOnDevice,
+  summarizeCases,
+  type DraftLine,
+  type PriceChange,
+} from '../../src/lib/pricing'
 import { useGodownStock } from '../../src/lib/stock'
 import { OrderLineRow, Panel } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
@@ -87,6 +99,8 @@ export default function OrderEntry(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [bargainFor, setBargainFor] = useState<string | null>(null)
+  /** The variant whose "Pieces" sheet is open (DOS-085) — a typed exact count, not a case step. */
+  const [piecesFor, setPiecesFor] = useState<string | null>(null)
   const [placed, setPlaced] = useState<string | null>(null)
 
   /**
@@ -148,6 +162,15 @@ export default function OrderEntry(): React.JSX.Element {
 
   const enqueueOrder = useEnqueueOrder()
   const engine = useSyncEngine()
+  /*
+   * DOS-161: the native Screen pins its header and bottomBar around the ScrollView, so on an iPhone
+   * the header (context, title, chips) and a 3-line footer between them left only a 267-pt window —
+   * about one catalog row — and the line being edited slid under the footer. `native/layout.tsx` is
+   * out of bounds, so the fix shrinks what is pinned: off desk the header keeps only the shop name
+   * and the title (the status chips move down into the scrolling body) and the footer becomes one
+   * compact row instead of "Items · money · before GST".
+   */
+  const phone = useViewport().kind !== 'desk'
 
   const place = useMutation(
     async (_input: null, meta) => {
@@ -170,7 +193,7 @@ export default function OrderEntry(): React.JSX.Element {
           lines: draft.lines.filter((line) => line.qtyPcs > 0),
           catalog: byVariant,
         })
-        return { id: draft.id, queued: true as const }
+        return { id: draft.id, queued: true as const, priceChanges: [] as PriceChange[] }
       }
 
       /*
@@ -179,7 +202,7 @@ export default function OrderEntry(): React.JSX.Element {
        * both keys are derived from the ORDER's id, so a retry of a lost reply replays the same intent
        * instead of writing a second order.
        */
-      await api.api.orders.create({
+      const created = await api.api.orders.create({
         id: draft.id,
         idempotencyKey: `${draft.id}:create`,
         retailerId,
@@ -190,13 +213,20 @@ export default function OrderEntry(): React.JSX.Element {
         deviceId: deviceId(),
         lines,
       })
+      /*
+       * DOS-082: `create` re-prices from the same tables the device just quoted from, and its answer
+       * is what the order and the bill carry — never re-priced again here, and no contract change.
+       * This only NAMES what moved, from the two replies the screen already holds, before submit.
+       */
+      const priceChanges =
+        quote.result === null ? [] : diffQuoteVsOrder(quote.result.lines, created.item.lines)
       await api.api.orders.submit({
         id: draft.id,
         idempotencyKey: `${draft.id}:submit`,
         deviceId: deviceId(),
       })
       void meta
-      return { id: draft.id, queued: false as const }
+      return { id: draft.id, queued: false as const, priceChanges }
     },
     {
       invalidates: [['orders']],
@@ -223,104 +253,172 @@ export default function OrderEntry(): React.JSX.Element {
     )
   }
 
-  const totalPcs = draft.lines.reduce((sum, line) => sum + line.qtyPcs, 0)
+  /*
+   * DOS-129: each line in ITS OWN case size, never the first line's — a 24-pc case and a 48-pc case,
+   * 2 cs and 1 cs, is "3 cs", not 96 total pieces divided by whichever line happened to be added first.
+   */
+  const caseSummary = summarizeCases(
+    draft.lines.map((line) => ({
+      qtyPcs: line.qtyPcs,
+      caseSize: byVariant.get(line.variantId)?.caseSize ?? 1,
+    })),
+  )
   const netPaise = quote.result?.totals.netPaise ?? 0
   const discountPaise = quote.result?.totals.discountPaise ?? 0
+
+  /** The header's status row (DOS-161): pinned above the scroll at desk width, scrolled with the body off it. */
+  const orderChips = (
+    <Row gap={2} wrap>
+      <StatusChip
+        label={t('s3.linesCount', { count: draft.lines.length })}
+        family="neutral"
+        figure
+      />
+      {discountPaise > 0 ? (
+        <StatusChip
+          label={t('s3.schemeTotal', { amount: formatINR(paise(discountPaise)) })}
+          family="clay"
+          figure
+        />
+      ) : null}
+      {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
+    </Row>
+  )
+
+  /*
+   * `fullWidth` differs by branch: the desk row wraps, so a full-width button on its own line is
+   * fine; the phone row does not (see the merge-review blocker on `bottomBar` below) — a full-width
+   * `Button` there takes the whole row by flex basis and the money `Txt` beside it is squeezed to a
+   * sliver, which is exactly the figure a rep reads out across the counter.
+   */
+  const renderPlaceButton = (fullWidth: boolean): React.JSX.Element => (
+    <Button
+      testID="place-order"
+      variant="primary"
+      fullWidth={fullWidth}
+      /*
+       * The verb is the truth about what this tap does, and it changes with the radio: with
+       * signal it PLACES the order (numbered, credit-checked); without one it saves it on the
+       * phone and nothing has reached the office. `successLabel` is deliberately not used —
+       * the kit renders it in place of the label from the first frame, so a button that
+       * declares one reads "Order placed" before anybody has tapped it.
+       */
+      label={
+        placed !== null
+          ? local.online
+            ? t('s3.placed')
+            : t('s3.queued')
+          : local.online
+            ? t('s3.place')
+            : t('s3.queue')
+      }
+      disabled={draft.lines.length === 0 || placed !== null}
+      disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
+      loading={place.status === 'pending'}
+      onPress={() => {
+        place.mutate(null)
+      }}
+    />
+  )
 
   return (
     <Screen
       title={t('s3.title')}
       context={shop.name}
-      chips={
-        <Row gap={2} wrap>
-          <StatusChip
-            label={t('s3.linesCount', { count: draft.lines.length })}
-            family="neutral"
-            figure
-          />
-          {discountPaise > 0 ? (
-            <StatusChip
-              label={t('s3.schemeTotal', { amount: formatINR(paise(discountPaise)) })}
-              family="clay"
-              figure
-            />
-          ) : null}
-          {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
-        </Row>
-      }
+      chips={phone ? undefined : orderChips}
       bottomBar={
-        <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
-          <Stack gap={1}>
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('s3.summary', {
-                lines: draft.lines.length,
-                qty: formatQty(pieces(totalPcs), caseSizeOf(draft.lines, byVariant)),
-              })}
-            </Txt>
-            <Money value={netPaise} size="moneyL" />
+        phone ? (
+          /*
+           * DOS-161: one row, not the desk's 3-line stack — the fixed header and footer around the
+           * native ScrollView already cost 267 pt on an iPhone with the old footer, one catalog row.
+           * The "before GST" caution (see the desk branch) still applies; it is said inline here.
+           */
+          <Row gap={3} justify="between" align="center" padX={4} padY={2}>
             {/*
-              BEFORE GST, AND IT SAYS SO.
-
-              `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
-              SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
-              HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
-              compute the tax. Printing the net as if it were the total is what a rep would read out
-              across the counter, and it would be ₹2,285 short of the bill.
+              Merge-review blocker (lean-sales-entry): a full-width `Button` in a non-wrapping `Row`
+              takes the row by flex basis, squeezing this `Txt` to a sliver — the money figure the
+              rep reads across the counter. `Box grow` gives the text the shrinkable, growable half
+              of the row instead, and `fullWidth={false}` below lets the button size to its label.
             */}
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('s3.beforeGst')}
-            </Txt>
-          </Stack>
-          <Button
-            testID="place-order"
-            variant="primary"
-            /*
-             * The verb is the truth about what this tap does, and it changes with the radio: with
-             * signal it PLACES the order (numbered, credit-checked); without one it saves it on the
-             * phone and nothing has reached the office. `successLabel` is deliberately not used —
-             * the kit renders it in place of the label from the first frame, so a button that
-             * declares one reads "Order placed" before anybody has tapped it.
-             */
-            label={
-              placed !== null
-                ? local.online
-                  ? t('s3.placed')
-                  : t('s3.queued')
-                : local.online
-                  ? t('s3.place')
-                  : t('s3.queue')
-            }
-            disabled={draft.lines.length === 0 || placed !== null}
-            disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
-            loading={place.status === 'pending'}
-            onPress={() => {
-              place.mutate(null)
-            }}
-          />
-        </Row>
+            <Box grow>
+              <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
+                {t('s3.summaryCompact', {
+                  lines: draft.lines.length,
+                  amount: formatINR(paise(netPaise)),
+                })}
+              </Txt>
+            </Box>
+            {renderPlaceButton(false)}
+          </Row>
+        ) : (
+          <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
+            <Stack gap={1}>
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('s3.summary', {
+                  lines: draft.lines.length,
+                  qty: formatCaseSummary(caseSummary),
+                })}
+              </Txt>
+              <Money value={netPaise} size="moneyL" />
+              {/*
+                BEFORE GST, AND IT SAYS SO.
+
+                `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
+                SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
+                HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
+                compute the tax. Printing the net as if it were the total is what a rep would read out
+                across the counter, and it would be ₹2,285 short of the bill.
+              */}
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('s3.beforeGst')}
+              </Txt>
+            </Stack>
+            {renderPlaceButton(true)}
+          </Row>
+        )
       }
     >
       <Stack gap={5}>
+        {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
             title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
             meta={local.online ? t('s3.placedBody') : t('s3.queuedBody')}
           >
-            <Row gap={3} wrap>
-              <Button
-                label={t('s3.openOrder')}
-                onPress={() => {
-                  router.replace(`/orders/${placed}`)
-                }}
-              />
-              <Button
-                label={t('s3.backToBeat')}
-                variant="secondary"
-                onPress={() => {
-                  router.replace('/')
-                }}
-              />
-            </Row>
+            <Stack gap={3}>
+              {/*
+               * DOS-082: a price the office changed while the draft sat open lands silently
+               * otherwise — the shop hears one number and the bill carries another. `place.data` is
+               * the same reply `onSuccess` read to set `placed`, so this is never stale.
+               */}
+              {(place.data?.priceChanges.length ?? 0) === 0 ? null : (
+                <Stack gap={1}>
+                  <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                    {t('s3.pricesChanged')}
+                  </Txt>
+                  {place.data?.priceChanges.map((change) => (
+                    <Txt key={change.variantId} field="body" desk="body">
+                      {describePriceChange(change)}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
+              <Row gap={3} wrap>
+                <Button
+                  label={t('s3.openOrder')}
+                  onPress={() => {
+                    router.replace(`/orders/${placed}`)
+                  }}
+                />
+                <Button
+                  label={t('s3.backToBeat')}
+                  variant="secondary"
+                  onPress={() => {
+                    router.replace('/')
+                  }}
+                />
+              </Row>
+            </Stack>
           </Panel>
         ) : null}
 
@@ -417,8 +515,16 @@ export default function OrderEntry(): React.JSX.Element {
                           onChange={(pieces) => {
                             setQty(line.variantId, pieces, 'case', caseSize)
                           }}
+                          /*
+                           * DOS-085: opens THIS screen's own pieces sheet (below), rather than
+                           * routing an exact typed count through `onChange` — that prop is shared
+                           * with the case +/- buttons, which must stay labelled "case" downstream
+                           * (docs/17 A3), so a count the rep TYPED has to commit through a different
+                           * path to be labelled "piece" instead. The kit's stepper still gets the
+                           * "one case less asks first" behaviour for free either way.
+                           */
                           onOpenPieces={() => {
-                            setQty(line.variantId, line.qtyPcs + 1, 'piece', caseSize)
+                            setPiecesFor(line.variantId)
                           }}
                         />
                         <Row gap={2} wrap>
@@ -502,15 +608,25 @@ export default function OrderEntry(): React.JSX.Element {
         qtyPcs={draft.lines.find((line) => line.variantId === bargainFor)?.qtyPcs ?? 0}
         online={local.online}
       />
+
+      <PiecesSheet
+        open={piecesFor !== null}
+        onClose={() => {
+          setPiecesFor(null)
+        }}
+        itemName={
+          piecesFor === null ? '' : (byVariant.get(piecesFor)?.name ?? piecesFor.slice(0, 8))
+        }
+        initialPieces={draft.lines.find((line) => line.variantId === piecesFor)?.qtyPcs ?? 0}
+        onSet={(qtyPcs) => {
+          if (piecesFor === null) return
+          const caseSize = byVariant.get(piecesFor)?.caseSize ?? 1
+          setQty(piecesFor, qtyPcs, 'piece', caseSize)
+          setPiecesFor(null)
+        }}
+      />
     </Screen>
   )
-}
-
-/** The case size the summary line counts in — the first line's, which is what a rep is holding. */
-function caseSizeOf(lines: readonly DraftLine[], catalog: Map<string, CatalogItem>): number {
-  const first = lines[0]
-  if (first === undefined) return 1
-  return catalog.get(first.variantId)?.caseSize ?? 1
 }
 
 function schemeFooter(
@@ -537,6 +653,13 @@ function describeScheme(
   return parts.join(' · ')
 }
 
+/**
+ * Off desk, the availability chip moves onto the meta line and the trailing row keeps only the
+ * button (DOS-128 web 390×844, DOS-147 Android): with the chip AND the button both beside the
+ * growing name column, the trailing group ran 142–166 px plus 115 px on a 356 px row, leaving the
+ * name 32–56 px — "Camp / Col…" beside "Cam…". At desk width the row is unchanged: the chip still
+ * sits beside "Add a case", where a mouse-driven register has the room for it.
+ */
 function SuggestionRow({
   item,
   available,
@@ -548,6 +671,13 @@ function SuggestionRow({
 }): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
+  const phone = useViewport().kind !== 'desk'
+  const availabilityLabel =
+    available === undefined
+      ? null
+      : t('qty.available', { cases: Math.floor(available / Math.max(1, item.caseSize)) })
+  const metaParts = [item.brandName, t('s3.caseOf', { pieces: item.caseSize })]
+  if (phone && availabilityLabel !== null) metaParts.push(availabilityLabel)
   return (
     <Row
       gap={3}
@@ -562,22 +692,18 @@ function SuggestionRow({
         <Txt field="bodyStrong" desk="cell" numberOfLines={2}>
           {item.name}
         </Txt>
-        <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
-          {[item.brandName, t('s3.caseOf', { pieces: item.caseSize })]
-            .filter((part) => part !== null && part !== '')
-            .join(' · ')}
+        <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={phone ? 2 : 1}>
+          {metaParts.filter((part) => part !== null && part !== '').join(' · ')}
         </Txt>
       </Stack>
       <Row gap={2} align="center">
-        {available === undefined ? null : (
+        {!phone && availabilityLabel !== null ? (
           <StatusChip
-            label={t('qty.available', {
-              cases: Math.floor(available / Math.max(1, item.caseSize)),
-            })}
+            label={availabilityLabel}
             family={available === 0 ? 'brick' : 'neutral'}
             figure
           />
-        )}
+        ) : null}
         {/*
          * `fullWidth={false}` on purpose, as in warehouse-app/app/pick/index.tsx: an inline row action
          * sizes to its label. A kit `<Button>` fills its parent by default, and on native that
@@ -746,6 +872,85 @@ function BargainSheet({
           loading={request.status === 'pending'}
           onPress={() => {
             request.mutate({ askedRatePaise: askedPaise })
+          }}
+        />
+      </Stack>
+    </Sheet>
+  )
+}
+
+interface PiecesSheetProps {
+  open: boolean
+  onClose: () => void
+  itemName: string
+  /** This line's committed pieces at the moment the sheet opens — never live-updated while open. */
+  initialPieces: number
+  onSet: (qtyPcs: number) => void
+}
+
+/**
+ * S3 · the "Pieces" sheet (DOS-085): type an exact count ("18"), or nudge it a piece at a time —
+ * never only +1, and never routed through the stepper's shared `onChange` (see the comment beside
+ * `onOpenPieces` above). Follows the manager credit-notes pattern — a `TextInput` parsed with
+ * `parsePieces`, whole pieces only — rather than a bespoke keypad.
+ */
+function PiecesSheet({
+  open,
+  onClose,
+  itemName,
+  initialPieces,
+  onSet,
+}: PiecesSheetProps): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState(() => String(initialPieces))
+
+  // Fresh text every time the sheet opens — for THIS line's current count, never a stale value left
+  // over from a cancelled edit or from whichever line was open before.
+  useEffect(() => {
+    if (open) setText(String(initialPieces))
+  }, [open, initialPieces])
+
+  const parsed = parsePieces(text)
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('qty.piecesTitle')} testID="pieces-sheet">
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {itemName}
+        </Txt>
+        <TextInput
+          testID="pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          error={text.trim() !== '' && !parsed.ok ? t('qty.piecesInvalid') : undefined}
+        />
+        <Row gap={3}>
+          <Button
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!parsed.ok || parsed.pieces <= 0}
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, -1)))
+            }}
+          />
+          <Button
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            onPress={() => {
+              if (parsed.ok) setText(String(stepPiece(parsed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="pieces-set"
+          variant="primary"
+          label={t('qty.piecesSet')}
+          disabled={!parsed.ok}
+          onPress={() => {
+            if (parsed.ok) onSet(parsed.pieces)
           }}
         />
       </Stack>

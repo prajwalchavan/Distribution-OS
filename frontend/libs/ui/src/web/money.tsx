@@ -20,7 +20,15 @@ import {
   toEditableRupees,
   type MoneyPadKey,
 } from '../money.js'
-import { availableLine, caseLine, formatCount, qtyState, splitQty, stepByCase } from '../qty.js'
+import {
+  availableLine,
+  caseLine,
+  caseStepNeedsConfirm,
+  formatCount,
+  qtyState,
+  splitQty,
+  stepByCase,
+} from '../qty.js'
 import { useTheme } from '../theme.js'
 import {
   gap,
@@ -41,6 +49,7 @@ import type {
 } from '../types.js'
 import { Txt, typeStyle, useTypeStyle } from './base.js'
 import { Button } from './controls.js'
+import { Dialog } from './feedback.js'
 
 const FIELD_SIZE: Record<MoneySize, TypeToken> = {
   hero: typeField.hero,
@@ -457,6 +466,17 @@ export function QtyStepper({
   const q = splitQty(pieces, caseSize)
   const inactive = state === 'disabled'
 
+  /*
+   * DOS-085: "one case less at zero" asks before it wipes loose pieces, HERE in the kit, so every
+   * `QtyStepper` caller gets it the moment it opts in — a manager credit note, a delivery van sale, a
+   * retailer's own order, not just this screen. The loose-pieces PAD itself is the caller's own (the
+   * "Pieces" button below only calls `onOpenPieces`, unchanged from before this fix): typing an exact
+   * count is a different unit than a case step (docs/17 A3, "the unit is the rep's choice, not
+   * arithmetic"), and this component's single `onChange(pieces)` cannot say which one just happened —
+   * only the caller, which owns both code paths, can label the two differently downstream.
+   */
+  const [confirmZero, setConfirmZero] = useState(false)
+
   const stepperButton = (
     direction: 1 | -1,
     glyph: string,
@@ -468,6 +488,15 @@ export function QtyStepper({
       aria-label={label}
       disabled={off}
       onClick={() => {
+        /*
+         * "One case less" at zero whole cases would silently wipe whatever loose pieces sit there
+         * (18 pc of a 24-pc case -> 0) and remove the whole line — the rep meant to drop a case, not
+         * the line. A genuine whole-case decrement still needs no asking (`caseStepNeedsConfirm`).
+         */
+        if (caseStepNeedsConfirm(pieces, direction, caseSize)) {
+          setConfirmZero(true)
+          return
+        }
         onChange(stepByCase(pieces, direction, caseSize))
       }}
       style={{
@@ -558,6 +587,23 @@ export function QtyStepper({
           {schemeLabel}
         </span>
       ) : null}
+
+      {/* DOS-085: "one case less" at zero whole cases asks before it wipes the loose pieces. */}
+      <Dialog
+        open={confirmZero}
+        onClose={() => {
+          setConfirmZero(false)
+        }}
+        title={theme.t('qty.removeTitle')}
+        body={theme.t('qty.removeBody', { pieces: q.pieces })}
+        confirmLabel={theme.t('qty.remove')}
+        destructive
+        onConfirm={() => {
+          onChange(0)
+          setConfirmZero(false)
+        }}
+        testID={testID ? `${testID}-remove-confirm` : undefined}
+      />
     </div>
   )
 }
