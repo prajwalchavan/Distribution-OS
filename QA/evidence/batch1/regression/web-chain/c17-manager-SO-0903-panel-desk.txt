@@ -1,0 +1,222 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+15
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+Submitted
+✓ Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Confirmed
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0873
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	12,837.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-9003
+	
+Vitthal Traders
+	
+—
+	35.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+Rahul Deshmukh
+	17,736.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0867
+	
+Patil General Store
+	
+Rahul Deshmukh
+	5,367.00	Confirmed	
+—
+	
+12 Sep
+
+
+SO-0903
+	
+Balaji Wholesale Stores
+	
+Rahul Deshmukh
+	6,753.00	Confirmed	
+—
+	
+13 Sep
+
+
+SO-0897
+	
+Mahalaxmi General Stores
+	
+Rahul Deshmukh
+	1,375.00	Confirmed	
+Over credit limit, Bargain
+	
+13 Sep
+
+
+SO-0893
+	
+Ganpati General Stores
+	
+Rahul Deshmukh
+	33.00	Confirmed	
+—
+	
+13 Sep
+
+
+SO-0890
+	
+Ekvira Kirana
+	
+Rahul Deshmukh
+	98.00	Confirmed	
+Over credit limit
+	
+13 Sep
+
+
+SO-0888
+	
+Sai Krupa Super Bazar
+	
+Rahul Deshmukh
+	97.00	Confirmed	
+—
+	
+13 Sep
+
+9 rows			44,331.00			
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+SO-0898
+Asked rate
+₹20.14
+Approve
+Reject
+SO-0887
+Over credit limit
+₹854.00
+Approve
+Reject
+SO-0886
+Over credit limit
+₹10,119.00
+Approve
+Reject
+SO-0885
+Over credit limit
+₹5,855.00
+Approve
+Reject
+SO-0882
+Over credit limit
+₹2,336.00
+Approve
+Reject
+SO-0879
+Over credit limit
+₹32,030.00
+Approve
+Reject
+Shree Ganesh Kirana
+Asked rate
+₹13.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Order SO-0903
+Close
+Shop
+Balaji Wholesale Stores
+Credit
+Owes ₹7,20,804.00 · limit ₹10,00,000.00 · Clear
+State
+Confirmed
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 96 pc
+₹1,265.34
+1 cs · 72 pc
+₹2,406.07
+1 cs · 60 pc
+₹737.74
+3 cs · 144 pc
+Off the line
+₹2,344.08
+Subtotal
+₹5,805.84
+Discount
+₹82.77
+GST
+₹1,030.16
+Total
+₹6,753.00
+Held for this order
+15
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Cancel order
+2

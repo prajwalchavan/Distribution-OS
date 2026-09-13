@@ -1,0 +1,5 @@
+manager GET /delivery/deliveries?invoiceId=<INV/0830> -> {"items": [{"id": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab", "tripId": "dda35990-f442-7931-8da4-5808f09a33b6", "stopId": "49acc96c-933b-7f45-b5bb-63d01d3b2e7f", "orderId": "96b7d3d6-b581-798f-ac96-97c35e31f39c", "invoiceId": "80b30321-a74d-79e3-9a46-9d479e859494", "invoiceNo": "INV/0830", "retailerId":
+pod 01a09725-37ab-73c6-b663-2689ae8c343f kind=photo readUrl=/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg?expires=1789245380&signature=43a21309a9cf799aaae57b596ab8a0df2a74791ff70ba6174f60d535c4fbde45
+   http://localhost:5178 + readUrl -> 200 text/html 1299
+   http://127.0.0.1:3002 + readUrl -> 200 image/jpeg 20817
+pod 01a09725-37ab-73c7-b4ac-c548858f516d kind=geo readUrl=None

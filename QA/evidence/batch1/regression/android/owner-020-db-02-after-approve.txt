@@ -1,0 +1,16 @@
+after approving SO-0910's only (bargain) approval on Android as sunil.tarsun:
+approval:
+approved|sunil.tarsun|2026-09-13 04:44:12.569+05:30|QA android DOS-020 approve fixture bargain
+bargain_request:
+approved|5092|4480|4480|sunil.tarsun|2026-09-13 04:44:12.579+05:30|QA android DOS-020 approve fixture bargain
+order:
+SO-0910|confirmed|2026-09-13 04:44:12.644+05:30|136900
+transitions:
+draft|submitted|submit|amit.pawar|2026-09-13 04:33:13.069186+05:30
+submitted|confirmed|confirm|sunil.tarsun|2026-09-13 04:44:12.532268+05:30
+reservations:
+2|24|pending
+line rate after confirm (DOS-126 known):
+5092|136873|[]
+other pending approvals still pending (Om Sai untouched):
+pending|

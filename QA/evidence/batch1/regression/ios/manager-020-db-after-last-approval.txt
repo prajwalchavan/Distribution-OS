@@ -1,0 +1,10 @@
+== DOS-020 manager: after approving the LAST gate (credit_limit) of SO-0915 from its card on iOS, read 2026-09-13 07:57:34 IST
+credit_limit|approved|vikas.kadam|2026-09-13 07:57:27.979+05:30|QA iOS DOS-020 manager credit ok
+bargain|approved|vikas.kadam|2026-09-13 07:56:06.683+05:30|QA iOS DOS-020 manager bargain ok
+SO-0915|confirmed|2026-09-13 07:57:27.987+05:30
+draft|submitted|submit|rahul.deshmukh|2026-09-13 07:43:23.976907+05:30
+submitted|confirmed|confirm|vikas.kadam|2026-09-13 07:57:27.964928+05:30
+24|B20260902|pending
+-- manager-service POSTs after line 5624
+   1 "method":"POST","url":"/approvals/01a0988a-6da2-754c-ae5b-a7d3a08bfcaf/decide"
+"statusCode":200

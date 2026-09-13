@@ -1,0 +1,38 @@
+               now                
+----------------------------------
+ 2026-09-13 03:19:49.046669+05:30
+(1 row)
+
+ order_no |   state   |         cancelled_at          |                          cancel_reason                           | total_paise 
+----------+-----------+-------------------------------+------------------------------------------------------------------+-------------
+ SO-0907  | cancelled | 2026-09-13 03:19:19.998+05:30 | Shop asked to cancel - owner out of town, will reorder next week |      294100
+(1 row)
+
+ from_state | to_state  |  event  |    username    |                              reason                              |           occurred_at            
+------------+-----------+---------+----------------+------------------------------------------------------------------+----------------------------------
+ draft      | submitted | submit  | rahul.deshmukh |                                                                  | 2026-09-13 03:17:46.101167+05:30
+ submitted  | confirmed | confirm | rahul.deshmukh |                                                                  | 2026-09-13 03:17:46.101167+05:30
+ confirmed  | cancelled | cancel  | vikas.kadam    | Shop asked to cancel - owner out of town, will reorder next week | 2026-09-13 03:19:19.986441+05:30
+(3 rows)
+
+ state  | qty | batch_no  
+--------+-----+-----------
+ voided | 144 | B20260729
+(1 row)
+
+ batch_no  | on_hand | reserved 
+-----------+---------+----------
+ B20260729 |     720 |        0
+ B20260902 |     720 |        0
+(2 rows)
+
+ invoices_for_order 
+--------------------
+                  0
+(1 row)
+
+ ledger_rows 
+-------------
+           0
+(1 row)
+

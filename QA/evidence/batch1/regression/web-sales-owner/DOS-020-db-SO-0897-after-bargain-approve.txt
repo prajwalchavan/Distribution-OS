@@ -1,0 +1,14 @@
+-- snapshot taken at
+2026-09-13 01:59:33.443644+05:30
+-- SO-0897 after bargain approve
+SO-0897|submitted||2026-09-13 01:52:13.553259+05:30
+-- approvals
+01a09748-eb36-726e-9fd6-963549eab069|credit_limit|pending|||
+01a09748-eb36-726f-80cd-50cd5ac54ff3|bargain|approved|sunil.tarsun|2026-09-13 01:59:03.158+05:30|QA DOS-020 regression: rate ok for this order
+-- bargain
+approved|4554|4554|sunil.tarsun|2026-09-13 01:59:03.165+05:30|QA DOS-020 regression: rate ok for this order
+-- line
+5117|5117|137545
+-- reservations
+0
+-- audit rows today for these entities

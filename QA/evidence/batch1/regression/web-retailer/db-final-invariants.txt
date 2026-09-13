@@ -1,0 +1,14 @@
+-- intents created by this walker (paymentRef, amount, bills, retailer)
+2026-09-13 01:35:08.802979+05:30|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|PAY-5c0672c7d3e5|3584300|6
+2026-09-13 01:36:16.221348+05:30|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|PAY-5c9dfb7fcb7c|456100|1
+2026-09-13 01:39:27.97704+05:30|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|PAY-c978af6c6fdb|3584300|6
+2026-09-13 01:40:16.306808+05:30|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|PAY-aca184beb353|456100|1
+2026-09-13 01:48:16.929068+05:30|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|PAY-b47051fbf36d|3584300|6
+2026-09-13 01:49:18.753209+05:30|20059d26-8301-7f2a-9f72-29cc39ce7753|PAY-1d7ee34b537e|72080400|12
+-- invoice issue-time UPI snapshots (must be unchanged)
+INV/0433|1011900|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=10119.00&tr=INV-0433&cu=INR
+INV/0753|547200|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5472.00&tr=INV-0753&cu=INR
+-- receipts written by the two shop logins (must be 0) / receipts on R-0001 and R-0010
+0|25|24
+-- journal lines touching R-0001/R-0010 since this walk began (01:30 IST)
+0

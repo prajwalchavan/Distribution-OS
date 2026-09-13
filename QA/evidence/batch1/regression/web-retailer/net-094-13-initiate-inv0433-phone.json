@@ -1,0 +1,37 @@
+{
+  "url": "http://127.0.0.1:3006/receivables/payments/initiate",
+  "status": 200,
+  "request": {
+    "id": "01a0973d-ea42-7148-bc94-aca184beb353",
+    "idempotencyKey": "01a0973d-ea42-7149-8008-74fef7999547",
+    "amountPaise": 456100,
+    "invoiceIds": [
+      "ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e"
+    ]
+  },
+  "response": {
+    "intentId": "01a0973d-ea42-7148-bc94-aca184beb353",
+    "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+    "amountPaise": 456100,
+    "upiQrPayload": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=4561.00&tr=PAY-aca184beb353&tn=PAY-aca184beb353&cu=INR",
+    "upiIntentUrl": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=4561.00&tr=PAY-aca184beb353&tn=PAY-aca184beb353&cu=INR",
+    "payeeVpa": "tarsun@okhdfcbank",
+    "payeeName": "Tarsun Enterprise",
+    "paymentRef": "PAY-aca184beb353",
+    "expiresAt": "2026-09-12T20:40:16.321Z",
+    "bills": [
+      {
+        "id": "ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e",
+        "invoiceNo": "INV/0433",
+        "invoiceDate": "2026-07-30",
+        "dueDate": "2026-08-06",
+        "totalPaise": 1011900,
+        "openPaise": 456100,
+        "ageDays": 38,
+        "bucket": "b31_60",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "request": {
+    "url": "/warehouse/picklists/01a0972c-2d49-7417-9738-66edc95f2f21/pick",
+    "body": {
+      "idempotencyKey": "01a0972d-2417-7e8c-966a-6775ac82513b",
+      "id": "01a0972c-2d49-7417-9738-66edc95f2f21",
+      "deviceId": "47e2b40e-0232-43f8-bab8-5f5e0eeaf223",
+      "lines": [
+        {
+          "id": "01a0972c-2d72-7223-b7c6-e0a82e74bfd3",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "eb47d288-e1cf-7010-ad42-891c7b456585",
+          "pickedQtyPcs": 15
+        },
+        {
+          "id": "01a0972c-2d72-7224-80a9-e69d22414f29",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "4b264c94-b8cb-7993-beba-90d60ca05872",
+          "pickedQtyPcs": 8
+        },
+        {
+          "id": "01a0972c-2d72-7225-90b1-a2d75fdcaa3f",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "ac2c7bdb-ab27-7fb1-bf61-c66bc693515d",
+          "pickedQtyPcs": 8
+        },
+        {
+          "id": "01a0972c-2d72-7226-b67b-03a90d9c28bd",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "775e1599-85d6-7eae-80bb-58bf7d6c32b2",
+          "pickedQtyPcs": 12
+        },
+        {
+          "id": "01a0972c-2d72-7227-b6ff-965b6795ea44",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "2f6ae539-ef02-7466-8493-a843a450a003",
+          "pickedQtyPcs": 1
+        },
+        {
+          "id": "01a0972c-2d72-7228-8013-91d3e45b3a30",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "d2aeeaf1-33fa-7358-bbae-2f6fcd379a34",
+          "pickedQtyPcs": 17
+        },
+        {
+          "id": "01a0972c-2d72-7229-8bf6-b7dc22b33d93",
+          "orderLineId": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "lotId": "a8874996-d8aa-708e-9f44-1dc7a3dfd733",
+          "pickedQtyPcs": 17
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "response": {
+    "status": "picked",
+    "completedAt": "2026-09-12T19:51:53.125Z"
+  }
+}

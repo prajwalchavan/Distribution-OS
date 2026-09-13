@@ -1,0 +1,50 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Inbound
+✓ Queues
+Capture
+Stock
+Counts
+Held
+BILLS TO COUNT
+0
+WAVES OPEN
+2
+PACKED, NO BILL
+0
+SHEETS WAITING
+1
+GATE COUNTS WAITING
+0 lines
+Nothing at the gate
+WAVES ON THE FLOOR
+2 being picked · 0 waiting to start
+PICK-0080
+4 of 24 pc picked
+picking
+PICK-0078
+5926 of 7834 pc picked
+picking
+PACKED WITHOUT A BILL
+Every pack has its bill
+LOAD SHEETS
+MH-05-CD-5678 · 13 Sep
+1 order · 1 carton
+draft
+COUNTS OPEN
+No count open
+Fill rate, last 14 days
+31 Aug — 13 Sep
+96.1% of ordered pieces picked
+73,304 of 76,262 picked

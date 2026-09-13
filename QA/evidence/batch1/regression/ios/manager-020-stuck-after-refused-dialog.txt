@@ -1,0 +1,7 @@
+Manager app (DOS-029 build :5274), iOS 18.0 simulator, Expo Go, vikas.kadam — sequence 2026-09-13 07:48–07:53 IST
+1. Order Sheet SO-0915 open at top (manager-020-06). Tap "Approve" under "Over credit limit".
+   -> no dialog (manager-020-07, manager-020-08 after 6 s). UIKit log 07:48:44.919: "Attempt to present <RCTFabricModalHostViewController> ... which is already presenting <RCTFabricModalHostViewController>" (manager-020-ios-log-nested-modal.txt).
+2. Close the Sheet -> plain Orders list, the refused dialog never appears (manager-020-09).
+3. Scroll to "Waiting for a decision" card "SO-0915 · Over credit limit · ₹305.00" (not inside a Sheet) -> tap its Approve
+   -> still no dialog (manager-020-12); no new UIKit presentation line after 07:49:30; manager-service.log after line 5570: 0 POST.
+Reading: the decision Dialog's `open` stays true after iOS refused to present it, so a later setDeciding() changes nothing iOS re-presents; every decision on this screen is dead until the screen remounts (see relaunch test manager-020-13).

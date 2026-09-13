@@ -1,0 +1,33 @@
+### REQUEST  2026-09-12T19:46:57.344Z
+POST http://127.0.0.1:3002/credit-notes
+Authorization: Bearer <accessToken of vikas.kadam>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-e10-01a09728-a095-732e-a736-6d1f7eadb650",
+ "id": "01a09728-a095-732e-a736-6d1f7eadb650",
+ "invoiceId": "01a09728-9f08-72f7-a72b-6ec0a5b2d6df",
+ "reason": "return_damaged",
+ "note": "QA security regression control: saleable false stated",
+ "autoIssue": true,
+ "lines": [
+  {
+   "id": "01a09728-a095-7635-8627-c2bdb5b4fd46",
+   "invoiceLineId": "01a09728-9f08-72f8-afcc-c6f220cd0222",
+   "qtyPcs": 2,
+   "saleable": false
+  }
+ ]
+}
+
+### RESPONSE
+HTTP/1.1 200 OK
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 1554
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:46:57 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"item":{"id":"01a09728-a095-732e-a736-6d1f7eadb650","creditNoteNo":"CN/9006","seriesCode":"CN","fy":"2026-27","noteDate":"2026-09-13","invoiceId":"01a09728-9f08-72f7-a72b-6ec0a5b2d6df","invoiceNo":"INV/9007","retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","reason":"return_damaged","state":"issued","deliveryId":null,"isInterState":false,"taxablePaise":2902,"cgstPaise":174,"sgstPaise":174,"igstPaise":0,"cessPaise":0,"roundOffPaise":50,"totalPaise":3300,"irn":null,"pdfObjectKey":null,"issuedBy":"a1cbd424-d568-7ccb-b5cc-b049e8ac2063","issuedAt":"2026-09-12T19:46:57.313Z","note":"QA security regression control: saleable false stated","createdAt":"2026-09-12T19:46:57.304Z","lines":[{"id":"01a09728-a095-7635-8627-c2bdb5b4fd46","invoiceLineId":"01a09728-9f08-72f8-afcc-c6f220cd0222","variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","description":"Balaji Masala Masti Wafers 45 g","hsnCode":"2106","qtyPcs":2,"saleable":false,"ratePaise":1451,"taxablePaise":2902,"gstBps":1200,"taxPaise":348,"lineTotalPaise":3250}],"seller":{"displayName":"Tarsun Enterprise","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","fssai":null,"address":null,"logoObjectKey":"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789328817&signature=03b416aad62f51e992346c158d54093972e781f7c4741985b90ac3b8040c16ad","invoiceFooter":"Tarsun Enterprise — Wholesale & Distribution · GSTIN 27CNGPP9039R1ZX","upiVpa":"tarsun@okhdfcbank"}}}

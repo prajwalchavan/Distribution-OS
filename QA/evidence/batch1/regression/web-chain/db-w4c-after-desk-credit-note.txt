@@ -1,0 +1,28 @@
+               now                
+----------------------------------
+ 2026-09-13 03:53:19.554753+05:30
+(1 row)
+
+ credit_note_no |     reason     | state  | total_paise |           issued_at           
+----------------+----------------+--------+-------------+-------------------------------
+ CN/9008        | return_damaged | issued |      124100 | 2026-09-13 03:47:52.57+05:30
+ CN/9010        | return_damaged | issued |       10600 | 2026-09-13 03:53:13.979+05:30
+(2 rows)
+
+ credit_note_no | qty_pcs | saleable 
+----------------+---------+----------
+ CN/9008        |      36 | f
+ CN/9010        |       6 | f
+(2 rows)
+
+ credit_note_no |       reason        |         name         |  kind   | sum 
+----------------+---------------------+----------------------+---------+-----
+ CN/9008        | sale_return_damaged | Damaged / expiry bin | damaged |  36
+ CN/9010        | sale_return_damaged | Damaged / expiry bin | damaged |   6
+(2 rows)
+
+ outstanding_paise | open_bills |            updated_at            
+-------------------+------------+----------------------------------
+          14633200 |          6 | 2026-09-13 03:53:14.056965+05:30
+(1 row)
+

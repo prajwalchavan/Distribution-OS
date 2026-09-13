@@ -1,0 +1,6 @@
+-- SQL read-only 2026-09-12T19:42:43.449Z wave 01a09724-c03e-7940-979d-0f197d433b4e
+picklist|PICK-0081|picking|2026-09-13 01:12:43.426+05:30
+pick_line|01a09724-c056-7603-b404-7fff7ff94144|6|0||
+order W|SO-0892|picking
+sync_errors|picklist_not_started|Picklist PICK-0081 has not been started; start it before picking|2026-09-13 01:12:43.313922+05:30
+sync_errors|pick_rejected|batch GK20260721 on PICK-0081 asks for 6 pcs; 20 were picked|2026-09-13 01:12:43.445689+05:30

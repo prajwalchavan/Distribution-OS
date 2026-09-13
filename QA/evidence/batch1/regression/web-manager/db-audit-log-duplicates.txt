@@ -1,0 +1,11 @@
+-- load_sheet.approve rows per sheet (all tenants)
+01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|1|1|2026-09-13 02:35:01.258211+05:30
+-- actions with same entity+actor+occurred_at written more than once (last 24h)
+-- single-row actions (last 24h)
+report.export.request|3
+retailer.set_credit|2
+gps.live_map_read|2
+test.audit|2
+retailer.update_own|1
+load_sheet.approve|1
+support.approve|1

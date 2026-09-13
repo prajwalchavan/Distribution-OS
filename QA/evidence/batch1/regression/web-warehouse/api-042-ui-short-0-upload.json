@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "request": {
+    "protocol": 1,
+    "deviceId": "01a0971d-2fc6-768b-9a9c-62692c1cd8e8",
+    "ops": [
+      {
+        "opId": "01a09729-9356-7672-9fd2-b024a49711ad",
+        "op": "PUT",
+        "table": "pick_lines",
+        "id": "01a09725-59f9-7503-aa54-eca6c465bc96",
+        "data": {
+          "picklist_id": "01a09725-59d4-75ef-b394-00cbd634ff63",
+          "order_id": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "order_line_id": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "variant_id": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "line_no": 1,
+          "lot_id": "a785eb6a-8a3b-763c-988c-27ab2c258262",
+          "requested_qty_pcs": 12,
+          "picked_qty_pcs": 0,
+          "free_qty_pcs": 0,
+          "case_size": 48,
+          "short_reason": "Batch held back"
+        },
+        "baseUpdatedAt": "2026-09-12T19:43:22.624Z",
+        "clientTime": "2026-09-12T19:47:59.446Z"
+      }
+    ]
+  },
+  "response": {
+    "accepted": 1,
+    "replayed": 0,
+    "rejected": [],
+    "warnings": [],
+    "upgradeRequired": false
+  }
+}

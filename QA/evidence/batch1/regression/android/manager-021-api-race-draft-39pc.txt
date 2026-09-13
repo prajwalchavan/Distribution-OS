@@ -1,0 +1,19 @@
+### REQUEST 2026-09-13T00:11:12.202Z
+POST http://127.0.0.1:3000/auth/login
+
+{"username":"vikas.kadam","password":"<redacted>","deviceId":"6e8f3f9a-fb7c-4c17-a395-5782d783e62f","deviceName":"QA android-manager DOS-021 race","platform":"web"}
+
+### RESPONSE
+HTTP 200
+{"accessToken":"<redacted>","tokenType":"Bearer","accessExpiresIn":900,"refreshToken":"<redacted>","refreshExpiresAt":"2026-10-13T00:11:12.311Z","user":{"id":"a1cbd424-d568-7ccb-b5cc-b049e8ac2063","username":"vikas.kadam","name":"Vikas Kadam","locale":"mr-IN","mustChangePassword":false},"tenant":{"id":"01a0947d-7a79-75d2-bfff-97e499a58d49","slug":"tarsun","legalName":"M/s. Tarsun Enterprise","displayName":"Tarsun Enterprise","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789344672&signature=4acfdcc9bee40c4726c2ca624cea120275613a00ac0ba4ce865fdea87645c61a"},"role":"manager","memberships":[{"tenantId":"01a0947d-7a79-75d2-bfff-97e499a58d49","tenantSlug":"tarsun","tenantName":"M/s. Tarsun Enterprise","displayName":"Tarsun Enterprise","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789344672&signature=4acfdcc9bee40c4726c2ca624cea120275613a00ac0ba4ce865fdea87645c61a","role":"manager","status":"active"}]}
+
+### REQUEST 2026-09-13T00:11:12.368Z
+POST http://127.0.0.1:3002/credit-notes
+Authorization: Bearer <accessToken of vikas.kadam>
+
+{"id":"01a0981a-8e6f-725c-8f05-2cdec78e45f4","idempotencyKey":"01a0981a-8e70-7816-8148-5fb10662322e","invoiceId":"fe8797c2-ebae-7959-80f6-3a80a6514077","reason":"return_saleable","note":"QA android-manager DOS-021 race draft (to be cancelled)","lines":[{"id":"01a0981a-8e70-7a5c-b5bf-b2dd4a8bae70","invoiceLineId":"b5b1083e-99df-7943-9cf1-0fc9aa016a41","qtyPcs":39,"saleable":true}]}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a0981a-8e6f-725c-8f05-2cdec78e45f4","creditNoteNo":null,"seriesCode":"CN","fy":"2026-27","noteDate":"2026-09-13","invoiceId":"fe8797c2-ebae-7959-80f6-3a80a6514077","invoiceNo":"INV/0634","retailerId":"3835fbcd-33cb-7c4a-930c-b7e3a34e0dfd","reason":"return_saleable","state":"draft","deliveryId":null,"isInterState":false,"taxablePaise":29172,"cgstPaise":2625,"sgstPaise":2625,"igstPaise":0,"cessPaise":0,"roundOffPaise":-22,"totalPaise":34400,"irn":null,"pdfObjectKey":null,"issuedBy":null,"issuedAt":null,"note":"QA android-manager DOS-021 race draft (to be cancelled)","createdAt":"2026-09-13T00:11:12.397Z","lines":[{"id":"01a0981a-8e70-7a5c-b5bf-b2dd4a8bae70","invoiceLineId":"b5b1083e-99df-7943-9cf1-0fc9aa016a41","variantId":"af45e021-a167-7d3f-a8f0-60ab037214cb","description":"Sunbake Glucose 55 g","hsnCode":"1905","qtyPcs":39,"saleable":true,"ratePaise":748,"taxablePaise":29172,"gstBps":1800,"taxPaise":5250,"lineTotalPaise":34422}],"seller":{"displayName":"Tarsun Enterprise","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","fssai":null,"address":null,"logoObjectKey":"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789344672&signature=4acfdcc9bee40c4726c2ca624cea120275613a00ac0ba4ce865fdea87645c61a","invoiceFooter":"Tarsun Enterprise — Wholesale & Distribution · GSTIN 27CNGPP9039R1ZX","upiVpa":"tarsun@okhdfcbank"}}}
+

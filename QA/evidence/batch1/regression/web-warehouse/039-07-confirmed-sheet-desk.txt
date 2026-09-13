@@ -1,0 +1,113 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+12 Sep
+MH-05-AB-1234
+confirmed
+Approved · 12 Sep, 12:10 pm
+E-way bill 381012345678
+ORDERS ON THIS SHEET
+Expected 38
+Gupta Kirana Stores
+SO-0878 · Cartons 7
+INV/0840
+Rameshwar General Store
+SO-0876 · Cartons 12
+INV/0839
+Balaji Wholesale Stores
+SO-0875 · Cartons 12
+INV/0838
+Kadam Stores
+SO-0871 · Cartons 4
+INV/0837
+Meghana General Store
+SO-0869 · Cartons 3
+INV/0836
+WHAT GOES ON THE VEHICLE
+Balaji Chataka Pataka Wafers 45 g
+5 cs = 240 pc
+Exp 30 Jan 2027
+Balaji Ratlami Sev 200 g
+2 cs = 60 pc
+Exp 23 Dec 2026
+Balaji Simply Salted Wafers 45 g
+13 cs = 624 pc
+Exp 25 Jan 2027
+Campa Cola 1 L
+2 cs + 2 pc = 50 pc
+Exp 11 May 2027
+Campa Cola 750 ml
+13 cs + 13 pc = 325 pc
+Exp 19 May 2027
+Campa Lemon 750 ml
+6 cs + 6 pc = 150 pc
+Exp 20 May 2027
+Campa Lemon 750 ml
+10 cs + 10 pc = 250 pc
+Exp 6 Jun 2027
+Campa Orange 1 L
+5 cs + 5 pc = 125 pc
+Exp 30 May 2027
+Campa Orange 500 ml
+13 cs = 312 pc
+Exp 4 May 2027
+Campa Orange 750 ml
+3 cs + 3 pc = 75 pc
+Exp 20 May 2027
+Chamak Dishwash Bar 145 g
+42 pc
+Exp 3 Jun 2028
+Godavari Cow Ghee 1 L
+1 cs + 3 pc = 11 pc
+Exp 3 Sep 2027
+Godavari Dairy Whitener 200 g
+6 cs = 216 pc
+Exp 19 May 2027
+Konkan Kerala Banana Chips 40 g
+9 cs = 648 pc
+Exp 26 Dec 2026
+Konkan Masala Khakhra 180 g
+11 cs = 330 pc
+Exp 26 Dec 2026
+Masti Oye Tomato Twist 30 g
+4 cs + 38 pc = 230 pc
+Exp 24 Jan 2027
+Neelam Anti-Dandruff Shampoo 175 ml
+2 cs = 48 pc
+Exp 28 Jul 2028
+Rajwadi Aamras Mango Drink 600 ml
+7 cs = 168 pc
+Exp 26 Feb 2027
+Sunbake Butter Cookies 75 g
+10 cs = 720 pc
+Exp 27 Apr 2027
+Sunbake Glucose 110 g
+5 cs + 30 pc = 390 pc
+Exp 20 Apr 2027
+Sunbake Marie Light 300 g
+24 pc
+Exp 20 Apr 2027
+Sunbake Orange Cream 120 g
+14 cs = 840 pc
+Exp 27 Apr 2027
+Sunbake Salted Cracker 60 g
+48 pc
+Exp 23 Feb 2027
+Count the cartons
+Expected 38
+Counted 35
+QA regression DOS-039: counted 35 of 38 cartons at the gate
+Declared value
+₹1,50,147.00
+Print the challan
+A sheet is cancelled by the manager.
+Close

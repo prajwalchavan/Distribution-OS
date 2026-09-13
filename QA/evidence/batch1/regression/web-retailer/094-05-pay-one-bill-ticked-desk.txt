@@ -1,0 +1,51 @@
+Tarsun Enterprise
+retailer
+▾
+SHOP
+Home
+Place order
+My orders
+Offers
+MONEY
+Money due
+My bills
+Receipts
+Statement
+Returns
+YOU
+Messages
+My shop
+My account
+Updated just now
+RG
+Ramesh Gupta
+retailer
+Tarsun Enterprise
+Pay
+How much are you paying
+₹
+Leave it as it is to pay everything you owe
+WHICH BILLS
+Choose nothing and it goes against your oldest bills first.
+INV/0433
+Due 6 Aug 2026
+₹4,561.00
+Done
+INV/0468
+Due 10 Aug 2026
+₹9,376.00
+INV/0587
+Due 24 Aug 2026
+₹6,253.00
+INV/0617
+Due 27 Aug 2026
+₹6,870.00
+INV/0680
+Due 3 Sep 2026
+₹3,311.00
+INV/0753
+Due 10 Sep 2026
+₹5,472.00
+How much are you paying
+₹4,561.00
+Start the payment

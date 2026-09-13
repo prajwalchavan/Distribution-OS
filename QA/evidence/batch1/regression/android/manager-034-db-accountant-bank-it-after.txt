@@ -1,0 +1,8 @@
+# RCPT-0689 after the accountant's Bank it from the receipt Sheet on Android (2026-09-13T00:39:35Z)
+> select id, receipt_no, mode, amount_paise, trip_id, status, deposit_ref, deposited_at from receipts where tenant_id=(select id from tenants where slug='tarsun') and receipt_no='RCPT-0689'
+97b22d6a-d3ac-7e5f-ab64-9cde9a1a412c|RCPT-0689|cash|528100||deposited|DEP-QA-AND-034-ACC|2026-09-13 06:09:28.493+05:30
+> select je.id, je.ref_type, je.posted_at, a.code, jl.amount_paise, u.username from journal_entries je join journal_lines jl on jl.entry_id=je.id join accounts a on a.id=jl.account_id left join users u on u.id=je.posted_by where je.ref_type='deposit' and je.posted_at > now() - interval '3 minutes' order by je.posted_at, jl.amount_paise desc
+01a09834-7269-72c7-b98b-7db54f9abed5|deposit|2026-09-13 06:09:29.042338+05:30|BANK|528100|meena.joshi
+01a09834-7269-72c7-b98b-7db54f9abed5|deposit|2026-09-13 06:09:29.042338+05:30|CASH|-528100|meena.joshi
+> select count(*) from journal_entries where ref_type='deposit'
+98

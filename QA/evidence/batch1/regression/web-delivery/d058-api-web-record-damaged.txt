@@ -1,0 +1,58 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-13-ready-to-record-desk.png (939 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-14-after-record-desk.png (529 chars text)
+{
+ "caption": "Into the damaged / expiry bin",
+ "photoAttached": 1,
+ "url": "http://127.0.0.1:3005/delivery/deliveries",
+ "status": 200,
+ "post": {
+  "idempotencyKey": "01a09725-1db4-7703-b165-32bb915323e5",
+  "id": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab",
+  "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+  "stopId": "49acc96c-933b-7f45-b5bb-63d01d3b2e7f",
+  "invoiceId": "80b30321-a74d-79e3-9a46-9d479e859494",
+  "receiverName": "Shopkeeper at counter",
+  "deliveredAt": "2026-09-12T19:43:13.835Z",
+  "deviceId": "01a0971d-c860-7091-be07-883f043802ea",
+  "lines": [
+   {
+    "id": "01a09725-1dc2-773c-aecf-0370e9b6ed62",
+    "invoiceLineId": "88a690ee-05d7-7410-ad6c-b47411c564ca",
+    "deliveredQtyPcs": 360,
+    "returnedQtyPcs": 72,
+    "returnedSaleable": false,
+    "reason": "damaged"
+   },
+   {
+    "id": "01a09725-1dc2-773d-ad91-61d339dfe8d3",
+    "invoiceLineId": "92f84b75-a623-787f-a4b3-b352b7aec96a",
+    "deliveredQtyPcs": 156,
+    "returnedQtyPcs": 0,
+    "returnedSaleable": true
+   },
+   {
+    "id": "01a09725-1dc2-773e-85fa-2677eceec3ee",
+    "invoiceLineId": "2dbf2721-3de8-7bc9-84c6-184d344dc321",
+    "deliveredQtyPcs": 300,
+    "returnedQtyPcs": 0,
+    "returnedSaleable": true
+   }
+  ],
+  "pod": [
+   {
+    "id": "01a09725-37ab-73c6-b663-2689ae8c343f",
+    "kind": "photo",
+    "objectKey": "tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg"
+   },
+   {
+    "id": "01a09725-37ab-73c7-b4ac-c548858f516d",
+    "kind": "geo",
+    "lat": 19.238043,
+    "lng": 73.122265
+   }
+  ]
+ },
+ "body": "{\"item\":{\"id\":\"3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"49acc96c-933b-7f45-b5bb-63d01d3b2e7f\",\"orderId\":\"96b7d3d6-b581-798f-ac96-97c35e31f39c\",\"invoiceId\":\"80b30321-a74d-79e3-9a46-9d479e859494\",\"invoiceNo\":\"INV/0830\",\"retailerId\":\"5ea5255a-59c1-77ba-866c-6090446e2a38\",\"outcome\":\"partial\",\"deliveredBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"deliveredAt\":\"2026-09-12T19:43:13.835Z\",\"receiverName\":\"Shopkeeper at counter\",\"note\":null,\"deviceId\":\"01a0971d-c860-7091-be07-883f043802ea\",\"shortPcs\":72,\"returnedPcs\":72,\"creditNoteId\":\"01a09725-3800-716a-baa5-ba5c40ba715a\",\"podKinds\":[\"photo\",\"geo\"],\"createdAt\":\"2026-09-12T07:20:55.342Z\",\"lines\":[{\"id\":\"01a09725-1dc2-773c-aecf-0370e9b6ed62\",\"invoiceLineId\":\"88a690ee-05d7-7410-ad6c-b47411c564ca\",\"deliveredQtyPcs\":360,\"returnedQtyPcs\":72,\"returnedSaleable\":false,\"reason\":\"damaged\"},{\"id\":\"01a09725-1dc2-773d-ad91-61d339dfe8d3\",\"invoiceLineId\":\"92f84b75-a623-787f-a4b3-b352b7aec96a\",\"deliveredQtyPcs\":156,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null},{\"id\":\"01a09725-1dc2-773e-85fa-2677eceec3ee\",\"invoiceLineId\":\"2dbf2721-3de8-7bc9-84c6-184d344dc321\",\"deliveredQtyPcs\":300,\"returnedQtyPcs\":0,\"returnedSaleable\":true,\"reason\":null}],\"pod\":[{\"id\":\"01a09725-37ab-73c6-b663-2689ae8c343f\",\"deliveryId\":\"3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab\",\"kind\":\"photo\",\"objectKey\":\"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg\",\"payload\":null,\"lat\":null,\"lng\":null,\"capturedAt\":\"2026-09-12T19:43:13.835Z\",\"readUrl\":\"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg?expires=1789243094&signature=d484b5a50dbe51f4733974613adaa9af2bc083a9328101f56c0539762a340ee5\",\"readUrlExpiresAt\":\"2026-09-12T19:58:14.023Z\"},{\"id\":\"01a09725-37ab-73c7-b4ac-c548858f516d\",\"deliveryId\":\"3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab\",\"kind\":\"geo\",\"objectKey\":null,\"payload\":null,\"lat\":19.238043,\"lng\":73.122265,\"capturedAt\":\"2026-09-12T19:43:13.835Z\",\"readUrl\":null,\"readUrlExpiresAt\":null}],\"creditNote\":{\"id\":\"01a09725-3800-716a-baa5-ba5c40ba715a\",\"creditNoteNo\":\"CN/9004\",\"noteDate\":\"2026-09-13\",\"reason\":\"return_damaged\",\"state\":\"issued\",\"totalPaise\":126800}},\"stop\":{\"id\":\"49acc96c-933b-7f45-b5bb-63d01d3b2e7f\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"sequence\":8,\"retailerId\":\"5ea5255a-59c1-77ba-866c-6090446e2a38\",\"retailerName\":\"Laxmi Narayan Stores\",\"state\":\"partial\",\"failureReason\":null,\"failureNote\":null,\"plannedCollectionPaise\":2250800,\"etaAt\":\"2026-09-12T07:00:00.000Z\",\"startedAt\":\"2026-09-12T07:00:00.000Z\",\"arrivedAt\":\"2026-09-12T11:08:14.077Z\",\"completedAt\":\"2026-09-12T19:43:13.835Z\",\"arrivedLat\":19.238043,\"arrivedLng\":73.122265,\"vehicleRegNo\":\"MH-05-AB-1234\",\"deliveries\":[{\"id\":\"3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab\",\"invoiceId\":\"80b30321-a74d-79e3-9a46-9d479e859494\",\"invoiceNo\":\"INV/0830\",\"orderId\":\"96b7d3d6-b581-798f-ac96-97c35e31f39c\",\"invoiceTotalPaise\":2250800,\"outcome\":\"partial\",\"deliveredAt\":\"2026-09-12T19:43:13.835Z\",\"creditNoteId\":\"01a09725-3800-716a-baa5-ba5c40ba715a\"}],\"createdAt\":\"2026-09-12T03:00:00.000Z\"},\"creditNoteId\":\"01a09725-3800-716a-baa5-ba5c40ba715a\"}",
+ "afterUrl": "http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f"
+}
+[url] http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f

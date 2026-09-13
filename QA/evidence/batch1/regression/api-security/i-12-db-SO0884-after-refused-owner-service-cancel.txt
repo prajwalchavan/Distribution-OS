@@ -1,0 +1,9 @@
+-- (i) SO-0884 after the salesperson token's refused POST :3001/orders/{id}/cancel at ~01:05 IST (i-07). SQL read-only 2026-09-13 01:19:29 IST
+order|SO-0884|picking|||2026-09-13 01:12:15.055322+05:30
+transitions on SO-0884 since 2026-09-13 00:00 IST|1
+idempotency rows for key sec-i07-owner-cancel-probe|0
+
+-- detail of the transition(s) since midnight: who moved SO-0884 (a parallel walker's wave, not the refused cancel). SQL read-only 2026-09-13 01:19:46 IST
+transition|start_picking|confirmed|picking|5b6fbe87-cb70-7195-8de1-a4f5046c3675|dinesh.patil|warehouse|2026-09-13 01:12:15.038829+05:30
+cancel transitions on SO-0884 ever|0
+picklist holding SO-0884|PICK-0080|picking|2026-09-13 01:09:22.468018+05:30|2026-09-13 01:12:15.072+05:30

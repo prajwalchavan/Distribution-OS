@@ -1,0 +1,10 @@
+-- SO-0895 header
+SO-0895|submitted|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|2873760|57475|140814|2957100|["credit_limit"]|2026-09-13 01:48:24.439+05:30|
+-- lines
+1|934dd63c-a112-7fb7-91a1-376a90bf5fcf|20|case|240|11974|11974|57475|2957099|[{"kind": "scheme", "ruleId": "6ac23a1a-ce35-76d2-a002-3a7888fc1c65", "version": 1, "rewardKind": "order_pct", "amountPaise": 57475}]
+-- approvals
+01a09745-6c43-7253-8bbd-b744cffac8b7|credit_limit|sales_order|01a09744-98c7-71b7-b319-a11d9f20428c|pending|{"flag": "credit_limit", "orderNo": "SO-0895", "totalPaise": 2957100}
+-- transitions
+draft|submitted|2026-09-13 01:48:24.434271+05:30
+-- reservations
+0

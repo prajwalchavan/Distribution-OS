@@ -1,0 +1,7 @@
+Book it as a supplier bill |  | click=false | en=true | [94,860][985,929]
+Guiltfree Industries — Gurugram |  | click=false | en=true | [95,961][986,1019]
+This books a DRAFT supplier bill. Goods are received separately, at the gate. |  | click=false | en=true | [95,1050][986,1146]
+ | Book it as a supplier bill | click=true | en=true | [95,1178][986,1343]
+Book it as a supplier bill |  | click=false | en=true | [316,1231][765,1289]
+ | Cancel | click=true | en=true | [95,1375][986,1540]
+Cancel |  | click=false | en=true | [476,1428][605,1486]

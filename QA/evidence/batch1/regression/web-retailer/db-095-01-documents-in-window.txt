@@ -1,0 +1,11 @@
+-- R-0001 documents dated 2026-06-16..2026-09-13
+invoice|issued|2
+invoice|partially_paid|4
+invoice|paid|18
+receipt|collected|24
+receipt|deposited|1
+credit_note|issued|4
+-- enum values
+credit_note_state|draft,issued,applied,cancelled
+invoice_state|draft,issued,partially_paid,paid,written_off,cancelled
+receipt_status|collected,deposited,bounced,cancelled

@@ -1,0 +1,34 @@
+-- Rahul (8760e17e) newest 15 orders: order_no|state|shop|total_paise|created
+SO-0901|submitted|Shree Ganesh Kirana|2957100|2026-09-13 02:28:49.60415+05:30
+SO-0900|cancelled|Sai Krupa Super Bazar|135500|2026-09-13 02:24:03.933082+05:30
+SO-0899|confirmed|Mahalaxmi General Stores|137500|2026-09-13 02:24:03.639121+05:30
+SO-0897|confirmed|Mahalaxmi General Stores|137500|2026-09-13 01:52:13.514527+05:30
+SO-0896|cancelled|Sai Krupa Super Bazar|75500|2026-09-13 01:51:14.109894+05:30
+SO-0895|cancelled|Shree Ganesh Kirana|2957100|2026-09-13 01:48:24.356455+05:30
+SO-0893|confirmed|Ganpati General Stores|3300|2026-09-13 01:14:26.126379+05:30
+SO-0892|packed|Gupta Kirana Stores|9800|2026-09-13 01:09:55.675577+05:30
+SO-0891|cancelled|Sai Baba Kirana|9800|2026-09-13 01:09:55.519987+05:30
+SO-0890|confirmed|Ekvira Kirana|9800|2026-09-13 01:08:09.842477+05:30
+SO-0889|cancelled|Ganpati General Stores|9800|2026-09-13 01:08:09.773685+05:30
+(draft)|cancelled|Ganesh General Store|9800|2026-09-13 01:08:09.742214+05:30
+SO-0888|confirmed|Sai Krupa Super Bazar|9700|2026-09-13 01:08:09.569304+05:30
+SO-0884|picking|Laxmi Narayan Stores|30300|2026-09-12 18:06:23.043066+05:30
+SO-0883|packed|Om Sai Provision Store|78000|2026-09-12 18:00:09.096215+05:30
+-- Amit (efde1e76) newest 10 orders: order_no|state|shop|total_paise|id
+SO-0894|cancelled|Rameshwar General Store|61400|01a0973f-1152-7e10-85f7-4d66444f277d
+(draft)|draft|Gavhane Kirana|537600|39c6f032-fd27-7d15-b761-79cded32d0f8
+SO-0872|picking|Sahyadri Super Bazar|9031900|84f1fe62-9b23-7e28-bc44-728ba08774e6
+SO-0869|dispatched|Meghana General Store|707600|6b36c456-4cd9-7dde-83b8-903f735f6652
+SO-0876|dispatched|Rameshwar General Store|1802700|b72adff9-38cd-728e-9d4a-32f091a0f7e2
+SO-0870|cancelled|Nutan Kirana Stores|736100|6d53cb37-98d9-7675-bdce-c1f3ea4f1adc
+SO-0866|delivered|Rukmini Provision|2658100|d6fd4a9a-606c-7855-8e88-d3510adf38c7
+SO-0854|delivered|Prerna Super Market|7324500|3b8c86f8-417c-7206-afdb-f32cb80a06b3
+SO-0860|delivered|Nakshatra Kirana|475600|7c434e6c-ee80-7309-81da-2b3c36f0e9e2
+SO-0859|cancelled|New Bombay Stores|2829000|784f9186-1330-7a16-a2f7-668c9553132f
+-- tenant orders by salesperson (count)
+rahul.deshmukh|386
+amit.pawar|384
+(none)|64
+ruksana.shaikh|28
+sandeep.mane|26
+pooja.shinde|23

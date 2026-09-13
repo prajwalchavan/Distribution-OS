@@ -1,0 +1,20 @@
+### REQUEST 2026-09-13T00:14:49.480Z
+POST http://127.0.0.1:3002/credit-notes/01a0981a-8e6f-725c-8f05-2cdec78e45f4/cancel
+Authorization: Bearer <accessToken of vikas.kadam>
+
+{"id":"01a0981a-8e6f-725c-8f05-2cdec78e45f4","idempotencyKey":"01a0981d-de88-7efc-8062-5ffad686f5c7","reason":"QA regression android walk: test draft withdrawn"}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a0981a-8e6f-725c-8f05-2cdec78e45f4","creditNoteNo":null,"seriesCode":"CN","fy":"2026-27","noteDate":"2026-09-13","invoiceId":"fe8797c2-ebae-7959-80f6-3a80a6514077","invoiceNo":"INV/0634","retailerId":"3835fbcd-33cb-7c4a-930c-b7e3a34e0dfd","reason":"return_saleable","state":"cancelled","deliveryId":null,"isInterState":false,"taxablePaise":29172,"cgstPaise":2625,"sgstPaise":2625,"igstPaise":0,"cessPaise":0,"roundOffPaise":-22,"totalPaise":34400,"irn":null,"pdfObjectKey":null,"issuedBy":null,"issuedAt":null,"note":"QA android-manager DOS-021 race draft (to be cancelled)\ncancelled: QA regression android walk: test draft withdrawn","createdAt":"2026-09-13T00:11:12.397Z","lines":[{"id":"01a0981a-8e70-7a5c-b5bf-b2dd4a8bae70","invoiceLineId":"b5b1083e-99df-7943-9cf1-0fc9aa016a41","variantId":"af45e021-a167-7d3f-a8f0-60ab037214cb","description":"Sunbake Glucose 55 g","hsnCode":"1905","qtyPcs":39,"saleable":true,"ratePaise":748,"taxablePaise":29172,"gstBps":1800,"taxPaise":5250,"lineTotalPaise":34422}],"seller":{"displayName":"Tarsun Enterprise","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","fssai":null,"address":null,"logoObjectKey":"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789344889&signature=8bd7fcc5d92ed163faf16d6e2058091561afb7b7ae04a5f23277a8349058d2b0","invoiceFooter":"Tarsun Enterprise — Wholesale & Distribution · GSTIN 27CNGPP9039R1ZX","upiVpa":"tarsun@okhdfcbank"}}}
+
+### REQUEST 2026-09-13T00:14:49.551Z
+POST http://127.0.0.1:3002/credit-notes/01a0981c-0cb6-769f-8d14-6d36d2324233/cancel
+Authorization: Bearer <accessToken of vikas.kadam>
+
+{"id":"01a0981c-0cb6-769f-8d14-6d36d2324233","idempotencyKey":"01a0981d-decf-75be-9602-5fd99c51344b","reason":"QA regression android walk: test draft withdrawn"}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a0981c-0cb6-769f-8d14-6d36d2324233","creditNoteNo":null,"seriesCode":"CN","fy":"2026-27","noteDate":"2026-09-13","invoiceId":"fe8797c2-ebae-7959-80f6-3a80a6514077","invoiceNo":"INV/0634","retailerId":"3835fbcd-33cb-7c4a-930c-b7e3a34e0dfd","reason":"return_saleable","state":"cancelled","deliveryId":null,"isInterState":false,"taxablePaise":748,"cgstPaise":67,"sgstPaise":67,"igstPaise":0,"cessPaise":0,"roundOffPaise":18,"totalPaise":900,"irn":null,"pdfObjectKey":null,"issuedBy":null,"issuedAt":null,"note":"cancelled: QA regression android walk: test draft withdrawn","createdAt":"2026-09-13T00:12:50.379Z","lines":[{"id":"01a0981c-0cb8-7689-babf-09927afe581f","invoiceLineId":"b5b1083e-99df-7943-9cf1-0fc9aa016a41","variantId":"af45e021-a167-7d3f-a8f0-60ab037214cb","description":"Sunbake Glucose 55 g","hsnCode":"1905","qtyPcs":1,"saleable":true,"ratePaise":748,"taxablePaise":748,"gstBps":1800,"taxPaise":134,"lineTotalPaise":882}],"seller":{"displayName":"Tarsun Enterprise","legalName":"M/s. Tarsun Enterprise","gstin":"27CNGPP9039R1ZX","stateCode":"27","fssai":null,"address":null,"logoObjectKey":"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg","logoUrl":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789344889&signature=8bd7fcc5d92ed163faf16d6e2058091561afb7b7ae04a5f23277a8349058d2b0","invoiceFooter":"Tarsun Enterprise — Wholesale & Distribution · GSTIN 27CNGPP9039R1ZX","upiVpa":"tarsun@okhdfcbank"}}}
+

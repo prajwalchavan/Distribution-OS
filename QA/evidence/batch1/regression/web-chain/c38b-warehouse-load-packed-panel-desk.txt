@@ -1,0 +1,263 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Load
+Sheets
+Trips
+Check-in
+LOAD SHEETS
+MH-05-CD-5678
+28 Jul · Expected 39
+confirmed
+MH-05-EF-9012
+4 Aug · Expected 48
+confirmed
+MH-05-EF-9012
+3 Sep · Expected 54
+confirmed
+MH-05-AB-1234
+21 Jul · Expected 49
+confirmed
+MH-05-AB-1234
+17 Jul · Expected 65
+confirmed
+MH-05-AB-1234
+7 Sep · Expected 86
+confirmed
+MH-05-EF-9012
+25 Aug · Expected 59
+confirmed
+MH-05-AB-1234
+24 Jun · Expected 47
+confirmed
+MH-05-EF-9012
+29 Jun · Expected 108
+confirmed
+MH-05-CD-5678
+24 Aug · Expected 74
+confirmed
+MH-05-EF-9012
+14 Jul · Expected 91
+confirmed
+MH-05-EF-9012
+23 Jul · Expected 59
+confirmed
+MH-05-CD-5678
+8 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+10 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+30 Jul · Expected 63
+confirmed
+MH-05-EF-9012
+23 Jun · Expected 62
+confirmed
+MH-05-CD-5678
+12 Aug · Expected 65
+confirmed
+MH-05-AB-1234
+26 Aug · Expected 67
+confirmed
+MH-05-EF-9012
+29 Jul · Expected 62
+confirmed
+MH-05-EF-9012
+13 Aug · Expected 83
+confirmed
+MH-05-AB-1234
+30 Jun · Expected 67
+confirmed
+MH-05-CD-5678
+2 Sep · Expected 67
+confirmed
+MH-05-CD-5678
+16 Jul · Expected 42
+confirmed
+MH-05-AB-1234
+9 Jul · Expected 58
+confirmed
+MH-05-CD-5678
+25 Jul · Expected 67
+confirmed
+MH-05-EF-9012
+22 Aug · Expected 61
+confirmed
+MH-05-CD-5678
+21 Aug · Expected 56
+confirmed
+MH-05-CD-5678
+31 Jul · Expected 112
+confirmed
+MH-05-AB-1234
+1 Sep · Expected 80
+confirmed
+MH-05-AB-1234
+10 Jul · Expected 57
+confirmed
+Vehicle
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+PACKED ORDERS
+Dnyandeep Stores
+SO-0798 · Cartons 12
+INV/0768
+Navjeevan Super Bazar
+SO-0778 · Cartons 12
+INV/0751
+Birla Road Kirana Mart
+SO-0311 · Cartons 5
+INV/0297
+Rukmini Provision
+SO-0318 · Cartons 12
+INV/0304
+New Bombay Stores
+SO-0580 · Cartons 10
+INV/0558
+Ansari Kirana Stores
+SO-0259 · Cartons 1
+INV/0248
+Kolsewadi Corner Store
+SO-0429 · Cartons 7
+INV/0412
+Gavhane Kirana
+SO-0500 · Cartons 2
+INV/0482
+Shree Ganesh Kirana
+SO-0486 · Cartons 4
+INV/0468
+Balaji Wholesale Stores
+SO-0758 · Cartons 12
+INV/0731
+Dnyandeep Stores
+SO-0404 · Cartons 11
+INV/0388
+Ganpati General Stores
+SO-0258 · Cartons 5
+INV/0247
+Prerna Super Market
+SO-0067 · Cartons 12
+INV/0064
+Deshmukh Kirana
+SO-0075 · Cartons 3
+INV/0072
+Kolsewadi Corner Store
+SO-0716 · Cartons 2
+INV/0693
+Navjeevan Super Bazar
+SO-0330 · Cartons 12
+INV/0316
+Shivshakti Traders
+SO-0238 · Cartons 3
+INV/0228
+Anand Bhavan Provision
+SO-0660 · Cartons 7
+INV/0638
+Shree Ganesh Kirana
+SO-0149 · Cartons 1
+INV/0142
+Singh General Store
+SO-0802 · Cartons 2
+INV/0772
+Jai Bhavani Stores
+SO-0354 · Cartons 3
+INV/0340
+Hariom Kirana Bhandar
+SO-0314 · Cartons 3
+INV/0300
+Sahyadri Super Bazar
+SO-0598 · Cartons 12
+INV/0576
+Ansari Kirana Stores
+SO-0203 · Cartons 4
+INV/0193
+Deshmukh Kirana
+SO-0556 · Cartons 2
+INV/0534
+Shivshakti Traders
+SO-0386 · Cartons 3
+INV/0371
+Sharma Kirana Stores
+SO-0656 · Cartons 3
+INV/0634
+Anand Bhavan Provision
+SO-0764 · Cartons 6
+INV/0737
+Pawar General Store
+SO-0194 · Cartons 1
+INV/0184
+Gupta Kirana Stores
+SO-0089 · Cartons 5
+INV/0086
+Jai Bhavani Stores
+SO-0645 · Cartons 3
+INV/0623
+Nutan Kirana Stores
+SO-0736 · Cartons 4
+INV/0711
+Om Sai Provision Store
+SO-0165 · Cartons 12
+INV/0156
+Chavan Kirana Stores
+SO-0808 · Cartons 4
+INV/0778
+Sharma Kirana Stores
+SO-0635 · Cartons 3
+INV/0613
+Ganpati General Stores
+SO-0683 · Cartons 3
+INV/0661
+Ansari Kirana Stores
+SO-0542 · Cartons 4
+INV/0520
+Karve Provision
+SO-0395 · Cartons 2
+INV/0380
+Deshmukh Kirana
+SO-0011 · Cartons 4
+INV/0010
+Sharma Kirana Stores
+SO-0082 · Cartons 4
+INV/0079
+Anand Bhavan Provision
+SO-0368 · Cartons 2
+INV/0354
+Metro Kirana Bazar
+SO-0608 · Cartons 2
+INV/0586
+Trimurti General Store
+SO-0261 · Cartons 1
+INV/0250
+Pawar General Store
+SO-0843 · Cartons 3
+INV/0813
+Ganpati General Stores
+SO-0796 · Cartons 9
+INV/0766
+Balaji Wholesale Stores
+SO-0549 · Cartons 12
+INV/0527
+Ekvira Kirana
+SO-0213 · Cartons 1
+INV/0203
+Vasudha Stores
+SO-0233 · Cartons 3
+INV/0223
+Gavhane Kirana
+SO-0837 · Cartons 7
+INV/0807
+Balaji Wholesale Stores
+SO-0070 · Cartons 12
+INV/0067

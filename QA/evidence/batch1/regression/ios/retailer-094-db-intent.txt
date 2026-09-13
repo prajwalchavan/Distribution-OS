@@ -1,0 +1,18 @@
+After iOS 'Start the payment' at 07:00:01 (T0 06:58:59) — read 07:00:27 IST
+== PaymentIntentCreated since T0
+2026-09-13 07:00:01.794826+05:30|{"note": null, "intentId": "01a09862-688b-7712-b738-ee49e5da84c1", "invoiceIds": ["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e", "05a048e4-0561-737c-9ec3-4fbd14db6143", "b2868a89-7683-75ce-ba3a-b68adf32ddac", "3b2de6fb-b0c1-7185-9d31-334c75c71142", "4b373959-5a81-7121-8e39-448660e24717", "a924ae38-a82f-7ac8-8b3b-6ab11937e574"], "paymentRef": "PAY-ee49e5da84c1", "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36", "amountPaise": 3584300}
+== receipts for R-0001 since T0 (none expected)
+0
+== outstanding R-0001 now
+3584300|6
+== PaymentIntentCreated since 07:00:30 (second Start press at 07:01:01 on the unchanged form) — 07:01:30
+(empty = no new intent)
+initiate calls in retailer-service.log (all time): 16
+"time":1789263001785
+"time":1789263062363
+== one-bill intent (INV/0433 ticked, Start at 07:02:04) — read 07:02:31
+2026-09-13 07:02:05.376459+05:30|PAY-8e8b11f908a4|456100|["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e"]
+== INV/0433 id and open amount
+ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e|1011900|partially_paid
+== receipts for R-0001 since T0 06:58:59
+0

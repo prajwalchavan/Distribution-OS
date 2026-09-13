@@ -1,0 +1,34 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-07-stop8-phone.png (449 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-08-d4-open-phone.png (753 chars text)
+{
+ "reasonRows": 1,
+ "captionAfterMinus": "Can be sold again",
+ "chipBoxes": [
+  {
+   "t": "Shop refused it",
+   "x": 35,
+   "y": 591,
+   "w": 122,
+   "h": 69
+  },
+  {
+   "t": "Damaged",
+   "x": 159,
+   "y": 591,
+   "w": 89,
+   "h": 69
+  },
+  {
+   "t": "Past its date",
+   "x": 249,
+   "y": 591,
+   "w": 106,
+   "h": 69
+  }
+ ],
+ "pageOverflowX": false,
+ "caption_Damaged": "Into the damaged / expiry bin",
+ "caption_Past": "Into the damaged / expiry bin",
+ "caption_Refused": "Can be sold again"
+}
+[url] http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f/deliver?deliveryId=3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab

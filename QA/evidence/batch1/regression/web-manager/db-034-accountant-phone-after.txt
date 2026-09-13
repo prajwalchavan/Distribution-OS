@@ -1,0 +1,3 @@
+receipt|RCPT-0680|cheque|deposited|2026-09-13 02:45:52.934+05:30 | dep DEP-QA-034-ACC-PH | bounced -
+journal deposit|01a0977a-0b90-7759-a132-36221abb9ea7|DEP-QA-034-ACC-PH|BANK 1921300, CHEQUES -1921300
+journal receipt|f9a959ed-29be-7a21-b2e3-83bc34805494|Receipt for INV/0314 (Vaibhav Kirana Mart)|AR -1921300, CHEQUES 1921300

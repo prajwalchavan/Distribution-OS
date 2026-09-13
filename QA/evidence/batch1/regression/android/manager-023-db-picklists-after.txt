@@ -1,0 +1,13 @@
+# DOS-023 after making a sheet from SO-0911 on Android (2026-09-12T23:37:09Z)
+> select count(*) from picklists where tenant_id=(select id from tenants where slug='tarsun')
+90
+> select id, picklist_no, status, order_ids, assigned_to, created_at from picklists where tenant_id=(select id from tenants where slug='tarsun') order by created_at desc limit 3
+01a097f8-e09f-7377-9869-6da81af8843e|PICK-0090|open|["01a097ef-989c-74e0-a1b2-41ed87f44c10"]||2026-09-13 05:06:25.843264+05:30
+01a097b7-dd40-73eb-b179-49783c77063a|PICK-0089|picked|["26de3d20-189f-79a8-a4f8-0b983b6bb685"]||2026-09-13 03:53:24.14138+05:30
+01a0979c-7afb-763c-a19f-617ee1452f74|PICK-0088|packed|["01a0979b-f6bd-77a4-81c9-e0aff1a4d12f"]||2026-09-13 03:23:29.87743+05:30
+> select pl.id, pl.requested_qty_pcs, pl.picked_qty_pcs, pl.case_size, l.batch_no from pick_lines pl join picklists p on p.id=pl.picklist_id left join lots l on l.id=pl.lot_id where p.picklist_no='PICK-0090' and p.tenant_id=(select id from tenants where slug='tarsun') order by pl.line_no, pl.id
+ERROR:  relation "lots" does not exist
+LINE 1: ...join picklists p on p.id=pl.picklist_id left join lots l on ...
+                                                             ^
+> select order_no, state from sales_orders where id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+SO-0911|confirmed

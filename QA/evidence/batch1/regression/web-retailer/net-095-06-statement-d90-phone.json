@@ -1,0 +1,19 @@
+{
+  "rows": 53,
+  "lastRow": "RCPT-0687 | Payment · 12 Sep 2026 | Taken off | ₹4,443.00 | Balance | ₹35,843.00",
+  "closing": "Closing balance | ₹35,843.00 | A plus balance is money you still owe. A minus one is money with them.",
+  "partial": 0,
+  "gets": [
+    {
+      "q": "from=2026-06-16&to=2026-09-13&limit=200",
+      "status": 200,
+      "items": 53,
+      "next": null,
+      "closing": 3584300
+    }
+  ],
+  "scroll": [
+    390,
+    390
+  ]
+}

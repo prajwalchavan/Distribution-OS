@@ -1,0 +1,9 @@
+# INV/0634 after the corrected cleanup (2026-09-13T00:14:49Z)
+> select cn.id, cn.state, cnl.qty_pcs from credit_notes cn join credit_note_lines cnl on cnl.credit_note_id=cn.id where cn.invoice_id='fe8797c2-ebae-7959-80f6-3a80a6514077' order by cn.created_at
+01a0976d-77a8-71b0-a6d7-2d35711d1db6|cancelled|5
+01a0976e-932a-77a6-a554-d389e40cd730|cancelled|35
+01a09772-1b1a-7566-9552-a16865689008|cancelled|50
+01a0981a-8e6f-725c-8f05-2cdec78e45f4|cancelled|39
+01a0981c-0cb6-769f-8d14-6d36d2324233|cancelled|1
+> select count(*) from credit_notes where invoice_id='fe8797c2-ebae-7959-80f6-3a80a6514077' and state <> 'cancelled'
+0

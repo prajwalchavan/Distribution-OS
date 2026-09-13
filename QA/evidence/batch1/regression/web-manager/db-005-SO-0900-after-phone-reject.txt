@@ -1,0 +1,3 @@
+order|SO-0900|cancelled|approval_rejected | 2026-09-13 02:28:12.924+05:30
+approval bargain|01a09766-11e6-730f-9015-f55e91d39c7a|rejected|a1cbd424-d568-7ccb-b5cc-b049e8ac2063 | QA regression DOS-005 phone: list rate holds
+bargain|01a09766-11c5-7e3a-a849-cbce4d0f4c79|rejected|a1cbd424-d568-7ccb-b5cc-b049e8ac2063 | rate - | note QA regression DOS-005 phone: list rate holds

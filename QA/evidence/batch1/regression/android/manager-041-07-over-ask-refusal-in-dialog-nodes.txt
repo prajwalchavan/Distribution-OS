@@ -1,0 +1,7 @@
+Record what was picked |  | click=false | en=true | [94,808][985,877]
+1 rows |  | click=false | en=true | [95,909][986,967]
+batch RCP20260731 on PICK-0090 asks for 6 pcs; 24 were picked |  | click=false | en=true | [95,1081][986,1197]
+ | busy | click=true | en=true | [95,1229][986,1394]
+Record what was picked |  | click=false | en=true | [312,1282][768,1340]
+ | Cancel | click=true | en=true | [95,1425][986,1591]
+Cancel |  | click=false | en=true | [476,1478][605,1536]

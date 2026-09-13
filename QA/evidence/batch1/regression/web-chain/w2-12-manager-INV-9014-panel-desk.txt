@@ -1,0 +1,92 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+15
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+15 left to bill
+Billing desk
+Billing desk
+Bills issued
+7 days
+30 days
+90 days
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Any date, matching "INV/9014"
+Filters (1)
+Clear
+Bill no.	Date	Shop	Taxable ₹	GST ₹	Total ₹	Still due ₹	Payment
+
+INV/9014
+	
+13 Sep 2026
+	
+Sai Krupa Super Bazar
+	2,566.80	462.06	3,029.00	3,029.00	Issued
+1					3,029.00	3,029.00	
+j / k move · Enter open · p print
+Bill INV/9014
+Close
+Shop
+Sai Krupa Super Bazar
+Date
+13 Sep 2026
+Payment
+Issued
+Total ₹
+₹3,029.00
+Still due ₹
+₹3,029.00
+Lines
+Sunbake Salted Cracker 60 g
+12 pc
+·
+at
+₹7.47
+₹105.78
+Sunbake Salted Cracker 60 g
+24 pc
+·
+at
+₹7.47
+₹211.56
+Sunbake Salted Cracker 60 g
+60 pc
+·
+at
+₹7.47
+₹528.88
+Neelam Neem Soap 100 g
+31 pc
+·
+at
+₹25.69
+₹939.75
+Neelam Neem Soap 100 g
+41 pc
+·
+at
+₹25.69
+₹1,242.89
+Print the bill
+p
+Record the e-way bill
+Get the IRN
+Cancel the bill

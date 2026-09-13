@@ -1,0 +1,55 @@
+{
+  "url": "http://127.0.0.1:3004/warehouse/orders/01a09598-954f-7333-b0b1-bdac0006de22/pack",
+  "status": 200,
+  "request": {
+    "id": "01a09732-6fa2-723b-90a6-c526b07911f5",
+    "idempotencyKey": "01a09732-1281-71ab-8334-c7d4fc743eeb",
+    "packages": 1,
+    "issueInvoice": true
+  },
+  "response": {
+    "item": {
+      "id": "01a09732-6fa2-723b-90a6-c526b07911f5",
+      "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+      "picklistId": "01a09725-59d4-75ef-b394-00cbd634ff63",
+      "packages": 1,
+      "weightGrams": null,
+      "invoiceId": "01a09732-7026-72ae-a342-2e9236fa187a",
+      "shortPacked": true,
+      "packedBy": "5b6fbe87-cb70-7195-8de1-a4f5046c3675",
+      "packedAt": "2026-09-12T19:57:40.231Z"
+    },
+    "lines": [
+      {
+        "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+        "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+        "variantName": "Balaji Masala Masti Wafers 45 g",
+        "orderedQtyPcs": 48,
+        "packedQtyPcs": 35,
+        "shortQtyPcs": 13,
+        "lots": [
+          {
+            "lotId": "1c2f9ca2-f279-7b90-a467-6037f6ef865e",
+            "batchNo": "GK20260609",
+            "qtyPcs": 2
+          },
+          {
+            "lotId": "2f1b7955-7136-7f7c-a4c8-ebbc000a18bd",
+            "batchNo": "GK20260623",
+            "qtyPcs": 20
+          },
+          {
+            "lotId": "be48f377-8078-7814-893f-a826ccc2ed6a",
+            "batchNo": "GK20260602",
+            "qtyPcs": 13
+          }
+        ]
+      }
+    ],
+    "invoice": {
+      "id": "01a09732-7026-72ae-a342-2e9236fa187a",
+      "invoiceNo": "INV/9008",
+      "totalPaise": 56900
+    }
+  }
+}

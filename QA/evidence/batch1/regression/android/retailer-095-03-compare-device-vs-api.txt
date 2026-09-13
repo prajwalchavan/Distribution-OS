@@ -1,0 +1,9 @@
+api items 53 device entries 53 same order: True
+MISMATCH RCPT-0053 ₹27,876.00 ['RCPT-0053', 'Taken off', '₹5,242.00']
+MISMATCH RCPT-0293 ₹64,951.00 ['RCPT-0293', 'Taken off', '₹2,134.00']
+balances matched on device: 51 of 53
+api closing ₹35,843.00 last api balance ₹35,843.00 nextCursor None
+device closing line: ['Closing balance', '₹35,843.00'] | partial note present: False
+--- second look: rows whose context was cut at a page edge
+RCPT-0053 page 1 ['RCPT-0053', 'Taken off', 'Payment · 10 Jul 2026', '₹5,242.00', 'Balance', '₹27,876.00', 'INV/0283']
+RCPT-0293 page 4 ['RCPT-0293', 'Taken off', 'Payment · 8 Aug 2026', '₹2,134.00', 'Balance', '₹64,951.00', 'RCPT-0300']

@@ -1,0 +1,8 @@
+Book it as a supplier bill |  | click=false | en=true | [94,757][985,826]
+Guiltfree Industries — Gurugram |  | click=false | en=true | [95,858][986,916]
+This books a DRAFT supplier bill. Goods are received separately, at the gate. |  | click=false | en=true | [95,947][986,1043]
+a brand-DMS bill is committed through billing.invoices.importBrandDms (never a second legal invoice); docint keeps it reviewed |  | click=false | en=true | [95,1075][986,1249]
+ | busy | click=true | en=true | [95,1281][986,1447]
+Book it as a supplier bill |  | click=false | en=true | [316,1334][765,1392]
+ | Cancel | click=true | en=true | [95,1477][986,1642]
+Cancel |  | click=false | en=true | [476,1530][605,1588]

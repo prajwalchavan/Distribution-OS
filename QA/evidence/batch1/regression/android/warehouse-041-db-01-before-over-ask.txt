@@ -1,0 +1,5 @@
+sync_ops cols: tenant_id device_id op_id outcome created_at
+pick row SC20260618 before:
+01a097b7-dc26-72a6-8da0-0d6a9a7913c9|7|0||
+sync_ops last 15 min (tarsun):
+4

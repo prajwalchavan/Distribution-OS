@@ -1,0 +1,165 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+4
+Fulfilment
+Billing
+15
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0900
+	
+Sai Krupa Super Bazar
+	
+Rahul Deshmukh
+	1,355.00	Submitted	
+Bargain
+	
+13 Sep
+
+
+SO-0885
+	
+Shree Ganesh Kirana
+	
+—
+	5,855.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+
+SO-0882
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	2,336.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+
+SO-0879
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	32,030.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+4 rows			41,576.00			
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+SO-0900
+Asked rate
+₹44.85
+Approve
+Reject
+SO-0898
+Asked rate
+₹20.14
+Approve
+Reject
+SO-0887
+Over credit limit
+₹854.00
+Approve
+Reject
+SO-0886
+Over credit limit
+₹10,119.00
+Approve
+Reject
+SO-0885
+Over credit limit
+₹5,855.00
+Approve
+Reject
+SO-0882
+Over credit limit
+₹2,336.00
+Approve
+Reject
+SO-0879
+Over credit limit
+₹32,030.00
+Approve
+Reject
+Shree Ganesh Kirana
+Asked rate
+₹13.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Order SO-0899
+Close
+Shop
+Mahalaxmi General Stores
+Credit
+Owes ₹36,259.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit
+State
+Confirmed
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 24 pc
+₹1,375.45
+Subtotal
+₹1,228.08
+Discount
+₹0.00
+GST
+₹147.37
+Total
+₹1,375.00
+Held for this order
+2
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Cancel order
+2

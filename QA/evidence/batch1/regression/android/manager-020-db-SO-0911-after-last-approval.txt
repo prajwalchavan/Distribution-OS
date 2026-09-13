@@ -1,0 +1,14 @@
+# SO-0911 after the last approval (credit gate) was approved from the dialog opened inside the order Sheet on Android (2026-09-12T23:34:51Z)
+> select order_no, state, confirmed_at from sales_orders where id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+SO-0911|confirmed|2026-09-13 05:03:40.748+05:30
+> select a.kind, a.status, u.username, a.decided_at, a.decision_note from approvals a left join users u on u.id=a.decided_by where a.order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10' order by a.kind
+credit_limit|approved|vikas.kadam|2026-09-13 05:03:40.731+05:30|QA android DOS-020 credit ok
+bargain|approved|vikas.kadam|2026-09-13 05:02:02.268+05:30|QA android DOS-005 bQA android DOS-005 bargain okargain ok
+> select b.status, b.asked_rate_paise, b.approved_rate_paise, u.username from bargain_requests b left join users u on u.id=b.decided_by where b.order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+approved|4554|4554|vikas.kadam
+> select r.lot_id, r.qty, r.state from reservations r join sales_order_lines l on l.id=r.order_line_id where l.order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+1da5cced-f410-74c5-a2bd-ad837d6668f5|6|pending
+8cee081b-71ae-7943-99b5-8c18ec9e8486|18|pending
+> select * from order_state_transitions where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10' order by occurred_at
+01a097ef-999c-729d-ac7b-f1a3e072c9f4|01a0947d-7a79-75d2-bfff-97e499a58d49|01a097ef-989c-74e0-a1b2-41ed87f44c10|draft|submitted|submit|8760e17e-4830-7395-a946-1e02fffa1ad7|||2026-09-13 04:54:17.157431+05:30
+01a097f8-3392-76f0-9c72-f54c7f945177|01a0947d-7a79-75d2-bfff-97e499a58d49|01a097ef-989c-74e0-a1b2-41ed87f44c10|submitted|confirmed|confirm|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|||2026-09-13 05:03:40.661458+05:30

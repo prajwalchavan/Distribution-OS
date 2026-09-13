@@ -1,0 +1,1 @@
+LABEL: Receipt RCPT-0688, Shop, Pawar General Store, Mode, Cash, Amount ₹, 4914 rupees, On account ₹, 0 rupees, State, Collected, Put against, 8faa67d8-6066-7a7b-88b8-82bc7b2f2d64, 4914 rupees, Print the receipt, Bank it, Mark bounced, Only a cheque in hand or banked can bounce, Reverse the receipt, Horizontal scroll bar, 1 page, Vertical scroll bar, 2 pages, Close

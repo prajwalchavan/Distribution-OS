@@ -1,0 +1,28 @@
+               now                
+----------------------------------
+ 2026-09-13 03:14:47.607958+05:30
+(1 row)
+
+              name               |         loc          | on_hand | reserved 
+---------------------------------+----------------------+---------+----------
+ Balaji Masala Masti Wafers 45 g | Damaged / expiry bin |       2 |        0
+ Balaji Masala Masti Wafers 45 g | Godown               |     741 |       14
+ Chamak Dishwash Bar 145 g       | Godown               |     546 |        0
+ Neelam Sandal Soap 100 g        | Godown               |    1332 |        0
+ Sunbake Marie Light 75 g        | Damaged / expiry bin |      32 |        0
+ Sunbake Marie Light 75 g        | Godown               |     864 |        0
+(6 rows)
+
+ batch_no  | on_hand | reserved 
+-----------+---------+----------
+ B20260729 |      35 |        0
+(1 row)
+
+              name               | on_hand | reserved | available 
+---------------------------------+---------+----------+-----------
+ Balaji Masala Masti Wafers 45 g |     729 |        0 |       729
+ Chamak Dishwash Bar 145 g       |     546 |        0 |       546
+ Neelam Sandal Soap 100 g        |    1332 |        0 |      1332
+ Sunbake Marie Light 75 g        |     896 |        0 |       896
+(4 rows)
+

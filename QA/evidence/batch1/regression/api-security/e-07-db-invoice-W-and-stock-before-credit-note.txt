@@ -1,0 +1,5 @@
+-- SQL read-only. fixture W order 01a09722-30c7-722d-9091-88770c42d8bf, pack 01a09728-9eb0-764f-88ec-d860f0324102
+invoice|01a09728-9f08-72f7-a72b-6ec0a5b2d6df|INV/9007|issued|4ba7bda0-1083-731b-b352-50ecb7532489|9800
+invoice line|01a09728-9f08-72f8-afcc-c6f220cd0222|66b34c38-19ee-7e28-8c96-ad5364fc7b4f|GK20260721|6|0|1451
+-- stock balances before any credit note 2026-09-12T19:46:57.055Z
+balance|Godown|66b34c38-19ee-7e28-8c96-ad5364fc7b4f|13|0

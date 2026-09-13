@@ -1,0 +1,7 @@
+-- SO-0901 after the Android cancel (own order, positive control)
+SO-0901|cancelled|duplicate|2026-09-13 02:35:53.593+05:30
+-- transitions: event|from|to|actor|reason|at
+submit|draft|submitted|rahul.deshmukh||2026-09-13 02:28:49.792552+05:30
+cancel|submitted|cancelled|rahul.deshmukh|duplicate|2026-09-13 02:35:53.568282+05:30
+-- approvals on SO-0901
+credit_limit|expired|2026-09-13 02:35:53.593+05:30

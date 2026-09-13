@@ -1,0 +1,4 @@
+POST http://127.0.0.1:3004/warehouse/picklists/01a0989b-c9d4-7556-91eb-4c828d3cb7c1/start -> 200
+{"item":{"id":"01a0989b-c9d4-7556-91eb-4c828d3cb7c1","picklistNo":"PICK-0092","status":"picking","locationId":"01a0947d-7a96-723f-952d-338dd284a1b4","pickDate":"2026-09-13","tripId":null,"beatId":null,"note":null,"orderCount":1,"lineCount":1,"requestedQtyPcs":24,"pickedQtyPcs":0,"assignedTo":null,"startedAt":"2026-09-13T02:33:45.009Z","completedAt":null,"cancelledAt":null,"cancelReason":null,"crea
+PICK-0092|picking|2026-09-13 08:03:45.009+05:30
+SO-0914|picking

@@ -1,0 +1,20 @@
+               now               
+---------------------------------
+ 2026-09-13 03:41:55.32365+05:30
+(1 row)
+
+ERROR:  column "state" does not exist
+LINE 1: select receipt_no, mode, amount_paise, state, retailer_id, c...
+                                               ^
+HINT:  Perhaps you meant to reference the column "receipts.status".
+ table_name  
+-------------
+ allocations
+ collections
+(2 rows)
+
+ outstanding_paise | open_bills |        last_receipt_at        | last_receipt_paise |            updated_at            
+-------------------+------------+-------------------------------+--------------------+----------------------------------
+          72348300 |         13 | 2026-09-13 03:41:45.132+05:30 |             400000 | 2026-09-13 03:41:45.252485+05:30
+(1 row)
+

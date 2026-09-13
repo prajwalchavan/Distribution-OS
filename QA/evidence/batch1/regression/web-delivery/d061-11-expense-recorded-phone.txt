@@ -1,0 +1,29 @@
+Tarsun Enterprise
+delivery
+⋯
+Updated just now
+TRIP-ACTIVE
+Expenses
+₹120.00
+What for
+Diesel
+✓ Toll
+Parking
+Loading charges
+Food
+Repair
+Something else
+Amount
+₹
+Note
+Photograph the bill
+Today's expenses
+Toll
+13 Sep, 1:09 am · QA regression DOS-061 toll Kalyan bypass
+₹120.00
+Today's trip
+Expense recorded
+Spent on this trip
+₹120.00
+Record the expense
+Amount

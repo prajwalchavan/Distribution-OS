@@ -1,0 +1,152 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-03-cn9003-sheet-desk.png (2923 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-04-rcpt0626-first-tap-desk.png (2933 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-05-rcpt0626-reopened-desk.png (2925 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-06-rcpt0626-after-send-desk.png (2898 chars text)
+{
+ "cnSheet": {
+  "text": "CN/9003 | Close | Open | Print | Send on WhatsApp",
+  "buttons": [
+   "d9-paper-sheet",
+   "d9-paper-open",
+   "d9-paper-print",
+   "d9-paper-share"
+  ]
+ },
+ "cnRequests": [
+  {
+   "ms": 12202,
+   "m": "GET",
+   "type": "fetch",
+   "u": "http://127.0.0.1:3005/credit-notes/01a09532-f82f-736d-8bbc-e444a8b3cd48"
+  },
+  {
+   "ms": 12239,
+   "m": "GET",
+   "type": "fetch",
+   "u": "http://127.0.0.1:3005/files/read-url?objectKey=tenant%2F01a0947d-7a79-75d2-bfff-97e499a58d49%2Fdocuments%2Fcredit_note%2F01a09532-f82f-736d-8bbc-e444a8b3cd48.pdf"
+  }
+ ],
+ "cnOpen": {
+  "label": "credit note open",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/credit_note/01a09532-f82f-736d-8bbc-e444a8b3cd48.pdf?expires=1789243535&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 15302,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/credit_note/01a09532-f82f-736d-8bbc-e444a8b3cd48.pdf?expires=1789243535&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20550,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "sheetOpenAfterClose": 0,
+ "rcptFirstTap": {
+  "at": "2026-09-12T19:50:43.729Z",
+  "text": "RCPT-0626 | Close | The office is still making this PDF",
+  "buttons": [
+   "d9-paper-sheet",
+   "d9-paper-pdf-pending"
+  ],
+  "requests": [
+   {
+    "ms": 17612,
+    "m": "GET",
+    "type": "fetch",
+    "u": "http://127.0.0.1:3005/receipts/9f03dd6b-ef52-7176-9439-4e44339c3286/document?format=a5"
+   }
+  ]
+ },
+ "polls": [
+  {
+   "at": "2026-09-12T19:51:01.559Z",
+   "buttons": [
+    "d9-paper-sheet",
+    "d9-paper-pdf-pending"
+   ]
+  },
+  {
+   "at": "2026-09-12T19:51:19.353Z",
+   "buttons": [
+    "d9-paper-sheet",
+    "d9-paper-pdf-pending"
+   ]
+  },
+  {
+   "at": "2026-09-12T19:51:37.139Z",
+   "buttons": [
+    "d9-paper-sheet",
+    "d9-paper-pdf-pending"
+   ]
+  },
+  {
+   "at": "2026-09-12T19:51:54.931Z",
+   "buttons": [
+    "d9-paper-sheet",
+    "d9-paper-open",
+    "d9-paper-print",
+    "d9-paper-share"
+   ]
+  }
+ ],
+ "rcptOpen": {
+  "label": "receipt open",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf?expires=1789243612&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 91918,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf?expires=1789243612&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20263,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "rcptShare": {
+  "label": "receipt send",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf?expires=1789243612&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 93453,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf?expires=1789243612&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20263,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "afterShare": {
+  "toast": "Nothing was sent",
+  "sheetStillOpen": 0
+ }
+}
+[url] http://localhost:5177/share/89e7513d-3068-762d-8e9a-6060dca8d19f

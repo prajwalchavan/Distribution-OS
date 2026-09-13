@@ -1,0 +1,139 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Pick
+✓ Every beat
+Station Road
+Kalyan West Market
+ORDERS WAITING
+Select all
+Clear
+0 selected · 0 pc
+Shree Ganesh Kirana
+SO-0873 · Station Road · 163 pc
+confirmed
+Vitthal Traders
+SO-9003 · Kalyan West Market · 2 pc
+confirmed
+Laxmi Narayan Stores
+SO-0868 · Kalyan West Market · 566 pc
+confirmed
+Patil General Store
+SO-0867 · Kalyan West Market · 337 pc
+confirmed
+Ganpati General Stores
+SO-0889 · Kalyan West Market · 6 pc
+confirmed
+Sai Krupa Super Bazar
+SO-0888 · Station Road · 6 pc
+confirmed
+Laxmi Narayan Stores
+SO-0884 · Kalyan West Market · 24 pc
+confirmed
+Om Sai Provision Store
+SO-0883 · Station Road · 48 pc
+confirmed
+Navjeevan Super Bazar
+SO-0881 · Kalyan West Market · 78 pc
+confirmed
+WAVES
+PICK-0079
+676 of 750 pc picked
+picked
+PICK-0078
+5926 of 7834 pc picked
+picking
+PICK-0077
+5519 of 5519 pc picked
+picked
+PICK-0076
+8475 of 8475 pc picked
+packed
+PICK-0075
+3509 of 3509 pc picked
+packed
+PICK-0074
+5470 of 5470 pc picked
+packed
+PICK-0073
+7852 of 7852 pc picked
+packed
+PICK-0072
+6625 of 6625 pc picked
+packed
+PICK-0071
+5636 of 5636 pc picked
+packed
+PICK-0070
+4517 of 4517 pc picked
+packed
+PICK-0069
+3832 of 3832 pc picked
+packed
+PICK-0068
+7622 of 7622 pc picked
+packed
+PICK-0067
+8321 of 8321 pc picked
+packed
+PICK-0066
+4436 of 4436 pc picked
+packed
+PICK-0065
+8205 of 8205 pc picked
+packed
+PICK-0064
+4244 of 4244 pc picked
+packed
+PICK-0063
+6499 of 6499 pc picked
+packed
+PICK-0062
+17300 of 17300 pc picked
+packed
+PICK-0061
+6033 of 6033 pc picked
+packed
+PICK-0060
+4176 of 4176 pc picked
+packed
+PICK-0059
+7721 of 7721 pc picked
+packed
+PICK-0058
+4750 of 4750 pc picked
+packed
+PICK-0057
+3507 of 3507 pc picked
+packed
+PICK-0056
+3396 of 3396 pc picked
+packed
+PICK-0055
+7393 of 7393 pc picked
+packed
+PICK-0054
+7245 of 7245 pc picked
+packed
+PICK-0053
+7284 of 7284 pc picked
+packed
+PICK-0052
+9618 of 9618 pc picked
+packed
+PICK-0051
+5543 of 5543 pc picked
+packed
+PICK-0050
+2432 of 2432 pc picked
+packed

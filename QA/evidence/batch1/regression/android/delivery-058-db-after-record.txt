@@ -1,0 +1,11 @@
+### DOS-058 Android record on INV/0831 (T0 2026-09-13 03:06:00.454459+05:30)
+--- deliveries on INV/0831
+fb5a4b3c-8ad7-7ecb-8a9b-b5a149c324d3|plan:561d0675-9ef8-7c6e-9ab0-31d77d659aab:4b1fb55a-5812-7f04-89ed-7882e470499a|||2026-09-12 12:50:55.348304+05:30
+--- delivery_lines written since T0
+--- credit notes on INV/0831
+--- credit note lines
+--- stock_ledger rows since T0 (location | reason | qty | ref | note | lot)
+--- tenant-wide: delivery_lines since T0 with returned>0, reason damaged/expired, saleable true
+0
+--- stop 1 state
+arrived|

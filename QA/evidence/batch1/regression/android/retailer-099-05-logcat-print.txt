@@ -1,0 +1,8 @@
+09-13 03:46:30.733   676   735 I ActivityManager: Start proc 5001:com.google.android.printservice.recommendation/u0a126 for service {com.google.android.printservice.recommendation/com.android.printservice.recommendation.RecommendationServiceImpl}
+09-13 03:46:30.767  5001  5001 D nativeloader: Configuring clns-shared-9 for other apk /system/app/GooglePrintRecommendationService/GooglePrintRecommendationService.apk. target_sdk_version=36, uses_libraries=, library_path=/system/app/GooglePrintRecommendationService/lib/arm64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.printservice.recommendation:/system/app/GooglePrintRecommendationService:/system/lib64:/system_ext/lib64
+09-13 03:46:30.770  5001  5001 V GraphicsEnvironment: com.google.android.printservice.recommendation is not listed in per-application setting
+09-13 03:46:30.770  5001  5001 V GraphicsEnvironment: com.google.android.printservice.recommendation is not listed in ANGLE allowlist or settings, returning default
+09-13 03:46:30.774   676  1917 I WifiService: acquireMulticastLock uid=10126 tag=PrintServiceRecService
+09-13 03:46:30.891  1598  4957 D nativeloader: Load /system/app/PrintSpooler/lib/arm64/libprintspooler_jni.so using class loader ns clns-shared-9 (caller=/system/app/PrintSpooler/PrintSpooler.apk): ok
+09-13 03:46:30.914  4974  4984 D nativeloader: Load /system/app/PrintSpooler/lib/arm64/libprintspooler_jni.so using class loader ns clns-shared-9 (caller=/system/app/PrintSpooler/PrintSpooler.apk): ok
+09-13 03:46:37.734  5022  5022 I AconfigPackage: com.android.printspooler.flags is mapped to system

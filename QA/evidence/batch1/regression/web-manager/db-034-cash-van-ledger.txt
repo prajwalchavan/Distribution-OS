@@ -1,0 +1,7 @@
+-- every journal line on CASH_VAN that names RCPT-0655, its trip TRIP-20260909-1, or TRIP-ACTIVE
+receipt|bcc268dc-bfad-7463-9781-0fd652041694|Receipt for INV/0804 (Iyer Provision Store)|2026-09-09|CASH|432300
+-- CASH_VAN ledger by ref_type
+receipt|6|16323500
+-- trip_settlements table?
+trip_settlements
+claim_settlements

@@ -1,0 +1,58 @@
+iOS Statement (Last 90 days, 16 Jun 2026 — 13 Sep 2026) read 2026-09-13T01:35:41.825Z after 1 drags
+entries on screen: 53; closing balance on screen: 3584300; partial note: none
+
+ 1 INV/0034   Added  amount=1196300 balance=1720500 | api INV/0034 1720500 OK
+ 2 INV/0097   Added  amount=322600 balance=2043100 | api INV/0097 2043100 OK
+ 3 INV/0142   Added  amount=213400 balance=2256500 | api INV/0142 2256500 OK
+ 4 INV/0211   Added  amount=1055300 balance=3311800 | api INV/0211 3311800 OK
+ 5 RCPT-0053  Taken off amount=524200 balance=2787600 | api RCPT-0053 2787600 OK
+ 6 INV/0283   Added  amount=312500 balance=3100100 | api INV/0283 3100100 OK
+ 7 INV/0333   Added  amount=373200 balance=3473300 | api INV/0333 3473300 OK
+ 8 INV/0337   Added  amount=1198700 balance=4672000 | api INV/0337 4672000 OK
+ 9 INV/0363   Added  amount=545100 balance=5217100 | api INV/0363 5217100 OK
+10 CN/0022    Taken off amount=140200 balance=5076900 | api CN/0022 5076900 OK
+11 INV/0402   Added  amount=1209700 balance=6286600 | api INV/0402 6286600 OK
+12 RCPT-0193  Taken off amount=1055300 balance=5231300 | api RCPT-0193 5231300 OK
+13 INV/0433   Added  amount=1011900 balance=6243200 | api INV/0433 6243200 OK
+14 RCPT-0224  Taken off amount=545100 balance=5698100 | api RCPT-0224 5698100 OK
+15 INV/0468   Added  amount=994700 balance=6692800 | api INV/0468 6692800 OK
+16 CN/9001    Taken off amount=57100 balance=6635700 | api CN/9001 6635700 OK
+17 RCPT-0249  Taken off amount=783200 balance=5852500 | api RCPT-0249 5852500 OK
+18 INV/0481   Added  amount=765000 balance=6617500 | api INV/0481 6617500 OK
+19 INV/0492   Added  amount=1160500 balance=7778000 | api INV/0492 7778000 OK
+20 RCPT-0284  Taken off amount=1069500 balance=6708500 | api RCPT-0284 6708500 OK
+21 RCPT-0293  Taken off amount=213400 balance=6495100 | api RCPT-0293 6495100 OK
+22 RCPT-0300  Taken off amount=218800 balance=6276300 | api RCPT-0300 6276300 OK
+23 INV/0525   Added  amount=520400 balance=6796700 | api INV/0525 6796700 OK
+24 RCPT-0327  Taken off amount=415500 balance=6381200 | api RCPT-0327 6381200 OK
+25 RCPT-0339  Taken off amount=1196300 balance=5184900 | api RCPT-0339 5184900 OK
+26 RCPT-0372  Taken off amount=103800 balance=5081100 | api RCPT-0372 5081100 OK
+27 RCPT-0368  Taken off amount=520400 balance=4560700 | api RCPT-0368 4560700 OK
+28 INV/0587   Added  amount=625300 balance=5186000 | api INV/0587 5186000 OK
+29 RCPT-0413  Taken off amount=189900 balance=4996100 | api RCPT-0413 4996100 OK
+30 INV/0617   Added  amount=700400 balance=5696500 | api INV/0617 5696500 OK
+31 CN/9002    Taken off amount=13400 balance=5683100 | api CN/9002 5683100 OK
+32 INV/0647   Added  amount=1256100 balance=6939200 | api INV/0647 6939200 OK
+33 RCPT-0471  Taken off amount=1256100 balance=5683100 | api RCPT-0471 5683100 OK
+34 INV/0680   Added  amount=352600 balance=6035700 | api INV/0680 6035700 OK
+35 CN/0037    Taken off amount=21500 balance=6014200 | api CN/0037 6014200 OK
+36 RCPT-0509  Taken off amount=378300 balance=5635900 | api RCPT-0509 5635900 OK
+37 INV/0704   Added  amount=378300 balance=6014200 | api INV/0704 6014200 OK
+38 RCPT-0522  Taken off amount=192300 balance=5821900 | api RCPT-0522 5821900 OK
+39 RCPT-0543  Taken off amount=716200 balance=5105700 | api RCPT-0543 5105700 OK
+40 INV/0724   Added  amount=1013700 balance=6119400 | api INV/0724 6119400 OK
+41 RCPT-0559  Taken off amount=1013700 balance=5105700 | api RCPT-0559 5105700 OK
+42 RCPT-0556  Taken off amount=765000 balance=4340700 | api RCPT-0556 4340700 OK
+43 INV/0753   Added  amount=547200 balance=4887900 | api INV/0753 4887900 OK
+44 RCPT-0593  Taken off amount=122600 balance=4765300 | api RCPT-0593 4765300 OK
+45 INV/0800   Added  amount=527900 balance=5293200 | api INV/0800 5293200 OK
+46 RCPT-0654  Taken off amount=527900 balance=4765300 | api RCPT-0654 4765300 OK
+47 INV/0814   Added  amount=1218000 balance=5983300 | api INV/0814 5983300 OK
+48 INV/0817   Added  amount=551100 balance=6534400 | api INV/0817 6534400 OK
+49 RCPT-0659  Taken off amount=180900 balance=6353500 | api RCPT-0659 6353500 OK
+50 RCPT-0668  Taken off amount=1218000 balance=5135500 | api RCPT-0668 5135500 OK
+51 RCPT-0672  Taken off amount=555800 balance=4579700 | api RCPT-0672 4579700 OK
+52 RCPT-0693  Taken off amount=551100 balance=4028600 | api RCPT-0693 4028600 OK
+53 RCPT-0687  Taken off amount=444300 balance=3584300 | api RCPT-0687 3584300 OK
+
+API entries 53; mismatches 0; last api balance 3584300; closing on screen 3584300

@@ -1,0 +1,36 @@
+T0 2026-09-13 06:52:33 IST — before the iOS DOS-058 attempt at TRIP-NEXT stop 4 Rameshwar General Store (INV/0839)
+== stop
+4|pending|||
+== deliveries on INV/0839
+plan:790b7779-da02-7fa0-ae5f-5005bc08176d:d1f7e52c-b1b7-70c2-b103-1ced3ff4ef8e||
+== credit notes on INV/0839
+ERROR:  column reference "total_paise" is ambiguous
+LINE 1: select credit_note_no,reason,total_paise from credit_notes c...
+                                     ^
+== sale_return ledger rows since 06:00
+ERROR:  operator does not exist: stock_reason ~~ unknown
+LINE 1: select count(*) from stock_ledger where reason like 'sale_re...
+                                                       ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+== order SO-0876
+SO-0876|dispatched
+== credit notes on INV/0839 (fixed query)
+== sale_return ledger rows since 06:00 (fixed query)
+== INV/0839 lines
+aa242ac4-32a7-79a8-866c-01ac325d5238|Balaji Chataka Pataka Wafers 45 g|240
+8259310a-90b7-7b94-a21e-0592cc6c384a|Sunbake Glucose 110 g|360
+da1d8e4e-48b6-763a-bc41-f8804ebcf80e|Campa Cola 750 ml|96
+5388cc73-036b-72e6-b48d-a7a9a9792e53|Campa Lemon 750 ml|144
+== stop 4 after the iOS 'I am at the shop' tap at 06:53:21 — 06:54:00
+4|arrived|2026-09-13 06:53:22.913+05:30||
+== after the iOS DOS-058 UI walk (no Record pressed) — 06:56:36 IST, T0 06:52:33
+-- deliveries on INV/0839
+plan:790b7779-da02-7fa0-ae5f-5005bc08176d:d1f7e52c-b1b7-70c2-b103-1ced3ff4ef8e||
+-- delivery_lines written since T0
+0
+-- credit notes since T0
+0
+-- sale_return stock rows since T0
+0
+-- delivery-service POST /delivery/deliveries or /sync/upload since 06:52
+20

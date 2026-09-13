@@ -1,0 +1,245 @@
+{
+  "timeline": [
+    {
+      "t": "6.4",
+      "k": "created",
+      "v": {
+        "no": "PICK-0083",
+        "id": "01a0972c-2d49-7417-9738-66edc95f2f21",
+        "status": 200
+      }
+    },
+    {
+      "t": "8.0",
+      "k": "unknownWindow",
+      "v": {
+        "lines": 0,
+        "start": 0,
+        "confirmDisabled": "false",
+        "header": "Picklist | Picklist | Nothing here yet"
+      }
+    },
+    {
+      "t": "63.7",
+      "k": "startVisible",
+      "v": {
+        "start": 1,
+        "header": "0 of 7 picked | PICK-0083 | open"
+      }
+    },
+    {
+      "t": "63.8",
+      "k": "start",
+      "v": 200
+    },
+    {
+      "t": "65.9",
+      "k": "rows",
+      "v": [
+        "SB20260531:15:01a0972c-2d72-7223-b7c6-e0a82e74bfd3",
+        "SB20260614:8:01a0972c-2d72-7224-80a9-e69d22414f29",
+        "B20260614:8:01a0972c-2d72-7225-90b1-a2d75fdcaa3f",
+        "SB20260621:12:01a0972c-2d72-7226-b67b-03a90d9c28bd",
+        "SB20260628:1:01a0972c-2d72-7227-b6ff-965b6795ea44",
+        "SB20260705:17:01a0972c-2d72-7228-8013-91d3e45b3a30",
+        "SB20260719:17:01a0972c-2d72-7229-8bf6-b7dc22b33d93"
+      ]
+    },
+    {
+      "t": "69.5",
+      "k": "offlinePickedX",
+      "v": {
+        "header": "1 of 7 picked | PICK-0083 | picking",
+        "pending": "1 waiting to send Refresh",
+        "confirmDisabled": true
+      }
+    },
+    {
+      "t": "69.5",
+      "k": "otherDevicePickAll",
+      "v": {
+        "status": 200,
+        "waveStatus": "picked",
+        "completedAt": "2026-09-12T19:51:53.125Z"
+      }
+    },
+    {
+      "t": "69.6",
+      "k": "deviceUpload",
+      "v": "{\"accepted\":0,\"replayed\":0,\"rejected\":[{\"opId\":\"01a0972d-1bf7-756d-a5df-17c2da361cdb\",\"table\":\"pick_lines\",\"rowId\":\"01a0972c-2d72-7223-b7c6-e0a82e74bfd3\",\"code\":\"stale\",\"messageHi\":\"यह रिकॉर्ड सर्वर पर बदल चुका है; दोबारा खोलें\",\"messageEn\":\"This pick lines changed on the server after your copy; open it again\"}],\"warnings\":[],\"upgradeRequired\":false}"
+    },
+    {
+      "t": "69.6",
+      "k": "sample",
+      "v": {
+        "header": "0 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 1,
+        "xStateChip": null,
+        "confirmDisabled": true,
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "70.5",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "71.4",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "72.4",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "73.3",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "74.2",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "75.1",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "76.0",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "76.9",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "77.9",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "78.8",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "79.7",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "80.6",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "81.5",
+      "k": "sample",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picking",
+        "xPickBtn": 0,
+        "xStateChip": null,
+        "confirmDisabled": "false",
+        "strip": "1 need attention"
+      }
+    },
+    {
+      "t": "84.5",
+      "k": "tray",
+      "v": "Tarsun Enterprise | warehouse | Inbound | Pick | 1 | Pack | Load | SETUP | Settings | 1 need attention | DP | Dinesh Patil | warehouse | Waiting and refused | Waiting 0 | Refused 1 | Held in memory only — a reload empties this device | WAITING TO SEND | Nothing is waiting | NEEDS YOU | This pick lines changed on the server after your copy; open it again | pick_lines · stale · 13 Sep, 1:21 am | Try it again | Throw it away | Close"
+    },
+    {
+      "t": "92.1",
+      "k": "afterRefresh",
+      "v": {
+        "header": "7 of 7 picked | PICK-0083 | picked",
+        "xPickBtn": 0,
+        "confirmDisabled": "false"
+      }
+    },
+    {
+      "t": "92.3",
+      "k": "db",
+      "v": "picked 2026-09-13 01:21:53.125+05:30 | X: 15 2026-09-13 01:21:53.119+05:30 | syncErr: stale:This pick lines changed on the server after your copy; open it again"
+    }
+  ]
+}

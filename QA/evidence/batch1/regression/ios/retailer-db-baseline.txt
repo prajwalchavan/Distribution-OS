@@ -1,0 +1,23 @@
+Retailer baseline 2026-09-13 06:57:39 IST — ramesh.gupta token (tenant tarsun)
+== GET :3006/receivables/outstanding/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?includeBills=true
+HTTP 200
+{'outstandingPaise': 3584300, 'overduePaise': 3584300, 'openBills': 6}
+ bill INV/0433 1011900 456100
+ bill INV/0468 994700 937600
+ bill INV/0587 625300 625300
+ bill INV/0617 700400 687000
+ bill INV/0680 352600 331100
+ bill INV/0753 547200 547200
+== GET :3006/receivables/ledger/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?from=2026-06-16&to=2026-09-13&limit=200
+HTTP 200
+items 53 nextCursor None opening None closing None
+ first INV/0034  last RCPT-0687 3584300
+== PaymentIntentCreated events for R-0001
+2026-09-13 03:44:11.745351+05:30|PAY-f97f2fe653a0|456100
+2026-09-13 03:42:38.999497+05:30|PAY-6a404dc1c6cb|3584300
+2026-09-13 01:48:16.929068+05:30|PAY-b47051fbf36d|3584300
+2026-09-13 01:40:16.306808+05:30|PAY-aca184beb353|456100
+2026-09-13 01:39:27.97704+05:30|PAY-c978af6c6fdb|3584300
+2026-09-13 01:36:16.221348+05:30|PAY-5c9dfb7fcb7c|456100
+== INV/0753 id
+a924ae38-a82f-7ac8-8b3b-6ab11937e574|547200|issued|t

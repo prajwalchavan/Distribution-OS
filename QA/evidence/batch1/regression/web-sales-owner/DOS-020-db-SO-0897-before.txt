@@ -1,0 +1,22 @@
+-- SO-0897 header
+SO-0897|submitted|["credit_limit", "bargain"]|122808|137500|2026-09-13 01:52:13.549+05:30|
+-- approvals
+01a09748-eb36-726e-9fd6-963549eab069|credit_limit|sales_order|01a09748-9152-72c8-b71b-20fb66e8867f|pending|{"flag": "credit_limit", "orderNo": "SO-0897", "totalPaise": 137500}
+01a09748-eb36-726f-80cd-50cd5ac54ff3|bargain|bargain_request|01a09748-91be-702d-98df-44f7e0ed5309|pending|{"flag": "bargain", "orderNo": "SO-0897", "totalPaise": 137500}
+-- bargain
+01a09748-91be-702d-98df-44f7e0ed5309|01a09748-9152-72c8-b71b-20fb66e8867f|5117|4554||requested||
+-- lines
+1|346f1104-b9ad-72bd-bcd0-b6fa55a9eae4|24|5117|5117|137545
+-- reservations
+0
+-- all pending approvals tarsun now
+29e03a4b-d74f-75a2-914a-2433674d5b76|bargain|bargain_request|-|2026-09-12 11:20:00+05:30
+01a09586-7439-7717-a7f1-fd438bf2bf9b|credit_limit|sales_order|SO-0879|2026-09-12 17:40:11.860232+05:30
+01a09595-cd3b-7536-b811-aa2febe6ec37|credit_limit|sales_order|SO-0882|2026-09-12 17:56:57.702787+05:30
+01a095c0-73a1-7386-a985-9ad9a5a794bf|credit_limit|sales_order|SO-0885|2026-09-12 18:43:32.805715+05:30
+01a095c4-c42c-7424-9dd7-703c4769bddc|credit_limit|sales_order|SO-0886|2026-09-12 18:48:15.581922+05:30
+01a095d8-bbe9-72ee-bb92-617526cbca22|credit_limit|sales_order|SO-0887|2026-09-12 19:10:04.163584+05:30
+01a09745-6c43-7253-8bbd-b744cffac8b7|credit_limit|sales_order|SO-0895|2026-09-13 01:48:24.434271+05:30
+01a09748-0341-72e9-af7b-656783fcb16c|bargain|bargain_request|SO-0896|2026-09-13 01:51:14.158234+05:30
+01a09748-eb36-726e-9fd6-963549eab069|credit_limit|sales_order|SO-0897|2026-09-13 01:52:13.544174+05:30
+01a09748-eb36-726f-80cd-50cd5ac54ff3|bargain|bargain_request|SO-0897|2026-09-13 01:52:13.544174+05:30

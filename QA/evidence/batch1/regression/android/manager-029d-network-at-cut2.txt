@@ -1,0 +1,17 @@
+# second cut: radios off, forwarder killed, device :3002 reverse removed (2026-09-13T00:02:13Z)
+Wi-Fi is disabled
+0
+connect: Network is unreachable
+reverse list:
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3005 tcp:3005
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5274 tcp:5274
+
+# restored (2026-09-13T00:02:47Z)
+Wi-Fi is enabled
+host-16 tcp:3002 tcp:3002

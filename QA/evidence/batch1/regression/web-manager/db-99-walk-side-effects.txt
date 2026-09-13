@@ -1,0 +1,31 @@
+== records created or changed by the web-manager regression walk (dos_qa, 2026-09-13 02:47:39 IST)
+order|SO-0899|packed|-
+order|SO-0900|cancelled|approval_rejected
+approval bargain|01a09766-114f-73f6-af8d-413a6f294bc7|approved|QA regression DOS-005: asked rate agreed from the queue card
+approval credit_limit|01a09766-114f-73f5-b1fc-9d9cab81e82e|approved|QA regression DOS-020: last gate approved from the order panel
+approval bargain|01a09766-11e6-730f-9015-f55e91d39c7a|rejected|QA regression DOS-005 phone: list rate holds
+bargain|01a09766-10fd-711e-a28e-a27a3465e03e|approved|4554
+bargain|01a09766-11c5-7e3a-a849-cbce4d0f4c79|rejected|-
+picklist|PICK-0084|packed|
+invoice|INV/9009|issued|137500
+load_sheet|01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|draft|a1cbd424-d568-7ccb-b5cc-b049e8ac2063
+credit_note|01a09772-1b1a-7566-9552-a16865689008|cancelled|159300
+credit_note|01a0976e-932a-77a6-a554-d389e40cd730|cancelled|30900
+credit_note|01a0976d-77a8-71b0-a6d7-2d35711d1db6|cancelled|4400
+receipt|RCPT-0660|bounced|QA regression DOS-034: bank returned the cheque, insufficient funds
+receipt|RCPT-0680|deposited|DEP-QA-034-ACC-PH
+receipt|RCPT-0694|deposited|DEP-QA-034-M
+receipt|RCPT-0693|deposited|DEP-QA-034-ACC
+receipt|RCPT-0692|deposited|DEP-QA-034-MPH
+review_session (unchanged)|89f90df9-389f-7dde-8618-dc7f3a072414|open|2026-10-12 05:30:00+05:30
+review_session (unchanged)|01a094c7-c3eb-71bf-9de3-c6dcae8ef8a1|open|2026-09-12 14:17:17.638+05:30
+document|0400aea1-7e63-7119-af27-05db2a4307ad|needs_review|null
+document|2254e884-ad8d-7c36-8fcc-8197395b329b|needs_review|null
+-- journals posted by the walk (deposit / reversal)
+deposit|DEP-QA-034-M|BANK 474600, CASH -474600
+receipt_reversal|QA regression DOS-034: bank returned the cheque, insufficient funds|AR 803800, CHEQUES -803800
+deposit|DEP-QA-034-ACC|BANK 551100, CASH -551100
+deposit|DEP-QA-034-MPH|BANK 722400, CASH -722400
+deposit|DEP-QA-034-ACC-PH|BANK 1921300, CHEQUES -1921300
+-- stock: negative balances in tarsun
+0

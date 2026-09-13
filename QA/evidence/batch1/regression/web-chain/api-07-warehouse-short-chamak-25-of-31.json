@@ -1,0 +1,8 @@
+[
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a09790-e1ea-7697-9001-4e6587aa518e\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a0978f-0453-7561-abff-bde9f11b12aa\",\"data\":{\"picklist_id\":\"01a0978f-03f8-733e-b91d-d23bc851107a\",\"order_id\":\"01a0978a-8625-74be-90c7-50b520c1b18e\",\"order_line_id\":\"01a0978a-a20b-754f-9af3-0eaa5ab9a996\",\"variant_id\":\"52b699ca-9711-706b-bc2b-2326516b6c14\",\"line_no\":3,\"lot_id\":\"62a89b5e-7fc5-7a3f-a15a-a55a9fb6e1c7\",\"requested_qty_pcs\":31,\"picked_qty_pcs\":25,\"free_qty_pcs\":0,\"case_size\":60,\"short_reason\":\"Not on the rack\"},\"baseUpdatedAt\":\"2026-09-12T21:38:47.524Z\",\"clientTime\":\"2026-09-12T21:40:49.770Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ }
+]

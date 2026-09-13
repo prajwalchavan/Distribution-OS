@@ -1,0 +1,31 @@
+### DOS-060 + DOS-057 step 5 — new R-0043 receipt from the web collection (poll from 2026-09-13 01:25:16.088463+05:30)
+01:25:16 no receipt yet
+01:25:26 no receipt yet
+01:25:36 no receipt yet
+01:25:46 no receipt yet
+01:25:56 no receipt yet
+01:26:06 no receipt yet
+01:26:16 no receipt yet
+01:26:26 no receipt yet
+01:26:36 no receipt yet
+01:26:46 no receipt yet
+01:26:56 no receipt yet
+01:27:07 no receipt yet
+01:27:17 no receipt yet
+01:27:27 no receipt yet
+01:27:37 no receipt yet
+01:27:48 no receipt yet
+01:27:58 no receipt yet
+01:28:08 no receipt yet
+01:28:18 no receipt yet
+01:28:28 no receipt yet
+01:28:38 no receipt yet
+01:28:48 no receipt yet
+01:28:58 no receipt yet
+01:29:08 no receipt yet
+01:29:18 no receipt yet
+01:29:28 no receipt yet
+--- worker log
+[01:21:22.099] INFO (30166): document rendered
+[01:25:22.290] INFO (30166): document rendered
+[01:28:22.434] INFO (30166): document rendered

@@ -1,0 +1,8 @@
+# PICK-0090 rows after the refused over-ask pick from M20 on Android (2026-09-12T23:41:05Z)
+> select pl.id, l.batch_no, pl.requested_qty_pcs, pl.picked_qty_pcs, pl.short_reason, pl.picked_by, pl.picked_at, pl.updated_at from pick_lines pl join picklists p on p.id=pl.picklist_id left join stock_lots l on l.id=pl.lot_id where p.picklist_no='PICK-0090' and p.tenant_id=(select id from tenants where slug='tarsun') order by pl.line_no, pl.id
+01a097fa-b851-766a-8cbf-dc1042342512|RCP20260731|6|0||||2026-09-13 05:06:25.943615+05:30
+01a097fa-b851-766b-8e73-27a57f436f56|B20260902|18|0||||2026-09-13 05:06:25.945402+05:30
+> select count(*) from pick_lines pl join picklists p on p.id=pl.picklist_id where p.picklist_no='PICK-0090' and p.tenant_id=(select id from tenants where slug='tarsun')
+2
+> select picklist_no, status from picklists where picklist_no='PICK-0090' and tenant_id=(select id from tenants where slug='tarsun')
+PICK-0090|picking

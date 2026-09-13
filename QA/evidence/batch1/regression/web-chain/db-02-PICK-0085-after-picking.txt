@@ -1,0 +1,97 @@
+               now                
+----------------------------------
+ 2026-09-13 03:11:26.558373+05:30
+(1 row)
+
+ picklist_no | status |          started_at           |         completed_at          
+-------------+--------+-------------------------------+-------------------------------
+ PICK-0085   | picked | 2026-09-13 03:09:39.633+05:30 | 2026-09-13 03:10:49.807+05:30
+(1 row)
+
+                           Table "public.pick_lines"
+      Column       |           Type           | Collation | Nullable | Default 
+-------------------+--------------------------+-----------+----------+---------
+ id                | text                     |           | not null | 
+ tenant_id         | text                     |           | not null | 
+ picklist_id       | text                     |           | not null | 
+ order_id          | text                     |           | not null | 
+ order_line_id     | text                     |           | not null | 
+ lot_id            | text                     |           |          | 
+ requested_qty_pcs | integer                  |           | not null | 
+ picked_qty_pcs    | integer                  |           | not null | 0
+ short_reason      | text                     |           |          | 
+ picked_by         | text                     |           |          | 
+ picked_at         | timestamp with time zone |           |          | 
+ created_at        | timestamp with time zone |           | not null | now()
+ updated_at        | timestamp with time zone |           | not null | now()
+ variant_id        | text                     |           | not null | 
+ line_no           | integer                  |           | not null | 0
+ suggested_lot_id  | text                     |           |          | 
+ free_qty_pcs      | integer                  |           | not null | 0
+ case_size         | integer                  |           |          | 
+ fefo_override     | boolean                  |           | not null | false
+Indexes:
+    "pick_lines_pkey" PRIMARY KEY, btree (id)
+    "pick_lines_order_idx" btree (tenant_id, order_id)
+    "pick_lines_order_line_idx" btree (tenant_id, order_line_id)
+    "pick_lines_picklist_idx" btree (tenant_id, picklist_id)
+    "pick_lines_updated_idx" btree (tenant_id, updated_at)
+    "pick_lines_variant_idx" btree (tenant_id, picklist_id, variant_id)
+Foreign-key constraints:
+    "pick_lines_lot_id_stock_lots_id_fk" FOREIGN KEY (lot_id) REFERENCES stock_lots(id)
+    "pick_lines_order_id_sales_orders_id_fk" FOREIGN KEY (order_id) REFERENCES sales_orders(id)
+    "pick_lines_order_line_id_sales_order_lines_id_fk" FOREIGN KEY (order_line_id) REFERENCES sales_order_lines(id)
+    "pick_lines_picklist_id_picklists_id_fk" FOREIGN KEY (picklist_id) REFERENCES picklists(id)
+    "pick_lines_suggested_lot_id_stock_lots_id_fk" FOREIGN KEY (suggested_lot_id) REFERENCES stock_lots(id)
+    "pick_lines_tenant_id_tenants_id_fk" FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+    "pick_lines_variant_id_product_variants_id_fk" FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+Policies (forced row security enabled):
+    POLICY "pick_lines_read" FOR SELECT
+      TO app_rw
+      USING (((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) <> 'retailer'::text)))
+    POLICY "pick_lines_write_delete" FOR DELETE
+      TO app_rw
+      USING (((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) = ANY (ARRAY['owner'::text, 'manager'::text, 'warehouse'::text, 'system'::text]))))
+    POLICY "pick_lines_write_insert" FOR INSERT
+      TO app_rw
+      WITH CHECK (((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) = ANY (ARRAY['owner'::text, 'manager'::text, 'warehouse'::text, 'system'::text]))))
+    POLICY "pick_lines_write_update" FOR UPDATE
+      TO app_rw
+      USING (((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) = ANY (ARRAY['owner'::text, 'manager'::text, 'warehouse'::text, 'system'::text]))))
+      WITH CHECK (((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) = ANY (ARRAY['owner'::text, 'manager'::text, 'warehouse'::text, 'system'::text]))))
+Triggers:
+    pick_lines_tombstone AFTER DELETE ON pick_lines FOR EACH ROW EXECUTE FUNCTION dos_sync_tombstone('id', '')
+    pick_lines_touch_updated_at BEFORE INSERT OR UPDATE ON pick_lines FOR EACH ROW EXECUTE FUNCTION dos_touch_updated_at()
+
+              name               | requested_qty_pcs | picked_qty_pcs |  short_reason   |           picked_at           
+---------------------------------+-------------------+----------------+-----------------+-------------------------------
+ Sunbake Marie Light 75 g        |                12 |             12 |                 | 2026-09-13 03:10:07.432+05:30
+ Sunbake Marie Light 75 g        |                84 |             84 |                 | 2026-09-13 03:10:08.4+05:30
+ Neelam Sandal Soap 100 g        |                13 |             13 |                 | 2026-09-13 03:10:10.371+05:30
+ Neelam Sandal Soap 100 g        |                27 |             27 |                 | 2026-09-13 03:10:09.387+05:30
+ Neelam Sandal Soap 100 g        |                32 |             32 |                 | 2026-09-13 03:10:11.361+05:30
+ Chamak Dishwash Bar 145 g       |                11 |             11 |                 | 2026-09-13 03:10:12.335+05:30
+ Chamak Dishwash Bar 145 g       |                18 |             18 |                 | 2026-09-13 03:10:13.326+05:30
+ Chamak Dishwash Bar 145 g       |                31 |             25 | Not on the rack | 2026-09-13 03:10:49.806+05:30
+ Balaji Masala Masti Wafers 45 g |                 1 |              1 |                 | 2026-09-13 03:10:14.293+05:30
+ Balaji Masala Masti Wafers 45 g |                 9 |              9 |                 | 2026-09-13 03:10:16.223+05:30
+ Balaji Masala Masti Wafers 45 g |                12 |             12 |                 | 2026-09-13 03:10:15.262+05:30
+ Balaji Masala Masti Wafers 45 g |                14 |             14 |                 | 2026-09-13 03:10:18.132+05:30
+ Balaji Masala Masti Wafers 45 g |                15 |             15 |                 | 2026-09-13 03:10:17.213+05:30
+ Balaji Masala Masti Wafers 45 g |                19 |             19 |                 | 2026-09-13 03:10:20.051+05:30
+ Balaji Masala Masti Wafers 45 g |                74 |             74 |                 | 2026-09-13 03:10:19.089+05:30
+(15 rows)
+
+ order_no |  state  
+----------+---------
+ SO-0903  | picking
+(1 row)
+
+ line_no | qty_pcs | picked_qty_pcs | delivered_qty_pcs 
+---------+---------+----------------+-------------------
+       1 |      96 |              0 |                 0
+       2 |      72 |              0 |                 0
+       3 |      60 |              0 |                 0
+       4 |     144 |              0 |                 0
+(4 rows)
+

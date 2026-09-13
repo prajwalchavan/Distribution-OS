@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:14:26 IST
+POST http://127.0.0.1:3005/orders/01a09726-51a8-752c-8a1f-6596b343c5b8/submit
+Authorization: Bearer <accessToken of ganesh.more>
+Content-Type: application/json
+
+{"idempotencyKey":"sec-b09-01a09726-51a8-752c-8a1f-6596b343c5b8","id":"01a09726-51a8-752c-8a1f-6596b343c5b8"}
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 1647
+Date: Sat, 12 Sep 2026 19:44:26 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"01a09726-51a8-752c-8a1f-6596b343c5b8","orderNo":"SO-0893","retailerId":"c704a780-c33e-7a95-ba00-e28613f6883a","state":"confirmed","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":"01a0947d-7a96-723f-952d-338dd284a1b4","externalRef":null,"subtotalPaise":2902,"discountPaise":0,"taxPaise":348,"roundOffPaise":50,"totalPaise":3300,"approvalFlags":[],"expectedDeliveryDate":null,"note":"QA security regression fixture E (draft)","submittedAt":"2026-09-12T19:44:26.330Z","confirmedAt":"2026-09-12T19:44:26.353Z","cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T19:44:26.126Z","lines":[{"id":"01a09726-51f4-7f25-9a11-03def2ffef86","lineNo":1,"variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","enteredQty":2,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":2,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":1451,"ratePaise":1451,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":348,"lineTotalPaise":3250,"appliedRules":[],"priceLocked":false}],"transitions":[{"id":"01a09726-52e6-7630-8634-408cc019f145","fromState":"draft","toState":"submitted","event":"submit","actorId":"7b2db500-02d5-7aa7-a1dc-005a3e89ff63","deviceId":null,"reason":null,"occurredAt":"2026-09-12T19:44:26.314Z"},{"id":"01a09726-5307-70b6-9463-b61afc477e1f","fromState":"submitted","toState":"confirmed","event":"confirm","actorId":"7b2db500-02d5-7aa7-a1dc-005a3e89ff63","deviceId":null,"reason":null,"occurredAt":"2026-09-12T19:44:26.314Z"}],"approvals":[]}}

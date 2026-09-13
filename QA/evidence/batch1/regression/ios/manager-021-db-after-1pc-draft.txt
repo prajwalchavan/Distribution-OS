@@ -1,0 +1,6 @@
+== DOS-021 on iOS: Draft with 1 pc on Sunbake (valid), read 2026-09-13 08:17:38 IST
+req-1rv "url":"/credit-notes" "statusCode":200 
+-- credit notes on INV/0634 created since 08:00
+01a098a4-d562-70ad-9140-0f1e4060af89|cancelled|return_saleable|39|748|34400|2026-09-13 08:12:14.511874+05:30
+01a098a9-afd0-7204-a8e5-0132aeace46d|draft|return_saleable|1|748|900|2026-09-13 08:17:32.725924+05:30
+cleanup: 01a098a9-afd0-7204-a8e5-0132aeace46d|cancelled

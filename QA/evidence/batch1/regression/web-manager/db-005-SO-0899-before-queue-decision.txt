@@ -1,0 +1,7 @@
+order|SO-0899|submitted|-
+order|SO-0900|submitted|-
+approval credit_limit|01a09766-114f-73f5-b1fc-9d9cab81e82e|pending|- | -
+approval bargain|01a09766-114f-73f6-af8d-413a6f294bc7|pending|- | -
+approval bargain|01a09766-11e6-730f-9015-f55e91d39c7a|pending|- | -
+bargain|01a09766-10fd-711e-a28e-a27a3465e03e|requested|- | rate - | note QA X-mahalaxmi
+bargain|01a09766-11c5-7e3a-a849-cbce4d0f4c79|requested|- | rate - | note QA Y-saikrupa

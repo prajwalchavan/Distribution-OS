@@ -1,0 +1,7 @@
+Make a picking sheet |  | click=false | en=true | [94,860][985,929]
+1 orders · 24 pc |  | click=false | en=true | [95,961][986,1019]
+The picker gets one sheet, in FEFO order, for every order you tick. |  | click=false | en=true | [95,1050][986,1146]
+ | Make a picking sheet | click=true | en=true | [95,1178][986,1343]
+Make a picking sheet |  | click=false | en=true | [341,1231][740,1289]
+ | Cancel | click=true | en=true | [95,1375][986,1540]
+Cancel |  | click=false | en=true | [476,1428][605,1486]

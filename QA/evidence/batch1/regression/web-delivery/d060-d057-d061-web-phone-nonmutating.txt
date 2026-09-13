@@ -1,0 +1,136 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-01-stop3-desk.png (514 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-02-d5-empty-desk.png (477 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-03-d5-typed-22508-desk.png (464 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-04-d5-typed-2843.5-desk.png (464 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-05-d5-phone.png (397 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-07-d9-inv0826-phone.png (2801 chars text)
+{
+ "d5url": "http://localhost:5177/stop/6c4c742c-5445-75ed-8418-049db39f5709/collect",
+ "d5tag": "INPUT type=text inputmode=decimal",
+ "billsPanel": "Bills on this stop | INV/0832 | 11 Sep 2026 | ₹2,843.00",
+ "billRows": [
+  {
+   "id": "d5-bill-e3a1a9a1-3831-7ef5-82bd-a6c32c5cb99b",
+   "checked": null,
+   "t": "INV/0832 | 11 Sep 2026 | ₹2,843.00"
+  }
+ ],
+ "empty": {
+  "amountValue": "",
+  "record": {
+   "disabled": true,
+   "text": "Record the payment"
+  },
+  "amountRegion": "How it was paid | Cash | UPI | Cheque | Amount taken | Owed on the bills here | ₹2,843.00 | ₹ | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered"
+ },
+ "typed22508": {
+  "amountValue": "22508",
+  "record": {
+   "disabled": false,
+   "text": "Record the payment"
+  },
+  "amountRegion": "How it was paid | Cash | UPI | Cheque | Amount taken | Owed on the bills here | ₹2,843.00 | ₹ | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered"
+ },
+ "typed2843_5": {
+  "amountValue": "2843.5",
+  "record": {
+   "disabled": false,
+   "text": "Record the payment"
+  },
+  "amountRegion": "How it was paid | Cash | UPI | Cheque | Amount taken | Owed on the bills here | ₹2,843.00 | ₹ | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered"
+ },
+ "cleared": {
+  "amountValue": "",
+  "record": {
+   "disabled": true,
+   "text": "Record the payment"
+  },
+  "amountRegion": "How it was paid | Cash | UPI | Cheque | Amount taken | Owed on the bills here | ₹2,843.00 | ₹ | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered"
+ },
+ "phoneTyped4756": {
+  "amountValue": "4756",
+  "record": {
+   "disabled": false,
+   "text": "Record the payment"
+  },
+  "amountRegion": "How it was paid | Cash | UPI | Cheque | Amount taken | Owed on the bills here | ₹2,843.00 | ₹ | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered"
+ },
+ "phoneOpen": {
+  "label": "phone invoice open",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243714&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 44292,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243714&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 21840,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "phoneShare": {
+  "label": "phone invoice send",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243714&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 45845,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243714&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 21840,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "phoneToast": "Nothing was sent",
+ "phoneCnSheet": [
+  "d9-paper-sheet",
+  "d9-paper-open",
+  "d9-paper-print",
+  "d9-paper-share"
+ ],
+ "phoneCnOpen": {
+  "label": "phone cn open",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/credit_note/01a09532-f82f-736d-8bbc-e444a8b3cd48.pdf?expires=1789243729&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 50023,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/credit_note/01a09532-f82f-736d-8bbc-e444a8b3cd48.pdf?expires=1789243729&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20550,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "phoneOtherTripUrl": "http://localhost:5177/day?tripId=72649337-4c50-7033-a988-ca5cf4406f9c"
+}
+[url] http://localhost:5177/day?tripId=72649337-4c50-7033-a988-ca5cf4406f9c

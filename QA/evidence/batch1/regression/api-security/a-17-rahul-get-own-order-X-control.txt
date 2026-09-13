@@ -1,0 +1,15 @@
+### REQUEST  2026-09-13 01:12:13 IST
+GET http://127.0.0.1:3003/orders/01a09720-9174-75d3-9bb0-4cef6bf98395
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 1641
+Date: Sat, 12 Sep 2026 19:42:13 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"01a09720-9174-75d3-9bb0-4cef6bf98395","orderNo":"SO-0888","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","state":"confirmed","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":"01a0947d-7a96-723f-952d-338dd284a1b4","externalRef":null,"subtotalPaise":8622,"discountPaise":0,"taxPaise":1035,"roundOffPaise":43,"totalPaise":9700,"approvalFlags":[],"expectedDeliveryDate":null,"note":"QA security regression fixture X","submittedAt":"2026-09-12T19:38:09.687Z","confirmedAt":"2026-09-12T19:38:09.697Z","cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T19:38:09.569Z","lines":[{"id":"01a09720-919e-7366-8548-bb4a426b174e","lineNo":1,"variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","enteredQty":6,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":6,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":1437,"ratePaise":1437,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":1035,"lineTotalPaise":9657,"appliedRules":[],"priceLocked":false}],"transitions":[{"id":"01a09720-939e-7627-8e07-e1128de05e75","fromState":"draft","toState":"submitted","event":"submit","actorId":"8760e17e-4830-7395-a946-1e02fffa1ad7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T19:38:09.683Z"},{"id":"01a09720-93b2-7328-bec5-e1ee1c7dca7e","fromState":"submitted","toState":"confirmed","event":"confirm","actorId":"8760e17e-4830-7395-a946-1e02fffa1ad7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T19:38:09.683Z"}],"approvals":[]}}

@@ -1,0 +1,35 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+IS
+Iqbal Shaikh
+delivery
+TRIP-0001 · 13 Sep 2026
+Start the trip
+Trip is Being loaded
+Location while the trip runs
+Tarsun Enterprise sees where this vehicle is only while a trip is running. Tracking stops when you check the vehicle back in. The office keeps the track for 90 days and then deletes it. You can refuse and still drive; the office simply will not see the vehicle.
+You agreed on 13 Aug, 9:00 am
+I agree to be tracked
+Do not track me
+Before you leave
+Odometer at start (km)
+Cash handed to you
+₹
+The float the cashier gave you, not a collection
+Vehicle
+MH-05-EF-9012
+Stops
+4
+Start the trip
+TRIP-0001 on MH-05-EF-9012, 4 stops, float ₹500.00. Every bill on this trip the godown has not already sent out is dispatched now, and the office starts seeing where the vehicle is.
+Cancel
+Start the trip
+Start the trip

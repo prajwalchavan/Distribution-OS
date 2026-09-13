@@ -1,0 +1,6 @@
+Record what was picked |  | click=false | en=true | [94,882][985,951]
+1 rows |  | click=false | en=true | [95,983][986,1041]
+ | Record what was picked | click=true | en=true | [95,1155][986,1321]
+Record what was picked |  | click=false | en=true | [312,1208][768,1266]
+ | Cancel | click=true | en=true | [95,1352][986,1518]
+Cancel |  | click=false | en=true | [476,1405][605,1463]

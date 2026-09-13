@@ -1,0 +1,3 @@
+  [63,690][333,759] '24 pc short' '' 
+  [85,1564][995,1612] 'Taken back · 24 pc' '' 
+  [85,1866][995,1914] 'Into the damaged / expiry bin' '' 

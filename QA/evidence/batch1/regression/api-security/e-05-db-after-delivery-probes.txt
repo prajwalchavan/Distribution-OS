@@ -1,0 +1,8 @@
+-- after DOS-058 probes SQL read-only 2026-09-12T19:45:54.442Z
+trip|TRIP-NEXT|active|7b2db500-02d5-7aa7-a1dc-005a3e89ff63
+stop|b7a0e1c7-3976-7374-bebb-d4219ea5a41a|5|pending||
+planned delivery|80252baf-d3f6-7f11-814a-6fc0cf0612c7|||
+deliveries for invoice|1
+delivery_lines for planned|0
+credit_notes for invoice|0
+invoice|INV/0836|issued|d3dc9ba8-82a4-75ca-8b5e-264bf52afa23|2026-09-12 12:50:54.300083+05:30

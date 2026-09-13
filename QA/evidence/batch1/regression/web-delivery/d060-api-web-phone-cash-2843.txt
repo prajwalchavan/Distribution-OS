@@ -1,0 +1,24 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d060-07-stop3-phone.png (434 chars text)
+{
+ "modeSegment": "Cash | UPI | Cheque",
+ "fieldValue": "2843",
+ "recordEnabled": true,
+ "url": "http://127.0.0.1:3005/delivery/collections",
+ "post": {
+  "idempotencyKey": "01a09730-1de6-70c8-9ef5-2e8998db50db",
+  "id": "01a09730-1de6-70c7-8f13-1498595a4b67",
+  "receiptId": "01a09730-2e39-7179-a747-6ac2734d5218",
+  "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+  "stopId": "6c4c742c-5445-75ed-8418-049db39f5709",
+  "retailerId": "ffa4c055-0e89-7dea-97f2-a24e6ac0fef5",
+  "mode": "cash",
+  "amountPaise": 284300,
+  "collectedAt": "2026-09-12T19:55:12.313Z",
+  "deviceId": "01a09729-28c7-72cb-86a1-9873ad549172"
+ },
+ "status": 200,
+ "body": "{\"item\":{\"id\":\"01a09730-1de6-70c7-8f13-1498595a4b67\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"stopId\":\"6c4c742c-5445-75ed-8418-049db39f5709\",\"retailerId\":\"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5\",\"retailerName\":\"Anand Bhavan Provision\",\"receiptId\":\"01a09730-2e39-7179-a747-6ac2734d5218\",\"receiptNo\":\"RCPT-0701\",\"mode\":\"cash\",\"amountPaise\":284300,\"reference\":null,\"collectedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"collectedAt\":\"2026-09-12T19:55:12.313Z\"},\"receipt\":{\"id\":\"01a09730-2e39-7179-a747-6ac2734d5218\",\"receiptNo\":\"RCPT-0701\",\"retailerId\":\"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5\",\"mode\":\"cash\",\"amountPaise\":284300,\"allocatedPaise\":284300,\"unallocatedPaise\":0,\"cashDiscountPaise\":0,\"status\":\"collected\",\"receivedAt\":\"2026-09-12T19:55:12.313Z\",\"receivedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"reference\":null,\"upiVpa\":null,\"chequeDate\":null,\"bankName\":null,\"deviceId\":\"01a09729-28c7-72cb-86a1-9873ad549172\",\"clientReceiptNo\":null,\"reversesReceiptId\":null,\"depositedAt\":null,\"depositRef\":null,\"depositAccountId\":null,\"bouncedAt\":null,\"bounceReason\":null,\"bankChargesPaise\":0,\"proofObjectKey\":null,\"pdfObjectKey\":null,\"note\":null,\"createdAt\":\"2026-09-12T19:55:12.320Z\"},\"allocations\":[{\"id\":\"01a09730-2e62-75c6-82bd-ee980c72a189\",\"invoiceId\":\"9531c600-ab87-7fa0-9ce0-4a383ee4fcb7\",\"receiptId\":\"01a09730-2e39-7179-a747-6ac2734d5218\",\"creditNoteId\":null,\"writeOffId\":null,\"amountPaise\":284300,\"allocatedAt\":\"2026-09-12T19:55:12.320Z\",\"allocatedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\"}],\"invoices\":[{\"id\":\"9531c600-ab87-7fa0-9ce0-4a383ee4fcb7\",\"invoiceNo\":\"INV/0354\",\"state\":\"partially_paid\",\"openPaise\":8600}],\"cashDiscountPaise\":0,\"unallocatedPaise\":0,\"outstanding\":{\"retailerId\":\"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5\",\"outstandingPaise\":3270500,\"overduePaise\":2986200,\"unallocatedCreditPaise\":0,\"openBills\":5,\"oldestDueDate\":\"2026-07-28\",\"oldestInvoiceDate\":\"2026-07-21\",\"lastReceiptAt\":\"2026-09-12T19:55:12.313Z\",\"lastReceiptPaise\":284300,\"buckets\":{\"b0_7\":284300,\"b8_15\":607300,\"b16_30\":1226400,\"b31_60\":1152500,\"b61_90\":0,\"b90plus\":0},\"asOf\":\"2026-09-13\"}}",
+ "afterText": "Tarsun Enterprise | delivery | ⋯ | Updated just now | Stop 3 of 10 · TRIP-ACTIVE | Anand Bhavan Provision | Delivered | Owes ₹35,548.00 | Credit | Shop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Open in maps | Expected | 12 Sep, 10:00 am | Arrived | 12 Sep, 10:10 am | Still due | ₹35,548.00 | 5 bills still open at this shop | Bills on this stop | ₹2,843.00 | INV/0832 | 11 ",
+ "afterUrl": "http://localhost:5177/stop/6c4c742c-5445-75ed-8418-049db39f5709"
+}
+[url] http://localhost:5177/stop/6c4c742c-5445-75ed-8418-049db39f5709

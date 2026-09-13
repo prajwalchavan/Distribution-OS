@@ -1,0 +1,9 @@
+order|SO-0899|confirmed|2026-09-13 02:27:16.56+05:30
+approval bargain|01a09766-114f-73f6-af8d-413a6f294bc7|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063 | QA regression DOS-005: asked rate agreed from the queue card | 2026-09-13 02:26:27.724+05:30
+approval credit_limit|01a09766-114f-73f5-b1fc-9d9cab81e82e|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063 | QA regression DOS-020: last gate approved from the order panel | 2026-09-13 02:27:16.555+05:30
+bargain|01a09766-10fd-711e-a28e-a27a3465e03e|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063 | rate 4554
+reservation lot d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1|6|pending|2026-09-13 02:27:16.539698+05:30
+reservation lot e281d17d-3e35-7488-8e75-213685b35df0|18|pending|2026-09-13 02:27:16.539698+05:30
+transition|submit draft->submitted|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-13 02:24:03.81032+05:30
+transition|confirm submitted->confirmed|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|2026-09-13 02:27:16.539698+05:30
+line|01a09766-101f-74d8-8acd-5d690733b001|24 pc @ rate 5117 list 5117|

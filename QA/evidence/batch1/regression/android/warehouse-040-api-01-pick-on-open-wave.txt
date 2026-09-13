@@ -1,0 +1,5 @@
+### POST :3004/warehouse/picklists/01a097b7-dd40-73eb-b179-49783c77063a/pick (dinesh.patil) while PICK-0089 is open
+{"idempotencyKey":"android-040-probe-01a097b7-dd40-73eb-b179-49783c77063a","id":"01a097b7-dd40-73eb-b179-49783c77063a","lines":[{"id":"01a097b7-dc26-72a5-a0c1-fdbd4264f4d9","orderLineId":"c88bc1cd-e49a-77e5-b5f6-581c58190479","lotId":"885ab55a-64ef-7e25-834a-fbfab8c67db9","pickedQtyPcs":1}]}
+### RESPONSE
+{"defined":false,"code":"CONFLICT","status":409,"message":"picklist PICK-0089 is open; start it before picking"}
+HTTP 409

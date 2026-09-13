@@ -1,0 +1,21 @@
+### REQUEST  2026-09-12T19:42:43.439Z
+POST http://127.0.0.1:3004/warehouse/picklists/01a09724-c03e-7940-979d-0f197d433b4e/start
+Authorization: Bearer <accessToken of dinesh.patil>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-d05-01a09724-c03e-7940-979d-0f197d433b4e",
+ "id": "01a09724-c03e-7940-979d-0f197d433b4e"
+}
+
+### RESPONSE
+HTTP/1.1 200 OK
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 1687
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:42:43 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"item":{"id":"01a09724-c03e-7940-979d-0f197d433b4e","picklistNo":"PICK-0081","status":"picking","locationId":"01a0947d-7a96-723f-952d-338dd284a1b4","pickDate":"2026-09-13","tripId":null,"beatId":null,"note":"QA security regression wave (DOS-040/041)","orderCount":1,"lineCount":1,"requestedQtyPcs":6,"pickedQtyPcs":0,"assignedTo":null,"startedAt":"2026-09-12T19:42:43.426Z","completedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T19:42:43.265Z","orders":[{"orderId":"01a09722-30c7-722d-9091-88770c42d8bf","orderNo":"SO-0892","retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","retailerName":"Gupta Kirana Stores","state":"picking","lineCount":1}],"lines":[{"id":"01a09724-c056-7603-b404-7fff7ff94144","orderId":"01a09722-30c7-722d-9091-88770c42d8bf","orderLineId":"01a09722-30ec-750f-b171-85bf8176314b","lineNo":1,"variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","variantName":"Balaji Masala Masti Wafers 45 g","productName":"Balaji Masala Masti Wafers","lotId":"66b34c38-19ee-7e28-8c96-ad5364fc7b4f","suggestedLotId":"66b34c38-19ee-7e28-8c96-ad5364fc7b4f","batchNo":"GK20260721","expiryDate":"2026-12-18","caseSize":48,"requestedQtyPcs":6,"pickedQtyPcs":0,"freeQtyPcs":0,"shortReason":null,"fefoOverride":false,"pickedBy":null,"pickedAt":null}],"consolidated":[{"variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","variantName":"Balaji Masala Masti Wafers 45 g","productName":"Balaji Masala Masti Wafers","requestedQtyPcs":6,"pickedQtyPcs":0,"caseSize":48,"cases":0,"loosePcs":6,"lots":[{"lotId":"66b34c38-19ee-7e28-8c96-ad5364fc7b4f","batchNo":"GK20260721","expiryDate":"2026-12-18","qtyPcs":6,"caseSize":48,"cases":0,"loosePcs":6,"fefoWarning":false}]}]}}

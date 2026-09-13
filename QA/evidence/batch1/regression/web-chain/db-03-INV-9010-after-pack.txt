@@ -1,0 +1,67 @@
+               now                
+----------------------------------
+ 2026-09-13 03:13:41.983203+05:30
+(1 row)
+
+ invoice_no | state  | invoice_date | subtotal_paise | discount_paise | taxable_paise | cgst_paise | sgst_paise | igst_paise | round_off_paise | total_paise | cash_discount_bps | cash_discount_until |  due_date  | is_inter_state | place_of_supply_state 
+------------+--------+--------------+----------------+----------------+---------------+------------+------------+------------+-----------------+-------------+-------------------+---------------------+------------+----------------+-----------------------
+ INV/9010   | issued | 2026-09-13   |         574332 |           8277 |        566055 |      50945 |      50945 |          0 |             -45 |      667900 |               250 | 2026-09-20          | 2026-10-04 | f              | 27
+(1 row)
+
+ line_no |           description           |  batch_no  | qty_pcs | rate_paise | discount_paise | taxable_paise | cgst_paise | sgst_paise | line_total_paise 
+---------+---------------------------------+------------+---------+------------+----------------+---------------+------------+------------+------------------
+       1 | Sunbake Marie Light 75 g        | SB20260607 |      12 |       1117 |              0 |         13404 |       1206 |       1206 |            15816
+       2 | Sunbake Marie Light 75 g        | SB20260614 |      84 |       1117 |              0 |         93828 |       8445 |       8445 |           110718
+       3 | Neelam Sandal Soap 100 g        | SC20260521 |      27 |       2832 |              0 |         76464 |       6882 |       6882 |            90228
+       4 | Neelam Sandal Soap 100 g        | B20260614  |      13 |       2832 |              0 |         36816 |       3313 |       3313 |            43442
+       5 | Neelam Sandal Soap 100 g        | SC20260702 |      32 |       2832 |              0 |         90624 |       8156 |       8156 |           106936
+       6 | Chamak Dishwash Bar 145 g       | SC20260521 |      11 |       1042 |              0 |         11462 |       1032 |       1032 |            13526
+       7 | Chamak Dishwash Bar 145 g       | B20260729  |      25 |       1042 |              0 |         26050 |       2345 |       2345 |            30740
+       8 | Chamak Dishwash Bar 145 g       | SC20260604 |      18 |       1042 |              0 |         18756 |       1688 |       1688 |            22132
+       9 | Balaji Masala Masti Wafers 45 g | GK20260609 |       1 |       1437 |             58 |          1379 |        124 |        124 |             1627
+      10 | Balaji Masala Masti Wafers 45 g | GK20260828 |      19 |       1437 |           1092 |         26211 |       2359 |       2359 |            30929
+      11 | Balaji Masala Masti Wafers 45 g | GK20260707 |       9 |       1437 |            517 |         12416 |       1117 |       1117 |            14650
+      12 | Balaji Masala Masti Wafers 45 g | GK20260804 |      14 |       1437 |            805 |         19313 |       1738 |       1738 |            22789
+      13 | Balaji Masala Masti Wafers 45 g | GK20260721 |      15 |       1437 |            862 |         20693 |       1862 |       1862 |            24417
+      14 | Balaji Masala Masti Wafers 45 g | GK20260630 |      12 |       1437 |            690 |         16554 |       1490 |       1490 |            19534
+      15 | Balaji Masala Masti Wafers 45 g | GK20260825 |      74 |       1437 |           4253 |        102085 |       9188 |       9188 |           120461
+(15 rows)
+
+ taxable |  gst   | lines_total 
+---------+--------+-------------
+  566055 | 101890 |      667945
+(1 row)
+
+ order_no | state  
+----------+--------
+ SO-0903  | packed
+(1 row)
+
+ line_no | qty_pcs | picked_qty_pcs | delivered_qty_pcs 
+---------+---------+----------------+-------------------
+       1 |      96 |             96 |                 0
+       2 |      72 |             72 |                 0
+       3 |      60 |             54 |                 0
+       4 |     144 |            144 |                 0
+(4 rows)
+
+ state  | sum 
+--------+-----
+ posted | 372
+(1 row)
+
+ reason |  loc   | qty  | rows | ref_type 
+--------+--------+------+------+----------
+ sale   | Godown | -366 |   15 | pack
+(1 row)
+
+ order_no | state  
+----------+--------
+ SO-0845  | packed
+ SO-0850  | packed
+ SO-0883  | packed
+ SO-0892  | packed
+ SO-0899  | packed
+ SO-9001  | packed
+(6 rows)
+

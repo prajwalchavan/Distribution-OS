@@ -1,0 +1,60 @@
+{
+  "desk": {
+    "open": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244977&signature=f8047e4772d233e76f167ad256247184150d5ffc90170d82dbf58a5f5e4a3e6e",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244080495
+      }
+    ],
+    "print": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244977&signature=f8047e4772d233e76f167ad256247184150d5ffc90170d82dbf58a5f5e4a3e6e",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244091033
+      }
+    ],
+    "printMsAfterTap": [
+      8021
+    ],
+    "receiptOpen": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/700d45c2-ada4-7f36-8075-b79b94cf2806.pdf?expires=1789244995&signature=7c295d94720ec9a9ec3d961ea84b597bb7268f2945736a5d40f6b02720c14db0",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244096611
+      }
+    ]
+  },
+  "phone": {
+    "open": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789245002&signature=4b35bab2e4e35e69adbfac27640598257b5c2d5ba728b48e8b545298ff4e2922",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244105110
+      }
+    ],
+    "print": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789245002&signature=4b35bab2e4e35e69adbfac27640598257b5c2d5ba728b48e8b545298ff4e2922",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244115650
+      }
+    ],
+    "printMsAfterTap": [
+      8027
+    ],
+    "receiptOpen": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/700d45c2-ada4-7f36-8075-b79b94cf2806.pdf?expires=1789245020&signature=94a5f7c6af88b691f9b5ab27c8c02071a9b3f1fec9799078d04becdc77609b76",
+        "target": "_blank",
+        "features": "noopener,noreferrer",
+        "at": 1789244121293
+      }
+    ]
+  }
+}

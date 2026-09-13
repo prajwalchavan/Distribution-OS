@@ -1,0 +1,42 @@
+### REQUEST  2026-09-12T19:45:54.417Z
+POST http://127.0.0.1:3005/delivery/deliveries
+Authorization: Bearer <accessToken of ganesh.more>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-e-01a09727-aae3-796a-81e7-411112330668",
+ "id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7",
+ "tripId": "72649337-4c50-7033-a988-ca5cf4406f9c",
+ "stopId": "b7a0e1c7-3976-7374-bebb-d4219ea5a41a",
+ "invoiceId": "d85131d8-4a5f-7536-a42b-90136d5d61ec",
+ "receiverName": "QA probe",
+ "note": "QA security regression probe - must be refused",
+ "lines": [
+  {
+   "id": "01a09727-aae3-75d9-a23a-cc106898cefa",
+   "invoiceLineId": "2fdfa8ed-6855-7e8e-bce8-61259cff8dcc",
+   "deliveredQtyPcs": 49,
+   "returnedQtyPcs": 1,
+   "returnedSaleable": true,
+   "reason": "damaged"
+  },
+  {
+   "id": "01a09727-aae3-7461-bdb8-b7898089cebd",
+   "invoiceLineId": "01a09727-aa98-7f0a-9584-f672ac0fb5d6",
+   "deliveredQtyPcs": 1,
+   "returnedQtyPcs": 0
+  }
+ ]
+}
+
+### RESPONSE
+HTTP/1.1 400 Bad Request
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 245
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:45:54 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Campa Cola 1 L: damaged goods go to the damaged bin, not back on sale","data":{"code":"return_not_saleable","invoiceLineId":"2fdfa8ed-6855-7e8e-bce8-61259cff8dcc","reason":"damaged"}}

@@ -1,0 +1,12 @@
+# DOS-025 / DOS-029 before (2026-09-12T23:40:13Z)
+> select ls.id, ls.status, ls.sheet_date, ls.approved_by, u.username as approver, ls.approved_at, ls.trip_id, ls.load_value_paise, ls.order_ids, ls.created_at from load_sheets ls left join users u on u.id=ls.approved_by where ls.tenant_id=(select id from tenants where slug='tarsun') and ls.status='draft' order by ls.created_at desc
+01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|draft|2026-09-13|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|vikas.kadam|2026-09-13 02:35:01.279+05:30||137500|["01a09766-101d-726f-bd86-95398f469cf4"]|2026-09-13 02:33:31.768111+05:30
+> select status, count(*) from load_sheets where tenant_id=(select id from tenants where slug='tarsun') group by status
+draft|1
+confirmed|84
+> select order_no, state from sales_orders where tenant_id=(select id from tenants where slug='tarsun') and order_no in ('SO-0850','SO-9001','SO-0899')
+SO-0850|packed
+SO-0899|packed
+SO-9001|packed
+> select count(*) from picklists where tenant_id=(select id from tenants where slug='tarsun')
+90

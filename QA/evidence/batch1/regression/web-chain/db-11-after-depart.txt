@@ -1,0 +1,27 @@
+               now                
+----------------------------------
+ 2026-09-13 03:38:35.611185+05:30
+(1 row)
+
+  trip_no  | state  |          started_at           | start_odometer_km | opening_cash_paise 
+-----------+--------+-------------------------------+-------------------+--------------------
+ TRIP-0001 | active | 2026-09-13 03:38:27.982+05:30 |             45210 |              50000
+(1 row)
+
+ order_no |   state    
+----------+------------
+ SO-0903  | dispatched
+ SO-0904  | dispatched
+ SO-0905  | dispatched
+ SO-0906  | dispatched
+(4 rows)
+
+ from_state |  to_state  |     event     |           occurred_at            
+------------+------------+---------------+----------------------------------
+ draft      | submitted  | submit        | 2026-09-13 03:05:33.340121+05:30
+ submitted  | confirmed  | confirm       | 2026-09-13 03:05:33.340121+05:30
+ confirmed  | picking    | start_picking | 2026-09-13 03:09:39.605911+05:30
+ picking    | packed     | pack          | 2026-09-13 03:12:22.876779+05:30
+ packed     | dispatched | dispatch      | 2026-09-13 03:36:59.687363+05:30
+(5 rows)
+

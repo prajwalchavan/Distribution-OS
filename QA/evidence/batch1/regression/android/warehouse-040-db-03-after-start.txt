@@ -1,0 +1,5 @@
+picklist|PICK-0089|picking|2026-09-13 03:55:37.024+05:30|NULL
+order|SO-0867|picking|2026-09-12 13:52:31.117+05:30|
+draft|submitted|submit|rahul.deshmukh|2026-09-12 10:00:00+05:30
+submitted|confirmed|confirm|vikas.kadam|2026-09-12 13:52:31.099718+05:30
+confirmed|picking|start_picking|dinesh.patil|2026-09-13 03:55:36.922183+05:30

@@ -1,0 +1,8 @@
+Approve |  | click=false | en=true | [94,709][985,778]
+SO-0911 · Over credit limit · Owes ₹37,634.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit |  | click=false | en=true | [95,810][986,984]
+Note for the person who asked |  | click=false | en=true | [95,1016][986,1064]
+QA android DOS-020 credit ok |  | click=true | en=true | [95,1074][986,1241]
+ | Approve | click=true | en=true | [95,1329][986,1494]
+Approve |  | click=false | en=true | [462,1382][619,1440]
+ | Cancel | click=true | en=true | [95,1526][986,1691]
+Cancel |  | click=false | en=true | [476,1579][605,1637]

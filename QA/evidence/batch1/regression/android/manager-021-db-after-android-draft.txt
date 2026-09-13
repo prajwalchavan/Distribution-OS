@@ -1,0 +1,4 @@
+# INV/0634 after the Android 1-pc draft, before cleanup (2026-09-13T00:13:31Z)
+> select cn.id, cn.state, cn.reason, cn.note, cnl.qty_pcs, cn.total_paise, cn.created_at from credit_notes cn join credit_note_lines cnl on cnl.credit_note_id=cn.id where cn.invoice_id='fe8797c2-ebae-7959-80f6-3a80a6514077' and cn.state <> 'cancelled' order by cn.created_at
+01a0981a-8e6f-725c-8f05-2cdec78e45f4|draft|return_saleable|QA android-manager DOS-021 race draft (to be cancelled)|39|34400|2026-09-13 05:41:12.397039+05:30
+01a0981c-0cb6-769f-8d14-6d36d2324233|draft|return_saleable||1|900|2026-09-13 05:42:50.379917+05:30

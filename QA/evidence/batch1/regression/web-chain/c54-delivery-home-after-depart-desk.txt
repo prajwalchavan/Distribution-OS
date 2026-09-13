@@ -1,0 +1,56 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated 1 min ago
+IS
+Iqbal Shaikh
+delivery
+TRIP-0001 · 13 Sep 2026
+Today's trip
+Being loaded
+0 of 4 stops done
+MH-05-EF-9012
+STILL TO COLLECT
+₹16,163.00
+COLLECTED TODAY
+₹0.00
+FLOAT AT START
+₹0.00
+STOPS
+0 / 4
+Next stop
+Balaji Wholesale Stores
+Shop 28, Murbad Road, Station Road, Kalyan West, Kalyan, 421301
+₹6,679.00
+Not started
+Stops in order
+0 of 4 stops done
+1. Balaji Wholesale Stores
+Shop 28, Murbad Road, Station Road, Kalyan West, Kalyan, 421301
+₹6,679.00
+Not started
+2. Ganesh General Store
+Shop 7, Bail Bazar, Station Road, Kalyan West, Kalyan, 421301
+₹2,205.00
+Not started
+3. Sai Baba Kirana
+Shop 35, Subhash Chowk, Bazarpeth, Kalyan West, Kalyan, 421301
+₹3,749.00
+Not started
+4. Ganpati General Stores
+Shop 25, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹3,530.00
+Not started
+Load on board
+The godown has not confirmed a load sheet for this trip
+Location
+Location is off
+A browser tab stops sending when it is hidden — keep this tab open.
+Add an expense
+Start this trip

@@ -1,0 +1,128 @@
+[
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"nyOf60pfLKv9GgfNatQULVXMHHCEqpzQbIADO-qAiVc\",\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoid2FyZWhvdXNlIiwic2lkIjoiMDFhMDk3OGUtMDNiYS03MTExLWEwMTMtMzU2MjI4ZTUyMzM2IiwiZGlkIjoiMDFhMDk3OGUtMDMxNC03MDYwLTgzYWItYTA5NDU0ZDgzZWFkIiwic3ViIjoiNWI2ZmJlODctY2I3MC03MTk1LThkZTEtYTRmNTA0NmMzNjc1IiwiaXNzIjoiZG9zLWF1dGgiLCJhdWQiOiJkb3MiLCJpYXQiOjE3ODkyNDk4NzMsImV4cCI6MTc4OTI1MDc3MywianRpIjoiMDFhMDk3OWEtNjU3Ny03NjMxLWJkY2ItZTVjYzFhN2Y2NjE3In0.JuYfg6yg9bBBkTitqLYTqBQBTaJl7y7UzLg9kYeN_bP6MPS4pyMQfdFfLbn8AceOvKhEo1OnuQWa7PMREYnjDg\",\"tokenType\":\"Bearer\",\"accessExpiresIn\":900,\"refreshToken\":\"1FyVIaQzfs2Of8BXgZ"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists/01a09799-d57c-7378-9693-9cebc71c8842/start",
+  "status": 200,
+  "req": "{\"idempotencyKey\":\"01a0979a-657e-736c-af3d-b75c96999765\"}",
+  "res": "{\"item\":{\"id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"picklistNo\":\"PICK-0087\",\"status\":\"picking\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":1,\"lineCount\":2,\"requestedQtyPcs\":144,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":\"2026-09-12T21:51:19.773Z\",\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:50:36.449Z\",\"orders\":[{\"orderId\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"orderNo\":\"SO-0908\",\"retailerId\":\"b5dbcdb8-401a-7a7d-9626-37ad239fd91a\",\"retailerName\":\"Sai Krupa Super Bazar\",\"state\":\"picking\",\"lineCount\":2}],\"lines\":[{\"id\":\"01a09799-d5c9-7123-856f-42ea77079113\",\"order"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-925f-704f-a01d-d0e7ec79d2e7\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-d5c9-7123-856f-42ea77079113\",\"data\":{\"picklist_id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"order_id\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"order_line_id\":\"01a09797-919f-7371-8efa-34005948e968\",\"variant_id\":\"2f84f3ed-39bb-7c5e-ab90-e7148977890a\",\"line_no\":1,\"lot_id\":\"d2ccc832-abf8-7808-ad37-2e2a5ade4390\",\"requested_qty_pcs\":12,\"picked_qty_pcs\":12,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:36.504Z\",\"clientTime\":\"2026-09-12T21:51:24.767Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-9879-7414-8471-58075e9ee195\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-d5c9-7124-b4a5-70dd9d7ce86c\",\"data\":{\"picklist_id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"order_id\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"order_line_id\":\"01a09797-919f-7371-8efa-34005948e968\",\"variant_id\":\"2f84f3ed-39bb-7c5e-ab90-e7148977890a\",\"line_no\":1,\"lot_id\":\"11b00f7d-a84e-7854-83e5-0cfdc3db8bae\",\"requested_qty_pcs\":60,\"picked_qty_pcs\":60,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:36.505Z\",\"clientTime\":\"2026-09-12T21:51:26.329Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-9e88-765f-82ee-3a72d33cb32b\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-d5ca-73ab-b740-42b79cba1b34\",\"data\":{\"picklist_id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"order_id\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"order_line_id\":\"01a09797-969f-77ec-8148-e4f42875147d\",\"variant_id\":\"dc0efb0f-1df8-7031-8d68-feec02a3e082\",\"line_no\":2,\"lot_id\":\"31f19c24-5f9b-7999-a992-484d6877c2c2\",\"requested_qty_pcs\":17,\"picked_qty_pcs\":17,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:36.505Z\",\"clientTime\":\"2026-09-12T21:51:27.880Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-a498-7381-9932-a6b0857d15ce\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-d5ca-73ac-8694-8168c8865885\",\"data\":{\"picklist_id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"order_id\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"order_line_id\":\"01a09797-969f-77ec-8148-e4f42875147d\",\"variant_id\":\"dc0efb0f-1df8-7031-8d68-feec02a3e082\",\"line_no\":2,\"lot_id\":\"2cbceef4-873e-770b-8511-90e10f356f98\",\"requested_qty_pcs\":24,\"picked_qty_pcs\":24,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:36.505Z\",\"clientTime\":\"2026-09-12T21:51:29.432Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-aaa3-72e4-83ff-0f1342744abe\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-d5ca-73ad-94c0-2b198b916e32\",\"data\":{\"picklist_id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"order_id\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"order_line_id\":\"01a09797-969f-77ec-8148-e4f42875147d\",\"variant_id\":\"dc0efb0f-1df8-7031-8d68-feec02a3e082\",\"line_no\":2,\"lot_id\":\"af4e76d0-2471-76ae-9c4c-f15ce19db86d\",\"requested_qty_pcs\":31,\"picked_qty_pcs\":31,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:36.506Z\",\"clientTime\":\"2026-09-12T21:51:30.979Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"1FyVIaQzfs2Of8BXgZEbclmMwhn1fRDuUn1Kh8xkRY0\",\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoid2FyZWhvdXNlIiwic2lkIjoiMDFhMDk3OGUtMDNiYS03MTExLWEwMTMtMzU2MjI4ZTUyMzM2IiwiZGlkIjoiMDFhMDk3OGUtMDMxNC03MDYwLTgzYWItYTA5NDU0ZDgzZWFkIiwic3ViIjoiNWI2ZmJlODctY2I3MC03MTk1LThkZTEtYTRmNTA0NmMzNjc1IiwiaXNzIjoiZG9zLWF1dGgiLCJhdWQiOiJkb3MiLCJpYXQiOjE3ODkyNDk4OTYsImV4cCI6MTc4OTI1MDc5NiwianRpIjoiMDFhMDk3OWEtYzFjNC03NDUwLThmMWItZjI1NmY3MTg1M2Q4In0.NoDP0oURJTAX-wphZE68NBzlRbNGkaf2VQI9Ib-2NBfKNpOFPBKZHyJHY1-Bt02W1rKq5MCOROjYMPzAa4rYDw\",\"tokenType\":\"Bearer\",\"accessExpiresIn\":900,\"refreshToken\":\"OY7VBCTQfq2XaCvJEt"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists/01a09799-a33c-73a1-9bbc-aa398ebe8915/start",
+  "status": 200,
+  "req": "{\"idempotencyKey\":\"01a0979a-c1cc-719b-a17d-46d48d769a32\"}",
+  "res": "{\"item\":{\"id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"picklistNo\":\"PICK-0086\",\"status\":\"picking\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":3,\"lineCount\":5,\"requestedQtyPcs\":360,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":\"2026-09-12T21:51:43.752Z\",\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:50:23.575Z\",\"orders\":[{\"orderId\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"orderNo\":\"SO-0906\",\"retailerId\":\"c704a780-c33e-7a95-ba00-e28613f6883a\",\"retailerName\":\"Ganpati General Stores\",\"state\":\"picking\",\"lineCount\":2},{\"orderId\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"orderNo\":"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-f02e-7719-80a2-4a056139d8e6\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37e-76c2-8636-44219be7d8b7\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09795-7cd8-7517-a0d2-0c9756408bad\",\"order_line_id\":\"01a09795-b84f-7426-a959-b90cba310f73\",\"variant_id\":\"dc0efb0f-1df8-7031-8d68-feec02a3e082\",\"line_no\":1,\"lot_id\":\"2dd3da19-ac0e-74ad-a38c-2d26227b05fc\",\"requested_qty_pcs\":47,\"picked_qty_pcs\":47,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.626Z\",\"clientTime\":\"2026-09-12T21:51:48.782Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-f468-74ad-a640-d25ccf30a71c\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37f-7127-a9c4-4a6dfc464279\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09795-7cd8-7517-a0d2-0c9756408bad\",\"order_line_id\":\"01a09795-b84f-7426-a959-b90cba310f73\",\"variant_id\":\"dc0efb0f-1df8-7031-8d68-feec02a3e082\",\"line_no\":1,\"lot_id\":\"31f19c24-5f9b-7999-a992-484d6877c2c2\",\"requested_qty_pcs\":25,\"picked_qty_pcs\":25,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.627Z\",\"clientTime\":\"2026-09-12T21:51:49.864Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-f894-7714-b480-a5e35f17da2b\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37f-7128-b1fe-41823244c568\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-6e45-7115-802f-cbae22b60d6c\",\"variant_id\":\"1f4fa659-76ff-7359-9058-c225d06faf6e\",\"line_no\":1,\"lot_id\":\"de9a1ded-b226-7989-83a4-9aa61e0f9a01\",\"requested_qty_pcs\":31,\"picked_qty_pcs\":31,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.628Z\",\"clientTime\":\"2026-09-12T21:51:50.932Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979a-fcbe-709c-b2af-d15df1b24b70\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37f-7129-aa57-b955d54c9a9d\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-6e45-7115-802f-cbae22b60d6c\",\"variant_id\":\"1f4fa659-76ff-7359-9058-c225d06faf6e\",\"line_no\":1,\"lot_id\":\"b63ca898-f033-7c71-b669-83d0501df83b\",\"requested_qty_pcs\":36,\"picked_qty_pcs\":36,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.628Z\",\"clientTime\":\"2026-09-12T21:51:51.998Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-00ea-73e8-9875-d9298f3d7d09\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37f-712a-9753-f1f54f81b230\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-6e45-7115-802f-cbae22b60d6c\",\"variant_id\":\"1f4fa659-76ff-7359-9058-c225d06faf6e\",\"line_no\":1,\"lot_id\":\"b24683bb-2e8e-71df-9a42-816406c9405b\",\"requested_qty_pcs\":1,\"picked_qty_pcs\":1,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.628Z\",\"clientTime\":\"2026-09-12T21:51:53.066Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-0514-74cf-9f82-4b4cdcaf3352\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a37f-712b-b747-cc02e056313a\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-6e45-7115-802f-cbae22b60d6c\",\"variant_id\":\"1f4fa659-76ff-7359-9058-c225d06faf6e\",\"line_no\":1,\"lot_id\":\"4b43759a-b0ad-7f2c-848e-fe63ba2b8a40\",\"requested_qty_pcs\":4,\"picked_qty_pcs\":4,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:54.132Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-0941-71e0-abfe-010dd9b6c797\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76af-b0d4-38c98c14e65a\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"order_line_id\":\"01a09796-d30c-709f-a977-6b798c7a1271\",\"variant_id\":\"64c2ad57-7c17-72ed-b7b9-e689cbb8be76\",\"line_no\":1,\"lot_id\":\"211e2fc6-e711-7e64-9599-492bfca0af1f\",\"requested_qty_pcs\":66,\"picked_qty_pcs\":66,\"free_qty_pcs\":0,\"case_size\":96,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:55.201Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-0d6b-7598-9198-eb919600cb4a\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76b0-ab5a-78c271d25ef1\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"order_line_id\":\"01a09796-d30c-709f-a977-6b798c7a1271\",\"variant_id\":\"64c2ad57-7c17-72ed-b7b9-e689cbb8be76\",\"line_no\":1,\"lot_id\":\"d012c950-ec76-7a26-b12c-f52c22229d4b\",\"requested_qty_pcs\":30,\"picked_qty_pcs\":30,\"free_qty_pcs\":0,\"case_size\":96,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:56.267Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-1196-7730-bec1-b48e1a457b26\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76ad-9b83-3bc94af5f3a7\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-7348-76ab-aa8f-ec0fe9481a6d\",\"variant_id\":\"3db7acf2-cffb-7ad1-8e35-42fa3cd608b5\",\"line_no\":2,\"lot_id\":\"03ae9a1a-1c40-7cc9-9482-a15db0a38cb0\",\"requested_qty_pcs\":14,\"picked_qty_pcs\":14,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:57.334Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-15bf-7228-8e25-7a09a5ae3e72\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76ae-9a59-db738038ea28\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"order_line_id\":\"01a09796-7348-76ab-aa8f-ec0fe9481a6d\",\"variant_id\":\"3db7acf2-cffb-7ad1-8e35-42fa3cd608b5\",\"line_no\":2,\"lot_id\":\"7437930f-7e08-70f6-b491-affae468c219\",\"requested_qty_pcs\":58,\"picked_qty_pcs\":58,\"free_qty_pcs\":0,\"case_size\":72,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:58.399Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-19d9-7565-8cac-a91581919e9a\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76b1-b136-d18fb13e48b3\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"order_line_id\":\"01a09796-d810-75a4-a9e7-44cf3fa4dcce\",\"variant_id\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"line_no\":2,\"lot_id\":\"005c43fd-3477-7558-8fe5-43c6f69b3a89\",\"requested_qty_pcs\":14,\"picked_qty_pcs\":14,\"free_qty_pcs\":0,\"case_size\":48,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.629Z\",\"clientTime\":\"2026-09-12T21:51:59.449Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979b-1df5-7623-b272-f91a4115400a\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a09799-a380-76b2-b806-a98ec2d38b06\",\"data\":{\"picklist_id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"order_id\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"order_line_id\":\"01a09796-d810-75a4-a9e7-44cf3fa4dcce\",\"variant_id\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"line_no\":2,\"lot_id\":\"3740e8e4-7421-7641-b156-3470e18ea17c\",\"requested_qty_pcs\":34,\"picked_qty_pcs\":34,\"free_qty_pcs\":0,\"case_size\":48,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:50:23.641Z\",\"clientTime\":\"2026-09-12T21:52:00.501Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ }
+]

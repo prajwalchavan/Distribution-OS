@@ -1,0 +1,19 @@
+### REQUEST 2026-09-12T21:03:31.750Z
+POST http://127.0.0.1:3004/warehouse/orders/01a09766-101d-726f-bd86-95398f469cf4/pack
+Authorization: Bearer <accessToken of dinesh.patil>
+
+{"id":"01a0976e-ba73-7b68-9fe8-f63bf022f233","idempotencyKey":"01a0976e-ba74-7841-80ee-3727d425133b","orderId":"01a09766-101d-726f-bd86-95398f469cf4","packages":1,"issueInvoice":true}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a0976e-ba73-7b68-9fe8-f63bf022f233","orderId":"01a09766-101d-726f-bd86-95398f469cf4","picklistId":"01a0976a-9e51-75d8-935f-8cc2f2181dfb","packages":1,"weightGrams":null,"invoiceId":"01a0976e-bb32-76e6-a428-0ad2760b49a4","shortPacked":false,"packedBy":"5b6fbe87-cb70-7195-8de1-a4f5046c3675","packedAt":"2026-09-12T21:03:31.572Z"},"lines":[{"orderLineId":"01a09766-101f-74d8-8acd-5d690733b001","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","orderedQtyPcs":24,"packedQtyPcs":24,"shortQtyPcs":0,"lots":[{"lotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","batchNo":"RCP20260710","qtyPcs":6},{"lotId":"e281d17d-3e35-7488-8e75-213685b35df0","batchNo":"RCP20260724","qtyPcs":18}]}],"invoice":{"id":"01a0976e-bb32-76e6-a428-0ad2760b49a4","invoiceNo":"INV/9009","totalPaise":137500}}
+
+### REQUEST 2026-09-12T21:03:31.831Z
+POST http://127.0.0.1:3004/warehouse/load-sheets
+Authorization: Bearer <accessToken of dinesh.patil>
+
+{"id":"01a0976e-bbaf-7dbe-9bb3-f6ed587bd574","idempotencyKey":"01a0976e-bbaf-7456-8260-16c2946bcd76","toLocationId":"7e8fe8ac-a7b5-7531-8def-b362624790ba","orderIds":["01a09766-101d-726f-bd86-95398f469cf4"]}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a0976e-bbaf-7dbe-9bb3-f6ed587bd574","status":"draft","sheetDate":"2026-09-13","tripId":null,"fromLocationId":"01a0947d-7a96-723f-952d-338dd284a1b4","toLocationId":"7e8fe8ac-a7b5-7531-8def-b362624790ba","vehicleRegNo":"MH-05-CD-5678","orderCount":1,"expectedPackages":1,"countedPackages":null,"varianceNote":null,"approvedBy":null,"approvedAt":null,"pinVerifiedBy":null,"loadValuePaise":137500,"ewbRequired":false,"ewbNo":null,"challanNo":null,"confirmedBy":null,"confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T21:03:31.768Z","orders":[{"orderId":"01a09766-101d-726f-bd86-95398f469cf4","orderNo":"SO-0899","retailerId":"34ce3241-c275-7cc5-bc44-cd7856930d50","retailerName":"Mahalaxmi General Stores","invoiceId":"01a0976e-bb32-76e6-a428-0ad2760b49a4","invoiceNo":"INV/9009","packages":1,"stopSequence":1}],"lots":[{"lotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","batchNo":"RCP20260710","expiryDate":"2027-04-06","qtyPcs":6,"caseSize":24,"cases":0,"loosePcs":6,"source":"order"},{"lotId":"e281d17d-3e35-7488-8e75-213685b35df0","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","batchNo":"RCP20260724","expiryDate":"2027-04-20","qtyPcs":18,"caseSize":24,"cases":0,"loosePcs":18,"source":"order"}],"challan":null}}

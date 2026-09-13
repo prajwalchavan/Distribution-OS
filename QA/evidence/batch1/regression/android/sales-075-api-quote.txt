@@ -1,0 +1,40 @@
+### POST :3003/pricing/quote Shree Ganesh Kirana, Annapurna Sunflower 1 L pouch qtyPcs 240, pricingDate 2026-09-13
+{
+ "totals": {
+  "grossPaise": 2873760,
+  "discountPaise": 57475,
+  "bargainPaise": 0,
+  "netPaise": 2816285
+ },
+ "orderRules": [
+  {
+   "ruleId": "6ac23a1a-ce35-76d2-a002-3a7888fc1c65",
+   "version": 1,
+   "kind": "scheme",
+   "rewardKind": "order_pct",
+   "amountPaise": 57475
+  }
+ ],
+ "line0_appliedRules": [
+  {
+   "ruleId": "6ac23a1a-ce35-76d2-a002-3a7888fc1c65",
+   "version": 1,
+   "kind": "scheme",
+   "rewardKind": "order_pct",
+   "amountPaise": 57475
+  }
+ ],
+ "raw_if_error": null
+}
+### POST :3003/pricing/quote Shree Ganesh Kirana, Annapurna Sunflower 1 L pouch qtyPcs 204, pricingDate 2026-09-13
+{
+ "totals": {
+  "grossPaise": 2442696,
+  "discountPaise": 0,
+  "bargainPaise": 0,
+  "netPaise": 2442696
+ },
+ "orderRules": [],
+ "line0_appliedRules": [],
+ "raw_if_error": null
+}

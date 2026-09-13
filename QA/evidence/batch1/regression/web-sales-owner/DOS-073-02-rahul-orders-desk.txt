@@ -1,0 +1,92 @@
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+My orders
+Waiting: 0
+Drafts: 2
+Orders
+Needs you
+Travelling
+All
+Drafts
+SO-0893
+13 Sep · QA security regression fixture E (draft)
+₹33.00
+Confirmed
+SO-0892
+13 Sep · QA security regression fixture W (wave)
+₹98.00
+Packed
+SO-0890
+13 Sep · QA security regression fixture C (approval)
+₹98.00
+Confirmed
+SO-0888
+13 Sep · QA security regression fixture X
+₹97.00
+Confirmed
+SO-0884
+12 Sep
+₹303.00
+Being picked
+SO-0883
+12 Sep
+₹780.00
+Packed
+SO-0882
+12 Sep
+₹2,336.00
+Submitted
+SO-0881
+12 Sep
+₹1,270.00
+Being picked
+SO-0879
+12 Sep
+₹32,030.00
+Submitted
+SO-0875
+12 Sep
+₹1,01,531.00
+On the van
+SO-0874
+12 Sep
+₹7,690.00
+Being picked
+SO-0871
+12 Sep
+₹12,707.00
+On the van
+SO-0868
+12 Sep
+₹17,736.00
+Confirmed
+SO-0873
+12 Sep
+₹12,837.00
+Confirmed
+SO-0867
+12 Sep
+₹5,367.00
+Confirmed
+SO-0878
+12 Sep
+₹11,300.00
+On the van
+SO-0877
+12 Sep
+₹17,531.00
+Being picked
+SO-9001
+10 Sep
+₹2,327.00
+Packed

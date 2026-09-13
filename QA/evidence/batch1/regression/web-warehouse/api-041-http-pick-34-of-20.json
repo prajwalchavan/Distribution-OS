@@ -1,0 +1,27 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/warehouse/picklists/01a09725-59d4-75ef-b394-00cbd634ff63/pick",
+    "body": {
+      "idempotencyKey": "01a09727-8377-7f42-993b-2bc0bd1bba06",
+      "id": "01a09725-59d4-75ef-b394-00cbd634ff63",
+      "deviceId": "0e64e3ab-a161-41cc-b615-ef4a6bbf5698",
+      "lines": [
+        {
+          "id": "01a09725-59f9-7502-b5f7-aa7ee341b2d1",
+          "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "lotId": "2f1b7955-7136-7f7c-a4c8-ebbc000a18bd",
+          "pickedQtyPcs": 34,
+          "shortReason": "Damaged carton"
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "response": {
+    "defined": false,
+    "code": "BAD_REQUEST",
+    "status": 400,
+    "message": "batch GK20260623 on PICK-0082 asks for 20 pcs; 34 were picked"
+  }
+}

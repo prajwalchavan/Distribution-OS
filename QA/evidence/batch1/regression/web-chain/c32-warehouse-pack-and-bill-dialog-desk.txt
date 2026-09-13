@@ -1,0 +1,100 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated 1 min ago
+DP
+Dinesh Patil
+warehouse
+Balaji Wholesale Stores
+SO-0903
+picking
+Cartons
+Cartons
+3
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Weight in grams
+Weight in grams
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+WHAT GOES IN THE CARTONS
+Sunbake Marie Light 75 g
+12 pc
+Packed
+Sunbake Marie Light 75 g
+84 pc
+Packed
+Neelam Sandal Soap 100 g
+27 pc
+Packed
+Neelam Sandal Soap 100 g
+13 pc
+Packed
+Neelam Sandal Soap 100 g
+32 pc
+Packed
+Chamak Dishwash Bar 145 g
+11 pc
+Packed
+Chamak Dishwash Bar 145 g
+18 pc
+Packed
+Chamak Dishwash Bar 145 g
+25 pc
+Short
+Balaji Masala Masti Wafers 45 g
+1 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+12 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+9 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+15 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+14 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+1 cs + 26 pc = 74 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+19 pc
+Packed
+Close
+Pack SO-0903?
+3 cartons leave the godown for Balaji Wholesale Stores. The bill is issued in the same step and cannot be edited afterwards.
+Cancel
+Pack and bill
+Cartons 3
+Pack without a bill
+Pack and bill

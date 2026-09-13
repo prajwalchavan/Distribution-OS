@@ -1,0 +1,5 @@
+DOS-029a on iOS (manager build :5274, vikas.kadam), 2026-09-13 07:59 IST
+Fulfilment -> Waves -> ticked packed SO-0850 -> "Make a picking sheet" -> dialog "1 orders · 390 pc" -> Make a picking sheet
+manager-service.log: POST /warehouse/picklists  req-1r0  statusCode 409  responseTime 60.2 ms
+Dialog stayed open; red line above the button: "only a confirmed order can be waved; SO-0850 is packed" (manager-029-04-wave-409-sentence.png; accessibility label read back verbatim)
+DB after: picklists in tarsun = 91 (newest PICK-0091, unchanged); SO-0850 state = packed (unchanged)

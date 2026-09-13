@@ -1,0 +1,37 @@
+               now                
+----------------------------------
+ 2026-09-13 03:25:28.876039+05:30
+(1 row)
+
+ order_no |  state  | cancelled_at | cancel_reason 
+----------+---------+--------------+---------------
+ SO-0908  | picking |              | 
+ SO-0909  | picking |              | 
+(2 rows)
+
+ order_no |  state  | sum 
+----------+---------+-----
+ SO-0908  | pending | 144
+ SO-0909  | pending | 168
+(2 rows)
+
+ picklist_no | status  | cancelled_at 
+-------------+---------+--------------
+ PICK-0088   | picking | 
+ PICK-0087   | picked  | 
+(2 rows)
+
+ picklist_no |            name             | requested_qty_pcs | picked_qty_pcs 
+-------------+-----------------------------+-------------------+----------------
+ PICK-0088   | Neelam Neem Soap 100 g      |                31 |              0
+ PICK-0088   | Neelam Neem Soap 100 g      |                41 |             41
+ PICK-0088   | Sunbake Salted Cracker 60 g |                12 |             12
+ PICK-0088   | Sunbake Salted Cracker 60 g |                24 |             24
+ PICK-0088   | Sunbake Salted Cracker 60 g |                60 |             60
+(5 rows)
+
+ ledger_rows_for_orders 
+------------------------
+                      0
+(1 row)
+

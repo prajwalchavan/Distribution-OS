@@ -1,0 +1,8 @@
+-- SO-0896 header
+SO-0896|submitted|["bargain"]|67368|0|75500|2026-09-13 01:51:14.164+05:30|
+-- approvals
+01a09748-0341-72e9-af7b-656783fcb16c|bargain|bargain_request|01a09747-1a25-7320-92bf-42c36d8d5225|pending|{"flag": "bargain", "orderNo": "SO-0896", "totalPaise": 75500}
+-- bargain
+01a09747-1a25-7320-92bf-42c36d8d5225|01a09747-19ae-7674-a86f-d14b67643aff|2807|2500||requested||
+-- lines
+1|24|2807|2807|75452

@@ -1,0 +1,50 @@
+               now                
+----------------------------------
+ 2026-09-13 03:44:02.277009+05:30
+(1 row)
+
+ sequence | state  | failure_reason |                        failure_note                         |          arrived_at           |         completed_at          
+----------+--------+----------------+-------------------------------------------------------------+-------------------------------+-------------------------------
+        2 | failed | shop_closed    | Shutter down at 11 am, neighbour says owner is at a wedding | 2026-09-13 03:43:02.515+05:30 | 2026-09-13 03:43:42.119+05:30
+(1 row)
+
+ outcome |                            note                             |                                idempotency_key                                 
+---------+-------------------------------------------------------------+--------------------------------------------------------------------------------
+ failed  | Shutter down at 11 am, neighbour says owner is at a wedding | plan:01a097a1-96d9-7479-a0c0-b756eba2949e:01a0979f-ce77-71de-93c1-8a31aacb6076
+(1 row)
+
+ order_no | state  
+----------+--------
+ SO-0904  | packed
+(1 row)
+
+ from_state |  to_state  |       event        |           occurred_at            
+------------+------------+--------------------+----------------------------------
+ draft      | submitted  | submit             | 2026-09-13 03:16:09.119601+05:30
+ submitted  | confirmed  | confirm            | 2026-09-13 03:16:09.119601+05:30
+ confirmed  | picking    | start_picking      | 2026-09-13 03:21:43.729427+05:30
+ picking    | packed     | pack               | 2026-09-13 03:27:07.684807+05:30
+ packed     | dispatched | dispatch           | 2026-09-13 03:36:59.687363+05:30
+ dispatched | packed     | return_undelivered | 2026-09-13 03:43:42.149223+05:30
+(6 rows)
+
+ invoice_no | state  | total_paise 
+------------+--------+-------------
+ INV/9011   | issued |      220500
+(1 row)
+
+ outstanding_paise | open_bills |            updated_at            
+-------------------+------------+----------------------------------
+           9657800 |          5 | 2026-09-13 03:27:07.893323+05:30
+(1 row)
+
+ credit_notes_for_invoice 
+--------------------------
+                        0
+(1 row)
+
+ reason |  name  | sum 
+--------+--------+-----
+ sale   | Godown | -72
+(1 row)
+

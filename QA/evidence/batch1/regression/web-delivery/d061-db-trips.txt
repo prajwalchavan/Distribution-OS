@@ -1,0 +1,9 @@
+### DOS-061 DB: trips + load sheets for ganesh.more (read at 2026-09-13 01:06:23 IST)
+dda35990-f442-7931-8da4-5808f09a33b6 | TRIP-ACTIVE | 2026-09-12 | active | 10
+72649337-4c50-7033-a988-ca5cf4406f9c | TRIP-NEXT | 2026-09-14 | active | 5
+--- load_sheets
+29067d2f-43f5-7748-ba39-8084e257eb2e | DC-0081 | confirmed | TRIP-ACTIVE 2026-09-12 | 64 | 64 | 2026-09-11 12:15:00+05:30
+374f2089-b8fd-720e-907c-8380307948ab |  | draft | TRIP-NEXT 2026-09-14 | 38 | 38 | 
+--- stops done per trip
+TRIP-NEXT | 0 | 5
+TRIP-ACTIVE | 9 | 10

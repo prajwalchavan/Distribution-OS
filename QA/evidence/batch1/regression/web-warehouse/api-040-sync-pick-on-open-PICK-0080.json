@@ -1,0 +1,50 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3004/sync/upload",
+    "body": {
+      "protocol": 1,
+      "deviceId": "0e64e3ab-a161-41cc-b615-ef4a6bbf5698",
+      "ops": [
+        {
+          "opId": "01a09723-e06f-753d-b02b-f0b300e0de7e",
+          "op": "PUT",
+          "table": "pick_lines",
+          "id": "01a09721-b008-75a8-af72-8478e5afea02",
+          "baseUpdatedAt": "2026-09-12T19:39:22.517Z",
+          "clientTime": "2026-09-12T19:41:45.977Z",
+          "data": {
+            "picklist_id": "01a09721-afc8-76a2-ae96-9160d3594ab7",
+            "order_id": "01a0959a-a35c-7191-a475-74efc0308b4f",
+            "order_line_id": "01a0959e-37e3-7395-995e-6db5ee9cc8f4",
+            "variant_id": "4cf8c0aa-3028-7155-957a-80108bf2a8fb",
+            "line_no": 1,
+            "lot_id": "7dc16d8e-095a-74e7-aefe-8f182fd61bab",
+            "requested_qty_pcs": 4,
+            "picked_qty_pcs": 4,
+            "free_qty_pcs": 0,
+            "case_size": 24,
+            "short_reason": null
+          }
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "response": {
+    "accepted": 0,
+    "replayed": 0,
+    "rejected": [
+      {
+        "opId": "01a09723-e06f-753d-b02b-f0b300e0de7e",
+        "table": "pick_lines",
+        "rowId": "01a09721-b008-75a8-af72-8478e5afea02",
+        "code": "picklist_not_started",
+        "messageHi": "पिकलिस्ट PICK-0080 अभी शुरू नहीं हुई; पहले पिकिंग शुरू करें",
+        "messageEn": "Picklist PICK-0080 has not been started; start it before picking"
+      }
+    ],
+    "warnings": [],
+    "upgradeRequired": false
+  }
+}

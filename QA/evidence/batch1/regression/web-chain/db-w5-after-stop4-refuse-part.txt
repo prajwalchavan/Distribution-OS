@@ -1,0 +1,57 @@
+               now                
+----------------------------------
+ 2026-09-13 03:50:18.192263+05:30
+(1 row)
+
+ outcome |                                           note                                           
+---------+------------------------------------------------------------------------------------------
+ partial | Shop refused the 34 Chamak Detergent Bars - says it still has stock; toothpaste accepted
+(1 row)
+
+          description          |  batch_no  | delivered_qty_pcs | returned_qty_pcs | returned_saleable | reason  
+-------------------------------+------------+-------------------+------------------+-------------------+---------
+ Neelam Herbal Toothpaste 50 g | SC20260521 |                66 |                0 | t                 | refused
+ Neelam Herbal Toothpaste 50 g | B20260729  |                30 |                0 | t                 | refused
+ Chamak Detergent Bar 250 g    | SC20260604 |                14 |                0 | t                 | refused
+ Chamak Detergent Bar 250 g    | SC20260618 |                 0 |               34 | t                 | refused
+(4 rows)
+
+ credit_note_no |     reason      | state  | taxable_paise | total_paise 
+----------------+-----------------+--------+---------------+-------------
+ CN/9009        | return_saleable | issued |         48178 |       56900
+(1 row)
+
+ qty_pcs | saleable | line_total_paise 
+---------+----------+------------------
+      34 | t        |            56850
+(1 row)
+
+        reason        |         name          |   kind    | sum  | count 
+----------------------+-----------------------+-----------+------+-------
+ sale                 | Godown                | warehouse | -144 |     4
+ sale_return_saleable | Vehicle MH-05-EF-9012 | vehicle   |   34 |     1
+(2 rows)
+
+ order_no |        state        
+----------+---------------------
+ SO-0906  | partially_delivered
+(1 row)
+
+ outstanding_paise | open_bills |            updated_at            
+-------------------+------------+----------------------------------
+           8179200 |          6 | 2026-09-13 03:49:55.818622+05:30
+(1 row)
+
+  trip_no  | state  
+-----------+--------
+ TRIP-0001 | active
+(1 row)
+
+ sequence |   state   
+----------+-----------
+        1 | delivered
+        2 | failed
+        3 | partial
+        4 | partial
+(4 rows)
+

@@ -1,0 +1,12 @@
+# SO-0911 before any manager action (2026-09-12T23:24:28Z)
+> select order_no, state, approval_flags, confirmed_at from sales_orders where id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+SO-0911|submitted|["credit_limit", "bargain"]|
+> select id, kind, entity_type, entity_id, status, decided_by, decision_note from approvals where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10' order by kind
+01a097ef-99a2-704f-a19f-d16ef80325db|credit_limit|sales_order|01a097ef-989c-74e0-a1b2-41ed87f44c10|pending||
+01a097ef-99a2-7050-a2aa-86189e9e4d4d|bargain|bargain_request|01a097ef-9961-7c05-a447-7190797a8e52|pending||
+> select id, status, asked_rate_paise, approved_rate_paise, decided_by, note from bargain_requests where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+01a097ef-9961-7c05-a447-7190797a8e52|requested|4554|||QA A-mahalaxmi
+> select count(*) from reservations where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+ERROR:  column "order_id" does not exist
+LINE 1: select count(*) from reservations where order_id='01a097ef-9...
+                                                ^

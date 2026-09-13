@@ -1,0 +1,56 @@
+GET :3006/receivables/ledger/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?from=2026-06-16&to=2026-09-13&limit=200 as ramesh.gupta at 06:57:39 IST
+items 53 nextCursor None top-level keys ['openingPaise', 'items', 'closingPaise', 'nextCursor']
+item keys ['date', 'kind', 'refId', 'refNo', 'narration', 'debitPaise', 'creditPaise', 'balancePaise']
+ 1 2026-06-19 INV/0034 invoice debit=1196300 credit=0 balance=1720500
+ 2 2026-06-26 INV/0097 invoice debit=322600 credit=0 balance=2043100
+ 3 2026-06-30 INV/0142 invoice debit=213400 credit=0 balance=2256500
+ 4 2026-07-07 INV/0211 invoice debit=1055300 credit=0 balance=3311800
+ 5 2026-07-10 RCPT-0053 receipt debit=0 credit=524200 balance=2787600
+ 6 2026-07-14 INV/0283 invoice debit=312500 credit=0 balance=3100100
+ 7 2026-07-18 INV/0333 invoice debit=373200 credit=0 balance=3473300
+ 8 2026-07-20 INV/0337 invoice debit=1198700 credit=0 balance=4672000
+ 9 2026-07-22 INV/0363 invoice debit=545100 credit=0 balance=5217100
+10 2026-07-27 CN/0022 credit_note debit=0 credit=140200 balance=5076900
+11 2026-07-27 INV/0402 invoice debit=1209700 credit=0 balance=6286600
+12 2026-07-29 RCPT-0193 receipt debit=0 credit=1055300 balance=5231300
+13 2026-07-30 INV/0433 invoice debit=1011900 credit=0 balance=6243200
+14 2026-08-01 RCPT-0224 receipt debit=0 credit=545100 balance=5698100
+15 2026-08-03 INV/0468 invoice debit=994700 credit=0 balance=6692800
+16 2026-08-03 CN/9001 credit_note debit=0 credit=57100 balance=6635700
+17 2026-08-03 RCPT-0249 receipt debit=0 credit=783200 balance=5852500
+18 2026-08-05 INV/0481 invoice debit=765000 credit=0 balance=6617500
+19 2026-08-06 INV/0492 invoice debit=1160500 credit=0 balance=7778000
+20 2026-08-07 RCPT-0284 receipt debit=0 credit=1069500 balance=6708500
+21 2026-08-08 RCPT-0293 receipt debit=0 credit=213400 balance=6495100
+22 2026-08-08 RCPT-0300 receipt debit=0 credit=218800 balance=6276300
+23 2026-08-10 INV/0525 invoice debit=520400 credit=0 balance=6796700
+24 2026-08-12 RCPT-0327 receipt debit=0 credit=415500 balance=6381200
+25 2026-08-12 RCPT-0339 receipt debit=0 credit=1196300 balance=5184900
+26 2026-08-15 RCPT-0372 receipt debit=0 credit=103800 balance=5081100
+27 2026-08-15 RCPT-0368 receipt debit=0 credit=520400 balance=4560700
+28 2026-08-17 INV/0587 invoice debit=625300 credit=0 balance=5186000
+29 2026-08-19 RCPT-0413 receipt debit=0 credit=189900 balance=4996100
+30 2026-08-20 INV/0617 invoice debit=700400 credit=0 balance=5696500
+31 2026-08-20 CN/9002 credit_note debit=0 credit=13400 balance=5683100
+32 2026-08-22 INV/0647 invoice debit=1256100 credit=0 balance=6939200
+33 2026-08-25 RCPT-0471 receipt debit=0 credit=1256100 balance=5683100
+34 2026-08-27 INV/0680 invoice debit=352600 credit=0 balance=6035700
+35 2026-08-27 CN/0037 credit_note debit=0 credit=21500 balance=6014200
+36 2026-08-28 RCPT-0509 receipt debit=0 credit=378300 balance=5635900
+37 2026-08-28 INV/0704 invoice debit=378300 credit=0 balance=6014200
+38 2026-08-29 RCPT-0522 receipt debit=0 credit=192300 balance=5821900
+39 2026-08-31 RCPT-0543 receipt debit=0 credit=716200 balance=5105700
+40 2026-08-31 INV/0724 invoice debit=1013700 credit=0 balance=6119400
+41 2026-09-01 RCPT-0559 receipt debit=0 credit=1013700 balance=5105700
+42 2026-09-01 RCPT-0556 receipt debit=0 credit=765000 balance=4340700
+43 2026-09-03 INV/0753 invoice debit=547200 credit=0 balance=4887900
+44 2026-09-04 RCPT-0593 receipt debit=0 credit=122600 balance=4765300
+45 2026-09-08 INV/0800 invoice debit=527900 credit=0 balance=5293200
+46 2026-09-09 RCPT-0654 receipt debit=0 credit=527900 balance=4765300
+47 2026-09-09 INV/0814 invoice debit=1218000 credit=0 balance=5983300
+48 2026-09-10 INV/0817 invoice debit=551100 credit=0 balance=6534400
+49 2026-09-10 RCPT-0659 receipt debit=0 credit=180900 balance=6353500
+50 2026-09-10 RCPT-0668 receipt debit=0 credit=1218000 balance=5135500
+51 2026-09-11 RCPT-0672 receipt debit=0 credit=555800 balance=4579700
+52 2026-09-12 RCPT-0693 receipt debit=0 credit=551100 balance=4028600
+53 2026-09-12 RCPT-0687 receipt debit=0 credit=444300 balance=3584300

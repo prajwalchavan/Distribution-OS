@@ -1,0 +1,51 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+4
+Fulfilment
+Billing
+15
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Pick & pack
+Picking sheet
+Pack and bill
+Waves
+Pick & pack
+Load-out
+Picking sheet
+PICK-0084
+Godown · 13 Sep
+Being picked
+PICK-0080
+Godown · 13 Sep
+Being picked
+PICK-0078
+Godown · 12 Sep
+Being picked
+PICK-0084
+0 / 24 pc
+Campa Cola 2 L
+Batch RCP20260710 · Asked 6
+−
+1 cs
++
+1 cs = 24 pc
+Campa Cola 2 L
+Batch RCP20260724 · Asked 18
+−
+0 cs
++
+Not ordered
+Record what was picked

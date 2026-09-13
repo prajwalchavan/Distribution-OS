@@ -1,0 +1,39 @@
+### REQUEST 2026-09-12T20:54:03.914Z
+POST http://127.0.0.1:3003/orders
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+{"id":"01a09766-1189-7e23-b869-a0e03399a489","idempotencyKey":"01a09766-1189-7e23-b869-a0e03399a489:create","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","source":"salesperson","pricingDateMode":"order","note":"QA regression web-manager Y-saikrupa","lines":[{"id":"01a09766-118a-732d-b505-ca0e70e2c868","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","enteredQty":1,"enteredUnit":"case"}]}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a09766-1189-7e23-b869-a0e03399a489","orderNo":null,"retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","state":"draft","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":null,"externalRef":null,"subtotalPaise":120960,"discountPaise":0,"taxPaise":14515,"roundOffPaise":25,"totalPaise":135500,"approvalFlags":[],"expectedDeliveryDate":null,"note":"QA regression web-manager Y-saikrupa","submittedAt":null,"confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T20:54:03.933Z","lines":[{"id":"01a09766-118a-732d-b505-ca0e70e2c868","lineNo":1,"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","enteredQty":1,"enteredUnit":"case","packSizeAtEntry":24,"qtyPcs":24,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":5040,"ratePaise":5040,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":14515,"lineTotalPaise":135475,"appliedRules":[],"priceLocked":false}],"transitions":[],"approvals":[]}}
+
+### REQUEST 2026-09-12T20:54:03.973Z
+POST http://127.0.0.1:3003/pricing/bargains
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+{"id":"01a09766-11c5-7e3a-a849-cbce4d0f4c79","idempotencyKey":"01a09766-11c5-785d-b05d-3391ed3894b8","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","askedRatePaise":4485,"qtyPcs":24,"orderId":"01a09766-1189-7e23-b869-a0e03399a489","note":"QA Y-saikrupa"}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a09766-11c5-7e3a-a849-cbce4d0f4c79","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","orderId":"01a09766-1189-7e23-b869-a0e03399a489","requestedBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","listRatePaise":5040,"askedRatePaise":4485,"approvedRatePaise":null,"status":"requested","decidedBy":null,"decidedAt":null,"expiresAt":null,"note":"QA Y-saikrupa","createdAt":"2026-09-12T20:54:03.976Z"}}
+
+### REQUEST 2026-09-12T20:54:03.990Z
+POST http://127.0.0.1:3003/orders/01a09766-1189-7e23-b869-a0e03399a489/submit
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+{"id":"01a09766-1189-7e23-b869-a0e03399a489","idempotencyKey":"01a09766-1189-7e23-b869-a0e03399a489:submit"}
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a09766-1189-7e23-b869-a0e03399a489","orderNo":"SO-0900","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","state":"submitted","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":null,"externalRef":null,"subtotalPaise":120960,"discountPaise":0,"taxPaise":14515,"roundOffPaise":25,"totalPaise":135500,"approvalFlags":["bargain"],"expectedDeliveryDate":null,"note":"QA regression web-manager Y-saikrupa","submittedAt":"2026-09-12T20:54:03.996Z","confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T20:54:03.933Z","lines":[{"id":"01a09766-118a-732d-b505-ca0e70e2c868","lineNo":1,"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","enteredQty":1,"enteredUnit":"case","packSizeAtEntry":24,"qtyPcs":24,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":5040,"ratePaise":5040,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":14515,"lineTotalPaise":135475,"appliedRules":[],"priceLocked":false}],"transitions":[{"id":"01a09766-11e0-763b-9d84-36c5e9d7a9b2","fromState":"draft","toState":"submitted","event":"submit","actorId":"8760e17e-4830-7395-a946-1e02fffa1ad7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T20:54:03.991Z"}],"approvals":[{"id":"01a09766-11e6-730f-9015-f55e91d39c7a","kind":"bargain","orderId":"01a09766-1189-7e23-b869-a0e03399a489","entityType":"bargain_request","entityId":"01a09766-11c5-7e3a-a849-cbce4d0f4c79","requestedBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","status":"pending","payload":{"flag":"bargain","orderNo":"SO-0900","totalPaise":135500},"decidedBy":null,"decidedAt":null,"decisionNote":null,"createdAt":"2026-09-12T20:54:03.991Z"}]}}
+
+### REQUEST 2026-09-12T20:54:04.011Z
+GET http://127.0.0.1:3003/orders/01a09766-1189-7e23-b869-a0e03399a489
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+
+
+### RESPONSE
+HTTP 200
+{"item":{"id":"01a09766-1189-7e23-b869-a0e03399a489","orderNo":"SO-0900","retailerId":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","state":"submitted","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":null,"externalRef":null,"subtotalPaise":120960,"discountPaise":0,"taxPaise":14515,"roundOffPaise":25,"totalPaise":135500,"approvalFlags":["bargain"],"expectedDeliveryDate":null,"note":"QA regression web-manager Y-saikrupa","submittedAt":"2026-09-12T20:54:03.996Z","confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T20:54:03.933Z","lines":[{"id":"01a09766-118a-732d-b505-ca0e70e2c868","lineNo":1,"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","enteredQty":1,"enteredUnit":"case","packSizeAtEntry":24,"qtyPcs":24,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":5040,"ratePaise":5040,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":14515,"lineTotalPaise":135475,"appliedRules":[],"priceLocked":false}],"transitions":[{"id":"01a09766-11e0-763b-9d84-36c5e9d7a9b2","fromState":"draft","toState":"submitted","event":"submit","actorId":"8760e17e-4830-7395-a946-1e02fffa1ad7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T20:54:03.991Z"}],"approvals":[{"id":"01a09766-11e6-730f-9015-f55e91d39c7a","kind":"bargain","orderId":"01a09766-1189-7e23-b869-a0e03399a489","entityType":"bargain_request","entityId":"01a09766-11c5-7e3a-a849-cbce4d0f4c79","requestedBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","status":"pending","payload":{"flag":"bargain","orderNo":"SO-0900","totalPaise":135500},"decidedBy":null,"decidedAt":null,"decisionNote":null,"createdAt":"2026-09-12T20:54:03.991Z"}]}}

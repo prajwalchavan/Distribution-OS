@@ -1,0 +1,20 @@
+### Android sales+delivery regression: records touched in dos_qa (2026-09-13 03:32:28 IST)
+-- SO-0901 (rahul, Android)
+SO-0901|cancelled|2873760|57475|duplicate|2026-09-13 02:35:53.593+05:30
+-- RCPT-0703 (ganesh, Android)
+RCPT-0703|475600|cash|collected|t
+-- INV/0836 Meghana delivery + CN/9007 (ganesh, Android)
+partial|CN/9007|return_damaged|77200
+-- TRIP-NEXT stops now
+1|arrived
+2|pending
+3|pending
+4|pending
+5|partial
+-- INV/0831 (409 attempts, nothing written)
+0|0
+-- sachin TRIP-NEXT (not started)
+planned|300000|
+-- POD photos uploaded today
+-rw-r--r--@  1 prajwalchavan  staff  29124 Sep 13 03:24 01a0979d-77f7-73c4-a8fa-b761fb9fb576.jpg
+-rw-r--r--@  1 prajwalchavan  staff  29159 Sep 13 03:06 01a09789-423f-71c4-9813-10c836bd954a.jpg

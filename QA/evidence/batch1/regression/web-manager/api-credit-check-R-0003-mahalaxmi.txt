@@ -1,0 +1,11 @@
+### GET http://127.0.0.1:3002/receivables/credit-check?retailerId=34ce3241-c275-7cc5-bc44-cd7856930d50&orderTotalPaise=137500 (vikas.kadam)
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 360
+Date: Sat, 12 Sep 2026 20:55:43 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"retailerId":"34ce3241-c275-7cc5-bc44-cd7856930d50","creditMode":"strict","paymentTerms":"POST_FULFILLMENT","creditLimitPaise":5000000,"creditLimitBills":0,"creditDays":7,"outstandingPaise":3625900,"openBills":5,"oldestDueDate":"2026-08-12","overdueDays":32,"orderTotalPaise":137500,"headroomPaise":1236600,"breached":true,"reasons":["overdue_days_exceeded"]}

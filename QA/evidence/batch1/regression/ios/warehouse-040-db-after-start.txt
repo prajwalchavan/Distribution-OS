@@ -1,0 +1,6 @@
+== after Start picking on iOS, read 2026-09-13 07:19:31 IST
+PICK-0091|picking|2026-09-13 07:19:13.675+05:30|
+SO-0913|picking
+draft|submitted|submit|rahul.deshmukh|2026-09-13 07:16:06.373092+05:30
+submitted|confirmed|confirm|rahul.deshmukh|2026-09-13 07:16:06.373092+05:30
+confirmed|picking|start_picking|dinesh.patil|2026-09-13 07:19:13.643437+05:30

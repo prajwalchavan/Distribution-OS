@@ -1,0 +1,10 @@
+== DOS-034 baseline before the accountant iOS walk, read 2026-09-13 08:26:01 IST
+RCPT-0687|700d45c2-ada4-7f36-8075-b79b94cf2806|cash|collected|444300||Shree Ganesh Kirana||||1
+RCPT-0688|379d7506-da01-7dd0-adf3-7403fcb4c7a3|cash|collected|491400||Pawar General Store||||1
+RCPT-0663|92ebe2a2-07a2-7517-a67f-ae06662896a4|cheque|collected|7359898||Prerna Super Market|HDFC Bank|||1
+RCPT-CHQ-0001|743896f9-933a-7f25-8ca3-c5f0d78409e1|cheque|collected|2995200||Dnyandeep Stores|Bank of Maharashtra|||1
+RCPT-CHQ-0002|d2fbaf8a-4d4e-70cb-82e7-260cabd9f9d2|cheque|collected|2945600||Rameshwar General Store|HDFC Bank|||1
+-- journal entries by ref_type
+deposit|74
+receipt_reversal|2
+manager-service.log lines:     5838

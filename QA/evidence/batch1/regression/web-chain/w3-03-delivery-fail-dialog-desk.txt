@@ -1,0 +1,48 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+IS
+Iqbal Shaikh
+delivery
+Stop 2 of 4 · TRIP-0001
+Ganesh General Store
+At the shop
+Owes ₹96,578.00
+Credit
+Shop 7, Bail Bazar, Station Road, Kalyan West, Kalyan, 421301
+Call
+Open in maps
+Arrived
+13 Sep, 3:43 am
+Still due
+₹96,578.00
+5 bills still open at this shop
+Bills on this stop
+₹2,205.00
+INV/9011
+13 Sep 2026
+₹2,205.00
+Not started
+Sell from the van
+Nothing delivered
+Why was nothing delivered?
+Close
+Every bill on this stop goes back to the office as undelivered and the goods stay on the van.
+Shop was shut
+Shop refused it
+Shop had no money
+Wrong address
+Goods were damaged
+Something else
+What happened
+Record a failed stop
+Saved on this phone. It goes as soon as there is a signal.
+Deliver this bill
+Take money

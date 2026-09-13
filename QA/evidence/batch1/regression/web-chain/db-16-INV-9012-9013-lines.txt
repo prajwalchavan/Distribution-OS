@@ -1,0 +1,20 @@
+ invoice_no |                  id                  | line_no |          description          |  batch_no  | qty_pcs | rate_paise | taxable_paise |  gst  | line_total_paise 
+------------+--------------------------------------+---------+-------------------------------+------------+---------+------------+---------------+-------+------------------
+ INV/9012   | 01a097a0-0ce6-77f2-b901-7ec6d8aaf322 |       1 | Neelam Rose Soap 100 g        | B20260729  |       4 |       2921 |         11684 |  2104 |            13788
+ INV/9012   | 01a097a0-0ce6-77f3-b584-8b0a4ae407be |       2 | Neelam Rose Soap 100 g        | SC20260702 |       1 |       2921 |          2921 |   526 |             3447
+ INV/9012   | 01a097a0-0ce6-77f4-9e44-a1577af1842f |       3 | Neelam Rose Soap 100 g        | SC20260618 |      36 |       2921 |        105156 | 18928 |           124084
+ INV/9012   | 01a097a0-0ce6-77f5-aab0-dda86b4ae0b1 |       4 | Neelam Rose Soap 100 g        | SC20260604 |      31 |       2921 |         90551 | 16300 |           106851
+ INV/9012   | 01a097a0-0ce6-77f6-ad75-8ca4be762072 |       5 | Sunbake Butter Cookies 75 g   | SB20260607 |      14 |       1492 |         20888 |  3760 |            24648
+ INV/9012   | 01a097a0-0ce6-77f7-973e-ec68b069316c |       6 | Sunbake Butter Cookies 75 g   | SB20260719 |      58 |       1492 |         86536 | 15576 |           102112
+ INV/9013   | 01a097a0-4b3a-7671-a2cf-57d85b903c65 |       1 | Neelam Herbal Toothpaste 50 g | SC20260521 |      66 |       2408 |        158928 | 28608 |           187536
+ INV/9013   | 01a097a0-4b3a-7672-b5e1-e9096edf5b9d |       2 | Neelam Herbal Toothpaste 50 g | B20260729  |      30 |       2408 |         72240 | 13004 |            85244
+ INV/9013   | 01a097a0-4b3a-7673-bf94-1f52eb9606cb |       3 | Chamak Detergent Bar 250 g    | SC20260604 |      14 |       1417 |         19838 |  3570 |            23408
+ INV/9013   | 01a097a0-4b3a-7674-adb3-6cca29647f29 |       4 | Chamak Detergent Bar 250 g    | SC20260618 |      34 |       1417 |         48178 |  8672 |            56850
+(10 rows)
+
+ invoice_no | total_paise | taxable_paise |  gst  
+------------+-------------+---------------+-------
+ INV/9012   |      374900 |        317736 | 57194
+ INV/9013   |      353000 |        299184 | 53854
+(2 rows)
+

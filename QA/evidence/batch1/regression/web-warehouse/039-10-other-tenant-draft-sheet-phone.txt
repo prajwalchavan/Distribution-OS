@@ -1,0 +1,79 @@
+SD
+Sai Distributors, Dombivli
+warehouse
+⋯
+Updated just now
+12 Sep
+MH-05-BQ-4471
+draft
+Approved · 12 Sep, 12:10 pm
+Count the cartons
+Blind count: what the bill says is not on this screen.
+Cartons on the vehicle
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+ORDERS ON THIS SHEET
+2 orders
+Balaji Wholesale Stores
+SO-0455 · Cartons 12
+SAI/0440
+Ayre Road Super Market
+SO-0451 · Cartons 12
+SAI/0439
+WHAT GOES ON THE VEHICLE
+Balaji Masala Masti Wafers 45 g
+9 cs = 432 pc
+Exp 25 Jan 2027
+Balaji Simply Salted Wafers 45 g
+10 cs = 480 pc
+Exp 25 Jan 2027
+Campa Cola 1 L
+9 cs + 9 pc = 225 pc
+Exp 6 Jun 2027
+Campa Cola 500 ml
+10 cs = 240 pc
+Exp 30 May 2027
+Campa Lemon 1 L
+4 cs + 4 pc = 100 pc
+Exp 30 May 2027
+Campa Orange 750 ml
+9 cs + 9 pc = 225 pc
+Exp 6 Jun 2027
+Godavari Table Butter 500 g
+19 pc
+Exp 25 Jan 2027
+Godavari Toned UHT Milk 500 ml
+5 cs = 120 pc
+Exp 31 Dec 2026
+Sunbake Glucose 250 g
+11 cs + 44 pc = 572 pc
+Exp 30 Apr 2027
+Sunbake Salted Cracker 200 g
+6 cs + 14 pc = 230 pc
+Exp 30 Apr 2027
+Too Yumm Karare 60 g
+8 cs = 384 pc
+Exp 8 Mar 2027
+Declared value
+₹80,273.00
+A sheet is cancelled by the manager.
+Close
+MH-05-BQ-4471
+Send the vehicle out
+Count the cartons
+Inbound
+Pick
+Pack
+Load

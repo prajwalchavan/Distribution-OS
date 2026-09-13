@@ -1,0 +1,24 @@
+{
+  "rows": 53,
+  "gets": [
+    {
+      "url": "http://127.0.0.1:3006/receivables/ledger/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?from=2026-06-16&to=2026-09-13&limit=200",
+      "status": 200,
+      "items": 53,
+      "nextCursor": null,
+      "opening": 524200,
+      "closing": 3584300
+    }
+  ],
+  "lastRow": "RCPT-0687 | Payment · 12 Sep 2026 | Taken off | ₹4,443.00 | Balance | ₹35,843.00",
+  "firstRow": "INV/0034 | Bill · 19 Jun 2026 | Added | ₹11,963.00 | Balance | ₹17,205.00",
+  "closing": "Closing balance | ₹35,843.00 | A plus balance is money you still owe. A minus one is money with them.",
+  "opening": "Opening balance | ₹5,242.00",
+  "partial": 0,
+  "receiptsShown": [
+    "RCPT-0668:true",
+    "RCPT-0672:true",
+    "RCPT-0687:true",
+    "RCPT-0693:true"
+  ]
+}

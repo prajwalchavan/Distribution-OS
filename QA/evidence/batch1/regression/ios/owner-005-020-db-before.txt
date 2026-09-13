@@ -1,0 +1,25 @@
+== Owner fixture SO-0914 (sales API as rahul.deshmukh), before the owner iOS walk, read 2026-09-13 07:27:58 IST
+SO-0914|submitted|R-0020|Joshi Kirana Stores|30300|["bargain"]
+-- approvals for the order
+01a0987b-d316-773d-ad3f-103c367f19aa|bargain|bargain_request|01a0987b-d16c-75bf-923a-b84fafd19382|pending|||
+-- bargain_requests
+id,tenant_id,retailer_id,variant_id,order_id,requested_by,list_rate_paise,asked_rate_paise,approved_rate_paise,status,evaluated_basis,decided_by,decided_at,expires_at,note,created_at,updated_at
+01a0987b-d16c-75bf-923a-b84fafd19382|01a0947d-7a79-75d2-bfff-97e499a58d49|1b3e6156-389f-7163-a4c6-1e13569f4a1d|4cf8c0aa-3028-7155-957a-80108bf2a8fb|01a0987b-cf06-70f6-a2af-5d7c245db01f|8760e17e-4830-7395-a946-1e02fffa1ad7|1129|999||requested||||||2026-09-13 07:27:26.541408+05:30|2026-09-13 07:27:26.683213+05:30
+-- reservations
+0
+-- all pending approvals in tarsun (to count rows on Approvals)
+01a0987b-d316-773d-ad3f-103c367f19aa|bargain|bargain_request|SO-0914|submitted|Joshi Kirana Stores
+01a0984a-a9cd-71c3-bba1-8a6586bcf1c0|credit_limit|sales_order|SO-0912|submitted|Shree Ganesh Kirana
+01a09754-db92-712c-8693-b77fc5f360ad|bargain|bargain_request|SO-0898|cancelled|Balaji Wholesale Stores
+01a095d8-bbe9-72ee-bb92-617526cbca22|credit_limit|sales_order|SO-0887|cancelled|Shree Ganesh Kirana
+01a095c4-c42c-7424-9dd7-703c4769bddc|credit_limit|sales_order|SO-0886|cancelled|Shree Ganesh Kirana
+01a095c0-73a1-7386-a985-9ad9a5a794bf|credit_limit|sales_order|SO-0885|submitted|Shree Ganesh Kirana
+01a09595-cd3b-7536-b811-aa2febe6ec37|credit_limit|sales_order|SO-0882|submitted|Shree Ganesh Kirana
+01a09586-7439-7717-a7f1-fd438bf2bf9b|credit_limit|sales_order|SO-0879|submitted|Shree Ganesh Kirana
+29e03a4b-d74f-75a2-914a-2433674d5b76|bargain|bargain_request|||Om Sai Provision Store
+-- standalone requested bargains (Rate requests)
+01a0987b-d16c-75bf-923a-b84fafd19382|Joshi Kirana Stores|1129|999|01a0987b-cf06-70f6-a2af-5d7c245db01f|requested
+01a09754-dac1-74cf-bd82-59bb9b55fc6f|Balaji Wholesale Stores|2251|2014|01a09754-da7f-73b5-84b2-2539fdc5d8b7|requested
+01a0958e-2b8b-75cf-91ea-4f6ea3349040|Shree Ganesh Kirana|1459|1300|01a0958d-4353-7580-8375-75ba9663eea6|requested
+011d0c51-293c-7e9b-bf53-b5b035898d9c|Om Sai Provision Store|4102|3958||requested
+1221ccf5-aa42-7f60-9557-2eedce569b87|Mahalaxmi General Stores|2309|2228||requested

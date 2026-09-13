@@ -1,0 +1,24 @@
+### REQUEST  2026-09-12T19:46:56.980Z
+POST http://127.0.0.1:3004/warehouse/orders/01a09722-30c7-722d-9091-88770c42d8bf/pack
+Authorization: Bearer <accessToken of dinesh.patil>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-e06-01a09728-9eb0-764f-88ec-d860f0324102",
+ "orderId": "01a09722-30c7-722d-9091-88770c42d8bf",
+ "id": "01a09728-9eb0-764f-88ec-d860f0324102",
+ "packages": 1,
+ "issueInvoice": true
+}
+
+### RESPONSE
+HTTP/1.1 200 OK
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 750
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:46:56 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"item":{"id":"01a09728-9eb0-764f-88ec-d860f0324102","orderId":"01a09722-30c7-722d-9091-88770c42d8bf","picklistId":"01a09724-c03e-7940-979d-0f197d433b4e","packages":1,"weightGrams":null,"invoiceId":"01a09728-9f08-72f7-a72b-6ec0a5b2d6df","shortPacked":false,"packedBy":"5b6fbe87-cb70-7195-8de1-a4f5046c3675","packedAt":"2026-09-12T19:46:56.876Z"},"lines":[{"orderLineId":"01a09722-30ec-750f-b171-85bf8176314b","variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","variantName":"Balaji Masala Masti Wafers 45 g","orderedQtyPcs":6,"packedQtyPcs":6,"shortQtyPcs":0,"lots":[{"lotId":"66b34c38-19ee-7e28-8c96-ad5364fc7b4f","batchNo":"GK20260721","qtyPcs":6}]}],"invoice":{"id":"01a09728-9f08-72f7-a72b-6ec0a5b2d6df","invoiceNo":"INV/9007","totalPaise":9800}}

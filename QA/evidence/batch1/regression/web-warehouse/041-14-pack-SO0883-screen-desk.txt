@@ -1,0 +1,63 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Om Sai Provision Store
+SO-0883
+picking
+Cartons
+Cartons
+1
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Weight in grams
+Weight in grams
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+WHAT GOES IN THE CARTONS
+Balaji Masala Masti Wafers 45 g
+13 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+2 pc
+Short
+Balaji Masala Masti Wafers 45 g
+20 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+0 pc
+Short
+Close
+Cartons 1
+Pack without a bill
+Pack and bill

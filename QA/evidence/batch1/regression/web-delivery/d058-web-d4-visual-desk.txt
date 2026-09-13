@@ -1,0 +1,41 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-01-stop8-desk.png (529 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-02-d4-open-desk.png (833 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-03-after-minus-desk.png (925 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-04-damaged-desk.png (937 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-05-past-its-date-desk.png (937 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d058-06-shop-refused-desk.png (925 chars text)
+{
+ "stopButtons": [
+  "GM\nGanesh More\ndelivery",
+  "Call",
+  "Open in maps",
+  "INV/0830\n11 Sep 2026\n₹22,508.00\nNot started",
+  "Sell from the van",
+  "Nothing delivered",
+  "Deliver this bill",
+  "Take money"
+ ],
+ "hasDeliver": 1,
+ "d4url": "http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f/deliver?deliveryId=3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab",
+ "dropHtmlButtons": [
+  {
+   "t": "−",
+   "a": "One case less"
+  },
+  {
+   "t": "+",
+   "a": "One case more"
+  }
+ ],
+ "minusCount": 1,
+ "lineText": "Sunbake Butter Cookies 75 g\n₹7,605.62\nOn the bill\n432 pc\nBatch\nSB20260830\nDropping\n−\n5 cs\n+\n5 cs = 360 pc\nTaken back · 72 pc\nShop refused it\nDamaged\nPast its date\nCan be sold again",
+ "reasonRow": 1,
+ "reasonText": "Shop refused it\nDamaged\nPast its date",
+ "oldDispositionChip": false,
+ "captionAfterMinus": "Can be sold again",
+ "caption_Damaged": "Into the damaged / expiry bin",
+ "caption_Past its date": "Into the damaged / expiry bin",
+ "caption_Shop refused it": "Can be sold again",
+ "bodyLineRegion": "Sunbake Butter Cookies 75 g\n₹7,605.62\nOn the bill\n432 pc\nBatch\nSB20260830\nDropping\n−\n5 cs\n+\n5 cs = 360 pc\nTaken back · 72 pc\nShop refused it\nDamaged\nPast its date\nCan be sold again"
+}
+[url] http://localhost:5177/stop/49acc96c-933b-7f45-b5bb-63d01d3b2e7f/deliver?deliveryId=3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab

@@ -1,0 +1,15 @@
+GET http://127.0.0.1:3001/reporting/dashboard/owner -> 200
+.asOf = "2026-09-13T01:45:27.164Z"
+.ageing = {"b0_7": 227652800, "b8_15": 68600850, "b16_30": 84147950, "b31_60": 50078500, "b61_90": 9020300, "b90plus": 2596200}
+.ageing.b0_7 = 227652800
+.ageing.b8_15 = 68600850
+.ageing.b16_30 = 84147950
+.ageing.b31_60 = 50078500
+.ageing.b61_90 = 9020300
+.ageing.b90plus = 2596200
+.detail.ageingB0_7 = 227652800
+.detail.ageingB8_15 = 68600850
+.detail.ageingB16_30 = 84147950
+.detail.ageingB31_60 = 50078500
+.detail.ageingB61_90 = 9020300
+.detail.ageingB90plus = 2596200

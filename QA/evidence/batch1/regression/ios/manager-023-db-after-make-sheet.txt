@@ -1,0 +1,7 @@
+== DOS-023 after making a sheet for SO-0914 on iOS, read 2026-09-13 08:02:26 IST
+92
+PICK-0092|01a0989b-c9d4-7556-91eb-4c828d3cb7c1|open|2026-09-13 08:02:21.869203+05:30||["01a0987b-cf06-70f6-a2af-5d7c245db01f"]
+PICK-0091|01a09872-ae42-70b5-99b4-757c72ca6a39|picked|2026-09-13 07:17:27.746292+05:30||["01a09871-28c5-7fde-b195-0abdb29e079a"]
+PICK-0090|01a097f8-e09f-7377-9869-6da81af8843e|picking|2026-09-13 05:06:25.843264+05:30||["01a097ef-989c-74e0-a1b2-41ed87f44c10"]
+-- manager-service POSTs after line 5660
+req-1r1 "url":"/warehouse/picklists" "statusCode":200

@@ -1,0 +1,7 @@
+-- after refused confirm (SQL, read-only) 01:09:40
+order|SO-0890|submitted|
+approval|01a09720-9453-7308-bf7a-88e083f2f56e|credit_limit|pending|||
+ERROR:  relation "stock_reservations" does not exist
+LINE 1: select 'reservations', count(*) from stock_reservations wher...
+                                             ^
+transitions|submit|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-13 01:08:09.87082+05:30

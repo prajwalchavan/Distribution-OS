@@ -1,0 +1,30 @@
+### REQUEST  2026-09-12T19:42:43.444Z
+POST http://127.0.0.1:3004/warehouse/picklists/01a09724-c03e-7940-979d-0f197d433b4e/pick
+Authorization: Bearer <accessToken of dinesh.patil>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-d06-01a09724-c03e-7940-979d-0f197d433b4e",
+ "id": "01a09724-c03e-7940-979d-0f197d433b4e",
+ "lines": [
+  {
+   "id": "01a09724-c056-7603-b404-7fff7ff94144",
+   "orderLineId": "01a09722-30ec-750f-b171-85bf8176314b",
+   "lotId": "66b34c38-19ee-7e28-8c96-ad5364fc7b4f",
+   "pickedQtyPcs": 20,
+   "shortReason": "Damaged carton"
+  }
+ ]
+}
+
+### RESPONSE
+HTTP/1.1 400 Bad Request
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 124
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:42:43 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"batch GK20260721 on PICK-0081 asks for 6 pcs; 20 were picked"}

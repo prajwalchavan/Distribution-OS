@@ -1,0 +1,93 @@
+{
+  "url": "http://127.0.0.1:3006/receivables/payments/initiate",
+  "status": 200,
+  "request": {
+    "id": "01a09739-3c09-759d-a38b-5c0672c7d3e5",
+    "idempotencyKey": "01a09739-3c09-759e-8433-61c857ae5ef8"
+  },
+  "response": {
+    "intentId": "01a09739-3c09-759d-a38b-5c0672c7d3e5",
+    "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+    "amountPaise": 3584300,
+    "upiQrPayload": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=35843.00&tr=PAY-5c0672c7d3e5&tn=PAY-5c0672c7d3e5&cu=INR",
+    "upiIntentUrl": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=35843.00&tr=PAY-5c0672c7d3e5&tn=PAY-5c0672c7d3e5&cu=INR",
+    "payeeVpa": "tarsun@okhdfcbank",
+    "payeeName": "Tarsun Enterprise",
+    "paymentRef": "PAY-5c0672c7d3e5",
+    "expiresAt": "2026-09-12T20:35:08.816Z",
+    "bills": [
+      {
+        "id": "ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e",
+        "invoiceNo": "INV/0433",
+        "invoiceDate": "2026-07-30",
+        "dueDate": "2026-08-06",
+        "totalPaise": 1011900,
+        "openPaise": 456100,
+        "ageDays": 38,
+        "bucket": "b31_60",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      },
+      {
+        "id": "05a048e4-0561-737c-9ec3-4fbd14db6143",
+        "invoiceNo": "INV/0468",
+        "invoiceDate": "2026-08-03",
+        "dueDate": "2026-08-10",
+        "totalPaise": 994700,
+        "openPaise": 937600,
+        "ageDays": 34,
+        "bucket": "b31_60",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      },
+      {
+        "id": "b2868a89-7683-75ce-ba3a-b68adf32ddac",
+        "invoiceNo": "INV/0587",
+        "invoiceDate": "2026-08-17",
+        "dueDate": "2026-08-24",
+        "totalPaise": 625300,
+        "openPaise": 625300,
+        "ageDays": 20,
+        "bucket": "b16_30",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      },
+      {
+        "id": "3b2de6fb-b0c1-7185-9d31-334c75c71142",
+        "invoiceNo": "INV/0617",
+        "invoiceDate": "2026-08-20",
+        "dueDate": "2026-08-27",
+        "totalPaise": 700400,
+        "openPaise": 687000,
+        "ageDays": 17,
+        "bucket": "b16_30",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      },
+      {
+        "id": "4b373959-5a81-7121-8e39-448660e24717",
+        "invoiceNo": "INV/0680",
+        "invoiceDate": "2026-08-27",
+        "dueDate": "2026-09-03",
+        "totalPaise": 352600,
+        "openPaise": 331100,
+        "ageDays": 10,
+        "bucket": "b8_15",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      },
+      {
+        "id": "a924ae38-a82f-7ac8-8b3b-6ab11937e574",
+        "invoiceNo": "INV/0753",
+        "invoiceDate": "2026-09-03",
+        "dueDate": "2026-09-10",
+        "totalPaise": 547200,
+        "openPaise": 547200,
+        "ageDays": 3,
+        "bucket": "b0_7",
+        "cashDiscountBps": 0,
+        "cashDiscountUntil": null
+      }
+    ]
+  }
+}

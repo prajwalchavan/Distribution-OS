@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:09:27 IST
+POST http://127.0.0.1:3003/sync/upload
+Authorization: Bearer <accessToken of amit.pawar>
+Content-Type: application/json
+
+{"protocol":1,"deviceId":"dd262a7a-7da7-41e4-9426-21851df0e93d","ops":[{"opId":"01a09721-c085-7fe4-894d-0b6b4df27014","op":"PUT","table":"sales_orders","id":"01a09720-91c9-7705-be7f-e5a48d0e1e24","data":{"retailer_id":"a34f291a-cbde-747d-9512-f9c9b2f842ee","state":"draft","note":"HIJACKED by amit via sync"}},{"opId":"01a09721-c0a9-7f8e-babf-7adba7d4a8c0","op":"PUT","table":"sales_order_lines","id":"01a09721-c060-7c6c-98fb-ab5f5cdaeddd","data":{"order_id":"01a09720-91c9-7705-be7f-e5a48d0e1e24","variant_id":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","entered_qty":99,"entered_unit":"piece"}},{"opId":"01a09721-c0ce-7fa9-805b-99a16dfaa41b","op":"PUT","table":"sales_orders","id":"01a09720-9174-75d3-9bb0-4cef6bf98395","data":{"retailer_id":"b5dbcdb8-401a-7a7d-9626-37ad239fd91a","state":"draft","note":"HIJACKED X by amit via sync"}}]}
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 986
+Date: Sat, 12 Sep 2026 19:39:27 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"accepted":0,"replayed":0,"rejected":[{"opId":"01a09721-c085-7fe4-894d-0b6b4df27014","table":"sales_orders","rowId":"01a09720-91c9-7705-be7f-e5a48d0e1e24","code":"conflict","messageHi":"order 01a09720-91c9-7705-be7f-e5a48d0e1e24 already exists","messageEn":"order 01a09720-91c9-7705-be7f-e5a48d0e1e24 already exists"},{"opId":"01a09721-c0a9-7f8e-babf-7adba7d4a8c0","table":"sales_order_lines","rowId":"01a09721-c060-7c6c-98fb-ab5f5cdaeddd","code":"order_not_found","messageHi":"ऑर्डर 01a09720-91c9-7705-be7f-e5a48d0e1e24 अभी सर्वर पर नहीं आया","messageEn":"Order 01a09720-91c9-7705-be7f-e5a48d0e1e24 has not arrived yet"},{"opId":"01a09721-c0ce-7fa9-805b-99a16dfaa41b","table":"sales_orders","rowId":"01a09720-9174-75d3-9bb0-4cef6bf98395","code":"conflict","messageHi":"order 01a09720-9174-75d3-9bb0-4cef6bf98395 already exists","messageEn":"order 01a09720-9174-75d3-9bb0-4cef6bf98395 already exists"}],"warnings":[],"upgradeRequired":false}

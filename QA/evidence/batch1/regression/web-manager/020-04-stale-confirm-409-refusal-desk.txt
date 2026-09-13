@@ -1,0 +1,194 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+5
+Fulfilment
+Billing
+14
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0900
+	
+Sai Krupa Super Bazar
+	
+Rahul Deshmukh
+	1,355.00	Submitted	
+Bargain
+	
+13 Sep
+
+
+SO-0899
+	
+Mahalaxmi General Stores
+	
+Rahul Deshmukh
+	1,375.00	Submitted	
+Over credit limit, Bargain
+	
+13 Sep
+
+
+SO-0885
+	
+Shree Ganesh Kirana
+	
+—
+	5,855.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+
+SO-0882
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	2,336.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+
+SO-0879
+	
+Shree Ganesh Kirana
+	
+Rahul Deshmukh
+	32,030.00	Submitted	
+Over credit limit
+	
+12 Sep
+
+5 rows			42,951.00			
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+SO-0900
+Asked rate
+₹44.85
+Approve
+Reject
+SO-0899
+Asked rate
+₹45.54
+Approve
+Reject
+SO-0899
+Over credit limit
+₹1,375.00
+Approve
+Reject
+SO-0898
+Asked rate
+₹20.14
+Approve
+Reject
+SO-0887
+Over credit limit
+₹854.00
+Approve
+Reject
+SO-0886
+Over credit limit
+₹10,119.00
+Approve
+Reject
+SO-0885
+Over credit limit
+₹5,855.00
+Approve
+Reject
+SO-0882
+Over credit limit
+₹2,336.00
+Approve
+Reject
+SO-0879
+Over credit limit
+₹32,030.00
+Approve
+Reject
+Shree Ganesh Kirana
+Asked rate
+₹13.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Order SO-0899
+Close
+Shop
+Mahalaxmi General Stores
+Credit
+Owes ₹36,259.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit
+State
+Submitted
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 24 pc
+₹1,375.45
+Subtotal
+₹1,228.08
+Discount
+₹0.00
+GST
+₹147.37
+Total
+₹1,375.00
+Held for this order
+0
+Confirm order
+1
+Free the held stock
+Nothing is held for this order
+Cancel order
+2
+Confirm order
+SO-0899
+₹1,375.00
+Stock is reserved when this is confirmed. There is no undo.
+Owes ₹36,259.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit
+SO-0899 is waiting on 2 decision(s) (credit limit, bargain); approve or reject each in the approvals queue — the last approval confirms the order
+Cancel
+Confirm order

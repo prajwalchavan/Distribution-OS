@@ -1,0 +1,38 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+2 of 4 picked
+PICK-0082
+picking
+To pick
+Every line
+Balaji Masala Masti Wafers 45 g
+Batch GK20260602
+Expires in 47 days
+₹20.00
+13 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260630
+Expires in 75 days
+₹20.00
+12 pc
+Picked
+Short
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+2 of 4 picked
+Scan
+Take it to packing
+2 lines not yet picked

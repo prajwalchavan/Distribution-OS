@@ -1,0 +1,139 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+13 Sep
+MH-05-EF-9012
+draft
+Approved · 13 Sep, 3:36 am
+Count the cartons
+Blind count: what the bill says is not on this screen.
+Cartons on the vehicle
+6
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+ORDERS ON THIS SHEET
+4 orders
+Ganpati General Stores
+SO-0906 · Cartons 1
+INV/9013
+Sai Baba Kirana
+SO-0905 · Cartons 1
+INV/9012
+Ganesh General Store
+SO-0904 · Cartons 1
+INV/9011
+Balaji Wholesale Stores
+SO-0903 · Cartons 3
+INV/9010
+WHAT GOES ON THE VEHICLE
+Balaji Masala Masti Wafers 45 g
+1 pc
+Expires in 54 days
+Balaji Masala Masti Wafers 45 g
+19 pc
+Exp 25 Jan 2027
+Balaji Masala Masti Wafers 45 g
+9 pc
+Expires in 82 days
+Balaji Masala Masti Wafers 45 g
+14 pc
+Exp 1 Jan 2027
+Balaji Masala Masti Wafers 45 g
+15 pc
+Exp 18 Dec 2026
+Balaji Masala Masti Wafers 45 g
+12 pc
+Expires in 75 days
+Balaji Masala Masti Wafers 45 g
+1 cs + 26 pc = 74 pc
+Exp 22 Jan 2027
+Chamak Detergent Bar 250 g
+14 pc
+Exp 3 Jun 2028
+Chamak Detergent Bar 250 g
+34 pc
+Exp 17 Jun 2028
+Chamak Dishwash Bar 145 g
+11 pc
+Exp 20 May 2028
+Chamak Dishwash Bar 145 g
+25 pc
+Exp 28 Jul 2028
+Chamak Dishwash Bar 145 g
+18 pc
+Exp 3 Jun 2028
+Neelam Herbal Toothpaste 50 g
+66 pc
+Exp 20 May 2028
+Neelam Herbal Toothpaste 50 g
+30 pc
+Exp 28 Jul 2028
+Neelam Neem Soap 100 g
+47 pc
+Exp 20 May 2028
+Neelam Neem Soap 100 g
+25 pc
+Exp 3 Jun 2028
+Neelam Rose Soap 100 g
+4 pc
+Exp 28 Jul 2028
+Neelam Rose Soap 100 g
+1 pc
+Exp 1 Jul 2028
+Neelam Rose Soap 100 g
+36 pc
+Exp 17 Jun 2028
+Neelam Rose Soap 100 g
+31 pc
+Exp 3 Jun 2028
+Neelam Sandal Soap 100 g
+27 pc
+Exp 20 May 2028
+Neelam Sandal Soap 100 g
+13 pc
+Exp 13 Jun 2028
+Neelam Sandal Soap 100 g
+32 pc
+Exp 1 Jul 2028
+Sunbake Butter Cookies 75 g
+14 pc
+Exp 2 Feb 2027
+Sunbake Butter Cookies 75 g
+58 pc
+Exp 16 Mar 2027
+Sunbake Marie Light 75 g
+12 pc
+Exp 2 Feb 2027
+Sunbake Marie Light 75 g
+84 pc
+Exp 9 Feb 2027
+Declared value
+₹16,163.00
+A sheet is cancelled by the manager.
+Close
+Check out MH-05-EF-9012?
+6 cartons leave on MH-05-EF-9012. Stock moves to the vehicle and challan paper is issued. This cannot be undone.
+Cancel
+Send the vehicle out
+MH-05-EF-9012
+Send the vehicle out

@@ -1,0 +1,15 @@
+### REQUEST  2026-09-13 01:07:06 IST
+GET http://127.0.0.1:3006/invoices/043af1a3-c255-7f09-947f-8786bacbda98/pdf
+Authorization: Bearer <accessToken of fatima>
+
+### RESPONSE
+HTTP/1.1 404 Not Found
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 116
+Date: Sat, 12 Sep 2026 19:37:06 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"defined":false,"code":"NOT_FOUND","status":404,"message":"invoice 043af1a3-c255-7f09-947f-8786bacbda98 not found"}

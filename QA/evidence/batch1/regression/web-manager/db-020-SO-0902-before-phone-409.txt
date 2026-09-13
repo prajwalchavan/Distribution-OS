@@ -1,0 +1,4 @@
+order|SO-0902|submitted|-
+approval bargain|01a0977c-4c7d-70c7-8bf5-e1056f997fc9|pending|-
+bargain|01a0977c-4c3a-7dfe-9ec8-a8f513ec84c9|requested|QA Z-saikrupa-phone409
+transitions|1||

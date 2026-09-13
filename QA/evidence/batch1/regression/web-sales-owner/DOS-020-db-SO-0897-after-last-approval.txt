@@ -1,0 +1,20 @@
+-- SO-0897 after last approval
+SO-0897|confirmed|2026-09-13 01:59:53.393+05:30|122808|137500|2026-09-13 01:59:53.410719+05:30
+-- approvals
+bargain|approved|sunil.tarsun|2026-09-13 01:59:03.158+05:30|QA DOS-020 regression: rate ok for this order
+credit_limit|approved|sunil.tarsun|2026-09-13 01:59:53.387+05:30|QA DOS-020 regression: release this order on credit
+-- bargain
+approved|4554|4554
+-- transitions
+draft|submitted|submit|rahul.deshmukh|2026-09-13 01:52:13.544174+05:30
+submitted|confirmed|confirm|sunil.tarsun|2026-09-13 01:59:53.367921+05:30
+-- line
+24|0|5117|5117|0|137545|[]
+-- reservations
+5|24|pending
+-- outbox
+OrderSubmitted|2026-09-13 01:52:13.544174+05:30
+OrderConfirmed|2026-09-13 01:59:53.367921+05:30
+-- audit_log last 30 min
+-- Mahalaxmi credit limit
+5000000|strict

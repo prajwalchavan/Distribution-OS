@@ -1,0 +1,7 @@
+# ALA/26-27/00491 (2254e884) after the control and the overlapped Start reviewing on Android (2026-09-12T23:53:24Z)
+> select id, kind, status, committed_entity_id, updated_at from documents where id='2254e884-ad8d-7c36-8fcc-8197395b329b'
+2254e884-ad8d-7c36-8fcc-8197395b329b|supplier_invoice|needs_review||2026-09-12 09:50:00+05:30
+> select rs.id, u.username, rs.status, rs.locked_until, rs.updated_at from review_sessions rs left join users u on u.id=rs.reviewer_id where rs.document_id='2254e884-ad8d-7c36-8fcc-8197395b329b' order by rs.created_at
+89f90df9-389f-7dde-8618-dc7f3a072414|sunil.tarsun|open|2026-10-12 05:30:00+05:30|2026-09-12 09:50:00+05:30
+> select e.id, e.updated_at from extractions e where e.id='32b0dd16-483a-79be-a2b3-b242b6cd71f6'
+32b0dd16-483a-79be-a2b3-b242b6cd71f6|2026-09-12 09:33:00+05:30

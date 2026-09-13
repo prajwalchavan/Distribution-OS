@@ -1,0 +1,27 @@
+== TRIP-NEXT shops credit mode + outstanding 06:38:00
+tenant_id,retailer_id,outstanding_paise,overdue_paise,unallocated_credit_paise,open_bills,oldest_due_date,oldest_invoice_date,last_receipt_at,last_receipt_paise,bucket_0_7_paise,bucket_8_15_paise,bucket_16_30_paise,bucket_31_60_paise,bucket_61_90_paise,bucket_90_plus_paise,as_of,updated_at
+Joshi Kirana Stores|indicate|POST_FULFILLMENT|18000000
+Kadam Stores|strict|POST_FULFILLMENT|5000000
+Gupta Kirana Stores|indicate|POST_FULFILLMENT|18000000
+City Light Provision|strict|POST_FULFILLMENT|5000000
+Nakshatra Kirana|strict|POST_FULFILLMENT|5000000
+Rameshwar General Store|indicate|POST_FULFILLMENT|18000000
+== trip policy
+delivery.pod_required|"credit_only"
+== Nakshatra open bills
+INV/0602|1255500|partially_paid
+INV/0632|865500|partially_paid
+INV/0829|475600|issued
+== INV/0826 INV/0840 INV/0837 INV/0839 lines
+INV/0837|11e2a7c8-72a5-73bf-8a28-f975da5fe97e|Godavari Cow Ghee 1 L|7
+INV/0837|c19a7cca-eceb-7c76-ab60-e00640cd6e08|Campa Cola 750 ml|24
+INV/0837|ade147fc-7dc4-7427-b7fa-60469d9923a2|Balaji Ratlami Sev 200 g|60
+INV/0837|e1249f4a-d433-784e-8c28-586d51059f25|Campa Orange 750 ml|72
+INV/0837|a480e9e6-383e-7b97-86fd-8787a170503e|Chamak Dishwash Bar 145 g|42
+INV/0839|aa242ac4-32a7-79a8-866c-01ac325d5238|Balaji Chataka Pataka Wafers 45 g|240
+INV/0839|8259310a-90b7-7b94-a21e-0592cc6c384a|Sunbake Glucose 110 g|360
+INV/0839|da1d8e4e-48b6-763a-bc41-f8804ebcf80e|Campa Cola 750 ml|96
+INV/0839|5388cc73-036b-72e6-b48d-a7a9a9792e53|Campa Lemon 750 ml|144
+INV/0840|c249aed9-16b7-7fb9-8899-dec6ce4bd421|Masti Oye Tomato Twist 30 g|230
+INV/0840|f1d8b4d0-e05e-793c-bf4c-db8b93543b98|Neelam Anti-Dandruff Shampoo 175 ml|48
+INV/0840|20703f79-97d4-73e3-80bf-e367bc48a56b|Campa Orange 1 L|120

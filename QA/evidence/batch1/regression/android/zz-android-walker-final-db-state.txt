@@ -1,0 +1,7 @@
+final state of the records this Android walker touched (04:45:58 IST):
+PICK-0089|picked|2026-09-13 04:28:34.552+05:30
+SO-0867|picking
+SO-0910|confirmed
+PaymentIntentCreated|PAY-6a404dc1c6cb|3584300
+PaymentIntentCreated|PAY-f97f2fe653a0|456100
+R-0001 outstanding|3584300

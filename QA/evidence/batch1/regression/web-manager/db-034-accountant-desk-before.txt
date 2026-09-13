@@ -1,0 +1,2 @@
+receipt|RCPT-0660|cheque|collected|- | dep - | bounced - -
+receipt|RCPT-0693|cash|collected|- | dep - | bounced - -

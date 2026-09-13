@@ -1,0 +1,93 @@
+Tarsun Enterprise
+delivery
+⋯
+Updated just now
+TRIP-ACTIVE · 12 Sep 2026
+End of day
+On the road
+9 of 10 stops done
+CASH TAKEN
+₹7,856.00
+UPI TAKEN
+₹4,756.00
+CHEQUES TAKEN
+₹0.00
+SPENT
+₹0.00
+Cash the office expects
+Float ₹5,000.00 + cash taken ₹7,856.00 − spent ₹0.00
+Float at start
+₹5,000.00
+Cash taken
+₹7,856.00
+Spent
+₹0.00
+Hand ₹12,856.00 to the cashier
+The cashier counts the money and the godown counts the van. The trip closes at the office, not here.
+Stops
+Delivered 7 · Part delivered 1 · Not delivered 1
+1. Prerna Super Market
+Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301
+₹73,245.00
+Delivered
+2. Metro Kirana Bazar
+Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301
+₹4,547.00
+Delivered
+3. Anand Bhavan Provision
+Shop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306
+₹2,843.00
+Delivered
+4. Vaibhav Kirana Mart
+Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306
+₹7,856.00
+Delivered
+5. Joshi Kirana Stores
+Shop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹14,962.00
+Part delivered
+6. Ansari Kirana Stores
+Shop had no money
+₹2,610.00
+Not delivered
+7. Nakshatra Kirana
+Shop 4, Chinchpada Road, Kolsewadi, Kalyan East, Kalyan, 421306
+₹4,756.00
+Delivered
+8. Laxmi Narayan Stores
+Shop 11, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹22,508.00
+At the shop
+9. Khan General Store
+Shop 14, Nandivli Road, Kolsewadi, Kalyan East, Kalyan, 421306
+₹907.00
+Delivered
+10. Rukmini Provision
+Shop 34, Syndicate, Godrej Hill, Kalyan West, Kalyan, 421301
+₹26,581.00
+Delivered
+Still on the van
+The godown counts this back in when you check in
+Balaji Simply Salted Wafers 45 g
+1 cs = 48 pc
+B20260909
+Campa Cola 1 L
+1 cs = 24 pc
+B20260909
+Campa Cola 750 ml
+2 cs = 48 pc
+RCP20260822
+Campa Lemon 750 ml
+1 cs = 24 pc
+B20260909
+Campa Orange 750 ml
+1 cs = 24 pc
+B20260909
+Too Yumm Karare 60 g
+1 cs = 48 pc
+B20260909
+Odometer at start (km)
+Odometer now (km)
+Cash the office expects
+₹12,856.00
+Check the vehicle in

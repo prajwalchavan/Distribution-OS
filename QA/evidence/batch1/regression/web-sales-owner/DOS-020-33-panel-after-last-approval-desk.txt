@@ -1,0 +1,75 @@
+Tarsun Enterprise
+owner
+Today
+6
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Orders
+7 days
+30 days
+90 days
+Export CSV
+Orders
+Trips
+Submitted
+Confirmed
+Picking
+Packed
+Dispatched
+Delivered
+Cancelled
+Any date, matching "SO-0897"
+Filters (1)
+Clear
+Order	Shop	State	Value ₹	Waiting on	Placed
+
+SO-0897
+	
+Mahalaxmi General Stores
+	Confirmed	1,375.00	
+Over credit limit, Bargain
+	
+13 Sep
+
+1 rows			1,375.00		
+Order SO-0897
+Close
+Shop
+Mahalaxmi General Stores
+State
+Confirmed
+Payment terms
+POST_FULFILLMENT
+Expected on
+—
+1 lines
+1 case · 24 pc
+₹1,375.45
+Subtotal
+₹1,228.08
+Discount
+₹0.00
+GST
+₹147.37
+Total
+₹1,375.00
+Stock held
+5
+Bills
+Confirm order
+State
+Release stock
+Cancel order
+13 Sep

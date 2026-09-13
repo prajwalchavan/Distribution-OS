@@ -1,0 +1,8 @@
+# network state at the cut (2026-09-12T23:55:09Z)
+Wi-Fi is disabled
+0
+connect: Network is unreachable
+host-16 tcp:3002 tcp:3902
+# network restored (2026-09-12T23:55:30Z)
+Wi-Fi is enabled
+host-16 tcp:3002 tcp:3002

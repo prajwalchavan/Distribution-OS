@@ -1,0 +1,6 @@
+  [42,984][1038,1080] 'This shop is on credit — a photo is required before you can record it' '' 
+  [63,1401][350,1459] 'Photo attached' '' 
+  [42,1494][1038,1542] 'Bill signed by' '' 
+  [42,2182][1038,1985] 'This shop is on credit — a photo is required before you can record it' '' 
+C [42,2107][1038,2307] '' 'Record the delivery' 
+  [358,2177][721,2235] 'Record the delivery' '' 

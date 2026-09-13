@@ -1,0 +1,4 @@
+order|SO-0902|cancelled|approval_rejected
+approval bargain|01a0977c-4c7d-70c7-8bf5-e1056f997fc9|rejected|QA regression DOS-020 phone: stale-confirm probe order withdrawn
+bargain|01a0977c-4c3a-7dfe-9ec8-a8f513ec84c9|rejected|QA regression DOS-020 phone: stale-confirm probe order withdrawn
+transitions|2||

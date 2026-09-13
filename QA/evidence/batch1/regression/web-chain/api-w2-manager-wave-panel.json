@@ -1,0 +1,8 @@
+[
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"umOouURy0Jm-dcaS5zkPlCLFY36lzSRBk5gXc6q7GOM\",\"deviceId\":\"01a0978c-feb6-7741-869b-90e2335c6841\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoibWFuYWdlciIsInNpZCI6IjAxYTA5NzhjLWZmNmYtNzE2OS04OGIyLWE1OTEzZTVhZjg1NiIsImRpZCI6IjAxYTA5NzhjLWZlYjYtNzc0MS04NjliLTkwZTIzMzVjNjg0MSIsInN1YiI6ImExY2JkNDI0LWQ1NjgtN2NjYi1iNWNjLWIwNDllOGFjMjA2MyIsImlzcyI6ImRvcy1hdXRoIiwiYXVkIjoiZG9zIiwiaWF0IjoxNzg5MjUwMTU3LCJleHAiOjE3ODkyNTEwNTcsImp0aSI6IjAxYTA5NzllLWJiZDAtNzVjYS04NzZlLWU0NTllNTBmZDZiNCJ9.-gyR4qr9jSlik5vcMaXXLVOYl3FjV5wsb0Fm5jRVyOq4zKSegILXDK2D2viNDYrl8nLjrQEvoLbig3LD68BYDg\",\"tokenType\":\"Bearer\",\"accessExpiresIn\":900,\"refreshToken\":\"f4_SGHklnyFItTQ7Tr9B40_QIZzGthib5hqs8ZC6be4\",\"refreshExpiresAt\":\"2026-10-12T21:55:57.500Z\",\"user\":{\"id\":\"a1cbd424-d568-7ccb-b5cc-b049e8ac2063\",\"username\":\"vikas.kadam\",\"name\":\"Vikas Kadam\",\"locale\":\"mr-IN\",\"mustChangePassword\":false},\"tenant\":{\"id\":\"01a0947d-7a79-75d2-bfff-97e499a58d49\",\"slug\":\"tarsun\",\"legalName\":\"M/s. Tarsun Enterprise\",\"displayName\":\"Tarsun Enterprise\",\"logoUrl\":\"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789336557&signature=5a39fba699443bcfc4d4cfc211164a7c422"
+ }
+]

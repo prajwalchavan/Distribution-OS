@@ -1,0 +1,14 @@
+-- DOS-060 baseline (2026-09-13 02:52:46.196673 IST)
+-- Nakshatra Kirana (R-0050) open invoices: no|state|total|date
+INV/0473|partially_paid|273200|2026-08-04
+INV/0602|issued|1255500|2026-08-18
+INV/0632|partially_paid|865500|2026-08-21
+INV/0829|issued|475600|2026-09-11
+-- Nakshatra latest 3 receipts
+RCPT-0699|475600|upi|2026-09-12 16:29:09.000437+05:30
+RCPT-0594|144600|cash|2026-09-04 16:30:00+05:30
+RCPT-0516|514000|cash|2026-08-29 12:30:00+05:30
+-- RCPT series
+703|2026-09-13 02:43:24.923+05:30
+-- tenant receipts created in the last 30 min
+RCPT-0702|-803800|2026-09-13 02:43:24.907666+05:30

@@ -1,0 +1,6 @@
+== DOS-020 manager: after tapping disabled Confirm on iOS (SO-0915), read 2026-09-13 07:47:58 IST
+SO-0915|submitted
+credit_limit|pending
+bargain|pending
+-- manager-service POSTs after line 5518
+-- /confirm calls: 0

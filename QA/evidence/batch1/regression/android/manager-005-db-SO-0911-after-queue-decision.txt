@@ -1,0 +1,10 @@
+# SO-0911 after the bargain card was approved from the queue on Android (2026-09-12T23:32:36Z)
+> select order_no, state, approval_flags, confirmed_at from sales_orders where id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+SO-0911|submitted|["credit_limit", "bargain"]|
+> select id, kind, status, decided_by, decided_at, decision_note from approvals where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10' order by kind
+01a097ef-99a2-704f-a19f-d16ef80325db|credit_limit|pending|||
+01a097ef-99a2-7050-a2aa-86189e9e4d4d|bargain|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|2026-09-13 05:02:02.268+05:30|QA android DOS-005 bQA android DOS-005 bargain okargain ok
+> select id, status, asked_rate_paise, approved_rate_paise, decided_by, decided_at, note from bargain_requests where order_id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+01a097ef-9961-7c05-a447-7190797a8e52|approved|4554|4554|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|2026-09-13 05:02:02.3+05:30|QA android DOS-005 bQA android DOS-005 bargain okargain ok
+> select u.username from users u where u.id='a1cbd424-d568-7ccb-b5cc-b049e8ac2063'
+vikas.kadam

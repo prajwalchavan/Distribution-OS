@@ -1,0 +1,40 @@
+09-13 02:34:18.123  5340  5365 W unknown:ReactNative: Tried to enqueue runnable on already finished thread: 'v_native... dropping Runnable.
+09-13 02:34:18.183  5340  5365 W unknown:ReactNative: Tried to enqueue runnable on already finished thread: 'v_native... dropping Runnable.
+09-13 02:34:18.184  5340  5365 W unknown:ReactNative: Tried to enqueue runnable on already finished thread: 'v_native... dropping Runnable.
+09-13 02:34:18.190  5340  5365 W unknown:ReactNative: Tried to enqueue runnable on already finished thread: 'v_native... dropping Runnable.
+09-13 02:34:19.650  5340  5365 W unknown:ReactNative: Inspector connection already open, nooping.
+09-13 02:34:19.675  5340  5365 W ReactNativeJNI: Codegen component descriptors were not configured from JNI_OnLoad
+09-13 02:34:19.734  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.734  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderStyle'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderStyle'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderEndColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderTopColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderLeftColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBlockColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderRightColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderStartColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBottomColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderEndEndRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.754  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderTopEndRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBlockEndColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderTopLeftRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderEndStartRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderStartEndRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderTopRightRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderTopStartRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBlockStartColor'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBottomEndRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBottomLeftRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderStartStartRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBottomRightRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.755  5340  5365 W ReactNativeJNI: Component property map contains multiple entries for 'borderBottomStartRadius'. Ensure all calls to convertRawProp use a consistent prefix, name and suffix.
+09-13 02:34:19.771  5340  6669 W ReactNativeJNI: ReactInstance: evaluateJavaScript() with JS bundle
+09-13 02:34:19.771  5340  5340 W unknown:ReactNative: Packager connection already open, nooping.
+09-13 02:34:20.550  5340  6669 I ReactNativeJS: Running "main" with {"rootTag":1,"initialProps":{},"fabric":true}
+09-13 02:34:20.583  6678  6678 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-13 02:34:20.587  6678  6678 I AndroidRuntime: Using default boot image
+09-13 02:34:20.587  6678  6678 I AndroidRuntime: Leaving lock profiling enabled
+09-13 02:34:20.697  6678  6678 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-13 02:34:24.041  6678  6678 D AndroidRuntime: Shutting down VM

@@ -1,0 +1,88 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+SO-0900
+Submitted
+1,355.00
+SO-0885
+Submitted
+5,855.00
+SO-0882
+Submitted
+2,336.00
+SO-0879
+Submitted
+32,030.00
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+SO-0900
+Asked rate
+₹44.85
+Approve
+Reject
+SO-0898
+Asked rate
+₹20.14
+Approve
+Reject
+SO-0887
+Over credit limit
+₹854.00
+Approve
+Reject
+SO-0886
+Over credit limit
+₹10,119.00
+Approve
+Reject
+SO-0885
+Over credit limit
+₹5,855.00
+Approve
+Reject
+SO-0882
+Over credit limit
+₹2,336.00
+Approve
+Reject
+SO-0879
+Over credit limit
+₹32,030.00
+Approve
+Reject
+Shree Ganesh Kirana
+Asked rate
+₹13.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Today
+Orders
+Fulfilment
+Billing

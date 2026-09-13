@@ -1,0 +1,7 @@
+### DOS-057 DB poll: RCPT-0626 (9f03dd6b…) render request and pdf_object_key
+01:22:00 key=tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/9f03dd6b-ef52-7176-9439-4e44339c3286.pdf outbox=1 created=2026-09-13 01:20:40.728556+05:30 published=2026-09-13 01:21:22.1+05:30
+--- worker log
+[01:17:21.926] INFO (30166): document rendered
+[01:17:21.941] INFO (30166): document rendered
+[01:17:21.953] INFO (30166): document rendered
+[01:21:22.099] INFO (30166): document rendered

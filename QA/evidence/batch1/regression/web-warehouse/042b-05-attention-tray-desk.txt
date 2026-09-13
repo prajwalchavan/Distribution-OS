@@ -1,0 +1,25 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+1
+Pack
+Load
+SETUP
+Settings
+1 need attention
+DP
+Dinesh Patil
+warehouse
+Waiting and refused
+Waiting 0
+Refused 1
+Held in memory only — a reload empties this device
+WAITING TO SEND
+Nothing is waiting
+NEEDS YOU
+This pick lines changed on the server after your copy; open it again
+pick_lines · stale · 13 Sep, 1:21 am
+Try it again
+Throw it away
+Close

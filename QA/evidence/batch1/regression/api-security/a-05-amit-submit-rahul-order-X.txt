@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:09:26 IST
+POST http://127.0.0.1:3003/orders/01a09720-9174-75d3-9bb0-4cef6bf98395/submit
+Authorization: Bearer <accessToken of amit.pawar>
+Content-Type: application/json
+
+{"idempotencyKey":"sec-a05-01a09720-9174-75d3-9bb0-4cef6bf98395","id":"01a09720-9174-75d3-9bb0-4cef6bf98395"}
+
+### RESPONSE
+HTTP/1.1 404 Not Found
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 114
+Date: Sat, 12 Sep 2026 19:39:26 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"defined":false,"code":"NOT_FOUND","status":404,"message":"order 01a09720-9174-75d3-9bb0-4cef6bf98395 not found"}

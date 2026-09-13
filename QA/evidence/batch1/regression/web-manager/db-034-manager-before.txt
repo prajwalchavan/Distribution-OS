@@ -1,0 +1,10 @@
+receipt|RCPT-0694|collected|- | ref -
+-- trip cash receipts in hand (must not be on the desk's list)
+RCPT-0701|cash|284300
+RCPT-0698|cash|785600
+RCPT-VAN-0001|cash|1256900
+RCPT-VAN-0002|cash|384800
+RCPT-VAN-0003|cash|6110900
+RCPT-VAN-0004|cash|7501000
+RCPT-0655|cash|432300
+RCPT-0644|cash|1354458

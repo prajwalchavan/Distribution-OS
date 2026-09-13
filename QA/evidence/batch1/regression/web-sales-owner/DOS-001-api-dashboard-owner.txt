@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 1347
+Date: Sat, 12 Sep 2026 20:06:46 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"asOf":"2026-09-12T20:00:24.547Z","todayInvoicedPaise":66700,"todayCollectedPaise":285300,"todayOrdersCount":4,"todayDeliveredStops":0,"todayFailedStops":0,"cashInTransitPaise":1069900,"totalOutstandingPaise":439829100,"overduePaise":267781800,"ageing":{"b0_7":230343000,"b8_15":68668850,"b16_30":79901750,"b31_60":49299000,"b61_90":9020300,"b90plus":2596200},"mtdSalesPaise":197321000,"mtdGrossMarginPaise":8281160,"stockValuePaise":217608414,"nearExpiryValuePaise":17043585,"pendingApprovals":6,"activeTrips":2,"last7Days":[{"bucket":"2026-09-07","invoicedPaise":32240700,"collectedPaise":13667874,"ordersCount":10},{"bucket":"2026-09-08","invoicedPaise":13991500,"collectedPaise":29163265,"ordersCount":11},{"bucket":"2026-09-09","invoicedPaise":10880400,"collectedPaise":17320580,"ordersCount":11},{"bucket":"2026-09-10","invoicedPaise":22667700,"collectedPaise":44855998,"ordersCount":10},{"bucket":"2026-09-11","invoicedPaise":18101000,"collectedPaise":25188700,"ordersCount":14},{"bucket":"2026-09-12","invoicedPaise":15014700,"collectedPaise":47158867,"ordersCount":18},{"bucket":"2026-09-13","invoicedPaise":66700,"collectedPaise":285300,"ordersCount":4}],"detail":{"ageingB0_7":230343000,"ageingB8_15":68668850,"ageingB16_30":79901750,"ageingB31_60":49299000,"ageingB61_90":9020300,"ageingB90plus":2596200,"cashInTransitPaise":1069900}}

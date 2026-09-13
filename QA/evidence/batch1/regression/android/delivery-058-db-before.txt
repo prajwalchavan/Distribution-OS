@@ -1,0 +1,12 @@
+-- DOS-058 baseline for INV/0831 (2026-09-13 02:59:46.048795 IST)
+-- invoice
+4b1fb55a-5812-7f04-89ed-7882e470499a|INV/0831|issued|703800
+-- credit notes on INV/0831
+0
+-- deliveries rows on INV/0831
+plan:561d0675-9ef8-7c6e-9ab0-31d77d659aab:4b1fb55a-5812-7f04-89ed-7882e470499a|
+-- ghee variant stock by location (on_hand)
+ERROR:  column sb.variant_id does not exist
+LINE 1: ...id=sb.location_id join product_variants v on v.id=sb.variant...
+                                                             ^
+(eval):1: no such file or directory: /opt/homebrew/opt/postgresql@17/bin/psql -h 127.0.0.1 -p 5439 -U dos -d dos_qa -Atc

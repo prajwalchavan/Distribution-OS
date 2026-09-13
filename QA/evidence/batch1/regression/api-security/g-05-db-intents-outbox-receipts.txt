@@ -1,0 +1,9 @@
+-- DOS-094 (g): outbox rows for the three intents, receipts untouched, invoice snapshots untouched. SQL read-only, 2026-09-13 01:12:04 IST
+outbox_events cols|id,tenant_id,aggregate_type,aggregate_id,event_type,payload,published_at,created_at,updated_at,attempts,next_attempt_at,last_error,dead_lettered_at
+intent outbox|PaymentIntentCreated|PAY-baa19eda49c7|3584300|2026-09-13 01:07:48.882628+05:30
+intent outbox|PaymentIntentCreated|PAY-0f8c756eb47e|456100|2026-09-13 01:07:48.92761+05:30
+intent outbox|PaymentIntentCreated|PAY-94ecc69201bd|1000000|2026-09-13 01:07:48.950544+05:30
+receipts R-0001 created last 30 min|0
+receipts received_by ramesh user|0
+invoice snapshot|INV/0753|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5472.00&tr=INV-0753&cu=INR|2026-09-12 18:45:16.454209+05:30
+invoice snapshot|INV/0433|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=10119.00&tr=INV-0433&cu=INR|2026-09-12 12:50:54.278125+05:30

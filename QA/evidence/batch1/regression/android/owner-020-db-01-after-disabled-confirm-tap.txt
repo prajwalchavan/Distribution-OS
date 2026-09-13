@@ -1,0 +1,4 @@
+SO-0910 after tapping the disabled Confirm order on Android:
+SO-0910|submitted|
+0
+pending

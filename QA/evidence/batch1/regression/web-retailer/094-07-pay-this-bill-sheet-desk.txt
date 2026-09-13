@@ -1,0 +1,90 @@
+Tarsun Enterprise
+retailer
+▾
+SHOP
+Home
+Place order
+My orders
+Offers
+MONEY
+Money due
+My bills
+Receipts
+Statement
+Returns
+YOU
+Messages
+My shop
+My account
+Updated just now
+RG
+Ramesh Gupta
+retailer
+Tarsun Enterprise
+Money you owe
+Money due
+My bills
+Receipts
+Statement
+YOU OWE
+₹35,843.00
+PAST ITS DATE
+₹35,843.00
+MONEY WITH THEM
+₹0.00
+OLDEST BILL DUE
+6 Aug
+Money owed, by age
+₹
+0–7
+5,472.00
+8–15
+3,311.00
+16–30
+13,123.00
+31–60
+13,937.00
+61–90
+0.00
+90+
+0.00
+BILL BY BILL, OLDEST FIRST
+INV/0433
+Due 6 Aug 2026 · 38 days late
+₹4,561.00
+₹4,561.00 left of ₹10,119.00
+Pay this bill
+INV/0468
+Due 10 Aug 2026 · 34 days late
+₹9,376.00
+₹9,376.00 left of ₹9,947.00
+Pay this bill
+INV/0587
+Due 24 Aug 2026 · 20 days late
+₹6,253.00
+₹6,253.00 left of ₹6,253.00
+Pay this bill
+INV/0617
+Due 27 Aug 2026 · 17 days late
+₹6,870.00
+₹6,870.00 left of ₹7,004.00
+Pay this bill
+INV/0680
+Due 3 Sep 2026 · 10 days late
+₹3,311.00
+₹3,311.00 left of ₹3,526.00
+Pay this bill
+INV/0753
+Due 10 Sep 2026 · 3 days late
+₹5,472.00
+₹5,472.00 left of ₹5,472.00
+Pay this bill
+SCAN TO PAY
+Close
+Scan this in any UPI app. The money reaches Tarsun Enterprise.
+₹4,561.00
+upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=4561.00&tr=INV-0433&cu=INR
+Start the payment
+You owe
+₹35,843.00
+Pay everything

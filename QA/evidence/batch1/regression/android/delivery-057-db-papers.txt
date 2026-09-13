@@ -1,0 +1,13 @@
+-- DOS-057 data (' 03:13:48 ')
+-- INV/0826 pdf
+INV/0826|partially_paid|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf
+-- credit notes of Joshi Kirana (R-0020) with pdf
+CN/9003|return_saleable|t|2026-09-12 16:09:00.560234+05:30
+-- receipts of Joshi Kirana latest 5 with pdf
+RCPT-0626|813700|cash|t|2026-09-07 14:15:00+05:30
+RCPT-0521|2551600|upi|f|2026-08-29 13:30:00+05:30
+RCPT-0467|1299800|cash|f|2026-08-25 14:15:00+05:30
+RCPT-0457|1998400|cash|f|2026-08-24 14:30:00+05:30
+RCPT-0388|760000|cash|f|2026-08-17 16:30:00+05:30
+-- RCPT-0703 (Android receipt, Nakshatra) pdf
+RCPT-0703|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09783-1eb1-749e-9e02-ec0501ffc803.pdf

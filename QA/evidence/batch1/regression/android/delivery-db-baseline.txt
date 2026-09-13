@@ -1,0 +1,54 @@
+-- ganesh.more trips (read 2026-09-13 02:36:30.085366 IST): trip_no|date|state|opening_cash|stops done/total|id
+TRIP-20260615-1|2026-06-15|settled|500000|8/8|b9443f97-3802-7925-a910-adbeb2118581
+TRIP-20260618-1|2026-06-18|settled_with_variance|500000|11/11|f947a005-e9b3-7d53-85ed-ef1d484c2252
+TRIP-20260624-1|2026-06-24|settled|500000|9/9|4a54c532-77a6-770a-b6d8-6ee932c6373d
+TRIP-20260626-1|2026-06-26|settled|500000|9/9|0a75f3d4-73a8-790f-831e-f5cf4f79c8fe
+TRIP-20260627-1|2026-06-27|settled_with_variance|500000|14/14|a23f1f0b-85fd-7d52-87d8-015ccd89f180
+TRIP-20260630-1|2026-06-30|settled_with_variance|500000|10/10|0b421617-3e47-74ef-9062-2f943bceaded
+TRIP-20260703-1|2026-07-03|settled|500000|14/14|e7f57014-348e-7c65-af81-564c782b3d8d
+TRIP-20260706-1|2026-07-06|settled|500000|16/16|e4a4fc16-d31a-73c1-a5e1-98d79d9068fa
+TRIP-20260709-1|2026-07-09|settled|500000|9/9|6a6a48b2-0537-70c5-8898-58bc121de975
+TRIP-20260710-1|2026-07-10|settled|500000|11/11|67746092-4070-7ad2-9aae-69148ec3efc0
+TRIP-20260715-1|2026-07-15|settled|500000|9/9|20e853f2-b96d-7757-967c-4e90ea66a8b7
+TRIP-20260717-1|2026-07-17|settled_with_variance|500000|10/10|0ff03ea0-9987-783c-ae57-2c852ca85bf4
+TRIP-20260718-1|2026-07-18|settled_with_variance|500000|15/15|d69e32c8-305a-72bf-a7f4-1ae30a0d8865
+TRIP-20260721-1|2026-07-21|settled_with_variance|500000|10/10|60c36864-c175-7265-bafe-2b28be6772fd
+TRIP-20260724-1|2026-07-24|settled|500000|16/16|d830ab9f-752e-7106-9ee4-955fa002fd93
+TRIP-20260727-1|2026-07-27|settled|500000|13/13|179d999c-dfd4-700f-9610-df06791c3a6c
+TRIP-20260730-1|2026-07-30|settled|500000|9/9|1809d2fe-aba5-7562-b0ae-dfc3a20d6db4
+TRIP-20260805-1|2026-08-05|settled|500000|11/11|441f01f8-68b9-7184-9349-4f9f577ee6b5
+TRIP-20260808-1|2026-08-08|settled|500000|8/8|15d57412-56c4-7d76-8089-bcff7589f347
+TRIP-20260811-1|2026-08-11|settled|500000|8/8|a05922a5-3467-7162-93fb-57f3efb61c61
+TRIP-20260814-1|2026-08-14|settled|500000|16/16|834f552d-7fe4-72df-89a4-280a6552075a
+TRIP-20260817-1|2026-08-17|settled|500000|12/12|b1f437c1-2bdf-7ee9-ac4b-3f1b222d68c4
+TRIP-20260820-1|2026-08-20|settled|500000|7/7|47c3be34-5c8d-7d2c-8e00-4c4f158be28c
+TRIP-20260821-1|2026-08-21|settled|500000|10/10|c5819cde-1480-7817-b6c8-df99fa9ecee0
+TRIP-20260826-1|2026-08-26|settled|500000|12/12|c677e43c-9241-79e5-b2d4-fcfcf3b66c3c
+TRIP-20260829-1|2026-08-29|settled_with_variance|500000|7/7|d3c17246-3e57-734a-bee6-5cba7956884d
+TRIP-20260901-1|2026-09-01|settled_with_variance|500000|12/12|76b59758-cd8c-796d-97dd-3de488e6a71d
+TRIP-20260904-1|2026-09-04|settled|500000|15/15|e31c1c6c-ae7b-74d2-bc9d-7f260c7c7a5e
+TRIP-20260907-1|2026-09-07|settled|500000|13/13|596203ef-c9b3-7748-acb8-84e5e3b3c2c7
+TRIP-20260910-1|2026-09-10|settled|500000|11/11|81d3d8ce-0dcc-7b43-ace5-913e0658f5fa
+TRIP-ACTIVE|2026-09-12|active|500000|10/10|dda35990-f442-7931-8da4-5808f09a33b6
+TRIP-NEXT|2026-09-14|active|300000|0/5|72649337-4c50-7033-a988-ca5cf4406f9c
+-- load sheets on those trips
+ERROR:  column ls.sheet_no does not exist
+LINE 1: ... '-- load sheets on those trips'; select coalesce(ls.sheet_n...
+                                                             ^
+-- load sheets on TRIP-ACTIVE / TRIP-NEXT
+TRIP-ACTIVE | {"id": "29067d2f-43f5-7748-ba39-8084e257eb2e", "ewb_no": "381012345678", "status": "confirmed", "trip_id": "dda35990-f442-7931-8da4-5808f09a33b6", "order_ids": ["d6fd4a9a-606c-7855-8e88-d3510adf38c7", "cb517f59-411b-7332-8cf6-a77d0461dd18", "c2b2a996-fafc-7904-b44c-2eadf776fccf", "96b7d3d6-b581-798f-ac96-97c35e31f39c", "7c434e6c-ee80-7309-81da-2b3c36f0e9e2", "70e30ab0-0e7b-71b7-87d8-63133db4b575", "513f3480-ed38-7db4-81a5-46eb2a20717d", "47de7d5d-281e-786b-8edc-6db3e57f0007", "4768f0b6-8eb7-7ae4-b9fc-82507e4da836", "3b8c86f8-417c-7206-afdb-f32cb80a06b3"], "van_stock": [], "challan_no": "DC-0081", "sheet_date": "2026-09-11", "approved_at": "2026-09-11T12:10:00+05:30", "approved_by": "a1cbd424-d568-7ccb-b5cc-b049e8ac2063", "cancelled_at": null, "confirmed_at": "2026-09-11T12:15:00+05:30", "confirmed_by": "a1cbd424-d568-7ccb-b5cc-b049e8ac2063", "ewb_required": true, "cancel_reason": null, "variance_note": null, "to_location_id": "3bbe6b52-7dd7-7540-aad6-94ff815e8d8b", "pin_verified_by": null, "counted_packages": 64, "from_location_id": "01a0947d-7a96-723f-952d-338dd284a1b4", "load_value_paise": 16081500, "expected_packages": 64}
+TRIP-NEXT | {"id": "374f2089-b8fd-720e-907c-8380307948ab", "ewb_no": "381012345678", "status": "confirmed", "trip_id": "72649337-4c50-7033-a988-ca5cf4406f9c", "order_ids": ["f851772c-7a2f-7694-a214-01bbf1a8f646", "b72adff9-38cd-728e-9d4a-32f091a0f7e2", "a86e7342-f6e0-7ece-997b-43b810e33630", "792d2434-39cd-718e-a4c8-19f6d03dcf79", "6b36c456-4cd9-7dde-83b8-903f735f6652"], "van_stock": [], "challan_no": "DC-0083", "sheet_date": "2026-09-12", "approved_at": "2026-09-12T12:10:00+05:30", "approved_by": "a1cbd424-d568-7ccb-b5cc-b049e8ac2063", "cancelled_at": null, "confirmed_at": "2026-09-13T01:07:22.333+05:30", "confirmed_by": "5b6fbe87-cb70-7195-8de1-a4f5046c3675", "ewb_required": true, "cancel_reason": null, "variance_note": "QA regression DOS-039: counted 35 of 38 cartons at the gate", "to_location_id": "3bbe6b52-7dd7-7540-aad6-94ff815e8d8b", "pin_verified_by": "a1cbd424-d568-7ccb-b5cc-b049e8ac2063", "counted_packages": 35, "from_location_id": "01a0947d-7a96-723f-952d-338dd284a1b4", "load_value_paise": 15014700, "expected_packages": 38}
+-- TRIP-NEXT stop 1 City Light Provision bill INV/0831 lines: item|qty_pcs|rate|line id
+Godavari Cow Ghee 200 ml|48|13456|362db35e-6164-77f5-8b13-cedcb8293504
+Campa Orange 500 ml|15|1134|3648b571-2cdc-7a55-976e-ba888571ea3b
+-- receipts on TRIP-ACTIVE (latest 5)
+RCPT-0701|284300|cash|t|2026-09-13 01:25:12.320857+05:30
+RCPT-0699|475600|upi|f|2026-09-12 16:29:09.000437+05:30
+RCPT-0698|785600|cash|f|2026-09-12 16:05:27.418531+05:30
+-- latest 3 credit notes (tenant)
+|return_saleable|2026-09-13 02:33:23.849423+05:30
+|return_saleable|2026-09-13 02:32:14.618075+05:30
+CN/9006|return_damaged|2026-09-13 01:16:57.304067+05:30
+-- stop 7 Nakshatra + stop 8 Laxmi Narayan outstanding (open invoices)
+Laxmi Narayan Stores|4|13788600
+Nakshatra Kirana|4|2869800

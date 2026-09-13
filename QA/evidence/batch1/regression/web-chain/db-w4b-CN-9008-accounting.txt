@@ -1,0 +1,24 @@
+               now                
+----------------------------------
+ 2026-09-13 03:49:21.251413+05:30
+(1 row)
+
+              invoice_id              | invoice_no | amount_paise 
+--------------------------------------+------------+--------------
+ 01a097a0-0ce6-77f1-a031-323a2cef819b | INV/9012   |       124100
+(1 row)
+
+ invoice_no | total_paise | allocated |     state      
+------------+-------------+-----------+----------------
+ INV/9012   |      374900 |    124100 | partially_paid
+(1 row)
+
+  ref_type   |                    narration                     | amount_paise |     code      |            name            
+-------------+--------------------------------------------------+--------------+---------------+----------------------------
+ credit_note | credit note 01a097b2-ccab-75fd-9f37-ab4a3e979664 |      -124100 | AR            | Sundry Debtors (retailers)
+ credit_note | credit note 01a097b2-ccab-75fd-9f37-ab4a3e979664 |           16 | ROUND_OFF     | Round off
+ credit_note | credit note 01a097b2-ccab-75fd-9f37-ab4a3e979664 |         9464 | OUTPUT_CGST   | Output CGST
+ credit_note | credit note 01a097b2-ccab-75fd-9f37-ab4a3e979664 |         9464 | OUTPUT_SGST   | Output SGST
+ credit_note | credit note 01a097b2-ccab-75fd-9f37-ab4a3e979664 |       105156 | SALES_RETURNS | Sales returns
+(5 rows)
+

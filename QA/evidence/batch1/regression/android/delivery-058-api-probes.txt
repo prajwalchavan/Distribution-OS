@@ -1,0 +1,13 @@
+### ganesh POST :3005/delivery/deliveries INV/0831, ghee line 24 delivered + 24 returned, returnedSaleable:true reason:damaged
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Godavari Cow Ghee 200 ml: damaged goods go to the damaged bin, not back on sale","data":{"code":"return_not_saleable","invoiceLineId":"362db35e-6164-77f5-8b13-cedcb8293504","reason":"damaged"}}
+HTTP 400
+### ganesh POST :3005/delivery/deliveries INV/0831, ghee line 24 delivered + 24 returned, returnedSaleable:true reason:expired
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Godavari Cow Ghee 200 ml: expired goods go to the damaged bin, not back on sale","data":{"code":"return_not_saleable","invoiceLineId":"362db35e-6164-77f5-8b13-cedcb8293504","reason":"expired"}}
+HTTP 400
+### ganesh POST :3005/delivery/deliveries INV/0831, ghee line 24 delivered + 24 returned, returnedSaleable:false reason:damaged
+{"defined":false,"code":"CONFLICT","status":409,"message":"order: cannot apply \"deliver_partial\" in state \"packed\"","data":{"from":"packed","event":"deliver_partial"}}
+HTTP 409
+--- INV/0831 after the probes: deliveries | credit notes | stop state
+plan:561d0675-9ef8-7c6e-9ab0-31d77d659aab:4b1fb55a-5812-7f04-89ed-7882e470499a|
+0
+arrived

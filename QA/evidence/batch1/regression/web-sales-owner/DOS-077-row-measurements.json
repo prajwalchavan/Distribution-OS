@@ -1,0 +1,140 @@
+{
+ "page": "sales /orders/new Laxmi Narayan Stores",
+ "at": "2026-09-12T20:36:49.764Z",
+ "desk1280": [
+  {
+   "name": "Campa Cola 1 L",
+   "nameColW": 762,
+   "nameClipped": false,
+   "chip": "18 cs available",
+   "chipW": 154,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  },
+  {
+   "name": "Campa Cola 2 L",
+   "nameColW": 774,
+   "nameClipped": false,
+   "chip": "7 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  },
+  {
+   "name": "Campa Cola 200 ml",
+   "nameColW": 774,
+   "nameClipped": false,
+   "chip": "1 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  },
+  {
+   "name": "Campa Cola 500 ml",
+   "nameColW": 774,
+   "nameClipped": false,
+   "chip": "8 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  },
+  {
+   "name": "Campa Cola 750 ml",
+   "nameColW": 750,
+   "nameClipped": false,
+   "chip": "153 cs available",
+   "chipW": 166,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  },
+  {
+   "name": "Campa Lemon 1 L",
+   "nameColW": 774,
+   "nameClipped": false,
+   "chip": "4 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 1251,
+   "rowRight": 1263,
+   "rowW": 1074
+  }
+ ],
+ "phone390": [
+  {
+   "name": "Campa Cola 1 L",
+   "nameColW": 44,
+   "nameClipped": true,
+   "chip": "18 cs available",
+   "chipW": 154,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  },
+  {
+   "name": "Campa Cola 2 L",
+   "nameColW": 56,
+   "nameClipped": true,
+   "chip": "7 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  },
+  {
+   "name": "Campa Cola 200 ml",
+   "nameColW": 56,
+   "nameClipped": true,
+   "chip": "1 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  },
+  {
+   "name": "Campa Cola 500 ml",
+   "nameColW": 56,
+   "nameClipped": true,
+   "chip": "8 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  },
+  {
+   "name": "Campa Cola 750 ml",
+   "nameColW": 32,
+   "nameClipped": true,
+   "chip": "153 cs available",
+   "chipW": 166,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  },
+  {
+   "name": "Campa Lemon 1 L",
+   "nameColW": 56,
+   "nameClipped": true,
+   "chip": "4 cs available",
+   "chipW": 142,
+   "btnW": 115,
+   "btnRight": 361,
+   "rowRight": 373,
+   "rowW": 356
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+### DOS-058 API probe — reason=expired, returnedSaleable:true (ganesh.more, delivery :3005)
+POST http://127.0.0.1:3005/delivery/deliveries
+{"idempotencyKey":"qa-d058-probe-expired-bf464f6e-68f0-49ab-85b0-cc61c63d13cf","id":"3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab","tripId":"dda35990-f442-7931-8da4-5808f09a33b6","stopId":"49acc96c-933b-7f45-b5bb-63d01d3b2e7f","invoiceId":"80b30321-a74d-79e3-9a46-9d479e859494","deliveredAt":"2026-09-13T00:00:00.000Z","deviceId":"qa-web-delivery","lines":[{"id":"14209483-22df-43a7-a5a3-3e27602aa826","invoiceLineId":"88a690ee-05d7-7410-ad6c-b47411c564ca","deliveredQtyPcs":360,"returnedQtyPcs":72,"returnedSaleable":true,"reason":"expired"}],"pod":[]}
+
+--- response ---
+HTTP/1.1 400 Bad Request
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 258
+Date: Sat, 12 Sep 2026 19:35:52 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Sunbake Butter Cookies 75 g: expired goods go to the damaged bin, not back on sale","data":{"code":"return_not_saleable","invoiceLineId":"88a690ee-05d7-7410-ad6c-b47411c564ca","reason":"expired"}}

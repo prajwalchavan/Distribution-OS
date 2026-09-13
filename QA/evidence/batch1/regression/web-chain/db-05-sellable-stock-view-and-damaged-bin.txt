@@ -1,0 +1,34 @@
+               now               
+---------------------------------
+ 2026-09-13 03:15:45.23725+05:30
+(1 row)
+
+              pg_get_viewdef               
+-------------------------------------------
+  SELECT b.tenant_id,                     +
+     l.variant_id,                        +
+     b.location_id,                       +
+     l.id AS lot_id,                      +
+     l.batch_no,                          +
+     l.mrp_paise,                         +
+     l.expiry_date,                       +
+     b.on_hand,                           +
+     b.reserved,                          +
+     b.on_hand - b.reserved AS available  +
+    FROM stock_balances b                 +
+      JOIN stock_lots l ON l.id = b.lot_id+
+   WHERE (b.on_hand - b.reserved) > 0;
+(1 row)
+
+              name               |         loc          |   kind    |  batch_no  | expiry_date | on_hand | reserved | available 
+---------------------------------+----------------------+-----------+------------+-------------+---------+----------+-----------
+ Balaji Masala Masti Wafers 45 g | Damaged / expiry bin | damaged   | GK20260721 | 2026-12-18  |       2 |        0 |         2
+ Balaji Masala Masti Wafers 45 g | Godown               | warehouse | GK20260828 | 2027-01-25  |     125 |        0 |       125
+ Balaji Masala Masti Wafers 45 g | Godown               | warehouse | B20260909  | 2027-02-06  |     602 |        0 |       602
+ Sunbake Marie Light 75 g        | Damaged / expiry bin | damaged   | SB20260802 | 2027-03-30  |      32 |        0 |        32
+ Sunbake Marie Light 75 g        | Godown               | warehouse | SB20260614 | 2027-02-09  |      12 |        0 |        12
+ Sunbake Marie Light 75 g        | Godown               | warehouse | SB20260705 | 2027-03-02  |      96 |        0 |        96
+ Sunbake Marie Light 75 g        | Godown               | warehouse | B20260729  | 2027-03-26  |      96 |        0 |        96
+ Sunbake Marie Light 75 g        | Godown               | warehouse | B20260902  | 2027-04-30  |     660 |        0 |       660
+(8 rows)
+

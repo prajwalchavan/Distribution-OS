@@ -1,0 +1,17 @@
+### REQUEST 2026-09-13 02:31:46 IST
+POST http://127.0.0.1:3004/warehouse/picklists/01a0976a-9e51-75d8-935f-8cc2f2181dfb/pick
+Authorization: Bearer <accessToken of dinesh.patil>
+
+{"id":"01a0976a-9e51-75d8-935f-8cc2f2181dfb","idempotencyKey":"61b30261-2537-4669-a67f-a3f1734c6c19","lines":[{"id":"01a0976a-a7ab-7170-a208-29775363b9ac","orderLineId":"01a09766-101f-74d8-8acd-5d690733b001","lotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","pickedQtyPcs":6},{"id":"01a0976a-a7ab-7171-b79c-9754d91a4a72","orderLineId":"01a09766-101f-74d8-8acd-5d690733b001","lotId":"e281d17d-3e35-7488-8e75-213685b35df0","pickedQtyPcs":18}]}
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 2470
+Date: Sat, 12 Sep 2026 21:01:46 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"01a0976a-9e51-75d8-935f-8cc2f2181dfb","picklistNo":"PICK-0084","status":"picked","locationId":"01a0947d-7a96-723f-952d-338dd284a1b4","pickDate":"2026-09-13","tripId":null,"beatId":null,"note":null,"orderCount":1,"lineCount":1,"requestedQtyPcs":24,"pickedQtyPcs":24,"assignedTo":null,"startedAt":"2026-09-12T21:00:06.709Z","completedAt":"2026-09-12T21:01:46.497Z","cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T20:59:04.428Z","orders":[{"orderId":"01a09766-101d-726f-bd86-95398f469cf4","orderNo":"SO-0899","retailerId":"34ce3241-c275-7cc5-bc44-cd7856930d50","retailerName":"Mahalaxmi General Stores","state":"picking","lineCount":1}],"lines":[{"id":"01a0976a-a7ab-7170-a208-29775363b9ac","orderId":"01a09766-101d-726f-bd86-95398f469cf4","orderLineId":"01a09766-101f-74d8-8acd-5d690733b001","lineNo":1,"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","productName":"Campa Cola","lotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","suggestedLotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","batchNo":"RCP20260710","expiryDate":"2027-04-06","caseSize":24,"requestedQtyPcs":6,"pickedQtyPcs":6,"freeQtyPcs":0,"shortReason":null,"fefoOverride":false,"pickedBy":"5b6fbe87-cb70-7195-8de1-a4f5046c3675","pickedAt":"2026-09-12T21:01:46.488Z"},{"id":"01a0976a-a7ab-7171-b79c-9754d91a4a72","orderId":"01a09766-101d-726f-bd86-95398f469cf4","orderLineId":"01a09766-101f-74d8-8acd-5d690733b001","lineNo":1,"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","productName":"Campa Cola","lotId":"e281d17d-3e35-7488-8e75-213685b35df0","suggestedLotId":"e281d17d-3e35-7488-8e75-213685b35df0","batchNo":"RCP20260724","expiryDate":"2027-04-20","caseSize":24,"requestedQtyPcs":18,"pickedQtyPcs":18,"freeQtyPcs":0,"shortReason":null,"fefoOverride":false,"pickedBy":"5b6fbe87-cb70-7195-8de1-a4f5046c3675","pickedAt":"2026-09-12T21:01:46.488Z"}],"consolidated":[{"variantId":"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4","variantName":"Campa Cola 2 L","productName":"Campa Cola","requestedQtyPcs":24,"pickedQtyPcs":24,"caseSize":24,"cases":1,"loosePcs":0,"lots":[{"lotId":"d8daeb8d-cdb8-7d02-9cfc-4a53ceaeacc1","batchNo":"RCP20260710","expiryDate":"2027-04-06","qtyPcs":6,"caseSize":24,"cases":0,"loosePcs":6,"fefoWarning":false},{"lotId":"e281d17d-3e35-7488-8e75-213685b35df0","batchNo":"RCP20260724","expiryDate":"2027-04-20","qtyPcs":18,"caseSize":24,"cases":0,"loosePcs":18,"fefoWarning":false}]}]},"warnings":[]}

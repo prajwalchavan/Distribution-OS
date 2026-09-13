@@ -1,0 +1,37 @@
+               now                
+----------------------------------
+ 2026-09-13 03:29:31.980365+05:30
+(1 row)
+
+  trip_no  |  state  | trip_date  | van_sales_enabled | planned_stops | opening_cash_paise 
+-----------+---------+------------+-------------------+---------------+--------------------
+ TRIP-0001 | planned | 2026-09-13 | f                 |             4 |                  0
+(1 row)
+
+ sequence |  code  |          name           |  state  
+----------+--------+-------------------------+---------
+        1 | R-0010 | Balaji Wholesale Stores | pending
+        2 | R-0007 | Ganesh General Store    | pending
+        3 | R-0011 | Sai Baba Kirana         | pending
+        4 | R-0015 | Ganpati General Stores  | pending
+(4 rows)
+
+ERROR:  column d.trip_stop_id does not exist
+LINE 1: ...d left join invoices i on i.id=d.invoice_id where d.trip_sto...
+                                                             ^
+ order_no | state  
+----------+--------
+ SO-0903  | packed
+ SO-0904  | packed
+ SO-0905  | packed
+ SO-0906  | packed
+(4 rows)
+
+                                idempotency_key                                 | outcome | invoice_no |               order_id               
+--------------------------------------------------------------------------------+---------+------------+--------------------------------------
+ plan:01a097a1-96d9-7bb2-ab9f-bd0f3afcb46f:01a09792-4e30-77e2-b3d0-d72c92459418 |         | INV/9010   | 01a0978a-8625-74be-90c7-50b520c1b18e
+ plan:01a097a1-96d9-7479-a0c0-b756eba2949e:01a0979f-ce77-71de-93c1-8a31aacb6076 |         | INV/9011   | 01a09795-7cd8-7517-a0d2-0c9756408bad
+ plan:01a097a1-96d9-7a37-a9ff-44b6675dad06:01a097a0-0ce6-77f1-a031-323a2cef819b |         | INV/9012   | 01a09796-3cfc-704e-9ff8-9d5c59ff7027
+ plan:01a097a1-96d9-765c-adfd-7426452f89a4:01a097a0-4b3a-7670-a8ea-cf3cf683259b |         | INV/9013   | 01a09796-9c1d-73c1-bb1e-796a9dad96f1
+(4 rows)
+

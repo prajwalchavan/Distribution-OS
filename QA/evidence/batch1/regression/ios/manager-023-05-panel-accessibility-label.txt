@@ -1,0 +1,2 @@
+LABEL: Sheet PICK-0092, State, Open, Where, Godown, Picker, —, Pick date, 13 Sep, Orders, SO-0914 · Joshi Kirana Stores, Confirmed, By item, Campa Cola 500 ml, B20260902 · 0 / 24 pc, Start picking, Cancel the sheet, Horizontal scroll bar, 1 page, Vertical scroll bar, 2 pages, Close
+LABEL: Sheet PICK-0092, State, Open, Where, Godown, Picker, —, Pick date, 13 Sep, Orders, SO-0914 · Joshi Kirana Stores, Confirmed, By item, Campa Cola 500 ml, B20260902 · 0 / 24 pc, Start picking, Cancel the sheet, Horizontal scroll bar, 1 page, Vertical scroll bar, 2 pages, Close

@@ -1,0 +1,97 @@
+SO-0912, 13 Sep, 29571 rupees, Submitted
+SO-0911, 13 Sep · QA regression android-manager A-mahalaxmi, 1375 rupees, Being picked
+SO-0909, 13 Sep, 3029 rupees, Packed
+SO-0908, 13 Sep, 4047 rupees, Being picked
+SO-0907, 13 Sep, 2941 rupees, Cancelled
+SO-0906, 13 Sep, 3530 rupees, Partially delivered
+SO-0905, 13 Sep, 3749 rupees, Partially delivered
+SO-0904, 13 Sep, 2205 rupees, Packed
+SO-0903, 13 Sep, 6753 rupees, Delivered
+SO-0902, 13 Sep · QA regression web-manager Z-saikrupa-phone409, 1355 rupees, Cancelled
+SO-0901, 13 Sep, 29571 rupees, Cancelled
+SO-0900, 13 Sep · QA regression web-manager Y-saikrupa, 1355 rupees, Cancelled
+SO-0899, 13 Sep · QA regression web-manager X-mahalaxmi, 1375 rupees, Packed
+SO-0897, 13 Sep, 1375 rupees, Confirmed
+SO-0896, 13 Sep, 755 rupees, Cancelled
+SO-0895, 13 Sep, 29571 rupees, Cancelled
+SO-0893, 13 Sep · QA security regression fixture E (draft), 33 rupees, Confirmed
+SO-0892, 13 Sep · QA security regression fixture W (wave), 98 rupees, Packed
+SO-0891, 13 Sep · QA security regression fixture B2, 98 rupees, Cancelled
+SO-0890, 13 Sep · QA security regression fixture C (approval), 98 rupees, Confirmed
+SO-0889, 13 Sep · QA security regression fixture B, 98 rupees, Cancelled
+SO-0888, 13 Sep · QA security regression fixture X, 97 rupees, Confirmed
+SO-0884, 12 Sep, 303 rupees, Being picked
+SO-0883, 12 Sep, 780 rupees, Packed
+SO-0882, 12 Sep, 2336 rupees, Submitted
+SO-0881, 12 Sep, 1270 rupees, Being picked
+SO-0880, 12 Sep, 1283 rupees, Cancelled
+SO-0879, 12 Sep, 32030 rupees, Submitted
+SO-0875, 12 Sep, 101531 rupees, On the van
+SO-0874, 12 Sep, 7690 rupees, Being picked
+SO-0871, 12 Sep, 12707 rupees, On the van
+SO-0868, 12 Sep, 17736 rupees, Confirmed
+SO-0873, 12 Sep, 12837 rupees, Confirmed
+SO-0867, 12 Sep, 5367 rupees, Being picked
+SO-0878, 12 Sep, 11300 rupees, On the van
+SO-0877, 12 Sep, 17531 rupees, Being picked
+SO-0856, 11 Sep, 14962 rupees, Partially delivered
+SO-0861, 11 Sep, 22508 rupees, Partially delivered
+SO-0849, 10 Sep, 74505 rupees, Partially delivered
+SO-9001, 10 Sep, 2327 rupees, Packed
+SO-0852, 10 Sep, 12540 rupees, Delivered
+SO-0847, 10 Sep, 5511 rupees, Delivered
+SO-0851, 10 Sep, 10426 rupees, Delivered
+SO-0836, 9 Sep, 26077 rupees, Delivered
+SO-0839, 9 Sep, 5039 rupees, Delivered
+SO-0838, 9 Sep, 5345 rupees, Delivered
+SO-0844, 9 Sep, 12180 rupees, Delivered
+SO-0843, 9 Sep, 2709 rupees, Partially delivered
+SO-0834, 9 Sep, 4323 rupees, Delivered
+SO-0824, 8 Sep, 28480 rupees, Partially delivered
+SO-0830, 8 Sep, 5279 rupees, Delivered
+SO-0833, 8 Sep, 13821 rupees, Delivered
+SO-0831, 8 Sep, 1321 rupees, Delivered
+SO-0829, 8 Sep, 3758 rupees, Delivered
+SO-0826, 8 Sep, 30886 rupees, Delivered
+SO-0827, 8 Sep, 6560 rupees, Delivered
+SO-0813, 7 Sep, 88128 rupees, Delivered
+SO-0815, 7 Sep, 87602 rupees, Delivered
+SO-0816, 7 Sep, 6070 rupees, Partially delivered
+SO-0814, 7 Sep, 27994 rupees, Delivered
+SO-0804, 5 Sep, 116483 rupees, Delivered
+SO-0803, 5 Sep, 20299 rupees, Delivered
+SO-0808, 5 Sep, 10422 rupees, Delivered
+SO-0807, 5 Sep, 6113 rupees, Delivered
+SO-0806, 5 Sep, 8053 rupees, Delivered
+SO-0805, 5 Sep, 1901 rupees, Delivered
+SO-0802, 5 Sep, 2562 rupees, Delivered
+SO-0800, 4 Sep, 47010 rupees, Delivered
+SO-0796, 4 Sep, 9789 rupees, Delivered
+SO-0788, 4 Sep, 10203 rupees, Delivered
+SO-0801, 4 Sep, 40314 rupees, Delivered
+SO-0799, 4 Sep, 11454 rupees, Delivered
+SO-0794, 4 Sep, 7962 rupees, Delivered
+SO-0782, 3 Sep, 53548 rupees, Cancelled
+SO-0779, 3 Sep, 13597 rupees, Cancelled
+SO-0778, 3 Sep, 26799 rupees, Delivered
+SO-0777, 3 Sep, 29224 rupees, Delivered
+SO-0781, 3 Sep, 5472 rupees, Delivered
+SO-0785, 3 Sep, 1679 rupees, Partially delivered
+SO-0770, 2 Sep, 14576 rupees, Delivered
+SO-0774, 2 Sep, 3584 rupees, Delivered
+SO-0773, 2 Sep, 5104 rupees, Delivered
+SO-0767, 2 Sep, 1878 rupees, Partially delivered
+SO-0758, 1 Sep, 91331 rupees, Delivered
+SO-0761, 1 Sep, 28398 rupees, Delivered
+SO-0760, 1 Sep, 25159 rupees, Delivered
+SO-0765, 1 Sep, 5951 rupees, Delivered
+SO-0757, 1 Sep, 2247 rupees, Delivered
+SO-0746, 31 Aug, 46229 rupees, Cancelled
+SO-0747, 31 Aug, 35443 rupees, Delivered
+SO-0754, 31 Aug, 46055 rupees, Delivered
+SO-0740, 31 Aug, 3155 rupees, Delivered
+SO-0751, 31 Aug, 10137 rupees, Delivered
+SO-0752, 31 Aug, 2927 rupees, Delivered
+SO-0741, 31 Aug, 8943 rupees, Delivered
+SO-0749, 31 Aug, 8542 rupees, Delivered
+SO-0742, 31 Aug, 7498 rupees, Cancelled

@@ -1,0 +1,10 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d061-10-expense-filled-phone.png (285 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d061-11-expense-recorded-phone.png (354 chars text)
+{
+ "contextBefore": "Tarsun Enterprise\ndelivery\n⋯\nUpdated just now\nTRIP-ACTIVE\nExpenses\n₹0.00\nWhat for\nDiesel\n✓ Toll\nParking\nLoading charges\nFood\nRepair\nSomething else\nAmount\n₹\nNote\nPhotograph the bill\nToday's expenses\nNo",
+ "url": "http://127.0.0.1:3005/delivery/expenses",
+ "post": "{\"idempotencyKey\":\"01a09721-ccb9-7256-8f36-5e71c5d706fe\",\"id\":\"01a09721-ccb9-7255-ae72-283a1b3dfaa2\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"kind\":\"toll\",\"amountPaise\":12000,\"note\":\"QA regression DOS-061 toll Kalyan bypass\",\"incurredAt\":\"2026-09-12T19:39:42.974Z\",\"deviceId\":\"01a0971d-c860-7091-be07-883f043802ea\"}",
+ "status": 200,
+ "body": "{\"item\":{\"id\":\"01a09721-ccb9-7255-ae72-283a1b3dfaa2\",\"tripId\":\"dda35990-f442-7931-8da4-5808f09a33b6\",\"kind\":\"toll\",\"amountPaise\":12000,\"proofObjectKey\":null,\"note\":\"QA regression DOS-061 toll Kalyan bypass\",\"recordedBy\":\"7b2db500-02d5-7aa7-a1dc-005a3e89ff63\",\"recordedAt\":\"2026-09-12T19:39:42.974Z\"}}"
+}
+[url] http://localhost:5177/expenses

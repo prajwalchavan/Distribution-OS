@@ -1,0 +1,106 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+14
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Today
+Open the queue
+INVOICED TODAY
+₹667.00
+COLLECTED TODAY
+₹2,853.00
+2 trips active
+MONEY OWED
+₹43,98,291.00
+₹26,77,818.00 overdue
+ORDERS TO CONFIRM
+3
+14 bills to issue
+as of 13 Sep, 2:15 am
+What is waiting
+Orders to confirm
+3 rows
+₹40,221.00
+3
+Bills to issue
+14 rows
+₹1,57,018.00
+14
+Goods to receive
+0 rows
+0
+Bills to review
+7 rows
+7
+Cash to bank
+more than 200 rows
+₹41,16,211.52
+200+
+Cheques in hand
+6 rows
+₹1,73,556.98
+6
+Invoiced today
+7 Sep — 13 Sep
+₹0
+₹2L
+₹4L
+₹6L
+7 Sep
+13 Sep
+Invoiced
+Collected
+7 Sep — 13 Sep · as of 13 Sep, 2:15 am
+Collections by mode
+13 Sep
+Cash
+₹2.9k
+100%
+Money owed, by age
+₹
+0–7
+23,03,430.00
+8–15
+6,86,688.50
+16–30
+7,99,017.50
+31–60
+4,92,990.00
+61–90
+90,203.00
+90+
+25,962.00
+Cash-discount windows closing
+Gurukrupa Provision
+Pay by 12 Sep
+₹385.72
+Gupta Kirana Stores
+Pay by 12 Sep
+₹161.06
+Joshi Kirana Stores
+Pay by 12 Sep
+₹399.62
+Rameshwar General Store
+Pay by 12 Sep
+₹456.56
+Sai Krupa Super Bazar
+Pay by 13 Sep
+₹66.84
+Rukmini Provision
+Pay by 14 Sep
+₹255.60

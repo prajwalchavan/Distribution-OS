@@ -1,0 +1,24 @@
+// QA harness (DOS-135 on Android): HTTP forwarder host :3902 -> 127.0.0.1:3002 that holds only
+// POST /docint/extractions/*/rematch for HOLD_MS before forwarding, the device-side equivalent of the
+// web walk's page.route hold. Every request is logged with its hold and upstream status.
+import http from 'node:http';
+const HOLD_MS = Number(process.env.HOLD_MS ?? 8000);
+const server = http.createServer((req, res) => {
+  const t0 = Date.now();
+  const chunks = [];
+  req.on('data', (c) => chunks.push(c));
+  req.on('end', () => {
+    const body = Buffer.concat(chunks);
+    const hold = req.method === 'POST' && /^\/docint\/extractions\/[^/]+\/rematch/.test(req.url) ? HOLD_MS : 0;
+    setTimeout(() => {
+      const up = http.request({ host: '127.0.0.1', port: 3002, method: req.method, path: req.url, headers: { ...req.headers, host: '127.0.0.1:3002' } }, (ur) => {
+        res.writeHead(ur.statusCode, ur.headers);
+        ur.pipe(res);
+        ur.on('end', () => console.log(`${new Date(t0).toISOString()} ${req.method} ${req.url} hold=${hold} -> ${ur.statusCode} total=${Date.now() - t0}ms`));
+      });
+      up.on('error', (e) => { console.log(`${new Date(t0).toISOString()} ${req.method} ${req.url} upstream error ${e.message}`); res.writeHead(502); res.end(); });
+      up.end(body);
+    }, hold);
+  });
+});
+server.listen(3902, '127.0.0.1', () => console.log(`delay3002 listening on 127.0.0.1:3902, hold ${HOLD_MS} ms for rematch`));

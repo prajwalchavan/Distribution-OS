@@ -1,0 +1,27 @@
+### DOS-058 Android record on INV/0836 Meghana (T0 2026-09-13 03:24:57.837006+05:30)
+--- service log POST status
+03:24:58 POST /files/upload-url 200
+03:24:58 PUT /storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/80252baf-d3f6-7f11-814a-6fc0cf061 200
+03:24:58 POST /delivery/deliveries 200
+--- deliveries on INV/0836
+80252baf-d3f6-7f11-814a-6fc0cf0612c7|01a0979a-7913-7182-b543-72dcf2c3b642|partial||2026-09-13 03:24:58.20352+05:30
+--- delivery_lines written since T0
+{"id": "01a0979a-7b4c-7491-b065-61c44791a3d3", "reason": null, "created_at": "2026-09-13T03:24:58.096289+05:30", "updated_at": "2026-09-13T03:24:58.213461+05:30", "delivery_id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7", "invoice_line_id": "2fdfa8ed-6855-7e8e-bce8-61259cff8dcc", "returned_qty_pcs": 0, "delivered_qty_pcs": 50, "returned_saleable": true}
+{"id": "01a0979a-7b4c-7492-be38-30f23b6d784f", "reason": null, "created_at": "2026-09-13T03:24:58.096289+05:30", "updated_at": "2026-09-13T03:24:58.214902+05:30", "delivery_id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7", "invoice_line_id": "49bdeb15-8592-7c3b-97ee-23e4bcd8effa", "returned_qty_pcs": 0, "delivered_qty_pcs": 4, "returned_saleable": true}
+{"id": "01a0979a-7b4c-7493-a96e-db0fa7a5f6e1", "reason": null, "created_at": "2026-09-13T03:24:58.096289+05:30", "updated_at": "2026-09-13T03:24:58.215083+05:30", "delivery_id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7", "invoice_line_id": "5c6c9a19-dea2-7ace-bc06-485cca974457", "returned_qty_pcs": 0, "delivered_qty_pcs": 48, "returned_saleable": true}
+{"id": "01a0979a-7b4c-7494-9d12-ed06387bf9b3", "reason": null, "created_at": "2026-09-13T03:24:58.096289+05:30", "updated_at": "2026-09-13T03:24:58.21524+05:30", "delivery_id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7", "invoice_line_id": "b979bb9b-fddf-7563-a9df-427063cbae05", "returned_qty_pcs": 0, "delivered_qty_pcs": 24, "returned_saleable": true}
+{"id": "01a0979a-7b4c-7495-a0ea-a817a97a2e5a", "reason": "damaged", "created_at": "2026-09-13T03:24:58.096289+05:30", "updated_at": "2026-09-13T03:24:58.215416+05:30", "delivery_id": "80252baf-d3f6-7f11-814a-6fc0cf0612c7", "invoice_line_id": "fd7a0d08-d50b-72b1-a0b2-fa6345935bac", "returned_qty_pcs": 24, "delivered_qty_pcs": 1, "returned_saleable": false}
+--- credit notes on INV/0836
+01a0979d-d46d-77bb-b004-eba8c91ca015|CN/9007|return_damaged|77200|2026-09-13 03:24:58.096289+05:30
+--- credit note lines
+{"id": "01a0979d-d46d-77bc-9dce-eb92203fe7bf", "gst_bps": 2800, "qty_pcs": 24, "saleable": false, "tax_paise": 22051, "created_at": "2026-09-13T03:24:58.096289+05:30", "rate_paise": 2297, "updated_at": "2026-09-13T03:24:58.307115+05:30", "taxable_paise": 55128, "credit_note_id": "01a0979d-d46d-77bb-b004-eba8c91ca015", "invoice_line_id": "fd7a0d08-d50b-72b1-a0b2-fa6345935bac", "line_total_paise": 77179}
+--- stock_ledger rows since T0 (location | reason | qty | ref | note | lot)
+Damaged / expiry bin|sale_return_damaged|24|credit_note|credit note CN/9007|cb5df43d-cc5e-738c-8590-4813f843e143
+--- Campa Cola 750 ml lot cb5df43d balances now
+Damaged / expiry bin|24
+Godown|5999
+Vehicle MH-05-AB-1234|48
+--- tenant-wide: delivery_lines since T0 with returned>0, reason damaged/expired, saleable true
+0
+--- stop 5 state
+partial|2026-09-13 03:24:58.26+05:30

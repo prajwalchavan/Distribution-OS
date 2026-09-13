@@ -1,0 +1,7 @@
+== DOS-021 / DOS-029b on iOS: Draft with 2 pc on Sunbake after the host race draft (39 pc), read 2026-09-13 08:15:10 IST
+req-1rt "url":"/credit-notes" "statusCode":400 "responseTime":66.40841700136662 
+-- live credit notes on INV/0634
+01a098a4-d562-70ad-9140-0f1e4060af89|draft|39|QA iOS DOS-021 race draft (host)|2026-09-13 08:12:14.511874+05:30
+2026-09-13T02:42:14.567Z POST http://127.0.0.1:3002/credit-notes -> 200 {"item":{"id":"01a098a4-d562-70ad-9140-0f1e4060af89","creditNoteNo":null,"seriesCode":"CN","fy":"2026-27","noteDate":"2026-09-13","invoiceId":"fe8797c2-ebae-7959-80f6-3a80a6514077","invoiceNo":"INV/0634","retailerId":"3835fbcd-33cb-7c4a-930c-b7e3a34e0dfd","reason":"return_saleable","state":"draft","deliveryId":null,"isInterState":false,"taxablePaise":29172,"cgstPaise":2625,"sgstPaise":2625,"igstPa
+01a098a4-d562-70ad-9140-0f1e4060af89|cancelled|39|QA iOS DOS-021 race draft (host)
+cancelled: QA iOS DOS-021 cleanup

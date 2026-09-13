@@ -1,0 +1,23 @@
+### DOS-060 + DOS-057 step 5 — RCPT-0701 by id (re-query; the earlier poll's T0 started 4 s after the receipt) 2026-09-13 01:30:11 IST
+--- receipt
+RCPT-0701 | 284300 | cash | collected | dda35990-f442-7931-8da4-5808f09a33b6 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 2026-09-13 01:25:12.320857+05:30 | tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf
+--- outbox render request
+receipt:01a09730-2e39-7179-a747-6ac2734d5218:a5:original | DocumentRenderRequested | 2026-09-13 01:25:12.320857+05:30 | 2026-09-13 01:25:22.29+05:30 | 0 | - | {"id": "01a09730-2e39-7179-a747-6ac2734d5218", "copy": "original", "kind": "receipt", "format": "a5", "tenantId": "01a0947d-7a79-75d2-bfff-97e499a58d49", "requestedBy": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63"}
+--- queued_at = receipt created_at? / publish lag
+t | 00:00:09.969143
+--- allocations
+ERROR:  relation "receipt_allocations" does not exist
+LINE 1: ....invoice_id), a.amount_paise, a.allocated_at from receipt_al...
+                                                             ^
+--- invoices of R-0043 now
+INV/0354 | partially_paid | 328200
+INV/0832 | issued | 284300
+--- the delivery collection row
+[allocations]
+{"id": "01a09730-2e62-75c6-82bd-ee980c72a189", "invoice_id": "9531c600-ab87-7fa0-9ce0-4a383ee4fcb7", "receipt_id": "01a09730-2e39-7179-a747-6ac2734d5218", "allocated_at": "2026-09-13T01:25:12.320857+05:30", "allocated_by": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "amount_paise": 284300, "write_off_id": null, "credit_note_id": null}
+[collections]
+{"id": "01a09730-1de6-70c7-8f13-1498595a4b67", "mode": "cash", "stop_id": "6c4c742c-5445-75ed-8418-049db39f5709", "trip_id": "dda35990-f442-7931-8da4-5808f09a33b6", "receipt_id": "01a09730-2e39-7179-a747-6ac2734d5218", "retailer_id": "ffa4c055-0e89-7dea-97f2-a24e6ac0fef5", "amount_paise": 284300, "collected_at": "2026-09-13T01:25:12.313+05:30", "collected_by": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63"}
+--- worker log
+[01:21:22.099] INFO (30166): document rendered
+[01:25:22.290] INFO (30166): document rendered
+[01:28:22.434] INFO (30166): document rendered

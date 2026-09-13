@@ -1,0 +1,7 @@
+== DOS-020 owner: after tapping the disabled Confirm order on iOS (SO-0914), read 2026-09-13 07:39:05 IST
+SO-0914|submitted|
+0
+bargain|pending|
+draft|submitted|submit
+-- owner-service.log requests after line 1146 (POST only)
+-- any /confirm call: 0

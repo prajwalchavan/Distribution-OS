@@ -1,0 +1,4 @@
+order|SO-0899|packed
+invoice|INV/9009|issued
+load_sheet 01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|draft|not approved
+negative balances|0|

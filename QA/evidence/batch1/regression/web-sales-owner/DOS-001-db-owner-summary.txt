@@ -1,0 +1,27 @@
+-- run at
+2026-09-13 02:06:24.095682+05:30
+== dos_qa: slug | as_of | has stray ageingB90Plus | has ageingB90plus | ageingB90plus | ageingB90Plus | live sum(bucket_90_plus_paise)
+kalyan-agencies|2026-09-13 02:00:35.623+05:30|f|t|2595350||2595350
+sai-distributors|2026-09-13 02:00:33.633+05:30|f|t|2460200||2460200
+tarsun|2026-09-13 02:00:25.682+05:30|f|t|2596200||2596200
+== dos_batch1_template: slug | as_of | has stray ageingB90Plus | has ageingB90plus | ageingB90plus | ageingB90Plus | live sum(bucket_90_plus_paise)
+kalyan-agencies|2026-09-12 18:00:00+05:30|t|f||2595350|2595350
+sai-distributors|2026-09-12 18:00:00+05:30|t|f||2460200|2460200
+tarsun|2026-09-12 18:00:00+05:30|t|f||3514400|3514400
+== dos_b1_e2e: slug | as_of | has stray ageingB90Plus | has ageingB90plus | ageingB90plus | ageingB90Plus | live sum(bucket_90_plus_paise)
+kalyan-agencies|2026-09-12 18:00:00+05:30|t|f||2595350|2595350
+sai-distributors|2026-09-12 18:00:00+05:30|t|f||2460200|2460200
+tarsun|2026-09-12 18:00:00+05:30|t|f||3514400|3514400
+== dos_qa tarsun six buckets (live)
+230343000|68668850|79901750|49299000|9020300|2596200
+== dos_qa pg-boss reporting rollup jobs (latest)
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.587526+05:30|2026-09-13 02:00:35.626862+05:30
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.586388+05:30|2026-09-13 02:00:33.635534+05:30
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.585109+05:30|2026-09-13 02:00:31.633841+05:30
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.583659+05:30|2026-09-13 02:00:29.635668+05:30
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.581493+05:30|2026-09-13 02:00:27.618432+05:30
+reporting.rollup.tenant|completed|2026-09-13 02:00:23.578917+05:30|2026-09-13 02:00:25.683897+05:30
+reporting.rollup.schedule|completed|2026-09-13 02:00:21.836249+05:30|2026-09-13 02:00:23.588704+05:30
+reporting.rollup.tenant|completed|2026-09-13 01:45:23.011878+05:30|2026-09-13 01:45:35.036947+05:30
+== seed log mtime (dos_qa last seeded)
+-rw-r--r--@ 1 prajwalchavan  staff  5651 Sep 12 12:51 /Users/prajwalchavan/.dos-qa-logs/logs/seed-dos_qa.log

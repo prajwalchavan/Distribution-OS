@@ -1,0 +1,50 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3004/sync/upload",
+    "body": {
+      "protocol": 1,
+      "deviceId": "0e64e3ab-a161-41cc-b615-ef4a6bbf5698",
+      "ops": [
+        {
+          "opId": "01a09723-e0b8-799c-9af7-e6b65b1be013",
+          "op": "PUT",
+          "table": "pick_lines",
+          "id": "01a094c0-82f0-725d-8e89-077b1818450f",
+          "baseUpdatedAt": "2026-09-12T09:26:57.676Z",
+          "clientTime": "2026-09-12T19:41:46.040Z",
+          "data": {
+            "picklist_id": "01a094be-7e33-7122-815d-cd9292e3685b",
+            "order_id": "ce2350c7-770c-78dd-901b-3206d37d6182",
+            "order_line_id": "199afd5f-2e00-7a28-9057-36dbdb6aaa53",
+            "variant_id": "b2794ad9-bf63-78c4-82aa-258e993940e7",
+            "line_no": 1,
+            "lot_id": "a8fe6da3-f2bb-7d64-8529-f0a06e43c6c0",
+            "requested_qty_pcs": 96,
+            "picked_qty_pcs": 96,
+            "free_qty_pcs": 0,
+            "case_size": 48,
+            "short_reason": null
+          }
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "response": {
+    "accepted": 0,
+    "replayed": 0,
+    "rejected": [
+      {
+        "opId": "01a09723-e0b8-799c-9af7-e6b65b1be013",
+        "table": "pick_lines",
+        "rowId": "01a094c0-82f0-725d-8e89-077b1818450f",
+        "code": "picklist_closed",
+        "messageHi": "पिकलिस्ट PICK-0079 अब picked है",
+        "messageEn": "Picklist PICK-0079 is picked; it is no longer being picked"
+      }
+    ],
+    "warnings": [],
+    "upgradeRequired": false
+  }
+}

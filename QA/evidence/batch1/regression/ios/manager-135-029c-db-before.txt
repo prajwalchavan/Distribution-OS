@@ -1,0 +1,7 @@
+== DOS-135 / DOS-029c baseline, read 2026-09-13 08:18:37 IST
+0400aea1-7e63-7119-af27-05db2a4307ad|brand_dms_invoice|needs_review||2026-09-12 14:12:17.672+05:30
+2254e884-ad8d-7c36-8fcc-8197395b329b|supplier_invoice|needs_review||2026-09-12 09:50:00+05:30
+-- review sessions on 2254e884
+89f90df9-389f-7dde-8618-dc7f3a072414|sunil.tarsun|open|2026-10-12 05:30:00+05:30|2026-09-12 09:50:00+05:30
+-- supplier_invoices created in the last hour: 0
+manager-service.log lines:     5792

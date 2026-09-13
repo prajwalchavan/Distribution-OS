@@ -1,0 +1,36 @@
+### REQUEST  2026-09-12T19:42:43.317Z
+POST http://127.0.0.1:3004/sync/upload
+Authorization: Bearer <accessToken of dinesh.patil>
+Content-Type: application/json
+
+{
+ "protocol": 1,
+ "deviceId": "3b942b2f-1e9f-455a-a0eb-e120c5e04784",
+ "ops": [
+  {
+   "opId": "01a09724-c070-7501-ab9b-2271867196e2",
+   "op": "PUT",
+   "table": "pick_lines",
+   "id": "01a09724-c056-7603-b404-7fff7ff94144",
+   "data": {
+    "picklist_id": "01a09724-c03e-7940-979d-0f197d433b4e",
+    "order_line_id": "01a09722-30ec-750f-b171-85bf8176314b",
+    "lot_id": "66b34c38-19ee-7e28-8c96-ad5364fc7b4f",
+    "picked_qty_pcs": 6
+   },
+   "clientTime": "2026-09-12T19:42:43.312Z"
+  }
+ ]
+}
+
+### RESPONSE
+HTTP/1.1 200 OK
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 457
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:42:43 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"accepted":0,"replayed":0,"rejected":[{"opId":"01a09724-c070-7501-ab9b-2271867196e2","table":"pick_lines","rowId":"01a09724-c056-7603-b404-7fff7ff94144","code":"picklist_not_started","messageHi":"पिकलिस्ट PICK-0081 अभी शुरू नहीं हुई; पहले पिकिंग शुरू करें","messageEn":"Picklist PICK-0081 has not been started; start it before picking"}],"warnings":[],"upgradeRequired":false}

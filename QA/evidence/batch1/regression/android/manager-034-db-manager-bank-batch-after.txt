@@ -1,0 +1,16 @@
+# RCPT-0690 after Bank this batch on Android as vikas (2026-09-13T00:16:38Z)
+> select id, receipt_no, mode, amount_paise, trip_id, status, deposit_ref, deposited_at from receipts where tenant_id=(select id from tenants where slug='tarsun') and receipt_no='RCPT-0690'
+f287d6a2-d215-7eb6-b955-d213d1c4de6e|RCPT-0690|cash|181800||deposited|DEP-QA-AND-034-M|2026-09-13 05:46:30.801+05:30
+deposit journal entries before: 95
+> select count(*) from journal_entries where ref_type='deposit'
+96
+> select je.id, je.ref_type, je.ref_id, jl.account_code, jl.debit_paise, jl.credit_paise from journal_entries je join journal_lines jl on jl.entry_id=je.id where je.ref_type='deposit' and je.created_at > now() - interval '5 minutes' order by je.created_at, jl.debit_paise desc
+ERROR:  column jl.account_code does not exist
+LINE 1: select je.id, je.ref_type, je.ref_id, jl.account_code, jl.de...
+                                              ^
+HINT:  Perhaps you meant to reference the column "jl.account_id".
+# deposit journal for RCPT-0690 (DEP-QA-AND-034-M) (2026-09-13T00:17:01Z)
+> journal lines of deposit entries in the last 10 minutes
+ERROR:  column jl.debit_paise does not exist
+LINE 1: select je.id, je.ref_type, je.ref_id, a.code, jl.debit_paise...
+                                                      ^

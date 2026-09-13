@@ -1,0 +1,5 @@
+-- after decide (SQL, read-only) 01:09:40
+order|SO-0890|confirmed|2026-09-13 01:09:40.69+05:30
+approval|01a09720-9453-7308-bf7a-88e083f2f56e|credit_limit|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|2026-09-13 01:09:40.683+05:30|QA security regression: approve credit gate for fixture C
+transitions|submit|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-13 01:08:09.87082+05:30
+transitions|confirm|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|2026-09-13 01:09:40.679388+05:30

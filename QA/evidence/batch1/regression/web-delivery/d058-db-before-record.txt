@@ -1,0 +1,4 @@
+### DOS-058 BEFORE web record (2026-09-13 01:12:55.587178+05:30) — Sunbake Butter Cookies 75 g variant 3db7acf2-cffb-7ad1-8e35-42fa3cd608b5
+--- stock_balances for the variant (with location name)
+--- credit notes on INV/0830
+0

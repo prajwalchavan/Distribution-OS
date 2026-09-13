@@ -1,0 +1,1 @@
+loadJSBundleFromAssets | ReactInstance.kt | access$loadJSBundleFromAssets | ReactInstance.kt:86 | loadScriptFromAssets | ReactInstance.kt:336 | loadScript | JSBundleLoader.kt:33 | loadJSBundle | ReactInstance.kt:315 | getOrCreateReactInstanceTask$lambda$45$lambda$41 | ReactHostImpl.kt:1072 | $r8$lam

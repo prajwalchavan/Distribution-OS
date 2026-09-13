@@ -1,0 +1,10 @@
+T0 2026-09-13 06:42:47 IST — before any iOS collection at Nakshatra Kirana
+== Nakshatra retailer id + outstanding summary
+a9c32f4a-c2cc-7b0e-a5f3-3734f37df1eb|R-0050|1631300|3|2026-09-13 02:55:47.831+05:30|475600
+== its 4 latest receipts
+RCPT-0703|cash|475600|collected|2026-09-13 02:55:47.831+05:30
+RCPT-0699|upi|475600|collected|2026-09-12 16:29:08.918+05:30
+RCPT-0594|cash|144600|collected|2026-09-04 16:30:00+05:30
+RCPT-0516|cash|514000|collected|2026-08-29 12:30:00+05:30
+== RCPT numbering max
+RCPT-VAN-0004

@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:09:40 IST
+POST http://127.0.0.1:3002/orders/01a09720-9277-7675-b2db-bd63401b0e59/confirm
+Authorization: Bearer <accessToken of vikas.kadam>
+Content-Type: application/json
+
+{"idempotencyKey":"sec-c02-01a09720-9277-7675-b2db-bd63401b0e59","id":"01a09720-9277-7675-b2db-bd63401b0e59"}
+
+### RESPONSE
+HTTP/1.1 409 Conflict
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 317
+Date: Sat, 12 Sep 2026 19:39:40 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"defined":false,"code":"CONFLICT","status":409,"message":"SO-0890 is waiting on 1 decision(s) (credit limit); approve or reject each in the approvals queue — the last approval confirms the order","data":{"code":"approval_required","approvals":[{"id":"01a09720-9453-7308-bf7a-88e083f2f56e","kind":"credit_limit"}]}}

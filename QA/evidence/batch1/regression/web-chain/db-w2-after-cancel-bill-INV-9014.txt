@@ -1,0 +1,34 @@
+               now                
+----------------------------------
+ 2026-09-13 03:35:15.345122+05:30
+(1 row)
+
+ invoice_no |   state   |         cancelled_at          |                         cancel_reason                         | total_paise 
+------------+-----------+-------------------------------+---------------------------------------------------------------+-------------
+ INV/9014   | cancelled | 2026-09-13 03:35:09.269+05:30 | Shop cancelled while it was being picked; bill not dispatched |      302900
+(1 row)
+
+ order_no | state  | cancelled_at | cancel_reason 
+----------+--------+--------------+---------------
+ SO-0909  | packed |              | 
+(1 row)
+
+ from_state | to_state  |     event     |           occurred_at            
+------------+-----------+---------------+----------------------------------
+ draft      | submitted | submit        | 2026-09-13 03:23:13.537498+05:30
+ submitted  | confirmed | confirm       | 2026-09-13 03:23:13.537498+05:30
+ confirmed  | picking   | start_picking | 2026-09-13 03:23:39.981867+05:30
+ picking    | packed    | pack          | 2026-09-13 03:27:55.92182+05:30
+(4 rows)
+
+   reason   |  name  | sum  | count 
+------------+--------+------+-------
+ adjustment | Godown |  168 |     5
+ sale       | Godown | -168 |     5
+(2 rows)
+
+ outstanding_paise | open_bills |           updated_at            
+-------------------+------------+---------------------------------
+          20670900 |          5 | 2026-09-13 03:35:09.29394+05:30
+(1 row)
+

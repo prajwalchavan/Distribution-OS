@@ -1,0 +1,4 @@
+PaymentIntentCreated|PAY-6a404dc1c6cb|3584300|["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e", "05a048e4-0561-737c-9ec3-4fbd14db6143", "b2868a89-7683-75ce-ba3a-b68adf32ddac", "3b2de6fb-b0c1-7185-9d31-334c75c71142", "4b373959-5a81-7121-8e39-448660e24717", "a924ae38-a82f-7ac8-8b3b-6ab11937e574"]
+PaymentIntentCreated|PAY-f97f2fe653a0|456100|["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e"]
+INV/0433|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=10119.00&tr=INV-0433&cu=INR
+INV/0753|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5472.00&tr=INV-0753&cu=INR

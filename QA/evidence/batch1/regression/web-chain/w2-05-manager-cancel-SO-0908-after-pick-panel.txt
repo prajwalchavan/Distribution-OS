@@ -1,0 +1,228 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+19
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+Submitted
+Confirmed
+✓ Being picked
+Packed
+Dispatched
+Cancelled
+Being picked
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Waiting on	Placed
+
+SO-0877
+	
+Bhosale Traders
+	
+Rahul Deshmukh
+	17,531.00	Being picked	
+—
+	
+12 Sep
+
+
+SO-0874
+	
+Pawar General Store
+	
+Rahul Deshmukh
+	7,690.00	Being picked	
+—
+	
+12 Sep
+
+
+SO-0872
+	
+Sahyadri Super Bazar
+	
+Amit Pawar
+	90,319.00	Being picked	
+—
+	
+12 Sep
+
+
+SO-0909
+	
+Sai Krupa Super Bazar
+	
+Rahul Deshmukh
+	3,029.00	Being picked	
+—
+	
+13 Sep
+
+
+SO-0908
+	
+Sai Krupa Super Bazar
+	
+Rahul Deshmukh
+	4,047.00	Being picked	
+—
+	
+13 Sep
+
+
+SO-0906
+	
+Ganpati General Stores
+	
+Rahul Deshmukh
+	3,530.00	Being picked	
+—
+	
+13 Sep
+
+
+SO-0905
+	
+Sai Baba Kirana
+	
+Rahul Deshmukh
+	3,749.00	Being picked	
+—
+	
+13 Sep
+
+
+SO-0904
+	
+Ganesh General Store
+	
+Rahul Deshmukh
+	2,205.00	Being picked	
+—
+	
+13 Sep
+
+
+SO-0884
+	
+Laxmi Narayan Stores
+	
+Rahul Deshmukh
+	303.00	Being picked	
+—
+	
+12 Sep
+
+
+SO-0881
+	
+Navjeevan Super Bazar
+	
+Rahul Deshmukh
+	1,270.00	Being picked	
+—
+	
+12 Sep
+
+10 rows			1,33,673.00			
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+SO-0898
+Asked rate
+₹20.14
+Approve
+Reject
+SO-0887
+Over credit limit
+₹854.00
+Approve
+Reject
+SO-0886
+Over credit limit
+₹10,119.00
+Approve
+Reject
+SO-0885
+Over credit limit
+₹5,855.00
+Approve
+Reject
+SO-0882
+Over credit limit
+₹2,336.00
+Approve
+Reject
+SO-0879
+Over credit limit
+₹32,030.00
+Approve
+Reject
+Shree Ganesh Kirana
+Asked rate
+₹13.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Order SO-0908
+Close
+Shop
+Sai Krupa Super Bazar
+Credit
+Owes ₹2,06,709.00 · limit ₹6,00,000.00 · Clear
+State
+Being picked
+Terms
+Credit
+Wanted by
+—
+Lines
+1 cs · 72 pc
+₹1,864.87
+1 cs · 72 pc
+₹2,182.62
+Subtotal
+₹3,430.08
+Discount
+₹0.00
+GST
+₹617.41
+Total
+₹4,047.00
+Held for this order
+5
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Cancel order
+2

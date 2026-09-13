@@ -1,0 +1,10 @@
+delivery-service log after the iOS Open tap at 06:47:05 (baseline 69 /storage GETs, 4 /files/read-url at 06:46:19) — read 06:47:31
+storage GETs now: 70
+files/read-url now: 4
+== last invoice PDF requests and their responses
+12989:{"level":30,"time":1789249461889,"pid":30165,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4s2","req":{"method":"GET","url":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca
+12991:{"level":30,"time":1789249476669,"pid":30165,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4s3","req":{"method":"GET","url":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca
+12999:{"level":30,"time":1789249535077,"pid":30165,"hostname":"prajwals-MacBook-Air.local","reqId":"req-4s7","req":{"method":"GET","url":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca
+17413:{"level":30,"time":1789262226183,"pid":30165,"hostname":"prajwals-MacBook-Air.local","reqId":"req-6hi","req":{"method":"GET","url":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca
+== response for "reqId":"req-6hi"
+{"level":30,"time":1789262226187,"pid":30165,"hostname":"prajwals-MacBook-Air.local","reqId":"req-6hi","res":{"statusCode":200},"responseTime":3.5011250004172325,"msg":"request completed"}

@@ -1,0 +1,95 @@
+{
+  "pending": 0,
+  "billUrl": "http://localhost:5178/bills/a924ae38-a82f-7ac8-8b3b-6ab11937e574",
+  "open": {
+    "label": "open",
+    "popups": [
+      {
+        "url": ":",
+        "openedAt": 1789243984474,
+        "responses": [],
+        "downloads": []
+      }
+    ],
+    "mainPageStorage": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789330342&signature=c17f848a43825e418d4651cb1e12bc3bffe831c6320c564aa2914364b1796185",
+        "status": 200,
+        "ct": "image/jpeg",
+        "type": "image"
+      },
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789330378&signature=9ca925d7f5beac7a6b983a0e9019354d7aad790c7ea357d95e3d7bd56238a64f",
+        "status": 200,
+        "ct": "image/jpeg",
+        "type": "image"
+      },
+      {
+        "url": "http://localhost:5178/storage/demo/pod/c68cd7c9-9b1b-7676-9167-1802417a12ed/a924ae38-a82f-7ac8-8b3b-6ab11937e574.jpg?expires=1789244881&signature=2401a7165544736c92c022e0ba5b9470da8590a3f715869d41f975",
+        "status": 200,
+        "ct": "text/html",
+        "type": "image"
+      },
+      {
+        "download": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244881&signature=e075db8e24890407ad6879387bda89913a95dd",
+        "name": "a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf"
+      }
+    ],
+    "appUrl": "http://localhost:5178/bills/a924ae38-a82f-7ac8-8b3b-6ab11937e574"
+  },
+  "print": {
+    "label": "print",
+    "popups": [
+      {
+        "url": ":",
+        "openedAt": 1789243998596,
+        "responses": [],
+        "downloads": []
+      }
+    ],
+    "mainPageStorage": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244881&signature=e075db8e24890407ad6879387bda89913a95dd",
+        "status": 200,
+        "ct": "application/pdf",
+        "type": "document"
+      },
+      {
+        "download": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244881&signature=e075db8e24890407ad6879387bda89913a95dd",
+        "name": "a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf"
+      },
+      {
+        "download": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244881&signature=e075db8e24890407ad6879387bda89913a95dd",
+        "name": "a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf"
+      }
+    ],
+    "appUrl": "http://localhost:5178/bills/a924ae38-a82f-7ac8-8b3b-6ab11937e574",
+    "iframes": []
+  },
+  "rcptPending": 0,
+  "rcptSheet": "Receipt RCPT-0687 | Close | ₹4,443.00 | Set against bills | ₹4,443.00 | Open the receipt",
+  "rcptOpen": {
+    "label": "receipt open",
+    "popups": [
+      {
+        "url": ":",
+        "openedAt": 1789244005718,
+        "responses": [],
+        "downloads": []
+      }
+    ],
+    "mainPageStorage": [
+      {
+        "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/branding/logo.jpg?expires=1789330400&signature=998399fbe3153362c1c5229b0038ed13998760c5675c32eb720f80d127a6fe70",
+        "status": 200,
+        "ct": "image/jpeg",
+        "type": "image"
+      },
+      {
+        "download": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/700d45c2-ada4-7f36-8075-b79b94cf2806.pdf?expires=1789244904&signature=92a77bcc949fc3291ffd1058de9b0cbd2a4d41",
+        "name": "700d45c2-ada4-7f36-8075-b79b94cf2806.pdf"
+      }
+    ],
+    "appUrl": "http://localhost:5178/receipts"
+  }
+}

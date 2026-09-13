@@ -1,0 +1,6 @@
+== DOS-041 M20 over-ask on iOS (manager build :5274), read 2026-09-13 08:06:49 IST
+req-1rh "url":"/warehouse/picklists/01a0989b-c9d4-7556-91eb-4c828d3cb7c1/pick" "statusCode":400 "responseTime":38.790292002260685 
+-- pick_lines of PICK-0092 after
+01a0989b-ca9d-730f-ad28-b13f0176638a|24|0||
+1
+PICK-0092|picking

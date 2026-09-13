@@ -1,0 +1,16 @@
+Read-only SELECTs, 2026-09-13 06:34:17 IST — order placed on iOS at 06:33:43 (T0 06:31:20)
+== sales_orders
+SO-0912|submitted|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|2873760|57475|140814|1|2957100|2026-09-13 06:33:45.077+05:30||2026-09-13 06:33:44.942458+05:30
+== sales_order_lines
+1|934dd63c-a112-7fb7-91a1-376a90bf5fcf|20|case|12|240|11974|11974|200|57475|2957099|[{"kind": "scheme", "ruleId": "6ac23a1a-ce35-76d2-a002-3a7888fc1c65", "version": 1, "rewardKind": "order_pct", "amountPaise": 57475}]
+== approvals
+credit_limit|pending|2026-09-13 06:33:45.059787+05:30
+== order_state_transitions
+draft|submitted|submit|2026-09-13 06:33:45.059787+05:30
+== API GET :3003/orders/01a09843-cca1-72f1-a378-153813bd9ff0 as rahul.deshmukh
+HTTP 200 {'orderNo': None, 'state': None, 'salespersonId': None, 'subtotalPaise': None, 'discountPaise': None, 'taxPaise': None, 'totalPaise': None}
+top keys ['item']
+{'orderNo': None, 'number': None, 'state': None, 'salespersonId': None, 'subtotalPaise': None, 'discountPaise': None, 'taxPaise': None, 'totalPaise': None}
+API item keys ['id', 'orderNo', 'retailerId', 'state', 'source', 'createdBy', 'salespersonId', 'pricingDateMode', 'paymentTerms', 'fulfilFromLocationId', 'externalRef', 'subtotalPaise', 'discountPaise', 'taxPaise', 'roundOffPaise', 'totalPaise', 'approvalFlags', 'expectedDeliveryDate', 'note', 'submittedAt', 'confirmedAt', 'cancelledAt', 'cancelReason', 'createdAt', 'lines', 'transitions', 'approvals']
+{'orderNo': 'SO-0912', 'state': 'submitted', 'salespersonId': '8760e17e-4830-7395-a946-1e02fffa1ad7', 'subtotalPaise': 2873760, 'discountPaise': 57475, 'taxPaise': 140814, 'totalPaise': 2957100}
+ line qtyPcs 240 discountPaise 57475 appliedRules [{'ruleId': '6ac23a1a-ce35-76d2-a002-3a7888fc1c65', 'version': 1, 'kind': 'scheme', 'rewardKind': 'order_pct', 'amountPaise': 57475}]

@@ -1,0 +1,66 @@
+270:/** Where the money lands. Cash taken on a trip sits in CASH_VAN until the trip settlement hands it over. */
+271:function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
+274:      return tripId ? 'CASH_VAN' : 'CASH'
+660:        { accountCode: receiptAccountCode(input.mode, tripId), amountPaise: input.amountPaise },
+858:          const code = receiptAccountCode(row.mode as ReceiptMode, row.tripId)
+1746:      : receiptAccountCode(original.mode as ReceiptMode, original.tripId)
+function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
+  switch (mode) {
+    case 'cash':
+      return tripId ? 'CASH_VAN' : 'CASH'
+    case 'upi':
+      return 'UPI'
+    case 'bank_transfer':
+      return 'BANK'
+    case 'cheque':
+      return 'CHEQUES'
+    case 'adjustment':
+      // A non-cash write-down of a bill (a rounding difference agreed at the counter). It is not a
+      // bad debt and it is not a credit note, so it goes to Round off, the same place s.170 residues go.
+          .where(and(eq(receipts.tenantId, ctx.tenantId), inArray(receipts.id, input.receiptIds)))
+        if (rows.length !== input.receiptIds.length) {
+          throw new ORPCError('NOT_FOUND', { message: 'one of the receipts does not exist' })
+        }
+        for (const row of rows) {
+          if (row.status !== 'collected') {
+            throw new ORPCError('CONFLICT', {
+              message: `receipt ${row.receiptNo ?? row.id} is ${row.status}, not collected`,
+            })
+          }
+          if (!isBankableReceiptMode(row.mode)) {
+            throw new ORPCError('CONFLICT', {
+              message: `receipt ${row.receiptNo ?? row.id} is ${row.mode}; only cash and cheques are banked`,
+            })
+          }
+        }
+        const depositedAt = new Date(input.depositedAt)
+        const bankId = (await accountIdsByCode(tx, [input.depositAccountCode])).get(
+          input.depositAccountCode,
+        )
+        const totalPaise = rows.reduce((s, r) => s + r.amountPaise, 0)
+        const bySource = new Map<string, number>()
+        for (const row of rows) {
+          const code = receiptAccountCode(row.mode as ReceiptMode, row.tripId)
+          bySource.set(code, (bySource.get(code) ?? 0) + row.amountPaise)
+        }
+        await tx
+          .update(receipts)
+          .set({
+            status: 'deposited',
+            depositedAt,
+            depositRef: input.depositRef ?? null,
+            depositAccountId: bankId ?? null,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(receipts.tenantId, ctx.tenantId), inArray(receipts.id, input.receiptIds)))
+        const posted = await postJournalEntry(tx, {
+          entryDate: businessDate(depositedAt).date,
+          refType: 'deposit',
+          refId: input.id,
+          narration: input.depositRef ?? `deposit ${input.id}`,
+../delivery/collections.service.ts:70: * ONE balanced journal entry — cash on a trip lands in CASH_VAN until the settlement hands it over,
+../delivery/delivery.spec.ts:1116:    // the book: one entry, balanced, cash in CASH_VAN until the settlement
+../delivery/delivery.spec.ts:1125:    expect(Number(lines.find((l) => l.code === 'CASH_VAN')?.amount_paise)).toBe(billA1.totalPaise)
+../delivery/delivery.spec.ts:1554:    expect(Number(lines.find((l) => l.code === 'CASH_VAN')?.amount_paise)).toBe(-cashCollected)
+../delivery/settlement.service.ts:83: *                   · Cr CASH_VAN (cash collected), through `ReceivablesService.postEntry`, balanced
+../delivery/settlement.service.ts:236:            accountCode: 'CASH_VAN',

@@ -1,0 +1,15 @@
+-- (b) messages queued to the shops for SO-0889 (cancelled by warehouse) and SO-0891 (cancelled by delivery). SQL read-only 2026-09-13 01:15:59 IST
+message|order_needs_approval|push|f95d4654-5c7a-7eb6-9d90-e54d4ea81461|sent|order|01a09720-9222-79e0-84df-d32e045e090a|2026-09-13 01:08:21.61853+05:30
+message|order_needs_approval|push|e37f49f9-f1fe-77bf-b138-1410144cf66d|sent|order|01a09720-9222-79e0-84df-d32e045e090a|2026-09-13 01:08:21.61853+05:30
+message|order_confirmed|whatsapp|+919820021437|sent|order|01a09720-9222-79e0-84df-d32e045e090a|2026-09-13 01:08:21.62826+05:30
+message|order_needs_approval|push|f95d4654-5c7a-7eb6-9d90-e54d4ea81461|sent|order|01a09722-307c-780b-904e-906efd15dc0a|2026-09-13 01:10:21.579737+05:30
+message|order_needs_approval|push|e37f49f9-f1fe-77bf-b138-1410144cf66d|sent|order|01a09722-307c-780b-904e-906efd15dc0a|2026-09-13 01:10:21.579737+05:30
+message|order_confirmed|sms|+918655015314|sent|order|01a09722-307c-780b-904e-906efd15dc0a|2026-09-13 01:10:21.593932+05:30
+message|order_cancelled|whatsapp|+919820021437|sent|order|01a09720-9222-79e0-84df-d32e045e090a|2026-09-13 01:10:21.621437+05:30
+message|order_cancelled|sms|+918655015314|sent|order|01a09722-307c-780b-904e-906efd15dc0a|2026-09-13 01:10:21.629826+05:30
+reservation|01a09720-9222-79e0-84df-d32e045e090a|voided|6|2026-09-13 01:09:55.87+05:30
+reservation|01a09722-307c-780b-904e-906efd15dc0a|voided|5|2026-09-13 01:09:55.925+05:30
+reservation|01a09722-307c-780b-904e-906efd15dc0a|voided|1|2026-09-13 01:09:55.925+05:30
+reservation C|pending|6|2026-09-13 01:09:40.679388+05:30
+reservation X|pending|3|2026-09-13 01:08:09.683434+05:30
+reservation X|pending|3|2026-09-13 01:08:09.683434+05:30

@@ -1,0 +1,33 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+Anand Bhavan Provision
+Take money
+Owes ₹35,548.00
+Bills on this stop
+INV/0832
+11 Sep 2026
+₹2,843.00
+How it was paid
+Cash
+UPI
+Cheque
+Amount taken
+Owed on the bills here
+₹2,843.00
+₹
+Your receipt book number
+The number you wrote in the paper book, so a printed receipt is never re-numbered
+Owed on the bills here
+₹2,843.00
+Record the payment

@@ -1,0 +1,38 @@
+# manager-service (:3002) write requests during the Android manager walk (from 04:55:00 IST, the first device request), from ~/.dos-qa-logs/logs/manager-service.log (IST, method path status ms)
+# Not device requests: POST /credit-notes 05:41:12 (39-pc race draft) and the /cancel calls at 05:43-05:44 were made by QA scripts on the host as vikas.kadam.
+# The 400 cancel at 05:43:32 is a QA script bug (two ids joined into one path), re-done correctly at 05:44:49.
+# Three docint requests at 04:53:27-04:53:40 IST (review 409 x2, rematch 200) predate this walk and were made by another walker; they are excluded.
+2026-09-13T05:02:02+05:30  POST /approvals/01a097ef-99a2-7050-a2aa-86189e9e4d4d/decide  200  218ms
+2026-09-13T05:03:40+05:30  POST /approvals/01a097ef-99a2-704f-a19f-d16ef80325db/decide  200  299ms
+2026-09-13T05:06:25+05:30  POST /warehouse/picklists  200  152ms
+2026-09-13T05:08:25+05:30  POST /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e/start  200  188ms
+2026-09-13T05:10:44+05:30  POST /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e/pick  400  61ms
+2026-09-13T05:13:25+05:30  POST /warehouse/picklists  409  33ms
+2026-09-13T05:18:59+05:30  POST /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b/review  409  100ms
+2026-09-13T05:20:19+05:30  POST /docint/documents/0400aea1-7e63-7119-af27-05db2a4307ad/approve  501  86ms
+2026-09-13T05:22:33+05:30  POST /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b/review  409  95ms
+2026-09-13T05:22:41+05:30  POST /docint/extractions/32b0dd16-483a-79be-a2b3-b242b6cd71f6/rematch  200  147ms
+2026-09-13T05:32:50+05:30  POST /warehouse/picklists  409  151ms
+2026-09-13T05:41:12+05:30  POST /credit-notes  200  73ms
+2026-09-13T05:41:15+05:30  POST /credit-notes  400  38ms
+2026-09-13T05:42:50+05:30  POST /credit-notes  200  121ms
+2026-09-13T05:43:32+05:30  POST /credit-notes/01a0981a-8e6f-725c-8f05-2cdec78e45f401a0981c-0cb6-769f-8d14-6d36d2324233/cancel  400  8ms
+2026-09-13T05:44:49+05:30  POST /credit-notes/01a0981a-8e6f-725c-8f05-2cdec78e45f4/cancel  200  48ms
+2026-09-13T05:44:49+05:30  POST /credit-notes/01a0981c-0cb6-769f-8d14-6d36d2324233/cancel  200  10ms
+2026-09-13T05:46:31+05:30  POST /receipts/deposit  200  141ms
+2026-09-13T05:48:26+05:30  POST /receipts/deposit  200  189ms
+
+# key reads opened by the device
+2026-09-13T04:55:22+05:30  GET /orders/01a097ef-989c-74e0-a1b2-41ed87f44c10  200  61ms
+2026-09-13T05:02:52+05:30  GET /orders/01a097ef-989c-74e0-a1b2-41ed87f44c10  200  76ms
+2026-09-13T05:03:41+05:30  GET /orders/01a097ef-989c-74e0-a1b2-41ed87f44c10  200  121ms
+2026-09-13T05:07:17+05:30  GET /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e  200  93ms
+2026-09-13T05:08:26+05:30  GET /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e  200  49ms
+2026-09-13T05:10:00+05:30  GET /warehouse/picklists/01a097f8-e09f-7377-9869-6da81af8843e  200  54ms
+2026-09-13T05:15:18+05:30  GET /warehouse/load-sheets?status=draft&limit=100  200  36ms
+2026-09-13T05:15:18+05:30  GET /warehouse/load-sheets?limit=100  200  48ms
+2026-09-13T05:15:57+05:30  GET /warehouse/load-sheets/01a0976e-bbaf-7dbe-9bb3-f6ed587bd574  200  183ms
+2026-09-13T05:18:06+05:30  GET /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b  200  116ms
+2026-09-13T05:19:39+05:30  GET /docint/documents/0400aea1-7e63-7119-af27-05db2a4307ad  200  59ms
+2026-09-13T05:21:45+05:30  GET /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b  200  37ms
+2026-09-13T05:22:42+05:30  GET /docint/documents/2254e884-ad8d-7c36-8fcc-8197395b329b  200  48ms

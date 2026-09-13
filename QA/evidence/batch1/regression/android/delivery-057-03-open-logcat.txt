@@ -1,0 +1,2 @@
+09-13 03:14:22.378 13566 13596 I APSResolverComparator: handleSortedAppTargets, sortedAppTargets #0: ComponentInfo{com.google.android.gms/com.google.android.gms.nearby.sharing.send.SendActivity}
+09-13 03:14:22.422 13566 13566 I ResolverListAdapter: Add DisplayResolveInfo component: ComponentInfo{com.google.android.gms/com.google.android.gms.nearby.sharing.send.SendActivity}, intent component: ComponentInfo{com.google.android.gms/com.google.android.gms.nearby.sharing.send.SendActivity}

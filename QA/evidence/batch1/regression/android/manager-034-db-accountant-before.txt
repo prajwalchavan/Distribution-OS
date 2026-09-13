@@ -1,0 +1,9 @@
+# accountant targets before (Android) (2026-09-13T00:20:40Z)
+balance tables: 
+> select r.id, r.receipt_no, r.mode, r.amount_paise, r.trip_id, r.status, r.bank_name, r.deposit_ref, r.bounced_at, re.name, re.id from receipts r join retailers re on re.id=r.retailer_id where r.tenant_id=(select id from tenants where slug='tarsun') and r.receipt_no in ('RCPT-0676','RCPT-0689') order by r.receipt_no
+ab309aeb-5f40-7bc0-a9c3-e558891f5157|RCPT-0676|cheque|1329900||collected|Bank of Maharashtra|||Prerna Super Market|8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8
+97b22d6a-d3ac-7e5f-ab64-9cde9a1a412c|RCPT-0689|cash|528100||collected||||Deshmukh Kirana|4d9bdf95-46d1-707f-ab62-cb1b205a4433
+> select count(*) from receipts where tenant_id=(select id from tenants where slug='tarsun') and receipt_no in ('RCPT-0676','RCPT-0689')
+2
+> select count(*) from receipts where tenant_id=(select id from tenants where slug='tarsun') and reverses_receipt_id is not null
+5

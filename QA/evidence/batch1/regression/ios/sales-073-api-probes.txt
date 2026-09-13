@@ -1,0 +1,11 @@
+Probes as rahul.deshmukh (token from POST :3000/auth/login) at 2026-09-13 06:26:49 IST
+SO-0910 (amit.pawar, confirmed) id=01a097dc-4e58-792e-9a5e-c4b5965a4b45
+== GET :3003/orders/01a097dc-4e58-792e-9a5e-c4b5965a4b45
+{"defined":false,"code":"NOT_FOUND","status":404,"message":"order 01a097dc-4e58-792e-9a5e-c4b5965a4b45 not found"}
+HTTP 404
+== GET :3003/orders?limit=50
+HTTP 200
+items 50 salespersonIds {'8760e17e-4830-7395-a946-1e02fffa1ad7': 50} orderNos ['SO-0467', 'SO-0185', 'SO-0286', 'SO-0497', 'SO-0089', 'SO-0049', 'SO-0441', 'SO-0689', 'SO-0210', 'SO-0517', 'SO-0594', 'SO-0130', 'SO-0129', 'SO-0551', 'SO-0331', 'SO-0878', 'SO-0688', 'SO-0700', 'SO-0440', 'SO-0389', 'SO-0388', 'SO-0540', 'SO-0183', 'SO-0645', 'SO-0182', 'SO-0308', 'SO-0662', 'SO-0439', 'SO-0801', 'SO-0800', 'SO-0754', 'SO-0799', 'SO-0238', 'SO-0844', 'SO-0843', 'SO-0048', 'SO-0715', 'SO-0347', 'SO-0604', 'SO-0298', 'SO-0593', 'SO-0752', 'SO-0058', 'SO-0833', 'SO-0626', 'SO-0669', 'SO-0142', 'SO-0714', 'SO-0207', 'SO-0516'] nextCursor True
+== GET :3003/orders?salespersonId=efde1e76-9785-7827-aff2-6f56ecd33588&limit=50
+HTTP 200
+items 50 salespersonIds {'8760e17e-4830-7395-a946-1e02fffa1ad7': 50} orderNos ['SO-0467', 'SO-0185', 'SO-0286', 'SO-0497', 'SO-0089', 'SO-0049', 'SO-0441', 'SO-0689', 'SO-0210', 'SO-0517', 'SO-0594', 'SO-0130', 'SO-0129', 'SO-0551', 'SO-0331', 'SO-0878', 'SO-0688', 'SO-0700', 'SO-0440', 'SO-0389', 'SO-0388', 'SO-0540', 'SO-0183', 'SO-0645', 'SO-0182', 'SO-0308', 'SO-0662', 'SO-0439', 'SO-0801', 'SO-0800', 'SO-0754', 'SO-0799', 'SO-0238', 'SO-0844', 'SO-0843', 'SO-0048', 'SO-0715', 'SO-0347', 'SO-0604', 'SO-0298', 'SO-0593', 'SO-0752', 'SO-0058', 'SO-0833', 'SO-0626', 'SO-0669', 'SO-0142', 'SO-0714', 'SO-0207', 'SO-0516'] nextCursor True

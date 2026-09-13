@@ -1,0 +1,8 @@
+PICK-0089 at 15 of 16 (only SC20260716 unrecorded, on the line already shorted):
+PICK-0089|picking|NULL
+15|16|333
+1|SC20260604|1|1|-|2026-09-13 04:22:48.838+05:30
+1|SC20260618|7|5|Damaged carton|2026-09-13 04:00:33.899+05:30
+1|SC20260702|2|2|-|2026-09-13 04:20:43.576+05:30
+1|SC20260716|2|0|-|NULL
+sync_ops not ok in last 30 min:

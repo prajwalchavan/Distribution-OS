@@ -1,0 +1,5 @@
+-- (b) supplement: draft E created by rahul, re-lined by warehouse, submitted by delivery. SQL read-only 2026-09-13 01:14:26 IST
+order|SO-0893|confirmed|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|3300|2026-09-13 01:14:26.373555+05:30
+line|01a09726-51f4-7f25-9a11-03def2ffef86|2|2
+transition|submit|draft|submitted|7b2db500-02d5-7aa7-a1dc-005a3e89ff63|2026-09-13 01:14:26.314009+05:30
+transition|confirm|submitted|confirmed|7b2db500-02d5-7aa7-a1dc-005a3e89ff63|2026-09-13 01:14:26.314009+05:30

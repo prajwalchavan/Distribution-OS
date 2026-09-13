@@ -1,0 +1,38 @@
+[
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"OY7VBCTQfq2XaCvJEtOz9JsZA2UQ98PhnHPH2teuGrU\",\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoid2FyZWhvdXNlIiwic2lkIjoiMDFhMDk3OGUtMDNiYS03MTExLWEwMTMtMzU2MjI4ZTUyMzM2IiwiZGlkIjoiMDFhMDk3OGUtMDMxNC03MDYwLTgzYWItYTA5NDU0ZDgzZWFkIiwic3ViIjoiNWI2ZmJlODctY2I3MC03MTk1LThkZTEtYTRmNTA0NmMzNjc1IiwiaXNzIjoiZG9zLWF1dGgiLCJhdWQiOiJkb3MiLCJpYXQiOjE3ODkyNTAwMDEsImV4cCI6MTc4OTI1MDkwMSwianRpIjoiMDFhMDk3OWMtNWJjYS03MzFhLWFkOWMtYzhjMGUzODUyNmQ1In0.NgZUH8q6oHQySmFNPdn6PxjrqmHGJsHb7L9SlM3mohFoLTBZEzLZn3xW-vTKeR7XAMWiHXWZGsY6ioUATokSBg\",\"tokenType\":\"Bearer\",\"accessExpiresIn\":900,\"refreshToken\":\"HNEdswyUyQOlAbN2_UXZHlQW4JKeMAzUq5EDHLL-k6A\",\"refreshExpiresAt\":\"2026-10-12T21:53:21.860Z\",\"user\":{\"id\":\"5b6fbe87-cb70-7195-8de1-a4f5046c3675\",\"username\":\"dinesh.patil\",\"name\":\"Dinesh Patil\",\"locale\":\"mr-IN\",\"mustChang"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists",
+  "status": 200,
+  "req": "{\"id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"idempotencyKey\":\"01a0979c-5bd2-772e-8ef8-2bbf6148525b\",\"orderIds\":[\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\"]}",
+  "res": "{\"item\":{\"id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"picklistNo\":\"PICK-0088\",\"status\":\"open\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":1,\"lineCount\":2,\"requestedQtyPcs\":168,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":null,\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:53:29.877Z\",\"orders\":[{\"orderId\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"orderNo\":\"SO-0909\",\"retailerId\":\"b5dbcdb8-401a-7a7d-9626-37ad239fd91a\",\"retailerName\":\"Sai Krupa Super Bazar\",\"state\":\"confirmed\",\"lineCount\":2}],\"lines\":[{\"id\":\"01a0979c-7b35-71f2-b5b7-1d4c478815cf\",\"orderId\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"orderLineId\":\"01a0979c-2d3d-71de-a409-3c32ea2244b9\",\"lineNo\":1,\"variantId\":\"d6662af9-0567-763a-86c1-7ac525a9a449\",\"variantName\":\"Sunbake Salted Cracker 60 g\",\"productName\":\"Sunbak"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists/01a0979c-7afb-763c-a19f-617ee1452f74/start",
+  "status": 200,
+  "req": "{\"idempotencyKey\":\"01a0979c-7b5a-77d9-9019-f49b525ae301\"}",
+  "res": "{\"item\":{\"id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"picklistNo\":\"PICK-0088\",\"status\":\"picking\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":1,\"lineCount\":2,\"requestedQtyPcs\":168,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":\"2026-09-12T21:53:40.026Z\",\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:53:29.877Z\",\"orders\":[{\"orderId\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"orderNo\":\"SO-0909\",\"retailerId\":\"b5dbcdb8-401a-7a7d-9626-37ad239fd91a\",\"retailerName\":\"Sai Krupa Super Bazar\",\"state\":\"picking\",\"lineCount\":2}],\"lines\":[{\"id\":\"01a0979c-7b35-71f2-b5b7-1d4c478815cf\",\"orderId\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"orderLineId\":\"01a0979c-2d3d-71de-a409-3c32ea2244b9\",\"lineNo\":1,\"variantId\":\"d6662af9-0567-763a-86c1-7ac525a9a449\",\"variantName\":\"Sunbake Salted Cracker 60 g"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979c-b649-7276-8800-5547401b6c13\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a0979c-7b35-71f2-b5b7-1d4c478815cf\",\"data\":{\"picklist_id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"order_id\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"order_line_id\":\"01a0979c-2d3d-71de-a409-3c32ea2244b9\",\"variant_id\":\"d6662af9-0567-763a-86c1-7ac525a9a449\",\"line_no\":1,\"lot_id\":\"3a348440-371e-7e0f-b6f9-3f1a89871f7c\",\"requested_qty_pcs\":12,\"picked_qty_pcs\":12,\"free_qty_pcs\":0,\"case_size\":96,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:53:29.917Z\",\"clientTime\":\"2026-09-12T21:53:45.033Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979c-bc6a-73ba-b915-a994a0a5a377\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a0979c-7b35-71f3-974c-388d93e8528d\",\"data\":{\"picklist_id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"order_id\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"order_line_id\":\"01a0979c-2d3d-71de-a409-3c32ea2244b9\",\"variant_id\":\"d6662af9-0567-763a-86c1-7ac525a9a449\",\"line_no\":1,\"lot_id\":\"3c71e3fb-d838-73d1-901e-ed70e2b55f78\",\"requested_qty_pcs\":24,\"picked_qty_pcs\":24,\"free_qty_pcs\":0,\"case_size\":96,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:53:29.920Z\",\"clientTime\":\"2026-09-12T21:53:46.602Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ },
+ {
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "req": "{\"protocol\":1,\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\",\"ops\":[{\"opId\":\"01a0979c-c288-72c9-89c2-6d218a98d7b2\",\"op\":\"PUT\",\"table\":\"pick_lines\",\"id\":\"01a0979c-7b35-71f4-a047-ccdd005b7228\",\"data\":{\"picklist_id\":\"01a0979c-7afb-763c-a19f-617ee1452f74\",\"order_id\":\"01a0979b-f6bd-77a4-81c9-e0aff1a4d12f\",\"order_line_id\":\"01a0979c-2d3d-71de-a409-3c32ea2244b9\",\"variant_id\":\"d6662af9-0567-763a-86c1-7ac525a9a449\",\"line_no\":1,\"lot_id\":\"c3f317bd-9370-7a73-a74f-9ff8d46da39f\",\"requested_qty_pcs\":60,\"picked_qty_pcs\":60,\"free_qty_pcs\":0,\"case_size\":96,\"short_reason\":null},\"baseUpdatedAt\":\"2026-09-12T21:53:29.921Z\",\"clientTime\":\"2026-09-12T21:53:48.168Z\"}]}",
+  "res": "{\"accepted\":1,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+ }
+]

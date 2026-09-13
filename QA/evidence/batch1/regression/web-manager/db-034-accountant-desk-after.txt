@@ -1,0 +1,4 @@
+receipt|RCPT-0660|cheque|bounced|- | dep - | bounced 2026-09-13 02:43:24.865+05:30 QA regression DOS-034: bank returned the cheque, insufficient funds
+receipt|RCPT-0693|cash|deposited|2026-09-13 02:43:32.681+05:30 | dep DEP-QA-034-ACC | bounced - -
+journal receipt_reversal|01a09777-c8e0-769d-9757-c70c24c59219|QA regression DOS-034: bank returned the cheque, insufficient funds | 2026-09-13 02:43:24.907666+05:30|AR 803800, CHEQUES -803800
+journal deposit|01a09777-e789-7700-9229-a308f665aed0|DEP-QA-034-ACC | 2026-09-13 02:43:32.77031+05:30|BANK 551100, CASH -551100

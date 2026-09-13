@@ -1,0 +1,47 @@
+{
+  "url": "http://127.0.0.1:3004/sync/upload",
+  "status": 200,
+  "request": {
+    "protocol": 1,
+    "deviceId": "01a0971d-2fc6-768b-9a9c-62692c1cd8e8",
+    "ops": [
+      {
+        "opId": "01a0972d-1bf7-756d-a5df-17c2da361cdb",
+        "op": "PUT",
+        "table": "pick_lines",
+        "id": "01a0972c-2d72-7223-b7c6-e0a82e74bfd3",
+        "data": {
+          "picklist_id": "01a0972c-2d49-7417-9738-66edc95f2f21",
+          "order_id": "01a09591-43c1-7342-96d1-d4508d8e749e",
+          "order_line_id": "01a09591-4f57-757e-9113-1d06b63a003a",
+          "variant_id": "40163e3b-6b81-78a0-bb58-369c22235acc",
+          "line_no": 1,
+          "lot_id": "eb47d288-e1cf-7010-ad42-891c7b456585",
+          "requested_qty_pcs": 15,
+          "picked_qty_pcs": 15,
+          "free_qty_pcs": 0,
+          "case_size": 72,
+          "short_reason": null
+        },
+        "baseUpdatedAt": "2026-09-12T19:50:49.978Z",
+        "clientTime": "2026-09-12T19:51:51.031Z"
+      }
+    ]
+  },
+  "response": {
+    "accepted": 0,
+    "replayed": 0,
+    "rejected": [
+      {
+        "opId": "01a0972d-1bf7-756d-a5df-17c2da361cdb",
+        "table": "pick_lines",
+        "rowId": "01a0972c-2d72-7223-b7c6-e0a82e74bfd3",
+        "code": "stale",
+        "messageHi": "यह रिकॉर्ड सर्वर पर बदल चुका है; दोबारा खोलें",
+        "messageEn": "This pick lines changed on the server after your copy; open it again"
+      }
+    ],
+    "warnings": [],
+    "upgradeRequired": false
+  }
+}

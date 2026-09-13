@@ -1,0 +1,20 @@
+               now                
+----------------------------------
+ 2026-09-13 03:18:43.881558+05:30
+(1 row)
+
+                  id                  |   kind    |         name         
+--------------------------------------+-----------+----------------------
+ 01a0947d-7a96-723f-952d-338dd284a1b4 | warehouse | Godown
+ 01a0947d-7a97-7466-8ce4-06501d6672dd | damaged   | Damaged / expiry bin
+(2 rows)
+
+ order_no |   state   | rstate  | sum 
+----------+-----------+---------+-----
+ SO-0904  | confirmed | pending |  72
+ SO-0905  | confirmed | pending | 144
+ SO-0906  | confirmed | pending | 144
+ SO-0907  | confirmed | pending | 144
+ SO-0908  | confirmed | pending | 144
+(5 rows)
+

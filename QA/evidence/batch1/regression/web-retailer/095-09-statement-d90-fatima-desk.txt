@@ -1,0 +1,387 @@
+Tarsun Enterprise
+retailer
+▾
+SHOP
+Home
+Place order
+My orders
+Offers
+MONEY
+Money due
+My bills
+Receipts
+Statement
+Returns
+YOU
+Messages
+1
+My shop
+My account
+Updated just now
+FS
+Fatima Shaikh
+retailer
+Tarsun Enterprise
+Your statement
+Money due
+My bills
+Receipts
+Statement
+Last 30 days
+Last 90 days
+This year
+Opening balance
+₹0.00
+EVERY ENTRY
+16 Jun 2026 — 13 Sep 2026
+INV/0067
+Bill · 22 Jun 2026
+Added
+₹63,094.00
+Balance
+₹63,094.00
+CN/0006
+Credit note · 25 Jun 2026
+Taken off
+₹93.00
+Balance
+₹63,001.00
+INV/0094
+Bill · 25 Jun 2026
+Added
+₹75,566.00
+Balance
+₹1,38,567.00
+INV/0133
+Bill · 29 Jun 2026
+Added
+₹74,155.00
+Balance
+₹2,12,722.00
+INV/0178
+Bill · 4 Jul 2026
+Added
+₹86,043.00
+Balance
+₹2,98,765.00
+INV/0197
+Bill · 6 Jul 2026
+Added
+₹59,141.00
+Balance
+₹3,57,906.00
+INV/0218
+Bill · 8 Jul 2026
+Added
+₹87,837.00
+Balance
+₹4,45,743.00
+INV/0233
+Bill · 10 Jul 2026
+Added
+₹75,967.00
+Balance
+₹5,21,710.00
+INV/0278
+Bill · 14 Jul 2026
+Added
+₹54,810.00
+Balance
+₹5,76,520.00
+INV/0307
+Bill · 17 Jul 2026
+Added
+₹49,100.00
+Balance
+₹6,25,620.00
+CN/0018
+Credit note · 20 Jul 2026
+Taken off
+₹304.00
+Balance
+₹6,25,316.00
+INV/0334
+Bill · 20 Jul 2026
+Added
+₹73,426.00
+Balance
+₹6,98,742.00
+INV/0364
+Bill · 22 Jul 2026
+Added
+₹47,755.00
+Balance
+₹7,46,497.00
+INV/0366
+Bill · 23 Jul 2026
+Added
+₹45,511.00
+Balance
+₹7,92,008.00
+INV/0400
+Bill · 27 Jul 2026
+Added
+₹53,723.00
+Balance
+₹8,45,731.00
+INV/0438
+Bill · 31 Jul 2026
+Added
+₹98,008.00
+Balance
+₹9,43,739.00
+RCPT-0219
+Payment · 31 Jul 2026
+Taken off
+₹75,473.00
+Balance
+₹8,68,266.00
+RCPT-0225
+Payment · 1 Aug 2026
+Taken off
+₹74,155.00
+Balance
+₹7,94,111.00
+INV/0465
+Bill · 3 Aug 2026
+Added
+₹53,750.00
+Balance
+₹8,47,861.00
+INV/0494
+Bill · 6 Aug 2026
+Added
+₹36,746.00
+Balance
+₹8,84,607.00
+INV/0527
+Bill · 10 Aug 2026
+Added
+₹95,410.00
+Balance
+₹9,80,017.00
+RCPT-0313
+Payment · 10 Aug 2026
+Taken off
+₹49,100.00
+Balance
+₹9,30,917.00
+RCPT-0341
+Payment · 12 Aug 2026
+Taken off
+₹87,837.00
+Balance
+₹8,43,080.00
+INV/0553
+Bill · 13 Aug 2026
+Added
+₹95,424.00
+Balance
+₹9,38,504.00
+CN/0061
+Credit note · 14 Aug 2026
+Taken off
+₹131.00
+Balance
+₹9,38,373.00
+INV/0581
+Bill · 15 Aug 2026
+Added
+₹41,752.00
+Balance
+₹9,80,125.00
+INV/0592
+Bill · 17 Aug 2026
+Added
+₹61,501.00
+Balance
+₹10,41,626.00
+RCPT-0409
+Payment · 19 Aug 2026
+Taken off
+₹39,388.00
+Balance
+₹10,02,238.00
+INV/0621
+Bill · 20 Aug 2026
+Added
+₹1,01,179.00
+Balance
+₹11,03,417.00
+RCPT-0418
+Payment · 20 Aug 2026
+Taken off
+₹75,967.00
+Balance
+₹10,27,450.00
+INV/0640
+Bill · 21 Aug 2026
+Added
+₹72,522.00
+Balance
+₹10,99,972.00
+RCPT-0434
+Payment · 21 Aug 2026
+Taken off
+₹30,041.00
+Balance
+₹10,69,931.00
+INV/0656
+Bill · 24 Aug 2026
+Added
+₹75,031.00
+Balance
+₹11,44,962.00
+INV/0672
+Bill · 26 Aug 2026
+Added
+₹87,808.00
+Balance
+₹12,32,770.00
+RCPT-0478
+Payment · 26 Aug 2026
+Taken off
+₹63,094.00
+Balance
+₹11,69,676.00
+RCPT-0490
+Payment · 27 Aug 2026
+Taken off
+₹25,055.00
+Balance
+₹11,44,621.00
+RCPT-0501
+Payment · 28 Aug 2026
+Taken off
+₹24,769.00
+Balance
+₹11,19,852.00
+INV/0706
+Bill · 28 Aug 2026
+Added
+₹34,947.00
+Balance
+₹11,54,799.00
+RCPT-0544
+Payment · 31 Aug 2026
+Taken off
+₹73,122.00
+Balance
+₹10,81,677.00
+INV/0731
+Bill · 1 Sep 2026
+Added
+₹91,331.00
+Balance
+₹11,73,008.00
+RCPT-0551
+Payment · 1 Sep 2026
+Taken off
+₹72,522.00
+Balance
+₹11,00,486.00
+RCPT-0580
+Payment · 3 Sep 2026
+Taken off
+₹24,880.00
+Balance
+₹10,75,606.00
+RCPT-0583
+Payment · 4 Sep 2026
+Taken off
+₹91,331.00
+Balance
+₹9,84,275.00
+INV/0774
+Bill · 5 Sep 2026
+Added
+₹1,12,357.00
+Balance
+₹10,96,632.00
+RCPT-0608
+Payment · 5 Sep 2026
+Taken off
+₹47,755.00
+Balance
+₹10,48,877.00
+RCPT-0611
+Payment · 5 Sep 2026
+Taken off
+₹46,655.00
+Balance
+₹10,02,222.00
+INV/0783
+Bill · 7 Sep 2026
+Added
+₹88,128.00
+Balance
+₹10,90,350.00
+RCPT-0637
+Payment · 8 Sep 2026
+Taken off
+₹1,12,357.00
+Balance
+₹9,77,993.00
+RCPT-FLD-0003
+Payment · 8 Sep 2026
+Taken off
+₹60,707.00
+Balance
+₹9,17,286.00
+RCPT-0648
+Payment · 9 Sep 2026
+Taken off
+₹88,128.00
+Balance
+₹8,29,158.00
+INV/0819
+Bill · 10 Sep 2026
+Added
+₹74,505.00
+Balance
+₹9,03,663.00
+RCPT-0661
+Payment · 10 Sep 2026
+Taken off
+₹34,086.00
+Balance
+₹8,69,577.00
+CN/0048
+Credit note · 10 Sep 2026
+Taken off
+₹496.00
+Balance
+₹8,69,081.00
+RCPT-0669
+Payment · 10 Sep 2026
+Taken off
+₹28,757.00
+Balance
+₹8,40,324.00
+RCPT-0686
+Payment · 12 Sep 2026
+Taken off
+₹45,511.00
+Balance
+₹7,94,813.00
+RCPT-0698
+Payment · 12 Sep 2026
+Taken off
+₹1,01,531.00
+Balance
+₹6,93,282.00
+INV/0838
+Bill · 12 Sep 2026
+Added
+₹1,01,531.00
+Balance
+₹7,94,813.00
+RCPT-0684
+Payment · 12 Sep 2026
+Taken off
+₹74,009.00
+Balance
+₹7,20,804.00
+Closing balance
+₹7,20,804.00
+A plus balance is money you still owe. A minus one is money with them.

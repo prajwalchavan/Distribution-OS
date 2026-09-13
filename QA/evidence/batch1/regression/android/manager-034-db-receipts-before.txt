@@ -1,0 +1,9 @@
+# DOS-034 candidate receipts before (office cash / cheque, trip_id null) (2026-09-12T23:55:52Z)
+> select r.id, r.receipt_no, r.mode, r.amount_paise, r.trip_id, r.status, r.deposit_ref, r.deposited_at, r.bounced_at, re.name from receipts r left join retailers re on re.id=r.retailer_id where r.id in ('f287d6a2-d215-7eb6-b955-d213d1c4de6e','437b1495-b7e0-779a-abab-ff9f0014d600','97b22d6a-d3ac-7e5f-ab64-9cde9a1a412c','ab309aeb-5f40-7bc0-a9c3-e558891f5157','743896f9-933a-7f25-8ca3-c5f0d78409e1') order by r.receipt_no
+ab309aeb-5f40-7bc0-a9c3-e558891f5157|RCPT-0676|cheque|1329900||collected||||Prerna Super Market
+97b22d6a-d3ac-7e5f-ab64-9cde9a1a412c|RCPT-0689|cash|528100||collected||||Deshmukh Kirana
+f287d6a2-d215-7eb6-b955-d213d1c4de6e|RCPT-0690|cash|181800||collected||||Kadam Stores
+437b1495-b7e0-779a-abab-ff9f0014d600|RCPT-0691|cash|371600||collected||||Chavan Kirana Stores
+743896f9-933a-7f25-8ca3-c5f0d78409e1|RCPT-CHQ-0001|cheque|2995200||collected||||Dnyandeep Stores
+> select count(*) from journal_entries where ref_type='deposit'
+95

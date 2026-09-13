@@ -1,0 +1,15 @@
+### REQUEST  2026-09-13 01:05:51 IST
+GET http://127.0.0.1:3001/orders?limit=1
+Authorization: Bearer <accessToken of rahul.deshmukh>
+
+### RESPONSE
+HTTP/1.1 403 Forbidden
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 100
+Date: Sat, 12 Sep 2026 19:35:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"message":"owner-service does not serve the salesperson role","error":"Forbidden","statusCode":403}

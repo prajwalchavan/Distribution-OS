@@ -1,0 +1,62 @@
+[
+  {
+    "method": "POST",
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "req": {
+      "username": "rahul.deshmukh",
+      "password": "Dos@1234",
+      "deviceId": "7737bb86-4ce5-4b90-82f5-952a9a1c7b47"
+    },
+    "resp": "(tokens redacted)"
+  },
+  {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/orders",
+    "status": 200,
+    "req": {
+      "id": "01a0988a-6cc6-7aa4-943a-a040d97c581d",
+      "idempotencyKey": "01a0988a-6cc6-7aa4-943a-a040d97c581d-create",
+      "retailerId": "34ce3241-c275-7cc5-bc44-cd7856930d50",
+      "source": "salesperson",
+      "pricingDateMode": "order",
+      "note": "QA iOS batch1 manager DOS-020 fixture",
+      "expectedDeliveryDate": null,
+      "deviceId": "01a0988a-6cc6-7731-be05-339b4b7e7d85",
+      "lines": [
+        {
+          "id": "01a0988a-6cc6-7399-a44e-d18b3d2195e5",
+          "variantId": "4cf8c0aa-3028-7155-957a-80108bf2a8fb",
+          "enteredQty": 1,
+          "enteredUnit": "case"
+        }
+      ]
+    },
+    "resp": "{\"item\":{\"id\":\"01a0988a-6cc6-7aa4-943a-a040d97c581d\",\"orderNo\":null,\"retailerId\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"state\":\"draft\",\"source\":\"salesperson\",\"createdBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"salespersonId\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"pricingDateMode\":\"order\",\"paymentTerms\":\"POST_FULFILLMENT\",\"fulfilFromLocationId\":null,\"externalRef\":null,\"subtotalPaise\":27216,\"discountPaise\":0,\"taxPaise\":3266,\"roundOffPaise\":18,\"totalPaise\":30500,\"approvalFlags\":[],\"expectedDeliveryDate\":null,\"note\":\"QA iOS batch1 manager DOS-020 fixture\",\"submittedAt\":null,\"confirmedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-13T02:13:23.794Z\",\"lines\":[{\"id\":\"01a0988a-6cc6-7399-a44e-d18b3d2195e5\",\"lineNo\":1,\"variantId\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"enteredQty\":1,\"enteredUnit\":\"case\",\"packSizeAtEntry\":24,\"qtyPcs\":24,\"freeQtyPcs\":0,\"pickedQtyPcs\":0,\"deliveredQtyPcs\":0,\"listRatePaise\":1134,\"ratePaise\":1134,\"discountBps\":0,\"discountPaise\":0,\"gstBps\":1200,\"taxPaise\":3266,\"lineTotalPaise\":30482,\"appliedRules\":[],\"priceLocked\":false}],\"transitions\":[],\"approvals\":[]}}"
+  },
+  {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/pricing/bargains",
+    "status": 200,
+    "req": {
+      "id": "01a0988a-6d61-737d-8b80-f2268ae28137",
+      "idempotencyKey": "01a0988a-6d61-7f99-bca5-13b0b07dbbff",
+      "retailerId": "34ce3241-c275-7cc5-bc44-cd7856930d50",
+      "variantId": "4cf8c0aa-3028-7155-957a-80108bf2a8fb",
+      "askedRatePaise": 1004,
+      "qtyPcs": 24,
+      "orderId": "01a0988a-6cc6-7aa4-943a-a040d97c581d"
+    },
+    "resp": "{\"item\":{\"id\":\"01a0988a-6d61-737d-8b80-f2268ae28137\",\"retailerId\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"variantId\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"orderId\":\"01a0988a-6cc6-7aa4-943a-a040d97c581d\",\"requestedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"listRatePaise\":1134,\"askedRatePaise\":1004,\"approvedRatePaise\":null,\"status\":\"requested\",\"decidedBy\":null,\"decidedAt\":null,\"expiresAt\":null,\"note\":null,\"createdAt\":\"2026-09-13T02:13:23.939Z\"}}"
+  },
+  {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/orders/01a0988a-6cc6-7aa4-943a-a040d97c581d/submit",
+    "status": 200,
+    "req": {
+      "idempotencyKey": "01a0988a-6cc6-7aa4-943a-a040d97c581d-submit",
+      "deviceId": "01a0988a-6cc6-7731-be05-339b4b7e7d85"
+    },
+    "resp": "{\"item\":{\"id\":\"01a0988a-6cc6-7aa4-943a-a040d97c581d\",\"orderNo\":\"SO-0915\",\"retailerId\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"state\":\"submitted\",\"source\":\"salesperson\",\"createdBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"salespersonId\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"pricingDateMode\":\"order\",\"paymentTerms\":\"POST_FULFILLMENT\",\"fulfilFromLocationId\":null,\"externalRef\":null,\"subtotalPaise\":27216,\"discountPaise\":0,\"taxPaise\":3266,\"roundOffPaise\":18,\"totalPaise\":30500,\"approvalFlags\":[\"credit_limit\",\"bargain\"],\"expectedDeliveryDate\":null,\"note\":\"QA iOS batch1 manager DOS-020 fixture\",\"submittedAt\":\"2026-09-13T02:13:23.987Z\",\"confirmedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-13T02:13:23.794Z\",\"lines\":[{\"id\":\"01a0988a-6cc6-7399-a44e-d18b3d2195e5\",\"lineNo\":1,\"variantId\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"enteredQty\":1,\"enteredUnit\":\"case\",\"packSizeAtEntry\":24,\"qtyPcs\":24,\"freeQtyPcs\":0,\"pickedQtyPcs\":0,\"deliveredQtyPcs\":0,\"listRatePaise\":1134,\"ratePaise\":1134,\"discountBps\":0,\"discountPaise\":0,\"gstBps\":1200,\"taxPaise\":3266,\"lineTotalPaise\":30482,\"appliedRules\":[],\"priceLocked\":false}],\"transitions\":[{\"id\":\"01a0988a-6d9a-778b-b652-1f3cb99a8772\",\"fromState\":\"draft\",\"toState\":\"submitted\",\"event\":\"submit\",\"actorId\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"deviceId\":\"01a0988a-6cc6-7731-be05-339b4b7e7d85\",\"reason\":null,\"occurredAt\":\"2026-09-13T02:13:23.976Z\"}],\"approvals\":[{\"id\":\"01a0988a-6da2-754c-ae5b-a7d3a08bfcaf\",\"kind\":\"credit_limit\",\"orderId\":\"01"
+  }
+]

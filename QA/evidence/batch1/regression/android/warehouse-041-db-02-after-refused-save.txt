@@ -1,0 +1,6 @@
+after pressing Short with 20 on a 7-pc row (+10 s):
+01a097b7-dc26-72a6-8da0-0d6a9a7913c9|7|0||
+sync_ops last 15 min (tarsun):
+2
+01a097b0-fdb2-762f-bb82-6b5be8f24865|{"ok": true}|2026-09-13 03:45:54.043933+05:30
+01a097b3-ef6d-7030-bbff-b4d58d0cda95|{"ok": true}|2026-09-13 03:49:06.992831+05:30

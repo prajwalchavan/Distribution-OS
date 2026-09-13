@@ -1,0 +1,4 @@
+com.android.intentresolver: Sharing 1 file
+com.android.intentresolver: CN-9003.pdf
+com.android.intentresolver: No recommended people to share with
+com.android.intentresolver: Quick Share

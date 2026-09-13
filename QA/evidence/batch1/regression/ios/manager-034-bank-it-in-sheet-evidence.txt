@@ -1,0 +1,10 @@
+== DOS-034 accountant iOS: Bank it pressed inside the RCPT-0688 receipt Sheet at 2026-09-13 08:30:50 IST
+-- UIKit presentation log since 2026-09-13 08:30:50:
+Timestamp               Ty Process[PID:TID]
+2026-09-13 08:30:51.289 E  Expo Go[87293:13b598] [com.apple.UIKit:Presentation] Attempt to present <RCTFabricModalHostViewController: 0x12f58d000> on <EXRootViewController: 0x11182ce00> (from <EXAppViewController: 0x112850c00>) which is already presenting <RCTFabricModalHostViewController: 0x13b9dda00>.
+-- manager-service POSTs after line 5838:
+POST count: 0
+-- RCPT-0688 after:
+RCPT-0688|collected||
+deposit|74
+receipt_reversal|2

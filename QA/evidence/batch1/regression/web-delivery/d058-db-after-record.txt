@@ -1,0 +1,17 @@
+### DOS-058 AFTER web record (since 2026-09-13 01:12:55.587178+05:30)
+--- credit notes on INV/0830
+01a09725-3800-716a-baa5-ba5c40ba715a | CN/9004 | return_damaged | 126800 | 2026-09-13 01:13:13.840484+05:30
+--- credit note lines
+{"id": "01a09725-3800-716b-8e15-9e62594c1d74", "gst_bps": 1800, "qty_pcs": 72, "saleable": false, "tax_paise": 19336, "created_at": "2026-09-13T01:13:13.840484+05:30", "rate_paise": 1492, "updated_at": "2026-09-13T01:13:13.931073+05:30", "taxable_paise": 107424, "credit_note_id": "01a09725-3800-716a-baa5-ba5c40ba715a", "invoice_line_id": "88a690ee-05d7-7410-ad6c-b47411c564ca", "line_total_paise": 126760}
+--- stock_ledger rows written since T0 (location name)
+Damaged / expiry bin | {"id": "01a09725-3818-706c-9b20-7428496bdebb", "note": "credit note CN/9004", "lot_id": "0128aea6-a6cb-76bc-9a2e-fab7a0ff73b6", "reason": "sale_return_damaged", "ref_id": "01a09725-3800-716a-baa5-ba5c40ba715a", "actor_id": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "ref_type": "credit_note", "qty_delta": 72, "created_at": "2026-09-13T01:13:13.840484+05:30", "location_id": "01a0947d-7a97-7466-8ce4-06501d6672dd", "occurred_at": "2026-09-13T01:13:13.944+05:30", "idempotency_key": "credit-note:01a09725-3800-716a-baa5-ba5c40ba715a:01a09725-3800-716b-8e15-9e62594c1d74"}
+--- stock_balances for the variant now
+--- stop 8 + delivery row
+partial
+3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab | partial | Shopkeeper at counter | 2026-09-13 01:13:13.835+05:30
+--- delivery_lines on that delivery
+{"id": "01a09725-1dc2-773c-aecf-0370e9b6ed62", "reason": "damaged", "created_at": "2026-09-13T01:13:13.840484+05:30", "updated_at": "2026-09-13T01:13:13.869851+05:30", "delivery_id": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab", "invoice_line_id": "88a690ee-05d7-7410-ad6c-b47411c564ca", "returned_qty_pcs": 72, "delivered_qty_pcs": 360, "returned_saleable": false}
+{"id": "01a09725-1dc2-773d-ad91-61d339dfe8d3", "reason": null, "created_at": "2026-09-13T01:13:13.840484+05:30", "updated_at": "2026-09-13T01:13:13.87104+05:30", "delivery_id": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab", "invoice_line_id": "92f84b75-a623-787f-a4b3-b352b7aec96a", "returned_qty_pcs": 0, "delivered_qty_pcs": 156, "returned_saleable": true}
+{"id": "01a09725-1dc2-773e-85fa-2677eceec3ee", "reason": null, "created_at": "2026-09-13T01:13:13.840484+05:30", "updated_at": "2026-09-13T01:13:13.871227+05:30", "delivery_id": "3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab", "invoice_line_id": "2dbf2721-3de8-7bc9-84c6-184d344dc321", "returned_qty_pcs": 0, "delivered_qty_pcs": 300, "returned_saleable": true}
+--- tenant-wide: delivery_lines in the last hour returned>0, reason damaged/expired, saleable true
+0

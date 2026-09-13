@@ -1,0 +1,9 @@
+# Documents before DOS-029c / DOS-135 on Android (2026-09-12T23:47:34Z)
+> select id, kind, status, committed_entity_type, committed_entity_id, updated_at from documents where id in ('0400aea1-7e63-7119-af27-05db2a4307ad','2254e884-ad8d-7c36-8fcc-8197395b329b')
+0400aea1-7e63-7119-af27-05db2a4307ad|brand_dms_invoice|needs_review|||2026-09-12 14:12:17.672+05:30
+2254e884-ad8d-7c36-8fcc-8197395b329b|supplier_invoice|needs_review|||2026-09-12 09:50:00+05:30
+> select rs.id, rs.document_id, u.username, rs.status, rs.locked_until, rs.updated_at from review_sessions rs left join users u on u.id=rs.reviewer_id where rs.document_id in ('0400aea1-7e63-7119-af27-05db2a4307ad','2254e884-ad8d-7c36-8fcc-8197395b329b') order by rs.created_at
+89f90df9-389f-7dde-8618-dc7f3a072414|2254e884-ad8d-7c36-8fcc-8197395b329b|sunil.tarsun|open|2026-10-12 05:30:00+05:30|2026-09-12 09:50:00+05:30
+01a094c7-c3eb-71bf-9de3-c6dcae8ef8a1|0400aea1-7e63-7119-af27-05db2a4307ad|vikas.kadam|open|2026-09-12 14:17:17.638+05:30|2026-09-12 14:12:17.616754+05:30
+> select count(*) from review_sessions where document_id='2254e884-ad8d-7c36-8fcc-8197395b329b'
+1

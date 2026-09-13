@@ -1,0 +1,6 @@
+# PICK-0090 rows before any pick (2026-09-12T23:37:45Z)
+> select pl.id, pl.lot_id, l.batch_no, pl.requested_qty_pcs, pl.picked_qty_pcs, pl.case_size, pl.short_reason from pick_lines pl join picklists p on p.id=pl.picklist_id left join stock_lots l on l.id=pl.lot_id where p.picklist_no='PICK-0090' and p.tenant_id=(select id from tenants where slug='tarsun') order by pl.line_no, pl.id
+01a097fa-b851-766a-8cbf-dc1042342512|1da5cced-f410-74c5-a2bd-ad837d6668f5|RCP20260731|6|0|24|
+01a097fa-b851-766b-8e73-27a57f436f56|8cee081b-71ae-7943-99b5-8c18ec9e8486|B20260902|18|0|24|
+> select count(*) from pick_lines pl join picklists p on p.id=pl.picklist_id where p.picklist_no='PICK-0090' and p.tenant_id=(select id from tenants where slug='tarsun')
+2

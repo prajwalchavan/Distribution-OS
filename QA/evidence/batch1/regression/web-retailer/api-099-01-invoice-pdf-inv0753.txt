@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 388
+Date: Sat, 12 Sep 2026 20:08:16 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"status":"ready","objectKey":"tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf","url":"/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/a924ae38-a82f-7ac8-8b3b-6ab11937e574.pdf?expires=1789244596&signature=e703f2fd184856d0c0c228d81ccb29e0b2bb7ff5e929bf25e41b02f97e210b06","expiresAt":"2026-09-12T20:23:16.667Z"}

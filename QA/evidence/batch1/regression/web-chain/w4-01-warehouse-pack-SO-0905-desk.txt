@@ -1,0 +1,42 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Sai Baba Kirana
+SO-0905
+INV/9012
+Packed
+13 Sep, 3:27 am
+Cartons 1
+INV/9012
+₹3,749.00
+Print the bill
+The e-way bill number is typed at the desk.
+WHAT GOES IN THE CARTONS
+Neelam Rose Soap 100 g
+31 pc
+Packed
+Neelam Rose Soap 100 g
+36 pc
+Packed
+Neelam Rose Soap 100 g
+1 pc
+Packed
+Neelam Rose Soap 100 g
+4 pc
+Packed
+Sunbake Butter Cookies 75 g
+14 pc
+Packed
+Sunbake Butter Cookies 75 g
+58 pc
+Packed
+Close

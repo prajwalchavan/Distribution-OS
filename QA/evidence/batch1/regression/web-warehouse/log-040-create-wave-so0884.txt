@@ -1,0 +1,2 @@
+{"level":30,"time":1789241962452,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-p3","req":{"method":"POST","url":"/warehouse/picklists","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":55518},"msg":"incoming request"}
+{"level":30,"time":1789241962539,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-p3","res":{"statusCode":200},"responseTime":87.53354100009892,"msg":"request completed"}

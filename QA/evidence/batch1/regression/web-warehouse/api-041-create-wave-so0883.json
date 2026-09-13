@@ -1,0 +1,183 @@
+{
+  "url": "http://127.0.0.1:3004/warehouse/picklists",
+  "status": 200,
+  "request": {
+    "id": "01a09725-59d4-75ef-b394-00cbd634ff63",
+    "idempotencyKey": "01a09725-3f93-737c-9337-fe6610cc49d1",
+    "orderIds": [
+      "01a09598-954f-7333-b0b1-bdac0006de22"
+    ]
+  },
+  "response": {
+    "item": {
+      "id": "01a09725-59d4-75ef-b394-00cbd634ff63",
+      "picklistNo": "PICK-0082",
+      "status": "open",
+      "locationId": "01a0947d-7a96-723f-952d-338dd284a1b4",
+      "pickDate": "2026-09-13",
+      "tripId": null,
+      "beatId": null,
+      "note": null,
+      "orderCount": 1,
+      "lineCount": 1,
+      "requestedQtyPcs": 48,
+      "pickedQtyPcs": 0,
+      "assignedTo": null,
+      "startedAt": null,
+      "completedAt": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "createdAt": "2026-09-12T19:43:22.591Z",
+      "orders": [
+        {
+          "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "orderNo": "SO-0883",
+          "retailerId": "d7f09885-489b-73cb-ab29-169334b5eca5",
+          "retailerName": "Om Sai Provision Store",
+          "state": "confirmed",
+          "lineCount": 1
+        }
+      ],
+      "lines": [
+        {
+          "id": "01a09725-59f9-7500-a349-9146d6f1b4ed",
+          "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "lineNo": 1,
+          "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "variantName": "Balaji Masala Masti Wafers 45 g",
+          "productName": "Balaji Masala Masti Wafers",
+          "lotId": "be48f377-8078-7814-893f-a826ccc2ed6a",
+          "suggestedLotId": "be48f377-8078-7814-893f-a826ccc2ed6a",
+          "batchNo": "GK20260602",
+          "expiryDate": "2026-10-30",
+          "caseSize": 48,
+          "requestedQtyPcs": 13,
+          "pickedQtyPcs": 0,
+          "freeQtyPcs": 0,
+          "shortReason": null,
+          "fefoOverride": false,
+          "pickedBy": null,
+          "pickedAt": null
+        },
+        {
+          "id": "01a09725-59f9-7501-9439-255e6ebfaf34",
+          "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "lineNo": 1,
+          "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "variantName": "Balaji Masala Masti Wafers 45 g",
+          "productName": "Balaji Masala Masti Wafers",
+          "lotId": "1c2f9ca2-f279-7b90-a467-6037f6ef865e",
+          "suggestedLotId": "1c2f9ca2-f279-7b90-a467-6037f6ef865e",
+          "batchNo": "GK20260609",
+          "expiryDate": "2026-11-06",
+          "caseSize": 48,
+          "requestedQtyPcs": 3,
+          "pickedQtyPcs": 0,
+          "freeQtyPcs": 0,
+          "shortReason": null,
+          "fefoOverride": false,
+          "pickedBy": null,
+          "pickedAt": null
+        },
+        {
+          "id": "01a09725-59f9-7502-b5f7-aa7ee341b2d1",
+          "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "lineNo": 1,
+          "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "variantName": "Balaji Masala Masti Wafers 45 g",
+          "productName": "Balaji Masala Masti Wafers",
+          "lotId": "2f1b7955-7136-7f7c-a4c8-ebbc000a18bd",
+          "suggestedLotId": "2f1b7955-7136-7f7c-a4c8-ebbc000a18bd",
+          "batchNo": "GK20260623",
+          "expiryDate": "2026-11-20",
+          "caseSize": 48,
+          "requestedQtyPcs": 20,
+          "pickedQtyPcs": 0,
+          "freeQtyPcs": 0,
+          "shortReason": null,
+          "fefoOverride": false,
+          "pickedBy": null,
+          "pickedAt": null
+        },
+        {
+          "id": "01a09725-59f9-7503-aa54-eca6c465bc96",
+          "orderId": "01a09598-954f-7333-b0b1-bdac0006de22",
+          "orderLineId": "01a09598-a297-775e-938d-31bf5ea2f28f",
+          "lineNo": 1,
+          "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "variantName": "Balaji Masala Masti Wafers 45 g",
+          "productName": "Balaji Masala Masti Wafers",
+          "lotId": "a785eb6a-8a3b-763c-988c-27ab2c258262",
+          "suggestedLotId": "a785eb6a-8a3b-763c-988c-27ab2c258262",
+          "batchNo": "GK20260630",
+          "expiryDate": "2026-11-27",
+          "caseSize": 48,
+          "requestedQtyPcs": 12,
+          "pickedQtyPcs": 0,
+          "freeQtyPcs": 0,
+          "shortReason": null,
+          "fefoOverride": false,
+          "pickedBy": null,
+          "pickedAt": null
+        }
+      ],
+      "consolidated": [
+        {
+          "variantId": "a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d",
+          "variantName": "Balaji Masala Masti Wafers 45 g",
+          "productName": "Balaji Masala Masti Wafers",
+          "requestedQtyPcs": 48,
+          "pickedQtyPcs": 0,
+          "caseSize": 48,
+          "cases": 1,
+          "loosePcs": 0,
+          "lots": [
+            {
+              "lotId": "1c2f9ca2-f279-7b90-a467-6037f6ef865e",
+              "batchNo": "GK20260609",
+              "expiryDate": "2026-11-06",
+              "qtyPcs": 3,
+              "caseSize": 48,
+              "cases": 0,
+              "loosePcs": 3,
+              "fefoWarning": false
+            },
+            {
+              "lotId": "2f1b7955-7136-7f7c-a4c8-ebbc000a18bd",
+              "batchNo": "GK20260623",
+              "expiryDate": "2026-11-20",
+              "qtyPcs": 20,
+              "caseSize": 48,
+              "cases": 0,
+              "loosePcs": 20,
+              "fefoWarning": false
+            },
+            {
+              "lotId": "a785eb6a-8a3b-763c-988c-27ab2c258262",
+              "batchNo": "GK20260630",
+              "expiryDate": "2026-11-27",
+              "qtyPcs": 12,
+              "caseSize": 48,
+              "cases": 0,
+              "loosePcs": 12,
+              "fefoWarning": false
+            },
+            {
+              "lotId": "be48f377-8078-7814-893f-a826ccc2ed6a",
+              "batchNo": "GK20260602",
+              "expiryDate": "2026-10-30",
+              "qtyPcs": 13,
+              "caseSize": 48,
+              "cases": 0,
+              "loosePcs": 13,
+              "fefoWarning": false
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

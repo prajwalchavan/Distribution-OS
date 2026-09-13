@@ -1,0 +1,7 @@
+-- outbox row for the INV/0433-only intent
+01a0973a-4fa6-768d-b7d2-2b2032b0c8e0|2026-09-13 01:36:16.221348+05:30|PAY-5c9dfb7fcb7c|456100|["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e"]
+-- invoice snapshots unchanged
+INV/0433|1011900|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=10119.00&tr=INV-0433&cu=INR
+INV/0753|547200|upi://pay?pa=tarsun@okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5472.00&tr=INV-0753&cu=INR
+-- receipts recorded by the shop login (must stay 0) / receipts of R-0001
+0|25

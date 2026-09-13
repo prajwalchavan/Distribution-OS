@@ -1,0 +1,52 @@
+{
+  "browser": "145.0.7632.6",
+  "printOpens": [
+    {
+      "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff",
+      "returnedNull": true,
+      "at": 1789244370896,
+      "msAfterTap": 233
+    }
+  ],
+  "pagesAfterPrint": 2,
+  "openOpens": [
+    {
+      "url": "http://127.0.0.1:3006/storage/tenant/01a0947d-7a79-75d2-bfff",
+      "returnedNull": true,
+      "at": 1789244382154,
+      "msAfterTap": 146
+    }
+  ],
+  "pagesAfterOpen": 3,
+  "events": [
+    {
+      "ev": "tap-print",
+      "ms": 0
+    },
+    {
+      "ev": "pdf-response",
+      "status": 200,
+      "ct": "application/pdf",
+      "type": "document",
+      "ms": 105
+    },
+    {
+      "ev": "popup",
+      "ms": 250
+    },
+    {
+      "ev": "pdf-response",
+      "status": 200,
+      "type": "document",
+      "ms": 397
+    },
+    {
+      "ev": "tap-open",
+      "ms": 0
+    },
+    {
+      "ev": "popup",
+      "ms": 175
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+### REQUEST  2026-09-12T19:43:09.553Z
+POST http://127.0.0.1:3002/receipts
+Authorization: Bearer <accessToken of meena.joshi>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-f01-01a09725-2658-7018-bee2-5abaf48c5907",
+ "id": "01a09725-2658-7018-bee2-5abaf48c5907",
+ "retailerId": "4ba7bda0-1083-731b-b352-50ecb7532489",
+ "mode": "cash",
+ "amountPaise": 1000,
+ "note": "QA security regression fixture (DOS-034 residual)"
+}
+
+### RESPONSE
+HTTP/1.1 200 OK
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 1629
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:43:09 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"item":{"id":"01a09725-2658-7018-bee2-5abaf48c5907","receiptNo":"RCPT-0700","retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","mode":"cash","amountPaise":1000,"allocatedPaise":1000,"unallocatedPaise":0,"cashDiscountPaise":0,"status":"collected","receivedAt":"2026-09-12T19:43:09.435Z","receivedBy":"3188dd91-43ff-768a-97cc-b63c11bb00a0","tripId":null,"reference":null,"upiVpa":null,"chequeDate":null,"bankName":null,"deviceId":null,"clientReceiptNo":null,"reversesReceiptId":null,"depositedAt":null,"depositRef":null,"depositAccountId":null,"bouncedAt":null,"bounceReason":null,"bankChargesPaise":0,"proofObjectKey":null,"pdfObjectKey":null,"note":"QA security regression fixture (DOS-034 residual)","createdAt":"2026-09-12T19:43:09.420Z"},"allocations":[{"id":"01a09725-2698-70d4-a242-56e8f9c19bf1","invoiceId":"f8e5562e-6634-7b09-9a0d-8bd1088c4561","receiptId":"01a09725-2658-7018-bee2-5abaf48c5907","creditNoteId":null,"writeOffId":null,"amountPaise":1000,"allocatedAt":"2026-09-12T19:43:09.420Z","allocatedBy":"3188dd91-43ff-768a-97cc-b63c11bb00a0"}],"invoices":[{"id":"f8e5562e-6634-7b09-9a0d-8bd1088c4561","invoiceNo":"INV/0518","state":"partially_paid","openPaise":446700}],"cashDiscountPaise":0,"unallocatedPaise":0,"outstanding":{"retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","outstandingPaise":9025600,"overduePaise":7139700,"unallocatedCreditPaise":0,"openBills":8,"oldestDueDate":"2026-08-22","oldestInvoiceDate":"2026-08-08","lastReceiptAt":"2026-09-12T19:43:09.435Z","lastReceiptPaise":1000,"buckets":{"b0_7":4281400,"b8_15":3081400,"b16_30":1662800,"b31_60":0,"b61_90":0,"b90plus":0},"asOf":"2026-09-13"}}

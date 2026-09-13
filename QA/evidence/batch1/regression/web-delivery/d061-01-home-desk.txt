@@ -1,0 +1,90 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+TRIP-ACTIVE · 12 Sep 2026
+Today's trip
+On the road
+9 of 10 stops done
+MH-05-AB-1234
+STILL TO COLLECT
+₹22,508.00
+COLLECTED TODAY
+₹12,612.00
+FLOAT AT START
+₹5,000.00
+STOPS
+9 / 10
+Next stop
+Laxmi Narayan Stores
+Shop 11, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹22,508.00
+At the shop
+Stops in order
+9 of 10 stops done
+1. Prerna Super Market
+Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301
+₹73,245.00
+Delivered
+2. Metro Kirana Bazar
+Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301
+₹4,547.00
+Delivered
+3. Anand Bhavan Provision
+Shop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306
+₹2,843.00
+Delivered
+4. Vaibhav Kirana Mart
+Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306
+₹7,856.00
+Delivered
+5. Joshi Kirana Stores
+Shop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹14,962.00
+Part delivered
+6. Ansari Kirana Stores
+Shop had no money
+₹2,610.00
+Not delivered
+7. Nakshatra Kirana
+Shop 4, Chinchpada Road, Kolsewadi, Kalyan East, Kalyan, 421306
+₹4,756.00
+Delivered
+8. Laxmi Narayan Stores
+Shop 11, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301
+₹22,508.00
+At the shop
+9. Khan General Store
+Shop 14, Nandivli Road, Kolsewadi, Kalyan East, Kalyan, 421306
+₹907.00
+Delivered
+10. Rukmini Provision
+Shop 34, Syndicate, Godrej Hill, Kalyan West, Kalyan, 421301
+₹26,581.00
+Delivered
+Load on board
+Godown confirmed the load 11 Sep, 12:15 pm
+DC-0081
+64 cartons on board
+Confirmed
+Location
+Location is off
+This phone is not sharing location. The trip still works; the office cannot see it.
+A browser tab stops sending when it is hidden — keep this tab open.
+Sell from the van
+Add an expense
+Your other trips
+TRIP-NEXT
+Planned for 14 Sep 2026
+On the road
+Next stop
+Check in the vehicle

@@ -1,0 +1,11 @@
+# DOS-021 before: INV/0634 lines and what live credit notes already take (2026-09-13T00:05:20Z)
+> select il.line_no, il.id, il.description, il.qty_pcs, il.free_qty_pcs, il.case_size, coalesce((select sum(cnl.qty_pcs) from credit_note_lines cnl join credit_notes cn on cn.id=cnl.credit_note_id where cnl.invoice_line_id=il.id and cn.state <> 'cancelled'),0) as credited_live from invoice_lines il where il.invoice_id='fe8797c2-ebae-7959-80f6-3a80a6514077' order by il.line_no
+1|b5b1083e-99df-7943-9cf1-0fc9aa016a41|Sunbake Glucose 55 g|40|0|120|0
+2|0da14a49-9ce2-7b41-b361-70674ce19877|Campa Lemon 750 ml|48|2|24|0
+3|efd41792-b54e-7c22-8b3d-0701d1c60ef8|Godavari Cow Ghee 200 ml|20|0|24|0
+4|34371393-fa41-7235-b0d4-6e1eaec0e973|Konkan Farsan Mix 400 g|40|0|20|0
+5|cd4a42bd-5fb1-7f05-b8ff-1d60ffc26c60|Annapurna Basmati Classic 1 kg|9|0|12|0
+> select cn.id, cn.credit_note_no, cn.state, cn.total_paise, cn.created_at from credit_notes cn where cn.invoice_id='fe8797c2-ebae-7959-80f6-3a80a6514077' order by cn.created_at
+01a0976d-77a8-71b0-a6d7-2d35711d1db6||cancelled|4400|2026-09-13 02:32:14.618075+05:30
+01a0976e-932a-77a6-a554-d389e40cd730||cancelled|30900|2026-09-13 02:33:23.849423+05:30
+01a09772-1b1a-7566-9552-a16865689008||cancelled|159300|2026-09-13 02:37:15.125285+05:30

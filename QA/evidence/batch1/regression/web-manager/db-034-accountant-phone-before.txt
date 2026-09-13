@@ -1,0 +1,2 @@
+receipt|RCPT-0680|cheque|collected|- | dep - | bounced -
+journal receipt|f9a959ed-29be-7a21-b2e3-83bc34805494|Receipt for INV/0314 (Vaibhav Kirana Mart)|AR -1921300, CHEQUES 1921300

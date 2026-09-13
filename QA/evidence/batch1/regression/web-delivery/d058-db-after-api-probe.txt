@@ -1,0 +1,4 @@
+### after probes: INV/0830 credit notes, stop 8 state, planned delivery outcome
+credit_notes_on_INV0830=0
+stop8_state=arrived
+deliveries_on_stop8=1 outcomes=NULL

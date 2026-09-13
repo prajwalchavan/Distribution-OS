@@ -1,0 +1,16 @@
+== DOS-005 + DOS-020 owner: after ONE Approve in the iOS decision dialog on SO-0914, read 2026-09-13 07:41:57 IST
+-- approvals
+01a0987b-d316-773d-ad3f-103c367f19aa|bargain|bargain_request|approved|sunil.tarsun|2026-09-13 07:41:52.688+05:30|QA iOS DOS-005 020 approve fixture bargain
+-- bargain_request
+01a0987b-d16c-75bf-923a-b84fafd19382|approved|1129|999|999|sunil.tarsun|2026-09-13 07:41:52.695+05:30|QA iOS DOS-005 020 approve fixture bargain
+-- order
+SO-0914|confirmed|2026-09-13 07:41:52.713+05:30
+draft|submitted|submit|rahul.deshmukh|2026-09-13 07:27:26.725928+05:30
+submitted|confirmed|confirm|sunil.tarsun|2026-09-13 07:41:52.670124+05:30
+-- reservations
+24|B20260902|pending
+-- order line rate (DOS-126 known)
+1129|1129|[]
+-- owner-service POSTs after line 1174
+   1 "method":"POST","url":"/approvals/01a0987b-d316-773d-ad3f-103c367f19aa/decide"
+"statusCode":200

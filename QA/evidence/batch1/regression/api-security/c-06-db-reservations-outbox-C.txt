@@ -1,0 +1,6 @@
+-- DOS-020 (c): order C (SO-0890) reservations and outbox after decide. SQL read-only, 2026-09-13 01:12:04 IST; confirm transition at 01:09:40.679
+ERROR:  column "order_id" does not exist
+LINE 1: ..._jsonb(r) - 'tenant_id' from reservations r where order_id='...
+                                                             ^
+outbox|OrderSubmitted|2026-09-13 01:08:09.87082+05:30
+outbox|OrderConfirmed|2026-09-13 01:09:40.679388+05:30

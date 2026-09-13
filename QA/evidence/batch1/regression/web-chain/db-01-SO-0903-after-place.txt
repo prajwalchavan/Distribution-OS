@@ -1,0 +1,49 @@
+ order_no |   state   |             retailer_id              |            salesperson_id            | subtotal_paise | discount_paise | tax_paise | round_off_paise | total_paise | approval_flags |         submitted_at          |         confirmed_at          
+----------+-----------+--------------------------------------+--------------------------------------+----------------+----------------+-----------+-----------------+-------------+----------------+-------------------------------+-------------------------------
+ SO-0903  | confirmed | 20059d26-8301-7f2a-9f72-29cc39ce7753 | 8760e17e-4830-7395-a946-1e02fffa1ad7 |         580584 |           8277 |    103016 |             -23 |      675300 | []             | 2026-09-13 03:05:33.346+05:30 | 2026-09-13 03:05:33.362+05:30
+(1 row)
+
+ERROR:  column l.line_net_paise does not exist
+LINE 1: ...me, l.qty_pcs, l.free_qty_pcs, l.list_rate_paise, l.line_net...
+                                                             ^
+ERROR:  column "actor_role" does not exist
+LINE 1: select from_state,to_state,actor_role,created_at from order_...
+                                   ^
+  table_name  
+--------------
+ reservations
+(1 row)
+
+ line_no |              name               | qty_pcs | free_qty_pcs | list_rate_paise | rate_paise | discount_paise | gst_bps | tax_paise | line_total_paise |                                                            applied_rules                                                            
+---------+---------------------------------+---------+--------------+-----------------+------------+----------------+---------+-----------+------------------+-------------------------------------------------------------------------------------------------------------------------------------
+       1 | Sunbake Marie Light 75 g        |      96 |            0 |            1117 |       1117 |              0 |    1800 |     19302 |           126534 | []
+       2 | Neelam Sandal Soap 100 g        |      72 |            0 |            2832 |       2832 |              0 |    1800 |     36703 |           240607 | []
+       3 | Chamak Dishwash Bar 145 g       |      60 |            0 |            1042 |       1042 |              0 |    1800 |     11254 |            73774 | []
+       4 | Balaji Masala Masti Wafers 45 g |     144 |            0 |            1437 |       1437 |           8277 |    1800 |     35757 |           234408 | [{"kind": "scheme", "ruleId": "5df0af82-ef25-7621-b927-44fb02080704", "version": 1, "rewardKind": "line_pct", "amountPaise": 8277}]
+(4 rows)
+
+ from_state | to_state  |  event  |               actor_id               |           occurred_at            
+------------+-----------+---------+--------------------------------------+----------------------------------
+ draft      | submitted | submit  | 8760e17e-4830-7395-a946-1e02fffa1ad7 | 2026-09-13 03:05:33.340121+05:30
+ submitted  | confirmed | confirm | 8760e17e-4830-7395-a946-1e02fffa1ad7 | 2026-09-13 03:05:33.340121+05:30
+(2 rows)
+
+              name               |  batch_no  | expiry_date | qty |  state  |  loc   
+---------------------------------+------------+-------------+-----+---------+--------
+ Balaji Masala Masti Wafers 45 g | GK20260609 | 2026-11-06  |   1 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260630 | 2026-11-27  |  12 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260707 | 2026-12-04  |   9 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260721 | 2026-12-18  |  15 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260804 | 2027-01-01  |  14 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260825 | 2027-01-22  |  74 | pending | Godown
+ Balaji Masala Masti Wafers 45 g | GK20260828 | 2027-01-25  |  19 | pending | Godown
+ Chamak Dishwash Bar 145 g       | SC20260521 | 2028-05-20  |  11 | pending | Godown
+ Chamak Dishwash Bar 145 g       | SC20260604 | 2028-06-03  |  18 | pending | Godown
+ Chamak Dishwash Bar 145 g       | B20260729  | 2028-07-28  |  31 | pending | Godown
+ Neelam Sandal Soap 100 g        | SC20260521 | 2028-05-20  |  27 | pending | Godown
+ Neelam Sandal Soap 100 g        | B20260614  | 2028-06-13  |  13 | pending | Godown
+ Neelam Sandal Soap 100 g        | SC20260702 | 2028-07-01  |  32 | pending | Godown
+ Sunbake Marie Light 75 g        | SB20260607 | 2027-02-02  |  12 | pending | Godown
+ Sunbake Marie Light 75 g        | SB20260614 | 2027-02-09  |  84 | pending | Godown
+(15 rows)
+

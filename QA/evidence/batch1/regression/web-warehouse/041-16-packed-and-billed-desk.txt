@@ -1,0 +1,38 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Om Sai Provision Store
+SO-0883
+INV/9008
+Packed
+13 Sep, 1:27 am
+Cartons 1
+Short packed
+INV/9008
+₹569.00
+Print the bill
+The e-way bill number is typed at the desk.
+WHAT GOES IN THE CARTONS
+Balaji Masala Masti Wafers 45 g
+13 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+2 pc
+Short
+Balaji Masala Masti Wafers 45 g
+20 pc
+Packed
+Balaji Masala Masti Wafers 45 g
+0 pc
+Short
+Close
+Bill INV/9008 issued

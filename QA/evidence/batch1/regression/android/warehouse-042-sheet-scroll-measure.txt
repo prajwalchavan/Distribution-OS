@@ -1,0 +1,10 @@
+W5 Short sheet on Pixel_7_API_36 (1080x2400), PICK-0089 row SC20260716 (asks 2 pc), reason 'Batch held back', pad 0.
+uiautomator bounds (sheetstate.py / full dump at 04:26-04:28 IST):
+  ScrollView [42,521][1038,2075]  (scrollable)
+  keypad row 4 'clear' / '0' / 'back'  [..,2027][..,2075]  -> only 48 px of the 200-px keys visible
+  Button 'Short' (the save)  top 2293, clipped at 2075  -> entirely below the viewport, behind the pinned footer
+  Button 'Close'  [42,2117][1038,2317]
+Tapping the laid-out Short centre (540,2184) hits Close: the sheet shut and nothing was saved (warehouse-042-04-after-last-short.png; DB row still picked_at NULL).
+Slow drags inside the sheet did not scroll it: swipe 1180->560 900 ms, 900->300 1000 ms, 1700->700 1000 ms (warehouse-042-03, -06, -07).
+A fast fling did: swipe 1150->450 250 ms -> Short top 1834 bottom 2033 (warehouse-042-11), then Short saved (warehouse-042-12).
+Earlier on the 7-pc row the same thing: Short at 2184 under Close until 20 was keyed and a 600-ms swipe moved it to 1775 (warehouse-041-02, -03).

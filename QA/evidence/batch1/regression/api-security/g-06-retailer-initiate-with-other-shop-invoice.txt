@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:14:31 IST
+POST http://127.0.0.1:3006/receivables/payments/initiate
+Authorization: Bearer <accessToken of fatima>
+Content-Type: application/json
+
+{"idempotencyKey":"sec-g06-01a09726-67b3-7578-abb5-c6c9e5f01ab1","id":"01a09726-67b3-7578-abb5-c6c9e5f01ab1","invoiceIds":["ca0bcd44-cd0d-72e8-a6b2-11dd2feaf77e"],"amountPaise":456100}
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 531
+Date: Sat, 12 Sep 2026 19:44:32 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"intentId":"01a09726-67b3-7578-abb5-c6c9e5f01ab1","retailerId":"20059d26-8301-7f2a-9f72-29cc39ce7753","amountPaise":456100,"upiQrPayload":"upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=4561.00&tr=PAY-c6c9e5f01ab1&tn=PAY-c6c9e5f01ab1&cu=INR","upiIntentUrl":"upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=4561.00&tr=PAY-c6c9e5f01ab1&tn=PAY-c6c9e5f01ab1&cu=INR","payeeVpa":"tarsun@okhdfcbank","payeeName":"Tarsun Enterprise","paymentRef":"PAY-c6c9e5f01ab1","expiresAt":"2026-09-12T20:14:31.999Z","bills":[]}

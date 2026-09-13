@@ -1,0 +1,8 @@
+com.android.intentresolver: Sharing 1 file
+com.android.intentresolver: INV-0826.pdf
+com.android.intentresolver: No recommended people to share with
+com.android.intentresolver: Quick Share
+com.android.intentresolver: Print
+com.android.intentresolver: Drive
+com.android.intentresolver: Messages
+com.android.intentresolver: Bluetooth

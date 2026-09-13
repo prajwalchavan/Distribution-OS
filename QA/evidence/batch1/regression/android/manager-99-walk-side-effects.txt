@@ -1,0 +1,42 @@
+# side effects of the Android manager walk, read-only summary (2026-09-13T00:40:14Z)
+> select order_no, state, confirmed_at from sales_orders where id='01a097ef-989c-74e0-a1b2-41ed87f44c10'
+SO-0911|picking|2026-09-13 05:03:40.748+05:30
+> select picklist_no, status, created_at from picklists where tenant_id=(select id from tenants where slug='tarsun') and picklist_no='PICK-0090'
+PICK-0090|picking|2026-09-13 05:06:25.843264+05:30
+> select pl.requested_qty_pcs, pl.picked_qty_pcs from pick_lines pl join picklists p on p.id=pl.picklist_id where p.tenant_id=(select id from tenants where slug='tarsun') and p.picklist_no='PICK-0090' order by pl.id
+6|0
+18|0
+> select count(*) from picklists where tenant_id=(select id from tenants where slug='tarsun')
+90
+> select id, state from credit_notes where id in ('01a0981a-8e6f-725c-8f05-2cdec78e45f4','01a0981c-0cb6-769f-8d14-6d36d2324233')
+01a0981c-0cb6-769f-8d14-6d36d2324233|cancelled
+01a0981a-8e6f-725c-8f05-2cdec78e45f4|cancelled
+> select receipt_no, mode, amount_paise, status, deposit_ref, bounce_reason from receipts where tenant_id=(select id from tenants where slug='tarsun') and id in ('f287d6a2-d215-7eb6-b955-d213d1c4de6e','437b1495-b7e0-779a-abab-ff9f0014d600','97b22d6a-d3ac-7e5f-ab64-9cde9a1a412c','ab309aeb-5f40-7bc0-a9c3-e558891f5157','743896f9-933a-7f25-8ca3-c5f0d78409e1') order by receipt_no
+RCPT-0676|cheque|1329900|bounced||QA android DOS-034 refer to drawer
+RCPT-0689|cash|528100|deposited|DEP-QA-AND-034-ACC|
+RCPT-0690|cash|181800|deposited|DEP-QA-AND-034-M|
+RCPT-0691|cash|371600|deposited|DEP-QA-AND-034-MR|
+RCPT-CHQ-0001|cheque|2995200|collected||
+> select receipt_no, amount_paise, status from receipts where tenant_id=(select id from tenants where slug='tarsun') and reverses_receipt_id='ab309aeb-5f40-7bc0-a9c3-e558891f5157'
+RCPT-0705|-1329900|cancelled
+> select status, review_sessions.locked_until from review_sessions where document_id='2254e884-ad8d-7c36-8fcc-8197395b329b'
+open|2026-10-12 05:30:00+05:30
+> select id, status, committed_entity_id from documents where id in ('0400aea1-7e63-7119-af27-05db2a4307ad','2254e884-ad8d-7c36-8fcc-8197395b329b')
+0400aea1-7e63-7119-af27-05db2a4307ad|needs_review|
+2254e884-ad8d-7c36-8fcc-8197395b329b|needs_review|
+> select status, approved_by is not null from load_sheets where id='01a0976e-bbaf-7dbe-9bb3-f6ed587bd574'
+draft|t
+> select count(*) from stock_balances where tenant_id=(select id from tenants where slug='tarsun') and qty < 0
+ERROR:  column "qty" does not exist
+LINE 1: ..._id=(select id from tenants where slug='tarsun') and qty < 0
+                                                                ^
+> stock_balances columns: tenant_id,lot_id,location_id,on_hand,reserved,negative_allowed,version,updated_at
+> select count(*) from stock_balances where tenant_id=tarsun and  < 0
+ERROR:  syntax error at or near "<"
+LINE 1: ...ant_id=(select id from tenants where slug='tarsun') and  < 0
+                                                                    ^
+> select count(*) filter (where on_hand < 0), count(*) filter (where reserved < 0), count(*) filter (where reserved > on_hand) from stock_balances where tenant_id=tarsun
+0|0|0
+> reservations of SO-0911 lots
+1da5cced-f410-74c5-a2bd-ad837d6668f5|24|24
+8cee081b-71ae-7943-99b5-8c18ec9e8486|162|18

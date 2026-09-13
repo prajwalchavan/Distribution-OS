@@ -1,0 +1,21 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Waiting and refused
+Waiting 0
+Refused 0
+Held in memory only — a reload empties this device
+WAITING TO SEND
+Nothing is waiting
+NEEDS YOU
+Nothing was refused
+Close

@@ -1,0 +1,9 @@
+== DOS-020 manager: after approving the SO-0915 bargain gate from its queue card on iOS (after relaunch), read 2026-09-13 07:56:11 IST
+credit_limit|pending|||
+bargain|approved|vikas.kadam|2026-09-13 07:56:06.683+05:30|QA iOS DOS-020 manager bargain ok
+approved|1134|1004|1004|vikas.kadam|QA iOS DOS-020 manager bargain ok
+SO-0915|submitted
+0
+-- manager-service POSTs after line 5610
+   1 "method":"POST","url":"/approvals/01a0988a-6da2-754d-9bec-97ca11dfb707/decide"
+"statusCode":200

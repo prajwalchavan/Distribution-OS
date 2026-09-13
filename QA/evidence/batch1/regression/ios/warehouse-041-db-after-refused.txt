@@ -1,0 +1,12 @@
+== DOS-041 after pressing Short with 4 on a 3-pc row (iOS), read 2026-09-13 07:21:12 IST
+01a09872-aea6-7322-b6c0-85545f7de6fb|AN20260606|3|0||
+01a09872-aea7-748b-979f-c9a027ebd54f|AN20260613|3|0||
+01a09872-aea7-748c-aa3c-38a1d7257822|B20260729|6|0||
+01a09872-aea8-770c-8acb-2b5e745ad347|RCP20260814|6|0||
+01a09872-aea8-770d-9d2c-b699c5260e02|B20260902|18|0||
+-- sync_ops in the last 5 minutes for this device/user
+-- sync_ops in the last 10 minutes (none expected from the refused Short)
+-- POST /sync/upload requests in warehouse-service.log since 07:19
+{"level":30,"time":1789253513602,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-48f","req":{"method":"POST","url":"/sync/upload","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":52174},"
+{"level":30,"time":1789253568804,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-48m","req":{"method":"POST","url":"/sync/upload","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":52174},"
+{"level":30,"time":1789253914481,"pid":30197,"hostname":"prajwals-MacBook-Air.local","reqId":"req-49a","req":{"method":"POST","url":"/sync/upload","host":"127.0.0.1:3004","remoteAddress":"127.0.0.1","remotePort":52174},"

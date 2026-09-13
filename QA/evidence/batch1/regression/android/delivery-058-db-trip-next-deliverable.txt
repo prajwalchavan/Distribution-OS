@@ -1,0 +1,16 @@
+-- TRIP-NEXT bills: stop | shop | invoice | order | order state | on DC-0083 | lines on vehicle / lines
+1|City Light Provision|INV/0831|SO-0862|packed|f|0/2|arrived|561d0675-9ef8-7c6e-9ab0-31d77d659aab
+2|Gupta Kirana Stores|INV/0840|SO-0878|dispatched|t|0/3|pending|c234cb4f-99c4-78a3-9120-f5aafa8d9fa4
+3|Kadam Stores|INV/0837|SO-0871|dispatched|t|1/5|pending|6c87991d-4ac6-709d-8cbd-1ecb9fffbe8f
+4|Rameshwar General Store|INV/0839|SO-0876|dispatched|t|0/4|pending|790b7779-da02-7fa0-ae5f-5005bc08176d
+5|Meghana General Store|INV/0836|SO-0869|dispatched|t|1/5|pending|b7a0e1c7-3976-7374-bebb-d4219ea5a41a
+-- lines of the dispatched bills
+INV/0836|2fdfa8ed-6855-7e8e-bce8-61259cff8dcc|Campa Cola 1 L|48|24|f7350824-896d-7cc6-95a7-28d687ce2355
+INV/0836|49bdeb15-8592-7c3b-97ee-23e4bcd8effa|Godavari Cow Ghee 1 L|4|8|5a79a1e2-af5d-79ea-9b7c-278e867e3d8c
+INV/0836|5c6c9a19-dea2-7ace-bc06-485cca974457|Sunbake Salted Cracker 60 g|48|96|816f91a2-43db-704d-9e97-9aeb34e1a722
+INV/0836|b979bb9b-fddf-7563-a9df-427063cbae05|Sunbake Marie Light 300 g|24|36|fd11f7be-b3a3-7a14-93db-503daf700347
+INV/0836|fd7a0d08-d50b-72b1-a0b2-fa6345935bac|Campa Cola 750 ml|24|24|cb5df43d-cc5e-738c-8590-4813f843e143
+INV/0839|aa242ac4-32a7-79a8-866c-01ac325d5238|Balaji Chataka Pataka Wafers 45 g|240|48|56f53711-132c-7c59-9a90-cb5f2826adb6
+INV/0839|8259310a-90b7-7b94-a21e-0592cc6c384a|Sunbake Glucose 110 g|360|72|be96c7c8-8e29-726c-be64-b9ce3e64a1fb
+INV/0839|da1d8e4e-48b6-763a-bc41-f8804ebcf80e|Campa Cola 750 ml|96|24|cb5df43d-cc5e-738c-8590-4813f843e143
+INV/0839|5388cc73-036b-72e6-b48d-a7a9a9792e53|Campa Lemon 750 ml|144|24|83aa6d12-6d5d-7c81-b6dd-ad8d3b7cf5bf

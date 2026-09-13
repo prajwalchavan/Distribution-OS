@@ -1,0 +1,18 @@
+### REQUEST  2026-09-13 01:09:55 IST
+POST http://127.0.0.1:3003/orders
+Authorization: Bearer <accessToken of rahul.deshmukh>
+Content-Type: application/json
+
+{"idempotencyKey":"sec-fx10-01a09722-30c7-722d-9091-88770c42d8bf","id":"01a09722-30c7-722d-9091-88770c42d8bf","retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","source":"salesperson","note":"QA security regression fixture W (wave)","lines":[{"id":"01a09722-30ec-750f-b171-85bf8176314b","variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","enteredQty":6,"enteredUnit":"piece"}]}
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 1109
+Date: Sat, 12 Sep 2026 19:39:55 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"01a09722-30c7-722d-9091-88770c42d8bf","orderNo":null,"retailerId":"4ba7bda0-1083-731b-b352-50ecb7532489","state":"draft","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":null,"externalRef":null,"subtotalPaise":8706,"discountPaise":0,"taxPaise":1045,"roundOffPaise":49,"totalPaise":9800,"approvalFlags":[],"expectedDeliveryDate":null,"note":"QA security regression fixture W (wave)","submittedAt":null,"confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T19:39:55.675Z","lines":[{"id":"01a09722-30ec-750f-b171-85bf8176314b","lineNo":1,"variantId":"a47e1049-9e8a-76ad-b2cc-7ed974f4bf9d","enteredQty":6,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":6,"freeQtyPcs":0,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":1451,"ratePaise":1451,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":1045,"lineTotalPaise":9751,"appliedRules":[],"priceLocked":false}],"transitions":[],"approvals":[]}}

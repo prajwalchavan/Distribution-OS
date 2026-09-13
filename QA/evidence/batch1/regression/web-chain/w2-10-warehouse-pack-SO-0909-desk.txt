@@ -1,0 +1,39 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+Sai Krupa Super Bazar
+SO-0909
+INV/9014
+Packed
+13 Sep, 3:27 am
+Cartons 1
+INV/9014
+₹3,029.00
+Print the bill
+The e-way bill number is typed at the desk.
+WHAT GOES IN THE CARTONS
+Sunbake Salted Cracker 60 g
+12 pc
+Packed
+Sunbake Salted Cracker 60 g
+24 pc
+Packed
+Sunbake Salted Cracker 60 g
+60 pc
+Packed
+Neelam Neem Soap 100 g
+41 pc
+Packed
+Neelam Neem Soap 100 g
+31 pc
+Packed
+Close

@@ -1,0 +1,18 @@
+Data touched by the iOS sales/delivery/retailer pass — read 2026-09-13 07:08:00 IST
+== SO-0912
+SO-0912|submitted|2957100|credit_limit:pending
+== RCPT-0706
+RCPT-0706|cash|475600|collected|t
+== Nakshatra outstanding
+1155700
+== payment intents created in this pass
+2026-09-13 07:00:01.794826+05:30|PAY-ee49e5da84c1|3584300
+2026-09-13 07:02:05.376459+05:30|PAY-8e8b11f908a4|456100
+== TRIP-NEXT stop 4
+arrived|2026-09-13 06:53:22.913+05:30
+== deliveries / credit notes / return stock rows since 06:20
+0|0|0
+== auth sessions created since 06:20 for the three users
+ganesh.more|2
+rahul.deshmukh|3
+ramesh.gupta|2

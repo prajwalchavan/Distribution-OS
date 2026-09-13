@@ -1,0 +1,67 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Offline since 1:21 am · 1 waiting to send
+DP
+Dinesh Patil
+warehouse
+1 of 7 picked
+PICK-0083
+picking
+To pick
+Every line
+Picks are saved on this phone and sent when there is a signal.
+Sunbake Glucose 110 g
+Batch SB20260614
+Exp 9 Feb 2027
+₹20.00
+8 pc
+Picked
+Short
+Sunbake Glucose 110 g
+Batch B20260614
+Exp 9 Feb 2027
+₹20.00
+8 pc
+Picked
+Short
+Sunbake Glucose 110 g
+Batch SB20260621
+Exp 16 Feb 2027
+₹20.00
+12 pc
+Picked
+Short
+Sunbake Glucose 110 g
+Batch SB20260628
+Exp 23 Feb 2027
+₹20.00
+1 pc
+Picked
+Short
+Sunbake Glucose 110 g
+Batch SB20260705
+Exp 2 Mar 2027
+₹20.00
+17 pc
+Picked
+Short
+Sunbake Glucose 110 g
+Batch SB20260719
+Exp 16 Mar 2027
+₹20.00
+17 pc
+Picked
+Short
+A wave is cancelled by the manager.
+1 waiting to send
+Refresh
+1 of 7 picked
+Scan
+Take it to packing
+6 lines not yet picked

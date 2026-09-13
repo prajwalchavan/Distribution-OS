@@ -1,0 +1,82 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+GM
+Ganesh More
+delivery
+TRIP-NEXT · 14 Sep 2026
+End of day
+On the road
+0 of 5 stops done
+CASH TAKEN
+₹0.00
+UPI TAKEN
+₹0.00
+CHEQUES TAKEN
+₹0.00
+SPENT
+₹500.00
+Cash the office expects
+Float ₹3,000.00 + cash taken ₹0.00 − spent ₹500.00
+Float at start
+₹3,000.00
+Cash taken
+₹0.00
+Spent
+₹500.00
+Hand ₹2,500.00 to the cashier
+The cashier counts the money and the godown counts the van. The trip closes at the office, not here.
+Stops
+Delivered 0 · Part delivered 0 · Not delivered 0
+1. City Light Provision
+Shop 6, Barave Road, Godrej Hill, Kalyan West, Kalyan, 421301
+₹7,038.00
+At the shop
+2. Gupta Kirana Stores
+Shop 33, Khadakpada Circle, Khadakpada, Kalyan West, Kalyan, 421301
+₹10,806.00
+Not started
+3. Kadam Stores
+Shop 29, Gandhari Road, Khadakpada, Kalyan West, Kalyan, 421301
+₹12,707.00
+Not started
+4. Rameshwar General Store
+Shop 11, Birla College Road, Birla College Road, Kalyan West, Kalyan, 421301
+₹18,027.00
+Not started
+5. Meghana General Store
+Shop 8, Birla College Road, Birla College Road, Kalyan West, Kalyan, 421301
+₹7,076.00
+Not started
+Still on the van
+The godown counts this back in when you check in
+Balaji Simply Salted Wafers 45 g
+1 cs = 48 pc
+B20260909
+Campa Cola 1 L
+1 cs = 24 pc
+B20260909
+Campa Cola 750 ml
+2 cs = 48 pc
+RCP20260822
+Campa Lemon 750 ml
+1 cs = 24 pc
+B20260909
+Campa Orange 750 ml
+1 cs = 24 pc
+B20260909
+Too Yumm Karare 60 g
+1 cs = 48 pc
+B20260909
+Odometer at start (km)
+Odometer now (km)
+Cash the office expects
+₹2,500.00
+Check the vehicle in

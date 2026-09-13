@@ -1,0 +1,10 @@
+in.distributionos.delivery: RCPT-0703
+in.distributionos.delivery: RCPT-0703
+in.distributionos.delivery: Open
+in.distributionos.delivery: Open
+in.distributionos.delivery: Print
+in.distributionos.delivery: Print
+in.distributionos.delivery: Send on WhatsApp
+in.distributionos.delivery: Send on WhatsApp
+in.distributionos.delivery: Close
+in.distributionos.delivery: Close

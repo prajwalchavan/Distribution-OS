@@ -1,0 +1,20 @@
+== DOS-034 workaround on iOS: Day-end 'Bank this batch' (page-level dialog, not inside a Sheet) as meena.joshi, read 2026-09-13 08:39:20 IST
+req-1u7 "url":"/receipts/deposit" "statusCode":200 
+RCPT-0688|deposited|2026-09-13 08:39:13.699+05:30|DEP-QA-IOS-034|
+deposit|75
+receipt_reversal|2
+ERROR:  column je.created_at does not exist
+LINE 1: ...t username from users u where u.id=je.posted_by), je.created...
+                                                             ^
+ERROR:  column jl.debit_paise does not exist
+LINE 1: select a.code, jl.debit_paise, jl.credit_paise from journal_...
+                       ^
+-- newest deposit journal entry after the iOS Day-end deposit
+01a098bd-8bd2-755a-af8f-e89b1f98539f|01a0947d-7a79-75d2-bfff-97e499a58d49|2026-09-13|deposit|01a098ba-8720-7564-9042-611317007d4e|DEP-QA-IOS-034|journal:deposit:01a098ba-8720-7564-9042-611317007d4e|3188dd91-43ff-768a-97cc-b63c11bb00a0|2026-09-13 08:39:14.028162+05:30|
+-- its lines
+01a098bd-8bd4-745f-8f4f-1ec6ae42d681|01a0947d-7a79-75d2-bfff-97e499a58d49|01a098bd-8bd2-755a-af8f-e89b1f98539f|01a0947d-7a91-74f4-b599-ef1aa6be2c44|491400|||
+01a098bd-8bd4-7460-999d-640f1b301027|01a0947d-7a79-75d2-bfff-97e499a58d49|01a098bd-8bd2-755a-af8f-e89b1f98539f|01a0947d-7a91-74f1-b71a-4c8885a7a7c0|-491400|||
+-- account codes and poster for deposit entry 01a098bd-8bd2-755a
+BANK|Bank|491400
+CASH|Cash in hand|-491400
+meena.joshi

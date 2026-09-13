@@ -1,0 +1,12 @@
+== DOS-025 baseline (load sheets in tarsun), read 2026-09-13 08:07:14 IST
+draft|1
+confirmed|84
+-- draft sheets
+id,tenant_id,trip_id,from_location_id,to_location_id,order_ids,van_stock,load_value_paise,ewb_no,challan_no,confirmed_by,confirmed_at,created_at,updated_at,status,sheet_date,expected_packages,counted_packages,variance_note,pin_verified_by,ewb_required,cancelled_at,cancel_reason,approved_by,approved_at
+ERROR:  column ls.vehicle_id does not exist
+LINE 1: ... from load_sheets ls left join vehicles v on v.id=ls.vehicle...
+                                                             ^
+-- draft sheets (fixed query)
+01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|draft|2026-09-13|1|137500|vikas.kadam|2026-09-13 02:35:01.279+05:30|2026-09-13 02:33:31.768111+05:30|["01a09766-101d-726f-bd86-95398f469cf4"]
+-- newest confirmed sheet
+01a097a7-46f2-7f3a-b3fe-280a3d45e744|2026-09-13|2026-09-13 03:36:59.743+05:30

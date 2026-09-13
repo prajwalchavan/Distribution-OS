@@ -1,0 +1,95 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-01-d9-inv0826-desk.png (2881 chars text)
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-02-d9-after-share-desk.png (2898 chars text)
+{
+ "canShareFiles": "navigator.canShare absent",
+ "invoiceButtons": [
+  {
+   "id": "d9-open",
+   "disabled": false
+  },
+  {
+   "id": "d9-print",
+   "disabled": false
+  },
+  {
+   "id": "d9-share",
+   "disabled": false
+  }
+ ],
+ "open": {
+  "label": "invoice open",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 12127,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 21840,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "print": {
+  "label": "invoice print",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+  ],
+  "popupOpened": false,
+  "requests": [
+   {
+    "ms": 13678,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+   },
+   {
+    "ms": 21685,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 21840,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "share": {
+  "label": "invoice send on whatsapp",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 23194,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/invoice/89e7513d-3068-762d-8e9a-6060dca8d19f.pdf?expires=1789243444&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 21840,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "toastAfterShare": "Nothing was sent"
+}
+[url] http://localhost:5177/share/89e7513d-3068-762d-8e9a-6060dca8d19f

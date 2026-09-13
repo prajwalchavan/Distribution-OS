@@ -1,0 +1,7 @@
+Approve |  | click=false | en=true | [94,767][985,836]
+SO-0911 |  | click=false | en=true | [95,868][986,926]
+Note for the person who asked |  | click=false | en=true | [95,958][986,1006]
+ | Approve | click=true | en=true | [95,1271][986,1436]
+Approve |  | click=false | en=true | [462,1324][619,1382]
+ | Cancel | click=true | en=true | [95,1467][986,1632]
+Cancel |  | click=false | en=true | [476,1520][605,1578]

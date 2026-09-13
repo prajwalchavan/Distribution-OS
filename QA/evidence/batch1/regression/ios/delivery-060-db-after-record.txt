@@ -1,0 +1,15 @@
+After the iOS 'Record the payment' tap at 06:44:29 (T0 06:42:47) — read at 06:44:58 IST
+== receipts at Nakshatra Kirana since T0
+RCPT-0706|cash|475600|collected|dda35990-f442-7931-8da4-5808f09a33b6|ganesh.more|2026-09-13 06:44:30.124+05:30|01a0984f-5058-715f-846b-02392f40d8b0|
+== collections since T0
+cash|475600|18ac4301-73fb-72fd-9df1-cab54f72a4c4|dda35990-f442-7931-8da4-5808f09a33b6|2026-09-13 06:44:30.124+05:30
+== outstanding summary now
+1155700|3|2026-09-13 06:44:30.124+05:30|475600
+== open bills now
+INV/0602|1255500|partially_paid
+INV/0632|865500|partially_paid
+INV/0829|475600|issued
+== outbox events since T0 for receipts/collections
+ReceiptRecorded|receipt|2026-09-13 06:44:30.152007+05:30|f
+DocumentRenderRequested|document|2026-09-13 06:44:30.152007+05:30|f
+CollectionRecorded|collection|2026-09-13 06:44:30.152007+05:30|f

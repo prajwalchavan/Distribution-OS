@@ -1,0 +1,16 @@
+                  id                  | status | expected_packages | counted_packages | challan_no | confirmed_at |            updated_at            
+--------------------------------------+--------+-------------------+------------------+------------+--------------+----------------------------------
+ 1720dd92-c311-7860-bae2-8c80ba18ee14 | draft  |                24 |               24 |            |              | 2026-09-12 12:51:00.570392+05:30
+(1 row)
+
+ van_sale_trips | trips 
+----------------+-------
+              6 |   181
+(1 row)
+
+  status   | sheets_with_van_stock | count 
+-----------+-----------------------+-------
+ draft     |                     0 |     2
+ confirmed |                     0 |   176
+(2 rows)
+

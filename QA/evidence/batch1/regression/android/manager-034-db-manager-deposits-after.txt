@@ -1,0 +1,29 @@
+# manager deposits on Android: RCPT-0690 (Bank this batch) and RCPT-0691 (Bank it from the receipt Sheet) (2026-09-13T00:19:04Z)
+> select id, receipt_no, mode, amount_paise, trip_id, status, deposit_ref, deposited_at from receipts where tenant_id=(select id from tenants where slug='tarsun') and receipt_no in ('RCPT-0690','RCPT-0691') order by receipt_no
+f287d6a2-d215-7eb6-b955-d213d1c4de6e|RCPT-0690|cash|181800||deposited|DEP-QA-AND-034-M|2026-09-13 05:46:30.801+05:30
+437b1495-b7e0-779a-abab-ff9f0014d600|RCPT-0691|cash|371600||deposited|DEP-QA-AND-034-MR|2026-09-13 05:48:26.346+05:30
+> select je.id, je.ref_type, je.ref_id, a.code, jl.amount_paise, je.created_at from journal_entries je join journal_lines jl on jl.entry_id=je.id join accounts a on a.id=jl.account_id where je.ref_type='deposit' and je.created_at > now() - interval '15 minutes' order by je.created_at, jl.amount_paise desc
+ERROR:  column je.created_at does not exist
+LINE 1: ... je.ref_type, je.ref_id, a.code, jl.amount_paise, je.created...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "a.created_at".
+> select count(*) from journal_entries where ref_type='deposit'
+97
+# journal lines of the two manager deposits on Android (2026-09-13T00:20:29Z)
+journal_entries columns: id,tenant_id,entry_date,ref_type,ref_id,narration,idempotency_key,posted_by,posted_at,reversed_by_entry_id
+> select je.id, je.ref_type, je.ref_id, a.code, jl.amount_paise from journal_entries je join journal_lines jl on jl.entry_id=je.id join accounts a on a.id=jl.account_id where je.ref_type='deposit' and je.id in (select id from journal_entries where ref_type='deposit' order by id desc limit 2) order by je.id, jl.amount_paise desc
+f95c0781-a443-728a-8f1c-5671058d30cb|deposit|DEP/2026/0646|BANK|923100
+f95c0781-a443-728a-8f1c-5671058d30cb|deposit|DEP/2026/0646|CHEQUES|-923100
+feb65182-5ce1-7edf-82c9-1cbfb9b0ca22|deposit|DEP/2026/0403|BANK|1145700
+feb65182-5ce1-7edf-82c9-1cbfb9b0ca22|deposit|DEP/2026/0403|CHEQUES|-1145700
+> select id, receipt_no, status, deposit_ref from receipts where id in ('f287d6a2-d215-7eb6-b955-d213d1c4de6e','437b1495-b7e0-779a-abab-ff9f0014d600')
+f287d6a2-d215-7eb6-b955-d213d1c4de6e|RCPT-0690|deposited|DEP-QA-AND-034-M
+437b1495-b7e0-779a-abab-ff9f0014d600|RCPT-0691|deposited|DEP-QA-AND-034-MR
+# journal lines of deposit entries posted in the last 30 minutes (the two manager deposits on Android) (2026-09-13T00:21:00Z)
+> select je.id, je.ref_type, je.ref_id, je.posted_at, a.code, jl.amount_paise, u.username from journal_entries je join journal_lines jl on jl.entry_id=je.id join accounts a on a.id=jl.account_id left join users u on u.id=je.posted_by where je.ref_type='deposit' and je.posted_at > now() - interval '30 minutes' order by je.posted_at, jl.amount_paise desc
+01a0981f-6c48-7739-9b21-6b81e305d860|deposit|01a0981d-1c55-72a7-8b4d-3b3e244bdf09|2026-09-13 05:46:31.240937+05:30|BANK|181800|vikas.kadam
+01a0981f-6c48-7739-9b21-6b81e305d860|deposit|01a0981d-1c55-72a7-8b4d-3b3e244bdf09|2026-09-13 05:46:31.240937+05:30|CASH|-181800|vikas.kadam
+01a09821-2fe6-76c0-a5ff-a8c5a283226b|deposit|01a09820-de80-730f-aa3c-7eeb8fc16070|2026-09-13 05:48:26.830376+05:30|BANK|371600|vikas.kadam
+01a09821-2fe6-76c0-a5ff-a8c5a283226b|deposit|01a09820-de80-730f-aa3c-7eeb8fc16070|2026-09-13 05:48:26.830376+05:30|CASH|-371600|vikas.kadam
+> select sum(jl.amount_paise) from journal_entries je join journal_lines jl on jl.entry_id=je.id where je.ref_type='deposit' and je.posted_at > now() - interval '30 minutes'
+0

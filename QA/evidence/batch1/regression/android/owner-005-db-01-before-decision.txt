@@ -1,0 +1,19 @@
+SO-0910 fixture before any decision:
+SO-0910|submitted|["bargain"]|136900|
+01a097dc-4fcf-72fb-b072-52e2f2f74e7f|bargain|bargain_request|01a097dc-4e7b-7650-a099-8f191bbbcbf9|pending||
+01a097dc-4e7b-7650-a099-8f191bbbcbf9|requested|5092|4480|||
+all pending approvals tarsun now:
+bargain|bargain_request|-|Om Sai Provision Store
+credit_limit|sales_order|SO-0879|-
+credit_limit|sales_order|SO-0882|-
+credit_limit|sales_order|SO-0885|-
+credit_limit|sales_order|SO-0886|-
+credit_limit|sales_order|SO-0887|-
+bargain|bargain_request|SO-0898|Balaji Wholesale Stores
+bargain|bargain_request|SO-0910|Rameshwar General Store
+requested bargain_requests tarsun:
+1221ccf5-aa42-7f60-9557-2eedce569b87|Mahalaxmi General Stores|2228|-
+011d0c51-293c-7e9b-bf53-b5b035898d9c|Om Sai Provision Store|3958|-
+01a0958e-2b8b-75cf-91ea-4f6ea3349040|Shree Ganesh Kirana|1300|-
+01a09754-dac1-74cf-bd82-59bb9b55fc6f|Balaji Wholesale Stores|2014|SO-0898
+01a097dc-4e7b-7650-a099-8f191bbbcbf9|Rameshwar General Store|4480|SO-0910

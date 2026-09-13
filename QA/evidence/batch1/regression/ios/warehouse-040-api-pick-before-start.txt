@@ -1,0 +1,2 @@
+POST http://127.0.0.1:3004/warehouse/picklists/01a09872-ae42-70b5-99b4-757c72ca6a39/pick -> 409
+{"defined":false,"code":"CONFLICT","status":409,"message":"picklist PICK-0091 is open; start it before picking"}

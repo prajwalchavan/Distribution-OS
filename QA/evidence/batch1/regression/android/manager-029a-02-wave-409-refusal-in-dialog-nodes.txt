@@ -1,0 +1,8 @@
+Make a picking sheet |  | click=false | en=true | [94,786][985,855]
+1 orders · 390 pc |  | click=false | en=true | [95,887][986,945]
+The picker gets one sheet, in FEFO order, for every order you tick. |  | click=false | en=true | [95,976][986,1072]
+only a confirmed order can be waved; SO-0850 is packed |  | click=false | en=true | [95,1104][986,1220]
+ | busy | click=true | en=true | [95,1252][986,1418]
+Make a picking sheet |  | click=false | en=true | [341,1305][740,1363]
+ | Cancel | click=true | en=true | [95,1448][986,1613]
+Cancel |  | click=false | en=true | [476,1501][605,1559]

@@ -1,0 +1,12 @@
+-- DOS-058 baseline for INV/0836 at Meghana (03:20:26 IST)
+-- invoice + order
+d85131d8-4a5f-7536-a42b-90136d5d61ec|INV/0836|issued|707600|SO-0869|dispatched
+-- credit notes on INV/0836
+0
+-- deliveries on INV/0836
+plan:b7a0e1c7-3976-7374-bebb-d4219ea5a41a:d85131d8-4a5f-7536-a42b-90136d5d61ec|
+-- Campa Cola 750 ml lot cb5df43d balances by location (location | kind | on_hand | reserved)
+Godown|warehouse|5999|0
+Vehicle MH-05-AB-1234|vehicle|48|0
+-- damaged bin locations in tarsun
+01a0947d-7a97-7466-8ce4-06501d6672dd|Damaged / expiry bin|damaged

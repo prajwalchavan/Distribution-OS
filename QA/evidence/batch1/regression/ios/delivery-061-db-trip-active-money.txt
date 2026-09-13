@@ -1,0 +1,17 @@
+TRIP-ACTIVE (dda35990) money by mode 06:41:55 IST — End of day on iOS showed CASH 15455, UPI 4756
+== receipts on the trip
+RCPT-0698|cash|785600|collected|2026-09-12 16:05:27.388+05:30|t
+RCPT-0699|upi|475600|collected|2026-09-12 16:29:08.918+05:30|t
+RCPT-0701|cash|284300|collected|2026-09-13 01:25:12.313+05:30|t
+RCPT-0703|cash|475600|collected|2026-09-13 02:55:47.831+05:30|t
+== receipts by mode (non-cancelled)
+cash|1545500|3
+upi|475600|1
+== collections on the trip
+cash|785600|RCPT-0698|cash|2026-09-12 16:05:27.388+05:30
+upi|475600|RCPT-0699|upi|2026-09-12 16:29:08.918+05:30
+cash|284300|RCPT-0701|cash|2026-09-13 01:25:12.313+05:30
+cash|475600|RCPT-0703|cash|2026-09-13 02:55:47.831+05:30
+== collections by mode
+cash|1545500|3
+upi|475600|1

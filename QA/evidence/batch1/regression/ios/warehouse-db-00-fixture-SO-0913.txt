@@ -1,0 +1,12 @@
+Fixture for iOS warehouse DOS-040/041/042 — created through the sales API as rahul.deshmukh, read 2026-09-13 07:16:31 IST
+POST :3003/orders -> 200 draft; POST :3003/orders/01a09871-28c5-7fde-b195-0abdb29e079a/submit -> 200 (see api body below)
+SO-0913|confirmed|R-0042|Vaibhav Kirana Mart|107000
+1|Annapurna Thick Poha 1 kg|12|3|AN20260606|pending
+1|Annapurna Thick Poha 1 kg|12|3|AN20260613|pending
+1|Annapurna Thick Poha 1 kg|12|6|B20260729|pending
+2|Campa Cola 500 ml|24|6|RCP20260814|pending
+2|Campa Cola 500 ml|24|18|B20260902|pending
+0
+-- submit response (first 600 chars)
+POST http://127.0.0.1:3003/orders/01a09871-28c5-7fde-b195-0abdb29e079a/submit -> 200
+{"item":{"id":"01a09871-28c5-7fde-b195-0abdb29e079a","orderNo":"SO-0913","retailerId":"afe18716-a7e7-7e88-b68a-e8101898ebe0","state":"confirmed","source":"salesperson","createdBy":"8760e17e-4830-7395-a946-1e02fffa1ad7","salespersonId":"8760e17e-4830-7395-a946-1e02fffa1ad7","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":"01a0947d-7a96-723f-952d-338dd284a1b4","externalRef":null,"subtotalPaise":95928,"discountPaise":0,"taxPaise":11029,"roundOffPaise":43,"totalPaise":107000,"app

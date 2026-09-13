@@ -1,0 +1,8 @@
+== app origin (what the page requested)
+X-Content-Type-Options: nosniff
+Content-Type: text/html
+code=200 bytes=1299
+== service origin
+content-type: application/json; charset=utf-8
+code=404 bytes=132
+/tmp/dos-q-pod-svc.bin: JSON data

@@ -1,0 +1,2 @@
+09-13 03:43:00.956   676  1026 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=upi://pay/... flg=0x10000000 xflg=0x4} with LAUNCH_MULTIPLE from uid 10215 (sr=223082615) result code=-91
+09-13 03:43:05.108  4523  4523 W BpBinder: Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and ProcessState::setThreadPoolMaxThreadCount. Generally you should setup the binder threadpool before other initialization steps.

@@ -1,0 +1,51 @@
+               now                
+----------------------------------
+ 2026-09-13 04:00:45.886406+05:30
+(1 row)
+
+             as_of             | today_invoiced_paise | today_collected_paise | total_outstanding_paise | overdue_paise | mtd_sales_paise | stock_value_paise | active_trips | pending_approvals 
+-------------------------------+----------------------+-----------------------+-------------------------+---------------+-----------------+-------------------+--------------+-------------------
+ 2026-09-13 04:00:27.975+05:30 |              1820500 |               1160900 |               441242300 |     268002200 |       199074800 |         216465850 |            3 |                 7
+(1 row)
+
+ sum_outstanding_all_shops | sum_overdue 
+---------------------------+-------------
+                 441242300 |   268002200
+(1 row)
+
+ invoiced_today_non_cancelled | count 
+------------------------------+-------
+                      1820500 |     7
+(1 row)
+
+ receipts_today_not_cancelled 
+------------------------------
+                      1160900
+(1 row)
+
+  code  | outstanding_paise | open_bills 
+--------+-------------------+------------
+ R-0004 |          20670900 |          5
+ R-0007 |           9657800 |          5
+ R-0010 |          72348300 |         13
+ R-0011 |          14633200 |          6
+ R-0015 |           8179200 |          6
+(5 rows)
+
+              name               |          loc          | on_hand 
+---------------------------------+-----------------------+---------
+ Balaji Masala Masti Wafers 45 g | Damaged / expiry bin  |       2
+ Balaji Masala Masti Wafers 45 g | Godown                |     741
+ Chamak Detergent Bar 250 g      | Damaged / expiry bin  |       6
+ Chamak Detergent Bar 250 g      | Godown                |     432
+ Chamak Detergent Bar 250 g      | Vehicle MH-05-EF-9012 |      34
+ Chamak Dishwash Bar 145 g       | Godown                |     546
+ Neelam Rose Soap 100 g          | Damaged / expiry bin  |      36
+ Neelam Rose Soap 100 g          | Godown                |     665
+ Neelam Sandal Soap 100 g        | Godown                |    1332
+ Sunbake Butter Cookies 75 g     | Damaged / expiry bin  |      78
+ Sunbake Butter Cookies 75 g     | Godown                |     686
+ Sunbake Marie Light 75 g        | Damaged / expiry bin  |      32
+ Sunbake Marie Light 75 g        | Godown                |     864
+(13 rows)
+

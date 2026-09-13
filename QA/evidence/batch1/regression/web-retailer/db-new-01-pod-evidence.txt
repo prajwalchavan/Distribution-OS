@@ -1,0 +1,10 @@
+-- POD photos on bills of R-0001 / R-0010 with real (non-demo) object keys
+-- any real (non-demo) POD photo in tarsun, newest
+R-0013|Laxmi Narayan Stores|INV/0830|80b30321-a74d-79e3-9a46-9d479e859494|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3ef9bd1e-b25e-740a-bc2b-fce3d33b95ab/01a09725-2cfa-73b3-a226-9e159a821860.jpg|2026-09-13 01:13:13.835+05:30
+R-0046|Khan General Store|INV/0833|b144aedd-7ff0-774f-8343-7722cff4bffc|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/339a5196-6a3e-74f0-93b8-1c6fd7d0db78/01a0955e-256c-757a-a996-2f904bed7b5e.jpg|2026-09-12 16:56:12.858+05:30
+R-0038|Rukmini Provision|INV/0835|61f3d158-7345-70d9-b105-ab090caf340b|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/8cc44933-dafe-7179-900d-e85f1e37fbc0/01a09554-0b1b-74b0-8132-fe3553044c0c.jpg|2026-09-12 16:45:16.342+05:30
+R-0050|Nakshatra Kirana|INV/0829|2b7ac404-a71b-70ad-867a-402a4482bef9|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/3d5fcf90-8e8c-7c20-a8e4-bafca63ffd49/01a0953d-5051-70cf-a9d8-b395f7c1780c.jpg|2026-09-12 16:21:18.884+05:30
+R-0020|Joshi Kirana Stores|INV/0826|89e7513d-3068-762d-8e9a-6060dca8d19f|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a09532-ed25-771c-bd66-a216250b9a5d.jpg|2026-09-12 16:09:00.557+05:30
+-- count demo vs real keys (tarsun)
+f|6
+t|825

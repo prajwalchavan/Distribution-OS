@@ -1,0 +1,1 @@
+LABEL: Receipt RCPT-CHQ-0002, Shop, Rameshwar General Store, Mode, Cheque, Amount ₹, 29456 rupees, On account ₹, 0 rupees, State, Collected, Put against, e498f407-ceb2-7f2a-be27-4e9188d26dbd, 29456 rupees, Print the receipt, Bank it, Mark bounced, Reverse the receipt, Horizontal scroll bar, 1 page, Vertical scroll bar, 2 pages, Close

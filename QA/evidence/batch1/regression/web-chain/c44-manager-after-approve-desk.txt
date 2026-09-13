@@ -1,0 +1,1166 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+16
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Load-out & challans
+Load sheets
+Challans
+Waves
+Pick & pack
+Load-out
+Your approval IS the PIN, and it is given here — nothing is typed on the warehouse phone but the count.
+Not out of the godown yet
+Date	Vehicle	State	Orders	Packages	Counted	On board ₹	Challan no.
+
+13 Sep
+	
+MH-05-EF-9012
+	Approved · the godown may check it out	
+4
+	
+6
+	
+—
+	16,163.00	
+—
+
+
+13 Sep
+	
+MH-05-CD-5678
+	Approved · the godown may check it out	
+1
+	
+1
+	
+—
+	1,375.00	
+—
+
+2							
+Checked out and cancelled
+Date	Vehicle	State	Orders	Packages	Counted	On board ₹	Challan no.
+
+28 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+6
+	
+39
+	
+39
+	69,729.00	
+DC-0041
+
+
+4 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+7
+	
+48
+	
+47
+	1,28,158.00	
+DC-0047
+
+
+3 Sep
+	
+MH-05-EF-9012
+	Confirmed	
+7
+	
+54
+	
+54
+	1,07,223.00	
+DC-0074
+
+
+21 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+10
+	
+49
+	
+48
+	94,247.00	
+DC-0035
+
+
+17 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+10
+	
+65
+	
+65
+	1,87,614.00	
+DC-0031
+
+
+7 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+13
+	
+86
+	
+86
+	3,61,309.00	
+DC-0077
+
+
+25 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+11
+	
+59
+	
+59
+	4,27,334.00	
+DC-0066
+
+
+24 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+9
+	
+47
+	
+47
+	1,17,017.00	
+DC-0009
+
+
+29 Jun
+	
+MH-05-EF-9012
+	Confirmed	
+13
+	
+108
+	
+108
+	3,75,243.00	
+DC-0014
+
+
+24 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+8
+	
+74
+	
+74
+	2,98,978.00	
+DC-0065
+
+
+14 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+13
+	
+91
+	
+91
+	2,14,996.00	
+DC-0028
+
+
+23 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+10
+	
+59
+	
+59
+	1,61,674.00	
+DC-0037
+
+
+8 Sep
+	
+MH-05-CD-5678
+	Confirmed	
+11
+	
+74
+	
+74
+	1,39,915.00	
+DC-0078
+
+
+10 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+11
+	
+74
+	
+74
+	2,44,126.00	
+DC-0080
+
+
+30 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+9
+	
+63
+	
+63
+	1,88,432.00	
+DC-0043
+
+
+23 Jun
+	
+MH-05-EF-9012
+	Confirmed	
+9
+	
+62
+	
+61
+	1,20,246.00	
+DC-0008
+
+
+12 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+65
+	
+65
+	1,82,584.00	
+DC-0054
+
+
+26 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+12
+	
+67
+	
+67
+	1,96,717.00	
+DC-0067
+
+
+29 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+8
+	
+62
+	
+62
+	1,25,299.00	
+DC-0042
+
+
+13 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+11
+	
+83
+	
+83
+	2,97,891.00	
+DC-0055
+
+
+30 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+10
+	
+67
+	
+67
+	1,56,621.00	
+DC-0015
+
+
+2 Sep
+	
+MH-05-CD-5678
+	Confirmed	
+13
+	
+67
+	
+67
+	1,22,400.00	
+DC-0073
+
+
+16 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+7
+	
+42
+	
+42
+	79,272.00	
+DC-0030
+
+
+9 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+9
+	
+58
+	
+58
+	1,40,438.00	
+DC-0023
+
+
+25 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+67
+	
+67
+	1,96,477.00	
+DC-0039
+
+
+22 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+9
+	
+61
+	
+61
+	1,40,919.00	
+DC-0064
+
+
+21 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+9
+	
+56
+	
+56
+	1,53,273.00	
+DC-0063
+
+
+31 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+16
+	
+112
+	
+112
+	2,72,539.00	
+DC-0044
+
+
+1 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+12
+	
+80
+	
+79
+	2,10,610.00	
+DC-0072
+
+
+10 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+11
+	
+57
+	
+57
+	1,46,071.00	
+DC-0024
+
+
+31 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+15
+	
+102
+	
+102
+	2,21,795.00	
+DC-0071
+
+
+10 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+12
+	
+82
+	
+82
+	2,35,815.00	
+DC-0052
+
+
+9 Sep
+	
+MH-05-EF-9012
+	Confirmed	
+11
+	
+57
+	
+57
+	1,08,804.00	
+DC-0079
+
+
+11 Sep
+	
+MH-05-EF-9012
+	Confirmed	
+2
+	
+12
+	
+12
+	18,832.00	
+DC-0082
+
+
+29 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+7
+	
+49
+	
+49
+	1,23,510.00	
+DC-0070
+
+
+4 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+11
+	
+65
+	
+65
+	1,91,841.00	
+DC-0019
+
+
+4 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+15
+	
+84
+	
+84
+	1,99,891.00	
+DC-0075
+
+
+16 Jun
+	
+MH-05-CD-5678
+	Confirmed	
+6
+	
+36
+	
+36
+	67,035.00	
+DC-0002
+
+
+3 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+14
+	
+79
+	
+79
+	1,52,088.00	
+DC-0018
+
+
+28 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+16
+	
+110
+	
+110
+	3,77,551.00	
+DC-0069
+
+
+15 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+11
+	
+71
+	
+71
+	2,06,681.00	
+DC-0057
+
+
+7 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+12
+	
+72
+	
+71
+	1,62,459.00	
+DC-0021
+
+
+19 Jun
+	
+MH-05-CD-5678
+	Confirmed	
+13
+	
+79
+	
+79
+	1,54,627.00	
+DC-0005
+
+
+11 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+13
+	
+50
+	
+50
+	1,45,875.00	
+DC-0026
+
+
+18 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+60
+	
+59
+	98,059.00	
+DC-0059
+
+
+20 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+7
+	
+36
+	
+36
+	1,44,298.00	
+DC-0061
+
+
+26 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+9
+	
+61
+	
+61
+	1,28,459.00	
+DC-0011
+
+
+17 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+12
+	
+85
+	
+85
+	2,45,477.00	
+DC-0058
+
+
+27 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+13
+	
+81
+	
+81
+	2,01,329.00	
+DC-0040
+
+
+20 Jun
+	
+MH-05-EF-9012
+	Confirmed	
+10
+	
+51
+	
+51
+	1,40,768.00	
+DC-0006
+
+
+7 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+16
+	
+88
+	
+88
+	1,68,772.00	
+DC-0050
+
+
+2 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+12
+	
+70
+	
+70
+	2,53,959.00	
+DC-0017
+
+
+22 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+55
+	
+55
+	1,28,087.00	
+DC-0036
+
+
+1 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+11
+	
+64
+	
+64
+	2,05,441.00	
+DC-0045
+
+
+6 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+16
+	
+101
+	
+101
+	2,32,347.00	
+DC-0020
+
+
+27 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+14
+	
+103
+	
+103
+	2,16,380.00	
+DC-0013
+
+
+19 Aug
+	
+MH-05-EF-9012
+	Confirmed	
+14
+	
+73
+	
+73
+	1,53,316.00	
+DC-0060
+
+
+15 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+9
+	
+61
+	
+61
+	1,98,555.00	
+DC-0029
+
+
+3 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+12
+	
+81
+	
+81
+	2,07,714.00	
+DC-0046
+
+
+1 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+8
+	
+59
+	
+59
+	2,32,300.00	
+DC-0016
+
+
+27 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+14
+	
+75
+	
+75
+	1,48,463.00	
+DC-0068
+
+
+12 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+5
+	
+38
+	
+35
+	1,50,147.00	
+DC-0083
+
+
+10 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+11
+	
+76
+	
+76
+	1,58,864.00	
+DC-0025
+
+
+5 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+11
+	
+53
+	
+53
+	1,21,991.00	
+DC-0048
+
+
+11 Sep
+	
+MH-05-AB-1234
+	Confirmed	
+10
+	
+64
+	
+64
+	1,60,815.00	
+DC-0081
+
+
+8 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+8
+	
+66
+	
+66
+	1,95,405.00	
+DC-0022
+
+
+22 Jun
+	
+MH-05-CD-5678
+	Confirmed	
+14
+	
+79
+	
+79
+	2,53,467.00	
+DC-0007
+
+
+8 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+8
+	
+55
+	
+55
+	1,15,129.00	
+DC-0051
+
+
+20 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+13
+	
+107
+	
+107
+	3,27,555.00	
+DC-0034
+
+
+11 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+8
+	
+43
+	
+43
+	83,655.00	
+DC-0053
+
+
+25 Jun
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+86
+	
+86
+	2,31,886.00	
+DC-0010
+
+
+18 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+11
+	
+58
+	
+58
+	1,60,657.00	
+DC-0004
+
+
+18 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+15
+	
+83
+	
+83
+	2,14,729.00	
+DC-0033
+
+
+17 Jun
+	
+MH-05-EF-9012
+	Confirmed	
+9
+	
+60
+	
+60
+	1,70,881.00	
+DC-0003
+
+
+14 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+16
+	
+104
+	
+104
+	2,23,731.00	
+DC-0056
+
+
+6 Aug
+	
+MH-05-CD-5678
+	Confirmed	
+5
+	
+47
+	
+47
+	1,06,217.00	
+DC-0049
+
+
+17 Jul
+	
+MH-05-EF-9012
+	Confirmed	
+9
+	
+58
+	
+58
+	1,07,480.00	
+DC-0032
+
+
+15 Jun
+	
+MH-05-AB-1234
+	Confirmed	
+8
+	
+48
+	
+48
+	1,06,223.00	
+DC-0001
+
+
+24 Jul
+	
+MH-05-AB-1234
+	Confirmed	
+16
+	
+97
+	
+97
+	2,02,120.00	
+DC-0038
+
+
+26 Jun
+	
+MH-05-CD-5678
+	Confirmed	
+8
+	
+35
+	
+35
+	47,235.00	
+DC-0012
+
+
+5 Sep
+	
+MH-05-CD-5678
+	Confirmed	
+12
+	
+81
+	
+81
+	2,39,903.00	
+DC-0076
+
+
+13 Jul
+	
+MH-05-CD-5678
+	Confirmed	
+10
+	
+71
+	
+71
+	1,78,711.00	
+DC-0027
+
+
+21 Aug
+	
+MH-05-AB-1234
+	Confirmed	
+10
+	
+56
+	
+56
+	1,25,908.00	
+DC-0062
+
+83 rows							
+Load sheet · MH-05-EF-9012
+Close
+State
+Approved · the godown may check it out
+From
+Godown
+To
+Vehicle MH-05-EF-9012
+Packages
+6
+Orders
+4
+On board ₹
+₹16,163.00
+Approved by Vikas Kadam
+13 Sep
+Orders
+1. Ganpati General Stores
+SO-0906 · INV/9013
+2. Sai Baba Kirana
+SO-0905 · INV/9012
+3. Ganesh General Store
+SO-0904 · INV/9011
+4. Balaji Wholesale Stores
+SO-0903 · INV/9010
+Approve the load-out
+This sheet is already approved
+Cancel the sheet

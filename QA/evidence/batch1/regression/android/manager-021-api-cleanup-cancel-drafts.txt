@@ -1,0 +1,11 @@
+### REQUEST 2026-09-13T00:13:32.128Z
+POST http://127.0.0.1:3002/credit-notes/01a0981a-8e6f-725c-8f05-2cdec78e45f4
+01a0981c-0cb6-769f-8d14-6d36d2324233/cancel
+Authorization: Bearer <accessToken of vikas.kadam>
+
+{"id":"01a0981a-8e6f-725c-8f05-2cdec78e45f4\n01a0981c-0cb6-769f-8d14-6d36d2324233","idempotencyKey":"01a0981c-b05f-7b0b-891f-3065f4651434","reason":"QA regression android walk: test draft withdrawn"}
+
+### RESPONSE
+HTTP 400
+{"defined":false,"code":"BAD_REQUEST","status":400,"message":"Input validation failed","data":{"issues":[{"origin":"string","code":"invalid_format","format":"uuid","pattern":"/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/","path":["id"],"message":"Invalid UUID"}]}}
+

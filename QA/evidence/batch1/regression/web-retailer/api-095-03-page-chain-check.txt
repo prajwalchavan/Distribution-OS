@@ -1,0 +1,4 @@
+2026-06-16..2026-09-13: limit200 items=53 next=None | limit12 pages=5 items=53 identical_order=True dupes=0 | opening=524200 closing=3584300 last_balance=3584300 running_balance_continuous=True
+  kinds: {"invoice": 24, "credit_note": 4, "receipt": 25}
+2026-04-01..2026-09-13: limit200 items=54 next=None | limit12 pages=5 items=54 identical_order=True dupes=0 | opening=0 closing=3584300 last_balance=3584300 running_balance_continuous=True
+  kinds: {"invoice": 25, "credit_note": 4, "receipt": 25}

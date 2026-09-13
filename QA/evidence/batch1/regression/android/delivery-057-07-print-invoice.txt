@@ -1,0 +1,9 @@
+com.android.printspooler: Expand handle
+com.android.printspooler: Select a printer
+com.android.printspooler: Summary, copies 1, paper size Letter
+com.android.printspooler: Copies:
+com.android.printspooler: 1
+com.android.printspooler: Paper size:
+com.android.printspooler: Letter
+com.android.printspooler: Page 1 of 1
+com.android.printspooler: 1/1

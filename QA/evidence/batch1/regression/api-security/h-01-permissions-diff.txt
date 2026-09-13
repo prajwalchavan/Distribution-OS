@@ -1,0 +1,20 @@
+$ git rev-parse c5c6e03 HEAD
+c5c6e03b172163a87a0c02034aad62a5ad8273dd
+2c4b72194a5d029499d311605cdd18448c423824
+
+$ git diff --stat c5c6e03 HEAD -- backend/libs/contracts/src/permissions.ts
+(exit 0)
+
+$ git diff c5c6e03 HEAD -- backend/libs/contracts/src/permissions.ts | wc -l
+       0
+
+$ git log --oneline c5c6e03..HEAD -- backend/libs/contracts/src/permissions.ts
+(end; empty = no commit touched the file)
+
+$ git diff --stat c5c6e03 HEAD -- backend/libs/contracts/src/ backend/libs/core/src/platform/
+ backend/libs/contracts/src/delivery.test.ts | 22 ++++++++++++++++++++++
+ backend/libs/contracts/src/delivery.ts      | 21 ++++++++++++++++++++-
+ backend/libs/contracts/src/orders.ts        |  6 +++++-
+ backend/libs/contracts/src/pricing.ts       |  3 +++
+ backend/libs/contracts/src/warehouse.ts     | 15 +++++++++------
+ 5 files changed, 59 insertions(+), 8 deletions(-)

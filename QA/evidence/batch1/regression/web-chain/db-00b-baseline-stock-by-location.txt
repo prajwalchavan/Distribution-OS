@@ -1,0 +1,15 @@
+              now              
+-------------------------------
+ 2026-09-13 03:02:08.346+05:30
+(1 row)
+
+              name               |         loc          |   kind    | on_hand | reserved 
+---------------------------------+----------------------+-----------+---------+----------
+ Balaji Masala Masti Wafers 45 g | Damaged / expiry bin | damaged   |       2 |        0
+ Balaji Masala Masti Wafers 45 g | Godown               | warehouse |     885 |       14
+ Chamak Dishwash Bar 145 g       | Godown               | warehouse |     600 |        0
+ Neelam Sandal Soap 100 g        | Godown               | warehouse |    1404 |        0
+ Sunbake Marie Light 75 g        | Damaged / expiry bin | damaged   |      32 |        0
+ Sunbake Marie Light 75 g        | Godown               | warehouse |     960 |        0
+(6 rows)
+

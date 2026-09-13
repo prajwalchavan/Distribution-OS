@@ -1,0 +1,19 @@
+-- Final state of every record the security walker created or changed in dos_qa. SQL read-only 2026-09-13 01:18:16 IST
+order|01a09720-9174-75d3-9bb0-4cef6bf98395|SO-0888|confirmed|R-0004|8760e17e-4830-7395-a946-1e02fffa1ad7|9700||QA security regression fixture X
+order|01a09720-91c9-7705-be7f-e5a48d0e1e24||cancelled|R-0007|8760e17e-4830-7395-a946-1e02fffa1ad7|9800|QA security regression: clean up own fixture draft|QA security regression fixture D (draft)
+order|01a09720-9222-79e0-84df-d32e045e090a|SO-0889|cancelled|R-0015|8760e17e-4830-7395-a946-1e02fffa1ad7|9800|QA probe: warehouse cancels an order it has no business with|QA security regression fixture B
+order|01a09720-9277-7675-b2db-bd63401b0e59|SO-0890|confirmed|R-0014|8760e17e-4830-7395-a946-1e02fffa1ad7|9800||QA security regression fixture C (approval)
+order|01a09722-307c-780b-904e-906efd15dc0a|SO-0891|cancelled|R-0011|8760e17e-4830-7395-a946-1e02fffa1ad7|9800|QA probe: delivery cancels an order it has no business with|QA security regression fixture B2
+order|01a09722-30c7-722d-9091-88770c42d8bf|SO-0892|packed|R-0027|8760e17e-4830-7395-a946-1e02fffa1ad7|9800||QA security regression fixture W (wave)
+order|01a09726-51a8-752c-8a1f-6596b343c5b8|SO-0893|confirmed|R-0015|8760e17e-4830-7395-a946-1e02fffa1ad7|3300||QA security regression fixture E (draft)
+approval|01a09720-9453-7308-bf7a-88e083f2f56e|credit_limit|approved|a1cbd424-d568-7ccb-b5cc-b049e8ac2063|QA security regression: approve credit gate for fixture C
+picklist|01a09724-c03e-7940-979d-0f197d433b4e|PICK-0081|packed
+invoice|01a09728-9f08-72f7-a72b-6ec0a5b2d6df|INV/9007|partially_paid|9800
+credit note|01a09728-9fb6-755a-8481-f7772072fe7d|CN/9005|return_damaged|issued|3300
+credit note|01a09728-a095-732e-a736-6d1f7eadb650|CN/9006|return_damaged|issued|3300
+receipt|01a09725-2658-7018-bee2-5abaf48c5907|RCPT-0700|cash|1000|deposited|QA-SEC-034
+payment intents (outbox)|PAY-baa19eda49c7|3584300|34191c43-f0bc-70ab-a39d-fcbe8f94ae36
+payment intents (outbox)|PAY-0f8c756eb47e|456100|34191c43-f0bc-70ab-a39d-fcbe8f94ae36
+payment intents (outbox)|PAY-94ecc69201bd|1000000|34191c43-f0bc-70ab-a39d-fcbe8f94ae36
+payment intents (outbox)|PAY-c6c9e5f01ab1|456100|20059d26-8301-7f2a-9f72-29cc39ce7753
+retailer R-0027 outstanding|9028800|9|2026-09-13 01:16:57.334456+05:30

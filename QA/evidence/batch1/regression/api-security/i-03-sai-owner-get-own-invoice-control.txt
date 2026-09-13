@@ -1,0 +1,15 @@
+### REQUEST  2026-09-13 01:07:06 IST
+GET http://127.0.0.1:3001/invoices/3634f745-9506-7723-961e-2aac55da1d00
+Authorization: Bearer <accessToken of prakash.salunkhe>
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 1514
+Date: Sat, 12 Sep 2026 19:37:06 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"3634f745-9506-7723-961e-2aac55da1d00","invoiceNo":"OPEN/0005","seriesCode":"OPEN","fy":"2026-27","invoiceDate":"2026-05-28","orderId":null,"retailerId":"86ae7604-68ae-7f71-b6a7-243c9b0cd534","source":"import","externalInvoiceNo":null,"state":"issued","supplyType":"B2B","sellerGstin":null,"buyerGstin":"27RNJPT2282Y1Z6","buyerName":"Sant Tukaram Stores","buyerAddress":null,"placeOfSupplyState":"27","buyerFssai":null,"sellerFssai":null,"isInterState":false,"subtotalPaise":947650,"discountPaise":0,"taxablePaise":947650,"cgstPaise":0,"sgstPaise":0,"igstPaise":0,"cessPaise":0,"roundOffPaise":0,"totalPaise":947650,"cashDiscountBps":0,"cashDiscountUntil":null,"dueDate":"2026-06-18","irn":null,"ackNo":null,"ackDate":null,"signedQr":null,"ewayBillNo":null,"ewayBillValidUntil":null,"transportMode":null,"vehicleNo":null,"upiQrPayload":null,"pdfObjectKey":null,"issuedBy":"c1a93f97-92f9-7d6b-b0a7-de1385d2ffd7","issuedAt":"2026-05-28T05:30:00.000Z","cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T07:21:00.591Z","lines":[],"creditNotes":[],"amountDuePaise":947650,"seller":{"displayName":"Sai Distributors, Dombivli","legalName":"Sai Distributors","gstin":"27AASPD1201S1ZG","stateCode":"27","fssai":null,"address":{"line1":"Gala 4, Shivam Industrial Estate","area":"Khadakpada","city":"Kalyan","pincode":"421301"},"logoObjectKey":null,"logoUrl":null,"invoiceFooter":"Sai Distributors · Manpada Road, Dombivli East 421201 · GST paid at source","upiVpa":"saidistributors@okhdfcbank"}}}

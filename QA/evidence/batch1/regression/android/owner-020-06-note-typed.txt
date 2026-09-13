@@ -1,0 +1,1 @@
+SO-0910 | Kind | Bargain | Person | Amit Pawar | Asked | 13 Sep, 4:33 am | List rate | ₹50.92 | Asked rate | ₹44.80 | Note for the person who asked | QA android DOS-020: appQA android DOS-020: approve fixture bargainrove fixture bargain | Approve | Reject | Close

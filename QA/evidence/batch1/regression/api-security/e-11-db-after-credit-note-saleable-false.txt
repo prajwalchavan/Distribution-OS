@@ -1,0 +1,7 @@
+-- SQL read-only, credit note 01a09728-a095-732e-a736-6d1f7eadb650
+credit note|01a09728-a095-732e-a736-6d1f7eadb650|CN/9006|return_damaged|issued|3300
+credit note line|01a09728-9f08-72f8-afcc-c6f220cd0222|2|f
+stock_ledger|sale_return_damaged|Damaged / expiry bin|damaged|2|credit_note|2026-09-13 01:16:57.319+05:30
+-- stock balances after saleable:false note 2026-09-12T19:46:57.402Z
+balance|Damaged / expiry bin|66b34c38-19ee-7e28-8c96-ad5364fc7b4f|2|0
+balance|Godown|66b34c38-19ee-7e28-8c96-ad5364fc7b4f|15|0

@@ -1,0 +1,62 @@
+-- fatima.shaikh's tarsun shop: R-0010 Balaji Wholesale Stores (indicate)
+fatima tenant: tarsun token ok
+### fatima create draft POST http://127.0.0.1:3006/orders {"idempotencyKey":"ff2d8284-ceb6-4746-b40a-82779bac8f00","id":"01a09754-da7f-73b5-84b2-2539fdc5d8b7","retailerId":"20059d26-8301-7f2a-9f72-29cc39ce7753","source":"retailer_app","note":"QA regression probe: shop cancels an order held on a rate request","lines":[{"id":"01a09754-daa0-7e6b-b240-1d35d57fd9f4","variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","enteredQty":24,"enteredUnit":"piece"}]}
+ote":"QA regression probe: shop cancels an order held on a rate request","submittedAt":null,"confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T20:35:15.809Z","lines":[{"id":"01a09754-daa0-7e6b-b240-1d35d57fd9f4","lineNo":1,"variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","enteredQty":24,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":24,"freeQtyPcs":1,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":2263,"ratePaise":2251,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":6483,"lineTotalPaise":60507,"appliedRules":[{"ruleId":"fcfd94d1-5fcd-73c4-978a-cda712366313","version":1,"kind":"override","amountPaise":288},{"ruleId":"8c91c558-a161-77d0-9857-b3c99e4a8a85","version":1,"kind":"scheme","rewardKind":"free_qty","freeQty":1,"freeVariantId":"f71bf137-50de-7182-a0d9-c83f1a613a57"}],"priceLocked":true}],"transitions":[],"approvals":[]}}
+HTTP 200
+
+list=2263 ask=2014
+### fatima ask rate POST http://127.0.0.1:3006/pricing/bargains {"idempotencyKey":"55e53a9a-2d69-457d-bde2-fb6188cfc609","id":"01a09754-dac1-74cf-bd82-59bb9b55fc6f","retailerId":"20059d26-8301-7f2a-9f72-29cc39ce7753","variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","askedRatePaise":2014,"qtyPcs":24,"orderId":"01a09754-da7f-73b5-84b2-2539fdc5d8b7","note":"QA probe"}
+{"item":{"id":"01a09754-dac1-74cf-bd82-59bb9b55fc6f","retailerId":"20059d26-8301-7f2a-9f72-29cc39ce7753","variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","orderId":"01a09754-da7f-73b5-84b2-2539fdc5d8b7","requestedBy":"be8d0849-0dd8-7a75-9242-bdde2acbe8d7","listRatePaise":2251,"askedRatePaise":2014,"approvedRatePaise":null,"status":"requested","decidedBy":null,"decidedAt":null,"expiresAt":null,"note":"QA probe","createdAt":"2026-09-12T20:35:15.934Z"}}
+HTTP 200
+
+### fatima submit POST http://127.0.0.1:3006/orders/01a09754-da7f-73b5-84b2-2539fdc5d8b7/submit {"idempotencyKey":"aa2eea96-533a-4bf1-b8e9-6ab7d123c9c6","id":"01a09754-da7f-73b5-84b2-2539fdc5d8b7"}
+-b240-1d35d57fd9f4","lineNo":1,"variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","enteredQty":24,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":24,"freeQtyPcs":1,"pickedQtyPcs":0,"deliveredQtyPcs":0,"listRatePaise":2263,"ratePaise":2251,"discountBps":0,"discountPaise":0,"gstBps":1200,"taxPaise":6483,"lineTotalPaise":60507,"appliedRules":[{"ruleId":"fcfd94d1-5fcd-73c4-978a-cda712366313","version":1,"kind":"override","amountPaise":288},{"ruleId":"8c91c558-a161-77d0-9857-b3c99e4a8a85","version":1,"kind":"scheme","rewardKind":"free_qty","freeQty":1,"freeVariantId":"f71bf137-50de-7182-a0d9-c83f1a613a57"}],"priceLocked":true}],"transitions":[{"id":"01a09754-db8a-7287-b51a-7de8b4cb25e4","fromState":"draft","toState":"submitted","event":"submit","actorId":"be8d0849-0dd8-7a75-9242-bdde2acbe8d7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T20:35:15.964Z"}],"approvals":[]}}
+HTTP 200
+
+-- after submit (SQL)
+SO-0898|submitted
+01a09754-db92-712c-8693-b77fc5f360ad|bargain|bargain_request|pending
+requested
+### fatima cancel own order POST http://127.0.0.1:3006/orders/01a09754-da7f-73b5-84b2-2539fdc5d8b7/cancel {"idempotencyKey":"6da4441d-7f41-4d9f-ba58-7fcb8acc8895","id":"01a09754-da7f-73b5-84b2-2539fdc5d8b7","reason":"QA regression probe: shop cancels its own held order"}
+stBps":1200,"taxPaise":6483,"lineTotalPaise":60507,"appliedRules":[{"ruleId":"fcfd94d1-5fcd-73c4-978a-cda712366313","version":1,"kind":"override","amountPaise":288},{"ruleId":"8c91c558-a161-77d0-9857-b3c99e4a8a85","version":1,"kind":"scheme","rewardKind":"free_qty","freeQty":1,"freeVariantId":"f71bf137-50de-7182-a0d9-c83f1a613a57"}],"priceLocked":true}],"transitions":[{"id":"01a09754-db8a-7287-b51a-7de8b4cb25e4","fromState":"draft","toState":"submitted","event":"submit","actorId":"be8d0849-0dd8-7a75-9242-bdde2acbe8d7","deviceId":null,"reason":null,"occurredAt":"2026-09-12T20:35:15.964Z"},{"id":"01a09754-dbe0-7611-8aed-dc3aed44650b","fromState":"submitted","toState":"cancelled","event":"cancel","actorId":"be8d0849-0dd8-7a75-9242-bdde2acbe8d7","deviceId":null,"reason":"QA regression probe: shop cancels its own held order","occurredAt":"2026-09-12T20:35:16.049Z"}],"approvals":[]}}
+HTTP 200
+
+-- after shop cancel (SQL)
+SO-0898|cancelled|QA regression probe: shop cancels its own held order
+01a09754-db92-712c-8693-b77fc5f360ad|bargain|pending|
+requested
+AP=01a09754-db92-712c-8693-b77fc5f360ad O=01a09754-da7f-73b5-84b2-2539fdc5d8b7 B=01a09754-dac1-74cf-bd82-59bb9b55fc6f
+owner queue still lists it: true
+### owner approves the stale gate POST http://127.0.0.1:3001/approvals/01a09754-db92-712c-8693-b77fc5f360ad/decide {"idempotencyKey":"16908bf3-3ba6-40e3-a8a3-794f25fd46d0","id":"01a09754-db92-712c-8693-b77fc5f360ad","decision":"approve","note":"QA regression probe: deciding a gate on a cancelled order"}
+{"defined":false,"code":"CONFLICT","status":409,"message":"order: cannot apply \"confirm\" in state \"cancelled\"","data":{"from":"cancelled","event":"confirm"}}
+HTTP 409
+
+-- after owner decide (SQL)
+SO-0898|cancelled||2026-09-13 02:05:16.053+05:30
+bargain|pending|
+requested|
+0
+draft|submitted|2026-09-13 02:05:15.964631+05:30
+submitted|cancelled|2026-09-13 02:05:16.049222+05:30
+### owner rejects the stale gate POST http://127.0.0.1:3001/approvals/01a09754-db92-712c-8693-b77fc5f360ad/decide
+{"defined":false,"code":"CONFLICT","status":409,"message":"order: cannot apply \"cancel\" in state \"cancelled\"","data":{"from":"cancelled","event":"cancel"}}
+HTTP 409
+-- after owner reject (SQL)
+SO-0898|cancelled|QA regression probe: shop cancels its own held order
+bargain|pending||
+requested
+draft|submitted|2026-09-13 02:05:15.964631+05:30
+submitted|cancelled|2026-09-13 02:05:16.049222+05:30
+-- the two Phase-1 stale gates, still pending
+SO-0886|cancelled|credit_limit|pending
+SO-0887|cancelled|credit_limit|pending
+-- RLS policies on approvals (retailer cannot SELECT)
+approvals_read|SELECT|((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND (( SELECT current_setting('app.actor_role'::text, true) AS current_setting) <> 'retailer'::text))
+approvals_update|UPDATE|((tenant_id = ( SELECT current_setting('app.tenant_id'::text, true) AS current_setting)) AND ((( SELECT current_setting('app.actor_role'::text, true) AS current_setting) <> 'retailer'::text) OR (EXISTS ( SELECT 1
+   FROM sales_orders o
+  WHERE ((o.id = approvals.order_id) AND (o.created_by = ( SELECT current_setting('app.actor_id'::text, true) AS current_setting)))))))
+### control: salesperson Rahul cancels his own held SO-0895 (credit_limit gate pending)
+Rahul cancel SO-0895 -> HTTP 200
+-- SO-0895 after the rep's cancel
+SO-0895|cancelled|QA regression: DOS-075 check done, release the held order
+credit_limit|expired|2026-09-13 02:08:43.354+05:30|QA regression: DOS-075 check done, release the held order

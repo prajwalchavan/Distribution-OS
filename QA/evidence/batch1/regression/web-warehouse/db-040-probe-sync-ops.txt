@@ -1,0 +1,18 @@
+                op_id                 |              device_id               |                                                                                                                                                                outcome                                                                                                                                                                 |            created_at            
+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------
+ 01a09723-e06f-753d-b02b-f0b300e0de7e | 0e64e3ab-a161-41cc-b615-ef4a6bbf5698 | {"ok": false, "rejection": {"code": "picklist_not_started", "opId": "01a09723-e06f-753d-b02b-f0b300e0de7e", "rowId": "01a09721-b008-75a8-af72-8478e5afea02", "table": "pick_lines", "messageEn": "Picklist PICK-0080 has not been started; start it before picking", "messageHi": "पिकलिस्ट PICK-0080 अभी शुरू नहीं हुई; पहले पिकिंग शुरू करें"}} | 2026-09-13 01:11:46.02773+05:30
+ 01a09723-e0b8-799c-9af7-e6b65b1be013 | 0e64e3ab-a161-41cc-b615-ef4a6bbf5698 | {"ok": false, "rejection": {"code": "picklist_closed", "opId": "01a09723-e0b8-799c-9af7-e6b65b1be013", "rowId": "01a094c0-82f0-725d-8e89-077b1818450f", "table": "pick_lines", "messageEn": "Picklist PICK-0079 is picked; it is no longer being picked", "messageHi": "पिकलिस्ट PICK-0079 अब picked है"}}                               | 2026-09-13 01:11:46.045822+05:30
+(2 rows)
+
+                op_id                 |         code         |                            message_en                            | resolved_at |            created_at            
+--------------------------------------+----------------------+------------------------------------------------------------------+-------------+----------------------------------
+ 01a09723-e06f-753d-b02b-f0b300e0de7e | picklist_not_started | Picklist PICK-0080 has not been started; start it before picking |             | 2026-09-13 01:11:46.02773+05:30
+ 01a09723-e0b8-799c-9af7-e6b65b1be013 | picklist_closed      | Picklist PICK-0079 is picked; it is no longer being picked       |             | 2026-09-13 01:11:46.045822+05:30
+(2 rows)
+
+ picklist_no | status |          started_at           |         completed_at          
+-------------+--------+-------------------------------+-------------------------------
+ PICK-0079   | picked | 2026-09-12 14:54:02.926+05:30 | 2026-09-12 14:58:35.095+05:30
+ PICK-0080   | open   |                               | 
+(2 rows)
+

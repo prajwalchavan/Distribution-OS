@@ -1,0 +1,14 @@
+-- SO-0896 after owner reject
+SO-0896|cancelled|approval_rejected|2026-09-13 01:58:14.12+05:30|2026-09-13 01:58:14.12844+05:30
+-- approval
+01a09748-0341-72e9-af7b-656783fcb16c|bargain|rejected|sunil.tarsun|2026-09-13 01:58:14.109+05:30|QA DOS-005 regression: list rate holds
+-- bargain
+01a09747-1a25-7320-92bf-42c36d8d5225|rejected||sunil.tarsun|2026-09-13 01:58:14.114+05:30|QA DOS-005 regression: list rate holds|2026-09-13 01:58:14.118665+05:30
+-- transitions
+draft|submitted|submit|rahul.deshmukh||2026-09-13 01:51:14.158234+05:30
+submitted|cancelled|cancel|sunil.tarsun|approval_rejected|2026-09-13 01:58:14.100064+05:30
+-- outbox
+OrderSubmitted|2026-09-13 01:51:14.158234+05:30
+OrderCancelled|2026-09-13 01:58:14.100064+05:30
+-- audit
+id,tenant_id,actor_id,actor_role,action,entity_type,entity_id,before,after,device_id,occurred_at

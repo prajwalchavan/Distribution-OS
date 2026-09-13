@@ -1,0 +1,6 @@
+== Manager DOS-020 fixture SO-0915 (sales API as rahul.deshmukh), before the manager iOS walk, read 2026-09-13 07:43:54 IST
+SO-0915|submitted|R-0003|Mahalaxmi General Stores|strict|30500|["credit_limit", "bargain"]
+01a0988a-6da2-754c-ae5b-a7d3a08bfcaf|credit_limit|sales_order|pending|
+01a0988a-6da2-754d-9bec-97ca11dfb707|bargain|bargain_request|pending|
+01a0988a-6d61-737d-8b80-f2268ae28137|requested|1134|1004
+0

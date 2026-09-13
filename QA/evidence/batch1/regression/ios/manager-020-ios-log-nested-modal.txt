@@ -1,0 +1,6 @@
+iOS simulator log (xcrun simctl spawn booted log show), Expo Go process, around the Approve tap inside the manager order Sheet (SO-0915) at 07:48:44 IST
+Screens: manager-020-06 (Sheet at top) -> tap Approve under 'Over credit limit' at (201,426) -> manager-020-07 (unchanged, no dialog) -> manager-020-08 (+6 s, unchanged) -> Close -> manager-020-09 (plain Orders list, dialog never shown)
+manager-service log after line 5518: GET requests only, 0 POST /approvals/*/decide
+
+Timestamp               Ty Process[PID:TID]
+2026-09-13 07:48:44.919 E  Expo Go[82175:1318c5] [com.apple.UIKit:Presentation] Attempt to present <RCTFabricModalHostViewController: 0x12a489c00> on <EXRootViewController: 0x10e021400> (from <EXAppViewController: 0x10d92d000>) which is already presenting <RCTFabricModalHostViewController: 0x13383e600>.

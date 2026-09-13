@@ -1,0 +1,21 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated 1 min ago
+DP
+Dinesh Patil
+warehouse
+Picklist
+Picklist
+Nothing here yet
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+0 of 0 picked
+Scan
+Take it to packing

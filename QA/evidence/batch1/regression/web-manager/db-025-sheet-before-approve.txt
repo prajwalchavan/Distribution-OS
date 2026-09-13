@@ -1,0 +1,4 @@
+01a0976e-bbaf-7dbe-9bb3-f6ed587bd574|draft|-|-|2026-09-13
+ERROR:  column "created_at" does not exist
+LINE 1: select action, entity_id, actor_id, created_at from audit_lo...
+                                            ^

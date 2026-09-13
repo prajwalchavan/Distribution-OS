@@ -1,0 +1,40 @@
+               now               
+---------------------------------
+ 2026-09-13 03:22:39.50827+05:30
+(1 row)
+
+ picklist_no | status |          started_at           |         completed_at          |                                                        order_ids                                                         
+-------------+--------+-------------------------------+-------------------------------+--------------------------------------------------------------------------------------------------------------------------
+ PICK-0087   | picked | 2026-09-13 03:21:19.773+05:30 | 2026-09-13 03:21:31.001+05:30 | ["01a09797-5c0e-73ea-b0b9-f6e7f709e833"]
+ PICK-0086   | picked | 2026-09-13 03:21:43.752+05:30 | 2026-09-13 03:22:00.527+05:30 | ["01a09795-7cd8-7517-a0d2-0c9756408bad", "01a09796-3cfc-704e-9ff8-9d5c59ff7027", "01a09796-9c1d-73c1-bb1e-796a9dad96f1"]
+(2 rows)
+
+ picklist_no |               name               | requested_qty_pcs | picked_qty_pcs | short_reason 
+-------------+----------------------------------+-------------------+----------------+--------------
+ PICK-0086   | Chamak Detergent Bar 250 g       |                34 |             34 | 
+ PICK-0086   | Chamak Detergent Bar 250 g       |                14 |             14 | 
+ PICK-0086   | Neelam Herbal Toothpaste 50 g    |                66 |             66 | 
+ PICK-0086   | Neelam Herbal Toothpaste 50 g    |                30 |             30 | 
+ PICK-0086   | Neelam Neem Soap 100 g           |                25 |             25 | 
+ PICK-0086   | Neelam Neem Soap 100 g           |                47 |             47 | 
+ PICK-0086   | Neelam Rose Soap 100 g           |                 1 |              1 | 
+ PICK-0086   | Neelam Rose Soap 100 g           |                36 |             36 | 
+ PICK-0086   | Neelam Rose Soap 100 g           |                31 |             31 | 
+ PICK-0086   | Neelam Rose Soap 100 g           |                 4 |              4 | 
+ PICK-0086   | Sunbake Butter Cookies 75 g      |                14 |             14 | 
+ PICK-0086   | Sunbake Butter Cookies 75 g      |                58 |             58 | 
+ PICK-0087   | Neelam Neem Soap 100 g           |                17 |             17 | 
+ PICK-0087   | Neelam Neem Soap 100 g           |                24 |             24 | 
+ PICK-0087   | Neelam Neem Soap 100 g           |                31 |             31 | 
+ PICK-0087   | Sunbake Digestive Hi-Fibre 100 g |                12 |             12 | 
+ PICK-0087   | Sunbake Digestive Hi-Fibre 100 g |                60 |             60 | 
+(17 rows)
+
+ order_no |  state  
+----------+---------
+ SO-0904  | picking
+ SO-0905  | picking
+ SO-0906  | picking
+ SO-0908  | picking
+(4 rows)
+

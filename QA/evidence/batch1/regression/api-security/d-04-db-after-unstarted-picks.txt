@@ -1,0 +1,5 @@
+-- SQL read-only 2026-09-12T19:42:43.318Z wave 01a09724-c03e-7940-979d-0f197d433b4e
+picklist|PICK-0081|open|
+pick_line|01a09724-c056-7603-b404-7fff7ff94144|6|0||
+order W|SO-0892|confirmed
+sync_errors|picklist_not_started|Picklist PICK-0081 has not been started; start it before picking|2026-09-13 01:12:43.313922+05:30

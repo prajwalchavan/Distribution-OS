@@ -1,0 +1,122 @@
+{
+  "fy": {
+    "rows": 54,
+    "gets": [
+      {
+        "url": "?from=2026-04-01&to=2026-09-13&limit=200",
+        "status": 200,
+        "items": 54,
+        "next": null,
+        "closing": 3584300
+      }
+    ],
+    "lastRow": "RCPT-0687 | Payment · 12 Sep 2026 | Taken off | ₹4,443.00 | Balance | ₹35,843.00",
+    "closing": "Closing balance | ₹35,843.00 | A plus balance is money you still owe. A minus one is money with them.",
+    "opening": "Opening balance | ₹0.00",
+    "partial": 0
+  },
+  "d30": {
+    "rows": 28,
+    "gets": [
+      {
+        "url": "?from=2026-08-15&to=2026-09-13&limit=200",
+        "status": 200,
+        "items": 28,
+        "next": null,
+        "closing": 3584300
+      }
+    ],
+    "lastRow": "RCPT-0687 | Payment · 12 Sep 2026 | Taken off | ₹4,443.00 | Balance | ₹35,843.00",
+    "closing": "Closing balance | ₹35,843.00 | A plus balance is money you still owe. A minus one is money with them.",
+    "opening": "Opening balance | ₹51,849.00",
+    "partial": 0
+  },
+  "limit12": {
+    "rows": 53,
+    "gets": [
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=12",
+        "status": 200,
+        "items": 12,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=12&cursor=MjAyNi0wNy0yOQAwYzZjZDRhYy1lM2VjLTczZjQtYjAxYy1lYTg4YTYwNWRjODI",
+        "status": 200,
+        "items": 12,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=12&cursor=MjAyNi0wOC0xMgAzYmJhNmY1ZS1iN2MyLTczM2UtOGRjNS0wYjU3Y2RlYzQxZjU",
+        "status": 200,
+        "items": 12,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=12&cursor=MjAyNi0wOC0yOAAwNDY1ZWQ3Ni00OThkLTdjZTMtODQ5ZC1kOTM1MWQ3Y2E2YTE",
+        "status": 200,
+        "items": 12,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=12&cursor=MjAyNi0wOS0xMAAwODlkOTk0Ni0zNWU5LTcyMzQtYjIzMS1lNTc0MmQyZWU5NzQ",
+        "status": 200,
+        "items": 5,
+        "next": null,
+        "closing": 3584300
+      }
+    ],
+    "lastRow": "RCPT-0687 | Payment · 12 Sep 2026 | Taken off | ₹4,443.00 | Balance | ₹35,843.00",
+    "closing": "Closing balance | ₹35,843.00 | A plus balance is money you still owe. A minus one is money with them.",
+    "opening": "Opening balance | ₹5,242.00",
+    "partial": 0
+  },
+  "limit10": {
+    "rows": 50,
+    "gets": [
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=10",
+        "status": 200,
+        "items": 10,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=10&cursor=MjAyNi0wNy0yNwAwMDkxZjdiZi0wOWI3LTc0YzgtYTJmNS1iNzcxY2NmN2Q2ZmE",
+        "status": 200,
+        "items": 10,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=10&cursor=MjAyNi0wOC0wNwBiNzQyMzhiYy02ZTQzLTcwYTAtODIwOS05Yzk1YTA0NDBjODc",
+        "status": 200,
+        "items": 10,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=10&cursor=MjAyNi0wOC0yMAAzYjJkZTZmYi1iMGMxLTcxODUtOWQzMS0zMzRjNzVjNzExNDI",
+        "status": 200,
+        "items": 10,
+        "next": "cursor",
+        "closing": 3584300
+      },
+      {
+        "url": "?from=2026-06-16&to=2026-09-13&limit=10&cursor=MjAyNi0wOC0zMQA2MDNjZTZlNy04ZTUzLTc2YTUtYWUyOC1iNGQxOThiYWUwOTI",
+        "status": 200,
+        "items": 10,
+        "next": "cursor",
+        "closing": 3584300
+      }
+    ],
+    "lastRow": "RCPT-0668 | Payment · 10 Sep 2026 | Taken off | ₹12,180.00 | Balance | ₹51,355.00",
+    "closing": "Closing balance | — | This period has more entries than one statement can show. Pick a shorter period. | A plus balance is money you still owe. A minus one is money with them.",
+    "opening": "Opening balance | ₹5,242.00",
+    "partial": 1
+  }
+}

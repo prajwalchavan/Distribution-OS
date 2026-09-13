@@ -1,0 +1,23 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+5 of 5 picked
+PICK-0087
+picking
+To pick
+Every line
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+5 of 5 picked
+Scan
+Take it to packing

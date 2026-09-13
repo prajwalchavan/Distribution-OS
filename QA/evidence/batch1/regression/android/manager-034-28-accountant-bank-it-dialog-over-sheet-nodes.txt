@@ -1,0 +1,8 @@
+Bank it |  | click=false | en=true | [94,698][985,767]
+₹5,281.00 | 5281 rupees | click=false | en=true | [95,799][986,868]
+Every ticked receipt is marked banked with this slip number. |  | click=false | en=true | [95,899][986,995]
+Bank slip number |  | click=false | en=true | [95,1027][986,1075]
+ | Bank it | click=true | en=true | [95,1340][986,1505]
+Bank it |  | click=false | en=true | [475,1393][606,1451]
+ | Cancel | click=true | en=true | [95,1537][986,1702]
+Cancel |  | click=false | en=true | [476,1590][605,1648]

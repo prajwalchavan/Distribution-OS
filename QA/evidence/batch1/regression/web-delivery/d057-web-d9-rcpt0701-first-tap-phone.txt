@@ -1,0 +1,75 @@
+[shot] /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch1/regression/web-delivery/d057-09-d9-inv0832-phone.png (2790 chars text)
+{
+ "receiptRows": [
+  "d9-receipt-01a09730-2e39-7179-a747-6ac2734d5218 :: RCPT-0701 | Cash · 13 Sep, 1:25 am | ₹2,843.00",
+  "d9-receipt-c9eb5411-5e77-760c-861b-364751a63b05 :: RCPT-0587 | Cash · 4 Sep, 1:30 pm | ₹9,934.00",
+  "d9-receipt-979ecda6-5809-7b3a-a834-f8210dfa1d29 :: RCPT-0496 | Cash · 27 Aug, 4:30 pm | ₹1,713.00"
+ ],
+ "firstTapAt": "2026-09-12T20:00:37.996Z",
+ "firstTapButtons": [
+  "d9-paper-sheet",
+  "d9-paper-open",
+  "d9-paper-print",
+  "d9-paper-share"
+ ],
+ "firstTapSheet": "RCPT-0701 | Close | Open | Print | Send on WhatsApp",
+ "firstTapRequests": [
+  {
+   "ms": 12113,
+   "m": "GET",
+   "type": "fetch",
+   "u": "http://127.0.0.1:3005/receipts/01a09730-2e39-7179-a747-6ac2734d5218/document?format=a5"
+  }
+ ],
+ "open": {
+  "label": "RCPT-0701 open (phone)",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf?expires=1789244138&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 14688,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf?expires=1789244138&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20233,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "share": {
+  "label": "RCPT-0701 send (phone)",
+  "windowOpen": [
+   "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf?expires=1789244138&signature=…"
+  ],
+  "popupOpened": true,
+  "popupUrl": ":",
+  "requests": [
+   {
+    "ms": 16238,
+    "m": "GET",
+    "type": "document",
+    "u": "http://127.0.0.1:3005/storage/tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09730-2e39-7179-a747-6ac2734d5218.pdf?expires=1789244138&signature=…"
+   }
+  ],
+  "probe": {
+   "status": 200,
+   "ct": "application/pdf",
+   "bytes": 20233,
+   "magic": "%PDF-"
+  },
+  "hiddenIframes": []
+ },
+ "afterShare": {
+  "toast": "Nothing was sent",
+  "sheetStillOpen": 0
+ }
+}
+[url] http://localhost:5177/share/78c9f631-0300-7c18-92a2-834147f645d7

@@ -1,0 +1,72 @@
+Tarsun Enterprise
+retailer
+▾
+SHOP
+Home
+Place order
+My orders
+Offers
+MONEY
+Money due
+My bills
+Receipts
+Statement
+Returns
+YOU
+Messages
+1
+My shop
+My account
+Updated just now
+FS
+Fatima Shaikh
+retailer
+Tarsun Enterprise
+Pay
+Paying Tarsun Enterprise
+₹7,20,804.00
+Open a UPI app
+upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=720804.00&tr=PAY-1d7ee34b537e&tn=PAY-1d7ee34b537e&cu=INR
+Quote this reference: PAY-1d7ee34b537e
+Good until 13 Sep, 2:19 am
+The money shows here once Tarsun Enterprise has matched it. Keep the reference.
+This covers 12 bills
+INV/0400
+Due 17 Aug 2026 · ₹53,723.00
+₹53,723.00
+INV/0438
+Due 21 Aug 2026 · ₹98,008.00
+₹98,008.00
+INV/0465
+Due 24 Aug 2026 · ₹53,750.00
+₹24,993.00
+INV/0494
+Due 27 Aug 2026 · ₹36,746.00
+₹36,746.00
+INV/0527
+Due 31 Aug 2026 · ₹95,410.00
+₹95,279.00
+INV/0553
+Due 3 Sep 2026 · ₹95,424.00
+₹95,424.00
+INV/0581
+Due 5 Sep 2026 · ₹41,752.00
+₹41,752.00
+INV/0592
+Due 7 Sep 2026 · ₹61,501.00
+₹36,621.00
+INV/0621
+Due 10 Sep 2026 · ₹1,01,179.00
+₹40,472.00
+INV/0656
+Due 14 Sep 2026 · ₹75,031.00
+₹75,031.00
+INV/0672
+Due 16 Sep 2026 · ₹87,808.00
+₹87,808.00
+INV/0706
+Due 18 Sep 2026 · ₹34,947.00
+₹34,947.00
+How much are you paying
+₹7,20,804.00
+Start the payment

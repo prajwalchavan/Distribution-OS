@@ -1,0 +1,127 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now
+DP
+Dinesh Patil
+warehouse
+0 of 15 picked
+PICK-0085
+picking
+Sunbake Marie Light 75 g
+Batch SB20260607
+Exp 2 Feb 2027
+₹15.00
+12 pc
+Picked
+Short
+Sunbake Marie Light 75 g
+Batch SB20260614
+Exp 9 Feb 2027
+₹15.00
+84 pc
+Picked
+Short
+Neelam Sandal Soap 100 g
+Batch SC20260521
+Exp 20 May 2028
+₹42.00
+27 pc
+Picked
+Short
+Neelam Sandal Soap 100 g
+Batch B20260614
+Exp 13 Jun 2028
+₹42.00
+13 pc
+Picked
+Short
+Neelam Sandal Soap 100 g
+Batch SC20260702
+Exp 1 Jul 2028
+₹42.00
+32 pc
+Picked
+Short
+Chamak Dishwash Bar 145 g
+Batch SC20260521
+Exp 20 May 2028
+₹15.00
+11 pc
+Picked
+Short
+Chamak Dishwash Bar 145 g
+Batch SC20260604
+Exp 3 Jun 2028
+₹15.00
+18 pc
+Picked
+Short
+Chamak Dishwash Bar 145 g
+Batch B20260729
+Exp 28 Jul 2028
+₹15.00
+31 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260609
+Expires in 54 days
+₹20.00
+1 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260630
+Expires in 75 days
+₹20.00
+12 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260707
+Expires in 82 days
+₹20.00
+9 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260721
+Exp 18 Dec 2026
+₹20.00
+15 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260804
+Exp 1 Jan 2027
+₹20.00
+14 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260825
+Exp 22 Jan 2027
+₹20.00
+1 cs + 26 pc = 74 pc
+Picked
+Short
+Balaji Masala Masti Wafers 45 g
+Batch GK20260828
+Exp 25 Jan 2027
+₹20.00
+19 pc
+Picked
+Short
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+0 of 15 picked
+Scan
+Take it to packing
+15 lines not yet picked

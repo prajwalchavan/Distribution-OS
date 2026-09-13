@@ -1,0 +1,102 @@
+-- Excerpt of the merged-main CI backend test log (/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/ace66293-7a46-4d16-8f06-c5aaa6739e5e/scratchpad/merged-ci/backend-test.log), recorded in QA/14-regression-results.md §0b (merge 2abb27e + 0a9deac). Read-only grep, 2026-09-13 01:18:06 IST.
+
+## summary.txt
+backend readme-generate exit=0 2s
+backend format-check exit=0 6s
+backend lint exit=0 38s
+backend typecheck exit=0 16s
+backend build exit=0 10s
+backend readme exit=1 1s
+backend migrate exit=0 1s
+backend drift exit=127 0s
+backend test exit=0 54s
+frontend format-check exit=0 4s
+frontend lint exit=0 17s
+frontend typecheck exit=0 13s
+frontend test exit=0 3s
+frontend build exit=0 21s
+DONE
+
+## permission matrix suite headers per service (distinct)
+  12 madmin-service permission matrix (15 procedures × 8 roles + anonymous)
+  68 mdelivery-service permission matrix (252 procedures × 8 roles + anonymous)
+ 405 mmanager-service permission matrix (337 procedures × 8 roles + anonymous)
+ 255 mowner-service permission matrix (337 procedures × 8 roles + anonymous)
+  31 mretailer-service permission matrix (183 procedures × 8 roles + anonymous)
+  39 msales-service permission matrix (196 procedures × 8 roles + anonymous)
+  62 mwarehouse-service permission matrix (245 procedures × 8 roles + anonymous)
+
+## per-package test totals
+@dos/contracts:test:  Test Files  6 passed (6)
+@dos/contracts:test:       Tests  79 passed (79)
+@dos/domain:test:  Test Files  13 passed (13)
+@dos/domain:test:       Tests  95 passed (95)
+@dos/core:test:  Test Files  35 passed (35)
+@dos/core:test:       Tests  525 passed (525)
+@dos/delivery-service:test:  Test Files  1 passed (1)
+@dos/delivery-service:test:       Tests  258 passed (258)
+@dos/worker:test:  Test Files  1 passed (1)
+@dos/worker:test:       Tests  3 passed (3)
+@dos/retailer-service:test:  Test Files  1 passed (1)
+@dos/retailer-service:test:       Tests  189 passed (189)
+@dos/admin-service:test:  Test Files  1 passed (1)
+@dos/admin-service:test:       Tests  23 passed (23)
+@dos/owner-service:test:  Test Files  1 passed (1)
+@dos/owner-service:test:       Tests  343 passed (343)
+@dos/sales-service:test:  Test Files  1 passed (1)
+@dos/sales-service:test:       Tests  202 passed (202)
+@dos/auth-service:test:  Test Files  1 passed (1)
+@dos/auth-service:test:       Tests  3 passed (3)
+@dos/manager-service:test:  Test Files  1 passed (1)
+@dos/manager-service:test:       Tests  343 passed (343)
+@dos/warehouse-service:test:  Test Files  1 passed (1)
+@dos/warehouse-service:test:       Tests  251 passed (251)
+@dos/db:test:  Test Files  3 passed (3)
+@dos/db:test:       Tests  102 passed (102)
+@dos/all-in-one:test:  Test Files  1 passed (1)
+@dos/all-in-one:test:       Tests  1 passed (1)
+
+## any failing tests
+@dos/core:test:      ✓ refuses to depart without the driver consent, returns with an open stop failed, and needs the owner for a red settlement  416ms
+@dos/worker:test:     failed: 0
+@dos/worker:test: [00:55:02.831] WARN (28841): outbox handler failed; will retry
+@dos/worker:test:     failed: 1
+@dos/worker:test: [00:55:02.835] WARN (28841): outbox handler failed; will retry
+@dos/worker:test:     failed: 1
+@dos/worker:test:     failed: 0
+@dos/worker:test: [00:55:02.837] WARN (28841): outbox handler failed; will retry
+@dos/worker:test:     failed: 1
+@dos/worker:test: [00:55:02.838] WARN (28841): outbox handler failed; will retry
+(end)
+
+## §0b of QA/14-regression-results.md
+### 0b. CI chain on merged main — 21 decision-free fixes (merge 2abb27e + README regeneration 0a9deac, DB `dos_batch1_merged`, every step `--force`)
+
+| Step | Backend | Frontend |
+|---|---|---|
+| format:check | exit 0 | exit 0 |
+| lint | exit 0, 19/19, 0 cached | exit 0, 11/11, 0 cached |
+| typecheck | exit 0, 19/19 | exit 0, 11/11 |
+| build | exit 0, 14/14 | exit 0, 8/8 (seven web exports) |
+| docs:readme:check | exit 0 after `pnpm docs:readme` (12 READMEs regenerated for DOS-073's orders.list summary; the first check in the script ran before the build and read stale dist — script ordering, not a product fault) | — |
+| db:migrate | exit 0 | — |
+| schema drift (`drizzle-kit generate`) | "No schema changes, nothing to migrate" (first attempt used GNU `timeout`, absent on macOS, exit 127; re-run by hand) | — |
+| test | exit 0, **2 417 passed, 0 failed** (baseline 2 381: domain 86→95, contracts 78→79, core 500→525, db 101→102) | exit 0, **336 passed** (baseline 301: ui 196→216, api-client 67→72, offline 38, new app specs sales 1, delivery 6, manager 3) |
+
+No test that passed at the baseline fails on merged main. Six existing tests were changed by the fixes; each is reviewed in `QA/13-change-log.md` (five encoded the defect, one fixture unit).
+
+### 1. Focused regression — pending
+
+## describePermissionMatrix call sites at HEAD
+/Users/prajwalchavan/Desktop/Distribution OS/backend/delivery-service/src/service.spec.ts:3:import { bearer, describePermissionMatrix } from '@dos/core/testing'
+/Users/prajwalchavan/Desktop/Distribution OS/backend/delivery-service/src/service.spec.ts:92:describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))
+/Users/prajwalchavan/Desktop/Distribution OS/backend/sales-service/src/service.spec.ts:3:import { bearer, describePermissionMatrix } from '@dos/core/testing'
+/Users/prajwalchavan/Desktop/Distribution OS/backend/sales-service/src/service.spec.ts:92:describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))
+/Users/prajwalchavan/Desktop/Distribution OS/backend/libs/core/src/testing/app.ts:168:export { describePermissionMatrix, type PermissionMatrixOptions } from './permission-matrix.js'
+/Users/prajwalchavan/Desktop/Distribution OS/backend/libs/core/src/modules/reporting/reporting.roles.ts:6: * `requireRole()` takes `ActorRole`. `describePermissionMatrix` asserts the two lists agree for every
+/Users/prajwalchavan/Desktop/Distribution OS/backend/libs/core/src/testing/permission-matrix.ts:37: * Use from a service spec: `describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))`.
+/Users/prajwalchavan/Desktop/Distribution OS/backend/libs/core/src/testing/permission-matrix.ts:39:export function describePermissionMatrix(
+/Users/prajwalchavan/Desktop/Distribution OS/backend/warehouse-service/src/service.spec.ts:3:import { bearer, describePermissionMatrix } from '@dos/core/testing'
+/Users/prajwalchavan/Desktop/Distribution OS/backend/warehouse-service/src/service.spec.ts:92:describePermissionMatrix(service, () => createServiceApp(service, { logger: false }))
+/Users/prajwalchavan/Desktop/Distribution OS/backend/admin-service/src/service.spec.ts:3:import { bearer, describePermissionMatrix, platformBearer } from '@dos/core/testing'
+/Users/prajwalchavan/Desktop/Distribution OS/backend/admin-service/src/service.spec.ts:65:   * seven-role sweep over all fifteen procedures is `describePermissionMatrix` below.

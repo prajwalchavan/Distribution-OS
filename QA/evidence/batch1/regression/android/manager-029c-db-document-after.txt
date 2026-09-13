@@ -1,0 +1,5 @@
+# FA/TY/26-27/1187 (0400aea1) after the refused Book it on Android (2026-09-12T23:50:44Z)
+> select id, kind, status, committed_entity_type, committed_entity_id, committed_at, updated_at from documents where id='0400aea1-7e63-7119-af27-05db2a4307ad'
+0400aea1-7e63-7119-af27-05db2a4307ad|brand_dms_invoice|needs_review||||2026-09-12 14:12:17.672+05:30
+> select count(*) from supplier_invoices where created_at > now() - interval '15 minutes'
+0

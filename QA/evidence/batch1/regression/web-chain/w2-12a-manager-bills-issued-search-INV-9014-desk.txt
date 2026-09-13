@@ -1,0 +1,44 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+15
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+15 left to bill
+Billing desk
+Billing desk
+Bills issued
+7 days
+30 days
+90 days
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Any date, matching "INV/9014"
+Filters (1)
+Clear
+Bill no.	Date	Shop	Taxable ₹	GST ₹	Total ₹	Still due ₹	Payment
+
+INV/9014
+	
+13 Sep 2026
+	
+Sai Krupa Super Bazar
+	2,566.80	462.06	3,029.00	3,029.00	Issued
+1					3,029.00	3,029.00	
+j / k move · Enter open · p print

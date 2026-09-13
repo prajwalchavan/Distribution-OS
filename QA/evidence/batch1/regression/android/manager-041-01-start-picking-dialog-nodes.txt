@@ -1,0 +1,6 @@
+Start picking |  | click=false | en=true | [94,882][985,951]
+PICK-0090 |  | click=false | en=true | [95,983][986,1041]
+ | Start picking | click=true | en=true | [95,1155][986,1320]
+Start picking |  | click=false | en=true | [420,1208][660,1266]
+ | Cancel | click=true | en=true | [95,1352][986,1518]
+Cancel |  | click=false | en=true | [476,1405][605,1463]

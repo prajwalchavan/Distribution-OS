@@ -1,0 +1,35 @@
+Delivery baseline 2026-09-13 06:36:31 IST (read-only)
+== ganesh.more trips
+ERROR:  invalid input value for enum stop_state: "completed"
+LINE 1: ...trip_stops s where s.trip_id=t.id and s.state in ('completed...
+                                                             ^
+== stop states per ganesh trip
+TRIP-ACTIVE|1|Prerna Super Market|delivered|7324500
+TRIP-ACTIVE|2|Metro Kirana Bazar|delivered|454700
+TRIP-ACTIVE|3|Anand Bhavan Provision|delivered|284300
+TRIP-ACTIVE|4|Vaibhav Kirana Mart|delivered|785600
+TRIP-ACTIVE|5|Joshi Kirana Stores|partial|1496200
+TRIP-ACTIVE|6|Ansari Kirana Stores|failed|261000
+TRIP-ACTIVE|7|Nakshatra Kirana|delivered|475600
+TRIP-ACTIVE|8|Laxmi Narayan Stores|partial|2250800
+TRIP-ACTIVE|9|Khan General Store|delivered|90700
+TRIP-ACTIVE|10|Rukmini Provision|delivered|2658100
+TRIP-NEXT|1|City Light Provision|arrived|703800
+TRIP-NEXT|2|Gupta Kirana Stores|pending|1080600
+TRIP-NEXT|3|Kadam Stores|pending|1270700
+TRIP-NEXT|4|Rameshwar General Store|pending|1802700
+TRIP-NEXT|5|Meghana General Store|partial|707600
+== load sheets on ganesh trips
+id,tenant_id,trip_id,from_location_id,to_location_id,order_ids,van_stock,load_value_paise,ewb_no,challan_no,confirmed_by,confirmed_at,created_at,updated_at,status,sheet_date,expected_packages,counted_packages,variance_note,pin_verified_by,ewb_required,cancelled_at,cancel_reason,approved_by,approved_at
+== latest 5 receipts
+RCPT-0705|-1329900|cheque|cancelled||2026-09-13 05:56:21.476+05:30
+RCPT-0704|400000|cash|collected|01a097a1-96d9-7b87-8049-9733c5c20883|2026-09-13 03:41:45.132+05:30
+RCPT-0703|475600|cash|collected|dda35990-f442-7931-8da4-5808f09a33b6|2026-09-13 02:55:47.831+05:30
+RCPT-0702|-803800|cheque|cancelled||2026-09-13 02:43:24.865+05:30
+RCPT-0701|284300|cash|collected|dda35990-f442-7931-8da4-5808f09a33b6|2026-09-13 01:25:12.313+05:30
+== latest 5 credit notes
+|return_saleable|900|2026-09-13 05:42:50.379917+05:30
+|return_saleable|34400|2026-09-13 05:41:12.397039+05:30
+CN/9010|return_damaged|10600|2026-09-13 03:51:49.963305+05:30
+CN/9009|return_saleable|56900|2026-09-13 03:49:55.685984+05:30
+CN/9008|return_damaged|124100|2026-09-13 03:47:52.484792+05:30

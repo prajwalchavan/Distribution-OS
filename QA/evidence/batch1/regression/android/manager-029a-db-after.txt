@@ -1,0 +1,8 @@
+# DOS-029a after the refused wave of packed SO-0850 on Android (2026-09-12T23:44:36Z)
+> select count(*) from picklists where tenant_id=(select id from tenants where slug='tarsun')
+90
+> select picklist_no, status, created_at from picklists where tenant_id=(select id from tenants where slug='tarsun') order by created_at desc limit 1
+PICK-0090|picking|2026-09-13 05:06:25.843264+05:30
+> select order_no, state, updated_at from sales_orders where tenant_id=(select id from tenants where slug='tarsun') and order_no in ('SO-0850','SO-0845')
+SO-0845|packed|2026-09-12 12:50:47.470801+05:30
+SO-0850|packed|2026-09-12 12:50:47.470943+05:30

@@ -1,0 +1,7 @@
+### Rahul GET :3003/orders/84f1fe62-9b23-7e28-bc44-728ba08774e6 (Amit's SO-0872, picking)
+{"defined":false,"code":"NOT_FOUND","status":404,"message":"order 84f1fe62-9b23-7e28-bc44-728ba08774e6 not found"}
+HTTP 404
+### Rahul GET :3003/orders?salespersonId=efde1e76-9785-7827-aff2-6f56ecd33588&limit=50 (Amit)
+items 50 distinct salespersonId ['8760e17e-4830-7395-a946-1e02fffa1ad7'] orderNos ['SO-0467', 'SO-0185', 'SO-0286', 'SO-0497', 'SO-0089', 'SO-0049', 'SO-0441', 'SO-0689', 'SO-0210', 'SO-0517', 'SO-0594', 'SO-0130']
+### Rahul GET :3003/orders?limit=50
+items 50 distinct salespersonId ['8760e17e-4830-7395-a946-1e02fffa1ad7'] first orderNos ['SO-0467', 'SO-0185', 'SO-0286', 'SO-0497', 'SO-0089', 'SO-0049', 'SO-0441', 'SO-0689', 'SO-0210', 'SO-0517', 'SO-0594', 'SO-0130']

@@ -1,0 +1,15 @@
+### REQUEST  2026-09-13 01:12:13 IST
+GET http://127.0.0.1:3003/orders/39c6f032-fd27-7d15-b761-79cded32d0f8
+Authorization: Bearer <accessToken of amit.pawar>
+
+### RESPONSE
+HTTP/1.1 200 OK
+vary: Origin
+access-control-expose-headers: x-request-id
+content-type: application/json; charset=utf-8
+content-length: 2695
+Date: Sat, 12 Sep 2026 19:42:13 GMT
+Connection: keep-alive
+Keep-Alive: timeout=72
+
+{"item":{"id":"39c6f032-fd27-7d15-b761-79cded32d0f8","orderNo":null,"retailerId":"f654c68d-d48c-7b90-a138-f9bac17ccf45","state":"draft","source":"salesperson","createdBy":"efde1e76-9785-7827-aff2-6f56ecd33588","salespersonId":"efde1e76-9785-7827-aff2-6f56ecd33588","pricingDateMode":"order","paymentTerms":"POST_FULFILLMENT","fulfilFromLocationId":"01a0947d-7a96-723f-952d-338dd284a1b4","externalRef":null,"subtotalPaise":457384,"discountPaise":0,"taxPaise":80179,"roundOffPaise":37,"totalPaise":537600,"approvalFlags":[],"expectedDeliveryDate":null,"note":null,"submittedAt":null,"confirmedAt":null,"cancelledAt":null,"cancelReason":null,"createdAt":"2026-09-12T07:20:47.380Z","lines":[{"id":"cbfa62b2-d2ba-746b-ad3f-eb3aca4a9b63","lineNo":1,"variantId":"3cf56ead-0270-7e9c-b3d3-23e0bfeeb9e4","enteredQty":2,"enteredUnit":"case","packSizeAtEntry":12,"qtyPcs":24,"freeQtyPcs":0,"pickedQtyPcs":24,"deliveredQtyPcs":0,"listRatePaise":10157,"ratePaise":10157,"discountBps":0,"discountPaise":0,"gstBps":500,"taxPaise":12188,"lineTotalPaise":255956,"appliedRules":[],"priceLocked":false},{"id":"72de1c3b-4feb-7714-8e42-05b7daa37b44","lineNo":2,"variantId":"e48dbdd8-0207-787c-b13a-c292d2a27dab","enteredQty":53,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":53,"freeQtyPcs":0,"pickedQtyPcs":42,"deliveredQtyPcs":0,"listRatePaise":1497,"ratePaise":1497,"discountBps":0,"discountPaise":0,"gstBps":1800,"taxPaise":14282,"lineTotalPaise":93623,"appliedRules":[],"priceLocked":false},{"id":"6bc21045-fdfe-7e94-b6a9-69926dcb8484","lineNo":3,"variantId":"b2794ad9-bf63-78c4-82aa-258e993940e7","enteredQty":3,"enteredUnit":"case","packSizeAtEntry":48,"qtyPcs":144,"freeQtyPcs":0,"pickedQtyPcs":144,"deliveredQtyPcs":0,"listRatePaise":568,"ratePaise":568,"discountBps":0,"discountPaise":0,"gstBps":2800,"taxPaise":32717,"lineTotalPaise":114509,"appliedRules":[],"priceLocked":false},{"id":"7382ba66-8d1f-7d08-94ff-448b1eb15f3c","lineNo":4,"variantId":"f71bf137-50de-7182-a0d9-c83f1a613a57","enteredQty":11,"enteredUnit":"piece","packSizeAtEntry":1,"qtyPcs":11,"freeQtyPcs":0,"pickedQtyPcs":9,"deliveredQtyPcs":0,"listRatePaise":2297,"ratePaise":2297,"discountBps":0,"discountPaise":0,"gstBps":2800,"taxPaise":10106,"lineTotalPaise":35373,"appliedRules":[],"priceLocked":false},{"id":"f6305ad8-8585-72af-9240-a123904ba2fd","lineNo":5,"variantId":"4cf8c0aa-3028-7155-957a-80108bf2a8fb","enteredQty":1,"enteredUnit":"case","packSizeAtEntry":24,"qtyPcs":24,"freeQtyPcs":0,"pickedQtyPcs":24,"deliveredQtyPcs":0,"listRatePaise":1134,"ratePaise":1134,"discountBps":0,"discountPaise":0,"gstBps":2800,"taxPaise":10886,"lineTotalPaise":38102,"appliedRules":[],"priceLocked":false}],"transitions":[],"approvals":[]}}

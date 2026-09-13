@@ -1,0 +1,46 @@
+               now                
+----------------------------------
+ 2026-09-13 03:48:02.613649+05:30
+(1 row)
+
+ outcome |                                  note                                   
+---------+-------------------------------------------------------------------------
+ partial | Rose Soap batch SC20260618 carton crushed in transit, all 36 taken back
+(1 row)
+
+         description         |  batch_no  | delivered_qty_pcs | returned_qty_pcs | returned_saleable | reason  
+-----------------------------+------------+-------------------+------------------+-------------------+---------
+ Neelam Rose Soap 100 g      | B20260729  |                 4 |                0 | t                 | refused
+ Neelam Rose Soap 100 g      | SC20260702 |                 1 |                0 | t                 | refused
+ Neelam Rose Soap 100 g      | SC20260618 |                 0 |               36 | f                 | damaged
+ Neelam Rose Soap 100 g      | SC20260604 |                31 |                0 | t                 | refused
+ Sunbake Butter Cookies 75 g | SB20260607 |                14 |                0 | t                 | refused
+ Sunbake Butter Cookies 75 g | SB20260719 |                58 |                0 | t                 | refused
+(6 rows)
+
+                  id                  | credit_note_no |     reason     | state  | taxable_paise | total_paise 
+--------------------------------------+----------------+----------------+--------+---------------+-------------
+ 01a097b2-ccab-75fd-9f37-ab4a3e979664 | CN/9008        | return_damaged | issued |        105156 |      124100
+(1 row)
+
+ qty_pcs | saleable | line_total_paise 
+---------+----------+------------------
+      36 | f        |           124084
+(1 row)
+
+       reason        |         name         |   kind    | sum  | count 
+---------------------+----------------------+-----------+------+-------
+ sale_return_damaged | Damaged / expiry bin | damaged   |   36 |     1
+ sale                | Godown               | warehouse | -144 |     6
+(2 rows)
+
+ order_no |        state        
+----------+---------------------
+ SO-0905  | partially_delivered
+(1 row)
+
+ outstanding_paise | open_bills |            updated_at            
+-------------------+------------+----------------------------------
+          14643800 |          6 | 2026-09-13 03:47:52.631292+05:30
+(1 row)
+

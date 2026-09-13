@@ -1,0 +1,17 @@
+### DOS-060/057 baseline before the web cash collection (2026-09-13 01:17:58 IST)
+--- R-0043 Anand Bhavan Provision open invoices
+INV/0354 | partially_paid | 328200 | 2026-07-21
+INV/0478 | issued | 1143900 | 2026-08-04
+INV/0638 | issued | 1226400 | 2026-08-21
+INV/0708 | issued | 607300 | 2026-08-29
+INV/0832 | issued | 284300 | 2026-09-11
+--- R-0043 receipts (latest 5)
+RCPT-0587 | 993400 | cash | 2026-09-04 13:30:00+05:30
+RCPT-0496 | 171300 | cash | 2026-08-27 16:30:00+05:30
+RCPT-0396 | 66800 | cash | 2026-08-17 17:30:00+05:30
+RCPT-0331 | 295600 | cash | 2026-08-12 14:15:00+05:30
+RCPT-0307 | 191100 | upi | 2026-08-10 14:30:00+05:30
+--- tenant receipts created in the last 10 min
+RCPT-0700 | 1000 | 2026-09-13 01:13:09.420486+05:30
+--- RCPT numbering series
+{"fy": "2026-27", "prefix": "RCPT-", "next_no": 701, "device_id": null, "created_at": "2026-09-12T12:50:46.492438+05:30", "updated_at": "2026-09-13T01:13:09.435+05:30", "series_code": "RCPT", "starting_no": 1, "allocation_mode": "server"}

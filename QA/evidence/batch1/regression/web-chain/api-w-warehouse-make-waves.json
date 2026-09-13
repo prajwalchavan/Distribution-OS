@@ -1,0 +1,26 @@
+[
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"mspXXni_GVZr_4QD1p4jBHECheHGCvG_xxqPXEIIcK4\",\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoid2FyZWhvdXNlIiwic2lkIjoiMDFhMDk3OGUtMDNiYS03MTExLWEwMTMtMzU2MjI4ZTUyMzM2IiwiZGlkIjoiMDFhMDk3OGUtMDMxNC03MDYwLTgzYWItYTA5NDU0ZDgzZWFkIiwic3ViIjoiNWI2ZmJlODctY2I3MC03MTk1LThkZTEtYTRmNTA0NmMzNjc1IiwiaXNzIjoiZG9zLWF1dGgiLCJhdWQiOiJkb3MiLCJpYXQiOjE3ODkyNDk4MTQsImV4cCI6MTc4OTI1MDcxNCwianRpIjoiMDFhMDk3OTktN2ZlYy03NDUwLTliZDMtYTA2ZThjODMxYjc0In0.7VaKyhV8G2HnwrEwH4IxPhNcAx2nOX_j4wj_9YXENRHz7VbE2F1IfkwslrvaLzLeo"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists",
+  "status": 200,
+  "req": "{\"id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"idempotencyKey\":\"01a09799-7ff5-7198-8bac-5db98eebac1e\",\"orderIds\":[\"01a09795-7cd8-7517-a0d2-0c9756408bad\",\"01a09796-3cfc-704e-9ff8-9d5c59ff7027\",\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\"]}",
+  "res": "{\"item\":{\"id\":\"01a09799-a33c-73a1-9bbc-aa398ebe8915\",\"picklistNo\":\"PICK-0086\",\"status\":\"open\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":3,\"lineCount\":5,\"requestedQtyPcs\":360,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":null,\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:50:23.575Z\",\"orders\":[{\"orderId\":\"01a09796-9c1d-73c1-bb1e-796a9dad96f1\",\"orderNo\":\"SO-0906\",\"retailerId\":\"c704a780-c33e-7a95-ba00-e28613f6883a\",\"retailerName\":\"Ganpati General Stores\",\"state\":\"confirmed"
+ },
+ {
+  "url": "http://127.0.0.1:3000/auth/refresh",
+  "status": 200,
+  "req": "{\"refreshToken\":\"_AKnLJFePAJyaJ0e1V87vRES89pn6xY-yFNxrFwGbRA\",\"deviceId\":\"01a0978e-0314-7060-83ab-a09454d83ead\"}",
+  "res": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTQ3ZC03YTc5LTc1ZDItYmZmZi05N2U0OTlhNThkNDkiLCJyb2xlIjoid2FyZWhvdXNlIiwic2lkIjoiMDFhMDk3OGUtMDNiYS03MTExLWEwMTMtMzU2MjI4ZTUyMzM2IiwiZGlkIjoiMDFhMDk3OGUtMDMxNC03MDYwLTgzYWItYTA5NDU0ZDgzZWFkIiwic3ViIjoiNWI2ZmJlODctY2I3MC03MTk1LThkZTEtYTRmNTA0NmMzNjc1IiwiaXNzIjoiZG9zLWF1dGgiLCJhdWQiOiJkb3MiLCJpYXQiOjE3ODkyNDk4MjgsImV4cCI6MTc4OTI1MDcyOCwianRpIjoiMDFhMDk3OTktYjgzNC03NzIwLTg2OWMtYTI2YWRiMzJlM2QwIn0.sdlyhUYXpoV3ZxmMfC_6JHT5U8CmNpUFmnOS6upygYh9gsEa8iLEFFZgRw_KF4vBq"
+ },
+ {
+  "url": "http://127.0.0.1:3004/warehouse/picklists",
+  "status": 200,
+  "req": "{\"id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"idempotencyKey\":\"01a09799-b839-70bb-bc6b-3c753ac29ae3\",\"orderIds\":[\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\"]}",
+  "res": "{\"item\":{\"id\":\"01a09799-d57c-7378-9693-9cebc71c8842\",\"picklistNo\":\"PICK-0087\",\"status\":\"open\",\"locationId\":\"01a0947d-7a96-723f-952d-338dd284a1b4\",\"pickDate\":\"2026-09-13\",\"tripId\":null,\"beatId\":null,\"note\":null,\"orderCount\":1,\"lineCount\":2,\"requestedQtyPcs\":144,\"pickedQtyPcs\":0,\"assignedTo\":null,\"startedAt\":null,\"completedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"createdAt\":\"2026-09-12T21:50:36.449Z\",\"orders\":[{\"orderId\":\"01a09797-5c0e-73ea-b0b9-f6e7f709e833\",\"orderNo\":\"SO-0908\",\"retailerId\":\"b5dbcdb8-401a-7a7d-9626-37ad239fd91a\",\"retailerName\":\"Sai Krupa Super Bazar\",\"state\":\"confirmed\""
+ }
+]

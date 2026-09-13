@@ -1,0 +1,26 @@
+### REQUEST  2026-09-12T19:43:09.584Z
+POST http://127.0.0.1:3002/receipts/deposit
+Authorization: Bearer <accessToken of meena.joshi>
+Content-Type: application/json
+
+{
+ "idempotencyKey": "sec-f02-01a09725-2658-77ef-8784-7ef775fb8c15",
+ "id": "01a09725-2658-77ef-8784-7ef775fb8c15",
+ "receiptIds": [
+  "01a09725-2658-7018-bee2-5abaf48c5907"
+ ],
+ "depositedAt": "2026-09-12T19:43:09.555Z",
+ "depositRef": "QA-SEC-034"
+}
+
+### RESPONSE
+HTTP/1.1 409 Conflict
+access-control-expose-headers: x-request-id
+connection: keep-alive
+content-length: 117
+content-type: application/json; charset=utf-8
+date: Sat, 12 Sep 2026 19:43:09 GMT
+keep-alive: timeout=72
+vary: Origin
+
+{"defined":false,"code":"CONFLICT","status":409,"message":"idempotencyKey was already used with a different request"}

@@ -1,0 +1,16 @@
+-- receipts for Nakshatra Kirana created in the last 5 min
+RCPT-0703|475600|cash|collected|dda35990-f442-7931-8da4-5808f09a33b6|7b2db500-02d5-7aa7-a1dc-005a3e89ff63|2026-09-13 02:55:47.77975+05:30|tenant/01a0947d-7a79-75d2-bfff-97e499a58d49/documents/receipt/01a09783-1eb1-749e-9e02-ec0501ffc803.pdf
+-- collections row
+ERROR:  column c.created_at does not exist
+LINE 1: ...ler_id='a9c32f4a-c2cc-7b0e-a5f3-3734f37df1eb' and c.created_...
+                                                             ^
+-- collections row for RCPT-0703
+{"id": "01a09780-db65-74e9-a48c-a43eec05baec", "mode": "cash", "stop_id": "18ac4301-73fb-72fd-9df1-cab54f72a4c4", "trip_id": "dda35990-f442-7931-8da4-5808f09a33b6", "receipt_id": "01a09783-1eb1-749e-9e02-ec0501ffc803", "retailer_id": "a9c32f4a-c2cc-7b0e-a5f3-3734f37df1eb", "amount_paise": 475600, "collected_at": "2026-09-13T02:55:47.831+05:30", "collected_by": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63"}
+-- allocations of RCPT-0703
+ERROR:  relation "receipt_allocations" does not exist
+LINE 1: ...T-0703'; select i.invoice_no, a.amount_paise from receipt_al...
+                                                             ^
+-- render events for receipt 01a09783-1eb1-749e (DOS-057 step 5)
+{"id": "01a09783-1f47-7200-b22f-daa5c9c3fee4", "payload": {"mode": "cash", "tripId": "dda35990-f442-7931-8da4-5808f09a33b6", "receiptId": "01a09783-1eb1-749e-9e02-ec0501ffc803", "retailerId": "a9c32f4a-c2cc-7b0e-a5f3-3734f37df1eb", "amountPaise": 475600, "collectionId": "01a09780-db65-74e9-a48c-a43eec05baec"}, "attempts": 0, "created_at": "2026-09-13T02:55:47.77975+05:30", "event_type": "CollectionRecorded", "last_error": null, "updated_at": "2026-09-13T02:55:47.77975+05:30", "aggregate_id": "01a09780-db65-74e9-a48c-a43eec05baec", "published_at": null, "aggregate_type": "collection", "next_attempt_at": null, "dead_lettered_at": null}
+{"id": "01a09783-1f27-72d5-b8fe-b822c71b7576", "payload": {"tripId": "dda35990-f442-7931-8da4-5808f09a33b6", "receiptId": "01a09783-1eb1-749e-9e02-ec0501ffc803", "receiptNo": "RCPT-0703", "retailerId": "a9c32f4a-c2cc-7b0e-a5f3-3734f37df1eb", "amountPaise": 475600, "cashDiscountPaise": 0}, "attempts": 0, "created_at": "2026-09-13T02:55:47.77975+05:30", "event_type": "ReceiptRecorded", "last_error": null, "updated_at": "2026-09-13T02:56:24.694+05:30", "aggregate_id": "01a09783-1eb1-749e-9e02-ec0501ffc803", "published_at": "2026-09-13T02:56:24.694+05:30", "aggregate_type": "receipt", "next_attempt_at": null, "dead_lettered_at": null}
+{"id": "01a09783-1f3f-73d7-9b2b-1b33fc5698ac", "payload": {"id": "01a09783-1eb1-749e-9e02-ec0501ffc803", "copy": "original", "kind": "receipt", "format": "a5", "tenantId": "01a0947d-7a79-75d2-bfff-97e499a58d49", "requestedBy": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63"}, "attempts": 0, "created_at": "2026-09-13T02:55:47.77975+05:30", "event_type": "DocumentRenderRequested", "last_error": null, "updated_at": "2026-09-13T02:56:24.729+05:30", "aggregate_id": "receipt:01a09783-1eb1-749e-9e02-ec0501ffc803:a5:original", "published_at": "2026-09-13T02:56:24.729+05:30", "aggregate_type": "document", "next_attempt_at": null, "dead_lettered_at": null}

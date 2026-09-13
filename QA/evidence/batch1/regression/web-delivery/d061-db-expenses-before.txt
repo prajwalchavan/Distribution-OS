@@ -1,0 +1,2 @@
+### DOS-061 expenses baseline before any web expense (2026-09-13 01:07:45 IST)
+01a09538-c8ce-734f-953b-3d011085eab9 | TRIP-NEXT 2026-09-14 | 01a09538-c8ce-734f-953b-3d011085eab9 | 01a0947d-7a79-75d2-bfff-97e499a58d49 | 72649337-4c50-7033-a988-ca5cf4406f9c | diesel | 50000 |  | QA: diesel at Shahad pump | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 2026-09-12 16:15:49.611+05:30 | 2026-09-12 16:15:49.632741+05:30

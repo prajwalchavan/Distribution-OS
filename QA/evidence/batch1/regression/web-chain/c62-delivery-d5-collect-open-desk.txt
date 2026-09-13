@@ -1,0 +1,34 @@
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now
+IS
+Iqbal Shaikh
+delivery
+Balaji Wholesale Stores
+Take money
+Owes ₹7,27,483.00
+Bills on this stop
+INV/9010
+13 Sep 2026
+₹6,679.00
+How it was paid
+Cash
+UPI
+Cheque
+Amount taken
+Owed on the bills here
+₹6,679.00
+₹
+Your receipt book number
+The number you wrote in the paper book, so a printed receipt is never re-numbered
+Owed on the bills here
+₹6,679.00
+Record the payment
+Amount taken

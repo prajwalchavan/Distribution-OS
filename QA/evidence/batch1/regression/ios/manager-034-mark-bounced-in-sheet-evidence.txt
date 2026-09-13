@@ -1,0 +1,10 @@
+== DOS-034 accountant iOS: Mark bounced pressed inside the RCPT-CHQ-0002 receipt Sheet at 2026-09-13 08:34:55 IST
+-- UIKit presentation log since 2026-09-13 08:34:55:
+Timestamp               Ty Process[PID:TID]
+2026-09-13 08:34:56.249 E  Expo Go[88181:13cc77] [com.apple.UIKit:Presentation] Attempt to present <RCTFabricModalHostViewController: 0x12a611600> on <EXRootViewController: 0x10d83f000> (from <EXAppViewController: 0x11105b000>) which is already presenting <RCTFabricModalHostViewController: 0x134a15c00>.
+-- manager-service POSTs after line 5838:
+POST count: 0
+-- RCPT-CHQ-0002 after:
+RCPT-CHQ-0002|collected||
+deposit|74
+receipt_reversal|2

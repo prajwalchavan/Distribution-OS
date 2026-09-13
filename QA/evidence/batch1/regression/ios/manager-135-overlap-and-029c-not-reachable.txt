@@ -1,0 +1,20 @@
+iOS (iPhone 16 Pro simulator, iOS 18.0, Expo Go), manager build :5274, vikas.kadam — 2026-09-13 08:20–08:25 IST
+
+DOS-135 overlap (refusal arriving while a sibling write on the same panel is pending) — NOT TESTED on iOS
+- Control done: Start reviewing on ALA/26-27/00491 -> POST /docint/documents/2254e884.../review 409 in 53 ms (req-1sj);
+  the sentence "Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)" shows directly above Start reviewing
+  (manager-135-05). Lock 89f90df9 (sunil.tarsun, open until 2026-10-12 05:30 IST) unchanged.
+- Why the overlap could not be produced: the simulator's Expo Go talks to 127.0.0.1:3002 directly, and the app's API URL is
+  fixed at bundle time, so no host forwarder can hold one request without changing app config or service ports (forbidden).
+  A natural overlap is impossible with this harness: two Appium taps land ~0.97 s apart (manager-029-05: cancel at +865 ms,
+  reopen at +1831 ms), while an unheld rematch round-trip is ~150 ms (Android forwarder log, android-manager DOS-135 check).
+
+DOS-029c brand-DMS approve -> 501 sentence — BLOCKED on iOS
+- Panel FA/TY/26-27/1187 (document 0400aea1, brand_dms_invoice, needs_review) opens (manager-029c-01; accessibility label lists
+  "Start reviewing, Match the items again, Book it as a supplier bill, Reject the document").
+- The panel body did not scroll to the actions with any synthesized gesture: 14 glides/flicks from x=30/60/120/200/380,
+  start y 560–760, 80–150 ms (0 pixel rows changed below the status bar, manager-029c-02/-03); one start at x=380 y=720
+  dragged Expo Go's floating gear instead. "Book it as a supplier bill" was never on screen, so it was not pressed.
+- Even when reached, its confirm is a Dialog rendered while the document Sheet is open (inbound/documents.tsx Sheet :324,
+  Dialog :568) — the pattern iOS refused on the order Sheet (manager-020-ios-log-nested-modal.txt). Not inferred as a result.
+- manager-service.log: no POST /docint/documents/0400aea1.../approve in this session; documents 0400aea1 still needs_review.

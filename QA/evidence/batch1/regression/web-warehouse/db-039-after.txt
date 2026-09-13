@@ -1,0 +1,163 @@
+# DOS-039 AFTER snapshot, sheet 374f2089-b8fd-720e-907c-8380307948ab, taken 2026-09-13 01:07:46 IST (read-only SQL on dos_qa)
+  status   | counted_packages | expected_packages | van_stock | challan_no |                        variance_note                        |             confirmed_by             |         confirmed_at          |           pin_verified_by            
+-----------+------------------+-------------------+-----------+------------+-------------------------------------------------------------+--------------------------------------+-------------------------------+--------------------------------------
+ confirmed |               35 |                38 | []        | DC-0083    | QA regression DOS-039: counted 35 of 38 cartons at the gate | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.333+05:30 | a1cbd424-d568-7ccb-b5cc-b049e8ac2063
+(1 row)
+
+## stock_ledger rows against the sheet (ref_type load_sheet) — expected 0 because countedVanStock was []
+ count 
+-------
+     0
+(1 row)
+
+ ref_type | count 
+----------+-------
+(0 rows)
+
+## any stock_ledger row written since the before snapshot (01:03:59 IST) on the sheet's godown lots or the vehicle
+ occurred_at | created_at | lot_id | location_id | qty_delta | reason | ref_type | ref_id 
+-------------+------------+--------+-------------+-----------+--------+----------+--------
+(0 rows)
+
+## godown (from_location) on_hand of every lot the packs took
+                lot_id                | on_hand | reserved | version |            updated_at            
+--------------------------------------+---------+----------+---------+----------------------------------
+ 0128aea6-a6cb-76bc-9a2e-fab7a0ff73b6 |     144 |        0 |       1 | 2026-09-12 12:50:49.683509+05:30
+ 10109c2d-7c6e-7de9-86e9-fcf3ea8bac2e |       0 |        0 |       1 | 2026-09-12 12:50:49.687319+05:30
+ 1c1dddfe-95d2-7785-b548-8baad03412f0 |      30 |        0 |       1 | 2026-09-12 12:50:49.65459+05:30
+ 44fc05f8-2cf9-7d9a-a63a-ae281ef2eef0 |      19 |        0 |       1 | 2026-09-12 12:50:49.684794+05:30
+ 56f53711-132c-7c59-9a90-cb5f2826adb6 |       0 |        0 |       1 | 2026-09-12 12:50:49.687901+05:30
+ 5a79a1e2-af5d-79ea-9b7c-278e867e3d8c |      77 |        0 |       1 | 2026-09-12 12:50:49.685587+05:30
+ 62e5426b-7a48-76ae-904a-c73a41999064 |     106 |        0 |       1 | 2026-09-12 12:50:49.679157+05:30
+ 816f91a2-43db-704d-9e97-9aeb34e1a722 |       0 |        0 |       1 | 2026-09-12 12:50:49.429274+05:30
+ 83aa6d12-6d5d-7c81-b6dd-ad8d3b7cf5bf |       0 |        0 |       1 | 2026-09-12 12:50:49.682689+05:30
+ 8d133ab4-ee2e-7347-a066-869fb93e644e |     336 |        0 |       1 | 2026-09-12 12:50:49.684551+05:30
+ 8d3c6f78-956d-7020-a716-57ef2def9b22 |      72 |        0 |       1 | 2026-09-12 12:50:49.688289+05:30
+ 95c71936-6d2f-7190-ada5-7a77c6806336 |      18 |        0 |       1 | 2026-09-12 12:50:49.372134+05:30
+ 9e82db08-dbc2-77a6-b862-38d41aa446c6 |     399 |        0 |       2 | 2026-09-12 12:50:54.19596+05:30
+ b38a6292-6e58-77ac-ae85-a942fe87a829 |      14 |        0 |       2 | 2026-09-12 12:50:52.846415+05:30
+ b70c6b99-f594-7eb0-a1f3-4ad187e829c6 |       0 |        0 |       1 | 2026-09-12 12:50:49.686278+05:30
+ be96c7c8-8e29-726c-be64-b9ce3e64a1fb |       0 |        0 |       1 | 2026-09-12 12:50:49.653111+05:30
+ c1a39365-6276-7f28-97c3-df5142b046ad |     480 |       23 |       2 | 2026-09-12 13:52:31.218887+05:30
+ cb5df43d-cc5e-738c-8590-4813f843e143 |    5999 |        0 |       3 | 2026-09-12 12:50:54.195674+05:30
+ d48bf417-f8de-73fe-bd25-4d9bad4ae3a9 |     198 |        0 |       1 | 2026-09-12 12:50:49.688604+05:30
+ e48802a0-bd13-7389-b4f5-eb91610736e4 |       0 |        0 |       1 | 2026-09-12 12:50:49.68766+05:30
+ f1400bdd-2fd6-7c30-9de8-a3c8be734203 |       0 |        0 |       1 | 2026-09-12 12:50:49.656252+05:30
+ f7350824-896d-7cc6-95a7-28d687ce2355 |      11 |        0 |       1 | 2026-09-12 12:50:49.640605+05:30
+ fd11f7be-b3a3-7a14-93db-503daf700347 |      48 |        0 |       1 | 2026-09-12 12:50:49.685945+05:30
+(23 rows)
+
+## vehicle (to_location) balances
+                lot_id                | on_hand | reserved | version |            updated_at            
+--------------------------------------+---------+----------+---------+----------------------------------
+ 0c6e5ba6-d528-7edc-9fbe-19194755db54 |      48 |        0 |       0 | 2026-09-12 12:50:54.194124+05:30
+ 175f8e3e-d527-75ba-9ba3-3d0f0677c24f |      24 |        0 |       0 | 2026-09-12 12:50:54.194108+05:30
+ 34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29 |       0 |        0 |       1 | 2026-09-12 12:50:54.199611+05:30
+ 590fd4d9-f091-796d-980f-c4cc0efe1a2a |      24 |        0 |       0 | 2026-09-12 12:50:54.194049+05:30
+ 9e82db08-dbc2-77a6-b862-38d41aa446c6 |      24 |        0 |       0 | 2026-09-12 12:50:54.194086+05:30
+ c1a9fd2b-6d7b-7601-aa96-8e5ac7f12b33 |      48 |        0 |       0 | 2026-09-12 12:50:54.194016+05:30
+ cb5df43d-cc5e-738c-8590-4813f843e143 |      48 |        0 |       1 | 2026-09-12 16:09:00.677517+05:30
+(7 rows)
+
+## orders on the sheet
+ order_no |   state    |            updated_at            | invoice_no | inv_state 
+----------+------------+----------------------------------+------------+-----------
+ SO-0869  | dispatched | 2026-09-13 01:07:22.3957+05:30   | INV/0836   | issued
+ SO-0871  | dispatched | 2026-09-13 01:07:22.39278+05:30  | INV/0837   | issued
+ SO-0875  | dispatched | 2026-09-13 01:07:22.390016+05:30 | INV/0838   | paid
+ SO-0876  | dispatched | 2026-09-13 01:07:22.38371+05:30  | INV/0839   | issued
+ SO-0878  | dispatched | 2026-09-13 01:07:22.360136+05:30 | INV/0840   | issued
+(5 rows)
+
+ERROR:  column t.created_at does not exist
+LINE 1: select o.order_no, t.from_state, t.to_state, t.created_at fr...
+                                                     ^
+HINT:  Perhaps you meant to reference the column "o.created_at".
+## challan
+                  id                  | challan_no |   fy    | challan_date |           from_location_id           |            to_location_id            |  vehicle_no   | value_paise |    ewb_no    |              issued_by               |           issued_at           | line_count 
+--------------------------------------+------------+---------+--------------+--------------------------------------+--------------------------------------+---------------+-------------+--------------+--------------------------------------+-------------------------------+------------
+ 01a0971f-da77-779f-9dc7-3b07db2bce36 | DC-0083    | 2026-27 | 2026-09-13   | 01a0947d-7a96-723f-952d-338dd284a1b4 | 3bbe6b52-7dd7-7540-aad6-94ff815e8d8b | MH-05-AB-1234 |    15014700 | 381012345678 | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.333+05:30 |         23
+(1 row)
+
+                         jsonb_pretty                         
+--------------------------------------------------------------
+ [                                                           +
+     {                                                       +
+         "lotId": "56f53711-132c-7c59-9a90-cb5f2826adb6",    +
+         "gstBps": 1800,                                     +
+         "qtyPcs": 240,                                      +
+         "variantId": "1e08c003-4f1d-7b87-944a-6c885703abff",+
+         "taxableValuePaise": 480000                         +
+     },                                                      +
+     {                                                       +
+         "lotId": "1c1dddfe-95d2-7785-b548-8baad03412f0",    +
+         "gstBps": 1800,                                     +
+         "qtyPcs": 60,                                       +
+         "variantId": "a511570f-7223-7254-8239-0d987515a582",+
+         "taxableValuePaise": 480000                         +
+     },                                                      +
+     {                                                       +
+         "lotId": "8d133ab4-ee2e-7347-a066-869fb93e644e",    +
+         "gstBps": 1800,                                     +
+         "qtyPcs": 624,                                      +
+         "variantId": "30f38ab4-2bfa-7be9-90de-a3acb99f7f68",+
+         "taxableValuePaise": 1248000                        +
+     },                                                      +
+     {                                                       +
+         "lotId": "f7350824-896d-7cc6-95a7-28d687ce2355",    +
+         "gstBps": 1200,                                     +
+         "qtyPcs": 50,                                       +
+         "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",+
+         "taxableValuePaise": 250000                         +
+     },                                                      +
+     {                                                       +
+         "lotId": "cb5df43d-cc5e-738c-8590-4813f843e143",    +
+         "gstBps": 1200,                                     +
+         "qtyPcs": 325,                                      +
+         "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",+
+         "taxableValuePaise": 1300000                        +
+     },                                                      +
+     {                                                       +
+         "lotId": "83aa6d12-6d5d-7c81-b6dd-ad8d3b7cf5bf",    +
+## trip + stops
+  trip_no  | trip_date  | state  |            updated_at            
+-----------+------------+--------+----------------------------------
+ TRIP-NEXT | 2026-09-14 | active | 2026-09-12 15:08:33.839745+05:30
+(1 row)
+
+ sequence |  state  |            updated_at            
+----------+---------+----------------------------------
+        1 | arrived | 2026-09-12 16:53:56.478613+05:30
+        2 | pending | 2026-09-12 12:50:55.347513+05:30
+        3 | pending | 2026-09-12 12:50:55.347543+05:30
+        4 | pending | 2026-09-12 12:50:55.347573+05:30
+        5 | pending | 2026-09-12 12:50:55.347603+05:30
+(5 rows)
+
+## control: godown ledger totals
+ godown_ledger_rows | godown_net 
+--------------------+------------
+               4902 |      77069
+(1 row)
+
+# DOS-039 after: challan line count, lots vs sheet, order transitions
+ challan_no | line_count | pcs  | value_paise 
+------------+------------+------+-------------
+ DC-0083    |         23 | 5926 |    15014700
+(1 row)
+
+ packed_pcs | lots 
+------------+------
+       5926 |   23
+(1 row)
+
+## order_state_transitions for the sheet's orders since 13 Sep 01:00
+ order_no | from_state |  to_state  |  event   |               actor_id               |           occurred_at            
+----------+------------+------------+----------+--------------------------------------+----------------------------------
+ SO-0869  | packed     | dispatched | dispatch | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.316638+05:30
+ SO-0871  | packed     | dispatched | dispatch | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.316638+05:30
+ SO-0875  | packed     | dispatched | dispatch | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.316638+05:30
+ SO-0876  | packed     | dispatched | dispatch | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.316638+05:30
+ SO-0878  | packed     | dispatched | dispatch | 5b6fbe87-cb70-7195-8de1-a4f5046c3675 | 2026-09-13 01:07:22.316638+05:30
+(5 rows)
+
