@@ -1,0 +1,62 @@
+{
+  "probe": "06",
+  "phase": "after DOS-166 merge (main 3d7cb36)",
+  "role": "salesperson",
+  "username": "rahul.deshmukh",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "sentAt": "2026-09-13T10:52:04.192Z",
+  "login": {
+    "url": "http://127.0.0.1:3000/auth/login",
+    "status": 200,
+    "role": "salesperson"
+  },
+  "request": {
+    "method": "POST",
+    "url": "http://127.0.0.1:3003/sync/upload",
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "Bearer <redacted>"
+    },
+    "body": {
+      "protocol": 1,
+      "deviceId": "qa-b2-syncprobe-after-salesperson-06",
+      "ops": [
+        {
+          "opId": "01a09a65-48e1-707e-9a04-4b456331d9dd",
+          "op": "PUT",
+          "table": "trip_expenses",
+          "id": "01a09a65-48e0-7daa-94fe-cc67057b580d",
+          "clientTime": "2026-09-13T10:52:04.192Z",
+          "data": {
+            "trip_id": "dda35990-f442-7931-8da4-5808f09a33b6",
+            "kind": "parking",
+            "amount_paise": 100,
+            "incurred_at": "2026-09-13T10:52:04.192Z",
+            "device_id": "qa-b2-syncprobe-after-salesperson-06",
+            "note": "QA batch2 sync-role-probe AFTER 06 salesperson"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "accepted": 0,
+      "replayed": 0,
+      "rejected": [
+        {
+          "opId": "01a09a65-48e1-707e-9a04-4b456331d9dd",
+          "table": "trip_expenses",
+          "rowId": "01a09a65-48e0-7daa-94fe-cc67057b580d",
+          "code": "role_not_allowed",
+          "messageHi": "यह काम आपकी भूमिका के लिए नहीं है",
+          "messageEn": "A salesperson may not send trip_expenses from a device"
+        }
+      ],
+      "warnings": [],
+      "upgradeRequired": false
+    }
+  }
+}

@@ -1,0 +1,317 @@
+{
+  "probe": "09",
+  "finding": "DOS-115",
+  "phase": "after merge (main 3d7cb36)",
+  "role": "delivery",
+  "username": "ganesh.more",
+  "service": "http://127.0.0.1:3005",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "startedAt": "2026-09-13T10:52:17.481Z",
+  "login": {
+    "status": 200,
+    "role": "delivery"
+  },
+  "realRows": {
+    "DRAFT": "876d0028-e59c-77b8-9c0f-afae52c229cc",
+    "SUBMITTED": "3efdbf77-02ab-745b-92d0-a175744f6761",
+    "CONFIRMED": "ce2350c7-770c-78dd-901b-3206d37d6182",
+    "BEAT_SHOP": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+    "DRAFT_VARIANT": "677c774f-86aa-79c6-b755-702a61b92ca2"
+  },
+  "attemptedNewOrderIds": [
+    "01a09a65-7d5c-724e-8cee-4763fc1ea115",
+    "01a09a65-7d5c-7950-8c7e-efa1cb1b3f42"
+  ],
+  "calls": [
+    {
+      "name": "create",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d5c-7be8-affd-59546e835d36",
+          "id": "01a09a65-7d5c-724e-8cee-4763fc1ea115",
+          "retailerId": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+          "source": "salesperson",
+          "note": "QA batch2 DOS-115 after-probe 09 delivery",
+          "lines": [
+            {
+              "id": "01a09a65-7d5c-7bb5-b7ae-76e856e6fd78",
+              "variantId": "677c774f-86aa-79c6-b755-702a61b92ca2",
+              "enteredQty": 1,
+              "enteredUnit": "piece"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "setLines (draft)",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/:id/lines"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/876d0028-e59c-77b8-9c0f-afae52c229cc/lines",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d5e-7124-9993-9667323343fd",
+          "id": "876d0028-e59c-77b8-9c0f-afae52c229cc",
+          "lines": [
+            {
+              "id": "01a09a65-7d5e-7b6e-9dff-a208974155c6",
+              "variantId": "677c774f-86aa-79c6-b755-702a61b92ca2",
+              "enteredQty": 2,
+              "enteredUnit": "piece"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/:id/lines",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "submit (draft)",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/:id/submit"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/876d0028-e59c-77b8-9c0f-afae52c229cc/submit",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d60-7229-b4c2-ef2805a4ea43",
+          "id": "876d0028-e59c-77b8-9c0f-afae52c229cc"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/:id/submit",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "cancel (confirmed SO-0877)",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/:id/cancel"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/ce2350c7-770c-78dd-901b-3206d37d6182/cancel",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d62-7027-ba13-aeb3da6f3104",
+          "id": "ce2350c7-770c-78dd-901b-3206d37d6182",
+          "reason": "QA batch2 DOS-115 after-probe 09 delivery"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/:id/cancel",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "cancel (submitted SO-0868)",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/:id/cancel"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/3efdbf77-02ab-745b-92d0-a175744f6761/cancel",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d64-70c1-97b7-778b7eafb238",
+          "id": "3efdbf77-02ab-745b-92d0-a175744f6761",
+          "reason": "QA batch2 DOS-115 after-probe 09 delivery"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/:id/cancel",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "cancel (draft)",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/:id/cancel"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/876d0028-e59c-77b8-9c0f-afae52c229cc/cancel",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d65-7286-851d-c4839db6f67c",
+          "id": "876d0028-e59c-77b8-9c0f-afae52c229cc",
+          "reason": "QA batch2 DOS-115 after-probe 09 delivery"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/:id/cancel",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "repeatLast",
+      "expected": {
+        "status": 403,
+        "message": "the delivery role may not call POST /orders/repeat-last"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/orders/repeat-last",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a65-7d67-71f0-a395-e10ae77f3335",
+          "id": "01a09a65-7d5c-7950-8c7e-efa1cb1b3f42",
+          "retailerId": "75659f5a-19d1-7d52-8b43-4c3d6777a33c"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the delivery role may not call POST /orders/repeat-last",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "list",
+      "expected": {
+        "status": 200
+      },
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:3005/orders",
+        "headers": {
+          "authorization": "Bearer <redacted>"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "itemsCount": 50,
+          "nextCursor": "f29b252f-30cb-7506-a5d8-1a35c5a4e062",
+          "firstItems": [
+            {
+              "id": "ff71fe9f-4c78-7463-82aa-d9519910677e",
+              "orderNo": "SO-0467",
+              "state": "delivered"
+            },
+            {
+              "id": "ff3c19ab-239a-7d98-ba34-5b77df3e69c9",
+              "orderNo": "SO-0185",
+              "state": "delivered"
+            },
+            {
+              "id": "ff2e6042-add4-711f-9dac-b83ae6186303",
+              "orderNo": "SO-0286",
+              "state": "delivered"
+            }
+          ]
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "get (confirmed SO-0877)",
+      "expected": {
+        "status": 200
+      },
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:3005/orders/ce2350c7-770c-78dd-901b-3206d37d6182",
+        "headers": {
+          "authorization": "Bearer <redacted>"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "item": {
+            "id": "ce2350c7-770c-78dd-901b-3206d37d6182",
+            "orderNo": "SO-0877",
+            "state": "confirmed",
+            "source": "salesperson",
+            "retailerId": "5a597c5e-1c9b-7dfa-a11e-1266091c487c",
+            "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+            "totalPaise": 1753100,
+            "linesCount": 3
+          }
+        }
+      },
+      "pass": true
+    }
+  ],
+  "allPass": true
+}

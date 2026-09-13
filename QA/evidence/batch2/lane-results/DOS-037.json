@@ -1,0 +1,182 @@
+{
+ "id": "DOS-037",
+ "runs": [
+  "wf_ac1e794b-9d1"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-037",
+   "status": "fixed",
+   "commits": [
+    "d59c8fe0066e70fefb1d923448eda1ff3aad3098"
+   ],
+   "failBefore": "Run on lane DB dos_test_b2_h9, before any source change, after rebuilding libs:\n- backend/libs/contracts/src/permissions.test.ts: 2 failed. \"AssertionError: inventory.locations.upsert must refuse accountant: expected true to be false\". Tripwire: \"expected [ 'ai.forecast.run', …(96) ] to deeply equal [ 'ai.forecast.run', …(72) ]\", i.e. 97 non-GET procedures allowed against 73 expected; the extra 24 are the writes this fix removes.\n- Core red run: the command `pnpm --filter @dos/core test -- <file>` ran the whole core suite (36 files) because the `--` defeats vitest's file filter. Only the 3 new DOS-037 tests failed; 551 other tests passed.\n  - inventory.spec.ts: \"POST /inventory/adjustments: expected 200 to be 403\". The accountant's -1 damage adjustment was accepted.\n  - procurement.spec.ts: \"POST /procurement/supplier-invoices: expected 200 to be 403\". The accountant booked a bill.\n  - docint.spec.ts: \"POST /docint/documents/<id>/review: expected 409 to be 403\". The guard let her through; the handler answered on document state.",
+   "passAfter": "Every run used `pnpm --filter <pkg> exec vitest run <file>`, one file per command, after rebuilding contracts/db/core. Built dist was grepped and carries the new rows.\n- permissions.test.ts: 47/47. The first post-fix run failed on procurement.purchaseOrders.upsert, a row outside the replaced block (tripwire showed 74 against 73); fixed, re-run green.\n- inventory.spec.ts 14/14; procurement.spec.ts 10/10; docint.spec.ts 14/14 (approve test now runs as managerA).\n- Service matrix specs: manager-service 344/344, owner-service 344/344, warehouse-service 253/253.\n- Amendment (c): delivery.spec.ts 25/25 (includes \"the accountant settles...\"); billing.spec.ts 21/21. grep finds no requireRole anywhere in inventory.service.ts.\n- examples.spec.ts 32/32.\n- turbo typecheck+lint for contracts, core and db: 9/9 tasks. Only warnings are the existing eslint-plugin-boundaries deprecation notices.\n- warehouse-app: typecheck exit 0, lint exit 0.\n- Amendment (b): scratch DB dos_test_b2_h9_seed, fresh migrate then seed, both exit 0. 212 GRNs posted, 0 by an accountant; 212 bills approved, 0 by an accountant; 4 review sessions, 0 by an accountant; 0 grn ledger rows by an accountant. Scratch DB dropped.\n- Order caveat: `pnpm format` (backend and frontend) ran after the tests and lint. It reflowed whitespace only in the three new spec files; the specs were not re-run after that.\n- git status is clean after the commit.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-037 keeps the accountant to reads on stock (M16), supplier bills, goods receipts and purchase orders (M4) and inbound review (M3), and the owner, manager and warehouse keep their writes"
+    },
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "DOS-037 pins every non-GET procedure the accountant may call"
+    },
+    {
+     "file": "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+     "name": "DOS-037 refuses the accountant a stock adjustment, a transfer, a lot, a location and a cycle-count post, at the gate and in the service, and the ledger does not move"
+    },
+    {
+     "file": "backend/libs/core/src/modules/procurement/procurement.spec.ts",
+     "name": "DOS-037 refuses the accountant every supplier-bill, goods-receipt and purchase-order write at the gate and in the service, and still lets her read them"
+    },
+    {
+     "file": "backend/libs/core/src/modules/docint/docint.spec.ts",
+     "name": "DOS-037 lets the accountant read the review queue and the reading but not start a review, rematch, accept a match, reject or approve a document, at the gate and in the service"
+    }
+   ],
+   "testsCorrected": [
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "lets the gate capture a supplier bill and never read its rates (docint)",
+     "before": "Every non-capture docint path toEqual BACK_OFFICE. docint.documents.approve and procurement.grns.post toEqual BACK_OFFICE. docint.review.start/save/submit, documents.approve and queue.list must ALLOW the accountant.",
+     "after": "The 5 reads (extractions.list/get, matches.list, queue.list, stats.summary) toEqual BACK_OFFICE. The 12 decisions (count pinned to 12) toEqual ['owner','manager']. The warehouse refusal is kept for both groups. approve and grns.post toEqual ['owner','manager'], and approve == supplierInvoices.create is kept. review.start/save/submit and documents.approve must REFUSE the accountant; queue.list must still ALLOW her.",
+     "why": "Plan items 1-3 and amendment (e). These assertions encoded the superseded brief-era grant 'the CA reviews inbound invoices'. Every change turns an accountant allow into a refusal: a tightening, not a weakening."
+    },
+    {
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "name": "keeps the tiles, the graphs and the registers with the desk, a field role to its own (reporting)",
+     "before": "reporting fillRate permission toEqual permissionFor('inventory.stock.adjust')",
+     "after": "reporting fillRate permission toEqual permissionFor('procurement.grns.list'). The literal ['owner','manager','accountant','warehouse'] assertion beside it is unchanged.",
+     "why": "Plan item 4. inventory.stock.adjust is no longer BACK_OFFICE_OR_WAREHOUSE, so the comparison now points at a row that still is."
+    },
+    {
+     "file": "backend/libs/core/src/modules/docint/docint.spec.ts",
+     "name": "approves into a supplier invoice DRAFT and posts nothing to stock, cost or the journal",
+     "before": "The approve call and its idempotent replay ran as `accountant`.",
+     "after": "Both run as `managerA`. The accountant's refusal is asserted by the new DOS-037 test, which keeps `accountant`/`accountantId` in use.",
+     "why": "Plan and amendment (e): a requirement correction. The accountant may no longer approve an inbound document."
+    }
+   ],
+   "filesChanged": [
+    "backend/libs/contracts/src/permissions.ts",
+    "backend/libs/contracts/src/permissions.test.ts",
+    "backend/libs/contracts/src/docint.ts",
+    "backend/libs/contracts/src/procurement.ts",
+    "backend/libs/core/src/modules/inventory/stock.service.ts",
+    "backend/libs/core/src/modules/inventory/cycle-counts.service.ts",
+    "backend/libs/core/src/modules/inventory/inventory.spec.ts",
+    "backend/libs/core/src/modules/procurement/supplier-invoice.service.ts",
+    "backend/libs/core/src/modules/procurement/grn.service.ts",
+    "backend/libs/core/src/modules/procurement/procurement.spec.ts",
+    "backend/libs/core/src/modules/docint/docint.internals.ts",
+    "backend/libs/core/src/modules/docint/documents.service.ts",
+    "backend/libs/core/src/modules/docint/extractions.service.ts",
+    "backend/libs/core/src/modules/docint/matches.service.ts",
+    "backend/libs/core/src/modules/docint/review.service.ts",
+    "backend/libs/core/src/modules/docint/docint.spec.ts",
+    "backend/libs/database/src/seed-demo/stock.ts",
+    "backend/libs/database/src/seed-demo/docint.ts",
+    "docs/23-app-screens-and-api-gaps.md",
+    "frontend/warehouse-app/app/inbound/[id].tsx"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Tripwire: 'DOS-037 pins every non-GET procedure the accountant may call'",
+     "done": true,
+     "how": "New test in permissions.test.ts. It takes allProcedures(), keeps the non-GET rows isAllowed for the accountant, sorts the paths and compares them with toEqual against a 73-entry literal grouped by source in comments:\n- public/authenticated auth\n- every-member/staff writes\n- MONEY_DESK\n- BILLING_ISSUERS\n- CREDIT_NOTE_RAISERS\n- claims\n- docint CAP\n- notifications\n- incentives/ai\n- the M2/M6/M7/M11 leftovers plus messages.resend, as named in the verdict's new finding\nIt also asserts that none of the 24 appear in the literal. It was red before the fix (97 against 73) and is green after."
+    },
+    {
+     "amendment": "(b) Seed attribution moves from the accountant to the manager",
+     "done": true,
+     "how": "seed-demo/stock.ts :265 (grn ledger actorId), :308 (approvedBy) and :321 (postedBy), and seed-demo/docint.ts :653 (reviewerId), now use people.manager.id. These were the only accountant references in either file.\n- Proven on a fresh scratch DB: 212 GRNs posted, 0 by an accountant; 212 bills approved, 0 by an accountant; 4 reviews, 0 by an accountant.\n- The QA/tools/seed/REALISTIC-SEED-SPEC.md edit was NOT made: this lane may not edit QA/. It is listed in followUps."
+    },
+    {
+     "amendment": "(c) No new role check on InventoryService.post or the withSystem paths",
+     "done": true,
+     "how": "InventoryService and the withSystem paths are untouched; grep finds no requireRole anywhere in inventory.service.ts.\n- delivery.spec.ts ('the accountant settles...') passes 25/25.\n- billing.spec.ts passes 21/21."
+    },
+    {
+     "amendment": "(d) Name the tuples by what they are",
+     "done": true,
+     "how": "stock.service.ts:\n- The exported read list is renamed STOCK_KEEPERS → STOCK_VIEWERS, including both requireRole sites (balances, ledger).\n- STOCK_WRITERS is written out as ['owner','manager','warehouse','system'], commented as ROLE_GROUPS.STOCK_KEEPERS plus system. The BACK_OFFICE import is removed.\ninventory.spec.ts:341:\n- 'BACK_OFFICE posts' now reads 'the owner or a manager posts'.\n- 'STOCK_KEEPERS open and count' is kept, because it names cycle-counts' owner/manager/warehouse population, which is correct."
+    },
+    {
+     "amendment": "(e) Everything else in the plan as written (Option A, all 24)",
+     "done": true,
+     "how": "Done in this lane:\n- permissions.ts: 4 inventory writes → ROLE_GROUPS.STOCK_KEEPERS; cycleCounts.post, 7 procurement writes and 12 docint decisions → MANAGEMENT; comments rewritten (docint now three populations).\n- Services: DESK_WRITERS = MANAGEMENT in docint.internals.ts, used by documents reject/approve, extractions.run, matches accept/reject/choose/rerun and all five review methods. MANAGEMENT in cycle-counts post, supplier-invoice create/createInTx/matchLine/upsertPurchaseOrder/dispute/cancel, and grn open/post. Reads stay on DESK/BACK_OFFICE.\n- Tests: the four existing assertions flipped as tightenings; docint.spec approve and replay actor → managerA.\n- Comments: headers in docint.ts :29-34 and :55 and procurement.ts :17-22; the warehouse-app inbound/[id].tsx comment.\n- docs/23: §2.3, §8.18 (two lines) and §8.20 item 1.\nLeft to the main session by lane rule (listed in followUps): regenerating READMEs (`pnpm docs:readme` is forbidden here) and the docs/22 §8 + §11 rows with the artifact republish (docs/22 edits are forbidden here)."
+    }
+   ],
+   "deviations": "No behavioural deviation from the plan.\n\n1. Tests are stronger than the plan's minimum.\n- The docint test checks all 12 decision procedures, both at the gate (403 plus 'the accountant role may not call') and in the service (FORBIDDEN). The plan named 5 HTTP routes and 2 service methods.\n- The inventory and procurement tests likewise call every narrowed service method directly under an accountant tenantStorage context:\n  - StockService: adjust, transfer, upsertLot, upsertLocation\n  - CycleCountsService: post\n  - SupplierInvoiceService: create, createInTx, matchLine, dispute, cancel, upsertPurchaseOrder\n  - GrnService: open, post\n- The inventory test uses its own lot and its own counted cycle count, like the DOS-044 test. Its controls are a manager posting the count and the warehouse taking a damaged piece off and transferring one. All tests assert DB counts unchanged after the refusals.\n- The tripwire literal includes groups beyond those the amendment named (auth, every-member/staff writes, notifications, incentives, ai), because the computed filter returns them.\n\n2. Extra comment-only edits.\n- Beyond the stale comments the plan listed, I corrected comments this change made false:\n  - the DOS-044 JSDoc in permissions.ts ('The matrix row stays BACK_OFFICE_OR_WAREHOUSE') and its twin above the DOS-044 test in permissions.test.ts\n  - the supplier-invoice.service.ts class comment ('every procedure is back office')\n  - the cycle-counts post JSDoc\n  - the documents.service section comment\n  - the docint.internals DESK comment\n\n3. Process.\n- The plan's commands `pnpm --filter @dos/core test -- <file>` run the whole core suite, because the `--` defeats vitest's filter. The core red run happened that way; every later run used `exec vitest run <file>`.\n- `pnpm format` rewrote backend/libs/core/src/modules/pricing/pricing.spec.ts. That was formatting drift already on the branch from DOS-096, not this fix; I restored it to HEAD and did not commit it.",
+   "followUps": "1. Main session, after merge:\n- Run `pnpm docs:readme` in backend and commit. The 24 POST routes lose 'accountant' in the service and app READMEs; `docs:readme:check` will fail until this is done.\n- Add the docs/22 §8 register row and the §11 change-log row (text is in the plan). Run `python3 docs/tools/render-source-of-truth.py` and republish the artifact.\n\n2. QA/tools/seed/REALISTIC-SEED-SPEC.md (amendment b, doc only). Wherever it names the accountant as GRN poster, bill approver or reviewer, change it to the manager before the dos_qa rebuild. Lanes may not edit QA/.\n\n3. Merge hotspots.\n- The tripwire literal in permissions.test.ts ('DOS-037 pins every non-GET procedure the accountant may call') must be re-derived when main (DOS-115 orders rows, DOS-131+137 delivery rows) is merged into this branch. The failing diff shows the paths to add or remove.\n- permissions.ts: DOS-115 and DOS-131+137 edit other blocks of the same file.\n\n4. docs/23 §8.19 (around lines 888-889) still says supplierInvoices.dispute and cancel are BACK_OFFICE. That is stale after this fix, but the plan did not list it; fix it in a doc pass.\n\n5. backend/libs/core/src/modules/pricing/pricing.spec.ts (DOS-096) is not prettier-clean on this branch, so `format:check` will flag it.\n\n6. Verifier steps not run in this lane (dev servers and emulators are forbidden here):\n- the before/after diff of :3002 /docs/openapi.json x-roles\n- web walks as meena.joshi on :5174 at 1280x800 and 390x844, plus the vikas.kadam and dinesh.patil controls\n- the API probes with a real token\n- Android and iOS walks\n- `pnpm smoke --service manager` and `--service owner`\n- restarting :3001/:3002/:3004 and the :5174 Metro after the contracts/core rebuild\n\n7. The verdict's new P3 findings are unchanged by this fix:\n- The accountant still writes billing.invoices.issueForPack, setEwayBill, requestIrn and importBrandDms, warehouse.challans.recordEwb, warehouse.reservations.release, and notifications.messages.resend. That is a founder call.\n- authz.ts requireRole's message names the internal 'system' role.\n\n8. Next in the lane chain: DOS-031. DOS-044, already on this branch, is consistent with this fix: the inventory.stock.adjust row is STOCK_KEEPERS and mayPostAdjustment narrows it further.",
+   "platformCheck": "API only, in this lane:\n- The guard's 403 and each service's FORBIDDEN are proven by the core specs.\n- The manager, owner and warehouse service permission-matrix specs are green.\n\nNo web, Android or iOS run was possible: the lane forbids dev servers, emulators and simulators. No frontend code changed:\n- The manager app's useCan/isAllowed gates read the rebuilt PERMISSIONS, so the stock row selection, Inbound actions and Documents write buttons should disappear for the accountant. The live check belongs to the verifier.\n- The warehouse-app edit is a comment only; its typecheck and lint exit 0."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-037",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Tripwire: one test that computes the accountant's non-GET procedures and toEquals a sorted literal grouped by source, containing none of the 24",
+     "satisfied": true,
+     "detail": "permissions.test.ts 'DOS-037 pins every non-GET procedure the accountant may call'.\n- It filters allProcedures() to non-GET rows isAllowed for the accountant, sorts the paths and toEquals a 73-entry literal. Comment groups: auth, member/staff, MONEY_DESK, BILLING_ISSUERS, CREDIT_NOTE_RAISERS, claims §6, docint CAP, notifications, incentives/ai, and the founder leftovers (importBrandDms, requestIrn, messages.resend, recordEwb, reservations.release).\n- It also asserts that none of the 24 is in the literal.\n- Executed: red at the reversed state ('expected [ai.forecast.run, …(96)] to deeply equal [… (72)]'), green after (47/47)."
+    },
+    {
+     "amendment": "(b) Seed attribution: grn ledger actorId, approvedBy, postedBy and reviewerId become people.manager.id; edit REALISTIC-SEED-SPEC.md if it names the accountant",
+     "satisfied": true,
+     "detail": "Code:\n- seed-demo/stock.ts :265 actorId, :308 approvedBy and :321 postedBy are people.manager.id.\n- seed-demo/docint.ts :653 reviewerId is people.manager.id.\n- No accountant reference remains in either file.\n\nVerified myself on scratch DB dos_test_b2_h9_v037 (fresh migrate exit 0, seed exit 0):\n- grns posted: 212, by an accountant 0.\n- supplier_invoices approved: 212, by an accountant 0.\n- review_sessions: 4, by an accountant 0.\n- grn stock_ledger rows: 1441, by an accountant 0.\n- Database dropped; pg_database count for it is 0.\n\nThe doc-only QA/tools/seed/REALISTIC-SEED-SPEC.md edit was not made because the lane forbids QA/ edits. It is listed as a follow-up."
+    },
+    {
+     "amendment": "(c) No new role check on InventoryService.post or the withSystem paths; delivery 'accountant settles' spec and billing credit-note specs green",
+     "satisfied": true,
+     "detail": "- inventory.service.ts is not in the diff, and grep finds no requireRole in it.\n- Executed: delivery.spec.ts 25/25 (includes 'the accountant settles and reads the money…' at :1985) and billing.spec.ts 21/21.\n- Only internal callers of the narrowed writes:\n  - SupplierInvoiceService.createInTx, from docint approve (documents.service.ts:627, now MANAGEMENT too).\n  - Claims calls GrnService.openDiscrepancies, markDiscrepanciesClaimed and reopenDiscrepancies, none of which are narrowed."
+    },
+    {
+     "amendment": "(d) Rename stock.service's exported read list STOCK_KEEPERS to STOCK_VIEWERS; write STOCK_WRITERS as ['owner','manager','warehouse','system'] commented 'ROLE_GROUPS.STOCK_KEEPERS plus system'",
+     "satisfied": true,
+     "detail": "stock.service.ts:\n- `export const STOCK_VIEWERS`, used at balances :249 and ledger :381.\n- `const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']`, commented 'ROLE_GROUPS.STOCK_KEEPERS plus system', used at :148, :298, :331 and :404.\n- The BACK_OFFICE import is removed.\n\ninventory.spec.ts:350: the comment now reads 'the owner or a manager posts'. 'STOCK_KEEPERS open and count' is kept, which is correct: cycle-counts.service.ts:57 STOCK_KEEPERS is owner/manager/warehouse/system.\n\nTypecheck and lint are green."
+    },
+    {
+     "amendment": "(e) Everything else in the plan as written (Option A, all 24)",
+     "satisfied": true,
+     "detail": "Matrix diff: exactly 24 rows change.\n- 4 inventory writes → ROLE_GROUPS.STOCK_KEEPERS.\n- To MANAGEMENT: cycleCounts.post, 7 procurement writes, 12 docint decisions.\n- No other row changes, and no role other than the accountant loses anything (BACK_OFFICE → MANAGEMENT, BACK_OFFICE_OR_WAREHOUSE → STOCK_KEEPERS).\n- Reads and docint CAP are unchanged.\n\nrequireRole sites: all 25 are narrowed (listed via grep).\n- stock.service STOCK_WRITERS ×4; cycle-counts post MANAGEMENT.\n- supplier-invoice create/createInTx/matchLine/upsertPurchaseOrder/dispute/cancel MANAGEMENT; grn open/post MANAGEMENT.\n- docint DESK_WRITERS = MANAGEMENT ×12.\n- Reads stay on BACK_OFFICE, DESK, STOCK_VIEWERS or GRN_VIEWERS.\n\nTests and comments:\n- The four assertions are flipped as tightenings.\n- docint.spec approve and replay run as managerA.\n- Header comments in docint.ts and procurement.ts are updated.\n- docs/23 §2.3, §8.18 and §8.20 item 1 are edited.\n- The warehouse-app inbound/[id].tsx change is a comment only.\n\nNot done here: README regeneration and the docs/22 §8/§11 rows. The lane rule forbids both, and both are listed as follow-ups."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/*-service/README.md, frontend/*-app/README.md",
+     "detail": "Not regenerated; the lane forbids `pnpm docs:readme`. `pnpm docs:readme:check` will fail until the main session regenerates them after merge. The 24 POST routes must lose 'accountant'."
+    },
+    {
+     "severity": "minor",
+     "file": "docs/22-source-of-truth.md",
+     "detail": "The §8 register row and the §11 change-log row for DOS-037 are not added, and the HTML is not re-rendered or republished; the lane forbids docs/22 edits. This is main-session work after merge."
+    },
+    {
+     "severity": "minor",
+     "file": "QA/tools/seed/REALISTIC-SEED-SPEC.md",
+     "detail": "Amendment (b)'s doc-only edit was not made because the lane forbids QA/ edits. The code half of (b) is done and proven on a scratch DB. Before the dos_qa rebuild, the main session must check the spec for the accountant named as GRN poster, bill approver or reviewer."
+    },
+    {
+     "severity": "minor",
+     "file": "docs/23-app-screens-and-api-gaps.md",
+     "detail": "§8.19 at :891-892 still says `procurement.supplierInvoices.dispute` (BACK_OFFICE…) and `cancel` (BACK_OFFICE…), which is stale after this fix. The plan did not list these lines; the implementer flagged them in followUps. Fix in a doc pass."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/contracts/src/permissions.test.ts",
+     "detail": "The tripwire literal ('DOS-037 pins every non-GET procedure the accountant may call') is a deliberate merge hotspot. Whoever merges second must re-derive it against DOS-115 (orders rows) and DOS-131+137 (delivery rows, e.g. delivery.collections.record and trips.settle); the failing diff names the paths."
+    },
+    {
+     "severity": "minor",
+     "file": "(verification scope)",
+     "detail": "The lane forbids dev servers and emulators, so these verdict steps were not executed here:\n- the before/after diff of :3002 /docs/openapi.json x-roles\n- web walks as meena.joshi, vikas.kadam and dinesh.patil\n- API probes with real tokens\n- Android and iOS walks\n- `pnpm smoke --service manager|owner`\n\nThe manager-app gates are the only screen code involved: stock/index.tsx:68 can('inventory.stock.adjust'), inbound/index.tsx:107 can('procurement.grns.open'), and documents.tsx:101-102 can('docint.review.start' / 'docint.documents.approve'). Statically they read the narrowed rows."
+    }
+   ],
+   "evidence": "Worktree .claude/worktrees/b2-h9-desk, branch qa/b2-h9-desk, commit d59c8fe; lane DB dos_test_b2_h9. Every run was one file per command via `pnpm --filter <pkg> exec vitest run <file>`.\n\n1. SCOPE\n- `git show --stat` lists 20 files, all named by the plan: permissions.ts/.test.ts, docint.ts, procurement.ts, 5 docint core files, stock.service.ts, cycle-counts.service.ts, grn.service.ts, supplier-invoice.service.ts, 3 specs, seed-demo stock.ts/docint.ts, docs/23, and the warehouse-app inbound/[id].tsx comment.\n- No READMEs, no QA/, no docs/22, no migration.\n- permissions.ts: only the 24 inventory/procurement/docint rows and their comments, plus the DOS-044 JSDoc sentence in the inventory area.\n- permissions.test.ts: the docint test, the two new DOS-037 tests, the reporting fillRate comparison (plan item 4) and the DOS-044 JSDoc. No orders or delivery rows are touched.\n- smoke-endpoints.mts, examples.ts and strings.ts are untouched.\n\n2. FAIL BEFORE (full reversal)\nReversed the non-test diff with `git apply -R` and rebuilt contracts/db/core; dist showed `'inventory.stock.adjust': BACK_OFFICE_OR_WAREHOUSE` and no DESK_WRITERS.\n- permissions.test.ts: 3 failed, 44 passed.\n  - 'inventory.locations.upsert must refuse accountant: expected true to be false'\n  - tripwire: 'expected [ai.forecast.run, …(96)] to deeply equal [… (72)]'\n  - corrected docint test: 'docint.documents.reject: expected [owner, manager, accountant] to deeply equal [owner, manager]'\n- inventory.spec: 1 failed, 13 passed — 'POST /inventory/adjustments: expected 200 to be 403'.\n- procurement.spec: 1 failed, 9 passed — 'POST /procurement/supplier-invoices: expected 200 to be 403'.\n- docint.spec: 1 failed, 13 passed — 'POST /docint/documents/<id>/review: expected 409 to be 403'.\n\n2b. SERVICE LAYER ALONE (extra check)\nRestored only the three contracts files and rebuilt contracts, keeping the core services reversed. Each spec passed its HTTP 403 loop and failed at the service layer:\n- inventory: stock.adjust 'promise resolved {entry, balance} instead of rejecting'.\n- procurement: supplierInvoices.create 'promise resolved {item} instead of rejecting'.\n- docint: review.start 'expected Error: document … to match object {code: FORBIDDEN}'.\nThis proves the service-layer requireRole narrowing is tested independently of the guard.\n\nRESTORE\n`git checkout -- .` left git status empty (untracked files included). Rebuilt contracts/db/core; dist shows `ROLE_GROUPS.STOCK_KEEPERS` for stock.adjust, DESK_WRITERS present, `STOCK_WRITERS = ['owner','manager','warehouse','system']`, and people.manager.id in the seed dist.\n\n3. PASS AFTER\n- Unit and module specs: permissions.test.ts 47/47; inventory.spec 14/14; procurement.spec 10/10; docint.spec 14/14.\n- Amendment (c): delivery.spec 25/25; billing.spec 21/21.\n- docs/examples.spec 32/32.\n- Service permission-matrix specs: manager-service 344/344, owner-service 344/344, warehouse-service 253/253.\n- `turbo run typecheck lint --filter=@dos/contracts --filter=@dos/db --filter=@dos/core`: 9/9 successful.\n- warehouse-app typecheck exit 0, lint exit 0.\n- Prettier --check is clean on every backend file the commit touched. docs/23's 12-line prettier drift is identical at the parent, so it is pre-existing.\n\n4. AMENDMENTS\nAll five satisfied; see amendmentsChecked. Scratch DB dos_test_b2_h9_v037 was created, migrated, seeded (212 GRNs, 212 bills, 4 reviews, 1441 grn ledger rows; 0 of each by an accountant) and dropped.\n\n5. HUNT (nothing found)\n- No weakened assertion. Every corrected assertion turns an accountant allow into a refuse or narrows BACK_OFFICE to owner+manager; warehouse refusals are kept; deskDecisions is pinned at 12. The fillRate comparison still pins its literal list one line above.\n- No other spec calls the 24 routes or services as the accountant (grep over all specs that use an accountant actor).\n- No role other than the accountant loses a permission.\n- Internal callers: only docint approve reaches createInTx (both MANAGEMENT, which includes system). Claims uses the discrepancy helpers, which are not narrowed.\n- Sync: inventory registers pulls only. docint.sync.ts handles capture only (create at the initial state, add pages before submit).\n- No schema, RLS, migration, money, state-machine or idempotency change. No screen imports react-native or react-dom; no screen code changed.\n- No leftover debug or temporary files.\n\n6. FINAL STATE\ngit status is clean at HEAD d59c8fe, and libraries are rebuilt at the fixed state."
+  }
+ ]
+}

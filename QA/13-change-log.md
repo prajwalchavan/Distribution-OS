@@ -239,3 +239,15 @@ Each resumed implementer is told what the stopped one left behind. It must re-ch
 **h5-orders slice 3** (DOS-098, DOS-126) merged as `43824b0` at 16:25 (run `wf_64118f05-f5b`). The integrator resolved its one textual conflict, the drizzle import in orders.service.ts, as the review said. The verifier passed it; its only minor was that main had moved on by two QA-only commits. The READMEs gain `GET /orders/last-placed`. The lane DB was recreated and migrated to 0047. Batch 2 now has 13 approved findings on main (3 P0, 10 P1).
 
 **dos_qa rebuilt** on merged main at 16:11: 48 migrations, verify-seed 206/206, no duplicate receipt numbers. The services and the worker were restarted on it.
+
+**P0 regression probe** (run `wf_878c1f40-c4d`, dos_qa): 16 PASS, 0 FAIL, 3 NOT TESTED. Evidence is in `QA/evidence/batch2/sync-role-probe/after/SUMMARY.md` and `p0-probe-dos115/`.
+- DOS-166:
+  - A delivery receipt through /sync/upload is accepted.
+  - A salesperson receipt and a warehouse receipt get 200 role_not_allowed. Neither draws a number or writes a journal; the warehouse one now also writes a sync_ops row.
+  - Retailer and salesperson POST /receipts still get 403.
+  - The manifests are role-aware.
+  - In the database, a salesperson INSERT into receipts fails with 42501 while a delivery INSERT goes through (rolled back).
+- DOS-115: warehouse and delivery logins get 403 on every order write and 200 on reads. The accountant gets 403 on POST /orders. A warehouse sales_orders op through /sync/upload gets role_not_allowed.
+- NOT TESTED: the delivery, sales and warehouse app offline-sync walks. They run in the A.12 regression.
+
+**h9-desk verified** (run `wf_ac1e794b-9d1`): DOS-044 `8798c18`, DOS-037 `d59c8fe`, DOS-031 `dd722a5`. Each test failed before the fix and passed after, every amendment was satisfied, and there were no blockers. The Fable merge review is running.
