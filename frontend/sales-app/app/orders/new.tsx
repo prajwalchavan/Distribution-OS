@@ -25,6 +25,7 @@ import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import { useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
+  Box,
   Button,
   EmptyState,
   Group,
@@ -284,10 +285,17 @@ export default function OrderEntry(): React.JSX.Element {
     </Row>
   )
 
-  const placeButton = (
+  /*
+   * `fullWidth` differs by branch: the desk row wraps, so a full-width button on its own line is
+   * fine; the phone row does not (see the merge-review blocker on `bottomBar` below) — a full-width
+   * `Button` there takes the whole row by flex basis and the money `Txt` beside it is squeezed to a
+   * sliver, which is exactly the figure a rep reads out across the counter.
+   */
+  const renderPlaceButton = (fullWidth: boolean): React.JSX.Element => (
     <Button
       testID="place-order"
       variant="primary"
+      fullWidth={fullWidth}
       /*
        * The verb is the truth about what this tap does, and it changes with the radio: with
        * signal it PLACES the order (numbered, credit-checked); without one it saves it on the
@@ -326,13 +334,21 @@ export default function OrderEntry(): React.JSX.Element {
            * The "before GST" caution (see the desk branch) still applies; it is said inline here.
            */
           <Row gap={3} justify="between" align="center" padX={4} padY={2}>
-            <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
-              {t('s3.summaryCompact', {
-                lines: draft.lines.length,
-                amount: formatINR(paise(netPaise)),
-              })}
-            </Txt>
-            {placeButton}
+            {/*
+              Merge-review blocker (lean-sales-entry): a full-width `Button` in a non-wrapping `Row`
+              takes the row by flex basis, squeezing this `Txt` to a sliver — the money figure the
+              rep reads across the counter. `Box grow` gives the text the shrinkable, growable half
+              of the row instead, and `fullWidth={false}` below lets the button size to its label.
+            */}
+            <Box grow>
+              <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
+                {t('s3.summaryCompact', {
+                  lines: draft.lines.length,
+                  amount: formatINR(paise(netPaise)),
+                })}
+              </Txt>
+            </Box>
+            {renderPlaceButton(false)}
           </Row>
         ) : (
           <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
@@ -357,7 +373,7 @@ export default function OrderEntry(): React.JSX.Element {
                 {t('s3.beforeGst')}
               </Txt>
             </Stack>
-            {placeButton}
+            {renderPlaceButton(true)}
           </Row>
         )
       }
