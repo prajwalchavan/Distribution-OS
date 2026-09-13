@@ -269,8 +269,11 @@ describeDb('tenancy support access (DATABASE_URL)', () => {
     const [row] = await db.select().from(supportGrants).where(eq(supportGrants.id, id))
     expect(row?.approvedAt).toBeNull()
 
-    const missing = await call(app, owner, 'POST', `/tenancy/support-grants/${uuidv7()}/approve`, {
-      id: uuidv7(),
+    // DOS-112: the path names the record; a mismatched body id is its own 400, so an "unknown id" probe
+    // must use the SAME id in both places to reach the 404 this case is actually about.
+    const unknownId = uuidv7()
+    const missing = await call(app, owner, 'POST', `/tenancy/support-grants/${unknownId}/approve`, {
+      id: unknownId,
       idempotencyKey: uuidv7(),
     })
     expect(missing.status).toBe(404)
