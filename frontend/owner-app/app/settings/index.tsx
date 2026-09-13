@@ -12,6 +12,7 @@ import { newMutation } from '@dos/api-client'
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
   Button,
+  Chips,
   Dialog,
   Money,
   Register,
@@ -32,12 +33,21 @@ import { useState } from 'react'
 import { Async, Columns, Field, Half, PageTabs, Panel, textColumn } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { instantWithClock } from '../../src/lib/dates'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
+import {
+  SETTINGS_VIEWS,
+  chosenHours,
+  supportDecision,
+  windowClosesAt,
+  type SettingsView,
+  type SupportDecision,
+} from '../../src/lib/support'
 import { useWord } from '../../src/lib/words'
-
-type View = 'business' | 'numbering' | 'flags' | 'support'
 
 /** `delivery.pod_required` as `tenant-bootstrap.ts` documents it: when a photo or signature is a must. */
 const POD_POLICIES = ['always', 'credit_only', 'never'] as const
+
+type GrantAction = 'approve' | 'refuse' | 'revoke'
 
 export default function Settings(): React.JSX.Element {
   const t = useStrings()
@@ -45,11 +55,13 @@ export default function Settings(): React.JSX.Element {
   const colors = useColors()
   const api = useApi()
   const { session } = useSession()
-  const [view, setView] = useState<View>('business')
+  const [view, setView] = useState<SettingsView>('business')
   const [edits, setEdits] = useState<Record<string, string>>({})
   const [logoNote, setLogoNote] = useState<string | null>(null)
   const [grantId, setGrantId] = useState<string | null>(null)
-  const [grantAction, setGrantAction] = useState<'approve' | 'revoke' | null>(null)
+  const [grantAction, setGrantAction] = useState<GrantAction | null>(null)
+  /** The hours picked on each waiting request, by grant id: one request's choice never carries into another. */
+  const [hoursById, setHoursById] = useState<Record<string, number>>({})
 
   const branding = useQuery(['tenancy', 'branding'], () => api.api.tenancy.branding.get())
   const settings = useQuery(['tenancy', 'settings'], () => api.api.tenancy.settings.get({}))
@@ -79,11 +91,17 @@ export default function Settings(): React.JSX.Element {
       }),
     { invalidates: [['tenancy', 'flags']] },
   )
+  /** `hours` is always sent: an approval without it opens the STORED window, not the one on the card. */
   const approveGrant = useMutation(
-    (id: string, meta) =>
-      api.api.tenancy.support.approve({ id, idempotencyKey: meta.idempotencyKey, hours: 4 }),
+    (input: { id: string; hours: number }, meta) =>
+      api.api.tenancy.support.approve({
+        id: input.id,
+        hours: input.hours,
+        idempotencyKey: meta.idempotencyKey,
+      }),
     { invalidates: [['tenancy', 'support']] },
   )
+  /** Refuse and Revoke are this one write: owner-service records `rejected` or `revoked` from the row. */
   const revokeGrant = useMutation(
     (id: string, meta) =>
       api.api.tenancy.support.revoke({ id, idempotencyKey: meta.idempotencyKey }),
@@ -193,11 +211,16 @@ export default function Settings(): React.JSX.Element {
     },
   ]
 
+  /*
+   * The support history: every request, whatever became of it. It carries no decision column — no
+   * phone rendering draws one — so the decisions live on the cards above it, alike on every width.
+   */
   const grantColumns: readonly RegisterColumn<SupportGrant>[] = [
     textColumn('who', t('o7.person'), (row) => row.requestedByName, { priority: 'identity' }),
     textColumn('scope', t('o24.supportWindow'), (row) => word(row.scope)),
-    textColumn('reason', t('o3.note'), (row) => row.reason),
+    textColumn('reason', t('o24.reason'), (row) => row.reason),
     textColumn('asked', t('o3.asked'), (row) => instantWithClock(row.requestedAt)),
+    textColumn('closes', t('o24.closes'), (row) => instantWithClock(row.expiresAt)),
     {
       key: 'status',
       head: t('o16.status'),
@@ -209,35 +232,122 @@ export default function Settings(): React.JSX.Element {
         />
       ),
     },
-    {
-      key: 'action',
-      head: t('o3.decide'),
-      cell: (row) =>
-        row.status === 'requested' ? (
-          <Button
-            label={t('o24.approveSupport')}
-            variant="ghost"
-            onPress={() => {
-              setGrantId(row.id)
-              setGrantAction('approve')
-            }}
-          />
-        ) : row.active ? (
-          <Button
-            label={t('o24.revokeSupport')}
-            variant="ghost"
-            onPress={() => {
-              setGrantId(row.id)
-              setGrantAction('revoke')
-            }}
-          />
-        ) : (
-          <Txt field="body" desk="cell">
-            {instantWithClock(row.expiresAt)}
-          </Txt>
-        ),
-    },
   ]
+
+  /*
+   * DOS-108: `Date.now()` once per render, handed to the pure rules in src/lib/support.ts, so the cards,
+   * their hour chips and the dialog all read the same instant.
+   */
+  const now = Date.now()
+  const supportItems = grants.data?.items ?? []
+  const cards = supportItems.flatMap((row) => {
+    const decision = supportDecision(row, now)
+    return decision.kind === 'closed' ? [] : [{ row, decision }]
+  })
+  const decide = (id: string, action: GrantAction) => () => {
+    setGrantId(id)
+    setGrantAction(action)
+  }
+
+  /**
+   * One request the owner can still act on: who asks, why, for how long, and the presses owner-service
+   * accepts — the hours asked or fewer, or Refuse, while it waits; Revoke while it is open. A page-level
+   * panel, never a Sheet, so its confirm Dialog is never a second native Modal (DOS-164).
+   */
+  const supportCard = (row: SupportGrant, decision: SupportDecision): React.JSX.Element => {
+    const chosen = decision.kind === 'waiting' ? chosenHours(decision, hoursById[row.id]) : null
+    return (
+      <Panel
+        key={row.id}
+        testID={`support-card-${row.id}`}
+        title={row.requestedByName}
+        meta={word(row.scope)}
+      >
+        <Field label={t('o24.reason')}>{row.reason}</Field>
+        <Field label={t('o24.hoursAsked')}>
+          {t('o24.hoursCount', { count: row.requestedHours })}
+        </Field>
+        <Field label={t('o3.asked')}>{instantWithClock(row.requestedAt)}</Field>
+        {decision.kind === 'waiting' && chosen !== null ? (
+          <Stack gap={3}>
+            <Chips
+              testID={`support-hours-${row.id}`}
+              items={decision.hours.map((hours) => ({
+                id: String(hours),
+                label: t('o24.hoursCount', { count: hours }),
+                selected: hours === chosen,
+              }))}
+              onToggle={(id) => {
+                setHoursById((current) => ({ ...current, [row.id]: Number(id) }))
+              }}
+            />
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('o24.countedFromAsk')}
+            </Txt>
+            <Field label={t('o24.openUntil')}>
+              {instantWithClock(windowClosesAt(row.requestedAt, chosen))}
+            </Field>
+            <Button
+              label={t('o24.approveFor', { count: chosen })}
+              variant="primary"
+              onPress={decide(row.id, 'approve')}
+              testID={`support-approve-${row.id}`}
+            />
+            <Button
+              label={t('o24.refuseSupport')}
+              variant="destructive"
+              onPress={decide(row.id, 'refuse')}
+              testID={`support-refuse-${row.id}`}
+            />
+          </Stack>
+        ) : null}
+        {decision.kind === 'open' ? (
+          <Stack gap={3}>
+            <Field label={t('o24.openUntil')}>{instantWithClock(decision.closesAt)}</Field>
+            <Button
+              label={t('o24.revokeSupport')}
+              variant="destructive"
+              onPress={decide(row.id, 'revoke')}
+              testID={`support-revoke-${row.id}`}
+            />
+          </Stack>
+        ) : null}
+      </Panel>
+    )
+  }
+
+  /*
+   * The dialog reads the grant it is about by id and works out the hours ONCE, for its sentence, its
+   * button and the body it sends — never from a card's closure. A grant that stopped waiting since its
+   * card was pressed (answered in another tab, or its own hours ran out) offers no choice: its ask goes
+   * as it was made, and owner-service answers 409 before the hours matter, which <Refusal> prints.
+   */
+  const dialogGrant =
+    grantId === null ? undefined : supportItems.find((item) => item.id === grantId)
+  const dialogDecision = dialogGrant === undefined ? undefined : supportDecision(dialogGrant, now)
+  const dialogHours =
+    dialogGrant === undefined
+      ? null
+      : dialogDecision?.kind === 'waiting'
+        ? chosenHours(dialogDecision, hoursById[dialogGrant.id])
+        : dialogGrant.requestedHours
+  const dialogTitle =
+    grantAction === 'approve'
+      ? t('o24.approveSupport')
+      : grantAction === 'refuse'
+        ? t('o24.refuseSupport')
+        : t('o24.revokeSupport')
+  const dialogSentence = (grant: SupportGrant): string => {
+    const who = grant.requestedByName
+    if (grantAction === 'approve' && dialogHours !== null)
+      return t('o24.confirmApprove', {
+        who,
+        scope: word(grant.scope),
+        until: instantWithClock(windowClosesAt(grant.requestedAt, dialogHours)),
+      })
+    if (grantAction === 'refuse') return t('o24.confirmRefuse', { who })
+    return t('o24.confirmRevoke', { who })
+  }
 
   return (
     <Screen
@@ -245,19 +355,6 @@ export default function Settings(): React.JSX.Element {
       chips={<PageTabs group="/settings" active="/settings" />}
       actions={
         <>
-          <Segments
-            value={view}
-            onChange={(id) => {
-              setView(id as View)
-            }}
-            items={[
-              { id: 'business', label: t('o24.business') },
-              { id: 'numbering', label: t('o24.numbering') },
-              { id: 'flags', label: t('o24.flags') },
-              { id: 'support', label: t('o24.support') },
-            ]}
-            testID="settings-view"
-          />
           {view === 'business' ? (
             <Button
               label={t('app.save')}
@@ -283,6 +380,27 @@ export default function Settings(): React.JSX.Element {
         </>
       }
     >
+      {/*
+       * FOUR views, so a CHIP ROW and not a segmented control (DOS-108).
+       *
+       * `<Segments>` is 2–3 options by UX-00 §6.10 and the kit enforces it with `items.slice(0, 3)`
+       * — silently. This screen passed four, so "Support access" was dropped on the floor: the view
+       * behind it, the only place an owner answers a support request, could not be opened on any
+       * platform or width. Manager Inbound lost "Purchase orders" the same way; this is the same
+       * repair, the kit's chip row used single-select.
+       */}
+      <Chips
+        testID="settings-view"
+        items={SETTINGS_VIEWS.map((entry) => ({
+          id: entry.id,
+          label: t(entry.labelKey),
+          selected: view === entry.id,
+        }))}
+        onToggle={(id) => {
+          setView(id as SettingsView)
+        }}
+      />
+
       {view === 'business' ? (
         <Stack gap={6}>
           <Columns>
@@ -431,15 +549,29 @@ export default function Settings(): React.JSX.Element {
       ) : null}
 
       {view === 'support' ? (
-        <Async state={[grants]} rows={5} empty={(grants.data?.items.length ?? 0) === 0}>
-          <Register
-            testID="settings-support"
-            columns={grantColumns}
-            rows={grants.data?.items ?? []}
-            rowKey={(row) => row.id}
-            frozen="who"
-            state="ready"
-          />
+        <Async state={[grants]} rows={5}>
+          <Stack gap={6}>
+            {cards.length === 0 ? (
+              <Txt
+                field="body"
+                desk="body"
+                color={colors.text.secondary}
+                testID="support-none-waiting"
+              >
+                {t('o24.noneWaiting')}
+              </Txt>
+            ) : (
+              cards.map(({ row, decision }) => supportCard(row, decision))
+            )}
+            <Register
+              testID="settings-support"
+              columns={grantColumns}
+              rows={supportItems}
+              rowKey={(row) => row.id}
+              frozen="who"
+              state="ready"
+            />
+          </Stack>
         </Async>
       ) : null}
 
@@ -448,23 +580,43 @@ export default function Settings(): React.JSX.Element {
         onClose={() => {
           setGrantAction(null)
         }}
-        title={grantAction === 'approve' ? t('o24.approveSupport') : t('o24.revokeSupport')}
+        title={dialogTitle}
         body={
-          <Txt field="body" desk="body">
-            {t('o24.supportWindow')}
-          </Txt>
+          <Stack gap={3}>
+            {dialogGrant === undefined ? null : (
+              <Txt field="body" desk="body">
+                {dialogSentence(dialogGrant)}
+              </Txt>
+            )}
+            {dialogGrant === undefined ? null : (
+              <Field label={t('o24.reason')}>{dialogGrant.reason}</Field>
+            )}
+            <Refusal
+              of={[approveGrant, revokeGrant]}
+              scope={grantId === null || grantAction === null ? null : `${grantId}:${grantAction}`}
+              testID="settings-support-refusal"
+            />
+          </Stack>
         }
-        confirmLabel={grantAction === 'approve' ? t('o24.approveSupport') : t('o24.revokeSupport')}
-        destructive={grantAction === 'revoke'}
+        confirmLabel={
+          grantAction === 'approve' && dialogHours !== null
+            ? t('o24.approveFor', { count: dialogHours })
+            : dialogTitle
+        }
+        destructive={grantAction === 'refuse' || grantAction === 'revoke'}
         busy={approveGrant.status === 'pending' || revokeGrant.status === 'pending'}
         onConfirm={() => {
-          if (grantId === null) return
+          if (grantId === null || grantAction === null) return
           const done = (): void => {
             setGrantAction(null)
             setGrantId(null)
           }
-          if (grantAction === 'approve') void approveGrant.mutateAsync(grantId).then(done, done)
-          else void revokeGrant.mutateAsync(grantId).then(done, done)
+          if (grantAction === 'approve') {
+            if (dialogHours === null) return
+            void approveGrant.mutateAsync({ id: grantId, hours: dialogHours }).then(done, stayOpen)
+          } else {
+            void revokeGrant.mutateAsync(grantId).then(done, stayOpen)
+          }
         }}
         testID="settings-support-dialog"
       />

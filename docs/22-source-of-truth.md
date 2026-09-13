@@ -98,29 +98,30 @@ flowchart TB
     S1[Beat for today] --> S2[Check in at the shop<br/>geo-tag as evidence, never a block]
     S2 --> S3[Order: reorder last / suggested / grid<br/>cases + pieces, live ATP hint]
     S3 --> S4{Price engine + credit check<br/>on the device}
-    S4 -- inside limits --> S5[Submit → submitted]
-    S4 -- bargain or over limit --> S6[Approval request]
+    S4 -- inside limits, or over the limit on a warn shop --> S5[Submit → submitted<br/>a warn shop over its limit confirms<br/>with a credit notice the desk sees]
+    S4 -- bargain, or over the limit on a strict or stop shop --> S6[Approval request]
   end
   subgraph R [Retailer app · shop]
     R1[Reorder / free-text on WhatsApp] --> S5
   end
   subgraph O [Owner app]
-    S6 --> O1[Approve / reject<br/>price variance, credit, MOV, bargain]
+    S6 --> O1[Approve / reject<br/>price variance, credit, MOV, bargain<br/>a credit approval lets only this order through;<br/>the shop credit limit stays as set]
   end
   O1 --> C[Server re-prices at the same version,<br/>reserves stock → confirmed]
   S5 --> C
   subgraph W [Warehouse app]
     C --> W1[Fulfilment queue by beat / trip]
-    W1 --> W2[Picklist consolidated by SKU, FEFO lots] --> W3[Pick actual lots → picking]
+    W1 --> W2[Picklist consolidated by SKU, FEFO lots<br/>batches under the minimum shelf life, 30 days by default,<br/>go last; picking one warns, never blocks] --> W3[Pick actual lots → picking]
     W3 --> W4[Pack per order → packed<br/>short-packs are pack rows, never order edits]
     W4 --> W5[GST invoice issued at pack<br/>tenant series, own name and logo, UPI QR<br/>packed goods leave the godown here, once]
-    W5 --> W6[Load sheet approved by the manager + delivery challan<br/>crew count confirmed by PIN<br/>only free van stock moves: warehouse → vehicle]
+    W5 --> TP[Trip planned: W10 godown / M7 desk,<br/>bills from the planning board]
+    TP --> W6[Load sheet built for the trip, approved by the manager<br/>+ delivery challan, crew count confirmed by PIN<br/>only free van stock moves: warehouse → vehicle]
   end
   subgraph T [Departure · owner, manager or delivery crew]
     W6 --> T1[Trip departs → orders dispatched<br/>never while the load sheet is a draft;<br/>the warehouse role cannot depart a trip]
   end
   subgraph D [Delivery app · crew]
-    T1 --> D1[Trip: next stop, maps hand-off]
+    T1 --> D1[Trip: next stop, maps hand-off<br/>the stop shows overdue dues; a credit-stopped shop:<br/>take the money first, the goods still go]
     D1 --> D2{At the door}
     D2 -- all --> D3[Delivered + proof of delivery]
     D2 -- part --> D4[Partial: per-line qty, reason → credit note]
@@ -138,8 +139,7 @@ flowchart TB
 The three state machines behind this loop are the code in `backend/libs/domain/src/state-machines/` and the apps never set a state
 column by hand:
 
-- **Order**: draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed; cancel allowed up to
-  confirmed; `return_undelivered` sends dispatched back to packed.
+- **Order**: draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed. Cancel: a shop while draft or submitted, a rep up to confirmed, the desk (owner, manager) up to picking, with the picker told which lines to put back; a packed order only through its bill; after dispatch only a credit note (QA DOS-138). `return_undelivered` sends dispatched back to packed.
 - **Trip**: planned → loading → active → closing → settled | settled_with_variance; **stop**: pending → started → arrived → delivered |
   partial | failed.
 - **Invoice**: draft → issued → partially_paid → paid; issued may be written_off or cancelled (before dispatch and before any money);
@@ -165,6 +165,11 @@ flowchart LR
 Purchase cost lands in `tenant_product_costs`, which only owner, manager, accountant and system can read. That is a database rule with
 tests, not an app rule.
 
+Goods from a supplier come in only on a goods receipt. By hand, only the owner or a manager adds stock or posts opening stock; the
+warehouse login only takes stock off (damaged, expired, a correction, a count found short), and more on the rack than the books show is
+a cycle count the desk posts (QA DOS-044). The accountant reads stock, supplier bills, goods receipts and inbound documents and changes
+none of them; photographing a bill is unchanged (QA DOS-037).
+
 ## 6. Money: who may touch it and where it goes
 
 ```mermaid
@@ -177,7 +182,7 @@ flowchart LR
   end
   DL & RT & DESK --> RC[Receipt: append-only, client receipt no,<br/>receipt number never repeats per series and FY,<br/>allocated bill-to-bill oldest first unless tagged]
   RC --> J[(Double-entry journal<br/>must balance at commit, enforced in the database)]
-  RC --> OUT[Retailer outstanding + ageing buckets<br/>0-7 · 8-15 · 16-30 · 31-60 · 61-90 · 90+]
+  RC --> OUT[Retailer outstanding: open bills, in ageing buckets<br/>0-7 · 8-15 · 16-30 · 31-60 · 61-90 · 90+<br/>money on account shown beside it; the net matches the books]
   CHQ[Cheque] --> DEP[Deposited] --> BNC{Bounced?}
   BNC -- yes --> REV[Reversal + bank charges, bill reopens]
   CD[Cash discount: shown on the bill,<br/>realised as a credit note only when paid on time]
@@ -212,8 +217,8 @@ and the server enforces it on every console action: **super** does everything (o
 logins, support access); **support** reads everything and may only ask for and hand back support access to a distributor; **billing**
 reads everything and may only change a distributor's plan.
 
-**Order changes (founder, 2026-09-13, QA DOS-115).** Warehouse, delivery and accountant logins cannot create, re-line, submit or cancel an
-order; they still read orders. **Offline uploads (founder, 2026-09-13, QA DOS-166).** `/sync/upload` checks every operation against the same
+**Order changes (founder, 2026-09-13, QA DOS-115).** Warehouse, delivery and accountant logins cannot create (including repeat last
+order), re-line, submit or cancel an order, online or by device upload; they still read orders. **Offline uploads (founder, 2026-09-13, QA DOS-166).** `/sync/upload` checks every operation against the same
 permission matrix, so the offline route can never do what the normal endpoint refuses. **Stock and supplier bills (founder,
 2026-09-13, QA DOS-037, DOS-044).** Only the owner and the manager add stock or record opening stock; the accountant views supplier bills,
 goods receipts and stock without changing them.
@@ -283,11 +288,30 @@ appears only on the sign-in screen; inside every app and on every printed docume
 | 2026-09-13 | **Every offline upload is checked against the permission matrix (QA DOS-166).** A role that may not make a change through the normal endpoint cannot make it through /sync/upload either; the upload refuses it as a recorded sync rejection, never silently. A salesperson can never record a receipt by any route. Added to QA batch 2 as a P0. |
 | 2026-09-13 | **Architect defaults in QA batch 2, approved by the founder.** (1) The accountant cannot create, re-line, submit or cancel an order (DOS-115; follows the 2026-09-05 accountant scope). (2) Confirming a held order applies the rates approved since it was drafted, including a shop's own approved rate, and nothing else: a price-list or scheme edit made in between does not re-price it (DOS-126). (3) Cheques collected on a trip, like its cash, are banked only after the trip settles (DOS-132). (4) Expired goods returned at the desk are booked as damaged; there is no separate expired reason yet (DOS-116). (5) At trip start an emptied 'Cash handed to you' means a ₹0 float; an untouched field keeps the planned float (DOS-146). (6) In the warehouse app a load sheet is always built for one trip and carries only that trip's bills (DOS-131, DOS-137). |
 | 2026-09-13 | **More architect defaults in QA batch 2, approved by the founder.** (1) 'Order again' repeats the shop's last placed order, whoever placed it (rep, shop, phone, WhatsApp, van sale), never a draft (DOS-098). (2) The accountant can view inbound documents, supplier invoices, goods receipts and stock (M3, M4, M16) but cannot book, post or adjust anything there, and can still capture supplier bills (DOS-037). (3) Only the owner and the manager add stock or record opening stock; every other role records a count, and new stock arrives only through a goods receipt (DOS-044). (4) The accountant is not a stock adder (DOS-044). (5) No extra confirmation for large stock reductions yet; it follows the iOS dialog fix (DOS-044, DOS-164). |
+| 2026-09-13 | **The offline upload door, as built (architect, QA DOS-166).** `/sync/upload` checks each operation against PERMISSIONS through the procedure its table stands for. A role the matrix refuses gets a recorded `role_not_allowed` rejection before anything is written; a write the database policy refuses is recorded as `not_permitted`, never a 500. The database adds its own line: only the owner, manager, accountant, delivery crew and the system may insert a receipt. Never-list #2 names both. |
+| 2026-09-13 | **Clarification of the DOS-115 row (architect).** The five order writes (create, repeat last order, re-line, submit, cancel), online or by device upload, belong to the owner, the manager, the salesperson and the shop. The accountant is outside them too, the architect's default under the 2026-09-05 accountant scope, reversible with one role list. The crew sells from the van only through Van sale. Every role still reads orders; narrowing a driver's reads to his trip's orders is Phase 3. |
+| 2026-09-13 | **Trips are planned from a planning board (architect, QA DOS-131, DOS-137).** The godown (W10) and the desk (M7) plan a trip from one board: the crew for the date and the packed bills not yet on a trip; a bill rides on one open trip at most. A load sheet is built for a trip, from the bills on it. §4 shows the step. |
+| 2026-09-13 | **Doorstep with no signal, as built (founder-approved exception, QA DOS-056, DOS-156).** Only on the no-signal path does a delivery carry its proof photo inline through `/sync/upload`: a JPEG of at most 300 KB, the route capped at 8 MiB, a single operation over 1 MiB recorded as `row_too_large`. The server stores the photo through the files platform and the row keeps only its key. A phone that gets no answer now says "No connection" (DOS-156). At trip start an emptied cash field is sent as ₹0 and written as the trip's float at depart (DOS-146, default (5) above). |
+| 2026-09-13 | **Shop ageing is rebuilt every night for every distributor (architect, QA DOS-117).** The 00:20 IST nightly finalize starts one ageing rebuild per distributor and the worker catches up on start-up, so each morning's ageing buckets are dated today. This is how the planned 00:30 ageing snapshot job is realised; no product rule changes. |
+| 2026-09-13 | **Unlocking a login, a precision to the 2026-09-12 console-levels row (architect, QA DOS-107).** Only a super administrator unlocks, with a reason of 1 to 500 characters, audited as `user.enabled`. Unlocking a login that is not locked answers 200 and writes nothing. An unlock restores `users.status` only: the sessions the lock ended stay ended, and memberships, `platform_admins.disabled_at` and the 5-failure password lock are untouched. |
+| 2026-09-13 | **Order again and confirm pricing, as built (architect, QA DOS-098, DOS-126).** Order again takes the shop's most recently placed order by placement time, builds the basket on the device and writes nothing until Place order. At confirm a line changes only when a rate approved since the draft lowers its net; this is how §4 "Server re-prices at the same version" is read. Precision to the 2026-09-13 architect-default rows above. |
+| 2026-09-13 | **Approving an "Over credit limit" request lets only that one order through (QA DOS-006).** The shop's credit limit stays as it is; the approval screen says so and links to the shop's page, where the limit is changed (audited, as today). |
+| 2026-09-13 | **"Outstanding" on the owner's home stays the total of open bills (QA DOS-016).** Money already received on account is shown beside it ("less ₹X on account"), and the Money screen states the net dues, which always match Sundry Debtors in the books. Nothing already stored changes meaning. |
+| 2026-09-13 | **Minimum shelf life to ship: one number per distributor, 30 days unless the owner changes it in Settings (QA DOS-054).** Stock reservation and the pick sheet pass over a batch with fewer days left whenever another batch can cover the line; a picker who still takes one gets a red warning the desk can see, but is not stopped (FEFO warns, it never blocks). |
+| 2026-09-13 | **The crew hands over goods already billed and loaded even when the shop owes, and the stop tells them (QA DOS-066).** The stop shows the overdue amount, the oldest due date and the days late; a shop on credit mode "stop" also gets a "Credit stopped" chip and "take the money before the goods go in". Nothing blocks the delivery on the phone or the server: the credit check stays at order submit. A "strict" shop gets no chip. |
+| 2026-09-13 | **A trip expense of ₹200 or more needs a photo of its bill (QA DOS-071).** ₹200 is the default of a per-distributor setting the owner may change (0 = every expense). The server enforces it for the crew and the desk alike, and the phone says why the button is off. |
+| 2026-09-13 | **A "Warn at the limit" shop's order over its credit limit goes through with a credit notice (QA DOS-081).** The rep sees "over the limit, warn only" before placing, and the manager's order list and detail show the notice on the confirmed order. "Strict" and "stop" shops are still held for approval. §4 corrected. |
+| 2026-09-13 | **"₹15 off per case on 2+" is ₹15 on every case once two are bought (QA DOS-087).** ₹30 on 2 cases, ₹45 on 3. The price engine gains a per-unit amount reward (per case or per piece, above a threshold, with slabs) and the seeded scheme moves to it; flat "per multiple" schemes keep working as they do. |
+| 2026-09-13 | **A shop whose order is held is told in the app only (QA DOS-100).** "We have your order, {distributor} will confirm shortly" is an in-app message, not a paid WhatsApp or SMS. The order screen shows the overdue amount with a Pay button and never a credit limit or credit-available figure (ADR 0006). |
+| 2026-09-13 | **A shop that buys from several distributors lands in the one it used last on that device (QA DOS-102).** A fresh install lands in the first. One home shows each distributor's dues, last bill and any van on the way, plus the total owed; there is no "choose your distributor" screen. |
+| 2026-09-13 | **A shop sees one office number, set by the owner in Settings, for Call and WhatsApp (QA DOS-103).** With no number set there is no button. "Report a problem / ask for a return" lands in the office's inbound queue with its kind and the bill or delivery it names; the desk triages it and the credit note is raised as today, at the door or by the desk. |
+| 2026-09-13 | **The desk may cancel an order while it is being picked (QA DOS-138).** The owner or a manager cancels; the stock hold is released, the picker's sheet shows which lines to put back, and no GST invoice is issued. Reps and shops keep today's limits. A packed order is cancelled only through its bill (DOS-139); after dispatch only a credit note corrects it. §4 corrected. |
+| 2026-09-13 | **Sign-out leaves nothing of the previous user or distributor on a device (QA DOS-167, P0).** Added to QA batch 2: on a shared phone or browser the next login saw the previous rep's shops, orders and dues, another distributor's after a restart. Never-list #11. The fix design is pending (QA/findings/12). |
 
 ## 9. Non-negotiables (never list)
 
 1. Purchase cost, landed cost and margin are never readable by salesperson, warehouse, delivery or retailer roles — database policy plus tests.
-2. The salesperson never records a receipt.
+2. The salesperson never records a receipt — database policy plus the upload door.
 3. Stock ledger and journal lines are append-only; balances are derived; every mutation carries an idempotency key and a client UUIDv7 id.
 4. An issued invoice is never edited; corrections are credit or debit notes; a cancelled invoice keeps its number.
 5. A brand-DMS sale (FieldAssist) is never re-invoiced; it is imported and linked to the brand's invoice number.
@@ -296,6 +320,7 @@ appears only on the sign-in screen; inside every app and on every printed docume
 8. Offline upload never answers 4xx; rejections are recorded and shown, never lost.
 9. A tenant never sees another tenant's rows; a retailer sees only the rows linked to their own shop.
 10. Distribution OS branding never appears inside a distributor's documents.
+11. Sign-out leaves nothing of the previous user or distributor on a device; the next person to sign in sees only their own data (QA DOS-167).
 
 ## 10. Open questions for the founder
 
@@ -344,3 +369,4 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 | 2026-09-13 | §8: P2/P3 of QA batch 2 built in lean mode (grouped by app, builder + verifier, Sonnet for copy/layout-only P3, one regression at the end, stop at about 70% weekly usage) | Founder: "yes for lean mode" |
 | 2026-09-13 | §6, §7, §8: DOS-166 approved into QA batch 2 (offline uploads checked against the permission matrix); six architect defaults approved (accountant and orders, re-pricing at confirm, trip cheques, expired returns, trip-start float, one trip per load sheet) | Founder: "approved" |
 | 2026-09-13 | §7, §8: five more QA batch-2 architect defaults approved (Order again, the accountant on the stock and supplier-bill desks, who adds stock, no large-reduction confirm yet) | Founder: "Approved" |
+| 2026-09-13 | §4, §5, §6, §7, §8, §9: batch-2 founder decisions DOS-006, DOS-016, DOS-054, DOS-066, DOS-071, DOS-081, DOS-087, DOS-100, DOS-102, DOS-103, DOS-138 (§4 and §6 diagrams changed where they show the step: warn-mode credit notice, credit approval, shelf life at picking, dues at the stop, desk cancel during picking, outstanding with money on account); DOS-167 added as a P0 with never-list #11; rows owed by merged batch-2 fixes: DOS-166 (never-list #2), DOS-115 clarification (§7 wording), DOS-131+137 (§4 trip-planned node), DOS-056/156/146, DOS-117, DOS-107, DOS-098/126, and the §5 stock note (DOS-044, DOS-037) | Founder: "Approved" (batch-2 approval gate); Fable merge reviews and lane reports |
