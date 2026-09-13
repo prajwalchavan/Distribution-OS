@@ -316,6 +316,20 @@
       "when": 1789273155181,
       "tag": "0044_receipts_number_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1789285591648,
+      "tag": "0045_receipts_insert_roles_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1789285591649,
+      "tag": "0046_receipts_insert_roles_guarantees",
+      "breakpoints": true
     }
   ]
 }

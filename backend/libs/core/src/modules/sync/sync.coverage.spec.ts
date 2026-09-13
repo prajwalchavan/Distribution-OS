@@ -30,10 +30,12 @@ import {
   visits,
   type ActorRole,
 } from '@dos/db'
+import { ALL_ROLES, isAllowed, permissionFor, type ProcedurePath } from '@dos/contracts'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { BillingModule } from '../billing/index.js'
 import { CatalogModule } from '../catalog/index.js'
 import { DeliveryModule } from '../delivery/index.js'
+import { DocintModule } from '../docint/index.js'
 import { InventoryModule } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
 import { PricingModule } from '../pricing/index.js'
@@ -54,12 +56,16 @@ import { SyncModule, SyncRegistry } from './index.js'
 class FakeVisitWriter implements OnModuleInit {
   constructor(private readonly registry: SyncRegistry) {}
   onModuleInit(): void {
-    this.registry.register('visits', async (tx, op) => {
-      const note = op.data?.note
-      await tx.execute(
-        sql`update visits set note = ${typeof note === 'string' ? note : ''} where id = ${op.id}`,
-      )
-    })
+    this.registry.register(
+      'visits',
+      async (tx, op) => {
+        const note = op.data?.note
+        await tx.execute(
+          sql`update visits set note = ${typeof note === 'string' ? note : ''} where id = ${op.id}`,
+        )
+      },
+      { standsFor: ['retailers.visits.record'] },
+    )
   }
 }
 @Module({ providers: [FakeVisitWriter] })
@@ -109,12 +115,15 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
   const crewId = uuidv7()
   const storeId = uuidv7()
   const shopUserId = uuidv7()
+  const bookkeeperId = uuidv7()
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const crew: Actor = { tenantId, actorId: crewId, role: 'delivery' }
   const store: Actor = { tenantId, actorId: storeId, role: 'warehouse' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
+  /** The money desk: holds the crew's tables on its device and may send a receipt, never a stop (DOS-166). */
+  const bookkeeper: Actor = { tenantId, actorId: bookkeeperId, role: 'accountant' }
 
   const beatId = uuidv7()
   const spareBeatId = uuidv7()
@@ -143,6 +152,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       { id: crewId, phone: `+91801${run}3`, name: 'Crew' },
       { id: storeId, phone: `+91801${run}4`, name: 'Store' },
       { id: shopUserId, phone: `+91801${run}5`, name: 'Shopkeeper' },
+      { id: bookkeeperId, phone: `+91801${run}7`, name: 'Bookkeeper' },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
@@ -150,6 +160,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       { id: uuidv7(), tenantId, userId: crewId, role: 'delivery' },
       { id: uuidv7(), tenantId, userId: storeId, role: 'warehouse' },
       { id: uuidv7(), tenantId, userId: shopUserId, role: 'retailer' },
+      { id: uuidv7(), tenantId, userId: bookkeeperId, role: 'accountant' },
     ])
     await bootstrapTenant(db, tenantId)
 
@@ -299,6 +310,9 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       BillingModule,
       WarehouseModule,
       DeliveryModule,
+      // Registers no pull, only the two capture uploads: booted so the DOS-166 pin sees every
+      // upload table the product registers, not only the ones with a read set.
+      DocintModule,
       FakeVisitModule,
     ])
   })
@@ -434,6 +448,19 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     expect(
       (await call(app, owner, 'POST', '/sync/upload', { protocol: 1, deviceId, ops: [] })).status,
     ).toBe(200)
+
+    // DOS-166: `writable` also asks whether THIS role may make the change the table stands for, so the
+    // phone never queues what the upload will refuse. The crew keeps every door it uses at a shop...
+    const crewTables = (await manifestOf(crew)).body.tables
+    expect(crewTables.filter((t) => t.writable).map((t) => t.table)).toEqual(
+      expect.arrayContaining(['receipts', 'trip_stops', 'deliveries']),
+    )
+    // ...and the money desk holds the crew's stops on its device but may only send a receipt back.
+    const deskBooks = (await manifestOf(bookkeeper)).body.tables
+    expect([
+      deskBooks.find((t) => t.table === 'receipts')?.writable,
+      deskBooks.find((t) => t.table === 'trip_stops')?.writable,
+    ]).toEqual([true, false])
   })
 
   it.each<[string, Actor]>([
@@ -681,5 +708,149 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     expect(again.status).toBe(200)
     expect(again.body.replayed).toBe(1)
     expect(await ledger()).toEqual(after)
+  })
+
+  it('DOS-166: refuses a salesperson receipt through the upload as role_not_allowed and writes nothing', async () => {
+    // THE PROBE, AS A SPEC (QA/evidence/batch2/sync-role-probe 02 and 03). `POST /receipts` refuses a
+    // salesperson, so the offline door must refuse the same person the same money: the crew's batch above,
+    // sent from a rep's phone, is a durable 2xx rejection that draws no number and posts nothing. The
+    // warehouse token is the second half — it used to pass every role check and die on the journal policy
+    // as a 500 that rolled the batch back and left no sync_ops row.
+    type Upload = {
+      accepted: number
+      replayed: number
+      rejected: { opId: string; table: string; code: string }[]
+    }
+    const books = async () =>
+      (
+        await db.execute(sql`
+          select (select count(*) from receipts where tenant_id = ${tenantId})::int as receipts,
+                 (select count(*) from journal_entries where tenant_id = ${tenantId})::int as entries,
+                 (select count(*) from journal_lines where tenant_id = ${tenantId})::int as lines,
+                 (select count(*) from allocations where tenant_id = ${tenantId})::int as allocations,
+                 (select count(*) from outbox_events
+                   where tenant_id = ${tenantId} and event_type = 'ReceiptRecorded')::int as recorded`)
+      ).rows[0]
+    const before = await books()
+
+    for (const [who, actor] of [
+      ['rep', rep],
+      ['store', store],
+    ] as const) {
+      const device = `device-cov-${who}-${run}`
+      const opId = `receipt-${who}-${run}`
+      const batch = {
+        protocol: 1,
+        deviceId: device,
+        ops: [
+          {
+            opId,
+            op: 'PUT',
+            table: 'receipts',
+            id: uuidv7(),
+            data: {
+              retailer_id: shopId,
+              amount_paise: 25_000,
+              mode: 'cash',
+              client_receipt_no: `CR-${who}-${run}`,
+              device_id: device,
+            },
+          },
+        ],
+      }
+      const res = await call<Upload>(app, actor, 'POST', '/sync/upload', batch)
+      expect(res.status, who).toBe(200) // never 4xx, and never a 500 that wedges the queue
+      expect(res.body.accepted, who).toBe(0)
+      expect(
+        res.body.rejected.map((r) => [r.opId, r.table, r.code]),
+        who,
+      ).toEqual([[opId, 'receipts', 'role_not_allowed']])
+
+      // The tray row names the person whose phone sent it, and the outcome is durable.
+      const tray = (
+        await db.execute(sql`
+          select user_id, table_name, code from sync_errors
+           where tenant_id = ${tenantId} and device_id = ${device} and op_id = ${opId}`)
+      ).rows
+      expect(tray, who).toEqual([
+        { user_id: actor.actorId, table_name: 'receipts', code: 'role_not_allowed' },
+      ])
+      const stored = (
+        await db.execute(sql`
+          select outcome from sync_ops
+           where tenant_id = ${tenantId} and device_id = ${device} and op_id = ${opId}`)
+      ).rows as { outcome: { ok: boolean; rejection?: { code: string } } }[]
+      expect(stored, who).toHaveLength(1)
+      expect(stored[0]?.outcome.ok, who).toBe(false)
+      expect(stored[0]?.outcome.rejection?.code, who).toBe('role_not_allowed')
+
+      // No receipt, no journal entry or line, no allocation, no ReceiptRecorded event.
+      expect(await books(), who).toEqual(before)
+
+      // The retried batch replays the stored refusal; it does not ask again.
+      const again = await call<Upload>(app, actor, 'POST', '/sync/upload', batch)
+      expect(again.status, who).toBe(200)
+      expect(again.body.replayed, who).toBe(1)
+      expect(again.body.accepted, who).toBe(0)
+      expect(
+        again.body.rejected.map((r) => r.code),
+        who,
+      ).toEqual(['role_not_allowed'])
+      expect(await books(), who).toEqual(before)
+    }
+  })
+
+  it('DOS-166: every upload table stands for a declared procedure and is never wider than it', () => {
+    // The upload door is the online door by another route, so each synced table names the procedure(s) it
+    // stands for and the matrix answers for both. A thirteenth registration without a mapping does not
+    // compile, one naming an undeclared procedure cannot boot, and one missing from this pin fails here.
+    const registry = app.get(SyncRegistry)
+    const pinned: { table: string; standsFor: ProcedurePath[] }[] = [
+      { table: 'receipts', standsFor: ['receivables.receipts.create'] },
+      { table: 'allocations', standsFor: ['receivables.allocations.create'] },
+      { table: 'sales_orders', standsFor: ['orders.create'] },
+      { table: 'sales_order_lines', standsFor: ['orders.setLines'] },
+      {
+        table: 'trip_stops',
+        standsFor: ['delivery.stops.start', 'delivery.stops.arrive', 'delivery.stops.fail'],
+      },
+      { table: 'deliveries', standsFor: ['delivery.deliveries.record'] },
+      { table: 'pod_evidence', standsFor: ['delivery.deliveries.addPod'] },
+      { table: 'collections', standsFor: ['delivery.collections.record'] },
+      { table: 'trip_expenses', standsFor: ['delivery.expenses.record'] },
+      { table: 'pick_lines', standsFor: ['warehouse.picklists.pick'] },
+      { table: 'documents', standsFor: ['docint.documents.create'] },
+      { table: 'document_pages', standsFor: ['docint.documents.addPage'] },
+      // This spec's own stand-in for the visit screen (FakeVisitWriter above).
+      { table: 'visits', standsFor: ['retailers.visits.record'] },
+    ]
+    const byTable = (a: { table: string }, b: { table: string }) => a.table.localeCompare(b.table)
+    expect([...registry.uploadTables()].sort(byTable)).toEqual([...pinned].sort(byTable))
+
+    for (const { table, standsFor } of registry.uploadTables()) {
+      for (const role of ALL_ROLES)
+        expect(registry.mayUploadTable(table, role), `${role} sending ${table}`).toBe(
+          standsFor.every((p) => isAllowed(permissionFor(p), role)),
+        )
+      // The worker is trusted; an actor that is no member of the tenant fails closed.
+      expect(registry.mayUploadTable(table, 'system'), table).toBe(true)
+      expect(registry.mayUploadTable(table, 'curator'), table).toBe(false)
+    }
+    // The cells the probe found open, named outright.
+    expect(registry.mayUploadTable('receipts', 'salesperson')).toBe(false)
+    expect(registry.mayUploadTable('receipts', 'warehouse')).toBe(false)
+    expect(registry.mayUploadTable('trip_expenses', 'salesperson')).toBe(false)
+    expect(registry.mayUploadTable('receipts', 'delivery')).toBe(true)
+    // A table nobody registered is nobody's.
+    expect(registry.mayUploadTable('price_lists', 'owner')).toBe(false)
+
+    // Fail closed at registration: an undeclared procedure, or none at all, stops the service booting.
+    const noop = async () => {}
+    expect(() =>
+      new SyncRegistry().register('x_table', noop, {
+        standsFor: ['nope.never' as ProcedurePath],
+      }),
+    ).toThrow(/nope\.never/)
+    expect(() => new SyncRegistry().register('x_table', noop, { standsFor: [] })).toThrow(/x_table/)
   })
 })

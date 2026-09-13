@@ -34,13 +34,17 @@ export const SYNC_PROTOCOL_VERSION = 1
  * The rejection codes the protocol itself produces, next to the module codes handlers throw
  * (`SyncRejection`). The device switches on these: `stale` re-reads the row and offers the shopkeeper
  * or the rep the server's version; `protocol_unsupported` asks for an app update; `unknown_table`
- * means the app is newer than the server and the op is dropped from the queue.
+ * means the app is newer than the server and the op is dropped from the queue; `role_not_allowed`
+ * means the signed-in role may not make the change that table stands for online (`PERMISSIONS`), so
+ * the op is refused before any handler runs and kept in the tray (DOS-166).
  */
 export const SYNC_REJECTION_CODES = {
   /** LWW with backend veto: the server row moved on after `baseUpdatedAt` (docs/07 §7.3). */
   stale: 'stale',
   /** No handler is registered for `table` on this server. */
   unknownTable: 'unknown_table',
+  /** The actor's role is refused by a procedure the table stands for (`SyncRegistry.mayUploadTable`). */
+  roleNotAllowed: 'role_not_allowed',
   /** The batch's `protocol` is not this server's `SYNC_PROTOCOL_VERSION`. */
   protocolUnsupported: 'protocol_unsupported',
 } as const
