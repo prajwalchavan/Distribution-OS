@@ -330,3 +330,40 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
   - A pre-existing unhandled switchDistributor rejection.
 - **Next:** the same run is resumed with a ruling stage — Fable ruling → Opus build → adversarial verify (one repair) — then the two Fable merge reviews, integration, merge, the web/Android/iOS proof and the Fable judge.
 - **Wave 2 (seen in git log):** lean-retailer-shop merged `b17e23f`; lean-backend-platform is integrating.
+
+### Batch 2 — lean wave 2 merged; one review blocker missed (22:22 IST)
+
+**Run `wf_a339006c-4dc`** — 14 agents, about 2 h 10 min. 12 findings merged (7 P2, 5 P3); every item failed its test before the fix and passed after. Reports: `lane-results/lean-retailer-shop.json`, `lean-backend-platform.json`; reviews: `merge-reviews/lean-retailer-shop.md`, `lean-backend-platform.md`.
+
+**lean-retailer-shop `b17e23f`:** DOS-101 `effbef8`, DOS-123 `7ecae27`, DOS-124 `37bd879`, DOS-154 `bcaf0fb`, DOS-105 `89ea1ed`, DOS-143 `d37b31b`, DOS-144 `526bfe4`.
+- Review: MERGE AFTER FIXES. All three blockers were applied in `6949209`:
+  - a short line is measured against picked pieces, not delivered ones (delivered is 0 until the door);
+  - Pay treats an emptied amount as ₹0, with its own "Enter an amount" reason;
+  - the seeded dues-reminder date is written out in words.
+
+**lean-backend-platform `d1c7da0`:** DOS-127 `861da8d`, DOS-160 `d78574d`, DOS-028 `0df8bad`, DOS-112 `f8fff34` + `16d05b6`, DOS-151 `98a0256`.
+- Review: MERGE AFTER FIXES, with one blocker: DOS-112's settle redirect makes every real Day-end settle from the manager app answer 400, because the compact client link puts the settlement id in the path.
+- **The blocker was NOT applied.**
+  - The integrator took the pre-review commit `16d05b6` as the fix, but that commit is the redirect the review says breaks the settle.
+  - The integration verifier compared merge hunks and never read the review.
+- The regression is shown by code reading only so far (suspect S-113). A repair lane first proves the 400, then applies the review's preferred fix.
+
+**Pushed:** origin/main = `d1c7da0`.
+
+**NOT TESTED** — every walk the builders listed:
+- retailer R7 pieces;
+- the bill's proof-of-delivery photo;
+- Pay from a bill, and Pay's amount field;
+- the returns, cancelled-order and offers wording;
+- My orders' IST date;
+- a short-picked order's page;
+- owner Settings > Audit;
+- Day-end settle.
+
+**Owed:**
+- a dos_qa reseed for the DOS-123 / DOS-105 demo data, at the A.12 rebuild;
+- a live `pnpm smoke --run-tag` pass for DOS-112.
+
+**New suspects:** S-110..S-115.
+
+**Process fix:** later lean waves use `qa-batch2-lean-wave3.js`. Its integration verifier checks each review blocker on HEAD.

@@ -1,0 +1,126 @@
+{
+ "group": "lean-backend-platform",
+ "items": [
+  "DOS-127",
+  "DOS-160",
+  "DOS-028",
+  "DOS-112",
+  "DOS-151"
+ ],
+ "build": [
+  {
+   "id": "DOS-127",
+   "status": "fixed",
+   "commits": [
+    "861da8d fix(DOS-127): a shop's own cancel expires the approvals it left pending"
+   ],
+   "deviations": "None. No changes made in this repair pass (verifier verdict: pass, no problems).",
+   "followUps": "Pre-existing stale rows in dos_qa (SO-0886, SO-0887, SO-0898) remain out of scope for this isolated worktree/DB, as originally noted.",
+   "platformCheck": "Backend-only fix, no screen changed. Unchanged in this repair pass."
+  },
+  {
+   "id": "DOS-160",
+   "status": "fixed",
+   "commits": [
+    "d78574d fix(DOS-160): a stored idempotent replay is never re-validated against a newer contract"
+   ],
+   "deviations": "None in this repair pass. The verifier logged one MINOR (not blocker/major) observation: idempotentReplayInterceptor treats a cache hit as genuine only when box.response !== undefined, so a void-output procedure whose cached value is literally undefined would fall through to the 500. No such procedure exists in the contract today and no test exercises it, so per the task's scope (fix blockers and majors only) this was left as-is.",
+   "followUps": "If a void-output idempotent mutation is ever added, idempotency.ts's cache-hit detection should use a sentinel value instead of relying on `!== undefined` (verifier's minor note, not actioned here as it is neither a blocker nor a major and affects no current procedure).",
+   "platformCheck": "Backend platform-only change. Unchanged in this repair pass."
+  },
+  {
+   "id": "DOS-028",
+   "status": "fixed",
+   "commits": [
+    "0df8bad fix(DOS-028): manager approval decisions and the confirm they trigger now hit audit_log"
+   ],
+   "deviations": "None. No changes made in this repair pass (verifier verdict: pass, no problems).",
+   "followUps": "None new.",
+   "platformCheck": "No frontend change needed (owner Settings > Audit already renders any audit_log row generically); a live visual walk remains optional/recommended but out of scope for this worktree, as originally noted."
+  },
+  {
+   "id": "DOS-112",
+   "status": "fixed",
+   "commits": [
+    "f8fff34 fix(DOS-112): a path/body id mismatch is a central 400, and setStatus checks existence before the idempotency gate",
+    "16d05b6 fix(DOS-112): address review \u2014 trips.settle's own id no longer collides with the path's trip id"
+   ],
+   "deviations": "No new spec file was added or edited for this repair: delivery.spec.ts, warehouse.spec.ts, billing.spec.ts and receivables.spec.ts are not in this group's ownsFiles list, so they were run as read-only regression checks (exactly as the builder and verifier both did) rather than modified. The fix is contained entirely to the one owned file, tenant.guard.ts.",
+   "followUps": "Same as originally noted: a live `pnpm smoke --run-tag` pass should be run once services are up to confirm no published example collides with a path/body field name in a way not caught by static contract inspection; if one does, it should get the same PATH_FIELD_REDIRECTS treatment as delivery.trips.settle.",
+   "platformCheck": "API-only change (shared TenantGuard used by all 8 services). No screen changed; no web/Android/iOS walk needed. Verified via platform-admin.spec.ts, tenancy/support.spec.ts (DOS-112's own tests) plus a regression sweep of delivery.spec.ts (the route the verifier flagged), warehouse.spec.ts, billing.spec.ts and receivables.spec.ts (every other module whose contract carries a 'client-generated new-row id' input) \u2014 all pass. Typecheck (tsc -p tsconfig.json --noEmit) and lint (eslint) clean on the touched file; pnpm docs:readme:check clean; git status clean."
+  },
+  {
+   "id": "DOS-151",
+   "status": "fixed",
+   "commits": [
+    "98a0256 fix(DOS-151): map cp1252 punctuation to its WinAnsi byte and real AFM width"
+   ],
+   "deviations": "None. No changes made in this repair pass (verifier verdict: pass, no problems).",
+   "followUps": "None new. Previously-rendered PDFs keep '?' until re-rendered, as originally documented.",
+   "platformCheck": "Backend-only (PDF renderer). Unchanged in this repair pass; a visual re-render check on web/Android remains recommended but out of scope for this worktree."
+  }
+ ],
+ "verdict": [
+  {
+   "id": "DOS-127",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-160",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/platform/idempotency.ts",
+     "detail": "idempotentReplayInterceptor only substitutes the cached reply when box.response !== undefined, so a genuinely cached reply whose value is literally undefined (a void-output procedure) would fall through to the 500 instead of being treated as a cache hit. No such procedure exists in the contract today and no test exercises this, so it does not affect the current fix, but it is a latent gap in the 'genuine cache hit' detection worth a sentinel value instead of undefined if a void-output idempotent mutation is ever added."
+    }
+   ]
+  },
+  {
+   "id": "DOS-028",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-112",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  },
+  {
+   "id": "DOS-151",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "problems": []
+  }
+ ],
+ "review": {
+  "decision": "MERGE AFTER FIXES",
+  "blockers": [
+   "DOS-112 breaks every real Day-end settle from the manager app: PATH_FIELD_REDIRECTS (backend/libs/core/src/modules/tenancy/tenant.guard.ts:350-351) compares path {id} with body.tripId, but the apps' OpenAPILink (compact) fills {id} from input.id = the NEW settlement id and deletes it from the body (frontend/manager-app/app/money/day-end.tsx:158-165 sends id: meta.id, tripId), so the wire call is POST /delivery/trips/<settlementId>/settle + {tripId} -> 400. delivery.spec.ts:1713 passes only because it hand-builds the URL with the trip id. Fix (preferred): rename the path to /delivery/trips/{tripId}/settle (backend/libs/contracts/src/delivery.ts:1430), drop the redirect, change backend/tools/smoke-endpoints.mts:2104 to pathParams: { tripId: chain.tripId }, pnpm docs:readme (delivery.ts is owned by lean-delivery-collect, order 14, not started: one-line touch, tell that lane). Fallback: remove the settle entry from PATH_FIELD_REDIRECTS. Either way walk Day-end settle on web + Android before merging."
+  ],
+  "conflicts": [
+   "None with main now: git merge-tree main qa/b2-lean-backend-platform is clean; main gained only QA/docs commits since base 663c6f3 (h10-console, h13-owner-support and h5 DOS-003 are in the base).",
+   "Later groups share files (lean-manager-money 10, lean-admin-support 15, lean-sales-orders-pricing 16, lean-owner-money-approvals 17, lean-manager-order-lifecycle 18 own orders.service.ts / approvals.service.ts / orders.spec.ts / platform-admin.spec.ts / support.spec.ts): expect append-conflicts at the tail of orders.spec.ts (DOS-028/127 blocks sit just before the DOS-003 section); keep both blocks."
+  ],
+  "unfiledDefects": [
+   "backend/libs/core/src/modules/orders/orders.service.ts:497 cancelInTx expires gates but never closes the bargain_requests they name (no OrderCancelled consumer in pricing): a rep's or shop's cancel leaves the request 'requested' in Rate requests / retailer deals.tsx forever.",
+   "backend/libs/core/src/docs/examples.ts:3909-3915 the published delivery.trips.settle example puts the settlement id in the path {id} and the trip in the body \u2014 wrong URL semantics before this group; fixed for free by the {tripId} rename.",
+   "backend/libs/core/src/modules/orders/orders.service.ts cancelInTx writes no audit_log row \u2014 a manager cancelling a shop's order is still untraced (DOS-028's 'every state transition'; outside this fix's stated scope)."
+  ]
+ },
+ "final": "merged",
+ "mainHead": "d1c7da0",
+ "pushed": true,
+ "run": "wf_a339006c-4dc",
+ "setup": "Sonnet 5 builder/verifier/integrator, Fable merge review (founder-approved lean setup)"
+}
