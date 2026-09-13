@@ -418,3 +418,27 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 
 **NOT TESTED:** every screen and device (all proofs are API-level).
 **Next:** Fable designs, then one approval request to the founder. Nothing is built before approval.
+
+### Batch 2 — DOS-167 merged; the web proof finds a store-name regression (2026-09-14 01:05 IST)
+
+**The resumed run `wf_74bd442f-12c` merged DOS-167 as `199952b` and pushed it.**
+- **Ruling 1 (Fable), no founder question needed** (`verdicts/DOS-167-ruling-1.json`). Four mandatory amendments, built in `3a07863`, `6d533f5`, `c81cba4` and `10e864e`, all verified red before and green after:
+  - (m) from the sign-out tap on, the engine refuses new writes, and a write already in hand is finished, counted and kept;
+  - (n) the sheet's words: a 19-character keep button, the singular form, and the truth about refusals;
+  - (o) no read answers from the store until the identity is claimed;
+  - (p) the sweep closes a store it could not count.
+- **Merge reviews:** leak and loss both said MERGE AFTER FIXES. The integration fixed their blockers:
+  - `54aa621`: a stop() while the store opens never attaches it or calls the office;
+  - `80c354c`: docs/27 no longer says kept refusals go out by themselves;
+  - `4acd5f8`: the outbox and tray hooks never leave a rejected query unhandled.
+- **Web proof: FAIL** (`QA/evidence/batch2/dos-167/web/`). A new **P1 regression** caused by the fix itself:
+  - The per-person store name is 92+ characters, and expo-sqlite web (wa-sqlite AccessHandlePoolVFS) refuses paths over 56 characters.
+  - The open fails silently into a memory store, so every web field app loses its persistent offline copy.
+  - An order kept with "Sign out, keep here" is gone: nothing was uploaded, and dos_qa has 0 rows.
+  - The no-leak variants passed, but only on the memory store.
+  - Two P3s were also found. One order counts as "2 changes" (the header and its line). A write refused during sign-out shows the generic "try again".
+- **Android sales proof: PASS** (`QA/evidence/batch2/dos-167/android/`). Files are keyed per person, sign-out removes them, and the next person sees no markers. A kept order is kept and sent at the next sign-in. The same P3 "2 changes" count appears here.
+- **Still running:** Android delivery and warehouse, iOS, and the Fable judge. DOS-167 stays open.
+- **Repair:** Fable ruling 2 covers the store name, the silent fallback, the count, and the order-enqueue gap between the header and its lines. Then build, verify, review, merge, and re-run the proof.
+- **New suspects:** S-116..S-0 — see QA/findings/12. They are the ruling-1 out-of-scope items, the verifier minor and the proof defects.
+- **Lean wave 3 is on HOLD** until the proofs finish and the store-name repair merges.

@@ -1,0 +1,140 @@
+{
+ "needsFounder": false,
+ "founderQuestion": "",
+ "amendments": [
+  {
+   "id": "m",
+   "title": "From the tap on, the engine refuses new writes; what was already in hand is counted and kept for that person",
+   "rule": "Founder answer A decides this: nothing queued is thrown away at sign-out, so the window the probe found is closed in the ENGINE, in three parts, and the leave flow's order stays exactly as it is (end \u2192 sweep \u2192 forgetDrafts \u2192 signOut).\n\n(m1) THE GATE. `end()` sets `ended` synchronously on entry (it already does, engine.ts:320). From that instant every public write \u2014 `enqueue` (:794), `recordGpsPoint` (:1185), `retry` (:1052), `discard` (:1074) \u2014 checks `this.ended` synchronously at entry, BEFORE its first `await`, and rejects with `SyncEngineEndedError` (exported from engine.ts and shared.ts: `name = 'SyncEngineEndedError'`, `code = 'ended'`, message 'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.'). The same error after `end()` has finished: `requireStore()` (:1241) throws the ended error whenever `ended` is true and keeps its old sentence otherwise. `flush()`/`sync()` already no-op on `!started`/`ended` and are unchanged. A refused write is never written, so it can never be deleted.\n\n(m2) WRITES IN HAND. A write that passed the gate registers itself in `this.writes: Set<Promise<void>>` from before its first `await` until after its bus emit (a `finally` deletes it). `settled()` (:340) awaits `opening`, then loops over `flushChain`, `syncing` AND every promise in `writes`, and returns only when one pass finds all three unchanged and `writes` empty \u2014 the same loop shape as today with the writes added. So a write that began a microtask before the tap lands whole before anything is dropped; `end()` never drops a table under an enqueue transaction.\n\n(m3) THE RE-COUNT. After `settled()`, `end()` calls `refreshCounts()` again. If `keepQueue` is false and `pending + rejected > 0` now, `end()` proceeds EXACTLY as `keepQueue: true` (read set dropped, `_outbox` and `_sync_errors` and the file kept for that person, `userId`/`tenantId`/`deviceId` untouched) and reports it: `end()` returns `Promise<EndResult>`, `EndResult = { kept: boolean; pending: number; rejected: number }` (`kept` = the file survived, whether asked for or by the re-count). `LeaveSession.end` in react.tsx returns the same. The three apps' `LeaveSteps.end` (`Promise<void>`) accept it without change \u2014 return-type covariance \u2014 and `leaveNow` keeps its order: a kept file is still followed by the sweep of the OTHER files, `forgetDraftsOf` (a draft is not the queue) and `signOut()`. The GPS buffer still goes on every `end()` (amendment c); it is not in the re-count, and no app calls `recordGpsPoint` today (the delivery tracker keeps its own memory buffer, gps.ts) \u2014 the gate on it is API hygiene.\n\nWHAT THE PERSON SEES. A write attempted after the tap: the screen's own error path, and never a 'saved on this phone' toast or navigation \u2014 sales orders/new.tsx:427-429 shows `place.error.message` (through `toApiError`, api-client errors.ts:175, today the generic 'Something could not be completed. Try again.' \u2014 see optional (q)); delivery deliver.tsx:416-418, collect.tsx:178-180, stop index.tsx:128-130 show the engine's own sentence; warehouse pick/[id].tsx:258-260 shows `start.error.message`. The sign-in screen follows when the session clears. A write that was in hand or completed between the tap's count and `end()`: it lands, is counted and kept; the screen had already shown it queued; that person's next sign-in on this phone sends it before the re-snapshot (exactly V5D). No sheet after the fact: the promise the sheet would make is the one the engine has just kept.\n\nWHAT THE LEAVE FLOW SHOWS. Unchanged. The one-tap path shows no sheet and no overlay \u2014 the kit has no blocking overlay, and the account menu closes before `onSignOut` (native shell.tsx:329-330/465-466, web shell.tsx:417-418/680-681), so no UI state can be the guarantee and none is required to be. The sheet path keeps `loading={busy}` on its two buttons and swallows Cancel while a step runs. See optional (r) for the visible wait.\n\ndocs/27: \u00a712 gains 'From the tap on the phone refuses new writes with a sentence; a write already in hand is finished, counted and kept for that person'; \u00a713 test 13 gains the two cases below; \u00a714 a row 'Sign out tapped while a write is in hand \u2192 finished, counted, file kept for that person; a write attempted after the tap \u2192 refused, never saved, never deleted'.",
+   "files": [
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/react.tsx",
+    "frontend/libs/offline/src/shared.ts",
+    "frontend/libs/offline/src/identity.test.ts",
+    "docs/27-offline-sync-client.md"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 a write that begins after end() has begun is refused and never deleted",
+     "redBecause": "The verifier's rig (a transport whose pull awaits a gate; engine started; pull held in flight; waiting() \u2192 {0,0}; `const ending = engine.end({ keepQueue: false })`). Then `enqueue`, `recordGpsPoint`, `retry('x')`, `discard('x')` must each reject with `{ name: 'SyncEngineEndedError', code: 'ended' }`, `status().pending` stays 0, release the gate, `ending` resolves `{ kept: false, pending: 0, rejected: 0 }`, `server.uploadCalls` is [], and after end() `enqueue` still rejects with the SAME name (not 'has not started yet'). Red today: enqueue resolves an opId and pending reads 1 (probe-race.json PROBE-A: refused null, pendingAfterEnqueue 1) and end() resolves undefined."
+    },
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 a write in hand when end() begins is finished, counted and kept for that person",
+     "redBecause": "Case 1: a store wrapper over createMemoryStore() whose `transaction` awaits a gate; `const writing = engine.enqueue(op)` (passes the gate, blocks inside the transaction); sleep(0); `const ending = engine.end({ keepQueue: false })`; open the gate; `writing` resolves an opId; `ending` resolves `{ kept: true, pending: 1, rejected: 0 }`; `_outbox` still holds the op 'queued', `SELECT * FROM \"retailers\"` rejects no such table, readState 'userId' is still 'rahul', 'cursor' null; a restart as RAHUL with `recording()` answers manifest \u2192 upload \u2192 pull and uploads the same opId; a restart as AMIT on the same store uploads nothing and the outbox is empty. Case 2: `await engine.waiting()` \u2192 {0,0}, `await engine.enqueue(op)` completes, then `end({ keepQueue: false })` \u2192 `{ kept: true, pending: 1, rejected: 0 }` and the row survives. Red today: end() resolves undefined and the outbox table is gone ('no such table: _outbox', race2/probe.log)."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "n",
+   "title": "The sheet's words: a 19-character keep button, the singular, and the truth about refusals",
+   "rule": "Meaning of answer A unchanged: queued changes stay on this phone for that person only and go the next time they sign in here; refused ones stay too but wait in Needs attention (the tray's name, docs/23 \u00a78.11) and never go by themselves. Identical keys and strings in sales, delivery and warehouse strings.ts:\n\n'leave.title': '{n} changes have not reached the office'\n'leave.title.one': '1 change has not reached the office'\n'leave.attention': '{n} need attention'\n'leave.attention.one': '1 needs attention'\n'leave.bodySignOut': 'They stay on this phone for {name} only and go the next time {name} signs in here. Nobody else can see them.'\n'leave.bodySignOutRefused': 'They stay in Needs attention on this phone for {name} only. They do not go by themselves: {name} fixes or discards them there after signing in here. Nobody else can see them.'\n'leave.bodySignOutBoth': 'They stay on this phone for {name} only. The queued ones go the next time {name} signs in here; the ones needing attention wait there for {name} to fix or discard. Nobody else can see them.'\n'leave.bodySwitch': 'They go when you come back to {tenantName} on this phone.'\n'leave.bodySwitchRefused': 'They wait in Needs attention until you come back to {tenantName} on this phone. They do not go by themselves.'\n'leave.bodySwitchBoth': 'The queued ones go when you come back to {tenantName} on this phone; the ones needing attention wait there for you to fix or discard.'\n'leave.sendNow': 'Send now'\n'leave.signOutKeep': 'Sign out, keep here'   (19 characters; the founder's verb first, the body says what is kept and for whom)\n'leave.switchAnyway': 'Switch anyway'\n'leave.noSignal': 'No connection \u2014 they cannot go now.'\n\n`leaveSentence` in each leave.ts: title = pending > 0 ? title(pending) : attention(rejected); the attention line = pending > 0 && rejected > 0 ? attention(rejected) : null; body = by (pending > 0, rejected > 0) \u2192 bodySignOut / bodySignOutRefused / bodySignOutBoth, and the Switch trio for a switch; a count of exactly 1 takes the `.one` key (the delivery app's existing convention, 'd1.loadSheets.one'). leave-sheet.tsx is unchanged (it reads labels through t()). docs/27 \u00a712 quotes the new button name. Founder/UX may reword any sentence later; the three facts (count in the singular, refused ones do not go by themselves, every button \u2264 20 characters per libs/ui/src/types.ts:25) are the rule.",
+   "files": [
+    "frontend/sales-app/src/strings.ts",
+    "frontend/sales-app/src/lib/leave.ts",
+    "frontend/sales-app/src/lib/leave.test.ts",
+    "frontend/delivery-app/src/strings.ts",
+    "frontend/delivery-app/src/lib/leave.ts",
+    "frontend/delivery-app/src/lib/leave.test.ts",
+    "frontend/warehouse-app/src/strings.ts",
+    "frontend/warehouse-app/src/lib/leave.ts",
+    "frontend/warehouse-app/src/lib/leave.test.ts",
+    "docs/27-offline-sync-client.md"
+   ],
+   "tests": [
+    {
+     "file": "frontend/sales-app/src/lib/leave.test.ts",
+     "name": "DOS-167 the sheet counts one change in the singular, tells the truth about refusals, and keeps every button under the kit's 20 characters",
+     "redBecause": "{1,0,signOut} title must be '1 change has not reached the office'; {0,1,signOut} title '1 needs attention', body contains 'do not go by themselves' and not 'go the next time'; {0,2,switch} body contains 'do not go by themselves'; {2,1,signOut} attention line '1 needs attention' and body mentions both the queued and the ones needing attention; `catalogue['leave.sendNow' | 'leave.signOutKeep' | 'leave.switchAnyway'].length <= 20`. Red today: '1 changes have not reached the office', the refusals-only body says 'go the next time', 'Sign out, keep them here' is 24 characters, and the `.one` keys do not exist."
+    },
+    {
+     "file": "frontend/delivery-app/src/lib/leave.test.ts",
+     "name": "DOS-167 the sheet counts one change in the singular, tells the truth about refusals, and keeps every button under the kit's 20 characters",
+     "redBecause": "Same assertions over the delivery catalogue; red for the same four reasons."
+    },
+    {
+     "file": "frontend/warehouse-app/src/lib/leave.test.ts",
+     "name": "DOS-167 the sheet counts one change in the singular, tells the truth about refusals, and keeps every button under the kit's 20 characters",
+     "redBecause": "Same assertions over the warehouse catalogue; red for the same four reasons."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "o",
+   "title": "No read answers from the store until the identity is claimed",
+   "rule": "Amendment (g) says nothing is rendered from any store before the identity is settled; engine.ts:222 sets `this.store` before `claimIdentity` (:233), so `outbox()` (:1141) and `needsAttention()` (:1151), which have no shapes gate, can answer from a foreign file for the length of the claim \u2014 and `useOutbox`/`useNeedsAttention` fire their first query the moment the provider sets the engine, while `start()` is still opening. In `start()`, keep the opened store in the local `store` and assign `this.store = store` only AFTER `claimIdentity(store)` returns (everything between already takes `store` as a parameter). `waiting()` is unaffected: it awaits `opening`, which resolves after the assignment. Defence in depth behind Layer A, two lines.",
+   "files": [
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/identity.test.ts"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 outbox() and needsAttention() answer nothing until the identity is claimed",
+     "redBecause": "A memory store holding AMIT's queued op and a `_sync_errors` row (insert them with store.exec), wrapped so its FIRST `query` on `_sync_state` (claimIdentity's readState 'userId') awaits a gate; `const starting = rahul.start()` (identity RAHUL, fixedStoreFactory over the wrapper); sleep(0); `await rahul.outbox()` must be [] and `await rahul.needsAttention()` [] and `status().pending` 0; open the gate; `await starting`; both still [] because the foreign file was wiped. Red today: outbox() returns Amit's op during the claim because `this.store` is assigned at :222."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "p",
+   "title": "sweepIdentityStores closes a store it could not count",
+   "rule": "In `sweepIdentityStores` (engine.ts:442-472) the catch at :467 only logs, so a store whose `createSystemTables` or COUNT threw stays open; on native expo-sqlite caches that connection and every later `deleteDatabaseAsync` of the same file fails 'currently open' for the life of the process. Wrap the count in try/catch per file: on failure `await store.close().catch(() => {})` BEFORE the log line, then continue to the next identity. The result shape `{ destroyed, kept }` is unchanged; an uncountable file is never deleted (the same rule tapLeave applies to the current file).",
+   "files": [
+    "frontend/libs/offline/src/engine.ts",
+    "frontend/libs/offline/src/identity.test.ts"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/offline/src/identity.test.ts",
+     "name": "DOS-167 sweepIdentityStores closes a store it could not count and never deletes it",
+     "redBecause": "A factory answering, for identity X, a store whose `query` throws 'database disk image is malformed' and whose `close` and `destroy` are counted; for identity Y a clean empty store. After the sweep: X's `close` called exactly once, X's `destroy` never, the log line 'sweep skipped a store' written, result `{ destroyed: 1, kept: [] }` (Y). Red today: X's close count is 0."
+    }
+   ],
+   "mandatory": true
+  },
+  {
+   "id": "q",
+   "title": "Optional: the refusal reaches the sales order screen in its own words",
+   "rule": "`toApiError` (frontend/libs/api-client/src/errors.ts:175) maps a non-API error to kind 'unknown' with 'Something could not be completed. Try again.', so the sales order screen (orders/new.tsx:427-429) shows that generic line for a `SyncEngineEndedError` while the delivery and warehouse screens show the engine's sentence. Optional: a structural branch in `toApiError` \u2014 an error whose `name === 'SyncEngineEndedError'` (no import of @dos/offline; amendment h stands) \u2192 `new ApiError({ kind: 'auth', message: err.message, cause: err })` ('auth' is the kind whose meaning is 'sign in again'). Only wording; the guarantee in (m) does not depend on it.",
+   "files": [
+    "frontend/libs/api-client/src/errors.ts",
+    "frontend/libs/api-client/src/identity.test.ts"
+   ],
+   "tests": [
+    {
+     "file": "frontend/libs/api-client/src/identity.test.ts",
+     "name": "DOS-167 an engine that is signing out reaches the screen as a sign-in-again error in its own words",
+     "redBecause": "`toApiError(Object.assign(new Error('This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.'), { name: 'SyncEngineEndedError', code: 'ended' }))` must have kind 'auth' and that exact message. Red today: kind 'unknown', message 'Something could not be completed. Try again.'"
+    }
+   ],
+   "mandatory": false
+  },
+  {
+   "id": "r",
+   "title": "Optional: a visible 'Signing out\u2026' while a one-tap sign-out waits for a page in flight",
+   "rule": "With a pull in flight `end()` can wait up to the request deadline (20 s) and the one-tap path shows nothing meanwhile; a second tap is swallowed by the running ref. Optional: in each Chrome render the kit's `Toast` with `open={busy && asking === null}`, message from a new string 'leave.signingOut': 'Signing out\u2026' (2 words, within the toast's 6), `onDismiss` a no-op while busy. Not a guarantee of anything (the account menu closes before onSignOut), so not required; if added, the string goes to strings.ts of the three apps and the existing leave.test.ts catalogue check covers the key.",
+   "files": [
+    "frontend/sales-app/app/_layout.tsx",
+    "frontend/delivery-app/app/_layout.tsx",
+    "frontend/warehouse-app/app/_layout.tsx",
+    "frontend/sales-app/src/strings.ts",
+    "frontend/delivery-app/src/strings.ts",
+    "frontend/warehouse-app/src/strings.ts"
+   ],
+   "tests": [],
+   "mandatory": false
+  }
+ ],
+ "outOfScope": [
+  "S-row \u2014 no render test of the field layouts' Chrome wiring (steps = device.waiting/device.end, the sweep over otherIdentities(session), the running ref, the sheet state): frontend/sales-app/app/_layout.tsx:396-419, frontend/delivery-app/app/_layout.tsx:440-460, frontend/warehouse-app/app/_layout.tsx:405-425. A Node test would need expo-router and the kit mocked; the design's Step 8 platform proof (web V5A-D + OPFS listing, Android 1-6 / 1-3, iOS 1-5) is the check and stays mandatory before merge, plus the two cases in notes.",
+  "S-row \u2014 a rejected switchDistributor escapes as an unhandled promise rejection from the tap, 'Send now' and 'Switch anyway', with nothing shown: frontend/sales-app/app/_layout.tsx:415 (`void step().finally`), frontend/delivery-app/app/_layout.tsx:457, frontend/warehouse-app/app/_layout.tsx:422; the call is `useSession().switchDistributor` in frontend/libs/api-client/src/react/index.tsx. Pre-existing on main (`void switchDistributor(tenantId)`); not DOS-167's. Fix later: `run` catches and sets the sheet's `note`, or the switcher gets an error line.",
+  "S-row (from the design, restated) \u2014 the server-issued cursor carries no device identity: backend/libs/core/src/modules/sync/sync.service.ts:481-493; defence in depth only.",
+  "S-row (from the design, restated, P3) \u2014 identity files of people who never return are never swept; and the pre-DOS-167 unkeyed `dos.sales.draft.<retailerId>` keys are left at rest (frontend/sales-app/src/lib/draft.ts).",
+  "Not a row \u2014 the verifier's 'not proven on any platform' for store/expo-sqlite.ts destroy, the OPFS listing and the upgrade path: already the design's Step 8 platform proof."
+ ],
+ "notes": "Founder answer A decides the major without a new question: keep-for-that-person is applied to the window itself (a write in hand is finished, counted and kept), and the only thing the engine may still do after the tap is REFUSE with a sentence \u2014 never accept-then-delete. A refused write is not a loss (never saved, and told), so 'no order is ever lost' and docs/27 \u00a714 'nothing is silently dropped' both hold. The three apps' leave.ts, leave-sheet.tsx and the layouts need no change for (m): `LeaveSteps.end` accepts the new `EndResult` return, and `leaveNow`'s order stands.\n\nRating: (m) is P0 \u2014 it is the P0's own loss path (it did not exist before DOS-167). Owner: the same lane, one fix commit over 3386a4e, libs test-first then the three apps' copy; re-verify, then my merge review.\n\nPlatform proof, two cases added to Step 8 (verifier, QA/tools/e2e): (1) cold-start sign-out \u2014 sign in as a rep holding a kept order, tap Sign out at once: the sheet reads '1 change has not reached the office' after the open and the file is not deleted; (2) the race on web \u2014 `page.route('**/sync/pull')` stalls one answer 5 s, tap Sign out, submit an order for Chavan Kirana inside the stall: the order screen shows an error line and never 'saved on this phone'; sign in again as the same rep: nothing waiting, and dos_qa holds no such order \u2014 or, if the write landed first, the strip shows '1 waiting' then 'Updated just now' and the order exists once.\n\nFor the main session's docs/22 rows the design's \u00a78 sentence gains ', and from the tap on the phone refuses new writes while finishing and keeping any already in hand'. Merge note for lean-libs-offline-boot stands (DOS-046's `systemSchema` key must be placed in CLEARED_FOR_ANOTHER_IDENTITY or excluded like deviceId; docs/27 \u00a74 paragraph re-read by the second to merge)."
+}
