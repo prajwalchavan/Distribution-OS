@@ -37,7 +37,7 @@ import {
   type StatusFamily,
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   Async,
@@ -55,7 +55,7 @@ import {
 } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { shortDate, shortInstant } from '../../src/lib/dates'
-import { loadOutHistory, loadOutQueue } from '../../src/lib/load-out'
+import { loadOutHistory, loadOutQueue, nextChallanPoll } from '../../src/lib/load-out'
 import { useWord } from '../../src/lib/words'
 
 const SHEET_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -80,6 +80,7 @@ export default function LoadOut(): React.JSX.Element {
   const [note, setNote] = useState('')
   const [ewbFor, setEwbFor] = useState<string | null>(null)
   const [ewbNo, setEwbNo] = useState('')
+  const [challanNote, setChallanNote] = useState<string | null>(null)
 
   const sheets = useQuery(['warehouse', 'loadSheets'], () =>
     api.api.warehouse.loadSheets.list({ limit: 100 }),
@@ -190,6 +191,54 @@ export default function LoadOut(): React.JSX.Element {
       void cancelSheet.mutateAsync({ id: selected, reason: note.trim() }).then(done, stayOpen)
   }
 
+  /*
+   * DOS-026: the challan PDF is rendered by the WORKER, same as an invoice, so the first press
+   * answers `queued` with no URL. Rather than a silent no-op, the panel says so and keeps asking —
+   * bounded, so a render that never finishes still ends in a stated error rather than a forever spin.
+   * `challanToken` invalidates a poll in flight when the sheet is closed, a different challan is
+   * pressed, or the screen unmounts, so a late answer never sets state nobody is looking at.
+   */
+  const CHALLAN_POLL_MS = 3000
+  const CHALLAN_POLL_ATTEMPTS = 20 // ~60 s — comfortably past the ~40 s the render usually takes
+  const challanToken = useRef(0)
+  useEffect(
+    () => () => {
+      challanToken.current += 1
+    },
+    [],
+  )
+  const openChallan = (challanId: string): void => {
+    const token = ++challanToken.current
+    setChallanNote(t('m7.challanQueued'))
+    const attempt = (tries: number): void => {
+      void api.api.warehouse.challans.pdf({ id: challanId }).then(
+        (result) => {
+          if (challanToken.current !== token) return
+          const step = nextChallanPoll(
+            absoluteUrl(result.url),
+            tries,
+            CHALLAN_POLL_ATTEMPTS,
+            CHALLAN_POLL_MS,
+          )
+          if (step.action === 'open') {
+            setChallanNote(null)
+            void documents.open(step.url)
+          } else if (step.action === 'error') {
+            setChallanNote(t('state.error'))
+          } else {
+            setTimeout(() => {
+              attempt(tries + 1)
+            }, step.delayMs)
+          }
+        },
+        () => {
+          if (challanToken.current === token) setChallanNote(t('state.error'))
+        },
+      )
+    }
+    attempt(0)
+  }
+
   return (
     <Screen
       title={t('m7.title')}
@@ -292,6 +341,7 @@ export default function LoadOut(): React.JSX.Element {
         open={selected !== null}
         onClose={() => {
           setSelected(null)
+          setChallanNote(null)
         }}
         title={
           sheet === undefined
@@ -385,19 +435,21 @@ export default function LoadOut(): React.JSX.Element {
               )}
 
               {sheet.challan === null ? null : (
-                <Button
-                  label={t('m7.printChallan')}
-                  variant="secondary"
-                  onPress={() => {
-                    void api.api.warehouse.challans
-                      .pdf({ id: sheet.challan?.id ?? '' })
-                      .then((result) => {
-                        const url = absoluteUrl(result.url)
-                        if (url !== null) void documents.open(url)
-                      })
-                  }}
-                  testID="challan-print"
-                />
+                <Stack gap={2}>
+                  <Button
+                    label={t('m7.printChallan')}
+                    variant="secondary"
+                    onPress={() => {
+                      openChallan(sheet.challan?.id ?? '')
+                    }}
+                    testID="challan-print"
+                  />
+                  {challanNote === null ? null : (
+                    <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                      {challanNote}
+                    </Txt>
+                  )}
+                </Stack>
               )}
             </Stack>
           )}
