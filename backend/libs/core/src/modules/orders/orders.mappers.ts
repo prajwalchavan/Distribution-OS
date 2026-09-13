@@ -1,5 +1,5 @@
 import { asc, eq } from 'drizzle-orm'
-import type { Approval, Order, OrderDetail, OrderLine } from '@dos/contracts'
+import type { Approval, ApprovalQueueItem, Order, OrderDetail, OrderLine } from '@dos/contracts'
 import type { salesOrders } from '@dos/db'
 import { approvals, orderStateTransitions, salesOrderLines, type Db } from '@dos/db'
 import { variantNames } from '../tenant-catalog/index.js'
@@ -94,6 +94,25 @@ export function toApproval(row: ApprovalRow): Approval {
     decidedAt: iso(row.decidedAt),
     decisionNote: row.decisionNote,
     createdAt: row.createdAt.toISOString(),
+  }
+}
+
+/** A queue row: the approval with its order's number, total and shop, each null when no order is behind it. */
+export function toApprovalQueueItem(
+  row: ApprovalRow,
+  order: {
+    orderNo: string | null
+    orderTotalPaise: number | null
+    retailerId: string | null
+    retailerName: string | null
+  },
+): ApprovalQueueItem {
+  return {
+    ...toApproval(row),
+    orderNo: order.orderNo,
+    orderTotalPaise: order.orderTotalPaise,
+    retailerId: order.retailerId,
+    retailerName: order.retailerName,
   }
 }
 

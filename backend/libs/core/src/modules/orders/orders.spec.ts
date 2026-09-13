@@ -104,6 +104,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const lineOne = uuidv7()
   const repeatOrder = uuidv7()
   const strictOrder = uuidv7()
+  const strictOrderDos004 = uuidv7() // DOS-004: a second over-limit order for Shop B, left pending
+  const tripApprovalDos004 = uuidv7() // DOS-004: an approval with no order behind it
   const shopOrder = uuidv7()
   const syncOrder = uuidv7()
   let godown = ''
@@ -425,6 +427,115 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { n: number }[]
     expect(held[0]?.n).toBe(0)
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-004: the approvals queue names the shop, the order number and the order total, read from the
+  // approval's own order when the list is asked, never from its payload (the demo seed and older rows shape
+  // the payload differently). An approval with no order behind it lists with all four fields null.
+
+  type QueueItem = {
+    id: string
+    kind: string
+    orderId: string | null
+    payload: Record<string, unknown>
+    orderNo: string | null
+    orderTotalPaise: number | null
+    retailerId: string | null
+    retailerName: string | null
+  }
+
+  it('DOS-004: the approvals queue names the shop, the order number and the total of an order approval', async () => {
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos004-${run}`,
+      id: strictOrderDos004,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    expect(drafted.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos004}/submit`,
+      { idempotencyKey: `submit-dos004-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('submitted')
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+    expect(submitted.body.item.orderNo).toMatch(/^SO-/)
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.orderId === strictOrderDos004)
+    expect(item).toMatchObject({
+      kind: 'credit_limit',
+      orderNo: submitted.body.item.orderNo,
+      orderTotalPaise: submitted.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval whose payload carries no order number still names the order and shop from its order', async () => {
+    const order = await call<{ item: Detail }>(app, owner, 'GET', `/orders/${strictOrderDos004}`)
+    expect(order.status).toBe(200)
+    expect(order.body.item.orderNo).toMatch(/^SO-/)
+    // the demo seed's shape: a retailer entity asking for a limit, with no orderNo or totalPaise in the payload
+    const seedShaped = uuidv7()
+    await db.insert(approvals).values({
+      id: seedShaped,
+      tenantId,
+      kind: 'credit_limit',
+      orderId: strictOrderDos004,
+      entityType: 'retailer',
+      entityId: retailerB,
+      requestedBy: repId,
+      status: 'pending',
+      payload: { currentLimitPaise: 1000, requestedLimitPaise: 3000, reason: 'DOS-004 seed shape' },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      kind: 'credit_limit',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === seedShaped)
+    expect(item?.payload.orderNo).toBeUndefined()
+    expect(item).toMatchObject({
+      orderNo: order.body.item.orderNo,
+      orderTotalPaise: order.body.item.totalPaise,
+      retailerId: retailerB,
+      retailerName: `Shop B ${run}`,
+    })
+  })
+
+  it('DOS-004: an approval that is not on an order lists with null shop and order fields', async () => {
+    await db.insert(approvals).values({
+      id: tripApprovalDos004,
+      tenantId,
+      kind: 'trip_settlement',
+      orderId: null,
+      entityType: 'trip',
+      entityId: uuidv7(),
+      requestedBy: ownerId,
+      status: 'pending',
+      payload: { cashVariancePaise: -500 },
+    })
+
+    const queue = await call<{ items: QueueItem[] }>(app, owner, 'GET', '/approvals', {
+      kind: 'trip_settlement',
+    })
+    expect(queue.status).toBe(200)
+    const item = queue.body.items.find((a) => a.id === tripApprovalDos004)
+    expect(item).toBeDefined()
+    expect(item?.orderNo).toBeNull()
+    expect(item?.orderTotalPaise).toBeNull()
+    expect(item?.retailerId).toBeNull()
+    expect(item?.retailerName).toBeNull()
   })
 
   it('lets the rep cancel a draft', async () => {

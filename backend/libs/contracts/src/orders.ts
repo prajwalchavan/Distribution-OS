@@ -153,6 +153,19 @@ export const ApprovalSchema = z.object({
 })
 export type Approval = z.infer<typeof ApprovalSchema>
 
+/**
+ * A row of the approvals queue: the approval plus its order's number, total and shop, read from that order when
+ * the list is asked (DOS-004), so no screen depends on what a payload happens to carry. All four are null for an
+ * approval with no order behind it (a trip settlement, a bargain gate whose request names no order).
+ */
+export const ApprovalQueueItemSchema = ApprovalSchema.extend({
+  orderNo: z.string().nullable(),
+  orderTotalPaise: PaiseSchema.nullable(),
+  retailerId: IdSchema.nullable(),
+  retailerName: z.string().nullable(),
+})
+export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>
+
 /** `approvals` is empty for a retailer-role caller: an approval payload carries the shop's credit position. */
 export const OrderDetailSchema = OrderSchema.extend({
   lines: z.array(OrderLineSchema),
@@ -267,7 +280,7 @@ export const ApprovalsListInput = z.object({
   ...CursorInput,
 })
 export const ApprovalsListOutput = z.object({
-  items: z.array(ApprovalSchema),
+  items: z.array(ApprovalQueueItemSchema),
   nextCursor: z.string().nullable(),
 })
 

@@ -108,21 +108,25 @@ export default function Today(): React.JSX.Element {
       .filter((row) => row.entityType === 'bargain_request')
       .map((row) => row.entityId),
   )
+  /* The shop, the order number and its total are read from the approval's own order (DOS-004), not its payload. */
   const waiting = [
     ...(approvals.data?.items ?? []).map((row) => {
-      const orderNo = typeof row.payload.orderNo === 'string' ? row.payload.orderNo : null
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
       return bargain === undefined
         ? {
             id: row.id,
             kind: row.kind,
-            what: orderNo ?? row.entityType,
-            amount: typeof row.payload.totalPaise === 'number' ? row.payload.totalPaise : null,
+            what:
+              [row.retailerName, row.orderNo].filter((p): p is string => p !== null).join(' · ') ||
+              word(row.kind),
+            amount: row.orderTotalPaise,
           }
         : {
             id: row.id,
             kind: row.kind,
-            what: orderNo ?? names.retailer(bargain.retailerId),
+            what: [row.retailerName ?? names.retailer(bargain.retailerId), row.orderNo]
+              .filter((p): p is string => p !== null)
+              .join(' · '),
             amount: bargain.askedRatePaise,
           }
     }),
