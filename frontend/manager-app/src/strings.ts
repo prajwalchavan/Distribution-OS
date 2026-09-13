@@ -391,6 +391,7 @@ export const strings = {
   'm7.challanNo': 'Challan no.',
   'm7.printChallan': 'Print the challan',
   'm7.challanQueued': 'Preparing the challan. It will open here once ready.',
+  'm7.challanReady': 'The challan is ready — press Print the challan.',
   'm7.empty': 'No load sheet today',
   'm7.detail': 'Load sheet · {vehicle}',
   'm7.from': 'From',

@@ -81,6 +81,7 @@ export default function LoadOut(): React.JSX.Element {
   const [ewbFor, setEwbFor] = useState<string | null>(null)
   const [ewbNo, setEwbNo] = useState('')
   const [challanNote, setChallanNote] = useState<string | null>(null)
+  const [challanUrl, setChallanUrl] = useState<string | null>(null)
 
   const sheets = useQuery(['warehouse', 'loadSheets'], () =>
     api.api.warehouse.loadSheets.list({ limit: 100 }),
@@ -197,6 +198,14 @@ export default function LoadOut(): React.JSX.Element {
    * bounded, so a render that never finishes still ends in a stated error rather than a forever spin.
    * `challanToken` invalidates a poll in flight when the sheet is closed, a different challan is
    * pressed, or the screen unmounts, so a late answer never sets state nobody is looking at.
+   *
+   * Merge review blocker (lean-manager-billing, 2026-09-13): on web, `documents.open` is
+   * `window.open`, which only survives inside the tap's own gesture (attempt 0, called
+   * synchronously below with no await first). The render takes ~40 s, so every later attempt lands
+   * well past the browser's popup-blocker window and `window.open` is silently refused. So only
+   * attempt 0 opens the PDF itself; a URL that arrives on a later attempt is kept in `challanUrl`
+   * instead, and the button's own `onPress` opens it synchronously (before any await) on the next
+   * press, which still carries a fresh user gesture.
    */
   const CHALLAN_POLL_MS = 3000
   const CHALLAN_POLL_ATTEMPTS = 20 // ~60 s — comfortably past the ~40 s the render usually takes
@@ -209,6 +218,7 @@ export default function LoadOut(): React.JSX.Element {
   )
   const openChallan = (challanId: string): void => {
     const token = ++challanToken.current
+    setChallanUrl(null)
     setChallanNote(t('m7.challanQueued'))
     const attempt = (tries: number): void => {
       void api.api.warehouse.challans.pdf({ id: challanId }).then(
@@ -221,8 +231,13 @@ export default function LoadOut(): React.JSX.Element {
             CHALLAN_POLL_MS,
           )
           if (step.action === 'open') {
-            setChallanNote(null)
-            void documents.open(step.url)
+            if (tries === 0) {
+              setChallanNote(null)
+              void documents.open(step.url)
+            } else {
+              setChallanUrl(step.url)
+              setChallanNote(t('m7.challanReady'))
+            }
           } else if (step.action === 'error') {
             setChallanNote(t('state.error'))
           } else {
@@ -342,6 +357,7 @@ export default function LoadOut(): React.JSX.Element {
         onClose={() => {
           setSelected(null)
           setChallanNote(null)
+          setChallanUrl(null)
         }}
         title={
           sheet === undefined
@@ -440,6 +456,14 @@ export default function LoadOut(): React.JSX.Element {
                     label={t('m7.printChallan')}
                     variant="secondary"
                     onPress={() => {
+                      // A URL already waiting from an earlier poll is opened right here, first
+                      // thing, before any await — the only way `window.open` keeps this tap's
+                      // user gesture on web. Otherwise the poll starts and opens it itself only
+                      // if attempt 0 already has the answer.
+                      if (challanUrl !== null) {
+                        void documents.open(challanUrl)
+                        return
+                      }
                       openChallan(sheet.challan?.id ?? '')
                     }}
                     testID="challan-print"
