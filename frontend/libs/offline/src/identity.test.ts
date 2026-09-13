@@ -882,6 +882,57 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
       { row_id: 'o-balaji', status: 'queued' },
     ])
   })
+
+  /*
+   * Ruling (p). On a phone expo-sqlite keeps a connection it opened; a file left open by a sweep that could not
+   * count it refuses every later delete of that file for the life of the process ("currently open").
+   */
+  it('DOS-167 sweepIdentityStores closes a store it could not count and never deletes it', async () => {
+    const AT_SAI: SyncIdentity = { ...RAHUL, tenantId: 'sai' }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL, tenantId: 'balaji' }
+    const events: string[] = []
+    const corrupt = { closed: 0, destroyed: 0 }
+    const clean = createMemoryStore()
+    const factory: StoreFactory = async (name) => {
+      if (name === storeNameFor('dos-sales', AT_BALAJI)) return clean
+      const broken: SyncStore = {
+        persistent: true,
+        kind: 'sqlite-native',
+        exec: async () => {},
+        query: async () => {
+          throw new Error('database disk image is malformed')
+        },
+        transaction: async () => {
+          throw new Error('database disk image is malformed')
+        },
+        close: async () => {
+          corrupt.closed += 1
+          events.push('close')
+        },
+        destroy: async () => {
+          corrupt.destroyed += 1
+          events.push('destroy')
+        },
+      }
+      return broken
+    }
+
+    const result = await SyncEngine.sweepIdentityStores(
+      factory,
+      'dos-sales',
+      [AT_SAI, AT_BALAJI],
+      (line) => {
+        events.push(line)
+      },
+    )
+
+    expect({ result, corrupt, events }).toEqual({
+      // The clean file at Balaji is deleted; the one at Sai that could not be counted is neither kept nor deleted.
+      result: { destroyed: 1, kept: [] },
+      corrupt: { closed: 1, destroyed: 0 },
+      events: ['close', 'offline: sweep skipped a store'],
+    })
+  })
 })
 
 // 15 -------------------------------------------------------------------------------------------------------------

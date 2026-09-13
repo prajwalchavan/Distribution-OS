@@ -520,11 +520,22 @@ export class SyncEngine {
     for (const identity of identities) {
       try {
         const store = await storeFactory(storeNameFor(prefix, identity))
-        await createSystemTables(store)
-        const [row] = await store.query<{ n: number }>(
-          `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending', 'rejected')`,
-        )
-        const pending = Number(row?.n ?? 0)
+        let pending: number
+        try {
+          await createSystemTables(store)
+          const [row] = await store.query<{ n: number }>(
+            `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending', 'rejected')`,
+          )
+          pending = Number(row?.n ?? 0)
+        } catch (error) {
+          /*
+           * A file that could not be counted is never deleted, and it is CLOSED before the sweep moves on
+           * (DOS-167, ruling (p)): on a phone expo-sqlite keeps the connection it opened, and every later
+           * delete of that file would fail "currently open" for as long as the app runs.
+           */
+          await store.close().catch(() => {})
+          throw error
+        }
         if (pending > 0) {
           await store.close()
           kept.push({ identity, pending })
