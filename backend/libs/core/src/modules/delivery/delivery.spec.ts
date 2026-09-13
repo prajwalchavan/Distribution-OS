@@ -931,7 +931,7 @@ describeDb('delivery (DATABASE_URL)', () => {
     }
 
     // offline: the same contradiction from the queue is a readable 2xx rejection, never a restock. A geo
-    // pod, because `podFromDevice` drops `inline`; the pod policy runs after the line check, so only the
+    // pod keeps the op free of proof bytes; the pod policy runs after the line check, so only the
     // message tells this refusal from `pod_required`.
     const queued = await call<{
       accepted: number
@@ -2701,4 +2701,266 @@ describeDb('delivery (DATABASE_URL)', () => {
         ).status,
       ).toBe(200)
   }, 180_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-056: the doorstep write made with no signal
+
+  const tripOffline = uuidv7()
+  const stopOffline = uuidv7()
+
+  interface UploadBody {
+    accepted: number
+    replayed: number
+    rejected: { opId: string; code: string; messageEn: string }[]
+  }
+
+  it('DOS-056 an offline delivery for a credit shop, queued with its photo inline after an offline arrival, is accepted from /sync/upload and pod_evidence holds only an object key', async () => {
+    // Trips 1 and 2 are settled by now, so the driver and the van are free for a third round today.
+    const bill = await billedOrder(retailerA, variantB, 'a3')
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `trip3-${run}`,
+      id: tripOffline,
+      tripDate: today,
+      vehicleId,
+      driverId,
+      stops: [
+        { id: stopOffline, sequence: 1, retailerId: retailerA, invoiceIds: [bill.invoiceId] },
+      ],
+    })
+    expect(planned.status).toBe(200)
+    expect(planned.body.item.tripNo).toMatch(/^TRIP-\d{4}$/)
+    expect(
+      (
+        await call(app, packer, 'POST', `/delivery/trips/${tripOffline}/start-loading`, {
+          idempotencyKey: `loading3-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const departed = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/trips/${tripOffline}/depart`,
+      { idempotencyKey: `depart3-${run}` },
+    )
+    expect(departed.status).toBe(200)
+    expect(departed.body.item.state).toBe('active')
+
+    // What the phone holds: the PLANNED delivery row and the `updated_at` its pull delivered.
+    const onPhone = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
+    const deliveryId = onPhone.body.item.stops[0]?.deliveries[0]?.id ?? ''
+    expect(deliveryId).not.toBe('')
+    const [held] = (
+      await db.execute(sql`select updated_at from deliveries where id = ${deliveryId}`)
+    ).rows as { updated_at: Date | string }[]
+    const baseUpdatedAt = new Date(held?.updated_at ?? 0).toISOString()
+
+    // A dead spot: "I am at the shop", then the delivery with the photo of the signed bill INLINE.
+    const deviceId = `driver-phone-dos056-${run}`
+    const at = new Date().toISOString()
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId,
+      ops: [
+        {
+          opId: `dos056-arrive-${run}`,
+          op: 'PATCH',
+          table: 'trip_stops',
+          id: stopOffline,
+          data: { state: 'arrived', occurred_at: at, lat: 19.2441, lng: 73.1356 },
+        },
+        {
+          opId: `dos056-deliver-${run}`,
+          op: 'PUT',
+          table: 'deliveries',
+          id: deliveryId,
+          baseUpdatedAt,
+          data: {
+            trip_id: tripOffline,
+            stop_id: stopOffline,
+            invoice_id: bill.invoiceId,
+            retailer_id: retailerA,
+            order_id: bill.orderId,
+            delivered_at: at,
+            device_id: deviceId,
+            lines: [
+              {
+                id: uuidv7(),
+                invoice_line_id: bill.lineId,
+                delivered_qty_pcs: 12,
+                returned_qty_pcs: 0,
+                returned_saleable: true,
+              },
+            ],
+            pod: [
+              {
+                id: uuidv7(),
+                kind: 'photo',
+                inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+                captured_at: at,
+              },
+            ],
+          },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.rejected).toEqual([])
+    expect(res.body.accepted).toBe(2)
+
+    const detail = await call<{ item: DeliveryDetailBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/deliveries/${deliveryId}`,
+    )
+    expect(detail.status).toBe(200)
+    expect(detail.body.item.outcome).toBe('delivered')
+    const photo = detail.body.item.pod.find((p) => p.kind === 'photo')
+    expect(photo?.objectKey).toMatch(/^tenant\/.*\/pod\//)
+    expect(photo?.objectKey).toContain(deliveryId)
+    const after = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
+    expect(after.body.item.stops[0]?.state).toBe('delivered')
+    expect(await orderState(bill.orderId)).toBe('delivered')
+
+    // The bytes went to object storage through the files platform; the row holds the KEY and nothing
+    // else, so no pull can ever carry a photo back to a phone.
+    const pods = (
+      await db.execute(
+        sql`select kind::text as kind, object_key, payload from pod_evidence where delivery_id = ${deliveryId}`,
+      )
+    ).rows as { kind: string; object_key: string | null; payload: unknown }[]
+    expect(pods).toHaveLength(1)
+    expect(pods[0]?.kind).toBe('photo')
+    expect(pods[0]?.object_key).toBe(photo?.objectKey)
+    expect(pods[0]?.payload).toBeNull()
+    expect(JSON.stringify(pods)).not.toContain(TINY_PNG)
+    const files = (
+      await db.execute(
+        sql`select status::text as status from file_objects where tenant_id = ${tenantId} and object_key = ${pods[0]?.object_key ?? ''}`,
+      )
+    ).rows as { status: string }[]
+    expect(files.map((f) => f.status)).toEqual(['uploaded'])
+    const outcomes = (
+      await db.execute(
+        sql`select outcome from sync_ops where tenant_id = ${tenantId} and device_id = ${deviceId} order by op_id`,
+      )
+    ).rows as { outcome: unknown }[]
+    expect(outcomes.map((o) => o.outcome)).toEqual([{ ok: true }, { ok: true }])
+  }, 120_000)
+
+  it("DOS-056 a malformed offline delivery is refused row_invalid in the rule's own sentence, never as a Zod JSON array", async () => {
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `driver-phone-dos056-bad-${run}`,
+      ops: [
+        {
+          opId: `dos056-bad-${run}`,
+          op: 'PUT',
+          table: 'deliveries',
+          id: uuidv7(),
+          data: {
+            trip_id: uuidv7(),
+            stop_id: uuidv7(),
+            invoice_id: uuidv7(),
+            lines: [
+              {
+                id: uuidv7(),
+                invoice_line_id: uuidv7(),
+                delivered_qty_pcs: 12,
+                returned_qty_pcs: 0,
+              },
+            ],
+            // a photo that carries neither a key nor its bytes
+            pod: [{ id: uuidv7(), kind: 'photo' }],
+          },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(0)
+    expect(res.body.rejected).toHaveLength(1)
+    expect(res.body.rejected[0]?.code).toBe('row_invalid')
+    expect(res.body.rejected[0]?.messageEn).toBe(
+      'a photo or signature carries exactly one of objectKey / inline; an otp or geo carries neither',
+    )
+    expect(res.body.rejected[0]?.messageEn.startsWith('[')).toBe(false)
+  })
+
+  it('DOS-056 an oversize offline op is refused row_too_large as a 2xx sync_error, never a 413, and the rest of the batch still lands', async () => {
+    const deviceId = `driver-phone-dos056-big-${run}`
+    // Four doorstep writes that each swallowed an uncompressed photo: ~1.7 MiB of JSON apiece, ~7 MiB
+    // for the whole body — far past Fastify's 1 MiB default, inside the sync route's 8 MiB.
+    const uncompressed = 'A'.repeat(1_800_000)
+    const oversize = [1, 2, 3, 4].map((n) => ({
+      opId: `dos056-big-${n}-${run}`,
+      op: 'PUT',
+      table: 'deliveries',
+      id: uuidv7(),
+      data: {
+        trip_id: tripOffline,
+        stop_id: stopOffline,
+        invoice_id: uuidv7(),
+        lines: [
+          { id: uuidv7(), invoice_line_id: uuidv7(), delivered_qty_pcs: 1, returned_qty_pcs: 0 },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'photo',
+            inline: { mimeType: 'image/jpeg', contentBase64: uncompressed },
+          },
+        ],
+      },
+    }))
+    const expenseId = uuidv7()
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId,
+      ops: [
+        ...oversize,
+        {
+          opId: `dos056-toll-${run}`,
+          op: 'PUT',
+          table: 'trip_expenses',
+          id: expenseId,
+          data: { trip_id: tripOffline, kind: 'toll', amount_paise: 2_500 },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(1)
+    expect(res.body.rejected.map((r) => r.code)).toEqual([
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+    ])
+    expect(res.body.rejected[0]?.messageEn).toMatch(/too large/)
+    const errors = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and device_id = ${deviceId}`,
+      )
+    ).rows as { code: string }[]
+    expect(errors.map((e) => e.code)).toEqual([
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+    ])
+    const expenses = (
+      await db.execute(sql`select kind::text as kind from trip_expenses where id = ${expenseId}`)
+    ).rows as { kind: string }[]
+    expect(expenses.map((e) => e.kind)).toEqual(['toll'])
+  }, 60_000)
 })

@@ -39,6 +39,7 @@ import { GPS_NOTICE_VERSION } from '../../src/config'
 import { instantWithClock, longDate } from '../../src/lib/dates'
 import { deviceId } from '../../src/api'
 import { pickCurrentTrip, tripEntryHref, useHydrated, useLocalTrips } from '../../src/lib/local'
+import { openingCashEntered, openingCashShown } from '../../src/lib/opening-cash'
 import { Async, Field, FillingNote, Panel } from '../../src/lib/ui'
 
 export default function StartTrip(): React.JSX.Element {
@@ -72,6 +73,13 @@ export default function StartTrip(): React.JSX.Element {
   })
 
   const [odometer, setOdometer] = useState('')
+  /*
+   * The float, three ways (DOS-146, src/lib/opening-cash.ts). `null` = untouched: the field shows the
+   * float planned at the office, depart leaves `openingCashPaise` out and the server keeps
+   * `trips.opening_cash_paise`. `0` = the driver emptied it: sent as `openingCashPaise: 0`. Once any
+   * pad key has been pressed, Clear included, `null` is unreachable, so Android back after Clear
+   * leaves 0, not the plan.
+   */
   const [cashPaise, setCashPaise] = useState<number | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -287,8 +295,10 @@ export default function StartTrip(): React.JSX.Element {
                   testID="d2-cash"
                   label={t('d2.openingCash')}
                   helper={t('d2.openingCashHelp')}
-                  value={cashPaise ?? detail?.openingCashPaise ?? null}
-                  onChange={setCashPaise}
+                  value={openingCashShown(cashPaise, detail?.openingCashPaise)}
+                  onChange={(next) => {
+                    setCashPaise(openingCashEntered(next))
+                  }}
                 />
                 <Row gap={4} wrap>
                   <Field label={t('d.vehicle')}>{detail?.vehicleRegNo ?? t('d.unknown')}</Field>
@@ -344,7 +354,7 @@ export default function StartTrip(): React.JSX.Element {
           trip: localTrip?.trip_no ?? t('d.trip'),
           vehicle: detail?.vehicleRegNo ?? t('d.vehicle'),
           stops: detail?.plannedStops ?? localTrip?.planned_stops ?? 0,
-          cash: formatINR(paise(cashPaise ?? detail?.openingCashPaise ?? 0)),
+          cash: formatINR(paise(openingCashShown(cashPaise, detail?.openingCashPaise) ?? 0)),
         })}
         confirmLabel={t('d2.depart')}
         busy={depart.status === 'pending'}

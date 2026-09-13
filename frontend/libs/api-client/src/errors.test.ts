@@ -99,6 +99,25 @@ describe('toApiError', () => {
     expect(err.retryable).toBe(true)
   })
 
+  /**
+   * On Android and iOS the global `fetch` is expo/fetch (expo/src/winter/runtime.native.ts), which
+   * rejects a refused, unreachable or aborted request with `FetchError`: message 'fetch failed: …',
+   * `name` still 'Error'. Read as 'unknown', a phone with no signal said "Something could not be
+   * completed" (DOS-156) and the delivery app never fell back to its outbox (DOS-056).
+   */
+  it("DOS-056 DOS-156 a native fetch failure (Expo FetchError 'fetch failed: …') is a network error, never unknown", () => {
+    const refused = new Error(
+      'fetch failed: java.net.ConnectException: Failed to connect to /127.0.0.1:3005',
+    )
+    const aborted = new Error('fetch failed: The operation was aborted.')
+    for (const failure of [refused, aborted]) {
+      const err = toApiError(failure)
+      expect(err.kind, failure.message).toBe('network')
+      expect(err.retryable).toBe(true)
+      expect(err.message).toBe('No connection. This will send when the signal is back.')
+    }
+  })
+
   it('treats an abort or a timeout as a network failure', () => {
     const abort = new Error('aborted')
     abort.name = 'AbortError'

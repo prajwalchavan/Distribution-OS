@@ -9,10 +9,11 @@
  * rate against an invoice it must never edit.
  *
  * One call, online or off. With a signal it is `delivery.deliveries.record` and the credit note comes
- * back with its number; with none it is one `deliveries` op in the outbox carrying its lines and its
- * proof INLINE (`delivery.sync.ts` reads them off the same op — a header without its lines has no
- * outcome), and the server applies the identical rules when it lands. The primary button says which
- * of the two is about to happen.
+ * back with its number; with none — or when the office never answers the call (a dead spot, a refused
+ * connection, the 20 s deadline; DOS-056) — it is one `deliveries` op in the outbox carrying its lines
+ * and its proof INLINE (`delivery.sync.ts` reads them off the same op — a header without its lines has
+ * no outcome), and the server applies the identical rules when it lands. A call the office refused is
+ * never queued. The primary button says which of the two is about to happen.
  *
  * NO COST, ANYWHERE. The lines show the pieces on the bill and the SELLING rate the shopkeeper is
  * charged; `tenant_product_costs` is invisible to this role by the database, and this screen never
@@ -54,11 +55,13 @@ import {
   useLocalTrip,
   type LocalInvoiceLine,
 } from '../../../src/lib/local'
+import { recordOrSave } from '../../../src/lib/doorstep'
 import {
   captureProof,
   storeProof,
   MAX_INLINE_BASE64,
   type CapturedProof,
+  type StoredProof,
 } from '../../../src/lib/proof'
 import { useQueueDelivery, type QueuedPod } from '../../../src/lib/queue'
 import { LocalAsync, Panel, Field } from '../../../src/lib/ui'
@@ -206,6 +209,9 @@ export default function AtTheDoor(): React.JSX.Element {
         router.replace(`/stop/${String(stopId ?? '')}`)
       },
       onError: (failed) => {
+        // No answer from the office is not a refusal: `commit` saves the delivery on the phone instead
+        // (DOS-056), so neither the "no connection" sentence nor a second haptic belongs here.
+        if (failed.kind === 'network') return
         haptics.error()
         setError(failed.message)
       },
@@ -287,63 +293,22 @@ export default function AtTheDoor(): React.JSX.Element {
     setBusy(true)
     void (async () => {
       try {
-        const pod: QueuedPod[] = []
-        if (proof !== null) {
-          if (status.online) {
-            /*
-             * With a signal, ask the server where the bytes go: a bucket (PUT, then only the key
-             * travels) or inline (the local driver, which has nowhere to PUT). Never guess.
-             */
-            const stored = await storeProof(proof, async ({ mimeType, bytes }) => {
-              const answer = await api.api.files.uploadUrl({
-                idempotencyKey: `pod:${proof.uploadId}`,
-                id: proof.uploadId,
-                domain: 'pod',
-                entityId: row.id,
-                mimeType,
-                bytes,
-              })
-              return {
-                objectKey: answer.objectKey,
-                url: answer.url,
-                method: answer.method,
-                headers: answer.headers,
-                inline: answer.inline,
-              }
-            })
-            pod.push({
-              id: uuidv7(),
-              kind: 'photo',
-              ...(stored.objectKey === undefined ? {} : { objectKey: stored.objectKey }),
-              ...(stored.inline === undefined
-                ? {}
-                : {
-                    mimeType: stored.inline.mimeType,
-                    contentBase64: stored.inline.contentBase64,
-                  }),
-            })
-          } else {
-            pod.push({
-              id: uuidv7(),
-              kind: 'photo',
-              mimeType: proof.mimeType,
-              contentBase64: proof.contentBase64,
-            })
-          }
-        }
         /* Where the driver stood, as evidence — never a block (the geofence is amber, not a gate). */
-        if (
-          stop?.arrived_lat !== null &&
-          stop?.arrived_lat !== undefined &&
-          stop.arrived_lng !== null
-        ) {
-          pod.push({
-            id: uuidv7(),
-            kind: 'geo',
-            lat: stop.arrived_lat,
-            lng: stop.arrived_lng ?? undefined,
-          })
-        }
+        const geo: QueuedPod[] =
+          stop?.arrived_lat !== null && stop?.arrived_lat !== undefined && stop.arrived_lng !== null
+            ? [
+                {
+                  id: uuidv7(),
+                  kind: 'geo',
+                  lat: stop.arrived_lat,
+                  lng: stop.arrived_lng ?? undefined,
+                },
+              ]
+            : []
+        /** One evidence id for the photo, whichever way it travels. */
+        const photoId = uuidv7()
+        /** Where the office said the photo's bytes went, once it has said anything. */
+        let stored: StoredProof | null = null
 
         const payload: LinePayload[] = lines.rows.map((line) => {
           const entry = entries[line.id]
@@ -360,30 +325,90 @@ export default function AtTheDoor(): React.JSX.Element {
           }
         })
 
-        if (status.online) {
-          await record.mutateAsync({ lines: payload, pod })
-        } else {
-          await queueDelivery({
-            id: row.id,
-            tripId: row.trip_id,
-            stopId: row.stop_id,
-            invoiceId: row.invoice_id,
-            retailerId: row.retailer_id,
-            orderId: row.order_id,
-            receiverName: receiver.trim(),
-            note: note.trim(),
-            lines: payload.map((line) => ({
-              id: line.id,
-              invoiceLineId: line.invoiceLineId,
-              deliveredQtyPcs: line.deliveredQtyPcs,
-              returnedQtyPcs: line.returnedQtyPcs,
-              returnedSaleable: line.returnedSaleable,
-              reason: line.reason,
-            })),
-            pod,
-            deviceId: deviceId(),
-            existing: row,
-          })
+        const result = await recordOrSave({
+          online: status.online,
+          send: async () => {
+            const pod: QueuedPod[] = []
+            if (proof !== null) {
+              /*
+               * With a signal, ask the server where the bytes go: a bucket (PUT, then only the key
+               * travels) or inline (the local driver, which has nowhere to PUT). Never guess.
+               */
+              const answered = await storeProof(proof, async ({ mimeType, bytes }) => {
+                const answer = await api.api.files.uploadUrl({
+                  idempotencyKey: `pod:${proof.uploadId}`,
+                  id: proof.uploadId,
+                  domain: 'pod',
+                  entityId: row.id,
+                  mimeType,
+                  bytes,
+                })
+                return {
+                  objectKey: answer.objectKey,
+                  url: answer.url,
+                  method: answer.method,
+                  headers: answer.headers,
+                  inline: answer.inline,
+                }
+              })
+              stored = answered
+              pod.push({
+                id: photoId,
+                kind: 'photo',
+                ...(answered.objectKey === undefined ? {} : { objectKey: answered.objectKey }),
+                ...(answered.inline === undefined
+                  ? {}
+                  : {
+                      mimeType: answered.inline.mimeType,
+                      contentBase64: answered.inline.contentBase64,
+                    }),
+              })
+            }
+            return record.mutateAsync({ lines: payload, pod: [...pod, ...geo] })
+          },
+          /*
+           * No signal, or a call the office never answered: the SAME delivery goes into the outbox. If
+           * the PUT already landed and only the record call lost its reply, the op carries that key and
+           * no bytes (docs/20 rule 15, and no orphan `file_objects` row); otherwise the photo rides
+           * inline, already squeezed to ≤ 300 KB by the camera (docs/27 §15).
+           */
+          save: async () => {
+            const pod: QueuedPod[] = []
+            if (proof !== null)
+              pod.push(
+                stored?.objectKey === undefined
+                  ? {
+                      id: photoId,
+                      kind: 'photo',
+                      mimeType: proof.mimeType,
+                      contentBase64: proof.contentBase64,
+                    }
+                  : { id: photoId, kind: 'photo', objectKey: stored.objectKey },
+              )
+            await queueDelivery({
+              id: row.id,
+              tripId: row.trip_id,
+              stopId: row.stop_id,
+              invoiceId: row.invoice_id,
+              retailerId: row.retailer_id,
+              orderId: row.order_id,
+              receiverName: receiver.trim(),
+              note: note.trim(),
+              lines: payload.map((line) => ({
+                id: line.id,
+                invoiceLineId: line.invoiceLineId,
+                deliveredQtyPcs: line.deliveredQtyPcs,
+                returnedQtyPcs: line.returnedQtyPcs,
+                returnedSaleable: line.returnedSaleable,
+                reason: line.reason,
+              })),
+              pod: [...pod, ...geo],
+              deviceId: deviceId(),
+              existing: row,
+            })
+          },
+        })
+        if (result.via === 'phone') {
           haptics.success()
           setToast(t('d.savedOnPhone'))
           router.replace(`/stop/${String(stopId ?? '')}`)

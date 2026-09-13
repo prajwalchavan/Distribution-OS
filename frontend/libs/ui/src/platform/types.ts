@@ -108,8 +108,15 @@ export interface PlatformCamera {
   requestPermission: () => Promise<PermissionResult>
   /** One code. Null when the user cancelled or nothing decodable was in frame. */
   scan: (options?: { formats?: readonly string[] }) => Promise<ScannedCode | null>
-  /** One photo. Null when the user cancelled. */
-  photograph: (options?: { maxWidth?: number }) => Promise<CapturedPhoto | null>
+  /**
+   * One photo. Null when the user cancelled.
+   *
+   * `maxBytes` asks for a JPEG of at most that many bytes, reached by lowering the quality and then the
+   * size (`jpeg-budget.ts`) — the delivery app's proof of delivery, which rides inside a queued sync op
+   * when there is no signal (DOS-056). A photo that cannot be re-encoded comes back as it was taken, and
+   * the caller's own size check decides.
+   */
+  photograph: (options?: { maxWidth?: number; maxBytes?: number }) => Promise<CapturedPhoto | null>
   /** False where there is no camera at all (a desktop browser with none, an unsupported build). */
   readonly available: boolean
 }
