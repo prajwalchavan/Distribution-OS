@@ -233,7 +233,7 @@ export default function LoadOut(): React.JSX.Element {
           if (step.action === 'open') {
             if (tries === 0) {
               setChallanNote(null)
-              void documents.open(step.url)
+              void documents.open(absoluteUrl(step.url) ?? step.url)
             } else {
               setChallanUrl(step.url)
               setChallanNote(t('m7.challanReady'))
@@ -461,7 +461,7 @@ export default function LoadOut(): React.JSX.Element {
                       // user gesture on web. Otherwise the poll starts and opens it itself only
                       // if attempt 0 already has the answer.
                       if (challanUrl !== null) {
-                        void documents.open(challanUrl)
+                        void documents.open(absoluteUrl(challanUrl) ?? challanUrl)
                         return
                       }
                       openChallan(sheet.challan?.id ?? '')

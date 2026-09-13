@@ -530,3 +530,28 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 - A crash during sign-out can therefore never leave the person signed in.
 - Addendum (x) is the drain before close.
 - Both are folded into the ruling-2 build, whose re-proof now includes the iOS and Android keep paths three times each with the outbox retrying.
+
+
+### Batch 2 — main was red since wave 1; DOS-167 ruling-2 first pass (2026-09-14 05:22 IST)
+
+**Run `wf_a77ba6a6-adc`, first pass — ended `integration-blocked`.** 6 agents, about 2 h 33 min. Lane result: `lane-results/DOS-167-ruling-2.json`.
+- **Build and verify: PASSED.** 10 commits:
+  - one per amendment: (s) `dcbd1c8`, (t) `8a62f92`, (u) `910eb3f`, (v) `428f886`, (x) `e4d251e`, (y) `fb2b786`;
+  - four review repairs: one holder per device file, the leaving runs inside the sign-out and waits for the secure store, a late refresh signs nobody back in, and the docs.
+  - Every test failed before its fix and passed after. The verifier left only minors.
+- **Review** (Opus standing in for Fable, `merge-reviews/dos167-ruling2.md`): MERGE AFTER FIXES. The blocker was to run the full frontend gate before merging.
+- **Integration** on `31de0f8`:
+  - Green: lint, typecheck, build (8 web exports), format, docs:readme:check, and a Hermes Android export containing the BigInt store-name code.
+  - Red: one test, `@dos/ui` `document-urls.test.ts`.
+- **The red was not this lane's.** Main has been red since wave 1:
+  - Cause: the DOS-026 merge-time fix `144bcfe` sent the challan URL through a helper and state, so the guard could not see `absoluteUrl()` at `load-out.tsx:236` and `:464`.
+  - Why nobody noticed: the lean integrator re-ran only the group's own test files.
+  - Confirmed by running the guard on main at 05:19.
+- **Fixed on main as `1f8e0c3`.** The URL now goes through `absoluteUrl()` where it is opened. Behaviour is identical, because the URL was already absolute and absoluteUrl returns an absolute URL unchanged. Checks: guard green, manager-app typecheck, eslint, prettier (S-134).
+- **Process:** later lean integrators run the kit's cross-app guards.
+- **Addendum (z)** comes from the review:
+  - (z1) Settings > Sign out on delivery and warehouse bypassed the leave flow (S-131, P1). It now uses the same flow.
+  - (z2) A sign-in waits at most 25 s for the previous leaving.
+  - (z3) Drafts are kept when end() throws.
+- **New suspects:** S-132 (SecureStore writes not awaited) and S-133 (a forced sign-out on a memory store drops the queue).
+- **Next:** the run resumes from cache into integration, with (z), then merge and the full re-proof.
