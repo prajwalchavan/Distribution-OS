@@ -40,6 +40,15 @@ RUNS AFTER APPROVAL:
   - Evidence in QA/evidence/batch2/suspects/<S-id>/; lane result lane-results/suspects-money.json. All API-level; every screen and device is NOT TESTED.
   - Fable designs RUNNING since 01:02: wf_4254a4ee-d2f (script /Users/prajwalchavan/.claude/projects/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/workflows/scripts/qa-batch2-designs-dos168-172-wf_4254a4ee-d2f.js).
     - Three designs in parallel: verdicts/DOS-168-169-170-design.md, DOS-171-design.md, DOS-172-design.md. Then a cross-design critic, then one revision pass.
+    - 01:26: the three designs are DONE, all by Fable.
+      - money (DOS-168/169/170): 1.5 d, no migration or contract change, 2 founder questions (a receipt that arrives after its trip settled; correcting wrong figures in the founder's own dos).
+      - vansale (DOS-171): 0.75 d, 1 question (build now, or wait for cess DOS-079).
+      - loadsheet (DOS-172 + S-03 + S-82): 1.75 d, CONTRACT CHANGE, 1 question (may a trip leave with a bill no load sheet counted).
+    - The CRITIC FAILED on 'You've reached your Fable limit'. The critic and the revision pass were moved to Opus as an architect stand-in and the run was resumed; the three designs replay from cache.
+- FABLE LIMIT REACHED ~01:26 (2026-09-14); it resets Saturday 11:30 IST.
+  - Every remaining architect role runs on Opus, labelled 'standing in for Fable': the design critic, the DOS-167 ruling-2 merge review and judge (scratchpad/qa-batch2-dos167-ruling2-build.js), and lean merge reviews (scratchpad/qa-batch2-lean-wave3.js).
+  - The DOS-167 run's own judge (wf_74bd442f-12c) is still on Fable and will fail. That is harmless: the ruling-2 re-proof and its Opus judge supersede it.
+  - Tell the founder in the morning. No usage credits are bought (charter: ask before anything that costs money).
     - WHEN DONE: ONE approval request to the founder covering the six findings, the merged founder questions and the build order against DOS-167 and the 16 lean groups. DOS-173 goes to a lean group once approved.
   - Nothing is built before the founder approves.
 - docs/22 DONE: 23 rows and 7 diagram edits written on qa/b2-docs22 (run wf_be3af90f-efa), merged into main locally as 46f2227, and the source-of-truth artifact republished at 18:27 (https://claude.ai/code/artifact/24c323d8-5b45-4045-8e16-e0e549233fdd).

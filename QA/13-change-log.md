@@ -460,3 +460,26 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 **New suspects:** S-124 and S-125. The strip cannot say "not kept in this browser", and the order screen says "Saved on this phone" on a memory store.
 
 **Build prepared, not launched.** It waits for the running delivery, warehouse and iOS proofs of `wf_74bd442f-12c`, which hold the emulator and simulator (not enough RAM for both).
+
+### Batch 2 — designs for DOS-168..172; Fable limit reached (2026-09-14 01:26 IST)
+
+**Run `wf_4254a4ee-d2f`** produced three Fable designs:
+- **`verdicts/DOS-168-169-170-design.md` (money, 1.5 d).**
+  - Every receipt row is locked while it moves.
+  - Day-end counts the trip's receipts however they arrived, net of undone ones.
+  - An undo takes money from where it actually is (van, office till, bank).
+  - A receipt for a settled trip is refused with `trip_settled`.
+  - A check-in gate stops a vehicle from being checked in while its phone still holds unsent records.
+  - No migration and no contract change.
+  - Founder questions: a receipt that reaches the office after its trip settled (recommended: refuse it, and the cashier records the cash); correcting figures already wrong in the founder's own dos (recommended: one balancing entry per case, signed off trip by trip).
+- **`verdicts/DOS-171-design.md` (van sale, 0.75 d).**
+  - D6 shows the GST-inclusive total.
+  - D5 is fixed as well.
+  - Founder question: build now, or wait for cess (DOS-079)? Recommended: build now.
+- **`verdicts/DOS-172-design.md` (load sheet, 1.75 d; covers S-03 and S-82).**
+  - A load sheet's claim on a bill ends when the bill comes back undelivered.
+  - The bill returns to W7 and the planning board.
+  - Contract change.
+  - Founder question: may a trip leave the godown with a bill no load sheet counted? Recommended: no.
+
+**The cross-design critic failed:** "You've reached your Fable limit". Fable is unavailable until the Saturday 11:30 IST reset. Opus now stands in, labelled as such, for the critic, the revision pass, the DOS-167 ruling-2 merge review and judge, and lean merge reviews. The design run was resumed on that basis, with the designs replayed from cache.
