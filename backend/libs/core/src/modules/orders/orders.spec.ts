@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import type { Quote } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   approvals,
@@ -1014,6 +1015,56 @@ describeDb('orders (DATABASE_URL)', () => {
       },
     ])
     expect(await asOwner((tx) => orders.fulfilmentLines(tx, []))).toEqual([])
+  })
+
+  it('DOS-096: what the shop is quoted is what its placed order carries — GST per line, rounding and total', async () => {
+    const la = uuidv7()
+    const lb = uuidv7()
+    // The retailer app prices its basket through pricing.quote before "Place order" (R7).
+    const quote = await call<Quote>(app, shop, 'POST', '/pricing/quote', {
+      retailerId: retailerA,
+      lines: [
+        { lineId: la, variantId: variantA, qtyPcs: 24 },
+        { lineId: lb, variantId: variantB, qtyPcs: 7 },
+      ],
+    })
+    expect(quote.status).toBe(200)
+    // 24 × ₹10 + 7 × ₹25 = ₹415.00; 12% GST ₹28.80 + ₹21.00 = ₹49.80; ₹464.80 rounds to ₹465 with +20 paise
+    expect(quote.body.totals).toMatchObject({
+      grossPaise: 41_500,
+      netPaise: 41_500,
+      taxPaise: 4_980,
+      roundOffPaise: 20,
+      totalPaise: 46_500,
+    })
+
+    const placed = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `create-dos096-${run}`,
+      id: uuidv7(),
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [
+        { id: la, variantId: variantA, enteredQty: 2, enteredUnit: 'case' },
+        { id: lb, variantId: variantB, enteredQty: 7, enteredUnit: 'piece' },
+      ],
+    })
+    expect(placed.status).toBe(200)
+    const order = placed.body.item
+    expect(order).toMatchObject({
+      subtotalPaise: quote.body.totals.grossPaise,
+      taxPaise: quote.body.totals.taxPaise,
+      roundOffPaise: quote.body.totals.roundOffPaise,
+      totalPaise: quote.body.totals.totalPaise,
+    })
+    const byId = new Map(order.lines.map((line) => [line.id, line]))
+    for (const quoted of quote.body.lines)
+      expect(byId.get(quoted.lineId)).toMatchObject({
+        gstBps: quoted.gstBps,
+        taxPaise: quoted.taxPaise,
+        lineTotalPaise: quoted.lineTotalPaise,
+      })
+    expect(byId.get(la)).toMatchObject({ gstBps: 1_200, taxPaise: 2_880, lineTotalPaise: 26_880 })
+    expect(byId.get(lb)).toMatchObject({ gstBps: 1_200, taxPaise: 2_100, lineTotalPaise: 19_600 })
   })
 
   const countRows = async (orderId: string) => {
