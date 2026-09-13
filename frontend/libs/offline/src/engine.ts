@@ -253,6 +253,50 @@ export interface SyncEngineOptions {
 type Timer = ReturnType<typeof setTimeout>
 
 /**
+ * ONE HOLDER OF A FILE AT A TIME, per opener (DOS-167 addendum (y), merge review of ruling 2). Sign-out clears the
+ * session before `end()` has finished, so the sign-in form is on the screen while `end()` still waits for a page in
+ * flight: the same person signing straight back in had the provider start a second engine on the SAME file — on a
+ * phone expo-sqlite hands both the same connection — and the first `end()` counted the second engine's order, dropped
+ * its tables and deleted the file under it. The sweep of that person's other files ran the same way under an engine.
+ *
+ * So an engine takes the file from `start()` until its close has resolved, and waits for whoever held it before; the
+ * sweep takes a file only while nobody holds it, and skips one in use. Keyed by the opener as well as the name: two
+ * openers are two sets of files (in the apps there is one, `openStore`).
+ */
+const fileHolders = new WeakMap<StoreFactory, Map<string, Promise<void>>>()
+
+interface FileHold {
+  /** The holder before this one letting go; null when nobody held the file. */
+  readonly previous: Promise<void> | null
+  /** Let go of the file. Once is enough; again does nothing. */
+  readonly release: () => void
+}
+
+function holdFile(factory: StoreFactory, name: string): FileHold {
+  let holders = fileHolders.get(factory)
+  if (holders === undefined) {
+    holders = new Map()
+    fileHolders.set(factory, holders)
+  }
+  const byName = holders
+  const previous = byName.get(name) ?? null
+  let letGo = (): void => {}
+  const released = new Promise<void>((resolve) => {
+    letGo = resolve
+  })
+  const mine = previous === null ? released : previous.then(() => released)
+  byName.set(name, mine)
+  void mine.then(() => {
+    if (byName.get(name) === mine) byName.delete(name)
+  })
+  return { previous, release: letGo }
+}
+
+function fileInUse(factory: StoreFactory, name: string): boolean {
+  return fileHolders.get(factory)?.has(name) ?? false
+}
+
+/**
  * The store as the engine holds it (DOS-167 addendum (x)): every call through it is counted from the moment it starts
  * until it settles, and the file is closed only once the last one has landed — once, however often `close()` is asked.
  *
@@ -368,6 +412,8 @@ export class SyncEngine {
   /** The open in `start()` and the pull in flight, so `end()` never drops a table under either. */
   private opening: Promise<void> = Promise.resolve()
   private syncing: Promise<void> = Promise.resolve()
+  /** This engine's hold on its file (`holdFile`), from `start()` until the file is closed. */
+  private fileHold: FileHold | null = null
 
   constructor(private readonly options: SyncEngineOptions) {
     this.now = options.now ?? (() => Date.now())
@@ -397,6 +443,17 @@ export class SyncEngine {
     let unclaimed: SyncStore | null = null
     try {
       const name = this.options.databaseName ?? 'dos-offline.db'
+      /*
+       * THE FILE IS TAKEN FIRST, and opened only once whoever held it before has let go (merge review of ruling 2,
+       * `holdFile`): the engine of this same person still ending after a sign-out, or the sweep counting this file.
+       */
+      const hold = holdFile(this.options.storeFactory, name)
+      this.fileHold = hold
+      if (hold.previous !== null) await hold.previous
+      if (this.stoppedWhileOpening()) {
+        this.releaseFile()
+        return
+      }
       const store = await this.options.storeFactory(name)
       unclaimed = store
       /*
@@ -408,6 +465,7 @@ export class SyncEngine {
        */
       if (this.stoppedWhileOpening()) {
         await store.close().catch(() => {})
+        this.releaseFile()
         return
       }
       /*
@@ -433,6 +491,7 @@ export class SyncEngine {
       await this.claimIdentity(store)
       if (this.stoppedWhileOpening()) {
         await store.close().catch(() => {})
+        this.releaseFile()
         return
       }
       /*
@@ -468,6 +527,8 @@ export class SyncEngine {
     } catch (error) {
       // A file opened and never claimed is this call's alone to close: no `stop()` or `end()` can reach it.
       if (unclaimed !== null) await unclaimed.close().catch(() => {})
+      // And its hold this call's alone to let go; an attached file is let go by the close in `stop()` or `end()`.
+      if (this.store === null) this.releaseFile()
       throw error
     } finally {
       opened()
@@ -488,15 +549,26 @@ export class SyncEngine {
      * THROUGH THE SAME DRAIN AS `end()` (addendum (x)): from here every public read answers empty, the calls already in
      * flight land, and only then does the file close, once. A distributor switch is this stop on the old file.
      */
+    // Still opening, or never opened: `start()` lets go of the file itself.
     const store = this.store
     if (store === null) return
-    await store.close()
-    if (this.store === store) this.store = null
+    try {
+      await store.close()
+    } finally {
+      if (this.store === store) this.store = null
+      // Closed: the next holder of this file may open it (`holdFile`).
+      this.releaseFile()
+    }
   }
 
   /** `stop()` ran while `start()` was still opening or claiming its file; `end()` does not count. */
   private stoppedWhileOpening(): boolean {
     return !this.started && !this.ended
+  }
+
+  private releaseFile(): void {
+    this.fileHold?.release()
+    this.fileHold = null
   }
 
   /**
@@ -593,6 +665,8 @@ export class SyncEngine {
     } finally {
       // Even when a step threw: the caller signs out regardless, and this engine never writes again.
       this.store = null
+      // Closed, and deleted when nothing was kept: only now may the next engine on this file open it (`holdFile`).
+      this.releaseFile()
     }
   }
 
@@ -742,6 +816,9 @@ export class SyncEngine {
    * sending or refused is deleted, and one still holding unsent work is kept and reported. Best effort, file by
    * file — a file that cannot be opened or counted is logged, closed and skipped, never deleted.
    * `sweepIdentityStores` runs it over a person's other distributorships; the provider over the file 199952b named.
+   *
+   * A file somebody holds (`holdFile`) — an engine that has it open, or is still closing it — is skipped and logged,
+   * never counted or deleted; a file the sweep is working on is held by the sweep, so an engine opening it waits.
    */
   static async sweepStores(
     storeFactory: StoreFactory,
@@ -751,6 +828,11 @@ export class SyncEngine {
     let destroyed = 0
     const kept: { name: string; pending: number }[] = []
     for (const name of names) {
+      if (fileInUse(storeFactory, name)) {
+        onLog?.('offline: sweep skipped a store in use', { name })
+        continue
+      }
+      const hold = holdFile(storeFactory, name)
       try {
         const store = await storeFactory(name)
         let pending: number
@@ -780,6 +862,8 @@ export class SyncEngine {
         }
       } catch (error) {
         onLog?.('offline: sweep skipped a store', error)
+      } finally {
+        hold.release()
       }
     }
     return { destroyed, kept }

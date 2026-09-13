@@ -157,6 +157,70 @@ function watched(
   }
 }
 
+/**
+ * A phone's SQLite files as expo-sqlite 57 keeps them, behind ONE opener as `openStore` is in the apps: one connection
+ * per file name, handed to whoever opens that name while it is there, and an empty file after a delete. `opens` names
+ * every open; `countDoor(name)` holds the sweep's count of that file until the function it hands back is called.
+ */
+function phoneFiles(): {
+  factory: StoreFactory
+  opens: string[]
+  countDoor: (name: string) => () => void
+} {
+  const files = new Map<string, SyncStore>()
+  const doors = new Map<string, Promise<void>>()
+  const opens: string[] = []
+  const factory: StoreFactory = async (name) => {
+    opens.push(name)
+    const open = files.get(name)
+    if (open !== undefined) return open
+    const inner = createMemoryStore()
+    const file: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => inner.exec(sql, params),
+      async query<T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> {
+        const door = doors.get(name)
+        // The sweep's count: `status IN ('queued', 'sending', 'rejected')`.
+        if (door !== undefined && sql.includes("'rejected')")) {
+          doors.delete(name)
+          await door
+        }
+        return inner.query<T>(sql, params)
+      },
+      transaction: (fn) => inner.transaction(fn),
+      close: () => inner.close(),
+      destroy: async () => {
+        files.delete(name)
+        await inner.destroy?.()
+      },
+    }
+    files.set(name, file)
+    return file
+  }
+  return {
+    factory,
+    opens,
+    countDoor: (name) => {
+      let open = (): void => {}
+      doors.set(
+        name,
+        new Promise<void>((resolve) => {
+          open = resolve
+        }),
+      )
+      return () => {
+        open()
+      }
+    },
+  }
+}
+
+/** What a read or a write came to: its value, or the sentence it failed with. */
+function outcomeOf<T, R>(call: Promise<T>, pick: (value: T) => R): Promise<R | string> {
+  return call.then(pick, (error: unknown) => (error as Error).message)
+}
+
 // 12 -------------------------------------------------------------------------------------------------------------
 
 describe('DOS-167 one file per app, person and distributor', () => {
@@ -1489,6 +1553,97 @@ describe('DOS-167 sign-out ends the engine', () => {
       },
     })
   })
+
+  /*
+   * Merge review of ruling 2, problem 2 (verifier PROBE-Y1, PROBE-Y2). Addendum (y) clears the session before `end()` has
+   * finished, so the sign-in form is on the screen while `end()` still waits for a page in flight. The same rep signed
+   * straight back in and the provider started a second engine on the SAME file — on a phone expo-sqlite hands both the
+   * same connection — and the first `end()` then counted the second engine's order, dropped its tables and deleted
+   * the file under it.
+   */
+  it('DOS-167 the same person signing straight back in opens the file only once the engine before has closed it', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    // Every pull answers Chavan Kirana at cursor c1.
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const base = server.transport()
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const options = (transport: SyncTransport): SyncEngineOptions => ({
+      transport,
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: name,
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+    })
+    const first = new SyncEngine(
+      options({
+        ...base,
+        pull: async (input) => {
+          if (pullGate !== null) await pullGate
+          return base.pull(input)
+        },
+      }),
+    )
+    await first.start()
+
+    // The poll's page hangs in a dead spot when Rahul taps Sign out with nothing waiting...
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    const pulling = first.sync('poll')
+    await sleep(0)
+    const ending = first.end({ keepQueue: false })
+    // ...and, the sign-in form already on the screen, he signs straight back in.
+    const back = new SyncEngine(options(base))
+    const starting = back.start()
+    await sleep(20)
+    const whileTheFirstEnds = {
+      opens: phone.opens.filter((opened) => opened === name).length,
+      ready: back.status().ready,
+    }
+
+    openPull()
+    const ended = await ending
+    await pulling
+    await starting
+    server.offline = true
+    const write = await outcomeOf(
+      back.enqueue({
+        table: 'sales_orders',
+        id: 'o-back',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id },
+      }),
+      () => 'queued',
+    )
+
+    expect({
+      whileTheFirstEnds,
+      ended,
+      back: {
+        write,
+        outbox: await outcomeOf(back.outbox(), (rows) => rows.map((row) => row.rowId)),
+        shops: await outcomeOf(back.queryTable<{ id: string }>('retailers'), (rows) =>
+          rows.map((row) => row.id),
+        ),
+        status: back.status().pending,
+      },
+    }).toEqual({
+      // Not opened, and not ready, while the engine before still holds the file.
+      whileTheFirstEnds: { opens: 1, ready: false },
+      ended: { kept: false, pending: 0, rejected: 0 },
+      // A fresh file of his own, whole: the order he takes now waits in it and his shops are there.
+      back: { write: 'queued', outbox: ['o-back'], shops: [CHAVAN.id], status: 1 },
+    })
+    await back.stop()
+  })
 })
 
 // 14 -------------------------------------------------------------------------------------------------------------
@@ -1591,6 +1746,89 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
       result: { destroyed: 1, kept: [] },
       corrupt: { closed: 1, destroyed: 0 },
       events: ['close', 'offline: sweep skipped a store'],
+    })
+  })
+
+  /*
+   * Merge review of ruling 2, problem 2. Since addendum (y) the sweep of the person's other distributorships runs with the
+   * sign-in form already on the screen. It counted and deleted a file an engine of that same person had open; and an
+   * engine that opened a file the sweep was counting had it deleted under it.
+   */
+  it('DOS-167 the sweep never takes a file an engine holds, and an engine waits for a sweep that holds its file', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
+    const options = (identity: SyncIdentity): SyncEngineOptions => ({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: storeNameFor('dos-sales', identity),
+      identity,
+      pullIntervalMs: 0,
+      now,
+    })
+    const said: string[] = []
+    const onLog = (line: string): void => {
+      said.push(line)
+    }
+
+    // Rahul is already signed in again at Sai when the sweep of his last sign-out reaches the Sai file.
+    const sai = new SyncEngine(options(AT_SAI))
+    await sai.start()
+    const sweptWhileSaiIsOpen = await SyncEngine.sweepIdentityStores(
+      phone.factory,
+      'dos-sales',
+      [AT_SAI],
+      onLog,
+    )
+    const saiShops = await outcomeOf(sai.queryTable<{ id: string }>('retailers'), (rows) =>
+      rows.map((row) => row.id),
+    )
+    await sai.stop()
+
+    // At Balaji everything had reached the office. The sweep is counting that file when he signs in there.
+    const earlier = new SyncEngine(options(AT_BALAJI))
+    await earlier.start()
+    await earlier.stop()
+    const openTheCount = phone.countDoor(storeNameFor('dos-sales', AT_BALAJI))
+    const sweeping = SyncEngine.sweepIdentityStores(phone.factory, 'dos-sales', [AT_BALAJI], onLog)
+    await sleep(0)
+    const balaji = new SyncEngine(options(AT_BALAJI))
+    const starting = balaji.start()
+    await sleep(20)
+    const readyWhileSwept = balaji.status().ready
+    openTheCount()
+    const sweptBalaji = await sweeping
+    await starting
+    server.offline = true
+    const write = await outcomeOf(
+      balaji.enqueue({ table: 'sales_orders', id: 'o-balaji', op: 'PUT', data: {} }),
+      () => 'queued',
+    )
+    const balajiOutbox = await outcomeOf(balaji.outbox(), (rows) => rows.map((row) => row.rowId))
+    await balaji.stop()
+
+    expect({
+      sweptWhileSaiIsOpen,
+      saiShops,
+      readyWhileSwept,
+      sweptBalaji,
+      balaji: { write, outbox: balajiOutbox },
+      said,
+    }).toEqual({
+      // The Sai file is in use: not counted, not deleted, and its shops are still on the screen.
+      sweptWhileSaiIsOpen: { destroyed: 0, kept: [] },
+      saiShops: [CHAVAN.id],
+      // The Balaji engine opens only once the sweep has let go of the file, and then a fresh one.
+      readyWhileSwept: false,
+      sweptBalaji: { destroyed: 1, kept: [] },
+      balaji: { write: 'queued', outbox: ['o-balaji'] },
+      said: ['offline: sweep skipped a store in use'],
     })
   })
 })
