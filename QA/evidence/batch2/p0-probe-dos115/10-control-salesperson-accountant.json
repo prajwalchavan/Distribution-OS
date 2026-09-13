@@ -1,0 +1,148 @@
+{
+  "probe": "10",
+  "finding": "DOS-115",
+  "phase": "after merge (main 3d7cb36)",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "startedAt": "2026-09-13T10:52:52.157Z",
+  "logins": {
+    "rahul.deshmukh": {
+      "status": 200,
+      "role": "salesperson"
+    },
+    "amol.vaidya": {
+      "status": 200,
+      "role": "accountant"
+    }
+  },
+  "createdOrderId": "01a09a66-049d-7917-a8f6-0fbc8d84a115",
+  "attemptedNewOrderIds": [
+    "01a09a66-049d-7f07-bfc3-00207245c16e"
+  ],
+  "calls": [
+    {
+      "name": "salesperson create draft (beat shop R-0008)",
+      "expected": {
+        "status": 200
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3003/orders",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a66-049d-7cff-8010-553d43650abb",
+          "id": "01a09a66-049d-7917-a8f6-0fbc8d84a115",
+          "retailerId": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+          "source": "salesperson",
+          "note": "QA batch2 DOS-115 after-probe 10 control (salesperson draft)",
+          "lines": [
+            {
+              "id": "01a09a66-049d-7e5c-ad4f-751c34970856",
+              "variantId": "677c774f-86aa-79c6-b755-702a61b92ca2",
+              "enteredQty": 1,
+              "enteredUnit": "piece"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "item": {
+            "id": "01a09a66-049d-7917-a8f6-0fbc8d84a115",
+            "orderNo": null,
+            "state": "draft",
+            "source": "salesperson",
+            "retailerId": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+            "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+            "totalPaise": 30500,
+            "linesCount": 1
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "accountant create (manager-service)",
+      "expected": {
+        "status": 403,
+        "message": "the accountant role may not call POST /orders"
+      },
+      "request": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3002/orders",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "Bearer <redacted>"
+        },
+        "body": {
+          "idempotencyKey": "01a09a66-04fe-74db-8230-1f08b94d3f6d",
+          "id": "01a09a66-049d-7f07-bfc3-00207245c16e",
+          "retailerId": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+          "source": "salesperson",
+          "note": "QA batch2 DOS-115 after-probe 10 accountant",
+          "lines": [
+            {
+              "id": "01a09a66-04fe-7c83-963e-6c2062711338",
+              "variantId": "677c774f-86aa-79c6-b755-702a61b92ca2",
+              "enteredQty": 1,
+              "enteredUnit": "piece"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "message": "the accountant role may not call POST /orders",
+          "error": "Forbidden",
+          "statusCode": 403
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "accountant list (manager-service)",
+      "expected": {
+        "status": 200
+      },
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:3002/orders",
+        "headers": {
+          "authorization": "Bearer <redacted>"
+        },
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "itemsCount": 50,
+          "nextCursor": "f29b252f-30cb-7506-a5d8-1a35c5a4e062",
+          "firstItems": [
+            {
+              "id": "ff71fe9f-4c78-7463-82aa-d9519910677e",
+              "orderNo": "SO-0467",
+              "state": "delivered"
+            },
+            {
+              "id": "ff3c19ab-239a-7d98-ba34-5b77df3e69c9",
+              "orderNo": "SO-0185",
+              "state": "delivered"
+            },
+            {
+              "id": "ff2e6042-add4-711f-9dac-b83ae6186303",
+              "orderNo": "SO-0286",
+              "state": "delivered"
+            }
+          ]
+        }
+      },
+      "pass": true
+    }
+  ],
+  "allPass": true
+}

@@ -188,6 +188,8 @@ export const PLATFORM_TEMPLATE_KEYS = [
   'pod_delivered',
   'payment_received',
   'dues_reminder',
+  'statement',
+  'statement_no_upi',
   'delivery_today',
   'scheme_announcement',
   'welcome',

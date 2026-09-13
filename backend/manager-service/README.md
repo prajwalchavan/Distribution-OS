@@ -114,12 +114,13 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
 | POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
-| POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
+| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
-| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -198,6 +199,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
@@ -10445,7 +10447,7 @@ curl "http://localhost:3002/procurement/purchase-orders?supplierId=01a06d4d-b127
 
 Create a priced draft order · contract `orders.create`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -10612,7 +10614,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "manager-service does not serve the owner role",
+  "message": "the accountant role may not call POST /orders",
   "error": "Forbidden"
 }
 ```
@@ -10661,7 +10663,7 @@ request.json
 
 Replace the lines of a draft and re-price it · contract `orders.setLines`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -10814,7 +10816,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "manager-service does not serve the owner role",
+  "message": "the accountant role may not call POST /orders/{id}/lines",
   "error": "Forbidden"
 }
 ```
@@ -10873,7 +10875,7 @@ request.json
 
 Draft a repeat of the retailer's last order, re-priced today · contract `orders.repeatLast`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -11023,7 +11025,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "manager-service does not serve the owner role",
+  "message": "the accountant role may not call POST /orders/repeat-last",
   "error": "Forbidden"
 }
 ```
@@ -11072,7 +11074,7 @@ request.json
 
 Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) · contract `orders.submit`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -11216,7 +11218,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "manager-service does not serve the owner role",
+  "message": "the accountant role may not call POST /orders/{id}/submit",
   "error": "Forbidden"
 }
 ```
@@ -11487,7 +11489,7 @@ request.json
 
 Cancel an order and release its reservations · contract `orders.cancel`
 
-**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+**Roles:** owner, manager, salesperson, retailer
 
 **Request body**
 
@@ -11633,7 +11635,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "manager-service does not serve the owner role",
+  "message": "the accountant role may not call POST /orders/{id}/cancel",
   "error": "Forbidden"
 }
 ```
@@ -11675,6 +11677,176 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/orders/last-placed`
+
+The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) · contract `orders.lastPlaced`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `retailerId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "orderNo": "SO-0042",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "state": "draft",
+    "source": "salesperson",
+    "createdBy": "01a06d85-e090-73c2-8418-e04636293a36",
+    "salespersonId": "01a06d29-a152-76c4-87b4-301e496c0602",
+    "pricingDateMode": "order",
+    "paymentTerms": "PRE",
+    "fulfilFromLocationId": "01a06dc8-c767-7943-8fdd-07b3dd890c64",
+    "externalRef": null,
+    "subtotalPaise": 2680000,
+    "discountPaise": 12000,
+    "taxPaise": 12000,
+    "roundOffPaise": 12000,
+    "totalPaise": 2680000,
+    "approvalFlags": [
+      "text"
+    ],
+    "expectedDeliveryDate": "2026-09-04",
+    "note": null,
+    "submittedAt": "2026-09-04T10:30:00.000Z",
+    "confirmedAt": "2026-09-04T10:30:00.000Z",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "lines": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "lineNo": 1,
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 24,
+        "qtyPcs": 24,
+        "freeQtyPcs": 24,
+        "pickedQtyPcs": 24,
+        "deliveredQtyPcs": 24,
+        "listRatePaise": 4000,
+        "ratePaise": 4000,
+        "discountBps": 500,
+        "discountPaise": 12000,
+        "gstBps": 500,
+        "taxPaise": 12000,
+        "lineTotalPaise": 2680000,
+        "appliedRules": [
+          {
+            "ruleId": "01a06d75-56b9-79cb-841d-eb65d18dc3e8",
+            "version": 1,
+            "kind": "override",
+            "rewardKind": "free_qty",
+            "amountPaise": 4000,
+            "freeQty": 24,
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          }
+        ],
+        "priceLocked": true
+      }
+    ],
+    "transitions": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "fromState": "draft",
+        "toState": "draft",
+        "event": "submit",
+        "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+        "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+        "reason": null,
+        "occurredAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "approvals": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "kind": "credit_limit",
+        "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+        "entityType": "text",
+        "entityId": "01a06d21-94b0-7dc3-8aad-22f00b372c7e",
+        "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+        "status": "pending",
+        "payload": {
+          "line1": "12 Station Road",
+          "city": "Kalyan West",
+          "pincode": "421301"
+        },
+        "decidedBy": null,
+        "decidedAt": null,
+        "decisionNote": "Confirmed on phone with the shopkeeper",
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -12537,13 +12709,14 @@ Receipts (a shop sees only its own) · contract `receivables.receipts.list`
 | `from` | date | no |
 | `to` | date | no |
 | `unallocatedOnly` | boolean | string | no |
+| `withCrew` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3002/receipts?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&mode=cash&status=collected&from=2026-09-04&to=2026-09-04&unallocatedOnly=true&limit=50" \
+curl "http://localhost:3002/receipts?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&mode=cash&status=collected&from=2026-09-04&to=2026-09-04&unallocatedOnly=true&withCrew=true&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -12757,7 +12930,8 @@ curl "http://localhost:3002/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "logoUrl": "docs/2026/09/invoice-0042.jpg",
     "invoiceFooter": "text",
     "upiVpa": "text"
-  }
+  },
+  "withCrew": true
 }
 ```
 
@@ -19296,13 +19470,14 @@ What was packed, and what still has no bill · contract `warehouse.packs.list`
 | `picklistId` | uuid | no |
 | `orderId` | uuid | no |
 | `invoiced` | boolean | string | no |
+| `status` | awaiting_load | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3002/warehouse/packs?from=2026-09-04&to=2026-09-04&picklistId=01a06dc3-1560-766a-8975-e547c8c480a4&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&invoiced=true&limit=50" \
+curl "http://localhost:3002/warehouse/packs?from=2026-09-04&to=2026-09-04&picklistId=01a06dc3-1560-766a-8975-e547c8c480a4&orderId=01a06d67-52a6-70c4-8d0b-06d5bc6a56ca&invoiced=true&status=awaiting_load&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -22809,6 +22984,108 @@ curl "http://localhost:3002/delivery/trips?state=planned&vehicleId=01a06d9c-98d8
 {
   "statusCode": 403,
   "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/trip-planning`
+
+Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) · contract `delivery.trips.planning`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `date` | date | no |
+| `beatId` | uuid | no |
+| `limit` | integer | no |
+| `cursor` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/delivery/trip-planning?date=2026-09-04&beatId=01a06d3e-cfdb-7635-85cb-ee42f205a04f&limit=50" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "date": "2026-09-04",
+  "crew": [
+    {
+      "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+      "name": "Sharma Kirana Store",
+      "onTripId": "01a06d13-8baf-7d7e-83a4-bcfc01d0fd27",
+      "onTripNo": "SO-0042"
+    }
+  ],
+  "bills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the accountant role may not call GET /delivery/trip-planning",
   "error": "Forbidden"
 }
 ```
@@ -47128,12 +47405,13 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `procurement.discrepancies.resolve` | – | ✓ | – | – | – | – | – |
 | `procurement.purchaseOrders.upsert` | – | ✓ | ✓ | – | – | – | – |
 | `procurement.purchaseOrders.list` | – | ✓ | ✓ | – | – | – | – |
-| `orders.create` | – | ✓ | ✓ | – | – | – | – |
-| `orders.setLines` | – | ✓ | ✓ | – | – | – | – |
-| `orders.repeatLast` | – | ✓ | ✓ | – | – | – | – |
-| `orders.submit` | – | ✓ | ✓ | – | – | – | – |
+| `orders.create` | – | ✓ | – | – | – | – | – |
+| `orders.setLines` | – | ✓ | – | – | – | – | – |
+| `orders.repeatLast` | – | ✓ | – | – | – | – | – |
+| `orders.submit` | – | ✓ | – | – | – | – | – |
 | `orders.confirm` | – | ✓ | – | – | – | – | – |
-| `orders.cancel` | – | ✓ | ✓ | – | – | – | – |
+| `orders.cancel` | – | ✓ | – | – | – | – | – |
+| `orders.lastPlaced` | – | ✓ | ✓ | – | – | – | – |
 | `orders.get` | – | ✓ | ✓ | – | – | – | – |
 | `orders.list` | – | ✓ | ✓ | – | – | – | – |
 | `orders.approvals.list` | – | ✓ | ✓ | – | – | – | – |
@@ -47212,6 +47490,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.consents.get` | – | ✓ | – | – | – | – | – |
 | `delivery.trips.create` | – | ✓ | – | – | – | – | – |
 | `delivery.trips.list` | – | ✓ | ✓ | – | – | – | – |
+| `delivery.trips.planning` | – | ✓ | – | – | – | – | – |
 | `delivery.trips.get` | – | ✓ | ✓ | – | – | – | – |
 | `delivery.trips.startLoading` | – | ✓ | – | – | – | – | – |
 | `delivery.trips.depart` | – | ✓ | – | – | – | – | – |

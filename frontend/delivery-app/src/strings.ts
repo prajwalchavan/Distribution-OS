@@ -335,6 +335,8 @@ export const strings = {
   'tray.rejectedCount': 'Refused: {count}',
   'tray.retry': 'Send it again',
   'tray.discard': 'Throw it away',
+  'tray.notOnPhone':
+    'This phone no longer holds this write. Record it again, then throw this away.',
   'tray.storeDisk': 'Held on this phone',
   'tray.storeMemory': 'Held in memory only — a reload empties this device',
 

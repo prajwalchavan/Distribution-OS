@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { getTableColumns, getTableName, sql, type SQL, type Table } from 'drizzle-orm'
-import { PERMISSIONS } from '@dos/contracts'
-import type { SyncColumn, SyncColumnType, SyncOp, SyncTableManifest } from '@dos/contracts'
+import { ALL_ROLES, isAllowed, PERMISSIONS, permissionFor } from '@dos/contracts'
+import type {
+  MembershipRole,
+  ProcedurePath,
+  SyncColumn,
+  SyncColumnType,
+  SyncOp,
+  SyncTableManifest,
+} from '@dos/contracts'
 import { SYNC_PULL_TABLES, type ActorRole, type Db, type TenantContext } from '@dos/db'
 
 /** Thrown by a handler to reject an op for business reasons (2xx + sync_errors). Anything else is transient (5xx). */
@@ -81,19 +88,70 @@ export interface PullSpec {
 }
 
 /**
+ * What an upload table IS, as far as permission goes (DOS-166). A device op on `receipts` is
+ * `POST /receipts` by another route, so the registration names the contract procedure(s) the table
+ * stands for, and the uploader asks `PERMISSIONS` about exactly those — the same matrix the guard
+ * enforces on the online door, never a second list of roles kept here.
+ */
+export interface UploadSpec {
+  /**
+   * Every procedure a device op on this table may amount to. ALL of them must allow the role: a
+   * `trip_stops` op can start, arrive at or fail a stop, so it needs all three rows. Required, and
+   * never empty — an op that stands for nothing would be allowed to everybody.
+   */
+  standsFor: readonly ProcedurePath[]
+}
+
+/**
  * Modules register a handler per synced table in their `onModuleInit` (e.g. orders registers `sales_orders`
- * and `sales_order_lines`). Unknown tables are rejected, never 4xx. The same registry carries the PULL
- * side of the protocol (docs/23 §8.11): the module that owns a table registers how its device rows are
- * read since a cursor, and `sync.pull` walks every registered table for the actor's role.
+ * and `sales_order_lines`), naming the online procedure(s) each table stands for. Unknown tables are
+ * rejected, never 4xx, and so is a table the actor's role may not write through its online door
+ * (`role_not_allowed`). The same registry carries the PULL side of the protocol (docs/23 §8.11): the
+ * module that owns a table registers how its device rows are read since a cursor, and `sync.pull` walks
+ * every registered table for the actor's role.
  */
 @Injectable()
 export class SyncRegistry {
   private readonly handlers = new Map<string, SyncHandler>()
+  private readonly uploads = new Map<string, readonly ProcedurePath[]>()
   private readonly pulls = new Map<string, PullSpec>()
 
-  register(table: string, handler: SyncHandler): void {
+  /**
+   * FAIL CLOSED AT BOOT, like the guard: a table naming no procedure, or a procedure `PERMISSIONS`
+   * does not declare, throws here, so a service carrying such a registration never starts.
+   */
+  register(table: string, handler: SyncHandler, spec: UploadSpec): void {
     if (this.handlers.has(table)) throw new Error(`sync handler for ${table} already registered`)
+    if (spec.standsFor.length === 0)
+      throw new Error(`sync handler for ${table} must name the procedure(s) it stands for`)
+    const undeclared = spec.standsFor.filter((path) => permissionFor(path) === undefined)
+    if (undeclared.length > 0)
+      throw new Error(
+        `sync handler for ${table} stands for ${undeclared.join(', ')}, which PERMISSIONS does not declare`,
+      )
     this.handlers.set(table, handler)
+    this.uploads.set(table, [...spec.standsFor])
+  }
+
+  /**
+   * May THIS role send THIS table from a device? Exactly when the matrix lets it call every procedure
+   * the table stands for. The worker (`system`) is trusted; any actor that is not a membership role
+   * (a curator, a support actor) fails closed, and so does a table nobody registered.
+   */
+  mayUploadTable(table: string, role: ActorRole): boolean {
+    const standsFor = this.uploads.get(table)
+    if (!standsFor) return false
+    if (role === 'system') return true
+    if (!isMembershipRole(role)) return false
+    return standsFor.every((path) => isAllowed(permissionFor(path), role))
+  }
+
+  /** Every upload table with the procedures it stands for, in registration order (the matrix pin). */
+  uploadTables(): { table: string; standsFor: ProcedurePath[] }[] {
+    return [...this.uploads.entries()].map(([table, standsFor]) => ({
+      table,
+      standsFor: [...standsFor],
+    }))
   }
 
   get(table: string): SyncHandler | undefined {
@@ -128,8 +186,10 @@ export class SyncRegistry {
    *
    * `writable` is not a flag anybody sets: a table may go back through `sync.upload` exactly when an
    * upload handler is registered for it — the same map the uploader itself consults — AND this role
-   * may call `sync.upload` at all. Prices, schemes and the catalog have no handler and are therefore
-   * download-only, as docs/07 §7.3 says.
+   * may call `sync.upload` at all, AND this role may make the change the table stands for
+   * (`mayUploadTable`, the uploader's own check), so the phone never queues what the upload refuses
+   * (DOS-166). Prices, schemes and the catalog have no handler and are therefore download-only, as
+   * docs/07 §7.3 says.
    */
   manifest(role: ActorRole): SyncTableManifest[] {
     const uploads = mayUpload(role)
@@ -139,10 +199,15 @@ export class SyncRegistry {
         table,
         primaryKey: [...(spec?.primaryKey ?? deviceKey(table))],
         columns: [...(spec?.describe?.(role) ?? [])],
-        writable: uploads && this.handlers.has(table),
+        writable: uploads && this.handlers.has(table) && this.mayUploadTable(table, role),
       }
     })
   }
+}
+
+/** The six apps' roles; `system`, `curator`, `support` and `platform_admin` are not members of a tenant. */
+function isMembershipRole(role: ActorRole): role is MembershipRole {
+  return (ALL_ROLES as readonly string[]).includes(role)
 }
 
 /**

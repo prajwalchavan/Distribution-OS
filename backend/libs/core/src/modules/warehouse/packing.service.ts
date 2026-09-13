@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, isNotNull, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, isNotNull, isNull, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ConfirmPackInput,
@@ -11,7 +11,7 @@ import type {
   PacksListOutput,
 } from '@dos/contracts'
 import type { OrderState } from '@dos/domain'
-import { packConfirmations, pickLines, withTenant, type Db } from '@dos/db'
+import { loadSheets, packConfirmations, pickLines, withTenant, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { BillingService, type IssueForPackLine } from '../billing/index.js'
 import { InventoryService } from '../inventory/index.js'
@@ -173,13 +173,38 @@ export class PackingService {
           : input.invoiced
             ? isNotNull(packConfirmations.invoiceId)
             : isNull(packConfirmations.invoiceId),
-        input.cursor ? lt(packConfirmations.id, input.cursor) : undefined,
+        /*
+         * `awaiting_load` is loadSheets.create's own acceptance rule (DOS-133): the order is still `packed`
+         * — asked of the orders module, which owns `sales_orders` — AND it is on no draft or confirmed
+         * sheet. Neither half is enough alone: trips.depart dispatches a packed order that was never on a
+         * sheet, and `return_undelivered` puts an order back to `packed` while its confirmed sheet still
+         * lists it, which create refuses.
+         */
+        input.status === 'awaiting_load'
+          ? this.orders.orderInState(packConfirmations.orderId, 'packed')
+          : undefined,
+        input.status === 'awaiting_load'
+          ? sql`not ${onLiveLoadSheet(packConfirmations.orderId)}`
+          : undefined,
+        /*
+         * Keyset on the cursor pack's own (created_at, id), read inside this tenant's transaction, so the
+         * comparison keeps Postgres's microseconds. No filter in the subquery: a pack that went onto a
+         * sheet between two pages still anchors the next one. An unknown cursor matches nothing.
+         */
+        input.cursor
+          ? sql`(${packConfirmations.createdAt}, ${packConfirmations.id}) < (select c.created_at, c.id from pack_confirmations c where c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(packConfirmations)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(packConfirmations.id))
+        /*
+         * Newest first by SERVER time (DOS-133, the DOS-023 rule for picklists). Ids are made on the
+         * device and the demo seed's are hashes, so id order is not age: a pack made today sorted below
+         * every seeded pack and never reached W7's first page. `pack_confirmations_created_idx` serves it.
+         */
+        .orderBy(desc(packConfirmations.createdAt), desc(packConfirmations.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const orders = await this.orders.fulfilmentOrders(
@@ -350,4 +375,17 @@ export class PackingService {
       throw err
     }
   }
+}
+
+/**
+ * "This order is on a live load sheet", as a correlated predicate for `packs.list?status=awaiting_load`
+ * (DOS-133). LIVE is draft or confirmed (`status <> 'cancelled'`): the SAME rule as
+ * `LoadSheetsService.onALiveSheet` (load-sheets.service.ts), which `loadSheets.create` refuses on. The
+ * rule exists twice; the DOS-133 spec in warehouse.spec.ts is the tie (create accepts every row the list
+ * offers and refuses the returned bill it leaves out), so a change to one — letting a bill returned
+ * undelivered be loaded again, say — changes both. The tenant fence is literal, as in `onALiveSheet`.
+ */
+function onLiveLoadSheet(orderId: SQLWrapper): SQL {
+  const { tenantId } = currentTenant()
+  return sql`exists (select 1 from ${loadSheets} ls where ls.tenant_id = ${tenantId} and ls.status <> 'cancelled' and ls.order_ids @> jsonb_build_array(${orderId}))`
 }

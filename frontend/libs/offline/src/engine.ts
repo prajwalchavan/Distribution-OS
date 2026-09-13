@@ -48,6 +48,15 @@ export const CLIENT_SYNC_PROTOCOL = 1
 
 /** docs/27 §6: at most 50 ops in flight, one batch at a time, FIFO by `seq`. */
 const DEFAULT_UPLOAD_BATCH = 50
+/**
+ * docs/27 §6 (DOS-056): at most this much op JSON per batch as well. A doorstep write carries its proof
+ * photo inline (≤ 300 KB of JPEG, ~400 KB as base64), so fifty of them would be ~20 MB — far past the
+ * sync route's 8 MiB, where the service answers 413 and the batch would be retried for ever. Half the
+ * route's limit leaves room for the envelope; an op bigger than the budget still goes, on its own.
+ */
+const DEFAULT_UPLOAD_BATCH_BYTES = 4 * 1024 * 1024
+/** What an op adds on the wire beyond its `data`: opId, table, id, timestamps and the JSON around them. */
+const OP_ENVELOPE_BYTES = 256
 /** docs/27 §5: 500 rows per pull call, looped while `hasMore`. */
 const DEFAULT_PULL_LIMIT = 500
 /** docs/27 §5: a foreground poll, never a background timer. */
@@ -76,6 +85,8 @@ export interface SyncEngineOptions {
   tenantId?: string
   pullLimit?: number
   uploadBatchSize?: number
+  /** The most op JSON one upload batch carries, in UTF-8 bytes (default 4 MiB, docs/27 §6). */
+  uploadBatchBytes?: number
   /** 0 turns the foreground poll off (what the tests use). */
   pullIntervalMs?: number
   now?: () => number
@@ -97,6 +108,7 @@ export class SyncEngine {
   private readonly networkHint: () => boolean
   private readonly pullLimit: number
   private readonly uploadBatchSize: number
+  private readonly uploadBatchBytes: number
   private readonly pullIntervalMs: number
 
   private reachable = true
@@ -125,6 +137,7 @@ export class SyncEngine {
     this.networkHint = options.networkHint ?? defaultNetworkHint
     this.pullLimit = options.pullLimit ?? DEFAULT_PULL_LIMIT
     this.uploadBatchSize = options.uploadBatchSize ?? DEFAULT_UPLOAD_BATCH
+    this.uploadBatchBytes = options.uploadBatchBytes ?? DEFAULT_UPLOAD_BATCH_BYTES
     this.pullIntervalMs = options.pullIntervalMs ?? DEFAULT_PULL_INTERVAL_MS
   }
 
@@ -669,7 +682,16 @@ export class SyncEngine {
       `SELECT * FROM ${OUTBOX_TABLE} WHERE status = 'queued' ORDER BY seq LIMIT ?`,
       [this.uploadBatchSize],
     )
-    const batch = rows.map(toOutboxRow)
+    // FIFO within the byte budget too (DOS-056): stop before the op that would push the batch past
+    // it, but always take the first, so an op larger than the budget is sent alone, never stranded.
+    const batch: OutboxRow[] = []
+    let bytes = 0
+    for (const row of rows) {
+      const size = wireBytes(row)
+      if (batch.length > 0 && bytes + size > this.uploadBatchBytes) break
+      batch.push(toOutboxRow(row))
+      bytes += size
+    }
     if (batch.length === 0) return batch
     const sentAt = new Date(this.now()).toISOString()
     for (const op of batch) {
@@ -1048,6 +1070,27 @@ interface SyncUploadRejection {
   rowId: string
   code: string
   messageEn: string
+}
+
+/** An outbox row's weight on the wire, in UTF-8 bytes: its `data` JSON plus the envelope. */
+function wireBytes(row: Record<string, SqlValue>): number {
+  return OP_ENVELOPE_BYTES + (typeof row.data === 'string' ? utf8Length(row.data) : 0)
+}
+
+function utf8Length(text: string): number {
+  // Base64, ids and numbers are ASCII — one byte a character — so most ops never reach the loop.
+  if (!/[\u0080-\uffff]/.test(text)) return text.length
+  let bytes = 0
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i)
+    if (code < 0x80) bytes += 1
+    else if (code < 0x800) bytes += 2
+    else if (code >= 0xd800 && code <= 0xdbff)
+      bytes += 4 // a surrogate pair is 4 bytes in all
+    else if (code >= 0xdc00 && code <= 0xdfff) bytes += 0
+    else bytes += 3
+  }
+  return bytes
 }
 
 function toWireOp(op: OutboxRow): SyncOp {

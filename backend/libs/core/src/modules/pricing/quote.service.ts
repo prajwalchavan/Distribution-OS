@@ -76,88 +76,95 @@ export class QuoteService {
     requireRole([...STAFF, 'retailer'])
     const db = requireDb(this.db)
     const ctx = currentTenant()
-    return withTenant(db, ctx, async (tx) => {
-      const retailer = await this.loadRetailer(tx, ctx, input.retailerId)
-      const pricingDate = input.pricingDate ?? todayIst()
-      const variantIds = [...new Set(input.lines.map((l) => l.variantId))]
-      const variants = await this.loadVariants(tx, ctx, variantIds)
-      const rules = await this.loadInputs(tx, ctx, retailer, variantIds, {
+    return withTenant(db, ctx, (tx) => this.quoteInTx(tx, ctx, input))
+  }
+
+  /**
+   * `quote` on the caller's transaction, the `decideInTx` shape: it opens no transaction, checks no role and never
+   * reads `currentTenant()`. Orders' confirm prices with it (DOS-126): a rate approved by the decision that
+   * confirms is not committed yet, so a quote in a transaction of its own would not see it.
+   */
+  async quoteInTx(tx: Db, ctx: TenantContext, input: QuoteIn): Promise<QuoteOut> {
+    const retailer = await this.loadRetailer(tx, ctx, input.retailerId)
+    const pricingDate = input.pricingDate ?? todayIst()
+    const variantIds = [...new Set(input.lines.map((l) => l.variantId))]
+    const variants = await this.loadVariants(tx, ctx, variantIds)
+    const rules = await this.loadInputs(tx, ctx, retailer, variantIds, {
+      pricingDate,
+      deliveryDate: input.deliveryDate,
+      orderId: input.orderId,
+    })
+    let result
+    try {
+      result = priceOrder({
         pricingDate,
         deliveryDate: input.deliveryDate,
-        orderId: input.orderId,
+        retailer: { id: retailer.id, tier: retailer.tier, beatId: retailer.beatId },
+        lines: input.lines.map((l) => {
+          const v = variants.get(l.variantId)
+          if (!v) throw new PricingError(`Unknown variant ${l.variantId}`)
+          return {
+            lineId: l.lineId,
+            variantId: l.variantId,
+            brandId: v.brandId,
+            category: v.category,
+            qtyPcs: l.qtyPcs,
+            caseSize: v.caseSize,
+          }
+        }),
+        ...rules,
       })
-      let result
-      try {
-        result = priceOrder({
-          pricingDate,
-          deliveryDate: input.deliveryDate,
-          retailer: { id: retailer.id, tier: retailer.tier, beatId: retailer.beatId },
-          lines: input.lines.map((l) => {
-            const v = variants.get(l.variantId)
-            if (!v) throw new PricingError(`Unknown variant ${l.variantId}`)
-            return {
-              lineId: l.lineId,
-              variantId: l.variantId,
-              brandId: v.brandId,
-              category: v.category,
-              qtyPcs: l.qtyPcs,
-              caseSize: v.caseSize,
-            }
-          }),
-          ...rules,
+    } catch (e) {
+      if (e instanceof PricingError) throw new ORPCError('BAD_REQUEST', { message: e.message })
+      throw e
+    }
+    // GST per line at the item's HSN rate dated to the pricing date (DOS-096). After the engine, so an unknown
+    // variant still reads as unknown and an unpriced one as unpriced before a missing rate is reported.
+    const gst = await loadGstBps(
+      tx,
+      [...new Set([...variants.values()].map((v) => v.hsnCode))],
+      result.pricingDate,
+    )
+    let taxPaise = 0
+    const lines = result.lines.map((l) => {
+      const variant = variants.get(l.variantId)
+      const gstBps = variant === undefined ? undefined : gst.get(variant.hsnCode)
+      if (variant === undefined || gstBps === undefined)
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: `quote lost the GST rate for ${l.variantId}`,
         })
-      } catch (e) {
-        if (e instanceof PricingError) throw new ORPCError('BAD_REQUEST', { message: e.message })
-        throw e
-      }
-      // GST per line at the item's HSN rate dated to the pricing date (DOS-096). After the engine, so an unknown
-      // variant still reads as unknown and an unpriced one as unpriced before a missing rate is reported.
-      const gst = await loadGstBps(
-        tx,
-        [...new Set([...variants.values()].map((v) => v.hsnCode))],
-        result.pricingDate,
-      )
-      let taxPaise = 0
-      const lines = result.lines.map((l) => {
-        const variant = variants.get(l.variantId)
-        const gstBps = variant === undefined ? undefined : gst.get(variant.hsnCode)
-        if (variant === undefined || gstBps === undefined)
-          throw new ORPCError('INTERNAL_SERVER_ERROR', {
-            message: `quote lost the GST rate for ${l.variantId}`,
-          })
-        const lineTax = percentOf(paise(l.lineNetPaise), gstBps)
-        taxPaise += lineTax
-        return {
-          lineId: l.lineId,
-          variantId: l.variantId,
-          qtyPcs: l.qtyPcs,
-          caseSize: variant.caseSize,
-          listRatePaise: l.listRatePaise,
-          ratePaise: l.ratePaise,
-          grossPaise: l.grossPaise,
-          discountPaise: l.discountPaise,
-          bargainPaise: l.bargainPaise,
-          freeQtyPcs: l.freeQtyPcs,
-          freeItems: l.freeItems,
-          appliedRules: l.appliedRules,
-          lineNetPaise: l.lineNetPaise,
-          gstBps,
-          taxPaise: lineTax,
-          lineTotalPaise: l.lineNetPaise + lineTax,
-        }
-      })
-      // s.170: one rounding to the rupee, with the same `roundToRupee` billing issues the invoice with.
-      const { rounded, roundOff } = roundToRupee(paise(result.totals.netPaise + taxPaise))
+      const lineTax = percentOf(paise(l.lineNetPaise), gstBps)
+      taxPaise += lineTax
       return {
-        retailerId: retailer.id,
-        pricingDate: result.pricingDate,
-        lines,
-        orderRules: result.orderRules,
-        cashDiscountBps: result.cashDiscountBps,
-        cashDiscountPaise: result.cashDiscountPaise,
-        totals: { ...result.totals, taxPaise, roundOffPaise: roundOff, totalPaise: rounded },
+        lineId: l.lineId,
+        variantId: l.variantId,
+        qtyPcs: l.qtyPcs,
+        caseSize: variant.caseSize,
+        listRatePaise: l.listRatePaise,
+        ratePaise: l.ratePaise,
+        grossPaise: l.grossPaise,
+        discountPaise: l.discountPaise,
+        bargainPaise: l.bargainPaise,
+        freeQtyPcs: l.freeQtyPcs,
+        freeItems: l.freeItems,
+        appliedRules: l.appliedRules,
+        lineNetPaise: l.lineNetPaise,
+        gstBps,
+        taxPaise: lineTax,
+        lineTotalPaise: l.lineNetPaise + lineTax,
       }
     })
+    // s.170: one rounding to the rupee, with the same `roundToRupee` billing issues the invoice with.
+    const { rounded, roundOff } = roundToRupee(paise(result.totals.netPaise + taxPaise))
+    return {
+      retailerId: retailer.id,
+      pricingDate: result.pricingDate,
+      lines,
+      orderRules: result.orderRules,
+      cashDiscountBps: result.cashDiscountBps,
+      cashDiscountPaise: result.cashDiscountPaise,
+      totals: { ...result.totals, taxPaise, roundOffPaise: roundOff, totalPaise: rounded },
+    }
   }
 
   /**
@@ -316,36 +323,58 @@ export class QuoteService {
       )
       .orderBy(schemes.id)
 
-    const bargainRows = await tx
-      .select({
-        id: bargainRequests.id,
-        variantId: bargainRequests.variantId,
-        approvedRatePaise: bargainRequests.approvedRatePaise,
-      })
-      .from(bargainRequests)
-      .where(
-        and(
-          eq(bargainRequests.tenantId, ctx.tenantId),
-          eq(bargainRequests.retailerId, retailer.id),
-          inArray(bargainRequests.variantId, ids),
-          inArray(bargainRequests.status, ['approved', 'auto_approved']),
-          or(isNull(bargainRequests.expiresAt), gt(bargainRequests.expiresAt, new Date())),
-          opts.orderId
-            ? or(isNull(bargainRequests.orderId), eq(bargainRequests.orderId, opts.orderId))
-            : isNull(bargainRequests.orderId),
-        ),
-      )
-      .orderBy(desc(bargainRequests.id))
-    const approvedBargains: PriceBargainInput[] = []
-    for (const b of bargainRows)
-      if (
-        b.approvedRatePaise !== null &&
-        !approvedBargains.some((x) => x.variantId === b.variantId)
-      )
-        approvedBargains.push({ id: b.id, variantId: b.variantId, ratePaise: b.approvedRatePaise })
+    const approvedBargains = await approvedBargainsFor(tx, {
+      tenantId: ctx.tenantId,
+      retailerId: retailer.id,
+      variantIds: ids,
+      orderId: opts.orderId,
+    })
 
     return { tierPrices, overrides, schemes: schemeRows.map(toSchemeRule), approvedBargains }
   }
+}
+
+/**
+ * The approved rates that price an order of this shop: approved or auto-approved, unexpired, asked for this order
+ * or for no order at all (a standalone ask applies to every order of the shop; without an order only standalone
+ * ones), newest per variant. The one definition of which approved rate applies: `loadInputs` feeds it to the
+ * engine, and orders' confirm checks it before re-pricing (DOS-126), so orders never reads `bargain_requests`.
+ */
+export async function approvedBargainsFor(
+  tx: Db,
+  p: {
+    tenantId: string
+    retailerId: string
+    variantIds: readonly string[]
+    orderId?: string | undefined
+  },
+): Promise<PriceBargainInput[]> {
+  if (p.variantIds.length === 0) return []
+  const bargainRows = await tx
+    .select({
+      id: bargainRequests.id,
+      variantId: bargainRequests.variantId,
+      approvedRatePaise: bargainRequests.approvedRatePaise,
+    })
+    .from(bargainRequests)
+    .where(
+      and(
+        eq(bargainRequests.tenantId, p.tenantId),
+        eq(bargainRequests.retailerId, p.retailerId),
+        inArray(bargainRequests.variantId, [...p.variantIds]),
+        inArray(bargainRequests.status, ['approved', 'auto_approved']),
+        or(isNull(bargainRequests.expiresAt), gt(bargainRequests.expiresAt, new Date())),
+        p.orderId
+          ? or(isNull(bargainRequests.orderId), eq(bargainRequests.orderId, p.orderId))
+          : isNull(bargainRequests.orderId),
+      ),
+    )
+    .orderBy(desc(bargainRequests.id))
+  const approvedBargains: PriceBargainInput[] = []
+  for (const b of bargainRows)
+    if (b.approvedRatePaise !== null && !approvedBargains.some((x) => x.variantId === b.variantId))
+      approvedBargains.push({ id: b.id, variantId: b.variantId, ratePaise: b.approvedRatePaise })
+  return approvedBargains
 }
 
 export function toSchemeRule(row: typeof schemes.$inferSelect): SchemeRule {

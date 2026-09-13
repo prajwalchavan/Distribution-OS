@@ -1,5 +1,18 @@
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, ilike, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  lte,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -15,7 +28,7 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { orderStateTransitions, outboxEvents, salesOrders, type Db } from '@dos/db'
+import { orderStateTransitions, outboxEvents, salesOrders, type ActorRole, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
@@ -272,6 +285,22 @@ export function callerReaches(order: Pick<OrderRow, 'salespersonId'>): boolean {
 }
 
 /**
+ * Who places, re-lines, repeats, submits and cancels an order through the five order procedures and the
+ * device-upload doors (DOS-115): the owner, the manager, the rep and the shop, plus `system` for the worker
+ * and the escalation pattern. The godown and the crew take no order — the crew's van sale drafts through
+ * `insertDraft` under `delivery.vanSales.create` (DOORSTEP) — and neither does the accountant. It mirrors
+ * `ORDER_PLACERS` in `@dos/contracts` permissions.ts, the tuple the gate enforces first; the DOS-115 block
+ * of orders.spec.ts pins the two together. Reads (`get`, `list`) stay with every member.
+ */
+export const ORDER_PLACERS: readonly ActorRole[] = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+  'system',
+]
+
+/**
  * A retailer-role caller sees only its own shops' orders — RLS decides that, this only shapes the query.
  * A salesperson's list is always its own (DOS-073, `callerReaches`): its `salespersonId` filter is forced
  * to the caller, so naming a colleague cannot widen it.
@@ -307,4 +336,36 @@ export async function listOrders(
   const items = rows.slice(0, input.limit).map(toOrder)
   const last = items[items.length - 1]
   return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
+}
+
+/**
+ * The shop's most recently PLACED order (DOS-098): by when it was placed, `coalesce(submitted_at, created_at)`,
+ * never a draft or a cancelled order, and never by id — a seeded or imported id is not a date, and even a client
+ * UUIDv7 is minted when the draft starts, not when it is sent. Any author and any placed source counts. The
+ * explicit tenant predicate lets `sales_orders_retailer_idx (tenant_id, retailer_id, created_at)` narrow to one
+ * shop before the top-1 sort; RLS still applies through the caller's `withTenant` transaction. `salespersonId`
+ * keeps a rep to the orders credited to it (the DOS-073 reach rule of `callerReaches`); `repeatLast` passes none.
+ */
+export async function lastPlacedOrder(
+  tx: Db,
+  retailerId: string,
+  salespersonId?: string,
+): Promise<OrderRow | undefined> {
+  const [row] = await tx
+    .select()
+    .from(salesOrders)
+    .where(
+      and(
+        eq(salesOrders.tenantId, currentTenant().tenantId),
+        eq(salesOrders.retailerId, retailerId),
+        notInArray(salesOrders.state, ['draft', 'cancelled']),
+        salespersonId === undefined ? undefined : eq(salesOrders.salespersonId, salespersonId),
+      ),
+    )
+    .orderBy(
+      desc(sql`coalesce(${salesOrders.submittedAt}, ${salesOrders.createdAt})`),
+      desc(salesOrders.id),
+    )
+    .limit(1)
+  return row
 }

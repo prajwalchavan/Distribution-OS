@@ -292,6 +292,7 @@ describe('permission matrix', () => {
       'orders.cancel',
       'orders.get',
       'orders.list',
+      'orders.lastPlaced',
       'pricing.quote',
       'pricing.schemes.list',
       'pricing.bargains.request',
@@ -323,6 +324,31 @@ describe('permission matrix', () => {
       expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
     }
     expect(permissionFor('retailers.updateOwn')).toEqual(['retailer'])
+  })
+
+  it('DOS-115: the godown and the crew place, re-line, repeat, submit or cancel no order, and still read one', () => {
+    // An order is placed by the desk that runs the distributorship, the rep and the shop (docs/22 §8, QA
+    // DOS-115). The godown and the crew take none — the crew's van sale is `delivery.vanSales.create`,
+    // DOORSTEP — and nor does the accountant, whose write scope is the money desk (docs/22 §8, 2026-09-05).
+    for (const path of [
+      'orders.create',
+      'orders.setLines',
+      'orders.repeatLast',
+      'orders.submit',
+      'orders.cancel',
+    ] as const) {
+      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'salesperson', 'retailer'])
+      for (const role of ['warehouse', 'delivery', 'accountant'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
+      }
+    }
+    // Reads stay with every member: the Pack screen opens an order, the crew reads the one at its stop.
+    for (const path of ['orders.get', 'orders.list'] as const) {
+      expect(permissionFor(path), path).toEqual(ROLE_GROUPS.ANY_MEMBER)
+      for (const role of ['warehouse', 'delivery', 'accountant'] as const) {
+        expect(isAllowed(permissionFor(path), role), `${path} must allow ${role}`).toBe(true)
+      }
+    }
   })
 
   it('gives every app the offline reads and keeps the write queue with the staff (sync)', () => {
@@ -589,6 +615,21 @@ describe('permission matrix', () => {
     }
   })
 
+  it("DOS-131: the trip planning board is the desk's and the godown's, never the crew's, the accountant's, a rep's or a shop's (delivery)", () => {
+    // Whoever builds the load reads the board: the same three as `warehouse.loadSheets.create`.
+    expect(permissionFor('delivery.trips.planning')).toEqual(ROLE_GROUPS.STOCK_KEEPERS)
+    expect(permissionFor('delivery.trips.planning')).toEqual(['owner', 'manager', 'warehouse'])
+    expect(permissionFor('delivery.trips.planning')).toEqual(
+      permissionFor('warehouse.loadSheets.create'),
+    )
+    for (const role of ['delivery', 'accountant', 'salesperson', 'retailer'] as const) {
+      expect(
+        isAllowed(permissionFor('delivery.trips.planning'), role),
+        `delivery.trips.planning must refuse ${role}`,
+      ).toBe(false)
+    }
+  })
+
   it('lets the crew work the door and the godown only plan the trip (delivery)', () => {
     // Doorstep writes: the crew, with the owner and the manager able to do the same from the office.
     for (const path of [
@@ -624,6 +665,7 @@ describe('permission matrix', () => {
       'delivery.trips.create',
       'delivery.trips.list',
       'delivery.trips.get',
+      'delivery.trips.planning',
       'delivery.trips.startLoading',
       'delivery.stops.list',
       'delivery.stops.next',
@@ -1427,7 +1469,7 @@ describe('permission matrix', () => {
     }
     // Intake and drafts: the desk, the rep for its own shops, the shop for itself. Never the accountant,
     // the godown or the crew. `confirm` creates the order through orders.create/setLines/submit, all of
-    // which are ANY_MEMBER, so this tuple can only narrow the ordering surface.
+    // which are ORDER_PLACERS (DOS-115), so this tuple can only narrow the ordering surface.
     const draftPaths = aiPaths.filter(
       (p) => p.startsWith('ai.intake.') || p.startsWith('ai.drafts.'),
     )

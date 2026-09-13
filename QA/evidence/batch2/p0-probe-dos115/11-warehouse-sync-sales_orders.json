@@ -1,0 +1,97 @@
+{
+  "probe": "11",
+  "finding": "DOS-115 (+ DOS-166 registry door)",
+  "phase": "after merge (main 3d7cb36)",
+  "username": "dinesh.patil",
+  "role": "warehouse",
+  "tenant": "tarsun (01a09a5b-3c58-71c1-a34d-b93c569b0099)",
+  "database": "dos_qa",
+  "startedAt": "2026-09-13T10:52:52.629Z",
+  "login": {
+    "status": 200,
+    "role": "warehouse"
+  },
+  "deviceId": "qa-b2-dos115-after-warehouse-11",
+  "orderId": "01a09a66-064c-7170-b7d2-16feef5d4d3d",
+  "lineId": "01a09a66-064c-78fd-aa40-8d7e1d53796e",
+  "opIds": [
+    "01a09a66-064c-741f-b069-f07a801d742e",
+    "01a09a66-064c-732f-ad21-6550462fde60"
+  ],
+  "call": {
+    "name": "warehouse sync upload sales_orders + sales_order_lines",
+    "expected": {
+      "status": 200
+    },
+    "request": {
+      "method": "POST",
+      "url": "http://127.0.0.1:3004/sync/upload",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer <redacted>"
+      },
+      "body": {
+        "protocol": 1,
+        "deviceId": "qa-b2-dos115-after-warehouse-11",
+        "ops": [
+          {
+            "opId": "01a09a66-064c-741f-b069-f07a801d742e",
+            "op": "PUT",
+            "table": "sales_orders",
+            "id": "01a09a66-064c-7170-b7d2-16feef5d4d3d",
+            "clientTime": "2026-09-13T10:52:52.684Z",
+            "data": {
+              "retailer_id": "75659f5a-19d1-7d52-8b43-4c3d6777a33c",
+              "state": "draft",
+              "source": "salesperson",
+              "note": "QA batch2 DOS-115 after-probe 11 warehouse upload"
+            }
+          },
+          {
+            "opId": "01a09a66-064c-732f-ad21-6550462fde60",
+            "op": "PUT",
+            "table": "sales_order_lines",
+            "id": "01a09a66-064c-78fd-aa40-8d7e1d53796e",
+            "clientTime": "2026-09-13T10:52:52.684Z",
+            "data": {
+              "order_id": "876d0028-e59c-77b8-9c0f-afae52c229cc",
+              "variant_id": "677c774f-86aa-79c6-b755-702a61b92ca2",
+              "entered_qty": 1,
+              "entered_unit": "piece"
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "accepted": 0,
+        "replayed": 0,
+        "rejected": [
+          {
+            "opId": "01a09a66-064c-741f-b069-f07a801d742e",
+            "table": "sales_orders",
+            "rowId": "01a09a66-064c-7170-b7d2-16feef5d4d3d",
+            "code": "role_not_allowed",
+            "messageHi": "यह काम आपकी भूमिका के लिए नहीं है",
+            "messageEn": "A warehouse may not send sales_orders from a device"
+          },
+          {
+            "opId": "01a09a66-064c-732f-ad21-6550462fde60",
+            "table": "sales_order_lines",
+            "rowId": "01a09a66-064c-78fd-aa40-8d7e1d53796e",
+            "code": "role_not_allowed",
+            "messageHi": "यह काम आपकी भूमिका के लिए नहीं है",
+            "messageEn": "A warehouse may not send sales_order_lines from a device"
+          }
+        ],
+        "warnings": [],
+        "upgradeRequired": false
+      }
+    },
+    "pass": true
+  },
+  "expected": "200, accepted 0, rejected[0].code role_not_allowed on sales_orders, no sales_orders row for orderId",
+  "pass": true
+}

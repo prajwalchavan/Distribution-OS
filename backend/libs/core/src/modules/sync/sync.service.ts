@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { createHash } from 'node:crypto'
 import {
   SYNC_PROTOCOL_VERSION,
+  SYNC_REJECTION_CODES,
   type MembershipRole,
   type SyncErrorsListInput,
   type SyncErrorsListOutput,
@@ -22,6 +23,8 @@ import {
   ANY_MEMBER,
   currentTenant,
   DB,
+  isPrivilegeViolation,
+  pgMessage,
   requireDb,
   requireRole,
   STAFF,
@@ -47,6 +50,27 @@ const TRIAGE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'system'
  * device sees twice (it upserts by id, so twice is harmless).
  */
 const PULL_OVERLAP_MS = 5_000
+
+/**
+ * The most one offline op may weigh, as JSON (DOS-056). A doorstep write carries its proof photo
+ * inline — squeezed on the phone to ≤ 300 KB of JPEG, ~400 KB as base64 — so a real op is well under
+ * this. A bigger one (an uncompressed photo, an old build) is refused `row_too_large` into the tray,
+ * never answered 413, which would wedge the whole queue (docs/22 never-list #8). The route itself
+ * takes up to `SYNC_UPLOAD_BODY_LIMIT_BYTES` (8 MiB) and the device keeps a batch under 4 MiB
+ * (docs/27 §6), so an oversize op reaches this check rather than the transport's limit.
+ */
+const MAX_SYNC_OP_BYTES = 1024 * 1024
+
+/** Thrown inside the op's savepoint, so it lands like any refusal: 2xx, `sync_errors`, `sync_ops`. */
+function refuseOversizeOp(op: SyncOp): void {
+  const bytes = Buffer.byteLength(JSON.stringify(op), 'utf8')
+  if (bytes <= MAX_SYNC_OP_BYTES) return
+  throw new SyncRejection(
+    'row_too_large',
+    `This write is too large to send (${(bytes / 1_048_576).toFixed(1)} MB; the office takes up to 1 MB in one write). Record it again with a smaller photo.`,
+    'यह रिकॉर्ड भेजने के लिए बहुत बड़ा है; छोटी फ़ोटो के साथ दोबारा दर्ज करें',
+  )
+}
 
 @Injectable()
 export class SyncService {
@@ -117,10 +141,24 @@ export class SyncService {
               `${op.table} के लिए सिंक समर्थित नहीं`,
             ),
           }
+        } else if (!this.registry.mayUploadTable(op.table, ctx.actorRole)) {
+          // DOS-166: the upload is the online door by another route, so the matrix answers here too,
+          // once per op and before the savepoint — no read, no document number drawn. The refusal is
+          // durable like any other and replays as itself.
+          outcome = {
+            ok: false,
+            rejection: reject(
+              op,
+              SYNC_REJECTION_CODES.roleNotAllowed,
+              `A ${ctx.actorRole} may not send ${op.table} from a device`,
+              'यह काम आपकी भूमिका के लिए नहीं है',
+            ),
+          }
         } else {
           try {
             // Savepoint so a rejected op leaves no partial writes but the sync_ops/sync_errors rows still commit.
             await tx.transaction(async (inner) => {
+              refuseOversizeOp(op) // DOS-056: an op over 1 MiB is `row_too_large`, before any read
               // The LWW veto, applied to every table by the uploader rather than remembered by each
               // module's handler (sync.registry.ts `vetoIfStale`): an edit whose base is older than
               // the server's row is refused `stale`, still 2xx, and the tray tells the user why.
@@ -144,6 +182,12 @@ export class SyncService {
                   error.message,
                 ),
               }
+            } else if (isPrivilegeViolation(error)) {
+              // A row policy or guard trigger refused THIS actor (42501): that refuses this device's
+              // op, and no retry can change it. As a 5xx it rolled the whole batch back, wrote no
+              // sync_ops row and wedged the queue behind it (DOS-166).
+              const message = pgMessage(error)
+              outcome = { ok: false, rejection: reject(op, 'not_permitted', message, message) }
             } else {
               throw error // transient: let the request fail 5xx so the device retries the whole batch
             }

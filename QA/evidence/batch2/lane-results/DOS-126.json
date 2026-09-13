@@ -1,0 +1,154 @@
+{
+ "id": "DOS-126",
+ "runs": [
+  "wf_ae8abf06-4fc"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-126",
+   "status": "fixed",
+   "commits": [
+    "c58a2568573be8927171632467a44693d8630fd9"
+   ],
+   "failBefore": "Run before the fix (output kept at scratchpad/dos126-orders-before.txt). All 9 DOS-126 tests failed for the finding's reason. My first command was `pnpm --filter @dos/core test -- src/modules/orders/orders.spec.ts -t DOS-126`. pnpm 11 passes the `--` through literally, so vitest ignored both filters and ran the whole core suite once: 36 files, 9 failed (only the new DOS-126 tests), 554 passed.\n\nFailures:\n- Orders tests 1-5 and 7: the header matched subtotal 12000 but read discountPaise 0 (expected 1200), taxPaise 1440 (1296), roundOffPaise -40 (+4), totalPaise 13400 (12100).\n- Test 6: the bargained line read ratePaise 1000 (expected 900), discountPaise 0 / discountBps 0 (1200 / 1000), taxPaise 1440 (1296), lineTotalPaise 13440 (12096), priceLocked false (true).\n- Amendment (e) test: \"expected 200 to be 400\"; the approval confirmed at list instead of refusing.\n- Billing test (C1 path, rate approved before the draft): the invoice line read discountPaise 2400 (expected 0), taxablePaise 19200 (21600), cgst/sgst 1152 each (1296), lineTotalPaise 21504 (24192).\n\nVerify A.3 (transaction trap), scratchpad/dos126-trap.txt: I temporarily swapped `quotes.quoteInTx(tx, ctx, …)` for `quotes.quote(…)` in repriceApprovedBargains. Test 2 (credit gate first, bargain gate last) and test 4 (bargain is the only gate) failed again with discount 0, tax 1440, roundOff -40, total 13400. Then I reverted and confirmed the revert by grep.",
+   "passAfter": "Every run uses `pnpm --filter @dos/core exec vitest run <one file>` against dos_test_b2_h5 with DATABASE_POOL_MAX=3.\n\nNew tests:\n- orders.spec.ts -t DOS-126: 8 passed.\n- billing.spec.ts -t DOS-126: 1 passed.\n\nWhole files, no existing expectation edited:\n- orders.spec.ts: 41/41, run twice (before and after prettier).\n- billing.spec.ts: 22/22 (partial pack, credit notes, the 26_900 bill).\n- pricing.spec.ts: 15/15, file untouched.\n- warehouse.spec.ts: 41/41.\n- delivery.spec.ts: 25/25 (van sale).\n- ai.spec.ts: 30/30.\n\nStatic checks:\n- `tsc -p tsconfig.json --noEmit` in libs/core: exit 0.\n- eslint on the 7 touched core files: exit 0 (only the boundaries plugin's deprecation warnings).\n- `prettier --check` on those files: clean.\n- `pnpm --filter @dos/retailer-app typecheck`: exit 0.\n- `pnpm --filter @dos/retailer-app lint`: exit 0.\n- `pnpm format` run in both workspaces.\n\nNot run: package-wide `pnpm lint`/`typecheck` through turbo, `docs:readme:check` (no contract change), and the service specs. After the commit, `git status --short` printed nothing.",
+   "testsAdded": [
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: bargain gate approved first, credit gate last — the order confirms with the line at the approved rate (the SO-0897 walk)"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: credit gate first, bargain gate last — the confirm inside the bargain decision's transaction charges the rate that decision approved"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: a rate approved on Rate requests is charged when the Approvals gates later confirm the order"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: a bargain that is the only gate confirms at the approved rate (indicate shop)"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: a rate approved after the draft and before submit is charged at confirm — through the credit gate and through submit's own auto-confirm"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: confirm changes only the line the approval priced — another line keeps its drafted rate and is not rewritten after an office price edit"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: a shop's own order confirms at the rate the office approved on its standalone ask (auto-confirm under the system role)"
+    },
+    {
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "name": "DOS-126: an approved rate the engine cannot price on the draft date refuses the approval with reprice_failed — the decision rolls back and the order still waits"
+    },
+    {
+     "file": "backend/libs/core/src/modules/billing/billing.spec.ts",
+     "name": "DOS-126: a bill for a line charged at an approved rate takes that rate off once — invoice taxable equals the order line’s taxable"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "backend/libs/core/src/modules/pricing/quote.service.ts",
+    "backend/libs/core/src/modules/pricing/index.ts",
+    "backend/libs/core/src/modules/orders/pricing-lines.ts",
+    "backend/libs/core/src/modules/orders/orders.service.ts",
+    "backend/libs/core/src/modules/billing/invoices.service.ts",
+    "backend/libs/core/src/modules/orders/orders.spec.ts",
+    "backend/libs/core/src/modules/billing/billing.spec.ts",
+    "frontend/retailer-app/app/orders/[id].tsx"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Build on the merged h4 files, never cherry-picked. The orders.spec block goes after DOS-115's block; the billing test rebases on DOS-116's if that lands first.",
+     "done": true,
+     "how": "quote.service.ts is DOS-096's merged file: the GST lookup moved verbatim into quoteInTx. confirmInTx now loads the lines before warehouseLocation(), which calls DOS-074's reservableLocationId. The DOS-126 describe is appended after DOS-115's block, at the end of orders.spec. DOS-116 is not on this branch, so the billing test sits after the 'hides this tenant’s bills…' test."
+    },
+    {
+     "amendment": "(b) Retailer app orders/[id].tsx prints ratePaise × qtyPcs − (lineTotalPaise − taxPaise) instead of line.discountPaise.",
+     "done": true,
+     "how": "Added `offRate(line)` with that expression. The line reads '· −amount' only when offRate > 0, so an approved-rate-only line shows no second deduction. Retailer-app typecheck and lint pass; the screen was not rendered, because dev servers are not allowed in this lane."
+    },
+    {
+     "amendment": "(c) priceOrderLineGroup's lineDiscount is guarded, not clamped: below 0 or above rate × qty throws ORPCError CONFLICT naming the order line.",
+     "done": true,
+     "how": "`charged = rate × qtyPcs` and `lineDiscount = charged − (lineTotal − tax)`. Out of range throws CONFLICT with the message 'order line <id> (line <n>): stored line money is inconsistent; not billable'. lineDiscount replaces orderLine.discountPaise in the zero test, the full pack and the allocate split. Read-only check on dos_test_b2_h5: every seed-priced line satisfies the invariant. The 14 lines that do not are hand-inserted fixtures of reporting.spec and incentives.spec, and neither spec bills."
+    },
+    {
+     "amendment": "(d) loadInputs calls the extracted approvedBargainsFor; exactly one inArray(bargainRequests.status…) remains in pricing; pricing.spec unedited.",
+     "done": true,
+     "how": "approvedBargainsFor is an exported plain function in quote.service.ts (empty variantIds gives []), exported from pricing/index.ts and called by loadInputs. grep finds one `inArray(bargainRequests.status` in modules/pricing and no bargainRequests reference in orders source. pricing.spec.ts is untouched and passes 15/15; prettier's unrelated rewrite of it was restored, not committed."
+    },
+    {
+     "amendment": "(e) confirmInTx rewraps a BAD_REQUEST from the reprice as '<SO> holds an approved rate that cannot be priced today (<engine message>); fix the price list or reject the rate request', data { code: 'reprice_failed' }.",
+     "done": true,
+     "how": "New private OrdersService.chargeApprovedRates wraps repriceApprovedBargains and rethrows BAD_REQUEST with that exact sentence, data { code: 'reprice_failed' } and `cause`; other errors pass through. A new spec switches the fixture price list off before the bargain decision. It asserts the 400, the exact sentence ('No price for variant … (line …)' inside) and the code, then that the gate is still pending, the request still requested, the order still submitted at 13400 with its line unchanged, and nothing reserved."
+    }
+   ],
+   "deviations": "1. The spec's local `Line` type did not get `updatedAt`, because OrderLineSchema has no updatedAt and the reply would never carry it. Test 6 reads `updated_at::text` from the database instead (microsecond precision). `discountBps` was added to the type for the charged-line assertion.\n2. Added a ninth test (orders.spec) for amendment (e), which the verdict's \"what the verifier must prove\" requires. The plan lists eight.\n3. The failing tests were not committed separately. STEP 4 prescribes one commit, so the failing output is kept in the scratchpad (dos126-orders-before.txt, dos126-trap.txt) and in failBefore.\n4. The lane's command form `pnpm --filter @dos/core test -- <file>` runs the whole core suite under pnpm 11, because the literal `--` makes vitest drop the file and -t filters. It happened once, on the first pre-fix run (36 files, only the 9 new tests failed). Every later run used `pnpm --filter @dos/core exec vitest run <file>`. The last four single-file runs (warehouse, delivery, ai, orders) were separate commands sent concurrently.\n5. Backend `pnpm format` also reformatted pricing.spec.ts, which I never touched. Its DOS-096 test was committed unformatted in 7f7fc8b. I restored the file with `git restore` (my own worktree only) and did not commit it.\n6. repriceApprovedBargains:\n   - The pre-check looks only at lines with qtyPcs > 0, as the engine does.\n   - The quote still receives every stored line, so order-level scheme allocation matches the draft.\n   - A changed line is `{ ...storedLine, ...pricedLineFields(q) }`, so id, lineNo, entered qty/unit, packSizeAtEntry, qtyPcs, picked/delivered and createdAt stay unchanged.\n7. The CONFLICT from the billing guard carries no `data` field; the amendment only asks that it name the order line.\n8. The commit message has two Test: lines (orders and billing), because both halves land in this commit.",
+   "followUps": "1. docs/22 (not edited in this lane):\n   - Record the two founder defaults in §8 beside DOS-126: at confirm, the drafted prices plus any rate approved since the draft and nothing else; a shop's own standalone approved rate is charged on its held order.\n   - Note that this is how §4 \"Server re-prices at the same version\" is read, then §11 change log, render-source-of-truth, and republish.\n2. Verify B, the live walk on the rebuilt dos_qa after merge and Q5, is still to do: SO-A/SO-B, control B.9, the bill, and the rep's view at desk and phone widths. Also view amendment (b) on retailer web :5178; it was only typechecked and linted here.\n3. Backend `pnpm format:check` fails on current main because of pricing.spec.ts (unformatted since 7f7fc8b, DOS-096). It needs a one-line format commit outside this fix.\n4. Fix the lane brief's command template: `pnpm --filter @dos/core test -- <file>` runs the entire core suite under pnpm 11. Use `pnpm --filter @dos/core exec vitest run <file> [-t pattern]`.\n5. `docs:readme:check` was not run. There is no contract change, so no README should move.\n6. Architect's new findings, not fixed here:\n   - P2: bargains.service never writes expires_at, so an API-filed standalone approved rate applies to that shop's item forever.\n   - P3: two stored conventions for a bargained order line (API vs seed); every reader must use line_total − tax. One convention plus a backfill.\n   - P3: dos_qa holds a confirmed order with no number from a direct insert.\n7. The six walker orders in dos_qa (SO-0897, 0899, 0910, 0911, 0914, 0915) are not repaired; the Q5 rebuild replaces them.\n8. When DOS-116 merges, its billing.spec block and this test both append after the same test; resolve the order at merge.\n9. If DOS-082 decides to re-price catalog edits at submit, revisit the draft-date rule in repriceApprovedBargains.",
+   "platformCheck": "API: verified by specs that boot the real Nest app and call it over HTTP with signed tokens:\n- rep, owner and shop paths;\n- Approvals and Rate-requests decisions;\n- submit auto-confirm under the rep, and under asSystem for the shop;\n- warehouse pack issuing the bill;\n- the database state read back directly (lines, header, reservations, OrderConfirmed payload, updated_at).\n\nWeb, Android and iOS: the one frontend change (retailer-app orders/[id].tsx, which only imports @dos/ui) passes typecheck and lint. It was not rendered in a browser or on a device, because this lane does not allow dev servers or emulators. The sales and owner screens read the corrected OrderDetail and invoice fields unchanged. Live checks are left to verify B after merge."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-126",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Build only on the h5 lane after h4 (DOS-096, DOS-074+097) merged: quoteInTx split, pricedLineFields/orderTotals extraction and the line-load move made on the merged files. orders.spec block goes after DOS-115's; billing test rebases on DOS-116's if that lands first.",
+     "satisfied": true,
+     "detail": "h4 merge 7d9ee4e (with 7f7fc8b DOS-096 and eb587b7 DOS-074+097) is in the branch history. In quote.service.ts, quoteInTx carries DOS-096's loadGstBps block unchanged, and quote() is now `withTenant(db, ctx, tx => this.quoteInTx(tx, ctx, input))`. confirmInTx selects the stored lines, runs chargeApprovedRates and the line updates, and only then calls `warehouseLocation(tx)`. pricing-lines.ts exports pricedLineFields and orderTotals, and priceOrderLines uses both. In orders.spec, `describe('DOS-126 …')` is at line 2412, after DOS-115's describe at 2069. In billing.spec, the DOS-126 test is at 1210, right after 'hides this tenant’s bills…' at 1205; DOS-116 is not on the branch."
+    },
+    {
+     "amendment": "(b) retailer-app orders/[id].tsx prints ratePaise × qtyPcs − (lineTotalPaise − taxPaise) instead of line.discountPaise.",
+     "satisfied": true,
+     "detail": "The diff replaces `line.discountPaise > 0 ? · −discountPaise` with `offRate(line) > 0 ? · −offRate(line)`. offRate returns `ratePaise * qtyPcs - (lineTotalPaise - taxPaise)`. Imports are unchanged (@dos/ui, @dos/api-client, expo-router, react). Retailer-app typecheck and lint exit 0. Not rendered: the lane forbids dev servers."
+    },
+    {
+     "amendment": "(c) priceOrderLineGroup: lineDiscount is guarded, not clamped. Below 0 or above rate × qty throws ORPCError CONFLICT naming the order line ('stored line money is inconsistent; not billable').",
+     "satisfied": true,
+     "detail": "invoices.service.ts computes `charged = ratePaise * ordered` and `lineDiscount = charged - (lineTotalPaise - taxPaise)`. It throws `if (lineDiscount < 0 || lineDiscount > charged)` with CONFLICT 'order line <id> (line <n>): stored line money is inconsistent; not billable'. lineDiscount replaces orderLine.discountPaise in the zero test, the full-pack branch and the allocate split. The only other writers of sales_order_lines after draft (fulfilment.ts:290 and :347) set picked/delivered qty only, so no API path breaks the invariant. Read-only SQL on dos_test_b2_h5: the only 16 lines that break it are incentives.spec's hand-inserted fixture (8 lines × 2 runs), with no order number and no bill."
+    },
+    {
+     "amendment": "(d) loadInputs calls the extracted approvedBargainsFor; exactly one inArray(bargainRequests.status remains in pricing; pricing.spec unedited.",
+     "satisfied": true,
+     "detail": "`grep -rn 'inArray(bargainRequests.status' modules/pricing` gives exactly one hit, quote.service.ts:365, inside approvedBargainsFor. loadInputs calls approvedBargainsFor. It is exported from pricing/index.ts, and orders/pricing-lines.ts imports it from '../pricing/index.js'. There are no bargainRequests or bargain_requests references in orders source. pricing.spec.ts is not in the commit's file list and passes 15/15."
+    },
+    {
+     "amendment": "(e) confirmInTx rewraps a BAD_REQUEST from the reprice as '<SO> holds an approved rate that cannot be priced today (<engine message>); fix the price list or reject the rate request', data { code: 'reprice_failed' }.",
+     "satisfied": true,
+     "detail": "OrdersService.chargeApprovedRates catches `ORPCError && code === 'BAD_REQUEST'` and rethrows BAD_REQUEST with `${orderNo ?? id} holds an approved rate that cannot be priced today (${err.message}); fix the price list or reject the rate request`, data {code:'reprice_failed'} and the cause. Every other error propagates (GST INTERNAL_SERVER_ERROR included). The new spec deactivates the price lists before the decision and asserts the 400, the exact sentence, the code, and the rollback: gate pending, request requested, order submitted at 13400, line unchanged, 0 reserved. It failed at the reversed state (200 instead of 400) and passes with the fix."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/orders/orders.spec.ts",
+     "detail": "Plan verify A.2 and the verdict ask for the failing tests to be committed before the fix. They landed together with the fix in c58a256. Process only: I proved every new test fails by reversing the non-test changes."
+    },
+    {
+     "severity": "minor",
+     "file": "frontend/retailer-app/app/orders/[id].tsx",
+     "detail": "Amendment (b) is only typechecked and linted. The verdict's live check (retailer web :5178 on <SO-A>: ₹45.54 with no '−₹135.12') is still owed in verify B after merge."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/billing/invoices.service.ts",
+     "detail": "No spec triggers the new CONFLICT guard from amendment (c). The verdict accepts proof by diff, so this is not required, but a new refusal on the bill path has no test. The implementer reports 14 inconsistent lines in the lane DB; I counted 16 (incentives.spec fixture: 8 lines × 2 runs, no order number, no bill)."
+    },
+    {
+     "severity": "minor",
+     "file": "backend/libs/core/src/modules/pricing/pricing.spec.ts",
+     "detail": "Workspace-wide `pnpm format:check` would fail on pricing.spec.ts. That file was last touched in 7f7fc8b (DOS-096) and is not in this commit; the 8 touched files pass prettier --check. docs:readme:check was not run; the commit touches no contracts file, so README inputs are unchanged."
+    }
+   ],
+   "evidence": "Worktree: .claude/worktrees/b2-h5-orders, branch qa/b2-h5-orders, HEAD c58a256, DB dos_test_b2_h5.\n\n1. Scope. `git show --stat` lists 8 files: quote.service.ts, pricing/index.ts, pricing-lines.ts, orders.service.ts, invoices.service.ts, orders.spec.ts, billing.spec.ts and retailer-app orders/[id].tsx. That is the plan's 7 plus amendment (b). No contracts, permissions, schema, migrations, READMEs, QA/ or docs changes.\n\n2. Fail before. I ran `git diff C^ C` with the spec/test/lockfile/package.json exclusions piped to `git apply -R`; no lib rebuild was needed, since core specs run from src.\n   - `vitest run orders.spec.ts -t DOS-126`: 8 failed / 33 skipped (scratchpad/v-orders-before.txt).\n     - Header: discount 0, tax 1440, roundOff −40, total 13400 (expected 1200 / 1296 / +4 / 12100).\n     - Test 6 line: rate 1000, discount 0, bps 0, tax 1440, line_total 13440, priceLocked false.\n     - Amendment (e) test: 200 instead of 400.\n   - `vitest run billing.spec.ts -t DOS-126`: 1 failed (v-billing-before.txt). Bill line discount 2400, taxable 19200, cgst/sgst 1152, lineTotal 21504 (expected 0 / 21600 / 1296 / 24192).\n   - `git checkout -- .` restored the tree; `git status` was empty.\n\n3. Transaction trap (verify A.3). I used sed to swap `quotes.quoteInTx(tx, ctx, {` for `quotes.quote({` in pricing-lines.ts and ran `-t 'credit gate first|only gate'`. Tests 2 and 4 failed again with discount 0 / tax 1440 / roundOff −40 / total 13400 (v-trap.txt). I reverted with `git checkout` and confirmed by grep: line 279 is quoteInTx again.\n\n4. After, whole files with the fix, one per command:\n   - orders.spec 41/41\n   - billing.spec 22/22\n   - pricing.spec 15/15\n   - warehouse.spec 41/41\n   - delivery.spec 25/25\n   - ai.spec 30/30\n\n5. Static checks:\n   - `pnpm --filter @dos/core typecheck`: exit 0.\n   - `pnpm --filter @dos/core lint`: exit 0 (only the boundaries-plugin selector warning).\n   - `pnpm --filter @dos/retailer-app typecheck` and `lint`: both exit 0.\n   - prettier --check on all 8 touched files: clean.\n\n6. Diff review:\n   - No existing assertion edited. orders.spec changes only the import line (adds and, inArray), adds 3 fields to the local Line type, and appends the block; billing.spec only appends. testsCorrected is empty.\n   - Boundaries: orders reaches pricing only through index.ts, and lint passes.\n   - Money stays integer paise; state still moves through transition(); no new mutation endpoint; the line update runs on the caller's withTenant tx, and the shop path stays under the existing asSystem.\n   - The reservation uses the merged lines. recordTransition, emitOrderEvent and the reply get the header row as returned with the new totals, and the spec asserts OrderConfirmed totalPaise 12100 and 14900.\n   - Sync maps ORPCError 4xx to sync_errors (sync.service.ts:137), and no sync handler calls submit or confirm.\n   - The other discount readers are the manual/brand-DMS invoice path (excluded by the plan) and receivables receipt lines, so no named sibling path keeps the double deduction.\n   - OrderLineSchema has no updatedAt (0 matches in contracts orders.ts), which proves deviation 1.\n\n7. Final `git status --short` prints nothing; HEAD is still c58a256."
+  }
+ ]
+}

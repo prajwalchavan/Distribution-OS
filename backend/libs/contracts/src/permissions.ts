@@ -315,14 +315,32 @@ const INCENTIVE_READERS = [
 ] as const satisfies readonly MembershipRole[]
 
 /**
+ * Who places an order: creates one (repeating a shop's last order included), re-lines a draft, submits
+ * it and cancels one (docs/22 §8, founder decision 2026-09-13, QA DOS-115). The desk that runs the
+ * distributorship, the rep — whose order procedures reach only the orders credited to it (DOS-073) — and
+ * the shop, forced to its own. The godown and the crew take no order: the crew's van sale goes through
+ * `delivery.vanSales.create` (DOORSTEP), which drafts, prices and confirms server-side. The accountant
+ * takes none either — its write scope is the money desk (docs/22 §8, 2026-09-05) — the architect's
+ * default, which the founder may reverse by adding that one role here. `orders.get/list` stay
+ * ANY_MEMBER. The device-upload doors on `sales_orders` / `sales_order_lines` follow the same rule
+ * (orders.sync.ts), and the core copy in orders.internals.ts is pinned to this tuple by orders.spec.ts.
+ */
+const ORDER_PLACERS = [
+  'owner',
+  'manager',
+  'salesperson',
+  'retailer',
+] as const satisfies readonly MembershipRole[]
+
+/**
  * Who may turn a message or a voice note into a DRAFT order and confirm one into a real order (docs/22
  * §8, 2026-09-05: the AI features are all in v1). The desk that runs the distributorship, the rep whose
  * shops they are — narrowed by the handler to the shops on its own beats — and the shop itself, forced
- * to its own `retailerId`. The four roles that already reach `orders.create` in practice, and no wider:
- * confirming a draft creates the order through `orders.create/setLines/submit`, so this tuple can only
- * ever be a NARROWING of `orders.*` (ANY_MEMBER), never a second, softer way in. The accountant is
- * absent — a draft order is not a money-desk write (docs/22 §8, 2026-09-05: no prices, no approvals) —
- * and so are the godown and the crew, neither of which takes an order.
+ * to its own `retailerId`. The same four roles as ORDER_PLACERS today, and never wider: confirming a
+ * draft creates the order through `orders.create/setLines/submit`, so this tuple can only ever be a
+ * NARROWING of ORDER_PLACERS, never a second, softer way in. Declared apart on purpose: the two will
+ * drift. The accountant is absent — a draft order is not a money-desk write (docs/22 §8, 2026-09-05: no
+ * prices, no approvals) — and so are the godown and the crew, neither of which takes an order.
  */
 const DRAFT_ORDER_TAKERS = [
   'owner',
@@ -551,18 +569,22 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'procurement.purchaseOrders.upsert': MANAGEMENT,
   'procurement.purchaseOrders.list': BACK_OFFICE,
 
-  // Orders. A shopkeeper may place, SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the
-  // approvals a submit raises stay invisible to the shop), read and cancel its own; the owner and the
-  // manager confirm (it reserves stock) and decide approvals — an approval is a decision the accountant
-  // does not take (docs/22 2026-09-05); the accountant reads the queue.
-  'orders.create': ANY_MEMBER,
-  'orders.setLines': ANY_MEMBER,
-  'orders.repeatLast': ANY_MEMBER,
-  'orders.submit': ANY_MEMBER,
+  // Orders. Placing, re-lining, repeating, submitting and cancelling are ORDER_PLACERS (DOS-115): the
+  // desk, the rep and the shop — never the godown, the crew or the accountant. A shopkeeper may place,
+  // SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the approvals a submit raises stay
+  // invisible to the shop), read and cancel its own; the owner and the manager confirm (it reserves
+  // stock) and decide approvals — an approval is a decision the accountant does not take (docs/22
+  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`, and
+  // `lastPlaced`, the shop's newest placed order that "Order again" repeats — DOS-098).
+  'orders.create': ORDER_PLACERS,
+  'orders.setLines': ORDER_PLACERS,
+  'orders.repeatLast': ORDER_PLACERS,
+  'orders.submit': ORDER_PLACERS,
   'orders.confirm': MANAGEMENT,
-  'orders.cancel': ANY_MEMBER,
+  'orders.cancel': ORDER_PLACERS,
   'orders.get': ANY_MEMBER,
   'orders.list': ANY_MEMBER,
+  'orders.lastPlaced': ANY_MEMBER,
   'orders.approvals.list': BACK_OFFICE,
   'orders.approvals.decide': MANAGEMENT,
 
@@ -673,7 +695,10 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
   // Five populations, one new tuple:
   //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
-  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop. The planning board
+  //    (`trips.planning`, QA DOS-131) is read by whoever builds the load — ROLE_GROUPS.STOCK_KEEPERS, the
+  //    same three as `warehouse.loadSheets.create`; the crew plans only its own van day and never reads
+  //    the board, and the accountant does not plan.
   //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
   //    consent, the departure (`trips.depart`: the crew or the desk, never the godown, QA DOS-043) and
   //    the check-in (`trips.return`).
@@ -699,6 +724,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.create': TRIP_PLANNERS,
   'delivery.trips.list': STOCK_VIEWERS,
   'delivery.trips.get': STOCK_VIEWERS,
+  'delivery.trips.planning': ROLE_GROUPS.STOCK_KEEPERS,
   'delivery.trips.startLoading': TRIP_PLANNERS,
   'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,
@@ -979,8 +1005,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // calls `routing.apply`. Three populations:
   //  * DRAFT_ORDER_TAKERS (new) read a message or a voice note into a draft and confirm it: the owner,
   //    the manager, the rep for its own shops and the shop for itself. `drafts.confirm` runs
-  //    `orders.create → setLines → submit`, all ANY_MEMBER, so this tuple is a NARROWING of the ordering
-  //    surface and never a widening. The accountant, the godown and the crew take no orders.
+  //    `orders.create → setLines → submit`, all ORDER_PLACERS (DOS-115), so this tuple is a NARROWING of
+  //    the ordering surface and never a widening. The accountant, the godown and the crew take no orders.
   //  * The buying desk forecasts: `forecast.run` is BACK_OFFICE (it enqueues a worker pass over the
   //    tenant's history), `forecast.list` is BACK_OFFICE_OR_WAREHOUSE — the godown reads what is about to
   //    run out where it stands. The suggestion carries pieces, days of cover and a supplier and NO

@@ -42,6 +42,7 @@ export async function createServiceApp(
     options.logger === false ? { logger: false } : {},
   )
   registerStorageBodyParsers(app)
+  registerSyncUploadBodyLimit(app)
   app.enableCors(corsOptions(env))
   app.enableShutdownHooks()
   return app
@@ -53,6 +54,30 @@ export async function createServiceApp(
  * that much; every oRPC body is JSON and kilobytes.
  */
 export const STORAGE_BODY_LIMIT_BYTES = 26 * 1024 * 1024
+
+/**
+ * The largest body `POST /sync/upload` accepts (DOS-056). A phone that was out of signal all day sends
+ * its doorstep writes with their proof photos inline (docs/27 §15), so this route carries more than a
+ * JSON call; the device keeps each batch under 4 MiB (docs/27 §6), and one op over 1 MiB becomes a
+ * `row_too_large` rejection in the tray rather than a 413 (docs/22 never-list #8).
+ */
+export const SYNC_UPLOAD_BODY_LIMIT_BYTES = 8 * 1024 * 1024
+
+/**
+ * Gives the sync upload route its own body limit. Fastify enforces a route's `bodyLimit` while it reads
+ * the body, so it is set on the route as Nest registers it — which is why this runs before
+ * `app.init()`, here and in the spec harness (`testing/app.ts`).
+ */
+export function registerSyncUploadBodyLimit(app: NestFastifyApplication): void {
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRoute', (route) => {
+      const methods = Array.isArray(route.method) ? route.method : [route.method]
+      if (route.url === '/sync/upload' && methods.includes('POST'))
+        route.bodyLimit = SYNC_UPLOAD_BODY_LIMIT_BYTES
+    })
+}
 
 /**
  * Fastify parses `application/json` and `text/plain` and refuses every other content type with 415.

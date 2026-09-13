@@ -127,12 +127,13 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | POST | `/procurement/discrepancies/{id}/resolve` | Decide a gate-count finding: accepted, claimed, credited or written off (owner/manager) | owner, manager |
 | POST | `/procurement/purchase-orders` | Create or update a purchase order | owner, manager, accountant |
 | GET | `/procurement/purchase-orders` | Purchase orders | owner, manager, accountant |
-| POST | `/orders` | Create a priced draft order | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders` | Create a priced draft order | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/lines` | Replace the lines of a draft and re-price it | owner, manager, salesperson, retailer |
+| POST | `/orders/repeat-last` | Draft a repeat of the retailer's last order, re-priced today | owner, manager, salesperson, retailer |
+| POST | `/orders/{id}/submit` | Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft) | owner, manager, salesperson, retailer |
 | POST | `/orders/{id}/confirm` | Confirm and reserve stock (back office) | owner, manager |
-| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/orders/{id}/cancel` | Cancel an order and release its reservations | owner, manager, salesperson, retailer |
+| GET | `/orders/last-placed` | The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders/{id}` | One order with lines, transitions and approvals | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/orders` | Orders (a retailer or a salesperson sees only its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/approvals` | Approval queue (back office) | owner, manager, accountant |
@@ -211,6 +212,7 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/delivery/consents` | The current location consent of the caller (or of a driver, for the desk) | owner, manager, delivery |
 | POST | `/delivery/trips` | Plan a trip with its stops | owner, manager, warehouse, delivery |
 | GET | `/delivery/trips` | Trips (the crew sees only its own) | owner, manager, accountant, warehouse, delivery |
+| GET | `/delivery/trip-planning` | Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk) | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |

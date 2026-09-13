@@ -92,7 +92,8 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 
 - `enqueue({ table, id, op, data, baseUpdatedAt })` writes the outbox row AND applies the change locally in the same transaction
   (`_pending='queued'`). The screen shows the order at once, marked as waiting.
-- Uploader: one batch in flight at a time; FIFO by `seq`; ≤ 50 ops per batch; `sync.upload({ deviceId, protocol, ops })`.
+- Uploader: one batch in flight at a time; FIFO by `seq`; ≤ 50 ops and ≤ 4 MiB of op JSON per batch (an op larger than that
+  goes on its own; DOS-056, §15); `sync.upload({ deviceId, protocol, ops })`.
   Ops keep their order inside the batch so a `sales_order_lines` op follows its `sales_orders` op.
 - On 2xx: for each op, `applied` → `acked` and `_pending=NULL`; `rejected` → `rejected`, `_pending='rejected'`, the rejection mirrored
   into `_sync_errors`, and the row kept (never silently dropped). `stale` (LWW veto) additionally re-pulls that row and offers the
@@ -101,7 +102,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   endpoint never answers 4xx by design; a 4xx therefore means a broken token → refresh once, then surface a sign-in prompt, never
   drop the queue.
 - `protocol_unsupported` → stop uploading and show "Update the app". `unknown_table` → mark rejected with that code (app newer
-  than server); keep the row.
+  than server); keep the row. `role_not_allowed` (the signed-in role may not make the change that table stands for online, checked
+  against `PERMISSIONS` before any handler runs), `not_permitted` (a database policy refused this actor) and `row_too_large` (one
+  op over 1 MiB of JSON, §15) → mark rejected with the server's sentence in the tray; keep the row, never retry it (DOS-166,
+  DOS-056).
 - Queue survives restarts (it is a table). A pending count and the oldest queued time feed the status object.
 
 ## 7. Conflict rules
@@ -204,6 +208,26 @@ outbox after confirming nothing is queued; if something is queued, the user is t
 
 ## 15. What this does not do (yet)
 
-No push-driven "sync hint" (pull is timer + event driven), no attachment queue beyond `pod_evidence`/`document_pages` object keys
-(photos upload through `files` signed URLs before their op is enqueued; an op whose file failed to upload stays `queued` with the
-reason "photo not uploaded yet"), no peer-to-peer or multi-user device. Each is a docs/25 item.
+No push-driven "sync hint" (pull is timer + event driven), no separate attachment queue, no peer-to-peer or multi-user device.
+Each is a docs/25 item.
+
+**Proof of delivery with no signal (DOS-056, approved 2026-09-13).** A photo does not wait for a signal of its own:
+
+- **With a signal** the proof goes through `files` signed URLs: `files.uploadUrl`, the PUT, then only the `objectKey` travels on
+  `deliveries.record`.
+- **With no answer from the office**, D4 saves ONE `deliveries` op to the outbox carrying its lines and its proof INLINE
+  (`pod[].inline = { mimeType, contentBase64 }`). That covers the phone that knows it is offline and the call that never got a reply:
+  a browser `TypeError`, the 20 s deadline, or Expo's native `FetchError` ('fetch failed: …', which `@dos/api-client` reads as
+  `network`). A call the office answered with a refusal is never queued. If the PUT already landed and only the record call lost its
+  reply, the op carries that `objectKey` and no bytes.
+- **Size.** The camera module squeezes the proof to ≤ 300 KB of JPEG before anything is queued (`camera.photograph({ maxBytes })`),
+  about 400 KB as base64, under `InlineFileInput`'s 700 000-character cap. The uploader keeps a batch ≤ 4 MiB (§6);
+  `POST /sync/upload` takes a body up to 8 MiB; an op over 1 MiB is refused `row_too_large` into `sync_errors`, 2xx like every other
+  refusal and never a 413.
+- **On the server** the `deliveries` handler stores the inline bytes through the files platform inside the op's transaction (object
+  storage plus a `file_objects` row, keyed on the delivery the stop completes), and `pod_evidence` holds only the object key. No
+  base64 is kept in any row, so no pull ever carries a photo back to a phone.
+- **A lost reply** after the office committed leaves a second op, which the LWW veto refuses `stale`: no double delivery, and the
+  crew throws the refusal away from the tray.
+
+This is the one bounded exception to docs/20 rule 15 (nothing binary passes through a service), on the no-signal path only.

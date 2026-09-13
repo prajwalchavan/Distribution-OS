@@ -92,12 +92,25 @@ export default function Today(): React.JSX.Element {
    * exact. `receipts.list` answers `totals` for the WHOLE filtered set whatever the page size
    * (measured: limit 5 and limit 200 return the same `countedPaise`), so each mode is its own read
    * and each figure is the service's own total.
+   *
+   * Only money the office holds (`withCrew: false`, DOS-132): the same inputs and keys as Day-end, which
+   * these tiles link to, so both screens show the same figures and leave out a crew's unsettled trip money.
    */
-  const cashInHandQuery = useQuery(['receipts', 'collected', 'cash'], () =>
-    api.api.receivables.receipts.list({ status: 'collected', mode: 'cash', limit: 200 }),
+  const cashInHandQuery = useQuery(['receipts', 'collected', 'cash', 'office'], () =>
+    api.api.receivables.receipts.list({
+      status: 'collected',
+      mode: 'cash',
+      withCrew: false,
+      limit: 200,
+    }),
   )
-  const chequesQuery = useQuery(['receipts', 'collected', 'cheque'], () =>
-    api.api.receivables.receipts.list({ status: 'collected', mode: 'cheque', limit: 200 }),
+  const chequesQuery = useQuery(['receipts', 'collected', 'cheque', 'office'], () =>
+    api.api.receivables.receipts.list({
+      status: 'collected',
+      mode: 'cheque',
+      withCrew: false,
+      limit: 200,
+    }),
   )
   const windows = useQuery(['cashDiscounts', 'open'], () =>
     api.api.receivables.cashDiscounts.list({ status: 'open', limit: 20 }),

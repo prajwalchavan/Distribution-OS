@@ -65,6 +65,11 @@ export class DeliveryController {
     return implement(d.trips.list).handler(({ input }) => this.trips.list(input))
   }
 
+  @Implement(d.trips.planning)
+  tripPlanning(@OwnsReply() _reply: unknown) {
+    return implement(d.trips.planning).handler(({ input }) => this.trips.planning(input))
+  }
+
   @Implement(d.trips.get)
   getTrip(@OwnsReply() _reply: unknown) {
     return implement(d.trips.get).handler(({ input }) => this.trips.get(input))
