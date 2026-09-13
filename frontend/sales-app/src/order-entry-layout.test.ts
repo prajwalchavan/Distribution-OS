@@ -66,3 +66,24 @@ describe('S3 order entry: the catalog row on Android and iOS', () => {
     expect(buttons[0]).toMatch(/fullWidth=\{false\}/)
   })
 })
+
+/**
+ * DOS-128 (web, 390×844) / DOS-147 (Android): with the "N cs available" chip shown, the trailing
+ * `<Row>` beside the growing name column carried BOTH the chip and "Add a case", 142–166 px plus
+ * 115 px on a 356 px row — leaving 32–56 px for the item name. Below desk width the chip must move
+ * onto the meta line ("Campa · 24 pc case · 18 cs") so the trailing row holds only the button.
+ */
+describe('S3 order entry: SuggestionRow keeps the name column wide below desk width (DOS-128, DOS-147)', () => {
+  it('reads the viewport and, off desk, folds availability into the meta line instead of a second trailing chip', async () => {
+    const code = withoutComments(suggestionRowSource(await readScreen()))
+
+    // Below the desk breakpoint the row must know it — a fixed layout cannot fix a width regression.
+    expect(code).toContain('useViewport()')
+
+    // The availability figure feeds the meta line ("brand · N pc case · N cs") off desk...
+    expect(code).toMatch(/metaParts\.push\(availabilityLabel\)/)
+
+    // ...so the trailing StatusChip is desk-only, not shown beside "Add a case" on every viewport.
+    expect(code).toMatch(/!phone[\s\S]{0,80}<StatusChip/)
+  })
+})

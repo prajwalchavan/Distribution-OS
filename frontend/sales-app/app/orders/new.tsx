@@ -40,6 +40,7 @@ import {
   Txt,
   useColors,
   useStrings,
+  useViewport,
 } from '@dos/ui'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
@@ -537,6 +538,13 @@ function describeScheme(
   return parts.join(' · ')
 }
 
+/**
+ * Off desk, the availability chip moves onto the meta line and the trailing row keeps only the
+ * button (DOS-128 web 390×844, DOS-147 Android): with the chip AND the button both beside the
+ * growing name column, the trailing group ran 142–166 px plus 115 px on a 356 px row, leaving the
+ * name 32–56 px — "Camp / Col…" beside "Cam…". At desk width the row is unchanged: the chip still
+ * sits beside "Add a case", where a mouse-driven register has the room for it.
+ */
 function SuggestionRow({
   item,
   available,
@@ -548,6 +556,13 @@ function SuggestionRow({
 }): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
+  const phone = useViewport().kind !== 'desk'
+  const availabilityLabel =
+    available === undefined
+      ? null
+      : t('qty.available', { cases: Math.floor(available / Math.max(1, item.caseSize)) })
+  const metaParts = [item.brandName, t('s3.caseOf', { pieces: item.caseSize })]
+  if (phone && availabilityLabel !== null) metaParts.push(availabilityLabel)
   return (
     <Row
       gap={3}
@@ -562,22 +577,18 @@ function SuggestionRow({
         <Txt field="bodyStrong" desk="cell" numberOfLines={2}>
           {item.name}
         </Txt>
-        <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
-          {[item.brandName, t('s3.caseOf', { pieces: item.caseSize })]
-            .filter((part) => part !== null && part !== '')
-            .join(' · ')}
+        <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={phone ? 2 : 1}>
+          {metaParts.filter((part) => part !== null && part !== '').join(' · ')}
         </Txt>
       </Stack>
       <Row gap={2} align="center">
-        {available === undefined ? null : (
+        {!phone && availabilityLabel !== null ? (
           <StatusChip
-            label={t('qty.available', {
-              cases: Math.floor(available / Math.max(1, item.caseSize)),
-            })}
+            label={availabilityLabel}
             family={available === 0 ? 'brick' : 'neutral'}
             figure
           />
-        )}
+        ) : null}
         {/*
          * `fullWidth={false}` on purpose, as in warehouse-app/app/pick/index.tsx: an inline row action
          * sizes to its label. A kit `<Button>` fills its parent by default, and on native that
