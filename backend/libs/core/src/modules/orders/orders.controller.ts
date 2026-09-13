@@ -46,6 +46,14 @@ export class OrdersController {
     return implement(contract.orders.cancel).handler(({ input }) => this.orders.cancel(input))
   }
 
+  // Registered before `get` on purpose: GET /orders/last-placed is a static path beside GET /orders/{id} (DOS-098).
+  @Implement(contract.orders.lastPlaced)
+  lastPlaced(@OwnsReply() _reply: unknown) {
+    return implement(contract.orders.lastPlaced).handler(({ input }) =>
+      this.orders.lastPlaced(input),
+    )
+  }
+
   @Implement(contract.orders.get)
   get(@OwnsReply() _reply: unknown) {
     return implement(contract.orders.get).handler(({ input }) => this.orders.get(input))

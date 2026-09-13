@@ -10,11 +10,12 @@
  * are deliberately NOT fetched: reading them would mean switching the session behind the reader's
  * back, three times, on the screen that opens the app.
  *
- * "REORDER IN 2 TAPS" (docs/23 §6). Tap one is "Order again", which calls `orders.repeatLast` — the
- * server copies the shop's last non-cancelled order and RE-PRICES it today, so the shop never carries
- * yesterday's rate. Tap two is "Place order" on the editor it opens.
+ * "REORDER IN 2 TAPS" (docs/23 §6). Tap one is "Order again", which opens the order screen on the basket
+ * of the shop's most recently PLACED order — whoever placed it, never a draft — RE-PRICED today, so the
+ * shop never carries yesterday's rate, and writes nothing (`orders.lastPlaced`, DOS-098). Tap two is
+ * "Place order" on that screen.
  */
-import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import {
   Box,
   Button,
@@ -33,6 +34,7 @@ import {
   useColors,
   useStrings,
 } from '@dos/ui'
+import { uuidv7 } from '@dos/domain'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
@@ -115,23 +117,6 @@ export default function Home(): React.JSX.Element {
   )
 
   const [switching, setSwitching] = useState<string | null>(null)
-  const [repeatError, setRepeatError] = useState<string | null>(null)
-
-  /**
-   * Tap one of the two-tap reorder. `repeatLast` needs a client-generated id for the NEW draft, and
-   * `useMutation` hands both that id and the idempotency key: a double tap on a slow connection
-   * reuses them and cannot leave two drafts behind.
-   */
-  const repeat = useMutation(
-    (_input: { retailerId: string }, meta) =>
-      api.api.orders.repeatLast({
-        id: meta.id,
-        idempotencyKey: meta.idempotencyKey,
-        retailerId: _input.retailerId,
-        source: 'retailer_app',
-      }),
-    { invalidates: [['orders']] },
-  )
 
   const summary = dues.data
   const bill = [...(lastBill.data?.items ?? [])].sort(
@@ -141,19 +126,15 @@ export default function Home(): React.JSX.Element {
   const memberships = session?.memberships ?? []
   const openTenantId = session?.tenant.id ?? ''
 
+  /**
+   * Tap one of the two-tap reorder (DOS-098). It opens the order screen on the basket of the shop's most
+   * recently placed order and writes nothing; tap two, "Place order", sends it. Every tap carries its own
+   * `repeat` id, so it is a fresh read of the last placed order whether expo-router remounts the order
+   * screen or only changes its params, and no tap can leave a draft behind.
+   */
   const orderAgain = (): void => {
     if (retailerId === null) return
-    setRepeatError(null)
-    void repeat.mutateAsync({ retailerId }).then(
-      (result) => {
-        router.push(`/order?orderId=${result.item.id}`)
-      },
-      (error: unknown) => {
-        setRepeatError(
-          error instanceof Error && error.message !== '' ? error.message : t('r7.repeatFailed'),
-        )
-      },
-    )
+    router.push(`/order?repeat=${uuidv7()}`)
   }
 
   return (
@@ -182,7 +163,6 @@ export default function Home(): React.JSX.Element {
               <Button
                 label={t('r2.orderAgain')}
                 variant="primary"
-                loading={repeat.status === 'pending'}
                 onPress={orderAgain}
                 testID="r2-order-again"
               />
@@ -286,16 +266,6 @@ export default function Home(): React.JSX.Element {
                   {`${t('r2.lastPaid')}: ${formatMoney(summary.lastReceiptPaise ?? 0)} · ${instantWithClock(
                     summary.lastReceiptAt,
                   )}`}
-                </Txt>
-              )}
-              {repeatError === null ? null : (
-                <Txt
-                  field="body"
-                  desk="body"
-                  color={colors.status.brick.fg}
-                  testID="r2-repeat-error"
-                >
-                  {repeatError}
                 </Txt>
               )}
 

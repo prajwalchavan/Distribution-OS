@@ -125,7 +125,7 @@ export class GrnService {
 
   /** Expected pieces per line = billed + free. One live GRN per invoice. */
   async open(input: OpenIn): Promise<OpenOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -302,7 +302,7 @@ export class GrnService {
    * GRN number, GRN `posted`, invoice `received`. Re-posting a posted GRN returns it unchanged.
    */
   async post(input: PostIn): Promise<PostOut> {
-    requireRole(BACK_OFFICE)
+    requireRole(MANAGEMENT)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

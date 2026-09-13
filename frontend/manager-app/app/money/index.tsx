@@ -147,7 +147,9 @@ export default function Receipts(): React.JSX.Element {
    * Banking one receipt and returning a bounced cheque: the per-receipt half of Day-end, and the only
    * place a cheque that is ALREADY banked can be returned (Day-end lists what is still in hand). The
    * buttons ask the server's own rules (`receiptMayBeDeposited`, `receiptMayBounce` in @dos/domain), and a
-   * refusal stays in its dialog in the server's words instead of closing it.
+   * refusal stays in its dialog in the server's words instead of closing it. Bank it also waits for the
+   * trip: a receipt a crew took on a trip that is not settled yet reads `withCrew: true` from
+   * `receipts.get`, and the server refuses to bank it until the trip's cash is handed over (DOS-132).
    */
   const deposit = useMutation(
     (input: { receiptId: string; ref: string }, meta) =>
@@ -320,8 +322,10 @@ export default function Receipts(): React.JSX.Element {
                 <Button
                   label={t('m9.deposit')}
                   variant="primary"
-                  disabled={!receiptMayBeDeposited(receipt)}
-                  disabledReason={t('m9.notBankable')}
+                  disabled={!receiptMayBeDeposited(receipt) || detail.data?.withCrew === true}
+                  disabledReason={
+                    detail.data?.withCrew === true ? t('m9.withCrew') : t('m9.notBankable')
+                  }
                   onPress={() => {
                     deposit.reset()
                     setDepositing(true)

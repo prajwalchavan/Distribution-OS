@@ -49,6 +49,7 @@ export {
   handleNotificationEvent,
   queueDeliveryToday,
   queueDuesReminders,
+  queueStatement,
   asTenantSystem,
   type NotificationEvent,
   type NotificationEventType,

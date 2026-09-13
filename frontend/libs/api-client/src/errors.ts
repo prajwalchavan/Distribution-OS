@@ -90,6 +90,17 @@ function isAbort(err: unknown): boolean {
   return err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')
 }
 
+/**
+ * Expo's native global `fetch` — expo/fetch, installed on Android and iOS by
+ * `expo/src/winter/runtime.native.ts:52` — rejects a refused, unreachable, TLS-failed or aborted
+ * request (the 20 s deadline included) with `FetchError`: its message always starts 'fetch failed: '
+ * and its `name` stays 'Error'. A release build may also mangle the class name, so the message
+ * prefix is the mark, never the class (DOS-056, DOS-156).
+ */
+function isNativeFetchFailure(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith('fetch failed')
+}
+
 /** `FORBIDDEN`, `Forbidden`, `Bad Request`, `BAD_REQUEST` — the same machine word, four spellings. */
 function sameWord(a: string, b: string): boolean {
   const flat = (s: string): string => s.toLowerCase().replace(/[\s_-]+/g, '')
@@ -152,6 +163,9 @@ export function toApiError(err: unknown): ApiError {
     })
   }
   if (isAbort(err)) {
+    return new ApiError({ kind: 'network', message: DEFAULT_MESSAGE.network, cause: err })
+  }
+  if (isNativeFetchFailure(err)) {
     return new ApiError({ kind: 'network', message: DEFAULT_MESSAGE.network, cause: err })
   }
   if (err instanceof TypeError) {

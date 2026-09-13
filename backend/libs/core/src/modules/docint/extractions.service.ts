@@ -15,6 +15,7 @@ import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../pla
 import {
   asCaller,
   DESK,
+  DESK_WRITERS,
   loadDetail,
   loadDocumentOr404,
   lockDocument,
@@ -54,7 +55,7 @@ export class ExtractionsService {
    * document that already has a reading.
    */
   async run(input: RunIn): Promise<RunOut> {
-    requireRole(DESK)
+    requireRole(DESK_WRITERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>

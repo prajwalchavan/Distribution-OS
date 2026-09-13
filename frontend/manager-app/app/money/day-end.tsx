@@ -13,7 +13,9 @@
  *     counts what was actually handed over; a difference beyond the tenant's own tolerance is not
  *     something this screen may wave through, so `acceptVariance` raises an approval for the owner.
  *  3. THE CASH GOES TO THE BANK. The register underneath lists only what a desk can carry to the
- *     bank: cash and cheques still `collected` (`receiptMayBeDeposited`, the server's own rule).
+ *     bank: cash and cheques still `collected` (`receiptMayBeDeposited`, the server's own rule) that
+ *     the office actually holds (`withCrew: false`). Money a delivery crew took on a trip appears
+ *     once that trip is settled — settling one above brings its cash and cheques into the register.
  *     Ticking rows raises a bar at the foot of the screen, in view however far the register is
  *     scrolled, and banking the batch with the slip number is one call that marks them all.
  *
@@ -95,12 +97,27 @@ export default function DayEnd(): React.JSX.Element {
    * the page. Summing a capped page reported ₹200.00 of cash where the real figure is ₹5,95,381.11 — a
    * partial sum that looks like a total, on the one screen whose whole job is to say how much money is
    * in the drawer.
+   *
+   * Both reads ask for money the OFFICE holds (`withCrew: false`, DOS-132): cash and cheques a crew
+   * took on a trip that is not settled yet are still in the van, so the register, the cheque cards,
+   * the KPIs and the foot leave them out until the trip settles — the server refuses to bank them
+   * anyway. Today's "Cash to bank" and "Cheques due" tiles make the same two reads under the same keys.
    */
-  const cashTotals = useQuery(['receipts', 'collected', 'cash'], () =>
-    api.api.receivables.receipts.list({ status: 'collected', mode: 'cash', limit: 200 }),
+  const cashTotals = useQuery(['receipts', 'collected', 'cash', 'office'], () =>
+    api.api.receivables.receipts.list({
+      status: 'collected',
+      mode: 'cash',
+      withCrew: false,
+      limit: 200,
+    }),
   )
-  const chequeTotals = useQuery(['receipts', 'collected', 'cheque'], () =>
-    api.api.receivables.receipts.list({ status: 'collected', mode: 'cheque', limit: 200 }),
+  const chequeTotals = useQuery(['receipts', 'collected', 'cheque', 'office'], () =>
+    api.api.receivables.receipts.list({
+      status: 'collected',
+      mode: 'cheque',
+      withCrew: false,
+      limit: 200,
+    }),
   )
   const trips = useQuery(
     ['delivery', 'trips', 'closing'],

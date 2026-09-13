@@ -1,0 +1,116 @@
+{
+ "id": "DOS-031",
+ "runs": [
+  "wf_ac1e794b-9d1"
+ ],
+ "implementer": [
+  {
+   "id": "DOS-031",
+   "status": "fixed",
+   "commits": [
+    "dd722a5"
+   ],
+   "failBefore": "Frontend red: review-desk.ts was a stub returning true and documents.tsx was untouched. `pnpm --filter @dos/manager-app exec vitest run src/lib/review-desk.test.ts` gave Tests 3 failed (3), all on assertions:\n- \"DOS-031: Start reviewing is not offered on a reviewed or failed document…\": AssertionError: expected true to be false\n- \"DOS-031: Start reviewing is offered on exactly the statuses review.start accepts…\": AssertionError: uploaded: expected true to be false\n- \"DOS-031: documents.tsx renders the docint-start button only inside a mayStartReview(doc.status) branch\": AssertionError: documents.tsx does not import mayStartReview from ../../src/lib/review-desk: expected '\\nimport type { QueueItem } from '@d…' to match /import\\s*\\{[^}]*\\bmayStartReview…/\n\nBackend red (the verdict's proof): the guard at review.service.ts:91-94 was commented out. Exactly one test failed: \"docint.spec.ts > docint (DATABASE_URL) > DOS-031: review.start refuses a reviewed document with 409 before it takes a lock\", with AssertionError: expected 'document: cannot apply \"start_review\"…' to contain 'can be reviewed'. The status was still 409, but it came from transition() after the session insert, not from the guard.",
+   "passAfter": "Test runs, each on a single file:\n- review-desk.test.ts (verbose reporter): 3 of 3 DOS-031 cases pass, before and after the drift proof.\n- docint.spec.ts: 15 of 15 pass (the file has 15 `it`s, including the new DOS-031 case).\n- integrations.spec.ts: 12 of 12 pass. Extra check only; its `/review` endpoint is the import-row review, not docint.\n\nmanager-app checks:\n- `tsc --noEmit` exit 0.\n- `eslint .` exit 0.\n- `prettier --check` on the three touched frontend files exit 0.\n\nCore checks:\n- `pnpm exec turbo run typecheck lint build --filter=@dos/core`: 6 of 6 tasks pass, including domain, contracts and db builds. The only warnings are the boundaries plugin's existing config deprecations.\n- `prettier --check` on review.service.ts and docint.spec.ts exit 0.\n\nDrift proof: with the `failed` row deleted from REVIEW_START_ACCEPTS, manager-app typecheck fails with TS1360 \"Property 'failed' is missing in type … Record<DocumentStatus, boolean>\". The row was restored and the file checksum matches the pre-proof value (eae9eb69…). Typecheck exit 0 again.\n\n`git status` is clean after commit dd722a5.",
+   "testsAdded": [
+    {
+     "file": "frontend/manager-app/src/lib/review-desk.test.ts",
+     "name": "DOS-031: Start reviewing is not offered on a reviewed or failed document (the two worklist states review.start refuses)"
+    },
+    {
+     "file": "frontend/manager-app/src/lib/review-desk.test.ts",
+     "name": "DOS-031: Start reviewing is offered on exactly the statuses review.start accepts (extracted, needs_review), for every DocumentStatus"
+    },
+    {
+     "file": "frontend/manager-app/src/lib/review-desk.test.ts",
+     "name": "DOS-031: documents.tsx renders the docint-start button only inside a mayStartReview(doc.status) branch"
+    },
+    {
+     "file": "backend/libs/core/src/modules/docint/docint.spec.ts",
+     "name": "DOS-031: review.start refuses a reviewed document with 409 before it takes a lock"
+    }
+   ],
+   "testsCorrected": [],
+   "filesChanged": [
+    "/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h9-desk/frontend/manager-app/src/lib/review-desk.ts",
+    "/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h9-desk/frontend/manager-app/src/lib/review-desk.test.ts",
+    "/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h9-desk/frontend/manager-app/app/inbound/documents.tsx",
+    "/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h9-desk/backend/libs/core/src/modules/docint/review.service.ts",
+    "/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-h9-desk/backend/libs/core/src/modules/docint/docint.spec.ts"
+   ],
+   "amendments": [
+    {
+     "amendment": "(a) Pin the server to the same table: the review.start guard becomes documentMachine.can(doc.status, 'start_review'), with the message and early position kept, plus a docint.spec case on a reviewed document (409, message contains 'can be reviewed').",
+     "done": true,
+     "how": "In review.service.ts, the guard now reads `if (!documentMachine.can(doc.status, 'start_review'))`, with `documentMachine` added to the existing '@dos/domain' import. The message literal is unchanged. The guard stays right after lockDocument and before the stale-session update.\n\nNew docint.spec.ts case, placed directly after the case that ends by asserting status 'reviewed':\n- re-reads the document and asserts it is still 'reviewed';\n- POSTs /docint/documents/${docId}/review with a fresh sessionId and idempotencyKey;\n- asserts 409 and a message containing 'can be reviewed';\n- asserts there is no review_sessions row for the refused id.\n\nIt fails with the guard commented out (the machine's TransitionError message) and passes with the new guard. The client's literal table lives only in the test."
+    },
+    {
+     "amendment": "(b) The screen guard survives pnpm format: comment-stripped source, whitespace-tolerant regexes, testID=\"docint-start\" exactly once, the mayStartReview import present, exactly one <Button between the last mayStartReview(doc.status) and the testID. Never match on line breaks or indentation.",
+     "done": true,
+     "how": "review-desk.test.ts strips block and line comments with the order-entry-layout.test.ts helper, then checks four regexes, all using \\s*:\n- IMPORTS_RULE: the mayStartReview import from '../../src/lib/review-desk'.\n- START_TEST_ID: matched with matchAll; toHaveLength(1).\n- GATE: mayStartReview\\s*\\(\\s*doc\\s*\\.\\s*status\\s*\\), searched before the testID; the last match is used.\n- /<Button\\b/: counted in the slice between that gate and the testID; toHaveLength(1).\n\nNothing matches on newlines or indentation. The test ran green after `pnpm format` and prettier --check passes."
+    },
+    {
+     "amendment": "(c) Absent, not disabled: the Start button renders null outside the gate and is never rendered disabled.",
+     "done": true,
+     "how": "documents.tsx: `{sessionId === null ? (mayStartReview(doc.status) ? (<Button … testID=\"docint-start\" />) : null) : (<>…</>)}`. No `disabled` or `disabledReason` was added. The Button's props are the same, only indented one level deeper. No new strings and no kit change."
+    },
+    {
+     "amendment": "(d) Nothing else in the panel moves: the in-session trio, Match the items again, Book it, Reject, commit() and the header inputs keyed on sessionId stay byte-for-byte.",
+     "done": true,
+     "how": "`git diff` of documents.tsx shows only three changes:\n- one header-comment sentence ('Start reviewing is offered only where the document machine allows `start_review` (DOS-031).');\n- one import line;\n- the Start branch.\n\nPrettier left the `) : (` fragment with Save / This reading is right / Give it up unchanged, and rematch, approve, reject, commit() and the Bill no. / Amount inputs are not in the diff. R1-R4 were not touched."
+    },
+    {
+     "amendment": "(e) Build order: build @dos/domain and @dos/contracts in backend/ before the manager-app spec runs; a module-not-found there is an environment failure, not a red test.",
+     "done": true,
+     "how": "`pnpm exec turbo run build --filter=@dos/domain --filter=@dos/contracts` ran first. Both were cache hits; domain src is unchanged in this chain, and dist/state-machines/document.js exports documentMachine. No module-not-found occurred in any manager-app run. The red failures were all assertions, and review-desk.ts imports documentMachine at runtime without error. The later `turbo run typecheck lint build --filter=@dos/core` rebuilt domain, contracts and db (cache miss) plus core, so the lane's services carry the guard change."
+    }
+   ],
+   "deviations": "1. The server case is its own `it('DOS-031: …')`, placed right after the case that asserts `reviewed`, not new lines inside that case. That keeps the existing test byte-for-byte and gives the case a DOS-031 name. It re-asserts the reviewed precondition and adds a no-write assertion (0 review_sessions rows for the refused id).\n2. The first red-phase runs used `pnpm --filter <pkg> test -- <file>`, and that form ignores the file filter. The backend red run therefore ran the whole @dos/core suite once, with the guard commented out: 36 files, 554 passed, 1 failed (the DOS-031 case). The frontend red run covered both manager-app spec files. Every later run used `pnpm --filter <pkg> exec vitest run <file>`, one file per command.\n3. `pnpm format` in backend/ also rewrote backend/libs/core/src/modules/pricing/pricing.spec.ts. That is existing formatting drift from the merged DOS-096 commit 7f7fc8b. I restored it with `git restore` and did not commit it.\n4. Following amendment (a), the review-desk.ts doc comment says the server reads the same table twice: in its guard and in transition(). The plan's wording was \"equal today to the guard\". review.service.ts also gains a one-line comment above the guard.\n\nNo contract, permission, schema, kit, string, sync or docs change.",
+   "followUps": "- Walks not run in this lane (no dev servers or emulators allowed): the verifier walks A (web desk, web 390x844, Android Pixel_7_API_36 with a uiautomator dump before any press, iOS via `ios-drive.mjs has`), B (web only, lane DB, reload before the BEFORE press) and C, as the verdict describes. They pick rows by chip, not by the dos_qa ids.\n- Workspace-wide checks for the verifier: frontend `pnpm lint && pnpm typecheck && pnpm test && pnpm format:check`, and `@dos/core` tests for the rest of src/modules/docint (pipeline/validators.test.ts was not run; it does not reach the guard).\n- Backend `pnpm format:check` on this branch will flag pricing.spec.ts (drift from 7f7fc8b, DOS-096). The main session should run `pnpm format` there.\n- File as their own ids, per the verdict:\n  - R1: after \"This reading is right\", `done` keeps sessionId, so the in-session trio and the header inputs stay on a Reviewed document.\n  - R2: Start again after Give it up re-sends the spent key; fix with `startReview.reset()`.\n  - R3: Reject is offered on a Failed document; gate it with documentMachine.can(status, 'reject').\n  - R4: Book it is enabled on Extracted / Needs review documents; the server needs `reviewed`.\n  - P3: DOC_FAMILY keys `capturing`, `queued`, `in_review` are not document_status values.\n- After merge, add a QA/13 change-log row. No docs/22 update and no `pnpm docs:readme` needed.",
+   "platformCheck": "Universal Expo screen, frontend/manager-app/app/inbound/documents.tsx:\n- It imports only the existing @dos/ui Button and a pure rule in src/lib/review-desk.ts built on @dos/domain's documentMachine.can.\n- The rule has no platform-specific code, so web, Android and iOS render the same conditional.\n\nVerified here:\n- manager-app tsc and eslint pass, including the renderer-import and hex-colour rules.\n- The source-guard spec pins the gate around the docint-start button.\n\nNot verified here: no browser, Android emulator or iOS simulator walk was run, because the lane forbids starting dev servers, emulators and simulators. The on-device walks (A on web, 390x844, Android and iOS; B on web) remain for the verifier."
+  }
+ ],
+ "verdicts": [
+  {
+   "id": "DOS-031",
+   "verdict": "pass",
+   "failBeforeConfirmed": true,
+   "passAfterConfirmed": true,
+   "amendmentsChecked": [
+    {
+     "amendment": "(a) Pin the server to the same table: review.start's guard becomes documentMachine.can(doc.status, 'start_review'), with the message literal and early position kept, plus a docint.spec case on a reviewed document (409, message contains 'can be reviewed').",
+     "satisfied": true,
+     "detail": "Server guard (backend/libs/core/src/modules/docint/review.service.ts:92):\n- Reads `if (!documentMachine.can(doc.status, 'start_review'))`.\n- `documentMachine` is added to the existing @dos/domain import.\n- The message literal is unchanged.\n- It still runs right after lockDocument and before the stale-session update.\n\nSpec case (docint.spec.ts):\n- `it('DOS-031: review.start refuses a reviewed document with 409 before it takes a lock')` sits immediately after the case ending in `expect(doc.body.item.status).toBe('reviewed')`.\n- Deviation 1: it is its own `it`, not extra lines inside that case. It is still one case in the requested position.\n- It re-asserts the 'reviewed' precondition, POSTs /review with a fresh sessionId and idempotencyKey, and expects 409 with a message containing 'can be reviewed'.\n- It also expects 0 review_sessions rows for the refused id. `count` queries through the spec's owner pool, so this check is real.\n\nRed and green, run by me:\n- Guard lines commented out: exactly this case failed, 1 failed and 14 passed, with \"expected 'document: cannot apply \\\"start_review\\\"…' to contain 'can be reviewed'\".\n- Guard restored: 15 of 15 pass."
+    },
+    {
+     "amendment": "(b) The screen guard survives pnpm format: comment-stripped source, whitespace-tolerant regexes, testID=\"docint-start\" exactly once, the mayStartReview import present, exactly one <Button between the last mayStartReview(doc.status) and the testID; never match on line breaks or indentation.",
+     "satisfied": true,
+     "detail": "review-desk.test.ts:\n- `withoutComments()` is the helper from sales-app order-entry-layout.test.ts.\n- IMPORTS_RULE, START_TEST_ID and GATE all use `\\s*` between tokens.\n- The testID matches are counted with toHaveLength(1).\n- It takes the last GATE match before the testID and checks that the slice from there to the testID holds exactly one `/<Button\\b/`.\n- No pattern depends on newlines or indentation.\n\nChecks:\n- Prettier --check passes on the file and on documents.tsx.\n- With documents.tsx at pre-fix and a stub helper, the case fails on the import assertion."
+    },
+    {
+     "amendment": "(c) Absent, not disabled: the Start button renders null outside the gate and is never rendered disabled.",
+     "satisfied": true,
+     "detail": "documents.tsx now reads `{sessionId === null ? (mayStartReview(doc.status) ? (<Button … testID=\"docint-start\" />) : null) : (<>…</>)}`.\n- No `disabled` or `disabledReason` was added to the Start button.\n- The Button's props are identical to before, only re-indented."
+    },
+    {
+     "amendment": "(d) Nothing else in the panel moves: the in-session trio, Match the items again, Book it, Reject, commit() and the header inputs keyed on sessionId stay byte-for-byte.",
+     "satisfied": true,
+     "detail": "The documents.tsx part of dd722a5 has exactly three hunks:\n- one header-comment sentence;\n- one import line;\n- the Start branch wrap.\n\nThe Save / This reading is right / Give it up fragment, rematch, approve, reject, commit() and the Bill no. / Amount inputs are not in the diff."
+    },
+    {
+     "amendment": "(e) Build order: build @dos/domain and @dos/contracts in backend/ before the manager-app spec runs; a module-not-found there is an environment failure, not a red test.",
+     "satisfied": true,
+     "detail": "I ran `pnpm exec turbo run build --filter=@dos/domain --filter=@dos/contracts` first.\n- Both were cache hits, and dist/state-machines/document.js is present and exported through the dist index.\n- No manager-app run hit a module-not-found for @dos/domain or @dos/contracts.\n\nThe literal reversal of dd722a5's non-test changes did give ERR_MODULE_NOT_FOUND, but for './review-desk'. That is the new helper file the reversal deletes, not the domain link. The red proof was therefore redone with the verdict's stub method: all 3 cases fail on assertions.\n\nNothing was rebuilt during the red phase. After the restore, `turbo run typecheck lint build --filter=@dos/core` passed 6 of 6 (cached), so dist matches HEAD."
+    }
+   ],
+   "problems": [
+    {
+     "severity": "minor",
+     "file": "frontend/manager-app/app/inbound/documents.tsx",
+     "detail": "Verification gap, not a code defect: the browser and device walks were not run.\n\nNot run:\n- web A/B/C at desk width and at 390x844;\n- Android Pixel_7_API_36 with a uiautomator dump before any press;\n- iOS `ios-drive.mjs has`;\n- the DB/log check after walk B.\n\nThe verdict lists all of these, but this lane forbids starting dev servers, emulators and simulators. The on-screen absence of docint-start on Failed and Reviewed rows, and its presence on Extracted and locked Needs review rows, is proven only by the source guard and the pure-rule spec. These walks should be run at the merge gate."
+    }
+   ],
+   "evidence": "DOS-031 passes. I ran every result below myself in worktree b2-h9-desk against dos_test_b2_h9 (45 migrations applied). The tree is clean at the end: `git diff --quiet HEAD` passes, with no untracked files.\n\n**1. Scope.** dd722a5 touches exactly five files:\n- frontend/manager-app/src/lib/review-desk.ts (new) and review-desk.test.ts (new);\n- frontend/manager-app/app/inbound/documents.tsx;\n- backend/libs/core/src/modules/docint/review.service.ts and docint.spec.ts.\n\nThere are no READMEs, QA/, docs, permissions, contracts, migrations, strings, smoke or examples files in it. The earlier lane commits (DOS-037 and DOS-044) do not touch manager-app.\n\n**2. Fail before.**\n- **Literal reversal** of the non-test changes (`git diff C^ C … | git apply -R`):\n  - review-desk.test.ts fails with ERR_MODULE_NOT_FOUND for './review-desk', the deleted new file.\n  - docint.spec.ts passes 15 of 15. That is expected: the restored literal guard behaves the same as `documentMachine.can`. Amendment (a) is a pin, not a behaviour change.\n- **Verdict red proofs**, on the reversed tree:\n  - A stub `mayStartReview` returning true, with documents.tsx at pre-fix, fails 3 of 3 cases on assertions: \"expected true to be false\", \"uploaded: expected true to be false\", and \"documents.tsx does not import mayStartReview…\".\n  - With review.start's guard lines commented out, exactly 1 of 15 fails, the DOS-031 case: \"expected 'document: cannot apply \\\"start_review\\\"…' to contain 'can be reviewed'\". This is the machine's message from transition(), after the session insert.\n- **Restore:** `git checkout -- .`; the tree equals HEAD, and review-desk.ts has blob 57ad888 on disk and in HEAD.\n- **Drift proof:** with the `failed` row deleted from REVIEW_START_ACCEPTS, manager-app tsc exits 2 with TS1360 (\"does not satisfy … Record<DocumentStatus, boolean>\"). Restored; blob 03ffe64 matches HEAD.\n\n**3. Pass after.** Before the red phase and again after the restore:\n- review-desk.test.ts: 3 of 3 pass.\n- docint.spec.ts: 15 of 15 pass, including DOS-031 and the DOS-037 case.\n- pipeline/validators.test.ts: 8 of 8 pass.\n- manager-app load-out.test.ts: 3 of 3 pass.\n\nChecks:\n- manager-app `tsc --noEmit` and `eslint .` both exit 0.\n- `turbo run typecheck lint build --filter=@dos/core`: 6 of 6 successful, all cached.\n- A fresh core `tsc --noEmit` exits 0.\n- ESLint on review.service.ts and docint.spec.ts exits 0; the only output is the boundaries plugin's config deprecation warnings.\n- Prettier --check passes on all 5 touched files.\n\n**4. Amendments (a)–(e)** are all satisfied; see amendmentsChecked.\n\n**5. Diff hunt.** Nothing found:\n- No assertion was weakened or deleted; the spec changes are additions only, and testsCorrected is empty.\n- No contract, permission or schema change. The server imports only @dos/domain, so no module boundary is crossed.\n- States still change only through the machine: `can()` guards and transition() applies.\n- Idempotency is unchanged. The refusal throws inside `idempotent()` in withTenant, so the key is rolled back.\n- The screen imports only @dos/ui plus a pure rule over @dos/domain, with no platform-specific code, fetch, or react-native/react-dom import (lint passed).\n- There is no offline or sync path for docint. No other frontend file calls review.start (grep finds only documents.tsx, strings.ts and the new helper and spec).\n- R1–R4 and the P3 DOC_FAMILY issue are left to their own ids, as the verdict rules.\n- No stray files.\n\nOne known limitation, accepted in the plan's risk section: a source-text guard would also pass an inverted gate (`!mayStartReview(doc.status)`). The pure-rule cases cover that direction.\n\n**6. Not run:** the web, Android and iOS walks and the post-walk DB/log check, because the lane forbids dev servers, emulators and simulators (recorded as a minor gap)."
+  }
+ ]
+}

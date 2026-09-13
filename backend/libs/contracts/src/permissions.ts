@@ -1,5 +1,8 @@
 import type { MembershipRole, PlatformAdminLevel, PlatformRole } from './common.js'
 import { contract, type AppContract } from './contract.js'
+// Type-only on purpose: permissions.ts already reaches inventory.ts through contract.js, and a value
+// import in this direction would turn that into a real cycle.
+import type { AdjustmentReason } from './inventory.js'
 
 /**
  * Who may call what, declared next to the contract instead of scattered across handlers.
@@ -79,6 +82,34 @@ const BACK_OFFICE_OR_WAREHOUSE = [
   'accountant',
   'warehouse',
 ] as const satisfies readonly MembershipRole[]
+
+/**
+ * Who may put pieces INTO the books by hand (docs/22 §8, 2026-09-13, QA DOS-044): the owner and the
+ * manager. More on the rack than the books show is a cycle count (`inventory.cycleCounts.*`: the godown
+ * counts, the desk posts); goods arriving come in on a GRN. The accountant is not an adder — its write
+ * scope is the money desk (docs/22 §8, 2026-09-05) — and adding that one role here reverses it.
+ */
+export const STOCK_ADDERS = ['owner', 'manager'] as const satisfies readonly MembershipRole[]
+
+/**
+ * May `role` send this `inventory.stock.adjust` body (DOS-044)? A STOCK_ADDERS role may send any reason
+ * in either sign. Every other role only takes stock off: `qtyDelta < 0`, and never `opening`, which is
+ * the desk's in both signs.
+ *
+ * It guards the HTTP door only. The matrix row is ROLE_GROUPS.STOCK_KEEPERS (QA DOS-037) and
+ * `StockService.adjust()`, the one handler behind it, narrows through this predicate. Internal modules
+ * (a GRN, a sale, a return, a cycle-count post, a settlement) post through `InventoryService.post` and
+ * never through `adjust()`, so `system` is deliberately NOT an adder here. The /docs example builder,
+ * `pnpm smoke` and W8 read the same predicate, so none of them offers a body the server refuses.
+ */
+export function mayPostAdjustment(
+  role: string | null | undefined,
+  reason: AdjustmentReason,
+  qtyDelta: number,
+): boolean {
+  if (typeof role === 'string' && (STOCK_ADDERS as readonly string[]).includes(role)) return true
+  return qtyDelta < 0 && reason !== 'opening'
+}
 
 /**
  * Per-lot balances and the ledger: everyone who holds stock somewhere (a van counts). Never a rep or a
@@ -493,42 +524,49 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // per item, the order screens' hint) and `sellable` (per lot per location); per-lot balances and the
   // ledger stay with the people who hold the stock.
   'inventory.locations.list': STAFF,
-  'inventory.locations.upsert': BACK_OFFICE_OR_WAREHOUSE,
+  // Every stock write is the stock keepers' (owner, manager, warehouse): the accountant and the crew read
+  // stock and write none of it (docs/23 §2 M16, QA DOS-037).
+  'inventory.locations.upsert': ROLE_GROUPS.STOCK_KEEPERS,
   'inventory.stock.sellable': ANY_MEMBER,
   'inventory.stock.availability': ANY_MEMBER,
   'inventory.stock.balances': STOCK_VIEWERS,
-  'inventory.stock.adjust': BACK_OFFICE_OR_WAREHOUSE,
-  'inventory.stock.transfer': BACK_OFFICE_OR_WAREHOUSE,
+  // Every role outside STOCK_ADDERS may only take stock off (qtyDelta < 0, never `opening`): narrowed in
+  // `StockService.adjust()` through `mayPostAdjustment` (QA DOS-044).
+  'inventory.stock.adjust': ROLE_GROUPS.STOCK_KEEPERS,
+  'inventory.stock.transfer': ROLE_GROUPS.STOCK_KEEPERS,
   'inventory.stock.ledger': STOCK_VIEWERS,
-  'inventory.lots.upsert': BACK_OFFICE_OR_WAREHOUSE,
-  // A cycle count is the godown's paperwork: the stock keepers open and count, the desk posts the
-  // differences into the ledger (docs/23 §8.18), the accountant and the crew may read it.
+  'inventory.lots.upsert': ROLE_GROUPS.STOCK_KEEPERS,
+  // A cycle count is the godown's paperwork: the stock keepers open and count, the owner or a manager
+  // posts the differences into the ledger (docs/23 §8.18), the accountant and the crew read it (docs/23
+  // §2 M16, QA DOS-037).
   'inventory.cycleCounts.open': ROLE_GROUPS.STOCK_KEEPERS,
   'inventory.cycleCounts.count': ROLE_GROUPS.STOCK_KEEPERS,
-  'inventory.cycleCounts.post': BACK_OFFICE,
+  'inventory.cycleCounts.post': MANAGEMENT,
   'inventory.cycleCounts.list': STOCK_VIEWERS,
   'inventory.cycleCounts.get': STOCK_VIEWERS,
 
-  // Procurement. Supplier invoices carry printed rates and become purchase cost: back office only.
-  // GRN shapes carry pieces, not rates, so the warehouse reads them and does the blind gate count.
-  'procurement.supplierInvoices.create': BACK_OFFICE,
+  // Procurement. Supplier invoices and purchase orders carry printed rates and become purchase cost: the
+  // back office reads them, and every desk write — booking, matching, disputing or cancelling a bill,
+  // raising a purchase order — is the owner's or a manager's; the accountant reads (docs/23 §2 M4, QA
+  // DOS-037). GRN shapes carry pieces, not rates, so the warehouse reads them and does the blind count.
+  'procurement.supplierInvoices.create': MANAGEMENT,
   'procurement.supplierInvoices.list': BACK_OFFICE,
   'procurement.supplierInvoices.get': BACK_OFFICE,
-  'procurement.supplierInvoices.matchLine': BACK_OFFICE,
-  'procurement.supplierInvoices.dispute': BACK_OFFICE,
-  'procurement.supplierInvoices.cancel': BACK_OFFICE,
-  // Opening reads the approved invoice's lines and posting writes tenant_product_costs, whose RLS
-  // policy is back office: the desk opens and posts, the gate counts.
-  'procurement.grns.open': BACK_OFFICE,
+  'procurement.supplierInvoices.matchLine': MANAGEMENT,
+  'procurement.supplierInvoices.dispute': MANAGEMENT,
+  'procurement.supplierInvoices.cancel': MANAGEMENT,
+  // Opening reads the approved invoice's lines and posting writes tenant_product_costs: the owner or a
+  // manager opens and posts, the gate counts, the accountant reads (docs/23 §2 M4, QA DOS-037).
+  'procurement.grns.open': MANAGEMENT,
   'procurement.grns.count': ROLE_GROUPS.STOCK_KEEPERS,
-  'procurement.grns.post': BACK_OFFICE,
+  'procurement.grns.post': MANAGEMENT,
   'procurement.grns.list': BACK_OFFICE_OR_WAREHOUSE,
   'procurement.grns.get': BACK_OFFICE_OR_WAREHOUSE,
   'procurement.discrepancies.list': BACK_OFFICE_OR_WAREHOUSE,
   // A gate-count finding is decided in the owner's approvals queue ("GRN exceptions", docs/23 O3): the
   // owner and the manager, never the accountant (docs/22 2026-09-05: no approvals).
   'procurement.discrepancies.resolve': MANAGEMENT,
-  'procurement.purchaseOrders.upsert': BACK_OFFICE,
+  'procurement.purchaseOrders.upsert': MANAGEMENT,
   'procurement.purchaseOrders.list': BACK_OFFICE,
 
   // Orders. Placing, re-lining, repeating, submitting and cancelling are ORDER_PLACERS (DOS-115): the
@@ -536,7 +574,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // SUBMIT (its own draft — docs/22 §4 draws R1 → S5 directly; the approvals a submit raises stay
   // invisible to the shop), read and cancel its own; the owner and the manager confirm (it reserves
   // stock) and decide approvals — an approval is a decision the accountant does not take (docs/22
-  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`).
+  // 2026-09-05); the accountant reads the queue. Every member still reads orders (`get`, `list`, and
+  // `lastPlaced`, the shop's newest placed order that "Order again" repeats — DOS-098).
   'orders.create': ORDER_PLACERS,
   'orders.setLines': ORDER_PLACERS,
   'orders.repeatLast': ORDER_PLACERS,
@@ -545,6 +584,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'orders.cancel': ORDER_PLACERS,
   'orders.get': ANY_MEMBER,
   'orders.list': ANY_MEMBER,
+  'orders.lastPlaced': ANY_MEMBER,
   'orders.approvals.list': BACK_OFFICE,
   'orders.approvals.decide': MANAGEMENT,
 
@@ -655,7 +695,10 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // Delivery — the last mile (coordination §6, corrected by the founder's answers in docs/17 §D4/§D5).
   // Five populations, one new tuple:
   //  * STOCK_VIEWERS reads the plan: vehicles, trips, the next stop — the desk, the godown, the crew.
-  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop.
+  //  * TRIP_PLANNERS (new) plans and loads: create, start loading, add a stop. The planning board
+  //    (`trips.planning`, QA DOS-131) is read by whoever builds the load — ROLE_GROUPS.STOCK_KEEPERS, the
+  //    same three as `warehouse.loadSheets.create`; the crew plans only its own van day and never reads
+  //    the board, and the accountant does not plan.
   //  * DOORSTEP writes at the door: stops, deliveries, proof, the van sale, the GPS batch, the DPDP
   //    consent, the departure (`trips.depart`: the crew or the desk, never the godown, QA DOS-043) and
   //    the check-in (`trips.return`).
@@ -681,6 +724,7 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.create': TRIP_PLANNERS,
   'delivery.trips.list': STOCK_VIEWERS,
   'delivery.trips.get': STOCK_VIEWERS,
+  'delivery.trips.planning': ROLE_GROUPS.STOCK_KEEPERS,
   'delivery.trips.startLoading': TRIP_PLANNERS,
   'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,
@@ -709,20 +753,20 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.gps.points': DOORSTEP,
   'delivery.gps.trace': PIN_HOLDERS,
 
-  // Docint — inbound document intake (coordination §6; docs/22 §5, never-list 1 and 6). Two
+  // Docint — inbound document intake (coordination §6; docs/22 §5, never-list 1 and 6). Three
   // populations, no new tuple:
   //  * BACK_OFFICE_OR_WAREHOUSE is the brief's CAP: CAPTURE and STATUS. The gate photographs the
   //    supplier's bill at the door (`create`, `pageUploadUrl`, `addPage`, `verifyQr`, `submit`), reads
   //    what it captured (`list`, `get`, `status`, `pageUrl`). None of these shapes carries a rate, and
   //    `documents` / `document_pages` RLS scopes the field to `pod` / `claim_sheet` / `other` by kind.
-  //  * BACK_OFFICE is everything the engine produced and everything a human decides on it: the
-  //    extraction (printed purchase rates), the SKU candidates, the review session, the queue, the
-  //    stats, `reject` and `approve`. The warehouse reads ZERO rows of those tables (migrations
+  //  * BACK_OFFICE reads what the engine produced: the extraction (printed purchase rates), the SKU
+  //    candidates, the queue and the stats. The warehouse reads ZERO rows of those tables (migrations
   //    0016/0017, rls.test.ts "not even the gate staff"), so the matrix agrees with the database.
-  //    The accountant reviews and approves inbound bills (brief §5: the CA reviews them; approving a
-  //    supplier's bill is bookkeeping — the same three people own `procurement.supplierInvoices.create`).
+  //  * MANAGEMENT decides on it: the review session, the matches, a re-read, `reject` and `approve`. The
+  //    accountant reads the queue, the reading and the candidates and decides none of it (docs/23 §2 M3,
+  //    QA DOS-037); the tables' RLS stays back office, as for every other MANAGEMENT narrowing.
   //  `approve` books a supplier invoice DRAFT and nothing else — never a GRN, a lot, a ledger row or a
-  //  cost; `procurement.grns.post` (BACK_OFFICE, above) is where cost is written, by a human, later.
+  //  cost; `procurement.grns.post` (MANAGEMENT, above) is where cost is written, by a human, later.
   //  Letting the gate approve is a founder decision plus a policy migration (docint.ts header), not a
   //  handler flag: nothing here pre-widens for it.
   'docint.documents.create': BACK_OFFICE_OR_WAREHOUSE,
@@ -734,21 +778,21 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'docint.documents.get': BACK_OFFICE_OR_WAREHOUSE,
   'docint.documents.status': BACK_OFFICE_OR_WAREHOUSE,
   'docint.documents.pageUrl': BACK_OFFICE_OR_WAREHOUSE,
-  'docint.documents.reject': BACK_OFFICE,
-  'docint.documents.approve': BACK_OFFICE,
-  'docint.extractions.run': BACK_OFFICE,
+  'docint.documents.reject': MANAGEMENT,
+  'docint.documents.approve': MANAGEMENT,
+  'docint.extractions.run': MANAGEMENT,
   'docint.extractions.list': BACK_OFFICE,
   'docint.extractions.get': BACK_OFFICE,
   'docint.matches.list': BACK_OFFICE,
-  'docint.matches.accept': BACK_OFFICE,
-  'docint.matches.reject': BACK_OFFICE,
-  'docint.matches.choose': BACK_OFFICE,
-  'docint.matches.rerun': BACK_OFFICE,
-  'docint.review.start': BACK_OFFICE,
-  'docint.review.heartbeat': BACK_OFFICE,
-  'docint.review.save': BACK_OFFICE,
-  'docint.review.release': BACK_OFFICE,
-  'docint.review.submit': BACK_OFFICE,
+  'docint.matches.accept': MANAGEMENT,
+  'docint.matches.reject': MANAGEMENT,
+  'docint.matches.choose': MANAGEMENT,
+  'docint.matches.rerun': MANAGEMENT,
+  'docint.review.start': MANAGEMENT,
+  'docint.review.heartbeat': MANAGEMENT,
+  'docint.review.save': MANAGEMENT,
+  'docint.review.release': MANAGEMENT,
+  'docint.review.submit': MANAGEMENT,
   'docint.queue.list': BACK_OFFICE,
   'docint.stats.summary': BACK_OFFICE,
 

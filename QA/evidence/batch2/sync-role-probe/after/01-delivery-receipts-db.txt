@@ -1,0 +1,115 @@
+# dos_qa check for 01-delivery-receipts   receipt id: 01a09a63-1f2a-75be-b38f-e7e21930e147   opId: 01a09a63-1f2a-745c-b2bb-9f39dff042d0   run at: 2026-09-13T10:50:11Z
+== 0. tenant-wide counts BEFORE the probe (counts.sh, run immediately before the request)
+-- counts taken at 2026-09-13T10:49:42.3NZ
+select
+  (select count(*) from receipts        where tenant_id = :'t') as receipts,
+  (select count(*) from journal_entries where tenant_id = :'t') as journal_entries,
+  (select count(*) from journal_lines   where tenant_id = :'t') as journal_lines,
+  (select count(*) from allocations     where tenant_id = :'t') as allocations,
+  (select count(*) from outbox_events   where tenant_id = :'t' and event_type = 'ReceiptRecorded') as outbox_receipt_recorded,
+  (select count(*) from outbox_events   where tenant_id = :'t' and event_type = 'DocumentRenderRequested' and aggregate_id like 'receipt:%') as outbox_receipt_pdf_requests,
+  (select next_no from numbering_series where tenant_id = :'t' and series_code = 'RCPT' and fy = '2026-27') as rcpt_next_no,
+  (select count(*) from sync_ops    where tenant_id = :'t') as sync_ops,
+  (select count(*) from sync_errors where tenant_id = :'t') as sync_errors;
+ receipts | journal_entries | journal_lines | allocations | outbox_receipt_recorded | outbox_receipt_pdf_requests | rcpt_next_no | sync_ops | sync_errors 
+----------+-----------------+---------------+-------------+-------------------------+-----------------------------+--------------+----------+-------------
+      728 |            1753 |          7312 |         780 |                       0 |                           0 |         9005 |        0 |           6
+(1 row)
+
+
+\echo == 1. receipt row: exists? amount, who recorded it (received_by -> user, role in that tenant), rendered PDF key
+== 1. receipt row: exists? amount, who recorded it (received_by -> user, role in that tenant), rendered PDF key
+select r.id, t.slug as tenant, r.tenant_id, r.receipt_no, r.series_code, r.retailer_id, r.mode, r.amount_paise, r.status,
+       r.received_by, u.username as received_by_username, m.role as received_by_role,
+       r.device_id, r.trip_id, r.idempotency_key, r.note, r.pdf_object_key, r.created_at
+  from receipts r
+  join tenants t on t.id = r.tenant_id
+  left join users u on u.id = r.received_by
+  left join memberships m on m.user_id = r.received_by and m.tenant_id = r.tenant_id
+ where r.id = :'rid';
+                  id                  | tenant |              tenant_id               | receipt_no | series_code |             retailer_id              | mode | amount_paise |  status   |             received_by              | received_by_username | received_by_role |             device_id             | trip_id |                  idempotency_key                  |                    note                     |                                             pdf_object_key                                             |           created_at            
+--------------------------------------+--------+--------------------------------------+------------+-------------+--------------------------------------+------+--------------+-----------+--------------------------------------+----------------------+------------------+-----------------------------------+---------+---------------------------------------------------+---------------------------------------------+--------------------------------------------------------------------------------------------------------+---------------------------------
+ 01a09a63-1f2a-75be-b38f-e7e21930e147 | tarsun | 01a09a5b-3c58-71c1-a34d-b93c569b0099 | RCPT-9005  | RCPT        | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | cash |          100 | collected | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | ganesh.more          | delivery         | qa-b2-syncprobe-after-delivery-01 |         | sync:receipt:01a09a63-1f2a-745c-b2bb-9f39dff042d0 | QA batch2 sync-role-probe AFTER 01 delivery | tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/documents/receipt/01a09a63-1f2a-75be-b38f-e7e21930e147.pdf | 2026-09-13 16:19:42.47266+05:30
+(1 row)
+
+\echo == 2. journal entry + lines for the receipt (journal_entries.ref_type = 'receipt' and ref_id = receipt id; journal_lines.entry_id)
+== 2. journal entry + lines for the receipt (journal_entries.ref_type = receipt and ref_id = receipt id; journal_lines.entry_id)
+select e.id as entry_id, e.entry_date, e.ref_type, e.ref_id, e.narration, e.posted_by,
+       l.id as line_id, a.code as account, l.amount_paise, l.party_type, l.party_id
+  from journal_entries e
+  join journal_lines l on l.entry_id = e.id
+  join accounts a on a.id = l.account_id
+ where e.ref_type = 'receipt' and e.ref_id = :'rid'
+ order by l.amount_paise desc;
+               entry_id               | entry_date | ref_type |                ref_id                |     narration     |              posted_by               |               line_id                | account | amount_paise | party_type |               party_id               
+--------------------------------------+------------+----------+--------------------------------------+-------------------+--------------------------------------+--------------------------------------+---------+--------------+------------+--------------------------------------
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 | 2026-09-13 | receipt  | 01a09a63-1f2a-75be-b38f-e7e21930e147 | receipt RCPT-9005 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 01a09a63-1f92-760c-a0c3-8a7bafcd15cd | CASH    |          100 |            | 
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 | 2026-09-13 | receipt  | 01a09a63-1f2a-75be-b38f-e7e21930e147 | receipt RCPT-9005 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | 01a09a63-1f92-760d-a787-71d73ff4ed48 | AR      |         -100 | retailer   | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8
+(2 rows)
+
+\echo == 2b. journal balance for the receipt entry (sum of lines must be 0)
+== 2b. journal balance for the receipt entry (sum of lines must be 0)
+select e.id as entry_id, count(l.id) as lines, sum(l.amount_paise) as sum_paise
+  from journal_entries e join journal_lines l on l.entry_id = e.id
+ where e.ref_type = 'receipt' and e.ref_id = :'rid'
+ group by e.id;
+               entry_id               | lines | sum_paise 
+--------------------------------------+-------+-----------
+ 01a09a63-1f8f-7451-8f5a-666cfaafbbd2 |     2 |         0
+(1 row)
+
+\echo == 3. allocations the receipt made, and the state of each bill now
+== 3. allocations the receipt made, and the state of each bill now
+select al.id, al.invoice_id, al.amount_paise, al.allocated_by, i.state as invoice_state_now
+  from allocations al
+  left join invoices i on i.id = al.invoice_id
+ where al.receipt_id = :'rid';
+                  id                  |              invoice_id              | amount_paise |             allocated_by             | invoice_state_now 
+--------------------------------------+--------------------------------------+--------------+--------------------------------------+-------------------
+ 01a09a63-1f7c-75e7-a1cc-9e97e40aafe6 | 52c9311a-af62-7a65-bdd3-27f4b771fee4 |          100 | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | partially_paid
+(1 row)
+
+\echo == 4. sync_ops row for the opId (outcome)
+== 4. sync_ops row for the opId (outcome)
+select tenant_id, device_id, op_id, outcome, created_at from sync_ops where op_id = :'op';
+              tenant_id               |             device_id             |                op_id                 |   outcome    |           created_at            
+--------------------------------------+-----------------------------------+--------------------------------------+--------------+---------------------------------
+ 01a09a5b-3c58-71c1-a34d-b93c569b0099 | qa-b2-syncprobe-after-delivery-01 | 01a09a63-1f2a-745c-b2bb-9f39dff042d0 | {"ok": true} | 2026-09-13 16:19:42.47266+05:30
+(1 row)
+
+\echo == 5. sync_errors row for the opId
+== 5. sync_errors row for the opId
+select se.id, se.user_id, u.username, se.device_id, se.table_name, se.row_id, se.code, se.message_en, se.created_at
+  from sync_errors se left join users u on u.id = se.user_id
+ where se.op_id = :'op';
+ id | user_id | username | device_id | table_name | row_id | code | message_en | created_at 
+----+---------+----------+-----------+------------+--------+------+------------+------------
+(0 rows)
+
+\echo == 6. outbox events carrying the receipt id (row text match)
+== 6. outbox events carrying the receipt id (row text match)
+select left(o::text, 600) as outbox_row from outbox_events o where o::text like '%' || :'rid' || '%';
+                                                                                                                                                                                                                                                      outbox_row                                                                                                                                                                                                                                                       
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ (01a09a63-1fa9-761b-b5c7-6b08f1024fd5,01a09a5b-3c58-71c1-a34d-b93c569b0099,receipt,01a09a63-1f2a-75be-b38f-e7e21930e147,ReceiptRecorded,"{""tripId"": null, ""receiptId"": ""01a09a63-1f2a-75be-b38f-e7e21930e147"", ""receiptNo"": ""RCPT-9005"", ""retailerId"": ""8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8"", ""amountPaise"": 100, ""cashDiscountPaise"": 0}","2026-09-13 16:20:08.258+05:30","2026-09-13 16:19:42.47266+05:30","2026-09-13 16:20:08.258+05:30",0,,,)
+ (01a09a63-1fac-7367-82a5-03be4cc6ee51,01a09a5b-3c58-71c1-a34d-b93c569b0099,document,receipt:01a09a63-1f2a-75be-b38f-e7e21930e147:a5:original,DocumentRenderRequested,"{""id"": ""01a09a63-1f2a-75be-b38f-e7e21930e147"", ""copy"": ""original"", ""kind"": ""receipt"", ""format"": ""a5"", ""tenantId"": ""01a09a5b-3c58-71c1-a34d-b93c569b0099"", ""requestedBy"": ""7b2db500-02d5-7aa7-a1dc-005a3e89ff63""}","2026-09-13 16:20:08.29+05:30","2026-09-13 16:19:42.47266+05:30","2026-09-13 16:20:08.29+05:30",0,,,)
+(2 rows)
+
+
+== 7. tenant-wide counts AFTER the probe
+-- counts taken at 2026-09-13T10:50:11.3NZ
+select
+  (select count(*) from receipts        where tenant_id = :'t') as receipts,
+  (select count(*) from journal_entries where tenant_id = :'t') as journal_entries,
+  (select count(*) from journal_lines   where tenant_id = :'t') as journal_lines,
+  (select count(*) from allocations     where tenant_id = :'t') as allocations,
+  (select count(*) from outbox_events   where tenant_id = :'t' and event_type = 'ReceiptRecorded') as outbox_receipt_recorded,
+  (select count(*) from outbox_events   where tenant_id = :'t' and event_type = 'DocumentRenderRequested' and aggregate_id like 'receipt:%') as outbox_receipt_pdf_requests,
+  (select next_no from numbering_series where tenant_id = :'t' and series_code = 'RCPT' and fy = '2026-27') as rcpt_next_no,
+  (select count(*) from sync_ops    where tenant_id = :'t') as sync_ops,
+  (select count(*) from sync_errors where tenant_id = :'t') as sync_errors;
+ receipts | journal_entries | journal_lines | allocations | outbox_receipt_recorded | outbox_receipt_pdf_requests | rcpt_next_no | sync_ops | sync_errors 
+----------+-----------------+---------------+-------------+-------------------------+-----------------------------+--------------+----------+-------------
+      729 |            1754 |          7314 |         781 |                       1 |                           1 |         9006 |        1 |           6
+(1 row)
+

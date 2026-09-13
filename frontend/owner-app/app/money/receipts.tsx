@@ -225,8 +225,10 @@ export default function Receipts(): React.JSX.Element {
               <Button
                 label={t('o11.deposit')}
                 variant="primary"
-                disabled={receipt.status !== 'collected'}
-                disabledReason={t('o11.status')}
+                disabled={receipt.status !== 'collected' || detail.data?.withCrew === true}
+                disabledReason={
+                  detail.data?.withCrew === true ? t('o11.withCrew') : t('o11.status')
+                }
                 onPress={() => {
                   setDialog('deposit')
                 }}

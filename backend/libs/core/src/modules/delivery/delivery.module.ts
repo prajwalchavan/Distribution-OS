@@ -4,13 +4,14 @@ import { deliveries, deliveryLines, tripStops, trips, vehicles } from '@dos/db'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
-import { ReceivablesModule } from '../receivables/index.js'
+import { ReceivablesModule, ReceivablesService } from '../receivables/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
 import { WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
+import { tripSettledSql } from './delivery.internals.js'
 import {
   applyCollectionSync,
   applyDeliverySync,
@@ -31,7 +32,8 @@ import { VehiclesService } from './vehicles.service.js'
  * `location_consents`, and it reaches everything else through a module's `index.ts` (coordination §4):
  * `OrdersService` for the order aggregate, `InventoryService` for every piece, `BillingService` /
  * `CreditNotesService` for the van-sale bill and the doorstep credit note, `ReceivablesService` for
- * every rupee, `LoadSheetsService` for "is the load out of the godown".
+ * every rupee, `LoadSheetsService` for "is the load out of the godown". Delivery also tells receivables
+ * when a trip's cash is in the office (`registerTripSettled`, DOS-132), so the money desk banks only that.
  *
  * Every dependency is HARD (never `@Optional()`): by the build order they all exist, and a delivery
  * module that could not bill a van sale or post a receipt would quietly record money nobody booked.
@@ -67,10 +69,14 @@ export class DeliveryModule implements OnModuleInit {
     private readonly trips: TripsService,
     private readonly deliveries: DeliveriesService,
     private readonly collections: CollectionsService,
+    private readonly receivables: ReceivablesService,
     @Optional() @Inject(SyncRegistry) private readonly registry: SyncRegistry | null,
   ) {}
 
   onModuleInit(): void {
+    // First, before the sync early return: a spec or a service that boots delivery without SyncModule still
+    // needs receivables to know which trips have handed their cash over (DOS-132).
+    this.receivables.registerTripSettled(tripSettledSql)
     if (!this.registry) return
     // Each upload table names the online procedure(s) it stands for, and the uploader asks PERMISSIONS
     // about every one of them before a handler runs (DOS-166). A stop op moves the stop through start,

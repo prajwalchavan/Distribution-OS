@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { sql, type SQL } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { financialYear, uuidv7 } from '@dos/domain'
 import {
@@ -114,6 +114,22 @@ interface SettlementBody {
   hasVariance: boolean
   approvedBy: string | null
   stockVariance: { lotId: string; expectedPcs: number; countedPcs: number; deltaPcs: number }[]
+}
+interface PlanningBody {
+  date: string
+  crew: { userId: string; name: string; onTripId: string | null; onTripNo: string | null }[]
+  bills: {
+    invoiceId: string
+    invoiceNo: string | null
+    invoiceTotalPaise: number
+    orderId: string
+    orderNo: string | null
+    retailerId: string
+    retailerName: string
+    beatId: string | null
+    beatName: string | null
+  }[]
+  nextCursor: string | null
 }
 type LedgerRow = { reason: string; qty_delta: number; lot_id: string; location_id: string }
 
@@ -915,7 +931,7 @@ describeDb('delivery (DATABASE_URL)', () => {
     }
 
     // offline: the same contradiction from the queue is a readable 2xx rejection, never a restock. A geo
-    // pod, because `podFromDevice` drops `inline`; the pod policy runs after the line check, so only the
+    // pod keeps the op free of proof bytes; the pod policy runs after the line check, so only the
     // message tells this refusal from `pod_required`.
     const queued = await call<{
       accepted: number
@@ -1546,6 +1562,108 @@ describeDb('delivery (DATABASE_URL)', () => {
   })
 
   // ---------------------------------------------------------------------------------------------------------------
+  // the trip's cash is still with the crew (DOS-132)
+
+  interface ReceiptListBody {
+    items: { id: string; receiptNo: string | null; status: string; tripId: string | null }[]
+    totals: { countedPaise: number }
+  }
+  /** Every cash receipt the crew took on the trip and still holds: what the settlement counts as cash collected. */
+  const tripCash = { tripId, status: 'collected', mode: 'cash', limit: 200 }
+  const tripStateOf = async (id: string): Promise<string> =>
+    (
+      (await db.execute(sql`select state::text as state from trips where id = ${id}`)).rows[0] as {
+        state: string
+      }
+    ).state
+
+  it('DOS-132: cash taken on a trip still on the road is not in hand — receipts.list withCrew=false leaves it out of the rows and the totals (withCrew=true lists it), receipts.get says withCrew to the desk and null to the crew, and receipts.deposit refuses it 409 trip_cash_not_settled with nothing banked', async () => {
+    expect(await tripStateOf(tripId)).toBe('active')
+
+    // the control: no filter lists every cash receipt of the trip, and they add up to the settlement's cash figure
+    const all = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', tripCash)
+    expect(all.status).toBe(200)
+    expect(all.body.items.length).toBeGreaterThan(0)
+    expect(all.body.items.every((r) => r.tripId === tripId && r.status === 'collected')).toBe(true)
+    expect(all.body.totals.countedPaise).toBe(cashCollected)
+    const ids = all.body.items.map((r) => r.id).sort()
+
+    const onTheRoad = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: true,
+    })
+    expect(onTheRoad.status).toBe(200)
+    expect(onTheRoad.body.items.map((r) => r.id).sort()).toEqual(ids)
+    expect(onTheRoad.body.totals.countedPaise).toBe(cashCollected)
+
+    // the office does not hold it: neither the rows nor the totals behind "Cash to bank" carry it
+    const inHand = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: false,
+    })
+    expect(inHand.status).toBe(200)
+    expect(inHand.body.totals.countedPaise).toBe(0)
+    expect(inHand.body.items).toEqual([])
+
+    // the doorstep cash receipt of the first stop: the desk's banking gate says "with the crew"; the crew is told nothing
+    const [doorstep] = (
+      await db.execute(
+        sql`select receipt_id from collections
+             where tenant_id = ${tenantId} and trip_id = ${tripId} and stop_id = ${stopA1} and mode = 'cash'
+             order by id limit 1`,
+      )
+    ).rows as { receipt_id: string }[]
+    const receiptId = doorstep?.receipt_id ?? ''
+    expect(ids).toContain(receiptId)
+    const desk = await call<{
+      item: { receiptNo: string | null; status: string }
+      withCrew: boolean | null
+    }>(app, accountant, 'GET', `/receipts/${receiptId}`)
+    expect(desk.status).toBe(200)
+    expect(desk.body.withCrew).toBe(true)
+    const crew = await call<{ withCrew: boolean | null }>(
+      app,
+      driver,
+      'GET',
+      `/receipts/${receiptId}`,
+    )
+    expect(crew.status).toBe(200)
+    expect(crew.body.withCrew).toBeNull()
+
+    // banking it is refused: the receipt stays in hand and nothing is posted
+    const batch = uuidv7()
+    const refused = await call<{
+      message: string
+      data?: { code?: string; receiptIds?: string[] }
+    }>(app, accountant, 'POST', '/receipts/deposit', {
+      idempotencyKey: `dep-132-crew-${run}`,
+      id: batch,
+      receiptIds: [receiptId],
+      depositedAt: new Date().toISOString(),
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('trip_cash_not_settled')
+    expect(refused.body.data?.receiptIds).toEqual([receiptId])
+    expect(refused.body.message).toBe(
+      `receipt ${desk.body.item.receiptNo ?? receiptId} was taken on a trip that is not settled yet; bank it after the trip's cash is handed over at Day-end`,
+    )
+    const after = await call<{ item: { status: string } }>(
+      app,
+      accountant,
+      'GET',
+      `/receipts/${receiptId}`,
+    )
+    expect(after.body.item.status).toBe('collected')
+    const [posted] = (
+      await db.execute(
+        sql`select count(*)::int as n from journal_entries
+             where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`,
+      )
+    ).rows as { n: number }[]
+    expect(posted?.n).toBe(0)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
   // check-in
 
   let settlementId = ''
@@ -1653,6 +1771,108 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(409)
+  })
+
+  it("DOS-132: once the trip is settled its cash is in hand and banks from CASH (Dr BANK / Cr CASH, no CASH_VAN line), so CASH_VAN over the trip's receipts, its settlement and the deposit nets to zero", async () => {
+    expect(settlementId).not.toBe('')
+    expect(await tripStateOf(tripId)).toBe('settled')
+
+    const all = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', tripCash)
+    expect(all.status).toBe(200)
+    expect(all.body.totals.countedPaise).toBe(cashCollected)
+    const ids = all.body.items.map((r) => r.id).sort()
+    expect(ids.length).toBeGreaterThan(0)
+
+    // the settlement handed the cash over: all of it is in hand now, in the rows and in the totals
+    const inHand = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      ...tripCash,
+      withCrew: false,
+    })
+    expect(inHand.status).toBe(200)
+    expect(inHand.body.items.map((r) => r.id).sort()).toEqual(ids)
+    expect(inHand.body.totals.countedPaise).toBe(cashCollected)
+
+    // every cash receipt of the trip posted Dr CASH_VAN when the crew took it
+    const vanNet = async (refs: SQL): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(sql`
+              select coalesce(sum(l.amount_paise), 0)::bigint as net
+                from journal_lines l
+                join journal_entries e on e.id = l.entry_id and e.tenant_id = l.tenant_id
+                join accounts a on a.id = l.account_id
+               where e.tenant_id = ${tenantId} and a.code = 'CASH_VAN' and (${refs})`)
+          ).rows[0] as { net: string }
+        ).net,
+      )
+    const ofReceipts = sql`e.ref_type = 'receipt' and e.ref_id in (${sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )})`
+    expect(await vanNet(ofReceipts)).toBe(cashCollected)
+
+    const batch = uuidv7()
+    const banked = await call<{ updated: number; journalEntryId: string; totalPaise: number }>(
+      app,
+      accountant,
+      'POST',
+      '/receipts/deposit',
+      {
+        idempotencyKey: `dep-132-settled-${run}`,
+        id: batch,
+        receiptIds: ids,
+        depositedAt: new Date().toISOString(),
+        depositRef: `DEP-132-${run}`,
+      },
+    )
+    expect(banked.status).toBe(200)
+    expect(banked.body).toMatchObject({ updated: ids.length, totalPaise: cashCollected })
+    // the deposit takes the money out of CASH, where the settlement put it — never out of CASH_VAN a second time
+    const deposit = Object.fromEntries(
+      (
+        (
+          await db.execute(sql`
+            select a.code, sum(l.amount_paise)::bigint as amount
+              from journal_lines l
+              join journal_entries e on e.id = l.entry_id and e.tenant_id = l.tenant_id
+              join accounts a on a.id = l.account_id
+             where e.tenant_id = ${tenantId} and e.ref_type = 'deposit' and e.ref_id = ${batch}
+             group by a.code`)
+        ).rows as { code: string; amount: string }[]
+      ).map((row) => [row.code, Number(row.amount)]),
+    )
+    expect(deposit).toEqual({ BANK: cashCollected, CASH: -cashCollected })
+    // the van account over this money: the receipts' debits, the settlement's credit and the deposit net to zero
+    expect(
+      await vanNet(
+        sql`(${ofReceipts})
+            or (e.ref_type = 'trip_settlement' and e.ref_id = ${settlementId})
+            or (e.ref_type = 'deposit' and e.ref_id = ${batch})`,
+      ),
+    ).toBe(0)
+
+    // banked, and nothing of the trip's money reads as still with the crew
+    const onTheRoad = await call<ReceiptListBody>(app, accountant, 'GET', '/receipts', {
+      tripId,
+      mode: 'cash',
+      limit: 200,
+      withCrew: true,
+    })
+    expect(onTheRoad.status).toBe(200)
+    expect(onTheRoad.body.items).toEqual([])
+    expect(onTheRoad.body.totals.countedPaise).toBe(0)
+    for (const id of ids) {
+      const got = await call<{ item: { status: string }; withCrew: boolean | null }>(
+        app,
+        accountant,
+        'GET',
+        `/receipts/${id}`,
+      )
+      expect(got.status).toBe(200)
+      expect(got.body.item.status).toBe('deposited')
+      expect(got.body.withCrew).toBe(false)
+    }
   })
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -2201,4 +2421,546 @@ describeDb('delivery (DATABASE_URL)', () => {
       ]),
     ).toEqual([[driverId, 'delivery', 'active', 41_900]])
   }, 180_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-131: the godown and the desk plan a trip from one planning board, and the double-plan guard is role-proof
+
+  /** Five days out and beyond, so no other test's trip shares the crew's day (the busy check is per trip date). */
+  const planDay = (offset: number): string =>
+    new Date(Date.parse(today) + (5 + offset) * 86_400_000).toISOString().slice(0, 10)
+  const tripP = uuidv7()
+  let p1: Awaited<ReturnType<typeof billedOrder>>
+  let p2: Awaited<ReturnType<typeof billedOrder>>
+  /** Planned rows of one bill, whatever trip they are on (the owner connection reads through RLS). */
+  const outcomeNullRows = async (invoiceId: string): Promise<number> =>
+    (
+      (
+        await db.execute(
+          sql`select count(*)::int as n from deliveries
+               where tenant_id = ${tenantId} and invoice_id = ${invoiceId} and outcome is null`,
+        )
+      ).rows[0] as { n: number }
+    ).n
+
+  it('DOS-131: the planning board names the crew and who is on a trip that day, and lists only packed bills not yet on an open trip, for the godown and the desk, never the crew, the accountant, a rep or a shop', async () => {
+    // Packed inside the test, not in a hook, so no earlier test sees two more open bills.
+    p1 = await billedOrder(retailerA, variantA, 'dos131-p1')
+    p2 = await billedOrder(retailerB, variantB, 'dos131-p2')
+    const day = planDay(0)
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-trip-${run}`,
+      id: tripP,
+      tripDate: day,
+      vehicleId,
+      driverId: otherDriverId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(planned.status).toBe(200)
+    const tripNo = planned.body.item.tripNo
+    expect(tripNo).not.toBeNull()
+
+    // The godown reads the board: every active member of the crew, and who is already on a trip that day.
+    const board = await call<PlanningBody>(app, packer, 'GET', '/delivery/trip-planning', {
+      date: day,
+      limit: 200,
+    })
+    expect(board.status).toBe(200)
+    expect(board.body.date).toBe(day)
+    const crew = new Map(board.body.crew.map((member) => [member.userId, member]))
+    expect(crew.get(otherDriverId)).toEqual({
+      userId: otherDriverId,
+      name: 'Other driver',
+      onTripId: tripP,
+      onTripNo: tripNo,
+    })
+    expect(crew.get(driverId)).toEqual({
+      userId: driverId,
+      name: 'Driver',
+      onTripId: null,
+      onTripNo: null,
+    })
+    expect([...crew.keys()].sort()).toEqual([driverId, helperId, otherDriverId].sort())
+    for (const person of [ownerId, managerId, accountantId, packerId, repId, shopUserA, shopUserB])
+      expect(crew.has(person), person).toBe(false)
+    // No phone and no username leave through the board.
+    for (const member of board.body.crew)
+      expect(Object.keys(member).sort()).toEqual(['name', 'onTripId', 'onTripNo', 'userId'])
+
+    // The bills: packed, a live bill, and on no open trip. Sale values only.
+    const bill = board.body.bills.find((b) => b.invoiceId === p2.invoiceId)
+    expect(bill).toMatchObject({
+      invoiceId: p2.invoiceId,
+      orderId: p2.orderId,
+      retailerId: retailerB,
+      retailerName: `Van Shop B ${run}`,
+      invoiceTotalPaise: p2.totalPaise,
+    })
+    expect(bill?.invoiceNo).not.toBeNull()
+    for (const item of board.body.bills)
+      expect(Object.keys(item).sort()).toEqual([
+        'beatId',
+        'beatName',
+        'invoiceId',
+        'invoiceNo',
+        'invoiceTotalPaise',
+        'orderId',
+        'orderNo',
+        'retailerId',
+        'retailerName',
+      ])
+    const billIds = board.body.bills.map((b) => b.invoiceId)
+    // Planned on tripP a moment ago, and delivered earlier in this file.
+    expect(billIds).not.toContain(p1.invoiceId)
+    expect(billIds).not.toContain(billA1.invoiceId)
+    expect(board.body.nextCursor).toBeNull()
+
+    // The desk reads the same board.
+    const desk = await call<PlanningBody>(app, manager, 'GET', '/delivery/trip-planning', {
+      date: day,
+      limit: 200,
+    })
+    expect(desk.status).toBe(200)
+    expect(desk.body.bills.map((b) => b.invoiceId)).toEqual(billIds)
+
+    // The crew, the accountant, a rep and a shop never read it.
+    for (const actor of [driver, accountant, rep, shopA])
+      expect(
+        (await call(app, actor, 'GET', '/delivery/trip-planning', { date: day })).status,
+        actor.role,
+      ).toBe(403)
+
+    // No widening: the godown still reads no doorstep row of the trip it planned.
+    const packerView = await call<{ item: TripBody }>(
+      app,
+      packer,
+      'GET',
+      `/delivery/trips/${tripP}`,
+    )
+    expect(packerView.status).toBe(200)
+    expect(packerView.body.item.stops[0]?.deliveries).toEqual([])
+  }, 180_000)
+
+  it('DOS-131: the godown plans a trip and adds a late bill, and a bill already riding on an open trip, or carried twice in one plan, is refused 409 for the godown as for the desk', async () => {
+    // A bill riding on tripP, planned again by the godown (whose RLS hides the planned row): 409.
+    const again = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(again.status).toBe(409)
+    expect(again.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p1.invoiceId)).toBe(1)
+
+    // One plan carrying the same bill on two stops: 409, and nothing of it is left behind.
+    const twice = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-twice-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(2),
+      vehicleId,
+      driverId: helperId,
+      stops: [
+        { id: uuidv7(), sequence: 1, retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+        { id: uuidv7(), sequence: 2, retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      ],
+    })
+    expect(twice.status).toBe(409)
+    expect(twice.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(0)
+
+    // The desk is refused the same way.
+    const deskAgain = await call<{ message?: string }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-desk-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(deskAgain.status).toBe(409)
+    expect(deskAgain.body.message).toContain('already planned on trip')
+
+    // The godown adds the late bill to the planned trip.
+    const late = await call<{ item: TripBody }>(
+      app,
+      packer,
+      'POST',
+      `/delivery/trips/${tripP}/stops`,
+      {
+        idempotencyKey: `dos131-late-${run}`,
+        id: tripP,
+        stop: { id: uuidv7(), retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      },
+    )
+    expect(late.status).toBe(200)
+    expect(late.body.item.plannedStops).toBe(2)
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(1)
+
+    // ...and cannot plan it a second time on another trip.
+    const lateAgain = await call<{ message?: string }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-late-again-${run}`,
+      id: uuidv7(),
+      tripDate: planDay(1),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerB, invoiceIds: [p2.invoiceId] }],
+    })
+    expect(lateAgain.status).toBe(409)
+    expect(lateAgain.body.message).toContain('already planned on trip')
+    expect(await outcomeNullRows(p2.invoiceId)).toBe(1)
+
+    // A cancelled trip keeps its outcome-null rows and blocks nothing: the board offers both bills
+    // again, its driver is free, and a fresh plan takes the bill (why no partial unique index exists).
+    const cancelled = await call<{ item: TripBody }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/trips/${tripP}/cancel`,
+      { idempotencyKey: `dos131-cancel-${run}`, id: tripP, reason: 'DOS-131' },
+    )
+    expect(cancelled.status).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+    const reopened = await call<PlanningBody>(app, packer, 'GET', '/delivery/trip-planning', {
+      date: planDay(0),
+      limit: 200,
+    })
+    expect(reopened.status).toBe(200)
+    expect(reopened.body.bills.map((b) => b.invoiceId)).toEqual(
+      expect.arrayContaining([p1.invoiceId, p2.invoiceId]),
+    )
+    expect(
+      reopened.body.crew.find((member) => member.userId === otherDriverId)?.onTripId,
+    ).toBeNull()
+    const replan = uuidv7()
+    const replanned = await call<{ item: TripBody }>(app, packer, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos131-replan-${run}`,
+      id: replan,
+      tripDate: planDay(3),
+      vehicleId,
+      driverId: helperId,
+      stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [p1.invoiceId] }],
+    })
+    expect(replanned.status).toBe(200)
+    expect(await outcomeNullRows(p1.invoiceId)).toBe(2)
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${replan}/cancel`, {
+          idempotencyKey: `dos131-replan-cancel-${run}`,
+          id: replan,
+          reason: 'DOS-131',
+        })
+      ).status,
+    ).toBe(200)
+  }, 180_000)
+
+  it('DOS-131: two planners adding the same bill to two trips at the same instant take turns on the bill: one stop lands, the other is refused 409', async () => {
+    const tripX = uuidv7()
+    const tripY = uuidv7()
+    for (const [id, driverOfTrip] of [
+      [tripX, driverId],
+      [tripY, otherDriverId],
+    ] as const)
+      expect(
+        (
+          await call(app, manager, 'POST', '/delivery/trips', {
+            idempotencyKey: `dos131-race-${id}`,
+            id,
+            tripDate: planDay(4),
+            vehicleId,
+            driverId: driverOfTrip,
+            vanSalesEnabled: true,
+            stops: [],
+          })
+        ).status,
+      ).toBe(200)
+    const add = (tripOf: string) =>
+      call<{ message?: string }>(app, packer, 'POST', `/delivery/trips/${tripOf}/stops`, {
+        idempotencyKey: `dos131-race-add-${tripOf}`,
+        id: tripOf,
+        stop: { id: uuidv7(), retailerId: retailerB, invoiceIds: [p2.invoiceId] },
+      })
+    const results = await Promise.all([add(tripX), add(tripY)])
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409])
+    expect(results.find((r) => r.status === 409)?.body.message).toContain('already planned on trip')
+    const onOpenTrips = await db.execute(
+      sql`select count(*)::int as n from deliveries d join trips t on t.id = d.trip_id
+           where d.tenant_id = ${tenantId} and d.invoice_id = ${p2.invoiceId} and d.outcome is null
+             and t.state not in ('settled', 'settled_with_variance', 'cancelled')`,
+    )
+    expect(onOpenTrips.rows[0]).toEqual({ n: 1 })
+    for (const id of [tripX, tripY])
+      expect(
+        (
+          await call(app, manager, 'POST', `/delivery/trips/${id}/cancel`, {
+            idempotencyKey: `dos131-race-cancel-${id}`,
+            id,
+            reason: 'DOS-131',
+          })
+        ).status,
+      ).toBe(200)
+  }, 180_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-056: the doorstep write made with no signal
+
+  const tripOffline = uuidv7()
+  const stopOffline = uuidv7()
+
+  interface UploadBody {
+    accepted: number
+    replayed: number
+    rejected: { opId: string; code: string; messageEn: string }[]
+  }
+
+  it('DOS-056 an offline delivery for a credit shop, queued with its photo inline after an offline arrival, is accepted from /sync/upload and pod_evidence holds only an object key', async () => {
+    // Trips 1 and 2 are settled by now, so the driver and the van are free for a third round today.
+    const bill = await billedOrder(retailerA, variantB, 'a3')
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `trip3-${run}`,
+      id: tripOffline,
+      tripDate: today,
+      vehicleId,
+      driverId,
+      stops: [
+        { id: stopOffline, sequence: 1, retailerId: retailerA, invoiceIds: [bill.invoiceId] },
+      ],
+    })
+    expect(planned.status).toBe(200)
+    expect(planned.body.item.tripNo).toMatch(/^TRIP-\d{4}$/)
+    expect(
+      (
+        await call(app, packer, 'POST', `/delivery/trips/${tripOffline}/start-loading`, {
+          idempotencyKey: `loading3-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const departed = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/trips/${tripOffline}/depart`,
+      { idempotencyKey: `depart3-${run}` },
+    )
+    expect(departed.status).toBe(200)
+    expect(departed.body.item.state).toBe('active')
+
+    // What the phone holds: the PLANNED delivery row and the `updated_at` its pull delivered.
+    const onPhone = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
+    const deliveryId = onPhone.body.item.stops[0]?.deliveries[0]?.id ?? ''
+    expect(deliveryId).not.toBe('')
+    const [held] = (
+      await db.execute(sql`select updated_at from deliveries where id = ${deliveryId}`)
+    ).rows as { updated_at: Date | string }[]
+    const baseUpdatedAt = new Date(held?.updated_at ?? 0).toISOString()
+
+    // A dead spot: "I am at the shop", then the delivery with the photo of the signed bill INLINE.
+    const deviceId = `driver-phone-dos056-${run}`
+    const at = new Date().toISOString()
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId,
+      ops: [
+        {
+          opId: `dos056-arrive-${run}`,
+          op: 'PATCH',
+          table: 'trip_stops',
+          id: stopOffline,
+          data: { state: 'arrived', occurred_at: at, lat: 19.2441, lng: 73.1356 },
+        },
+        {
+          opId: `dos056-deliver-${run}`,
+          op: 'PUT',
+          table: 'deliveries',
+          id: deliveryId,
+          baseUpdatedAt,
+          data: {
+            trip_id: tripOffline,
+            stop_id: stopOffline,
+            invoice_id: bill.invoiceId,
+            retailer_id: retailerA,
+            order_id: bill.orderId,
+            delivered_at: at,
+            device_id: deviceId,
+            lines: [
+              {
+                id: uuidv7(),
+                invoice_line_id: bill.lineId,
+                delivered_qty_pcs: 12,
+                returned_qty_pcs: 0,
+                returned_saleable: true,
+              },
+            ],
+            pod: [
+              {
+                id: uuidv7(),
+                kind: 'photo',
+                inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+                captured_at: at,
+              },
+            ],
+          },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.rejected).toEqual([])
+    expect(res.body.accepted).toBe(2)
+
+    const detail = await call<{ item: DeliveryDetailBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/deliveries/${deliveryId}`,
+    )
+    expect(detail.status).toBe(200)
+    expect(detail.body.item.outcome).toBe('delivered')
+    const photo = detail.body.item.pod.find((p) => p.kind === 'photo')
+    expect(photo?.objectKey).toMatch(/^tenant\/.*\/pod\//)
+    expect(photo?.objectKey).toContain(deliveryId)
+    const after = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'GET',
+      `/delivery/trips/${tripOffline}`,
+    )
+    expect(after.body.item.stops[0]?.state).toBe('delivered')
+    expect(await orderState(bill.orderId)).toBe('delivered')
+
+    // The bytes went to object storage through the files platform; the row holds the KEY and nothing
+    // else, so no pull can ever carry a photo back to a phone.
+    const pods = (
+      await db.execute(
+        sql`select kind::text as kind, object_key, payload from pod_evidence where delivery_id = ${deliveryId}`,
+      )
+    ).rows as { kind: string; object_key: string | null; payload: unknown }[]
+    expect(pods).toHaveLength(1)
+    expect(pods[0]?.kind).toBe('photo')
+    expect(pods[0]?.object_key).toBe(photo?.objectKey)
+    expect(pods[0]?.payload).toBeNull()
+    expect(JSON.stringify(pods)).not.toContain(TINY_PNG)
+    const files = (
+      await db.execute(
+        sql`select status::text as status from file_objects where tenant_id = ${tenantId} and object_key = ${pods[0]?.object_key ?? ''}`,
+      )
+    ).rows as { status: string }[]
+    expect(files.map((f) => f.status)).toEqual(['uploaded'])
+    const outcomes = (
+      await db.execute(
+        sql`select outcome from sync_ops where tenant_id = ${tenantId} and device_id = ${deviceId} order by op_id`,
+      )
+    ).rows as { outcome: unknown }[]
+    expect(outcomes.map((o) => o.outcome)).toEqual([{ ok: true }, { ok: true }])
+  }, 120_000)
+
+  it("DOS-056 a malformed offline delivery is refused row_invalid in the rule's own sentence, never as a Zod JSON array", async () => {
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `driver-phone-dos056-bad-${run}`,
+      ops: [
+        {
+          opId: `dos056-bad-${run}`,
+          op: 'PUT',
+          table: 'deliveries',
+          id: uuidv7(),
+          data: {
+            trip_id: uuidv7(),
+            stop_id: uuidv7(),
+            invoice_id: uuidv7(),
+            lines: [
+              {
+                id: uuidv7(),
+                invoice_line_id: uuidv7(),
+                delivered_qty_pcs: 12,
+                returned_qty_pcs: 0,
+              },
+            ],
+            // a photo that carries neither a key nor its bytes
+            pod: [{ id: uuidv7(), kind: 'photo' }],
+          },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(0)
+    expect(res.body.rejected).toHaveLength(1)
+    expect(res.body.rejected[0]?.code).toBe('row_invalid')
+    expect(res.body.rejected[0]?.messageEn).toBe(
+      'a photo or signature carries exactly one of objectKey / inline; an otp or geo carries neither',
+    )
+    expect(res.body.rejected[0]?.messageEn.startsWith('[')).toBe(false)
+  })
+
+  it('DOS-056 an oversize offline op is refused row_too_large as a 2xx sync_error, never a 413, and the rest of the batch still lands', async () => {
+    const deviceId = `driver-phone-dos056-big-${run}`
+    // Four doorstep writes that each swallowed an uncompressed photo: ~1.7 MiB of JSON apiece, ~7 MiB
+    // for the whole body — far past Fastify's 1 MiB default, inside the sync route's 8 MiB.
+    const uncompressed = 'A'.repeat(1_800_000)
+    const oversize = [1, 2, 3, 4].map((n) => ({
+      opId: `dos056-big-${n}-${run}`,
+      op: 'PUT',
+      table: 'deliveries',
+      id: uuidv7(),
+      data: {
+        trip_id: tripOffline,
+        stop_id: stopOffline,
+        invoice_id: uuidv7(),
+        lines: [
+          { id: uuidv7(), invoice_line_id: uuidv7(), delivered_qty_pcs: 1, returned_qty_pcs: 0 },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'photo',
+            inline: { mimeType: 'image/jpeg', contentBase64: uncompressed },
+          },
+        ],
+      },
+    }))
+    const expenseId = uuidv7()
+    const res = await call<UploadBody>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId,
+      ops: [
+        ...oversize,
+        {
+          opId: `dos056-toll-${run}`,
+          op: 'PUT',
+          table: 'trip_expenses',
+          id: expenseId,
+          data: { trip_id: tripOffline, kind: 'toll', amount_paise: 2_500 },
+        },
+      ],
+    })
+    expect(res.status).toBe(200)
+    expect(res.body.accepted).toBe(1)
+    expect(res.body.rejected.map((r) => r.code)).toEqual([
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+    ])
+    expect(res.body.rejected[0]?.messageEn).toMatch(/too large/)
+    const errors = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and device_id = ${deviceId}`,
+      )
+    ).rows as { code: string }[]
+    expect(errors.map((e) => e.code)).toEqual([
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+      'row_too_large',
+    ])
+    const expenses = (
+      await db.execute(sql`select kind::text as kind from trip_expenses where id = ${expenseId}`)
+    ).rows as { kind: string }[]
+    expect(expenses.map((e) => e.kind)).toEqual(['toll'])
+  }, 60_000)
 })

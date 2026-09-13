@@ -281,7 +281,10 @@ remove`, `incentives.statements.approve/reopen` (planned).
   `warehouse.reservations.release`, `warehouse.challans.recordEwb`, `delivery.trips.settle` (planned), `claims.*` writes (planned).
   docs/22 §2 says the accountant is "read + exports". Either an `ACCOUNTANT_READS` narrowing lands in `permissions.ts` before the
   frontend (recommended: keep `receipts.*`, `allocations.*`, `deposit`, `bounce`, `trips.settle`, `creditNotes.*`, exports; drop the
-  rest) or docs/22 is amended to say the accountant may write. Flagged, not decided here.
+  rest) or docs/22 is amended to say the accountant may write. Stock, procurement and inbound review are settled (QA DOS-037):
+  the inventory writes (`locations.upsert`, `stock.adjust/transfer`, `lots.upsert`) are STOCK_KEEPERS, and
+  `inventory.cycleCounts.post`, the `procurement.*` writes and the docint decisions (review, matches, `extractions.run`,
+  `reject`, `approve`) are MANAGEMENT; the accountant reads them. The other items above stay as listed.
 - Accountant deliberately ✗: `warehouse.picklists.*`, `warehouse.packs.confirm`, `loadSheets.confirm/cancel`, `billing.invoices.cancel`,
   `retailers.linkIdentity`, `tenancy.staff.create/setPassword/setStatus`, `procurement.grns.count`. The app hides these.
 
@@ -398,10 +401,12 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `billing.invoices.get` ✓, `billing.invoices.pdf` ✓, `billing.invoices.setEwayBill` ✓ (`billing` is mounted on warehouse-service
   in the in-flight slice). PDF renderer deferred.
 - **W7 Load sheet: build, crew blind count, manager confirm, challan print** — Calls: `warehouse.loadSheets.create/get/list` ✓,
+  `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
+  Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
   warehouse) — the warehouse app shows expected van stock from balances instead.
@@ -536,13 +541,15 @@ The detail view for a WhatsApp message: no registration form, no permissions, on
   with signed read URLs for the POD photo (the plan has `list` only, no `get`, no URL).
 - **R5 Pay online** — `receivables.payments.initiate` ✓ (retailer only; payee name = distributor ✓). Gateway callback = later.
 - **R6 Statement of account** — `receivables.ledger.get` ✓ (built from documents for the retailer role).
-- **R7 Reorder / order editor (ATP-aware quantities, running-low, price shown)** — Calls: `orders.repeatLast` ✓, `orders.create` ✓,
+- **R7 Reorder / order editor (ATP-aware quantities, running-low, price shown)** — Calls: `orders.lastPlaced` ✓ ("Order again": the
+  basket is built on the device from the shop's most recently placed order, in the pieces it carried; nothing is written until
+  Place order, DOS-098), `orders.create` ✓,
   `orders.setLines` ✓, `orders.cancel` ✓, `tenantCatalog.list` ✓, `catalog.search` ✓,
   `inventory.stock.availability` ✓ (the stock line: godown total per item, "Out of stock" only after a complete read, DOS-097),
   `pricing.quote` ✓. MISMATCH: `orders.submit` is STAFF — the shop can draft but NEVER submit its own order; docs/22 §4 R1 → S5
   ("Reorder → submitted") is unreachable. `OrdersService.submit` has `requireRole(STAFF)` too. The single most important
   retailer gap. "Running low" needs `reporting.retailers.behaviour.usualBasket`, deliberately not on retailer-service — use
-  `orders.repeatLast` and the last-order lines instead.
+  `orders.lastPlaced` and the last-order lines instead.
 - **R8 Order status & track delivery** — `orders.list/get` ✓ (approvals stripped for the shop), `delivery.stops.list` retailerId
   (planned, ETA only, never a coordinate).
 - **R9 Deals** — MISMATCH: `pricing.schemes.list` is STAFF; the shop cannot see its applicable schemes (docs/06 "deals").
@@ -873,12 +880,12 @@ pcsPerCase, code }` — M3/M4 (buy-side pack sizes for the GRN) — `supplier_pa
 
 ### 8.18 inventory (built) — 2 · DONE
 
-- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (BACK_OFFICE; one `cycle_count` ledger row
+- **DONE:** `inventory.cycleCounts.open` / `count` (STOCK_KEEPERS), `post` (owner, manager; one `cycle_count` ledger row
   per non-zero variance, keyed `cycle_count:<countId>:<lotId>`), `list` / `get` (STOCK_VIEWERS);
   `StockBalancesInput.expiringBefore` and `nearExpiryOnly` (60-day window).
 
 - `inventory.cycleCounts.open` / `.count` / `.post` / `.list` — POST/GET `/inventory/cycle-counts` — `{ id, locationId, lotIds? }`
-  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, BACK_OFFICE post) — W8, M16, O15 —
+  → `{ item: { lines: [{ lotId, expectedPcs, countedPcs }] } }` (STOCK_KEEPERS count, owner/manager post) — W8, M16, O15 —
   `cycle_counts` / `cycle_count_lines` exist; `stock.adjust` reason `cycle_count` is one lot at a time.
 - field: `StockBalancesInput.expiringBefore: IsoDate` and `nearExpiryOnly` — W8, O15 — the near-expiry list is a client-side
   filter over pages today.
@@ -900,7 +907,8 @@ id, reason }` → `{ item }` — M4 — the `disputed` / `cancelled` statuses in
 
 1. Accountant write scope (§2.3) — **DECIDED and DONE** (docs/22 2026-09-05): the accountant is the money desk
    (`ROLE_GROUPS.MONEY_DESK`: receipts, reversals, deposits, bounces, allocations, write-offs, statements) and reads
-   everything else; no price, scheme, credit limit, approval, catalog write or setting.
+   everything else; no price, scheme, credit limit, approval, catalog write or setting (stock, procurement and
+   inbound-review writes enforced 2026-09-13, QA DOS-037).
 2. Manager's PIN on the warehouse device (§4.3) — **DECIDED and DONE** (docs/22 2026-09-05): the manager app
    approves the load sheet (`loadSheets.approve`), the warehouse phone confirms it (`loadSheets.confirm`); no
    `auth.stepUp`. W7 shows "waiting for the manager" until `approvedBy` is set.
@@ -945,7 +953,7 @@ would break the gate that is running.
 | 5   | `procurement.grns.list`, `warehouse.picklists.list`, `warehouse.packs.list`, `warehouse.loadSheets.list` | the warehouse home strip prints "20+", "40+" — the page size, honestly labelled, because no total exists                                                                                                                                                                                                                                                                                                                                                                                                    | a `total` on the list output so the godown sees its real queue                                          |
 | 6   | `SYNC_PULL_TABLES` (`backend/libs/database/src/sync-tables.ts`)                                          | `collections` has an upload handler in `delivery.sync.ts` but is not a pull table, so `SyncRegistry.manifest()` never marks it writable and `engine.enqueue()` refuses it by name — a doorstep collection cannot be queued from a device at all                                                                                                                                                                                                                                                             | add `collections` to the pull set so the manifest can publish it                                        |
 | 7   | `delivery.trips.list` (`trips.service.ts`)                                                               | pages by `desc(trips.id)`, which is arbitrary for seeded rows: the pilot data answers 2027-dated trips before 2026 ones, so "Your trips" was neither the last 30 days nor in order. The app now bounds and re-sorts the page it fetched                                                                                                                                                                                                                                                                     | order by `trip_date DESC, id DESC`                                                                      |
-| 8   | `billing.invoices.list`, `orders.list`, `notifications.messages.list`                                    | all three page by `id DESC` and take no `orderBy`. Ids are UUIDv7 for rows this product issues, so production reads right — but a seeded, imported or back-dated row sorts anywhere. Measured on the founder's data: "My bills" opened 27 Aug · 26 Aug · 28 Aug · 5 Sep, "My orders" 4 Sep · 5 Sep · 6 Sep · 5 Sep, and the shop's inbox opened on a 26 August message with that morning's WhatsApp twelve rows down. The apps sort the page they were given, which is right for one page and wrong for two | an `orderBy` (or order by the document's own date, `DESC, id DESC`) so the cursor and the reading agree |
+| 8   | `billing.invoices.list`, `orders.list`, `notifications.messages.list`                                    | all three page by `id DESC` and take no `orderBy`. Ids are UUIDv7 for rows this product issues, so production reads right — but a seeded, imported or back-dated row sorts anywhere. Measured on the founder's data: "My bills" opened 27 Aug · 26 Aug · 28 Aug · 5 Sep, "My orders" 4 Sep · 5 Sep · 6 Sep · 5 Sep, and the shop's inbox opened on a 26 August message with that morning's WhatsApp twelve rows down. The apps sort the page they were given, which is right for one page and wrong for two | an `orderBy` (or order by the document's own date, `DESC, id DESC`) so the cursor and the reading agree. `orders.lastPlaced` (DOS-098) already answers a shop's newest placed order by placement time; `orders.list` itself still pages by id |
 | 9   | `receivables.receipts.list` / `billing.invoices.get`                                                     | a bill cannot name the money that paid it: `receipts.list` has no `invoiceId` filter, there is no `allocations.list`, and `invoices.get` carries `creditNotes` but not its allocations. R4's "what you have paid" therefore states the invoice's own `totalPaise − amountDuePaise` and sends the reader to Receipts                                                                                                                                                                                         | an `invoiceId` filter on `receipts.list`, or `allocations` on `invoices.get`                            |
 | 10  | `orders.repeatLast` (`orders.service.ts:206`)                                                            | writes `note: 'Repeat of ' + previous.id` — a database uuid in a field the SHOP reads, printed under "Your note" on the order the two-tap reorder creates. The retailer app recognises the marker and prints its own sentence instead                                                                                                                                                                                                                                                                       | the previous order's NUMBER, or a structured `repeatOfOrderId` field rather than prose                  |
 

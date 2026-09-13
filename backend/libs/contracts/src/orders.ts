@@ -241,7 +241,7 @@ export const CancelOrderInput = MutationBase.extend({
 export const CancelOrderOutput = OrderItemOutput
 
 export const RepeatLastOrderInput = MutationBase.extend({
-  /** Id of the NEW draft; the lines are copied from the retailer's last non-cancelled order. */
+  /** Id of the NEW draft; the lines are copied from the retailer's most recently placed order, never a draft. */
   id: IdSchema,
   retailerId: IdSchema,
   source: OrderSourceSchema.default('salesperson'),
@@ -252,6 +252,14 @@ export const RepeatLastOrderOutput = OrderItemOutput
 
 export const OrderGetInput = z.object({ id: IdSchema })
 export const OrderGetOutput = OrderItemOutput
+
+/**
+ * The shop's most recently PLACED order with its lines (DOS-098): by when it was placed, by any author and from
+ * any source, never a draft or a cancelled order. It writes nothing, so "Order again" builds its basket on the
+ * device. `item` is null when the shop has placed none (for a salesperson: none credited to it).
+ */
+export const LastPlacedOrderInput = z.object({ retailerId: IdSchema })
+export const LastPlacedOrderOutput = z.object({ item: OrderDetailSchema.nullable() })
 
 export const OrdersListInput = z.object({
   state: OrderStateSchema.optional(),
@@ -345,6 +353,15 @@ export const ordersContract = {
     })
     .input(CancelOrderInput)
     .output(CancelOrderOutput),
+  lastPlaced: oc
+    .route({
+      method: 'GET',
+      path: '/orders/last-placed',
+      summary:
+        "The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing)",
+    })
+    .input(LastPlacedOrderInput)
+    .output(LastPlacedOrderOutput),
   get: oc
     .route({
       method: 'GET',

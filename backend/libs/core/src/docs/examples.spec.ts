@@ -14,7 +14,12 @@ import {
   withSystem,
   type Db,
 } from '@dos/db'
-import { allProcedures, type ProcedureSummary } from '@dos/contracts'
+import {
+  allProcedures,
+  mayPostAdjustment,
+  type AdjustmentReason,
+  type ProcedureSummary,
+} from '@dos/contracts'
 import {
   buildExamples,
   createdId,
@@ -558,6 +563,26 @@ describe('every POST, on every service that serves it', () => {
     for (const [service, roles] of Object.entries(SERVICE_ROLES)) {
       const again = buildExamples(PROCEDURES, LINKED, { roles })
       expect([...again.values()], service).toEqual([...(byService.get(service)?.values() ?? [])])
+    }
+  })
+
+  // DOS-044: only the owner or a manager adds stock by hand, so Execute on warehouse-service's /docs must
+  // send a call its own login may send — a piece off, never a piece on.
+  it('DOS-044: the published inventory.stock.adjust example on warehouse-service takes a piece off; owner-service and manager-service still add one', () => {
+    const adjustOf = (service: string): Record<string, unknown> =>
+      byService.get(service)?.get('inventory.stock.adjust')?.body ?? {}
+    const warehouse = adjustOf('warehouse')
+    expect(Number(warehouse.qtyDelta), 'warehouse qtyDelta').toBeLessThan(0)
+    expect(warehouse.reason, 'warehouse reason').not.toBe('opening')
+    for (const service of ['owner', 'manager']) {
+      expect(Number(adjustOf(service).qtyDelta), `${service} qtyDelta`).toBeGreaterThan(0)
+    }
+    for (const [service, roles] of Object.entries(SERVICE_ROLES)) {
+      const body = adjustOf(service)
+      const sendable = roles.some((role) =>
+        mayPostAdjustment(role, body.reason as AdjustmentReason, Number(body.qtyDelta)),
+      )
+      expect(sendable, `${service}: ${JSON.stringify(body)}`).toBe(true)
     }
   })
 })
