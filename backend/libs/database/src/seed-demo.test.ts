@@ -575,6 +575,32 @@ describeDb('demo seed on an empty database', () => {
   }, 180_000)
 
   /**
+   * DOS-105 (merge-review blocker): the inbox row a shopkeeper reads is seeded, not swept, so a
+   * `pnpm db:seed` re-run alone could never fix an ISO date left in a `dues_reminder` body — the
+   * seed itself must never write `oldestDueDate` as `2026-08-06`.
+   */
+  it('DOS-105: no dues_reminder message body carries a raw ISO date (oldestDueDate is worded, e.g. "6 Aug 2026")', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    await seedExtraTenants(db, { passwordHash, printSignIn: false })
+
+    // The rendered sentence lives at `payload.body` (the message's own frozen text, docs/plans/
+    // notifications.md §6); `payload.oldestDueDate` is the variable that fed it. Every distributor,
+    // not only this spec's own tenant: `seedExtraTenants` runs the same `seedNotifications` per tenant.
+    const rows = (
+      await db.execute(
+        sql`SELECT id, payload ->> 'body' AS body, payload ->> 'oldestDueDate' AS oldest_due_date
+              FROM messages WHERE template_key = 'dues_reminder'`,
+      )
+    ).rows as { id: string; body: string | null; oldest_due_date: string | null }[]
+    expect(rows.length).toBeGreaterThan(0)
+    const isoDated = rows.filter(
+      (r) =>
+        /\d{4}-\d{2}-\d{2}/.test(r.body ?? '') || /\d{4}-\d{2}-\d{2}/.test(r.oldest_due_date ?? ''),
+    )
+    expect(isoDated).toEqual([])
+  }, 180_000)
+
+  /**
    * Module 13's console data, the last thing `pnpm db:seed` writes: the `dos.admin` account every
    * `/auth/platform/login` in the docs and in `pnpm smoke` uses, a subscription for every
    * distributor, and support windows in all three states an owner and a console can see — one live

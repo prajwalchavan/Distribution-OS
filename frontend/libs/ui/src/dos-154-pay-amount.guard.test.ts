@@ -6,6 +6,14 @@
  * raw `amount ?? owed`, ignoring which bills were ticked. Per the DOS-146 verdict: fix this as one
  * value, never with a second `?? 0`.
  *
+ * Merge-review blockers (Fable, 2026-09-13): the field's `onChange` was still bare `setAmount`, so an
+ * emptied field reported `null` from the kit, `payable` fell back to `owed` again on the very next
+ * render, and web's blur / the pad's Clear reformatted to the full dues — the exact snap-back the
+ * DOS-146 verdict forbids. And a 0 typed by hand disabled Start with "Nothing is pending. You are
+ * clear.", which is a lie while dues are still outstanding. Fixed: `onChange` maps an emptied field to
+ * `0` (never leaves `null` to be re-read as "untouched"), and `disabledReason` gets a third branch —
+ * outstanding dues with nothing entered reads "Enter an amount", never r3.noBills.
+ *
  * The field-density RupeeInput frame (native, retailer's own touch) also rendered identically whether
  * or not it was disabled — the "Leave it as it is" helper was the only sign, easy to miss on a phone.
  *
@@ -30,6 +38,21 @@ describe('DOS-154: the Pay amount field shows what is actually payable', () => {
   it('wires it to the same `payable` the bottom bar and Start already agree on', () => {
     const rupeeInput = /<RupeeInput\b[\s\S]*?\/>/.exec(pay)?.[0] ?? ''
     expect(rupeeInput).toMatch(/value=\{payable\}/)
+  })
+
+  it('never wires onChange to bare setAmount, which lets an emptied field snap back to owed', () => {
+    const rupeeInput = /<RupeeInput\b[\s\S]*?\/>/.exec(pay)?.[0] ?? ''
+    expect(rupeeInput).not.toMatch(/onChange=\{setAmount\}/)
+  })
+
+  it('maps an emptied field (kit reports null) to 0, so it stays 0 rather than falling back to owed', () => {
+    const rupeeInput = /<RupeeInput\b[\s\S]*?\/>/.exec(pay)?.[0] ?? ''
+    expect(rupeeInput).toMatch(/onChange=\{[^}]*next\s*\?\?\s*0[^}]*\}/)
+  })
+
+  it('gives Start a third disabled reason — outstanding dues with nothing entered, not "you are clear"', () => {
+    expect(pay).toMatch(/owed > 0/)
+    expect(pay).toMatch(/r5\.enterAmount/)
   })
 })
 

@@ -163,7 +163,7 @@ export const strings = {
   'r8.stopSeq': 'Stop {seq} on that round',
   'r8.bill': 'Bill {no}',
   'r8.seeBill': 'See the bill',
-  'r8.short': '{delivered} of {ordered} pc, {short} short and not billed',
+  'r8.short': '{picked} of {ordered} pc, {short} short and not billed',
   'r8.cancel': 'Cancel this order',
   'r8.keepIt': 'Keep it',
   'r8.cancelReason': 'Why are you cancelling',
@@ -216,6 +216,9 @@ export const strings = {
   'r5.noVpa': '{name} has not set up online payment yet.',
   'r5.pending': 'The money shows here once {name} has matched it. Keep the reference.',
   'r5.overDues': 'More than you owe today. The extra stays on your account with them.',
+  // DOS-154: the reason Start is disabled when dues are outstanding but the amount field reads 0 —
+  // never "Nothing is pending", which is only true when there is nothing owed at all.
+  'r5.enterAmount': 'Enter an amount',
 
   // --- R4 bill detail -------------------------------------------------------------------------------
   'r4.title': 'My bills',

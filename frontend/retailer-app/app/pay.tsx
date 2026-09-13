@@ -105,6 +105,12 @@ export default function Pay(): React.JSX.Element {
   const chosenTotal = bills
     .filter((bill) => chosen.includes(bill.id))
     .reduce((sum, bill) => sum + bill.openPaise, 0)
+  /*
+   * DOS-154 (DOS-146 class, architect verdict): `amount` is `null` until the shop TOUCHES the field —
+   * that is what lets `payable` show `owed` untouched and send no `amountPaise` at all. The kit
+   * reports `null` again for an emptied field (web blur, the pad's Clear); the field's own `onChange`
+   * below turns that back into `0` so an emptied field STAYS `0` and never snaps back to `owed`.
+   */
   const payable = chosen.length > 0 ? chosenTotal : (amount ?? owed)
 
   return (
@@ -127,7 +133,15 @@ export default function Pay(): React.JSX.Element {
             disabled={payable <= 0}
             {...(payable <= 0
               ? {
-                  disabledReason: dues.data === undefined ? t('app.noConnection') : t('r3.noBills'),
+                  // DOS-154: three reasons a shop sees no way forward here, and only one of them is
+                  // "nothing is owed" — an amount typed to 0 (or emptied) with dues outstanding is the
+                  // shop still needing to type something, never "you are clear".
+                  disabledReason:
+                    dues.data === undefined
+                      ? t('app.noConnection')
+                      : owed > 0
+                        ? t('r5.enterAmount')
+                        : t('r3.noBills'),
                 }
               : {})}
             onPress={() => {
@@ -163,7 +177,13 @@ export default function Pay(): React.JSX.Element {
                   // DOS-154 (DOS-146 class): the field must show what is actually payable, not the
                   // raw typed amount — `payable` already agrees with the bottom bar and Start.
                   value={payable}
-                  onChange={setAmount}
+                  // `null` (untouched, or a value that failed to parse) is never stored back as-is: an
+                  // emptied field reports `null` from the kit too, and storing that would let `payable`
+                  // fall back to `owed` again — the snap-back the DOS-146 verdict forbids. Once typed,
+                  // an emptied field is `0` and stays `0`.
+                  onChange={(next) => {
+                    setAmount(next ?? 0)
+                  }}
                   helper={chosen.length > 0 ? t('r5.chosenHelper') : t('r5.amountHelper')}
                   bound={owed}
                   boundMessage={t('r5.overDues')}

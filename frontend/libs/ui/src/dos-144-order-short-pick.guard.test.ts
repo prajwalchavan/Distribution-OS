@@ -18,10 +18,12 @@ const source = readFileSync(
   'utf8',
 )
 
-describe('DOS-144: a billed order shows what was actually delivered, and the bill decides "how much"', () => {
-  it('a short line compares deliveredQtyPcs against qtyPcs once the order has a bill', () => {
-    expect(source).toMatch(/deliveredQtyPcs/)
-    expect(source).toMatch(/line\.qtyPcs\s*-\s*line\.deliveredQtyPcs/)
+describe('DOS-144: a billed order shows what was actually picked, and the bill decides "how much"', () => {
+  it('a short line compares pickedQtyPcs against qtyPcs once the order has a bill, never deliveredQtyPcs', () => {
+    // `deliveredQtyPcs` has one writer (recordDelivered, at the door) and is still 0 between pack and
+    // delivery — every packed or dispatched order's line would otherwise read "0 of N pc, N short".
+    expect(source).toMatch(/pickedQtyPcs/)
+    expect(source).toMatch(/line\.qtyPcs\s*-\s*line\.pickedQtyPcs/)
   })
 
   it("the bottom bar's money is the bill's amountDuePaise once there is one, not the order's own total", () => {

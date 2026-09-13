@@ -211,13 +211,20 @@ export default function OrderDetail(): React.JSX.Element {
                   {detail.lines.map((line) => {
                     // DOS-144: once the order has a bill, a short-picked line said nothing about the
                     // pieces that never shipped — "60 pc" stayed the ordered count, next to a bill
-                    // that had already billed 54. `billLineQty` prints what was ORDERED; this is
-                    // what actually reached the shop, the only figure the bill can agree with.
-                    const short = bill === undefined ? 0 : line.qtyPcs - line.deliveredQtyPcs
+                    // that had already billed 54. `billLineQty` prints what was ORDERED; this is what
+                    // was actually PICKED, the only figure the bill can agree with.
+                    //
+                    // This deliberately reads `pickedQtyPcs`, never `deliveredQtyPcs`: the bill is
+                    // issued at pack, so between pack and the door every line's `deliveredQtyPcs` is
+                    // still 0 (its one writer is `recordDelivered` at the door) — reading it here
+                    // would print "0 of 60 pc, 60 short" on every packed or dispatched order, and a
+                    // door-side shortfall becomes a credit note, never "not billed". `pickedQtyPcs` is
+                    // written once, at pick, and is what the invoice actually billed.
+                    const short = bill === undefined ? 0 : line.qtyPcs - line.pickedQtyPcs
                     const qtyText =
                       short > 0
                         ? t('r8.short', {
-                            delivered: String(line.deliveredQtyPcs),
+                            picked: String(line.pickedQtyPcs),
                             ordered: String(line.qtyPcs),
                             short: String(short),
                           })
