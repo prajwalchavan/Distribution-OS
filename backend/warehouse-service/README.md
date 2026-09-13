@@ -172,7 +172,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
-| POST | `/delivery/trips/{id}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
+| POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/delivery/trips/{id}/next-stop` | The next open stop of a trip with the shop to visit | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/stops` | Add a stop to a trip (a late bill, or the shop a van sale goes to) | owner, manager, warehouse, delivery |
@@ -19918,7 +19918,7 @@ curl "http://localhost:3004/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/
 }
 ```
 
-### POST `/delivery/trips/{id}/settle`
+### POST `/delivery/trips/{tripId}/settle`
 
 Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner · contract `delivery.trips.settle`
 
@@ -19939,7 +19939,7 @@ Settle: count the van back in, hand over the cash; variance beyond tolerance nee
 **Example request**
 
 ```bash
-curl -X POST "http://localhost:3004/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/settle" \
+curl -X POST "http://localhost:3004/delivery/trips/01a06d0b-bd31-7813-8e79-aa7c39f75385/settle" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
   -H "content-type: application/json" \
   -d @request.json
@@ -20013,7 +20013,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "the warehouse role may not call POST /delivery/trips/{id}/settle",
+  "message": "the warehouse role may not call POST /delivery/trips/{tripId}/settle",
   "error": "Forbidden"
 }
 ```
