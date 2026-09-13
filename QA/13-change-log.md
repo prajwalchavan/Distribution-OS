@@ -204,3 +204,34 @@ The lanes were relaunched as one priority-scheduled run, `wf_ae8abf06-4fc`. It r
 6. h5 DOS-098 → 126, only after DOS-115 verifies
 
 Each resumed implementer is told what the stopped one left behind. It must re-check that work against the plan and its amendments before it commits.
+
+### Batch 2 — ten verified, eight merged (2026-09-13 15:50 IST)
+
+**Build.** Run `wf_ae8abf06-4fc` verified all ten plans: each test failed before the fix and passed after, as an independent verifier confirmed. Every amendment was satisfied, no repair round was needed, and there were no blockers. Per-plan implementer and verifier reports are in `QA/evidence/batch2/lane-results/<id>.json`.
+
+**Review.** Fable merge reviews (runs `wf_a8e3a6c2-fdd` and `wf_c61e23fd-3f9`) returned MERGE for h7, DOS-115, h2 slice 2, h1 slice 2 and h5 slice 3. h3 got MERGE AFTER FIXES. The reviews are in `QA/evidence/batch2/merge-reviews/`.
+
+**Integration.** Run `wf_3f9f63f5-98a` handled each slice in four steps:
+1. An integrator merged main into the lane and resolved conflicts as the review said.
+2. The same integrator applied the merge-time fixes and got the merged tree green.
+3. An adversarial verifier checked that no hunk was dropped, the scope stayed clean and the key specs passed.
+4. The slice was merged `--no-ff` into main and pushed.
+
+| slice | fixes | on main | merge-time work |
+|---|---|---|---|
+| h7-syncdoor | DOS-166 (P0) | `5b10e44` | prettier on pricing.spec.ts (DOS-096 drift), so backend format:check is green again |
+| h5 commit 2ec9583 | DOS-115 (P0) | `c5d21d1` · `e474288` · `492da02` | The orders.spec upload test now expects `role_not_allowed`, because the DOS-166 door refuses before the handler; `requirePlacer` stays pinned by direct assertions. READMEs regenerated. |
+| h2-trips slice 2 | DOS-133, DOS-131+137 (P0) | `b11697e` | Index migration regenerated as 0047 on top of h7's 0045/0046; lane DB recreated |
+| h1-money slice 2 | DOS-007, DOS-117, DOS-132 | `eb3a8b2` | delivery.module.ts conflict: both the TripSettled lines and the standsFor registrations kept; prettier on the slice specs |
+| h3-doorstep | DOS-056 (+156), DOS-146 | `3d7cb36` | sync.service.ts upload order is now unknown_table → role_not_allowed → savepoint { oversize → stale → handler }; DOS-056 test no longer hard-codes TRIP-0003; lane DB recreated |
+
+**Still owed on the merged fixes.**
+- Platform walks on web, Android and iOS.
+- The DOS-166 regression probe on dos_qa.
+- docs/22 rows for DOS-166, DOS-115, DOS-131+137, DOS-056/146/156 and DOS-117 (f).
+- Review minors, which may follow:
+  - `rowTooLarge` added to SYNC_REJECTION_CODES;
+  - a test pinning the 8 MiB route limit;
+  - stale proof-of-delivery prose in contracts/delivery.ts and docs/20 rule 15.
+- Suspected defects S-73..S-91, not tested.
+- Tooling note: `pnpm --filter <pkg> test -- <file>` runs the whole vitest suite; use `pnpm --filter <pkg> exec vitest run <file>` for a single file.
